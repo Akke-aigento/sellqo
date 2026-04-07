@@ -680,6 +680,58 @@ Deno.serve(async (req) => {
           }
         }
 
+        // === LABEL-PDF-RETRY: Retry labels that exist but have no PDF ===
+        if (vvbEnabled) {
+          try {
+            console.log(`[LABEL-PDF-RETRY] Checking for labels without PDF (connection: ${connection.id})...`)
+
+            const { data: incompleteLabelOrders } = await supabase
+              .from('shipping_labels')
+              .select('id, order_id, external_id, status, orders!inner(marketplace_order_id, order_number, tenant_id)')
+              .or('status.eq.pending,and(status.eq.created,label_url.is.null)')
+              .eq('provider', 'bol_vvb')
+              .not('external_id', 'is', null)
+
+            if (incompleteLabelOrders && incompleteLabelOrders.length > 0) {
+              console.log(`[LABEL-PDF-RETRY] Found ${incompleteLabelOrders.length} labels without PDF`)
+              const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+              const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+              for (const label of incompleteLabelOrders) {
+                const orderData = label.orders as unknown as { marketplace_order_id: string; order_number: string; tenant_id: string }
+                try {
+                  console.log(`[LABEL-PDF-RETRY] Retrying PDF fetch for label ${label.id} (order ${orderData.order_number})...`)
+                  const retryRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${serviceKey}`,
+                    },
+                    body: JSON.stringify({
+                      orderId: label.order_id,
+                      connectionId: connection.id,
+                      retry: true,
+                    }),
+                  })
+                  const retryBody = await retryRes.text()
+                  if (retryRes.ok) {
+                    console.log(`[LABEL-PDF-RETRY] PDF fetched for ${orderData.order_number}: ${retryBody}`)
+                  } else {
+                    console.error(`[LABEL-PDF-RETRY] Failed for ${orderData.order_number}: ${retryRes.status} ${retryBody}`)
+                  }
+                } catch (retryErr) {
+                  console.error(`[LABEL-PDF-RETRY] Error for ${orderData.order_number}:`, retryErr)
+                }
+                await new Promise(r => setTimeout(r, 1000))
+              }
+            } else {
+              console.log(`[LABEL-PDF-RETRY] All labels have PDF URLs`)
+            }
+          } catch (labelRetryErr) {
+            console.error('[LABEL-PDF-RETRY] Error:', labelRetryErr)
+          }
+        }
+
         // Update connection stats
         const currentStats = (connection.stats as Record<string, unknown>) || {}
         

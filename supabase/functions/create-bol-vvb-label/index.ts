@@ -729,7 +729,7 @@ const handler = async (req: Request): Promise<Response> => {
           carrier: selectedOffer.transporterCode,
           tracking_number: trackingNumber,
           label_url: labelPdfUrl,
-          status: transporterLabelId ? "created" : "pending",
+          status: (transporterLabelId && labelPdfUrl) ? "created" : "pending",
         },
       ])
       .select()
