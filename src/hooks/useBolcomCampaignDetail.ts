@@ -204,6 +204,21 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
     onError: () => toast.error('Fout bij toevoegen keyword'),
   });
 
+  const deleteCampaign = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: 'delete_campaign', payload: { campaign_id: campaignId } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bolcom-campaigns'] });
+      toast.success('Campagne verwijderd');
+    },
+    onError: () => toast.error('Fout bij verwijderen campagne'),
+  });
+
   const addNegativeKeyword = useMutation({
     mutationFn: async (params: { adgroupId: string; keyword: string; matchType: string }) => {
       const { data, error } = await supabase.functions.invoke('ads-bolcom-manage', {
@@ -238,5 +253,6 @@ export function useBolcomCampaignDetail(campaignId: string | undefined) {
     toggleKeywordStatus,
     addKeyword,
     addNegativeKeyword,
+    deleteCampaign,
   };
 }
