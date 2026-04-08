@@ -10,6 +10,7 @@ import { TrialExpiredBlocker } from './TrialExpiredBlocker';
 import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationListener';
 import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
 import { PlatformViewModeProvider } from '@/hooks/usePlatformViewMode';
+import { AdminMobileBottomNav } from './AdminMobileBottomNav';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -23,7 +24,7 @@ function AdminLayoutContent() {
           <AdminHeader />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
-          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden pb-20 md:pb-6">
             <Outlet />
           </main>
         </SidebarInset>
@@ -34,6 +35,8 @@ function AdminLayoutContent() {
       <TrialExpiredBlocker />
       {/* AI Help Widget - floating chat assistant */}
       <AIHelpWidget />
+      {/* Mobile bottom navigation */}
+      <AdminMobileBottomNav />
     </>
   );
 }
