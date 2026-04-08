@@ -51,7 +51,7 @@ export function AdminHeader() {
             <span className="text-sm font-semibold text-muted-foreground">
               {currentTenant.name}
             </span>
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs hidden md:inline-flex">
               {currentTenant.subscription_plan}
             </Badge>
           </div>
