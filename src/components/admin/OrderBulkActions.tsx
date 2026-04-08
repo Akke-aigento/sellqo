@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
 import {
-  ChevronDown,
+  ChevronUp,
   XCircle,
   Truck,
   CheckCircle,
@@ -233,7 +233,7 @@ export function OrderBulkActions({
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 max-w-screen-xl mx-auto">
           <span className="text-sm font-medium whitespace-nowrap">
             {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
@@ -242,11 +242,11 @@ export function OrderBulkActions({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" disabled={!!loadingAction}>
-                {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+                {loadingAction ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronUp className="h-4 w-4 mr-2" />}
                 Acties
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" side="top" className="w-56">
               {/* Status sub-menu */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>

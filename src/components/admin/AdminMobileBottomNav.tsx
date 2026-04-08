@@ -33,9 +33,7 @@ export function AdminMobileBottomNav() {
             <div className="relative">
               <tab.icon className="h-5 w-5" />
               {tab.badge && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                  {tab.badge > 99 ? '99+' : tab.badge}
-                </span>
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background" />
               )}
             </div>
             <span>{tab.label}</span>
