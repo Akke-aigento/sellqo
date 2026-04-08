@@ -15,7 +15,7 @@ export function AdminMobileBottomNav() {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: ShoppingCart, label: 'Bestellingen', path: '/admin/orders' },
     { icon: Package, label: 'Producten', path: '/admin/products' },
-    { icon: MessageSquare, label: 'Inbox', path: '/admin/messages', badge: count },
+    { icon: MessageSquare, label: 'Inbox', path: '/admin/messages' },
   ];
 
   return (
@@ -32,8 +32,8 @@ export function AdminMobileBottomNav() {
           >
             <div className="relative">
               <tab.icon className="h-5 w-5" />
-              {tab.badge && tab.badge > 0 && (
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background" />
+              {tab.path === '/admin/messages' && count > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
               )}
             </div>
             <span>{tab.label}</span>
