@@ -333,6 +333,79 @@ export default function CategoriesPage() {
     }
   };
 
+  const renderCategoryContent = () => {
+    if (filteredTree.length === 0 && searchQuery) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Geen categorieën gevonden voor "{searchQuery}"
+          </p>
+        </div>
+      );
+    }
+    if (categoryTree.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <FolderTree className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-medium mb-2">Geen categorieën</h3>
+          <p className="text-muted-foreground mb-4">
+            Begin met het toevoegen van je eerste categorie.
+          </p>
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Eerste categorie toevoegen
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={allCategoryIds}
+          strategy={verticalListSortingStrategy}
+        >
+          <RootDropZone isOver={isOverRoot} activeId={activeId} />
+          <div className="space-y-0.5">
+            {(searchQuery ? filteredTree : categoryTree).map((category) => (
+              <CategoryTreeItem
+                key={category.id}
+                category={category}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onAddChild={handleAddChild}
+                onMove={handleMoveCategory}
+                activeId={activeId}
+                expandedIds={expandedIds}
+                onToggleExpand={handleToggleExpand}
+                allCategories={allCategories}
+                searchQuery={searchQuery}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleStatus={handleToggleStatus}
+              />
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeId ? (() => {
+            const activeCategory = allCategories.find(c => c.id === activeId);
+            return activeCategory ? (
+              <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary cursor-grabbing">
+                <Folder className="h-4 w-4 text-primary" />
+                <span className="font-medium">{activeCategory.name}</span>
+              </div>
+            ) : null;
+          })() : null}
+        </DragOverlay>
+      </DndContext>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
