@@ -151,7 +151,7 @@ export default function MessagesPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <div className={`${isSinglePanel ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
+      <div className={`${isSinglePanel ? 'px-1 pt-2 pb-0' : 'p-6 pb-0'}`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
@@ -173,7 +173,7 @@ export default function MessagesPage() {
         <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
       </div>
 
-      <div className={`${isSinglePanel ? 'p-3' : 'p-6'} h-[calc(100%-${isSinglePanel ? '3.5rem' : '5rem'})]`}>
+      <div className={`${isSinglePanel ? 'px-1 pb-1' : 'p-6'} h-[calc(100%-${isSinglePanel ? '3.5rem' : '5rem'})]`}>
         <Card className="h-full flex overflow-hidden">
           <DndContext
             collisionDetection={closestCenter}
