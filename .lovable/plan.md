@@ -1,36 +1,47 @@
 
 
-## Fix: Inbox "0" verwijderen uit bottom nav
+## Categorieën pagina mobiel-optimalisatie
 
-### Probleem
-De Inbox tab in de mobile bottom nav toont "0" naast het icoon. Er zou geen getal moeten staan — alleen het icoon + "Inbox" label, en bij ongelezen berichten een klein rood bolletje rechtsboven op het icoon.
+### Problemen (390px viewport)
 
-### Wijzigingen
+1. **Header knoppen vallen uit scherm** — drie knoppen ("Alles openklappen", "Alles inklappen", "Nieuwe categorie") staan horizontaal naast de titel, past niet op 390px
+2. **Categorienamen onzichtbaar** — elke rij heeft 7+ elementen horizontaal: checkbox, grip, expand, folder-icoon, naam, badge, 4 actieknoppen. De naam wordt weggedrukt
+3. **Actieknoppen te klein en te veel** — Move, Add child, Edit, Delete knoppen zijn elk 28px breed, onbruikbaar op touch
+
+### Oplossing
 
 | Bestand | Actie |
 |---------|-------|
-| `src/components/admin/AdminMobileBottomNav.tsx` | `badge: count` verwijderen uit tabs array, badge rendering vereenvoudigen |
+| `src/pages/admin/Categories.tsx` | Header responsive maken, Card styling op mobiel aanpassen |
+| `src/components/admin/CategoryTreeItem.tsx` | Rij-layout herschikken voor mobiel |
 
 ### Detail
 
-**Regel 18**: Verwijder `badge: count` van de Inbox tab — het getal wordt nergens meer gebruikt.
+**1. Categories.tsx — Header (regels 346-367)**
+- Titel + beschrijving bovenaan, knoppen eronder in een `flex-wrap` rij
+- Op mobiel: "Alles openklappen/inklappen" tonen als icon-only knoppen (geen tekst)
+- "Nieuwe categorie" wordt een icon-only FAB-achtige knop of compacte knop
+- Structuur: `flex flex-col gap-3` i.p.v. `flex items-center justify-between`
 
-**Regel 33-37**: De notificatie-indicator direct koppelen aan de `count` variabele i.p.v. via `tab.badge`:
-- Voor de Inbox tab (check op `tab.path === '/admin/messages'`), toon het rode bolletje als `count > 0`
-- Geen cijfer, alleen een `h-2 w-2 rounded-full bg-destructive` dot
+**2. Categories.tsx — Card wrapper**
+- Op mobiel: geen Card wrapper, direct content renderen (zoals Inbox/Producten patroon)
+- `CardHeader` titel/beschrijving verbergen op mobiel (staat al in page header)
 
-Concreet wordt de render-logica:
-```tsx
-<div className="relative">
-  <tab.icon className="h-5 w-5" />
-  {tab.path === '/admin/messages' && count > 0 && (
-    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
-  )}
-</div>
-<span>{tab.label}</span>
-```
+**3. CategoryTreeItem.tsx — Rij-layout mobiel (regels 114-265)**
+- **Twee-regels layout op mobiel**: 
+  - Regel 1: checkbox + grip + expand + folder + categorienaam + status badge
+  - Regel 2 (of swipe/long-press menu): actieknoppen
+- Concreet: actieknoppen (`div` regels 232-265) verbergen op mobiel (`hidden md:flex`), vervangen door een compact overflow menu (three-dot `DropdownMenu`) dat alleen op mobiel verschijnt
+- Dit geeft de categorienaam maximale ruimte
+- De status badge (Online/Inactief) blijft zichtbaar — is compact genoeg
 
-De `badge` property wordt volledig verwijderd uit de tabs array.
+**4. CategoryTreeItem.tsx — Touch-friendly**
+- Grip handle iets groter op mobiel (`p-1.5` i.p.v. `p-1`)
+- Categorienaam krijgt meer ruimte door actieknoppen in dropdown te stoppen
 
-### Geen database wijzigingen nodig
+### Resultaat
+- Categorienamen volledig leesbaar op 390px
+- Alle acties bereikbaar via compact dropdown menu
+- Header knoppen passen op het scherm
+- Consistente mobile-first aanpak zoals andere admin pagina's
 
