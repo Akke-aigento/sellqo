@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { campaign_id, force_repush } = await req.json();
+    const { campaign_id, force_repush, action } = await req.json();
     if (!campaign_id) {
       return new Response(
         JSON.stringify({ error: "campaign_id is required" }),
@@ -178,6 +178,29 @@ Deno.serve(async (req) => {
       creds.advertisingClientId,
       creds.advertisingClientSecret
     );
+
+    // Archive campaign on Bol
+    if (action === 'archive' && campaign.platform_campaign_id) {
+      try {
+        const archiveResult = await bolApi(
+          bolToken,
+          "PUT",
+          `/campaigns/${campaign.platform_campaign_id}`,
+          { state: "ARCHIVED" }
+        );
+        console.log("Campaign archived on Bol:", JSON.stringify(archiveResult));
+        return new Response(
+          JSON.stringify({ success: true, archived: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e: any) {
+        console.error("Failed to archive on Bol:", e);
+        return new Response(
+          JSON.stringify({ error: "Archiveren op Bol.com mislukt", detail: e.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // 4. Get product EANs for the campaign
     let eans: string[] = [];
