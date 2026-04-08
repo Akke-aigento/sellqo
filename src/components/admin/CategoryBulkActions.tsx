@@ -123,10 +123,6 @@ export function CategoryBulkActions({
               Verwijderen
             </Button>
 
-            <Button variant="ghost" size="sm" onClick={onDeselectAll} className="ml-auto gap-2">
-              <X className="h-4 w-4" />
-              Deselecteer
-            </Button>
           </div>
         </div>
       )}

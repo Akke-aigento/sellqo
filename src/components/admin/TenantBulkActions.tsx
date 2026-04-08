@@ -125,7 +125,15 @@ export function TenantBulkActions({
 
   return (
     <>
-      <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+      <div className="relative flex items-center gap-2 p-3 pr-10 bg-primary/10 rounded-lg border border-primary/20">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClearSelection}
+          className="absolute top-1 right-1 h-7 w-7 rounded-full"
+        >
+          <X className="h-4 w-4" />
+        </Button>
         <span className="text-sm font-medium">
           {selectedTenants.length} geselecteerd
         </span>
@@ -151,9 +159,6 @@ export function TenantBulkActions({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button size="sm" variant="ghost" onClick={onClearSelection}>
-          Deselecteren
-        </Button>
       </div>
 
       {/* Bulk Credits Dialog */}
