@@ -93,7 +93,7 @@ export default function AdsBolcomSearchTerms() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <Link to="/admin/ads" className="hover:text-foreground">Ads</Link>
@@ -104,7 +104,7 @@ export default function AdsBolcomSearchTerms() {
           </div>
           <h1 className="text-2xl font-bold">Bol.com Zoektermen</h1>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {(['7d', '30d', '90d'] as const).map(p => (
             <Button key={p} size="sm" variant={period === p ? 'default' : 'outline'} onClick={() => setPeriod(p)}>
               {p}

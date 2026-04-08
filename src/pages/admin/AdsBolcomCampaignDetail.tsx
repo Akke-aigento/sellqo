@@ -145,7 +145,7 @@ export default function AdsBolcomCampaignDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <button onClick={() => navigate('/admin/ads')} className="hover:underline">Ads</button>
@@ -159,16 +159,16 @@ export default function AdsBolcomCampaignDetail() {
             <Badge className={statusColors[campaign.status] || 'bg-muted'}>{campaign.status}</Badge>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSyncToBol} disabled={isSyncing}>
-            {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Synchroniseer naar Bol.com
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleSyncToBol} disabled={isSyncing}>
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="hidden sm:inline ml-2">Synchroniseer</span>
           </Button>
-          <Button variant="outline" onClick={handleToggleStatus} disabled={updateCampaignStatus.isPending}>
-            {isActive ? <><Pause className="h-4 w-4 mr-2" /> Pauzeren</> : <><Play className="h-4 w-4 mr-2" /> Hervatten</>}
+          <Button variant="outline" size="sm" onClick={handleToggleStatus} disabled={updateCampaignStatus.isPending}>
+            {isActive ? <><Pause className="h-4 w-4" /><span className="hidden sm:inline ml-2">Pauzeren</span></> : <><Play className="h-4 w-4" /><span className="hidden sm:inline ml-2">Hervatten</span></>}
           </Button>
-          <Button variant="outline" onClick={() => setShowEdit(true)}>
-            <Pencil className="h-4 w-4 mr-2" /> Bewerken
+          <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+            <Pencil className="h-4 w-4" /><span className="hidden sm:inline ml-2">Bewerken</span>
           </Button>
         </div>
       </div>
