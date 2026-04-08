@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Category } from '@/types/product';
-import type { Category } from '@/types/product';
 
 interface CategoryTreeItemProps {
   category: Category;
