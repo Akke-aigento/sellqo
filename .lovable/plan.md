@@ -1,42 +1,36 @@
 
 
-## Inbox mobiel: Card-stijl verwijderen, clean layout zoals Producten
+## Fix: Inbox "0" verwijderen uit bottom nav
 
 ### Probleem
-De Inbox op mobiel zit in een `Card` component met border, rounded corners en shadow. De Producten-pagina heeft dit niet — daar staat de content direct op de pagina zonder wrapper. Dat ziet er cleaner uit.
-
-### Aanpak
-Op mobiel de `Card` wrapper volledig verwijderen en de content direct renderen, zoals de Producten-pagina doet. Desktop behoudt de Card.
+De Inbox tab in de mobile bottom nav toont "0" naast het icoon. Er zou geen getal moeten staan — alleen het icoon + "Inbox" label, en bij ongelezen berichten een klein rood bolletje rechtsboven op het icoon.
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/Messages.tsx` | Op mobiel Card vervangen door een gewone `div`, borders/shadow/rounded weg |
+| `src/components/admin/AdminMobileBottomNav.tsx` | `badge: count` verwijderen uit tabs array, badge rendering vereenvoudigen |
 
 ### Detail
 
-**Messages.tsx — regel ~177**
+**Regel 18**: Verwijder `badge: count` van de Inbox tab — het getal wordt nergens meer gebruikt.
 
-Huidige code:
+**Regel 33-37**: De notificatie-indicator direct koppelen aan de `count` variabele i.p.v. via `tab.badge`:
+- Voor de Inbox tab (check op `tab.path === '/admin/messages'`), toon het rode bolletje als `count > 0`
+- Geen cijfer, alleen een `h-2 w-2 rounded-full bg-destructive` dot
+
+Concreet wordt de render-logica:
 ```tsx
-<Card className={`h-full flex overflow-hidden ${isSinglePanel ? 'rounded-none border-x-0' : ''}`}>
+<div className="relative">
+  <tab.icon className="h-5 w-5" />
+  {tab.path === '/admin/messages' && count > 0 && (
+    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
+  )}
+</div>
+<span>{tab.label}</span>
 ```
 
-Wordt:
-```tsx
-{isSinglePanel ? (
-  <div className="h-full flex overflow-hidden border-t">
-    {/* zelfde children */}
-  </div>
-) : (
-  <Card className="h-full flex overflow-hidden">
-    {/* zelfde children */}
-  </Card>
-)}
-```
-
-Op mobiel wordt het dus een simpele `div` met alleen een `border-t` als scheiding tussen header en content. Geen shadow, geen rounded corners, geen zijborders. Exact zoals de Producten-pagina content direct op de achtergrond rendert.
+De `badge` property wordt volledig verwijderd uit de tabs array.
 
 ### Geen database wijzigingen nodig
 
