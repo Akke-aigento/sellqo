@@ -23,7 +23,7 @@ export function FloatingSaveBar({
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 z-40 bg-background border-t shadow-lg",
+      "fixed bottom-14 md:bottom-0 left-0 right-0 z-40 bg-background border-t shadow-lg",
       "lg:left-[var(--sidebar-width,280px)]",
       "animate-in slide-in-from-bottom-4 duration-200"
     )}>
