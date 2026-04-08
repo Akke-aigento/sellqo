@@ -173,6 +173,24 @@ export function useAdCampaigns() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
+      // First check if campaign was pushed to Bol
+      const { data: campaign } = await supabase
+        .from('ad_campaigns')
+        .select('platform, platform_campaign_id, tenant_id')
+        .eq('id', id)
+        .single();
+
+      // Archive on Bol.com first if it was pushed
+      if (campaign?.platform === 'bol_ads' && campaign?.platform_campaign_id) {
+        try {
+          await supabase.functions.invoke('push-bol-campaign', {
+            body: { campaign_id: id, action: 'archive' },
+          });
+        } catch (e) {
+          console.error('Failed to archive on Bol (continuing with local delete):', e);
+        }
+      }
+
       const { error } = await supabase
         .from('ad_campaigns')
         .delete()
