@@ -97,18 +97,23 @@ Deno.serve(async (req) => {
     }
 
     // Get Bol.com credentials
-    const { data: conn } = await supabase
+    const { data: connections } = await supabase
       .from("marketplace_connections")
-      .select("*")
+      .select("id, credentials")
       .eq("tenant_id", tenant_id)
-      .eq("marketplace", "bolcom")
-      .single();
+      .eq("marketplace_type", "bol_com")
+      .eq("is_active", true);
+
+    const conn = connections?.find((c: any) => {
+      const cr = c.credentials as any;
+      return cr?.advertisingClientId && cr?.advertisingClientSecret;
+    });
 
     if (!conn) return jsonRes({ error: "Geen Bol.com connectie gevonden" }, 404);
 
-    const creds = (conn.credentials || {}) as Record<string, string>;
-    const clientId = creds.advertisingClientId || creds.client_id;
-    const clientSecret = creds.advertisingClientSecret || creds.client_secret;
+    const creds = conn.credentials as any;
+    const clientId = creds.advertisingClientId;
+    const clientSecret = creds.advertisingClientSecret;
     if (!clientId || !clientSecret) return jsonRes({ error: "Bol.com advertising credentials ontbreken" }, 400);
 
     const token = await getBolToken(clientId, clientSecret);
@@ -175,8 +180,12 @@ Deno.serve(async (req) => {
 
         if (ag?.bolcom_adgroup_id) {
           try {
-            await bolPost(token, `${BOL_ADV_BASE}/ad-groups/${ag.bolcom_adgroup_id}/negative-keywords`, {
-              keywords: [{ keyword, matchType: match_type.toUpperCase() }],
+            await bolPost(token, `${BOL_ADV_BASE}/negative-keywords`, {
+              negativeKeywords: [{
+                adGroupId: ag.bolcom_adgroup_id,
+                keywordText: keyword,
+                matchType: match_type.toUpperCase(),
+              }],
             });
           } catch (e) {
             console.error("Bol API negative keyword error (continuing with local):", e);
@@ -234,7 +243,9 @@ Deno.serve(async (req) => {
           .single();
         if (!camp) return jsonRes({ error: "Campagne niet gevonden" }, 404);
 
-        await bolPut(token, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { dailyBudget: daily_budget });
+        await bolPut(token, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, {
+          dailyBudget: { amount: daily_budget, currency: "EUR" },
+        });
 
         await supabase
           .from("ads_bolcom_campaigns")
