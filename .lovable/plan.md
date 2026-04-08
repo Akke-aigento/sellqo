@@ -1,49 +1,45 @@
 
 
-## Fix alle kritieke bugs in de Bol Ads module
+## Admin Mobile Bottom Navigation Bar
 
-### Overzicht
+### Probleem
+Op mobiel verdwijnt de sidebar achter een hamburgermenu. Er is geen snelle navigatiebalk onderaan het scherm — gebruikers moeten altijd het menu openen om te navigeren. De storefront heeft al een `MobileBottomNav`, maar het admin panel mist dit volledig.
 
-6 fixes verspreid over 4 bestanden. Eén aandachtspunt: **ANTHROPIC_API_KEY is niet geconfigureerd** — ik moet eerst de secret opvragen voordat Fix 6 kan werken. Alternatief: de Lovable AI gateway werkt al (LOVABLE_API_KEY is aanwezig), dus Fix 6 kan ook overgeslagen worden tenzij je specifiek Anthropic wilt.
+### Oplossing
+Een vaste bottom navigation bar voor het admin panel op mobiel (md:hidden), met de 4-5 meest gebruikte secties als snelkoppeling.
+
+### Navigatie-items (5 tabs)
+
+| Tab | Icoon | Route |
+|-----|-------|-------|
+| Dashboard | LayoutDashboard | /admin |
+| Bestellingen | ShoppingCart | /admin/orders |
+| Producten | Package | /admin/products |
+| Inbox | MessageSquare | /admin/inbox (met unread badge) |
+| Menu | Menu (hamburger) | Opent de sidebar |
 
 ### Wijzigingen
 
-| # | Bestand | Fix |
-|---|---------|-----|
-| 1 | `ads-bolcom-manage/index.ts` | Credentials lookup: `marketplace` → `marketplace_type`, `"bolcom"` → `"bol_com"`, filter op `is_active` + advertising credentials |
-| 2 | `ads-bolcom-manage/index.ts` | Budget: `dailyBudget` als `{ amount, currency: "EUR" }` object |
-| 3 | `ads-bolcom-manage/index.ts` | Negative keywords: top-level endpoint + `negativeKeywords` bulk formaat |
-| 4 | `CampaignAIAnalysis.tsx` | Action mapping: correcte action names (`update_bid`, `pause_keyword`), geneste `payload`, `add_negative` toevoegen, `.replace(',', '.')` |
-| 5 | `ads-inventory-watch/index.ts` | Bol API helpers + token cache per tenant + daadwerkelijke API calls bij pause/resume |
-| 6 | `ads-campaign-analyze/index.ts` | Anthropic API i.p.v. Lovable AI gateway (vereist secret) |
+| Bestand | Actie |
+|---------|-------|
+| `src/components/admin/AdminMobileBottomNav.tsx` | **Nieuw** — Bottom nav component met 5 tabs, active state highlighting, inbox badge |
+| `src/components/admin/AdminLayout.tsx` | Import + render `AdminMobileBottomNav`, padding-bottom toevoegen aan main voor mobiel |
 
-### Detail per fix
+### Detail
 
-**Fix 1-3: `supabase/functions/ads-bolcom-manage/index.ts`**
-- Regels 99-112: Credentials lookup volledig vervangen — query op `marketplace_type = "bol_com"` + `is_active = true`, dan `.find()` voor advertising credentials
-- Regel 237: `dailyBudget` wrappen in `{ amount: daily_budget, currency: "EUR" }`
-- Regels 178-180: Negative keywords endpoint wijzigen naar top-level `/negative-keywords` met `negativeKeywords` array formaat
+**AdminMobileBottomNav.tsx**
+- `fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden`
+- 5 tabs: Dashboard, Bestellingen, Producten, Inbox, Menu
+- Active state via `useLocation()` met `text-primary` highlight
+- Inbox tab toont unread count badge (hergebruik bestaande unread query of InboxBadge logica)
+- "Menu" tab triggert `useSidebar().toggleSidebar()` om de sidebar te openen
+- Hoogte: `h-14` (consistent met storefront bottom nav)
 
-**Fix 4: `src/components/admin/ads/CampaignAIAnalysis.tsx`**
-- Regels 91-103: Volledige `actionMap` vervangen met correcte action names en geneste payload structuur
-- `add_negative` mapping toevoegen (ontbreekt nu volledig)
-- `body` structuur: `{ tenant_id, action, payload }` i.p.v. `{ tenant_id, action, ...payload }`
+**AdminLayout.tsx**
+- `<main>` krijgt `pb-16 md:pb-0` zodat content niet achter de nav verdwijnt
+- `<AdminMobileBottomNav />` renderen na de main content div
+- FloatingSaveBar en andere fixed-bottom elementen moeten `bottom-14 md:bottom-0` krijgen op mobiel (of z-index regeling)
 
-**Fix 5: `supabase/functions/ads-inventory-watch/index.ts`**
-- Bol API helpers toevoegen (getBolToken, bolPut) + ADV_HEADERS constanten
-- Token cache functie `getTokenForTenant` die credentials ophaalt via `marketplace_type = "bol_com"`
-- Bij pause (regel 77-80): na DB update ook `bolPut` aanroepen met `{ state: "PAUSED" }`
-- Bij resume (regel 120-124): na DB update ook `bolPut` aanroepen met `{ state: "ENABLED" }`
-
-**Fix 6: `supabase/functions/ads-campaign-analyze/index.ts`**
-- Vereist `ANTHROPIC_API_KEY` secret — deze moet eerst worden toegevoegd
-- API call vervangen: Lovable gateway → `api.anthropic.com/v1/messages`
-- Request formaat: Anthropic `system`/`messages`/`tools`/`tool_choice` structuur
-- Response parsing: `content.find(b => b.type === "tool_use")` i.p.v. `choices[0].message.tool_calls[0]`
-
-### Secret vereiste
-
-Voor Fix 6 moet `ANTHROPIC_API_KEY` als secret worden toegevoegd. Ik vraag dit op bij de implementatie.
-
-### Geen database wijzigingen nodig
+### Aandachtspunten
+- FloatingSaveBar, BulkActions bars etc. zitten ook `fixed bottom-0` — deze moeten `bottom-14` krijgen op mobiel zodat ze boven de nav bar verschijnen. Dit doen we via een kleine CSS class aanpassing in AdminMobileBottomNav die een CSS variable set, of we passen de bestaande bars aan met `md:bottom-0 bottom-14`.
 
