@@ -18,6 +18,7 @@ import {
   Grid3X3,
   Sparkles,
   XCircle,
+  X,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -406,8 +407,16 @@ export default function ProductsPage() {
 
       {/* Floating Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-3 max-w-screen-xl mx-auto">
+        <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedIds(new Set())}
+            className="absolute top-1 right-1 h-7 w-7 rounded-full"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-3 pr-10 max-w-screen-xl mx-auto">
             <span className="text-sm font-medium whitespace-nowrap">
               {selectedIds.size} geselecteerd
             </span>
@@ -433,10 +442,6 @@ export default function ProductsPage() {
                 AI Genereer
               </Button>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="ml-auto">
-              <XCircle className="mr-2 h-4 w-4" />
-              Deselecteer
-            </Button>
           </div>
         </div>
       )}

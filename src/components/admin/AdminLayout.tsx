@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
@@ -15,6 +15,8 @@ import { AdminMobileBottomNav } from './AdminMobileBottomNav';
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
   useGlobalNotificationListener();
+  const location = useLocation();
+  const isDashboard = location.pathname === '/admin' || location.pathname === '/admin/dashboard';
 
   return (
     <>
@@ -33,8 +35,8 @@ function AdminLayoutContent() {
       <OnboardingWizard />
       {/* Trial expired blocker - blocks access when trial ends */}
       <TrialExpiredBlocker />
-      {/* AI Help Widget - floating chat assistant */}
-      <AIHelpWidget />
+      {/* AI Help Widget - floating chat assistant, only on dashboard */}
+      {isDashboard && <AIHelpWidget />}
       {/* Mobile bottom navigation */}
       <AdminMobileBottomNav />
     </>
