@@ -1,47 +1,58 @@
 
 
-## Categorieën pagina mobiel-optimalisatie
+## Kruisje (X) toevoegen aan alle actiebalken voor deselecteren
 
-### Problemen (390px viewport)
+### Probleem
+Als je items selecteert, verschijnt er een actiebalk onderaan. Om te deselecteren moet je scrollen naar de "Deselecteer" knop of door de lijst. Er mist een duidelijk kruisje rechtsboven om snel alles te deselecteren.
 
-1. **Header knoppen vallen uit scherm** — drie knoppen ("Alles openklappen", "Alles inklappen", "Nieuwe categorie") staan horizontaal naast de titel, past niet op 390px
-2. **Categorienamen onzichtbaar** — elke rij heeft 7+ elementen horizontaal: checkbox, grip, expand, folder-icoon, naam, badge, 4 actieknoppen. De naam wordt weggedrukt
-3. **Actieknoppen te klein en te veel** — Move, Add child, Edit, Delete knoppen zijn elk 28px breed, onbruikbaar op touch
+### Overzicht van de 5 actiebalken
 
-### Oplossing
+| Component | Huidige situatie | Actie |
+|-----------|-----------------|-------|
+| `CategoryBulkActions.tsx` | Heeft "Deselecteer" knop met X icoon rechts, maar zit in de flow — niet rechtsboven | Verplaats naar absolute rechtsboven positie |
+| `OrderBulkActions.tsx` | Heeft "Deselecteer" knop met XCircle rechts (`ml-auto`) | Maak prominenter als absolute X rechtsboven |
+| `FulfillmentBulkActions.tsx` | Heeft "Deselecteer" knop met XCircle rechts (`ml-auto`) | Zelfde aanpak |
+| `TenantBulkActions.tsx` | Heeft "Deselecteren" knop inline | Zelfde aanpak |
+| `BulkActionsToolbar.tsx` (Inbox) | Heeft X knop linksboven — al goed | Eventueel consistent maken |
 
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/admin/Categories.tsx` | Header responsive maken, Card styling op mobiel aanpassen |
-| `src/components/admin/CategoryTreeItem.tsx` | Rij-layout herschikken voor mobiel |
+### Aanpak
+Elke fixed bottom bar krijgt een **absolute gepositioneerd X-kruisje rechtsboven** (`absolute -top-3 -right-3` of `top-2 right-2`) dat als een ronde knop fungeert. Dit is onmiddellijk zichtbaar en klikbaar zonder te scrollen.
 
-### Detail
+### Wijzigingen per bestand
 
-**1. Categories.tsx — Header (regels 346-367)**
-- Titel + beschrijving bovenaan, knoppen eronder in een `flex-wrap` rij
-- Op mobiel: "Alles openklappen/inklappen" tonen als icon-only knoppen (geen tekst)
-- "Nieuwe categorie" wordt een icon-only FAB-achtige knop of compacte knop
-- Structuur: `flex flex-col gap-3` i.p.v. `flex items-center justify-between`
+**1. `CategoryBulkActions.tsx`** (regel 59, de fixed bar div)
+- Voeg `relative` toe aan de bar container
+- Voeg een absolute X-knop toe: `absolute top-1 right-1` of `top-2 right-2`
+- Verwijder de bestaande "Deselecteer" knop onderaan (regel 127-130)
 
-**2. Categories.tsx — Card wrapper**
-- Op mobiel: geen Card wrapper, direct content renderen (zoals Inbox/Producten patroon)
-- `CardHeader` titel/beschrijving verbergen op mobiel (staat al in page header)
+**2. `OrderBulkActions.tsx`** (regel 236, de fixed bar)
+- Voeg `relative` toe
+- Voeg absolute X-knop rechtsboven toe
+- Verwijder de inline "Deselecteer" knop (regel 320-323)
 
-**3. CategoryTreeItem.tsx — Rij-layout mobiel (regels 114-265)**
-- **Twee-regels layout op mobiel**: 
-  - Regel 1: checkbox + grip + expand + folder + categorienaam + status badge
-  - Regel 2 (of swipe/long-press menu): actieknoppen
-- Concreet: actieknoppen (`div` regels 232-265) verbergen op mobiel (`hidden md:flex`), vervangen door een compact overflow menu (three-dot `DropdownMenu`) dat alleen op mobiel verschijnt
-- Dit geeft de categorienaam maximale ruimte
-- De status badge (Online/Inactief) blijft zichtbaar — is compact genoeg
+**3. `FulfillmentBulkActions.tsx`** (regel 210, de fixed bar)
+- Zelfde patroon: `relative` + absolute X-knop
+- Verwijder inline "Deselecteer" knop (regel 249-252)
 
-**4. CategoryTreeItem.tsx — Touch-friendly**
-- Grip handle iets groter op mobiel (`p-1.5` i.p.v. `p-1`)
-- Categorienaam krijgt meer ruimte door actieknoppen in dropdown te stoppen
+**4. `TenantBulkActions.tsx`** (regel 128, de inline bar)
+- Voeg `relative` toe aan de container
+- Voeg absolute X-knop rechtsboven toe
+- Verwijder de inline "Deselecteren" knop (regel 154-156)
 
-### Resultaat
-- Categorienamen volledig leesbaar op 390px
-- Alle acties bereikbaar via compact dropdown menu
-- Header knoppen passen op het scherm
-- Consistente mobile-first aanpak zoals andere admin pagina's
+**5. `BulkActionsToolbar.tsx`** (Inbox) — al OK, heeft X linksboven. Optioneel consistent maken.
+
+### Visueel
+Elke bar krijgt een compact rond kruisje rechtsboven:
+```tsx
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={onClearSelection/onDeselectAll}
+  className="absolute top-1 right-1 h-7 w-7 rounded-full"
+>
+  <X className="h-4 w-4" />
+</Button>
+```
+
+### Geen database wijzigingen nodig
 
