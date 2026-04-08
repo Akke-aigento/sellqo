@@ -369,99 +369,56 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      <div className="md:hidden">
-        <div className="border-t" />
-        <CardContent className="space-y-4">
-          {/* Search bar */}
-          <CategorySearch value={searchQuery} onChange={setSearchQuery} />
+      {/* Desktop: Card wrapper */}
+      <div className="hidden md:block">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderTree className="h-5 w-5" />
+              Categoriestructuur
+            </CardTitle>
+            <CardDescription>
+              Sleep categorieën met het ⋮⋮ icoon, of gebruik de → knop om te verplaatsen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CategorySearch value={searchQuery} onChange={setSearchQuery} />
+            <CategoryBulkActions
+              selectedCount={selectedIds.size}
+              totalCount={filteredIds.length}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
+              onActivate={handleBulkActivate}
+              onDeactivate={handleBulkDeactivate}
+              onShowOnStorefront={handleBulkShowOnStorefront}
+              onHideFromStorefront={handleBulkHideFromStorefront}
+              onDelete={handleBulkDelete}
+              isDeleting={bulkDelete.isPending}
+              isUpdating={bulkUpdateActive.isPending || bulkUpdateStorefrontVisibility.isPending}
+            />
+            {renderCategoryContent()}
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Bulk actions */}
-          <CategoryBulkActions
-            selectedCount={selectedIds.size}
-            totalCount={filteredIds.length}
-            onSelectAll={handleSelectAll}
-            onDeselectAll={handleDeselectAll}
-            onActivate={handleBulkActivate}
-            onDeactivate={handleBulkDeactivate}
-            onShowOnStorefront={handleBulkShowOnStorefront}
-            onHideFromStorefront={handleBulkHideFromStorefront}
-            onDelete={handleBulkDelete}
-            isDeleting={bulkDelete.isPending}
-            isUpdating={bulkUpdateActive.isPending || bulkUpdateStorefrontVisibility.isPending}
-          />
-
-          {filteredTree.length === 0 && searchQuery ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                Geen categorieën gevonden voor "{searchQuery}"
-              </p>
-            </div>
-          ) : categoryTree.length === 0 ? (
-            <div className="text-center py-12">
-              <FolderTree className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Geen categorieën</h3>
-              <p className="text-muted-foreground mb-4">
-                Begin met het toevoegen van je eerste categorie.
-              </p>
-              <Button onClick={handleAddNew}>
-                <Plus className="mr-2 h-4 w-4" />
-                Eerste categorie toevoegen
-              </Button>
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
-                {/* Root drop zone — always in DOM, animates in/out */}
-                <div ref={setRootDropRef}>
-                  <RootDropZone isOver={isOverRoot} activeId={activeId} />
-                </div>
-
-                <div className="space-y-0.5">
-                  {filteredTree.map((category) => (
-                    <CategoryTreeItem
-                      key={category.id}
-                      category={category}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onAddChild={handleAddChild}
-                      onMove={handleMove}
-                      activeId={activeId}
-                      breadcrumb={[]}
-                      expandedIds={expandedIds}
-                      onToggleExpand={handleToggleExpand}
-                      allCategories={categoryTree}
-                      searchQuery={searchQuery}
-                      selectedIds={selectedIds}
-                      onToggleSelect={handleToggleSelect}
-                      onToggleStatus={(id, updates) => {
-                        updateCategory.mutate({ id, data: updates });
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-              <DragOverlay
-                dropAnimation={{
-                  duration: 200,
-                  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-                }}
-              >
-                {activeCategory ? (
-                  <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary cursor-grabbing">
-                    <Folder className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{activeCategory.name}</span>
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
-        </CardContent>
-      </Card>
+      {/* Mobile: no Card wrapper */}
+      <div className="md:hidden space-y-3">
+        <CategorySearch value={searchQuery} onChange={setSearchQuery} />
+        <CategoryBulkActions
+          selectedCount={selectedIds.size}
+          totalCount={filteredIds.length}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onActivate={handleBulkActivate}
+          onDeactivate={handleBulkDeactivate}
+          onShowOnStorefront={handleBulkShowOnStorefront}
+          onHideFromStorefront={handleBulkHideFromStorefront}
+          onDelete={handleBulkDelete}
+          isDeleting={bulkDelete.isPending}
+          isUpdating={bulkUpdateActive.isPending || bulkUpdateStorefrontVisibility.isPending}
+        />
+        {renderCategoryContent()}
+      </div>
 
       <CategoryFormDialog
         open={formOpen}
