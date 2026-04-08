@@ -333,6 +333,10 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleToggleStatus = (id: string, updates: { is_active: boolean; hide_from_storefront: boolean }) => {
+    updateCategory.mutate({ id, data: updates as any });
+  };
+
   const renderCategoryContent = () => {
     if (filteredTree.length === 0 && searchQuery) {
       return (
@@ -366,7 +370,7 @@ export default function CategoriesPage() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={allCategoryIds}
+          items={categoryIds}
           strategy={verticalListSortingStrategy}
         >
           <RootDropZone isOver={isOverRoot} activeId={activeId} />
@@ -378,11 +382,11 @@ export default function CategoriesPage() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onAddChild={handleAddChild}
-                onMove={handleMoveCategory}
+                onMove={handleMove}
                 activeId={activeId}
                 expandedIds={expandedIds}
                 onToggleExpand={handleToggleExpand}
-                allCategories={allCategories}
+                allCategories={categories}
                 searchQuery={searchQuery}
                 selectedIds={selectedIds}
                 onToggleSelect={handleToggleSelect}
@@ -393,7 +397,7 @@ export default function CategoriesPage() {
         </SortableContext>
         <DragOverlay>
           {activeId ? (() => {
-            const activeCategory = allCategories.find(c => c.id === activeId);
+            const activeCategory = categories.find(c => c.id === activeId);
             return activeCategory ? (
               <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-background shadow-xl border-2 border-primary cursor-grabbing">
                 <Folder className="h-4 w-4 text-primary" />
