@@ -1,12 +1,18 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight, Store } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Pencil, Trash2, Plus, GripVertical, CornerDownRight, Store, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { CategoryMoveDropdown } from './CategoryMoveDropdown';
 import { HighlightText } from './CategorySearch';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Category } from '@/types/product';
 
 interface CategoryTreeItemProps {
@@ -113,7 +119,7 @@ export function CategoryTreeItem({
 
       <div
         className={cn(
-          "group relative flex items-center gap-2 py-2.5 px-3 rounded-lg transition-colors duration-150",
+          "group relative flex items-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-2 md:px-3 rounded-lg transition-colors duration-150",
           "hover:bg-muted/50",
           isSelected && "bg-primary/5 ring-1 ring-primary/20",
           // Drop indicator - highlight when item is dragged over this category (reparenting)
@@ -145,7 +151,7 @@ export function CategoryTreeItem({
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+          className="cursor-grab active:cursor-grabbing p-1 md:p-1 hover:bg-muted rounded touch-none shrink-0"
           title="Sleep om te verplaatsen"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -229,7 +235,8 @@ export function CategoryTreeItem({
           </Badge>
         )}
 
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Desktop action buttons */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           <CategoryMoveDropdown
             category={category}
             allCategories={allCategories}
@@ -262,6 +269,34 @@ export function CategoryTreeItem({
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        <div className="md:hidden shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="bottom">
+              <DropdownMenuItem onClick={() => onEdit(category)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Bewerken
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAddChild(category.id)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Subcategorie
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(category)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Verwijderen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {/* Drop hint text for reparenting */}
         {showDropIndicator && (
