@@ -1,66 +1,38 @@
 
 
-## Ads module: actieknoppen mobiel-optimalisatie
+## Bol.com campagne verwijderen toevoegen
 
 ### Probleem
-Op alle Ads-schermen staan de header-actieknoppen horizontaal naast de titel. Op 390px vallen deze af — ze worden afgesneden of lopen buiten het scherm.
+Er is geen verwijder-optie voor Bol.com campagnes. Je kunt alleen pauzeren/hervatten. Een verwijderknop is nodig.
 
-### Betrokken bestanden en fixes
+### Aanpak
+De Bol.com Advertiser API ondersteunt geen DELETE voor campagnes — je kunt ze alleen pauzeren. Daarom: we voegen een "Verwijderen" actie toe die de campagne **lokaal** verwijdert uit de database (en optioneel eerst pauzeert op Bol.com als hij actief is). Dit houdt je dashboard schoon.
 
-| Bestand | Probleem | Fix |
-|---------|----------|-----|
-| `AdsBolcomCampaignDetail.tsx` | 3 knoppen (Sync, Pauzeren, Bewerken) naast titel — past niet | Header wrappen, knoppen onder titel op mobiel |
-| `AdsBolcom.tsx` | Period selector + 3 knoppen naast titel | Zelfde wrap-aanpak |
-| `AdsBolcomKeywords.tsx` | Period knoppen naast titel | Licht: `flex-wrap` toevoegen |
-| `AdsBolcomSearchTerms.tsx` | Period knoppen naast titel | Idem |
-| `Ads.tsx` | Period selector naast titel | Idem |
-| `AdsAiRules.tsx` | Simpele header — past al | Geen wijziging |
+### Wijzigingen
 
-### Aanpak per bestand
+| Bestand | Actie |
+|---------|-------|
+| `supabase/functions/ads-bolcom-manage/index.ts` | Nieuwe `delete_campaign` action toevoegen |
+| `src/hooks/useBolcomCampaignDetail.ts` | `deleteCampaign` mutation toevoegen |
+| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | Verwijder-knop + bevestigingsdialog toevoegen |
 
-**1. AdsBolcomCampaignDetail.tsx (regel 148-173) — zwaarst getroffen**
-- Header container: `flex items-center justify-between` → `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
-- Knoppen div: `flex gap-2` → `flex flex-wrap gap-2`
-- Op mobiel: knoppen staan onder de titel, wrappen als nodig
-- Knoptekst inkorten op mobiel: alleen iconen tonen onder sm-breakpoint via `hidden sm:inline` op de tekstlabels
+### Detail
 
-**2. AdsBolcom.tsx (regel 126-151) — 4 knoppen**
-- Zelfde wrapper-aanpak: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
-- Knoppen groep: `flex flex-wrap items-center gap-2`
-- "Ververs data" knop tekst inkorten of verbergen op mobiel
-- "Synchroniseer" → alleen icoon op mobiel
+**1. Edge Function — `delete_campaign` action**
+- Pauzeert campagne eerst op Bol.com (als `bolcom_campaign_id` bestaat en status active)
+- Verwijdert gerelateerde keywords, adgroups, performance data en campagne uit DB
+- Cascade: `ads_bolcom_keywords` → `ads_bolcom_adgroups` → `ads_bolcom_performance` → `ads_bolcom_campaigns`
 
-**3. AdsBolcomKeywords.tsx (regel 59-76)**
-- Outer div: voeg `flex-wrap gap-2` toe
-- Period knoppen zijn compact genoeg maar moeten wel wrappen
+**2. Hook — deleteCampaign mutation**
+- Roept edge function aan met `action: 'delete_campaign'`
+- Bij succes: navigeert terug naar `/admin/ads/bolcom`
+- Invalidateert queries
 
-**4. AdsBolcomSearchTerms.tsx (regel 96-113)**
-- Identiek aan Keywords
+**3. UI — Verwijder-knop met bevestiging**
+- Rode `Trash2` knop naast de bestaande knoppen
+- AlertDialog bevestiging: "Weet je zeker dat je deze campagne wilt verwijderen? De campagne wordt gepauzeerd op Bol.com en lokaal verwijderd."
+- Na bevestiging: uitvoeren + redirect naar overzicht
 
-**5. Ads.tsx (regel 101-117)**
-- Period selector wrappen onder titel op mobiel
-- `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`
-
-### Patroon voor alle headers
-
-```tsx
-// Was:
-<div className="flex items-center justify-between">
-  <div>titel</div>
-  <div className="flex gap-2">knoppen</div>
-</div>
-
-// Wordt:
-<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-  <div>titel</div>
-  <div className="flex flex-wrap items-center gap-2">
-    <Button>
-      <Icon />
-      <span className="hidden sm:inline">Lange tekst</span>
-    </Button>
-  </div>
-</div>
-```
-
-### Geen database wijzigingen nodig
+### Geen database migraties nodig
+De deletes worden via de edge function gedaan met service-level access (of user-level als RLS het toelaat).
 
