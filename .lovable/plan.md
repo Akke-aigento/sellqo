@@ -1,49 +1,66 @@
 
 
-## Fix: Ads Overzicht toont "Geen kanalen verbonden" voor platform admin
+## Ads module: actieknoppen mobiel-optimalisatie
 
-### Oorzaak
-De RLS-policy op `ad_platform_connections` controleert alleen `tenant_id IN (SELECT user_roles.tenant_id FROM user_roles WHERE user_id = auth.uid())`. Jouw platform_admin rol heeft `tenant_id = NULL`, dus VanXcel's ad_platform_connections record wordt niet gevonden — ondanks dat de data wél bestaat.
+### Probleem
+Op alle Ads-schermen staan de header-actieknoppen horizontaal naast de titel. Op 390px vallen deze af — ze worden afgesneden of lopen buiten het scherm.
 
-Andere tabellen gebruiken `is_platform_admin(auth.uid())` als bypass of `get_user_tenant_ids()` (die voor platform_admins alle tenants retourneert). Deze tabel mist dat.
+### Betrokken bestanden en fixes
 
-### Wijzigingen
+| Bestand | Probleem | Fix |
+|---------|----------|-----|
+| `AdsBolcomCampaignDetail.tsx` | 3 knoppen (Sync, Pauzeren, Bewerken) naast titel — past niet | Header wrappen, knoppen onder titel op mobiel |
+| `AdsBolcom.tsx` | Period selector + 3 knoppen naast titel | Zelfde wrap-aanpak |
+| `AdsBolcomKeywords.tsx` | Period knoppen naast titel | Licht: `flex-wrap` toevoegen |
+| `AdsBolcomSearchTerms.tsx` | Period knoppen naast titel | Idem |
+| `Ads.tsx` | Period selector naast titel | Idem |
+| `AdsAiRules.tsx` | Simpele header — past al | Geen wijziging |
 
-| Wat | Actie |
-|-----|-------|
-| Database migratie | RLS policies op `ad_platform_connections` updaten om `is_platform_admin()` bypass toe te voegen |
+### Aanpak per bestand
 
-### Detail
+**1. AdsBolcomCampaignDetail.tsx (regel 148-173) — zwaarst getroffen**
+- Header container: `flex items-center justify-between` → `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
+- Knoppen div: `flex gap-2` → `flex flex-wrap gap-2`
+- Op mobiel: knoppen staan onder de titel, wrappen als nodig
+- Knoptekst inkorten op mobiel: alleen iconen tonen onder sm-breakpoint via `hidden sm:inline` op de tekstlabels
 
-**Huidige policies:**
-- SELECT: `tenant_id IN (SELECT user_roles.tenant_id FROM user_roles WHERE user_id = auth.uid())`
-- ALL (admin): `tenant_id IN (... WHERE role IN ('tenant_admin', 'platform_admin'))`
+**2. AdsBolcom.tsx (regel 126-151) — 4 knoppen**
+- Zelfde wrapper-aanpak: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
+- Knoppen groep: `flex flex-wrap items-center gap-2`
+- "Ververs data" knop tekst inkorten of verbergen op mobiel
+- "Synchroniseer" → alleen icoon op mobiel
 
-**Nieuwe policies:**
-```sql
--- Drop existing
-DROP POLICY "Tenant users can view their ad connections" ON ad_platform_connections;
-DROP POLICY "Tenant admins can manage ad connections" ON ad_platform_connections;
+**3. AdsBolcomKeywords.tsx (regel 59-76)**
+- Outer div: voeg `flex-wrap gap-2` toe
+- Period knoppen zijn compact genoeg maar moeten wel wrappen
 
--- Recreate with platform_admin bypass
-CREATE POLICY "Tenant users can view their ad connections"
-  ON ad_platform_connections FOR SELECT
-  USING (
-    is_platform_admin(auth.uid())
-    OR tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))
-  );
+**4. AdsBolcomSearchTerms.tsx (regel 96-113)**
+- Identiek aan Keywords
 
-CREATE POLICY "Tenant admins can manage ad connections"
-  ON ad_platform_connections FOR ALL
-  USING (
-    is_platform_admin(auth.uid())
-    OR tenant_id IN (
-      SELECT user_roles.tenant_id FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-      AND user_roles.role = 'tenant_admin'
-    )
-  );
+**5. Ads.tsx (regel 101-117)**
+- Period selector wrappen onder titel op mobiel
+- `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`
+
+### Patroon voor alle headers
+
+```tsx
+// Was:
+<div className="flex items-center justify-between">
+  <div>titel</div>
+  <div className="flex gap-2">knoppen</div>
+</div>
+
+// Wordt:
+<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>titel</div>
+  <div className="flex flex-wrap items-center gap-2">
+    <Button>
+      <Icon />
+      <span className="hidden sm:inline">Lange tekst</span>
+    </Button>
+  </div>
+</div>
 ```
 
-Geen code-wijzigingen nodig — alleen de RLS policy moet gefixt worden.
+### Geen database wijzigingen nodig
 
