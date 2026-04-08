@@ -1,39 +1,27 @@
 
 
-## Fix: Whitespace verwijderen op mobiel in Inbox
-
-### Probleem
-Op mobiel (390px) staat er onnodige padding links en rechts rond de inbox Card. De mappen mogen blijven, maar de witruimte moet weg zodat alles de volle breedte benut.
+## Fix: Inbox volle breedte + "Nieuw" knop positie
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/Messages.tsx` | Padding reduceren op mobiel |
+| `src/pages/admin/Messages.tsx` | Padding naar 0 op mobiel, Card border/rounded verwijderen, "Nieuw" knop hoger plaatsen |
 
 ### Detail
 
-**Messages.tsx**
+**1. Padding volledig verwijderen op mobiel**
+- Regel 154: `px-1 pt-2 pb-0` → `px-0 pt-1 pb-0`
+- Regel 176: `px-1 pb-1` → `px-0 pb-0`
 
-Twee padding-aanpassingen:
+**2. Card styling op mobiel**
+- De `Card` component (regel 177) heeft standaard `rounded-lg border shadow-sm` — op mobiel voegt dit visuele marges toe
+- Voeg conditionele class toe: `isSinglePanel ? 'h-full flex overflow-hidden rounded-none border-x-0' : 'h-full flex overflow-hidden'`
 
-1. **Regel 154** — Header padding: `p-3` → `p-2` of `px-2` op mobiel
-2. **Regel 176** — Content padding: `p-3` → `p-1` of `px-1` op mobiel
-
-Concreet:
-```tsx
-// Regel 154 — was:
-<div className={`${isSinglePanel ? 'p-3 pb-0' : 'p-6 pb-0'}`}>
-// wordt:
-<div className={`${isSinglePanel ? 'px-1 pt-2 pb-0' : 'p-6 pb-0'}`}>
-
-// Regel 176 — was:
-<div className={`${isSinglePanel ? 'p-3' : 'p-6'} ...`}>
-// wordt:
-<div className={`${isSinglePanel ? 'px-1 pb-1' : 'p-6'} ...`}>
-```
-
-Dit verwijdert de zijdelingse whitespace op mobiel terwijl desktop onaangetast blijft. De Card en mappen blijven exact hetzelfde, alleen de container-padding wordt kleiner.
+**3. "Nieuw" knop hoger/compacter**
+- De header `div` (regel 154-174) heeft `pt-2` padding die de knop te laag duwt
+- Verander naar `pt-0.5` zodat de titel en knop dichter bij de top zitten
+- Optioneel: de flex container (regel 155) `items-start` i.p.v. `items-center` zodat de knop beter uitlijnt met de titel
 
 ### Geen database wijzigingen nodig
 
