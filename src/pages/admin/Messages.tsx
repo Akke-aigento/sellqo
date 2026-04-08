@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { MessageSquare, PanelLeftClose, PanelLeft, PenSquare } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useInbox } from '@/hooks/useInbox';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
 import { useBulkInboxActions } from '@/hooks/useBulkInboxActions';
@@ -8,6 +9,8 @@ import { InboxFilters, ConversationList, ConversationDetail, FolderList, Compose
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
+import { useIsMobile } from '@/hooks/use-mobile';
+import type { Conversation } from '@/hooks/useInbox';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Conversation } from '@/hooks/useInbox';
 
