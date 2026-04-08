@@ -343,39 +343,34 @@ export default function CategoriesPage() {
 
   return (
     <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Categorieën</h1>
-          <p className="text-muted-foreground">
-            Beheer je productcategorieën en subcategorieën
-          </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Categorieën</h1>
+            <p className="text-muted-foreground text-sm">
+              Beheer je productcategorieën en subcategorieën
+            </p>
+          </div>
+          <Button onClick={handleAddNew} size="sm" className="shrink-0">
+            <Plus className="mr-1 h-4 w-4" />
+            <span className="hidden sm:inline">Nieuwe categorie</span>
+            <span className="sm:hidden">Nieuw</span>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExpandAll}>
-            <ChevronsUpDown className="mr-2 h-4 w-4" />
-            Alles openklappen
+            <ChevronsUpDown className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Alles openklappen</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleCollapseAll}>
-            <ChevronsDownUp className="mr-2 h-4 w-4" />
-            Alles inklappen
-          </Button>
-          <Button onClick={handleAddNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nieuwe categorie
+            <ChevronsDownUp className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Alles inklappen</span>
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderTree className="h-5 w-5" />
-            Categoriestructuur
-          </CardTitle>
-          <CardDescription>
-            Sleep categorieën met het ⋮⋮ icoon, of gebruik de → knop om te verplaatsen.
-          </CardDescription>
-        </CardHeader>
+      <div className="md:hidden">
+        <div className="border-t" />
         <CardContent className="space-y-4">
           {/* Search bar */}
           <CategorySearch value={searchQuery} onChange={setSearchQuery} />
