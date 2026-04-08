@@ -1,30 +1,49 @@
 
 
-## Drie fixes: Producten actiebalk kruisje, Inbox kruisje, Help-widget alleen op Dashboard
+## Fix: Ads Overzicht toont "Geen kanalen verbonden" voor platform admin
+
+### Oorzaak
+De RLS-policy op `ad_platform_connections` controleert alleen `tenant_id IN (SELECT user_roles.tenant_id FROM user_roles WHERE user_id = auth.uid())`. Jouw platform_admin rol heeft `tenant_id = NULL`, dus VanXcel's ad_platform_connections record wordt niet gevonden — ondanks dat de data wél bestaat.
+
+Andere tabellen gebruiken `is_platform_admin(auth.uid())` als bypass of `get_user_tenant_ids()` (die voor platform_admins alle tenants retourneert). Deze tabel mist dat.
 
 ### Wijzigingen
 
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/admin/Products.tsx` | X-kruisje rechtsboven toevoegen, inline "Deselecteer" verwijderen, `bottom-14 md:bottom-0` toevoegen |
-| `src/components/admin/inbox/BulkActionsToolbar.tsx` | X-kruisje rechtsboven toevoegen (consistent met andere balken) |
-| `src/components/admin/AdminLayout.tsx` | AIHelpWidget conditioneel renderen — alleen op Dashboard route |
+| Wat | Actie |
+|-----|-------|
+| Database migratie | RLS policies op `ad_platform_connections` updaten om `is_platform_admin()` bypass toe te voegen |
 
 ### Detail
 
-**1. Products.tsx — Actiebalk (regels 408-441)**
-- Container: `bottom-0` → `bottom-14 md:bottom-0` (boven mobile nav)
-- Voeg absolute X-knop toe rechtsboven: `absolute top-1 right-1 h-7 w-7 rounded-full`
-- Verwijder de inline "Deselecteer" knop (regel 436-439)
-- Import `X` toevoegen uit lucide-react
+**Huidige policies:**
+- SELECT: `tenant_id IN (SELECT user_roles.tenant_id FROM user_roles WHERE user_id = auth.uid())`
+- ALL (admin): `tenant_id IN (... WHERE role IN ('tenant_admin', 'platform_admin'))`
 
-**2. BulkActionsToolbar.tsx (Inbox)**
-- Heeft al een X-knop linksboven — deze is inline en al functioneel. Geen wijziging nodig, is al consistent.
+**Nieuwe policies:**
+```sql
+-- Drop existing
+DROP POLICY "Tenant users can view their ad connections" ON ad_platform_connections;
+DROP POLICY "Tenant admins can manage ad connections" ON ad_platform_connections;
 
-**3. AdminLayout.tsx — AIHelpWidget alleen op Dashboard**
-- Gebruik `useLocation()` van react-router-dom
-- Render `<AIHelpWidget />` alleen als `location.pathname === '/admin'` of `/admin/dashboard`
-- Hierdoor blokkeert het help-icoon niet meer de actiebalken op Orders, Producten, etc.
+-- Recreate with platform_admin bypass
+CREATE POLICY "Tenant users can view their ad connections"
+  ON ad_platform_connections FOR SELECT
+  USING (
+    is_platform_admin(auth.uid())
+    OR tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))
+  );
 
-### Geen database wijzigingen nodig
+CREATE POLICY "Tenant admins can manage ad connections"
+  ON ad_platform_connections FOR ALL
+  USING (
+    is_platform_admin(auth.uid())
+    OR tenant_id IN (
+      SELECT user_roles.tenant_id FROM user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'tenant_admin'
+    )
+  );
+```
+
+Geen code-wijzigingen nodig — alleen de RLS policy moet gefixt worden.
 
