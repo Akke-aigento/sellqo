@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
           const archiveResult = await bolApi(
             archToken,
             "PUT",
-            `${BOL_ADV_BASE}/campaigns/${campaign.platform_campaign_id}`,
+            `/campaigns/${campaign.platform_campaign_id}`,
             { state: "ARCHIVED" }
           );
           console.log("Campaign archived on Bol:", JSON.stringify(archiveResult));
