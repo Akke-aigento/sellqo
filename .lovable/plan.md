@@ -1,50 +1,49 @@
 
 
-## Fix: Negatieve keywords, push-naar-Bol knop & AI analyse zonder data
+## Fix alle kritieke bugs in de Bol Ads module
 
-### Drie problemen
+### Overzicht
 
-1. **Negatieve keywords toevoegen werkt niet** — De "Toevoegen" knop is `disabled={!firstAdGroupId}` (regel 320). Als er geen ad groups zijn (wat het geval is voor deze campagne), is de knop altijd disabled. Het probleem is dat negatieve keywords aan een ad group moeten hangen, maar als er geen ad groups bestaan kan dat niet.
-
-2. **Geen "Push naar Bol" knop na bewerken** — Na het opslaan van wijzigingen in het bewerkformulier is er geen manier om die wijzigingen door te pushen naar Bol.com. Er moet een "Synchroniseer naar Bol.com" knop komen.
-
-3. **AI analyse draait zonder data en toont geen suggesties** — De edge function stuurt altijd een request naar de AI, ook als er 0 keywords en 0 performance data is. De AI hallucineer dan suggesties. Bovendien slaat de functie suggesties op in de DB maar de query in de UI filtert niet op `campaign_id` — dus suggesties van álle campagnes worden getoond (of juist niet als er geen match is).
+6 fixes verspreid over 4 bestanden. Eén aandachtspunt: **ANTHROPIC_API_KEY is niet geconfigureerd** — ik moet eerst de secret opvragen voordat Fix 6 kan werken. Alternatief: de Lovable AI gateway werkt al (LOVABLE_API_KEY is aanwezig), dus Fix 6 kan ook overgeslagen worden tenzij je specifiek Anthropic wilt.
 
 ### Wijzigingen
 
-| Bestand | Actie |
-|---------|-------|
-| `supabase/functions/ads-campaign-analyze/index.ts` | Early return als er geen keywords EN geen performance data is |
-| `src/components/admin/ads/CampaignAIAnalysis.tsx` | Query filteren op campaign_id; suggesties inline tonen na analyse (niet alleen uit DB) |
-| `src/pages/admin/AdsBolcomCampaignDetail.tsx` | "Synchroniseer naar Bol.com" knop toevoegen in header; negatieve keywords knop ook werken als er geen ad groups zijn (lokaal opslaan) |
-| `src/components/admin/ads/BolCampaignEditForm.tsx` | Negatieve keywords sectie toevoegen met add/remove |
+| # | Bestand | Fix |
+|---|---------|-----|
+| 1 | `ads-bolcom-manage/index.ts` | Credentials lookup: `marketplace` → `marketplace_type`, `"bolcom"` → `"bol_com"`, filter op `is_active` + advertising credentials |
+| 2 | `ads-bolcom-manage/index.ts` | Budget: `dailyBudget` als `{ amount, currency: "EUR" }` object |
+| 3 | `ads-bolcom-manage/index.ts` | Negative keywords: top-level endpoint + `negativeKeywords` bulk formaat |
+| 4 | `CampaignAIAnalysis.tsx` | Action mapping: correcte action names (`update_bid`, `pause_keyword`), geneste `payload`, `add_negative` toevoegen, `.replace(',', '.')` |
+| 5 | `ads-inventory-watch/index.ts` | Bol API helpers + token cache per tenant + daadwerkelijke API calls bij pause/resume |
+| 6 | `ads-campaign-analyze/index.ts` | Anthropic API i.p.v. Lovable AI gateway (vereist secret) |
 
-### Detail
+### Detail per fix
 
-**1. `ads-campaign-analyze/index.ts`**
-- Na het ophalen van data: check `keywords.length === 0 && performance.length === 0`
-- Als true: return `{ suggestions: [], count: 0, message: "Geen data beschikbaar om te analyseren" }` (status 200)
-- Voeg `campaign_id` toe aan elk record dat wordt opgeslagen in `ads_ai_recommendations`
+**Fix 1-3: `supabase/functions/ads-bolcom-manage/index.ts`**
+- Regels 99-112: Credentials lookup volledig vervangen — query op `marketplace_type = "bol_com"` + `is_active = true`, dan `.find()` voor advertising credentials
+- Regel 237: `dailyBudget` wrappen in `{ amount: daily_budget, currency: "EUR" }`
+- Regels 178-180: Negative keywords endpoint wijzigen naar top-level `/negative-keywords` met `negativeKeywords` array formaat
 
-**2. `CampaignAIAnalysis.tsx`**
-- Query filteren: `.eq('entity_id', ...)` werkt niet goed hier — voeg een custom filter toe op basis van campaign gerelateerde entity IDs, OF sla `campaign_id` op in de recommendation records (beter)
-- Na het analyseren: gebruik de direct teruggekomen `suggestions` uit de response om ze inline te tonen (state), zodat ze meteen zichtbaar zijn zonder DB-roundtrip
-- Bij "Geen data" message van edge function: toon info-bericht i.p.v. "X suggesties gegenereerd"
+**Fix 4: `src/components/admin/ads/CampaignAIAnalysis.tsx`**
+- Regels 91-103: Volledige `actionMap` vervangen met correcte action names en geneste payload structuur
+- `add_negative` mapping toevoegen (ontbreekt nu volledig)
+- `body` structuur: `{ tenant_id, action, payload }` i.p.v. `{ tenant_id, action, ...payload }`
 
-**3. `AdsBolcomCampaignDetail.tsx`**
-- Header: nieuwe knop "Synchroniseer naar Bol.com" die `push-bol-campaign` aanroept met `force_repush: true`
-- Met loading state en progress toasts (zelfde pattern als CampaignCard)
-- Negatieve keywords "Toevoegen" knop: als er geen ad groups zijn, toon een info-tekst "Voeg eerst producten toe aan de campagne" i.p.v. een disabled knop
+**Fix 5: `supabase/functions/ads-inventory-watch/index.ts`**
+- Bol API helpers toevoegen (getBolToken, bolPut) + ADV_HEADERS constanten
+- Token cache functie `getTokenForTenant` die credentials ophaalt via `marketplace_type = "bol_com"`
+- Bij pause (regel 77-80): na DB update ook `bolPut` aanroepen met `{ state: "PAUSED" }`
+- Bij resume (regel 120-124): na DB update ook `bolPut` aanroepen met `{ state: "ENABLED" }`
 
-**4. `BolCampaignEditForm.tsx`**
-- Voeg een sectie "Negatieve Keywords" toe onderaan met:
-  - Lijst van huidige negatieve keywords (uit props of via eigen query)
-  - Input + match type selector + "Toevoegen" knop
-  - Roept `addNegativeKeyword` aan (via props callback of directe supabase.functions.invoke)
+**Fix 6: `supabase/functions/ads-campaign-analyze/index.ts`**
+- Vereist `ANTHROPIC_API_KEY` secret — deze moet eerst worden toegevoegd
+- API call vervangen: Lovable gateway → `api.anthropic.com/v1/messages`
+- Request formaat: Anthropic `system`/`messages`/`tools`/`tool_choice` structuur
+- Response parsing: `content.find(b => b.type === "tool_use")` i.p.v. `choices[0].message.tool_calls[0]`
 
-### Database
-- Voeg `campaign_id` kolom toe aan `ads_ai_recommendations` records bij insert (als het veld bestaat), of sla het op in een metadata/context veld — check eerst of de kolom bestaat
+### Secret vereiste
 
-### Geen database migraties nodig
-De `ads_ai_recommendations` tabel heeft al voldoende velden; we gebruiken bestaande kolommen of slaan campaign_id op als context.
+Voor Fix 6 moet `ANTHROPIC_API_KEY` als secret worden toegevoegd. Ik vraag dit op bij de implementatie.
+
+### Geen database wijzigingen nodig
 
