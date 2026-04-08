@@ -1,45 +1,31 @@
 
 
-## Admin Mobile Bottom Navigation Bar
-
-### Probleem
-Op mobiel verdwijnt de sidebar achter een hamburgermenu. Er is geen snelle navigatiebalk onderaan het scherm — gebruikers moeten altijd het menu openen om te navigeren. De storefront heeft al een `MobileBottomNav`, maar het admin panel mist dit volledig.
-
-### Oplossing
-Een vaste bottom navigation bar voor het admin panel op mobiel (md:hidden), met de 4-5 meest gebruikte secties als snelkoppeling.
-
-### Navigatie-items (5 tabs)
-
-| Tab | Icoon | Route |
-|-----|-------|-------|
-| Dashboard | LayoutDashboard | /admin |
-| Bestellingen | ShoppingCart | /admin/orders |
-| Producten | Package | /admin/products |
-| Inbox | MessageSquare | /admin/inbox (met unread badge) |
-| Menu | Menu (hamburger) | Opent de sidebar |
+## Drie aanpassingen: Help-widget, Inbox badge, Order acties-pijl
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/components/admin/AdminMobileBottomNav.tsx` | **Nieuw** — Bottom nav component met 5 tabs, active state highlighting, inbox badge |
-| `src/components/admin/AdminLayout.tsx` | Import + render `AdminMobileBottomNav`, padding-bottom toevoegen aan main voor mobiel |
+| `src/components/admin/help/AIHelpWidget.tsx` | Knop naar boven verplaatsen (boven bottom nav), minimaliseerbaar maken met localStorage |
+| `src/components/admin/AdminMobileBottomNav.tsx` | Inbox badge: cijfer vervangen door rood bolletje |
+| `src/components/admin/OrderBulkActions.tsx` | ChevronDown → ChevronUp, dropdown opent naar boven, bar boven bottom nav |
 
 ### Detail
 
-**AdminMobileBottomNav.tsx**
-- `fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden`
-- 5 tabs: Dashboard, Bestellingen, Producten, Inbox, Menu
-- Active state via `useLocation()` met `text-primary` highlight
-- Inbox tab toont unread count badge (hergebruik bestaande unread query of InboxBadge logica)
-- "Menu" tab triggert `useSidebar().toggleSidebar()` om de sidebar te openen
-- Hoogte: `h-14` (consistent met storefront bottom nav)
+**1. AIHelpWidget.tsx**
+- Positie: `bottom-20 md:bottom-4 right-4` (boven de mobile bottom nav)
+- Nieuwe state `isMinimized` met `localStorage.getItem('ai-help-minimized')` — default `false` (eerste keer open/zichtbaar)
+- Als geminimaliseerd: toon een klein rond icoontje (kleiner, subtiel) dat je kunt aanklikken om te openen
+- Na eerste interactie (sluiten): sla `'true'` op in localStorage zodat hij bij volgende loads geminimaliseerd start
+- Chat window positie ook aanpassen voor mobiel: `bottom-20 md:bottom-20`
 
-**AdminLayout.tsx**
-- `<main>` krijgt `pb-16 md:pb-0` zodat content niet achter de nav verdwijnt
-- `<AdminMobileBottomNav />` renderen na de main content div
-- FloatingSaveBar en andere fixed-bottom elementen moeten `bottom-14 md:bottom-0` krijgen op mobiel (of z-index regeling)
+**2. AdminMobileBottomNav.tsx — Inbox badge**
+- Verwijder het cijfer uit de badge
+- Toon alleen een klein rood bolletje (`h-2.5 w-2.5`) zonder tekst als `count > 0`
+- Positie: rechtsboven op het icoon (`absolute -top-1 -right-1`)
 
-### Aandachtspunten
-- FloatingSaveBar, BulkActions bars etc. zitten ook `fixed bottom-0` — deze moeten `bottom-14` krijgen op mobiel zodat ze boven de nav bar verschijnen. Dit doen we via een kleine CSS class aanpassing in AdminMobileBottomNav die een CSS variable set, of we passen de bestaande bars aan met `md:bottom-0 bottom-14`.
+**3. OrderBulkActions.tsx — Acties dropdown**
+- `ChevronDown` → `ChevronUp` import en gebruik
+- `DropdownMenuContent`: voeg `side="top"` toe zodat het menu naar boven opent
+- Bar positie: `bottom-14 md:bottom-0` (boven mobile bottom nav, consistent met FloatingSaveBar)
 
