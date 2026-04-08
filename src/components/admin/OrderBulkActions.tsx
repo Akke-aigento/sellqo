@@ -28,6 +28,7 @@ import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
 import {
   ChevronUp,
   XCircle,
+  X,
   Truck,
   CheckCircle,
   Clock,
@@ -233,8 +234,16 @@ export function OrderBulkActions({
 
   return (
     <>
-      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 max-w-screen-xl mx-auto">
+      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)] relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClearSelection}
+          className="absolute top-1 right-1 h-7 w-7 rounded-full"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 pr-10 max-w-screen-xl mx-auto">
           <span className="text-sm font-medium whitespace-nowrap">
             {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} geselecteerd
           </span>
@@ -317,10 +326,6 @@ export function OrderBulkActions({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button size="sm" variant="ghost" onClick={onClearSelection} className="ml-auto">
-            <XCircle className="h-4 w-4 mr-2" />
-            Deselecteer
-          </Button>
         </div>
       </div>
 
