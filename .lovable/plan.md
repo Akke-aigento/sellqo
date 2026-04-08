@@ -1,25 +1,30 @@
 
 
-## Fix: Actiebalk staat inline i.p.v. fixed onderaan
+## Drie fixes: Producten actiebalk kruisje, Inbox kruisje, Help-widget alleen op Dashboard
 
-### Probleem
-Bij de vorige wijziging werd `relative` toegevoegd aan de container div zodat de absolute X-knop correct gepositioneerd wordt. Maar `relative` overschrijft `fixed` in Tailwind, waardoor de balk niet meer fixed onderaan het scherm staat maar inline in de pagina wordt gerenderd.
-
-### Oorzaak
-Regel 59 in `CategoryBulkActions.tsx` (en identiek in `OrderBulkActions.tsx` regel 237 en `FulfillmentBulkActions.tsx` regel 211):
-```
-className="fixed ... relative"
-```
-`relative` wint van `fixed` → balk is niet meer floating.
-
-### Fix
-Verwijder `relative` uit de className van alle 3 bestanden. De absolute X-knop werkt prima binnen een `fixed` container — `fixed` creëert ook een containing block voor absolute children.
+### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `CategoryBulkActions.tsx` regel 59 | Verwijder `relative` uit className |
-| `OrderBulkActions.tsx` regel 237 | Verwijder `relative` uit className |
-| `FulfillmentBulkActions.tsx` regel 211 | Verwijder `relative` uit className |
+| `src/pages/admin/Products.tsx` | X-kruisje rechtsboven toevoegen, inline "Deselecteer" verwijderen, `bottom-14 md:bottom-0` toevoegen |
+| `src/components/admin/inbox/BulkActionsToolbar.tsx` | X-kruisje rechtsboven toevoegen (consistent met andere balken) |
+| `src/components/admin/AdminLayout.tsx` | AIHelpWidget conditioneel renderen — alleen op Dashboard route |
 
-Eén woord verwijderen per bestand, klaar.
+### Detail
+
+**1. Products.tsx — Actiebalk (regels 408-441)**
+- Container: `bottom-0` → `bottom-14 md:bottom-0` (boven mobile nav)
+- Voeg absolute X-knop toe rechtsboven: `absolute top-1 right-1 h-7 w-7 rounded-full`
+- Verwijder de inline "Deselecteer" knop (regel 436-439)
+- Import `X` toevoegen uit lucide-react
+
+**2. BulkActionsToolbar.tsx (Inbox)**
+- Heeft al een X-knop linksboven — deze is inline en al functioneel. Geen wijziging nodig, is al consistent.
+
+**3. AdminLayout.tsx — AIHelpWidget alleen op Dashboard**
+- Gebruik `useLocation()` van react-router-dom
+- Render `<AIHelpWidget />` alleen als `location.pathname === '/admin'` of `/admin/dashboard`
+- Hierdoor blokkeert het help-icoon niet meer de actiebalken op Orders, Producten, etc.
+
+### Geen database wijzigingen nodig
 
