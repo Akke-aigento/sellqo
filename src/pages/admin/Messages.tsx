@@ -174,20 +174,131 @@ export default function MessagesPage() {
       </div>
 
       <div className={`${isSinglePanel ? 'px-0 pb-0' : 'p-6'} h-[calc(100%-${isSinglePanel ? '2.5rem' : '5rem'})]`}>
-        <Card className={`h-full flex overflow-hidden ${isSinglePanel ? 'rounded-none border-x-0' : ''}`}>
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            {/* Left sidebar - Folders (hidden on mobile when viewing detail) */}
-            {showList && (
-              <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
-                <div className="p-1.5 border-b flex items-center justify-between shrink-0">
-                  {!isSidebarCollapsed && (
-                    <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
-                  )}
-                  {!isSinglePanel && (
+        {isSinglePanel ? (
+          <div className="h-full flex overflow-hidden border-t">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Left sidebar - Folders (hidden on mobile when viewing detail) */}
+              {showList && (
+                <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
+                  <div className="p-1.5 border-b flex items-center justify-between shrink-0">
+                    {!isSidebarCollapsed && (
+                      <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
+                    )}
+                    {!isSinglePanel && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                      >
+                        {isSidebarCollapsed ? (
+                          <PanelLeft className="h-3.5 w-3.5" />
+                        ) : (
+                          <PanelLeftClose className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  <FolderList
+                    selectedFolderId={
+                      filters.folderId === 'archived' ? archiveFolder?.id || null :
+                      filters.folderId === 'deleted' ? trashFolder?.id || null :
+                      filters.folderId
+                    }
+                    onSelectFolder={handleFolderSelect}
+                    folders={folders || []}
+                    collapsed={isSidebarCollapsed}
+                    onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onCreateFolder={() => setShowNewFolder(true)}
+                    showNewFolderInput={showNewFolder}
+                    newFolderName={newFolderName}
+                    onNewFolderNameChange={setNewFolderName}
+                    onNewFolderSubmit={handleCreateFolder}
+                    onNewFolderCancel={() => { setShowNewFolder(false); setNewFolderName(''); }}
+                    unreadCount={unreadCount}
+                    totalCount={totalCount}
+                    onDeleteFolder={deleteFolder}
+                    onRenameFolder={handleRenameFolder}
+                  />
+                </div>
+              )}
+
+              {/* Middle - Conversation list */}
+              {showList && (
+                <div className={`${isSinglePanel ? 'flex-1' : 'w-80'} min-w-0 flex flex-col border-r`}>
+                  <ConversationFilters
+                    filters={filters}
+                    onFiltersChange={handleFiltersChange}
+                    channels={channels}
+                  />
+                  <SortableContext items={conversationIds} strategy={verticalListSortingStrategy}>
+                    <ConversationList
+                      conversations={conversations || []}
+                      selectedId={selectedId || undefined}
+                      onSelect={handleSelectConversation}
+                      isLoading={isLoadingConversations}
+                    />
+                  </SortableContext>
+                </div>
+              )}
+
+              <DragOverlay>
+                {activeConversation ? (
+                  <div className="bg-card border rounded-lg p-3 shadow-lg opacity-90 w-80">
+                    <p className="font-medium text-sm truncate">{activeConversation.customer_name || 'Onbekend'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{activeConversation.subject || 'Geen onderwerp'}</p>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+
+            {/* Right - Conversation detail */}
+            {showDetail && (
+              <div className={`${isSinglePanel ? 'w-full' : 'flex-1'} min-w-0 flex flex-col`}>
+                {selectedConversation ? (
+                  <ConversationDetail
+                    conversation={selectedConversation}
+                    onStatusChange={(status) => updateStatus({ conversationId: selectedConversation.id, status })}
+                    onAssign={(userId) => assignConversation({ conversationId: selectedConversation.id, userId })}
+                    onAddTags={(tags) => addTags({ conversationId: selectedConversation.id, tags })}
+                    onToggleStar={() => toggleStar(selectedConversation.id)}
+                    onArchive={() => archiveConversation(selectedConversation.id)}
+                    onDelete={() => deleteConversation(selectedConversation.id)}
+                    onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
+                    onBack={isSinglePanel ? handleBack : undefined}
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                      Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Card className="h-full flex overflow-hidden">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Left sidebar - Folders */}
+              {showList && (
+                <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
+                  <div className="p-1.5 border-b flex items-center justify-between shrink-0">
+                    {!isSidebarCollapsed && (
+                      <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -200,90 +311,90 @@ export default function MessagesPage() {
                         <PanelLeftClose className="h-3.5 w-3.5" />
                       )}
                     </Button>
-                  )}
-                </div>
-                <FolderList
-                  selectedFolderId={
-                    filters.folderId === 'archived' ? archiveFolder?.id || null :
-                    filters.folderId === 'deleted' ? trashFolder?.id || null :
-                    filters.folderId
-                  }
-                  onFolderSelect={handleFolderSelect}
-                  folderCounts={folderCounts}
-                  collapsed={isSidebarCollapsed}
-                />
-              </div>
-            )}
-
-            {/* Middle - Conversation list */}
-            {showList && (
-              <div className={`${isSinglePanel ? 'flex-1' : 'w-72 min-w-72'} border-r flex flex-col shrink-0 overflow-hidden`}>
-                <InboxFilters
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  emailCount={counts.email}
-                  whatsappCount={counts.whatsapp}
-                  facebookCount={counts.facebook}
-                  instagramCount={counts.instagram}
-                  unreadCount={unreadTotal}
-                />
-                <div className="flex-1 overflow-hidden">
-                  <ConversationList
-                    conversations={conversations}
-                    selectedId={selectedConversationId}
-                    onSelect={handleSelectConversation}
-                    isLoading={isLoading}
-                    selectedIds={selectedIds}
-                    onToggleSelection={toggleSelection}
-                    onSelectAll={selectAll}
-                    onClearSelection={clearSelection}
-                    onBulkArchive={bulkArchive}
-                    onBulkDelete={bulkDelete}
-                    onBulkRestore={bulkRestore}
-                    onBulkMoveToFolder={bulkMoveToFolder}
-                    currentFolder={filters.folderId}
-                    isBulkLoading={isBulkLoading}
+                  </div>
+                  <FolderList
+                    selectedFolderId={
+                      filters.folderId === 'archived' ? archiveFolder?.id || null :
+                      filters.folderId === 'deleted' ? trashFolder?.id || null :
+                      filters.folderId
+                    }
+                    onSelectFolder={handleFolderSelect}
+                    folders={folders || []}
+                    collapsed={isSidebarCollapsed}
+                    onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onCreateFolder={() => setShowNewFolder(true)}
+                    showNewFolderInput={showNewFolder}
+                    newFolderName={newFolderName}
+                    onNewFolderNameChange={setNewFolderName}
+                    onNewFolderSubmit={handleCreateFolder}
+                    onNewFolderCancel={() => { setShowNewFolder(false); setNewFolderName(''); }}
+                    unreadCount={unreadCount}
+                    totalCount={totalCount}
+                    onDeleteFolder={deleteFolder}
+                    onRenameFolder={handleRenameFolder}
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Drag overlay */}
-            <DragOverlay>
-              {activeConversation && (
-                <ConversationDragOverlay conversation={activeConversation} />
               )}
-            </DragOverlay>
-          </DndContext>
 
-          {/* Right panel - Conversation detail */}
-          {showDetail && (
-            <div className="flex-1 min-w-0">
-              {selectedConversation ? (
-                <ConversationDetail
-                  conversation={selectedConversation}
-                  onMarkAsRead={() => markConversationAsRead(selectedConversation.id)}
-                  onMessageSent={() => {}}
-                  onArchive={() => archiveConversation(selectedConversation.id)}
-                  onDelete={() => deleteConversation(selectedConversation.id)}
-                  onRestore={() => restoreConversation(selectedConversation.id)}
-                  onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
-                  onBack={isSinglePanel ? handleBack : undefined}
-                />
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                    Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
-                  </p>
+              {/* Middle - Conversation list */}
+              {showList && (
+                <div className="w-80 min-w-0 flex flex-col border-r">
+                  <ConversationFilters
+                    filters={filters}
+                    onFiltersChange={handleFiltersChange}
+                    channels={channels}
+                  />
+                  <SortableContext items={conversationIds} strategy={verticalListSortingStrategy}>
+                    <ConversationList
+                      conversations={conversations || []}
+                      selectedId={selectedId || undefined}
+                      onSelect={handleSelectConversation}
+                      isLoading={isLoadingConversations}
+                    />
+                  </SortableContext>
                 </div>
               )}
-            </div>
-          )}
-        </Card>
+
+              <DragOverlay>
+                {activeConversation ? (
+                  <div className="bg-card border rounded-lg p-3 shadow-lg opacity-90 w-80">
+                    <p className="font-medium text-sm truncate">{activeConversation.customer_name || 'Onbekend'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{activeConversation.subject || 'Geen onderwerp'}</p>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+
+            {/* Right - Conversation detail */}
+            {showDetail && (
+              <div className="flex-1 min-w-0 flex flex-col">
+                {selectedConversation ? (
+                  <ConversationDetail
+                    conversation={selectedConversation}
+                    onStatusChange={(status) => updateStatus({ conversationId: selectedConversation.id, status })}
+                    onAssign={(userId) => assignConversation({ conversationId: selectedConversation.id, userId })}
+                    onAddTags={(tags) => addTags({ conversationId: selectedConversation.id, tags })}
+                    onToggleStar={() => toggleStar(selectedConversation.id)}
+                    onArchive={() => archiveConversation(selectedConversation.id)}
+                    onDelete={() => deleteConversation(selectedConversation.id)}
+                    onMoveToFolder={(folderId) => moveToFolder({ conversationId: selectedConversation.id, folderId })}
+                    onBack={undefined}
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                      Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
       </div>
     </div>
   );
