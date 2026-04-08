@@ -68,7 +68,7 @@ function jsonRes(data: unknown, status = 200) {
   });
 }
 
-type Action = "pause_campaign" | "resume_campaign" | "update_bid" | "add_negative_keyword" | "pause_keyword" | "resume_keyword" | "update_budget";
+type Action = "pause_campaign" | "resume_campaign" | "update_bid" | "add_negative_keyword" | "pause_keyword" | "resume_keyword" | "update_budget" | "delete_campaign";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -254,6 +254,47 @@ Deno.serve(async (req) => {
           .eq("tenant_id", tenant_id);
 
         detail = `Budget updated to ${daily_budget}`;
+        break;
+      }
+
+      case "delete_campaign": {
+        const { campaign_id } = payload as { campaign_id: string };
+        const { data: camp } = await supabase
+          .from("ads_bolcom_campaigns")
+          .select("bolcom_campaign_id, status")
+          .eq("id", campaign_id)
+          .eq("tenant_id", tenant_id)
+          .single();
+        if (!camp) return jsonRes({ error: "Campagne niet gevonden" }, 404);
+
+        // Pause on Bol.com first if active
+        if (camp.status === "active" && camp.bolcom_campaign_id) {
+          try {
+            await bolPut(token, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "PAUSED" });
+          } catch (e) {
+            console.error("Failed to pause campaign on Bol.com before delete:", e);
+          }
+        }
+
+        // Get adgroup IDs for keyword cleanup
+        const { data: adgroups } = await supabase
+          .from("ads_bolcom_adgroups")
+          .select("id")
+          .eq("campaign_id", campaign_id)
+          .eq("tenant_id", tenant_id);
+        const agIds = (adgroups ?? []).map(a => a.id);
+
+        // Delete in order: keywords, targeting products, search terms, performance, adgroups, campaign
+        if (agIds.length > 0) {
+          await supabase.from("ads_bolcom_keywords").delete().in("adgroup_id", agIds).eq("tenant_id", tenant_id);
+          await supabase.from("ads_bolcom_targeting_products").delete().in("adgroup_id", agIds).eq("tenant_id", tenant_id);
+        }
+        await supabase.from("ads_bolcom_search_terms").delete().eq("campaign_id", campaign_id).eq("tenant_id", tenant_id);
+        await supabase.from("ads_bolcom_performance").delete().eq("campaign_id", campaign_id).eq("tenant_id", tenant_id);
+        await supabase.from("ads_bolcom_adgroups").delete().eq("campaign_id", campaign_id).eq("tenant_id", tenant_id);
+        await supabase.from("ads_bolcom_campaigns").delete().eq("id", campaign_id).eq("tenant_id", tenant_id);
+
+        detail = `Campaign deleted locally`;
         break;
       }
 

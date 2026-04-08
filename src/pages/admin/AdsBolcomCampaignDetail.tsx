@@ -12,7 +12,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2, RefreshCw } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -37,7 +38,7 @@ export default function AdsBolcomCampaignDetail() {
     campaign, chartData, adGroups, positiveKeywords, negativeKeywords,
     keywordPerf, adGroupPerf, isLoading, period, setPeriod,
     updateCampaignStatus, updateKeywordBid, toggleKeywordStatus,
-    addKeyword, addNegativeKeyword,
+    addKeyword, addNegativeKeyword, deleteCampaign,
   } = useBolcomCampaignDetail(id);
 
   const [editingBid, setEditingBid] = useState<string | null>(null);
@@ -170,6 +171,32 @@ export default function AdsBolcomCampaignDetail() {
           <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
             <Pencil className="h-4 w-4" /><span className="hidden sm:inline ml-2">Bewerken</span>
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4" /><span className="hidden sm:inline ml-2">Verwijderen</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Campagne verwijderen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  De campagne wordt gepauzeerd op Bol.com en lokaal verwijderd. Dit kan niet ongedaan worden gemaakt.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => deleteCampaign.mutate(undefined, { onSuccess: () => navigate('/admin/ads/bolcom') })}
+                  disabled={deleteCampaign.isPending}
+                >
+                  {deleteCampaign.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Verwijderen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
