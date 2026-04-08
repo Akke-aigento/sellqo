@@ -1,58 +1,25 @@
 
 
-## Kruisje (X) toevoegen aan alle actiebalken voor deselecteren
+## Fix: Actiebalk staat inline i.p.v. fixed onderaan
 
 ### Probleem
-Als je items selecteert, verschijnt er een actiebalk onderaan. Om te deselecteren moet je scrollen naar de "Deselecteer" knop of door de lijst. Er mist een duidelijk kruisje rechtsboven om snel alles te deselecteren.
+Bij de vorige wijziging werd `relative` toegevoegd aan de container div zodat de absolute X-knop correct gepositioneerd wordt. Maar `relative` overschrijft `fixed` in Tailwind, waardoor de balk niet meer fixed onderaan het scherm staat maar inline in de pagina wordt gerenderd.
 
-### Overzicht van de 5 actiebalken
-
-| Component | Huidige situatie | Actie |
-|-----------|-----------------|-------|
-| `CategoryBulkActions.tsx` | Heeft "Deselecteer" knop met X icoon rechts, maar zit in de flow — niet rechtsboven | Verplaats naar absolute rechtsboven positie |
-| `OrderBulkActions.tsx` | Heeft "Deselecteer" knop met XCircle rechts (`ml-auto`) | Maak prominenter als absolute X rechtsboven |
-| `FulfillmentBulkActions.tsx` | Heeft "Deselecteer" knop met XCircle rechts (`ml-auto`) | Zelfde aanpak |
-| `TenantBulkActions.tsx` | Heeft "Deselecteren" knop inline | Zelfde aanpak |
-| `BulkActionsToolbar.tsx` (Inbox) | Heeft X knop linksboven — al goed | Eventueel consistent maken |
-
-### Aanpak
-Elke fixed bottom bar krijgt een **absolute gepositioneerd X-kruisje rechtsboven** (`absolute -top-3 -right-3` of `top-2 right-2`) dat als een ronde knop fungeert. Dit is onmiddellijk zichtbaar en klikbaar zonder te scrollen.
-
-### Wijzigingen per bestand
-
-**1. `CategoryBulkActions.tsx`** (regel 59, de fixed bar div)
-- Voeg `relative` toe aan de bar container
-- Voeg een absolute X-knop toe: `absolute top-1 right-1` of `top-2 right-2`
-- Verwijder de bestaande "Deselecteer" knop onderaan (regel 127-130)
-
-**2. `OrderBulkActions.tsx`** (regel 236, de fixed bar)
-- Voeg `relative` toe
-- Voeg absolute X-knop rechtsboven toe
-- Verwijder de inline "Deselecteer" knop (regel 320-323)
-
-**3. `FulfillmentBulkActions.tsx`** (regel 210, de fixed bar)
-- Zelfde patroon: `relative` + absolute X-knop
-- Verwijder inline "Deselecteer" knop (regel 249-252)
-
-**4. `TenantBulkActions.tsx`** (regel 128, de inline bar)
-- Voeg `relative` toe aan de container
-- Voeg absolute X-knop rechtsboven toe
-- Verwijder de inline "Deselecteren" knop (regel 154-156)
-
-**5. `BulkActionsToolbar.tsx`** (Inbox) — al OK, heeft X linksboven. Optioneel consistent maken.
-
-### Visueel
-Elke bar krijgt een compact rond kruisje rechtsboven:
-```tsx
-<Button
-  variant="ghost"
-  size="icon"
-  onClick={onClearSelection/onDeselectAll}
-  className="absolute top-1 right-1 h-7 w-7 rounded-full"
->
-  <X className="h-4 w-4" />
-</Button>
+### Oorzaak
+Regel 59 in `CategoryBulkActions.tsx` (en identiek in `OrderBulkActions.tsx` regel 237 en `FulfillmentBulkActions.tsx` regel 211):
 ```
+className="fixed ... relative"
+```
+`relative` wint van `fixed` → balk is niet meer floating.
 
-### Geen database wijzigingen nodig
+### Fix
+Verwijder `relative` uit de className van alle 3 bestanden. De absolute X-knop werkt prima binnen een `fixed` container — `fixed` creëert ook een containing block voor absolute children.
+
+| Bestand | Actie |
+|---------|-------|
+| `CategoryBulkActions.tsx` regel 59 | Verwijder `relative` uit className |
+| `OrderBulkActions.tsx` regel 237 | Verwijder `relative` uit className |
+| `FulfillmentBulkActions.tsx` regel 211 | Verwijder `relative` uit className |
+
+Eén woord verwijderen per bestand, klaar.
 
