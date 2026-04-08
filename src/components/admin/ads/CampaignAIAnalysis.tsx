@@ -89,16 +89,17 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
   const applyMutation = useMutation({
     mutationFn: async (rec: Suggestion) => {
       const actionMap: Record<string, { action: string; payload: any }> = {
-        increase_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.replace('€', '') || '0') } },
-        decrease_bid: { action: 'update_keyword_bid', payload: { keyword_id: rec.entity_id, bid: parseFloat(rec.recommended_value?.replace('€', '') || '0') } },
-        pause_keyword: { action: 'toggle_keyword', payload: { keyword_id: rec.entity_id, status: 'paused' } },
-        resume_keyword: { action: 'toggle_keyword', payload: { keyword_id: rec.entity_id, status: 'active' } },
+        increase_bid: { action: 'update_bid', payload: { keyword_id: rec.entity_id, new_bid: parseFloat(rec.recommended_value?.replace('€', '').replace(',', '.') || '0') } },
+        decrease_bid: { action: 'update_bid', payload: { keyword_id: rec.entity_id, new_bid: parseFloat(rec.recommended_value?.replace('€', '').replace(',', '.') || '0') } },
+        pause_keyword: { action: 'pause_keyword', payload: { keyword_id: rec.entity_id } },
+        resume_keyword: { action: 'resume_keyword', payload: { keyword_id: rec.entity_id } },
+        add_negative: { action: 'add_negative_keyword', payload: { adgroup_id: rec.entity_id, keyword: rec.entity_name, match_type: 'exact' } },
       };
 
       const mapped = actionMap[rec.action_type];
-      if (mapped && rec.entity_id) {
+      if (mapped) {
         await supabase.functions.invoke('ads-bolcom-manage', {
-          body: { tenant_id: tenantId, action: mapped.action, ...mapped.payload },
+          body: { tenant_id: tenantId, action: mapped.action, payload: mapped.payload },
         });
       }
 
