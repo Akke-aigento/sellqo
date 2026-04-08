@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
 import {
-  ChevronDown,
+  ChevronUp,
   XCircle,
   Truck,
   CheckCircle,
