@@ -1,27 +1,42 @@
 
 
-## Fix: Inbox volle breedte + "Nieuw" knop positie
+## Inbox mobiel: Card-stijl verwijderen, clean layout zoals Producten
+
+### Probleem
+De Inbox op mobiel zit in een `Card` component met border, rounded corners en shadow. De Producten-pagina heeft dit niet — daar staat de content direct op de pagina zonder wrapper. Dat ziet er cleaner uit.
+
+### Aanpak
+Op mobiel de `Card` wrapper volledig verwijderen en de content direct renderen, zoals de Producten-pagina doet. Desktop behoudt de Card.
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/Messages.tsx` | Padding naar 0 op mobiel, Card border/rounded verwijderen, "Nieuw" knop hoger plaatsen |
+| `src/pages/admin/Messages.tsx` | Op mobiel Card vervangen door een gewone `div`, borders/shadow/rounded weg |
 
 ### Detail
 
-**1. Padding volledig verwijderen op mobiel**
-- Regel 154: `px-1 pt-2 pb-0` → `px-0 pt-1 pb-0`
-- Regel 176: `px-1 pb-1` → `px-0 pb-0`
+**Messages.tsx — regel ~177**
 
-**2. Card styling op mobiel**
-- De `Card` component (regel 177) heeft standaard `rounded-lg border shadow-sm` — op mobiel voegt dit visuele marges toe
-- Voeg conditionele class toe: `isSinglePanel ? 'h-full flex overflow-hidden rounded-none border-x-0' : 'h-full flex overflow-hidden'`
+Huidige code:
+```tsx
+<Card className={`h-full flex overflow-hidden ${isSinglePanel ? 'rounded-none border-x-0' : ''}`}>
+```
 
-**3. "Nieuw" knop hoger/compacter**
-- De header `div` (regel 154-174) heeft `pt-2` padding die de knop te laag duwt
-- Verander naar `pt-0.5` zodat de titel en knop dichter bij de top zitten
-- Optioneel: de flex container (regel 155) `items-start` i.p.v. `items-center` zodat de knop beter uitlijnt met de titel
+Wordt:
+```tsx
+{isSinglePanel ? (
+  <div className="h-full flex overflow-hidden border-t">
+    {/* zelfde children */}
+  </div>
+) : (
+  <Card className="h-full flex overflow-hidden">
+    {/* zelfde children */}
+  </Card>
+)}
+```
+
+Op mobiel wordt het dus een simpele `div` met alleen een `border-t` als scheiding tussen header en content. Geen shadow, geen rounded corners, geen zijborders. Exact zoals de Producten-pagina content direct op de achtergrond rendert.
 
 ### Geen database wijzigingen nodig
 
