@@ -234,7 +234,7 @@ export function OrderBulkActions({
 
   return (
     <>
-      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)] relative">
+      <div className="<div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">">
         <Button
           variant="ghost"
           size="icon"
