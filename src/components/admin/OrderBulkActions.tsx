@@ -28,6 +28,7 @@ import { BatchPrintDialog } from '@/components/admin/BatchPrintDialog';
 import {
   ChevronUp,
   XCircle,
+  X,
   Truck,
   CheckCircle,
   Clock,
