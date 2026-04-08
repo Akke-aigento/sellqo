@@ -131,6 +131,46 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Archive campaign on Bol (must be before "already pushed" check)
+    if (action === 'archive' && campaign.platform_campaign_id) {
+      // Need credentials for archive
+      const { data: archConnections } = await supabase
+        .from("marketplace_connections")
+        .select("id, credentials")
+        .eq("tenant_id", campaign.tenant_id)
+        .eq("marketplace_type", "bol_com")
+        .eq("is_active", true);
+
+      const archBolConn = archConnections?.find((c: any) => {
+        const cr = c.credentials as any;
+        return cr?.advertisingClientId && cr?.advertisingClientSecret;
+      });
+
+      if (archBolConn) {
+        const archCreds = archBolConn.credentials as any;
+        const archToken = await getBolAdvertisingToken(archCreds.advertisingClientId, archCreds.advertisingClientSecret);
+        try {
+          const archiveResult = await bolApi(
+            archToken,
+            "PUT",
+            `/campaigns/${campaign.platform_campaign_id}`,
+            { state: "ARCHIVED" }
+          );
+          console.log("Campaign archived on Bol:", JSON.stringify(archiveResult));
+          return new Response(
+            JSON.stringify({ success: true, archived: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } catch (e: any) {
+          console.error("Failed to archive on Bol:", e);
+          return new Response(
+            JSON.stringify({ error: "Archiveren op Bol.com mislukt", detail: e.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Already pushed? Skip unless force_repush
     if (campaign.platform_campaign_id && !force_repush) {
       return new Response(
@@ -179,28 +219,7 @@ Deno.serve(async (req) => {
       creds.advertisingClientSecret
     );
 
-    // Archive campaign on Bol
-    if (action === 'archive' && campaign.platform_campaign_id) {
-      try {
-        const archiveResult = await bolApi(
-          bolToken,
-          "PUT",
-          `/campaigns/${campaign.platform_campaign_id}`,
-          { state: "ARCHIVED" }
-        );
-        console.log("Campaign archived on Bol:", JSON.stringify(archiveResult));
-        return new Response(
-          JSON.stringify({ success: true, archived: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } catch (e: any) {
-        console.error("Failed to archive on Bol:", e);
-        return new Response(
-          JSON.stringify({ error: "Archiveren op Bol.com mislukt", detail: e.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    // (archive block moved above "already pushed" check)
 
     // 4. Get product EANs for the campaign
     let eans: string[] = [];

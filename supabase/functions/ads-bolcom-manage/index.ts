@@ -270,7 +270,7 @@ Deno.serve(async (req) => {
         // Pause on Bol.com first if active
         if (camp.status === "active" && camp.bolcom_campaign_id) {
           try {
-            await bolPut(token, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "PAUSED" });
+            await bolPut(token, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "ARCHIVED" });
           } catch (e) {
             console.error("Failed to pause campaign on Bol.com before delete:", e);
           }
