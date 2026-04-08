@@ -15,7 +15,7 @@ export function AdminMobileBottomNav() {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: ShoppingCart, label: 'Bestellingen', path: '/admin/orders' },
     { icon: Package, label: 'Producten', path: '/admin/products' },
-    { icon: MessageSquare, label: 'Inbox', path: '/admin/inbox', badge: count },
+    { icon: MessageSquare, label: 'Inbox', path: '/admin/messages', badge: count },
   ];
 
   return (
