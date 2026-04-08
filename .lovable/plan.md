@@ -1,22 +1,29 @@
 
 
-## Fix: Campagne archiveren op Bol.com vóór lokaal verwijderen
+## Fix: Campagne blijft bestaan op Bol.com na verwijderen
+
+### Root cause (twee bugs)
+
+**Bug 1 — `push-bol-campaign` archive wordt nooit uitgevoerd**
+In `push-bol-campaign/index.ts` regel 135: als `platform_campaign_id` bestaat EN `force_repush` is false, returnt de functie meteen met `already_pushed: true`. De `action === 'archive'` check staat op regel 183 — die wordt nooit bereikt. Het archiveren op Bol.com gebeurt dus nooit.
+
+**Bug 2 — `ads-bolcom-manage` delete pauzeerd alleen, archiveert niet**
+In `ads-bolcom-manage/index.ts` regel 271: bij delete wordt de campagne alleen op `PAUSED` gezet, niet op `ARCHIVED`. Gepauzeerde campagnes worden door de sync-functie gewoon weer bijgewerkt.
 
 ### Wijzigingen
 
-| Bestand | Actie |
-|---------|-------|
-| `src/hooks/useAdCampaigns.ts` | deleteCampaign: eerst platform check + archive call, dan lokale delete |
-| `supabase/functions/push-bol-campaign/index.ts` | `action` parameter parsen, archive-blok toevoegen vóór stap 4 |
+| Bestand | Fix |
+|---------|-----|
+| `push-bol-campaign/index.ts` | Archive-check verplaatsen VÓÓR de "already pushed" early return (regel 135) |
+| `ads-bolcom-manage/index.ts` | Bij `delete_campaign`: `PAUSED` → `ARCHIVED` wijzigen |
 
 ### Detail
 
-**1. `useAdCampaigns.ts` (regel 174-182)**
-Vervang de simpele delete door: eerst campaign ophalen (platform + platform_campaign_id), dan bij `bol_ads` + bestaande `platform_campaign_id` de edge function aanroepen met `action: 'archive'`, daarna lokaal verwijderen. Archive-fouten worden gelogd maar blokkeren de lokale delete niet.
+**1. `push-bol-campaign/index.ts`**
+Verplaats het archive-blok (regels 182-203) naar vóór regel 135. Zo wordt bij `action === 'archive'` de campagne direct gearchiveerd en returnt de functie, zonder geblokkeerd te worden door de `already_pushed` check.
 
-**2. `push-bol-campaign/index.ts`**
-- Regel 96: `action` toevoegen aan destructuring
-- Na regel 181 (bolToken verkregen), vóór regel 182 (stap 4): archive-blok invoegen dat bij `action === 'archive'` een PUT doet naar `/campaigns/{id}` met `{ state: "ARCHIVED" }` en direct returnt
+**2. `ads-bolcom-manage/index.ts`**
+Regel 273: wijzig `{ state: "PAUSED" }` naar `{ state: "ARCHIVED" }`. Zo wordt de campagne definitief gearchiveerd op Bol.com voordat lokale data verwijderd wordt.
 
 ### Geen database wijzigingen nodig
 
