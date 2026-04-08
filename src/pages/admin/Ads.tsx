@@ -98,12 +98,12 @@ export default function AdsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Ads Overzicht</h1>
           <p className="text-muted-foreground">Cross-channel advertentie performance</p>
         </div>
-        <div className="flex gap-1 bg-muted rounded-lg p-1">
+        <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1">
           {PERIODS.map(p => (
             <Button
               key={p.value}

@@ -123,7 +123,7 @@ export default function AdsBolcomPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <span className="cursor-pointer hover:underline" onClick={() => navigate('/admin/ads')}>Ads</span>
@@ -131,7 +131,7 @@ export default function AdsBolcomPage() {
           </div>
           <h1 className="text-2xl font-bold">Bol.com Ads</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-muted rounded-lg p-0.5">
             {periods.map(p => (
               <button key={p} onClick={() => setPeriod(p)}
@@ -140,14 +140,13 @@ export default function AdsBolcomPage() {
               </button>
             ))}
           </div>
-          <Button onClick={handleSync} disabled={syncing} variant="outline">
-            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+          <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="hidden sm:inline ml-2">{syncing ? 'Synchroniseren...' : 'Synchroniseer'}</span>
           </Button>
-          <Button onClick={forceReportsSync} variant="ghost" size="sm" className="text-xs text-muted-foreground" disabled={reportsSyncing}>
-            Ververs data
+          <Button variant="outline" size="sm" onClick={() => setShowWizard(true)}>
+            <Plus className="h-4 w-4" /><span className="hidden sm:inline ml-2">Nieuwe campagne</span>
           </Button>
-          <Button variant="outline" onClick={() => setShowWizard(true)}><Plus className="h-4 w-4 mr-2" />Nieuwe campagne</Button>
         </div>
       </div>
 
