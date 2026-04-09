@@ -1,29 +1,43 @@
 
 
-## Fix: Campagne blijft bestaan op Bol.com na verwijderen
+## Fix: Stripe checkout faalt met "No such coupon" bij kortingscodes
 
-### Root cause (twee bugs)
+### Root Cause
 
-**Bug 1 — `push-bol-campaign` archive wordt nooit uitgevoerd**
-In `push-bol-campaign/index.ts` regel 135: als `platform_campaign_id` bestaat EN `force_repush` is false, returnt de functie meteen met `already_pushed: true`. De `action === 'archive'` check staat op regel 183 — die wordt nooit bereikt. Het archiveren op Bol.com gebeurt dus nooit.
+In `supabase/functions/storefront-api/index.ts` regel 1676-1682: de coupon wordt aangemaakt op het **connected account** (`{ stripeAccount: tenantData.stripe_account_id }`), maar de checkout sessie wordt aangemaakt op het **platform account** (zonder `stripeAccount`). Stripe kan de coupon niet vinden omdat die op een ander account leeft.
 
-**Bug 2 — `ads-bolcom-manage` delete pauzeerd alleen, archiveert niet**
-In `ads-bolcom-manage/index.ts` regel 271: bij delete wordt de campagne alleen op `PAUSED` gezet, niet op `ARCHIVED`. Gepauzeerde campagnes worden door de sync-functie gewoon weer bijgewerkt.
+```typescript
+// Coupon wordt hier aangemaakt op connected account ❌
+const coupon = await stripe.coupons.create({...}, { stripeAccount: tenantData.stripe_account_id });
+// Maar sessie wordt op platform account aangemaakt → coupon niet gevonden
+const session = await stripe.checkout.sessions.create(sessionParams);
+```
 
-### Wijzigingen
+### Fix
 
-| Bestand | Fix |
-|---------|-----|
-| `push-bol-campaign/index.ts` | Archive-check verplaatsen VÓÓR de "already pushed" early return (regel 135) |
-| `ads-bolcom-manage/index.ts` | Bij `delete_campaign`: `PAUSED` → `ARCHIVED` wijzigen |
+**Bestand:** `supabase/functions/storefront-api/index.ts` (regel 1681)
 
-### Detail
+Verwijder `{ stripeAccount: tenantData.stripe_account_id }` uit de `stripe.coupons.create()` call zodat de coupon op het platform account wordt aangemaakt — hetzelfde account waar de checkout sessie draait.
 
-**1. `push-bol-campaign/index.ts`**
-Verplaats het archive-blok (regels 182-203) naar vóór regel 135. Zo wordt bij `action === 'archive'` de campagne direct gearchiveerd en returnt de functie, zonder geblokkeerd te worden door de `already_pushed` check.
+```typescript
+// Was:
+const coupon = await stripe.coupons.create({
+  amount_off: Math.round(discountAmount * 100),
+  currency: currency.toLowerCase(),
+  duration: 'once',
+  name: cart.discount_code || 'Korting',
+}, { stripeAccount: tenantData.stripe_account_id });
 
-**2. `ads-bolcom-manage/index.ts`**
-Regel 273: wijzig `{ state: "PAUSED" }` naar `{ state: "ARCHIVED" }`. Zo wordt de campagne definitief gearchiveerd op Bol.com voordat lokale data verwijderd wordt.
+// Wordt:
+const coupon = await stripe.coupons.create({
+  amount_off: Math.round(discountAmount * 100),
+  currency: currency.toLowerCase(),
+  duration: 'once',
+  name: cart.discount_code || 'Korting',
+});
+```
+
+Eén regel verwijderen, klaar. De coupon en de sessie leven dan op hetzelfde Stripe account.
 
 ### Geen database wijzigingen nodig
 
