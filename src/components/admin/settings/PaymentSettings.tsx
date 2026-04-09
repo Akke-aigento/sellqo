@@ -31,6 +31,8 @@ export function PaymentSettings() {
   const { toast } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   
   useEffect(() => {
     if (currentTenant?.country) {
