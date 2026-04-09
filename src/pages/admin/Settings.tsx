@@ -45,9 +45,11 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { Wrench } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
@@ -137,6 +139,18 @@ export default function SettingsPage() {
     r => r.role === 'tenant_admin' || r.role === 'platform_admin'
   );
 
+  const allGroups: SettingsGroup[] = [
+    ...settingsGroups,
+    ...(isPlatformAdmin && isAdminView ? [{
+      id: 'platform-tools',
+      title: 'Platform Tools',
+      description: 'Beheertools voor het platform',
+      sections: [
+        { id: 'platform-tools', title: 'Platform Tools', icon: Wrench, component: PlatformToolsSettings } as SettingsSection,
+      ],
+    }] : []),
+  ];
+
   const isSectionFeatureVisible = (section: SettingsSection): boolean => {
     if (!section.featureKey) return true;
     if (isPlatformAdmin && isAdminView) return true;
@@ -151,7 +165,7 @@ export default function SettingsPage() {
     setSearchParams({ section: sectionId });
   };
 
-  const ActiveComponent = settingsGroups
+  const ActiveComponent = allGroups
     .flatMap(g => g.sections)
     .find(s => s.id === activeSection)?.component;
 
@@ -170,7 +184,7 @@ export default function SettingsPage() {
             <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
               <CardContent className="p-2">
                 <nav className="space-y-4">
-                  {settingsGroups.map((group) => {
+                  {allGroups.map((group) => {
                     const visibleSections = group.sections.filter(
                       s => (!s.adminOnly || isTenantAdmin) && isSectionFeatureVisible(s)
                     );
