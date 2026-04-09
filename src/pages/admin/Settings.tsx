@@ -45,9 +45,11 @@ import { WhatsAppSettings } from '@/components/admin/settings/WhatsAppSettings';
 import { CustomerCommunicationSettings } from '@/components/admin/settings/CustomerCommunicationSettings';
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
+import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { Wrench } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
