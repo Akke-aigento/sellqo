@@ -165,7 +165,7 @@ export default function SettingsPage() {
     setSearchParams({ section: sectionId });
   };
 
-  const ActiveComponent = settingsGroups
+  const ActiveComponent = allGroups
     .flatMap(g => g.sections)
     .find(s => s.id === activeSection)?.component;
 
