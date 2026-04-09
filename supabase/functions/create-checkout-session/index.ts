@@ -649,19 +649,20 @@ serve(async (req) => {
     let paymentMethodTypes: string[];
 
     if (preferredMethod && validCodes.includes(preferredMethod)) {
-      // Check if this specific method is active on the account
-      const cap = capabilityMap[preferredMethod];
-      const isActive = !hasCapabilities || (cap && accountCapabilities[cap] === 'active');
-      paymentMethodTypes = isActive ? [preferredMethod] : [];
-      logStep("Using preferred payment method", { preferredMethod, isActive });
+      // Trust the tenant's configuration — always use the preferred method
+      paymentMethodTypes = [preferredMethod];
+      logStep("Using preferred payment method", { preferredMethod });
     } else {
-      // Filter: only keep methods whose capability is 'active'
-      paymentMethodTypes = hasCapabilities
-        ? sanitizedMethods.filter((m: string) => {
-            const cap = capabilityMap[m];
-            return cap && accountCapabilities[cap] === 'active';
-          })
-        : sanitizedMethods;
+      // Filter by capabilities, but fallback to configured methods if empty
+      if (hasCapabilities) {
+        const filtered = sanitizedMethods.filter((m: string) => {
+          const cap = capabilityMap[m];
+          return cap && accountCapabilities[cap] === 'active';
+        });
+        paymentMethodTypes = filtered.length > 0 ? filtered : sanitizedMethods;
+      } else {
+        paymentMethodTypes = sanitizedMethods;
+      }
     }
 
     logStep("Payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, preferred: preferredMethod, final: paymentMethodTypes });
