@@ -314,14 +314,21 @@ export function TransactionFeeSettings() {
               <p className="text-sm font-medium mb-3">Beschikbare Stripe betaalmethodes</p>
               {STRIPE_PAYMENT_METHODS.map((method) => {
                 const isChecked = config.stripe_payment_methods.includes(method.code);
+                const isActive = isMethodActive(method.code);
+                const isDisabled = !isActive && capabilitiesLoaded && Object.keys(liveCapabilities).length > 0;
                 return (
                   <label
                     key={method.code}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                    className={cn(
+                      "flex items-center gap-3 p-2 rounded-md cursor-pointer",
+                      isDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50"
+                    )}
                   >
                     <Checkbox
-                      checked={isChecked}
+                      checked={isChecked && !isDisabled}
+                      disabled={isDisabled}
                       onCheckedChange={(checked) => {
+                        if (isDisabled) return;
                         setConfig(prev => {
                           const current = prev.stripe_payment_methods;
                           if (!checked) {
@@ -339,6 +346,9 @@ export function TransactionFeeSettings() {
                       <div>
                         <span className="text-sm font-medium">{method.flag} {method.label}</span>
                         <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
+                        {isDisabled && (
+                          <span className="text-xs text-destructive ml-2">• Niet actief op Stripe-account</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">{method.region}</Badge>
