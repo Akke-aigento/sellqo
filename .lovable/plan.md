@@ -1,32 +1,27 @@
 
 
-## Cleanup Connected Accounts: Edge Function + Admin UI
+## Stripe Connect Disconnect: Edge Function + UI
 
-### 1. Edge Function: `supabase/functions/cleanup-connected-accounts/index.ts`
+### 1. New Edge Function: `supabase/functions/disconnect-stripe-account/index.ts`
 
-| Aspect | Detail |
-|--------|--------|
-| Auth | Verify JWT via `supabase.auth.getUser()`, then check `user_roles` for `platform_admin` role |
-| Stripe | `import Stripe from 'https://esm.sh/stripe@13.6.0'` met `STRIPE_SECRET_KEY` |
-| Logic | Fetch all tenants with `stripe_account_id IS NOT NULL`, loop through each, try `stripe.accounts.del()`, update tenant record on success or "not found" error, skip on other errors |
-| Response | `{ success: true, cleaned: number, failed: [{ tenant_id, tenant_name, error }] }` |
-| CORS | Copy pattern from `create-connect-account` |
+- Copy CORS/auth pattern from `create-connect-account`
+- Accept POST with `{ tenant_id }`, authenticate user, verify platform_admin OR tenant owner (via `user_roles`)
+- Fetch tenant's `stripe_account_id`, error if null
+- Call `stripe.accounts.del()`, catch errors (pending balance etc.)
+- On success or "account not found": update tenant to null out all Stripe fields
+- Return summary with success/error
 
-### 2. Frontend: Button in Settings page
+### 2. Update `TenantOverviewTab.tsx` (platform admin view)
 
-**Bestand:** `src/pages/admin/Settings.tsx`
+- Add imports: `AlertDialog` components, `Button`, `Trash2`/`Unlink` icon, `Loader2`, `toast` from sonner, `supabase` client, `useState`
+- In the Stripe Status card (lines 156-171), add a red "Ontkoppelen" button when `stripe_account_id` exists
+- AlertDialog with warning text, confirm calls edge function, shows toast on success/error, refetches tenant data via query invalidation
 
-- Add a new settings section `PlatformToolsSettings` only visible when `isPlatformAdmin && isAdminView`
-- Place it in a new group "Platform Tools" at the bottom of `settingsGroups`
+### 3. Update `PaymentSettings.tsx` (tenant's own settings)
 
-**Nieuw bestand:** `src/components/admin/settings/PlatformToolsSettings.tsx`
+- After the existing button row (line 315-336, the "Status vernieuwen" / "Stripe Dashboard" buttons), add a Separator and a danger section with "Stripe ontkoppelen" button
+- Same AlertDialog pattern, calls same edge function with `currentTenant.id`
+- On success: calls `checkStatus()` and `refreshTenants()` so UI switches back to onboarding state
 
-- Red button "Reset alle Stripe accounts"
-- AlertDialog with warning text
-- Input field requiring user to type "RESET" to enable confirm button
-- On confirm: call `supabase.functions.invoke('cleanup-connected-accounts')`
-- Show results: cleaned count, failed list with tenant names and errors
-- Loading state during execution
-
-### Geen database wijzigingen nodig
+### No database changes needed
 
