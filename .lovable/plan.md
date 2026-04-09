@@ -1,36 +1,28 @@
 
 
-## Aanpak: Connected Stripe accounts verwijderen
+## Fix: Disconnect Stripe — verkeerde kolomnaam
 
 ### Probleem
-- De `curl_edge_functions` tool stuurt geen geldige user JWT mee, waardoor de edge function 401 geeft
-- De Stripe API tools bieden geen `DeleteAccountsAccount` operatie aan
-- Er zijn 5 connected accounts die verwijderd moeten worden
+De edge functions `disconnect-stripe-account` en `cleanup-connected-accounts` proberen de kolom `stripe_details_submitted` te updaten, maar die bestaat niet. De juiste kolomnaam is **`stripe_onboarding_complete`**.
 
-### Oplossing: Tijdelijke secret-based bypass in de edge function
+Hierdoor wordt het Stripe account wél verwijderd, maar faalt de database-update met een 500 error. De UI toont dan "Ontkoppelen mislukt" terwijl het account al weg is.
 
-**Stap 1: Edge function aanpassen** — Voeg een alternatieve auth-methode toe via een `X-Cleanup-Secret` header die wordt vergeleken met een environment secret. Dit omzeilt de JWT-check zodat we de functie via curl kunnen aanroepen.
+### Oplossing
+In beide edge functions de kolomnaam wijzigen:
 
+**Bestand 1: `supabase/functions/disconnect-stripe-account/index.ts`** (regel 119)
 ```
-if (req.headers.get("X-Cleanup-Secret") === Deno.env.get("CLEANUP_SECRET")) {
-  // skip JWT check, proceed directly
-}
+stripe_details_submitted: false  →  stripe_onboarding_complete: false
 ```
 
-**Stap 2: Secret instellen** — Via de `add_secret` tool een tijdelijk secret `CLEANUP_SECRET` toevoegen.
+**Bestand 2: `supabase/functions/cleanup-connected-accounts/index.ts`** (regel 164)
+```
+stripe_details_submitted: false  →  stripe_onboarding_complete: false
+```
 
-**Stap 3: Deploy en aanroepen** — Function deployen en aanroepen met de secret header. Dit verwijdert alle 5 connected accounts uit Stripe en reset de database-velden.
-
-**Stap 4: Bypass verwijderen** — Na succesvolle uitvoering wordt de secret-bypass weer uit de code verwijderd voor de veiligheid.
-
-### Te verwijderen accounts (5 stuks, alleen connected accounts)
-| Tenant | Stripe Account |
-|--------|---------------|
-| Demo Bakkerij | `acct_1Sq805Rwtif7i2ny` |
-| Loveke | `acct_1T4KKmRoQPtwaESn` |
-| SellQo | `acct_1SuIYTRziCKgbo3A` |
-| VanXcel | `acct_1T3af42OokKpgnyV` |
-| Mancini Milano | `acct_1TI7bxRvfrLqgh95` |
-
-Het hoofdaccount/platform account wordt **niet** aangeraakt.
+### Resultaat
+- Stripe account wordt verwijderd (werkt al)
+- Database wordt correct gereset (fix)
+- Function retourneert 200 i.p.v. 500 (fix)
+- UI toont succesmelding i.p.v. foutmelding (fix)
 
