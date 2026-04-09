@@ -1,27 +1,27 @@
 
 
-## Stripe Connect Disconnect: Edge Function + UI
+## Fix: cleanup-connected-accounts 401 error
 
-### 1. New Edge Function: `supabase/functions/disconnect-stripe-account/index.ts`
+### Probleem
+De edge function `cleanup-connected-accounts` heeft geen `verify_jwt = false` in `supabase/config.toml`. De Supabase gateway weigert het request daarom met een 401, nog voordat de functie zelf wordt uitgevoerd. Alle andere edge functions in het project hebben dit wél geconfigureerd.
 
-- Copy CORS/auth pattern from `create-connect-account`
-- Accept POST with `{ tenant_id }`, authenticate user, verify platform_admin OR tenant owner (via `user_roles`)
-- Fetch tenant's `stripe_account_id`, error if null
-- Call `stripe.accounts.del()`, catch errors (pending balance etc.)
-- On success or "account not found": update tenant to null out all Stripe fields
-- Return summary with success/error
+### Oplossing
+Voeg een config block toe aan `supabase/config.toml`:
 
-### 2. Update `TenantOverviewTab.tsx` (platform admin view)
+```toml
+[functions.cleanup-connected-accounts]
+verify_jwt = false
+```
 
-- Add imports: `AlertDialog` components, `Button`, `Trash2`/`Unlink` icon, `Loader2`, `toast` from sonner, `supabase` client, `useState`
-- In the Stripe Status card (lines 156-171), add a red "Ontkoppelen" button when `stripe_account_id` exists
-- AlertDialog with warning text, confirm calls edge function, shows toast on success/error, refetches tenant data via query invalidation
+De functie valideert authenticatie en de `platform_admin` rol al in de code zelf, dus dit is veilig.
 
-### 3. Update `PaymentSettings.tsx` (tenant's own settings)
+### Na deployment
+Zodra de function opnieuw is gedeployed, roep ik hem aan om alle 5 connected Stripe accounts te verwijderen:
+- Demo Bakkerij (`acct_1Sq805Rwtif7i2ny`)
+- Loveke (`acct_1T4KKmRoQPtwaESn`)
+- SellQo (`acct_1SuIYTRziCKgbo3A`)
+- VanXcel (`acct_1T3af42OokKpgnyV`)
+- Mancini Milano (`acct_1TI7bxRvfrLqgh95`)
 
-- After the existing button row (line 315-336, the "Status vernieuwen" / "Stripe Dashboard" buttons), add a Separator and a danger section with "Stripe ontkoppelen" button
-- Same AlertDialog pattern, calls same edge function with `currentTenant.id`
-- On success: calls `checkStatus()` and `refreshTenants()` so UI switches back to onboarding state
-
-### No database changes needed
+Daarna worden de database-velden gereset zodat tenants opnieuw kunnen onboarden.
 
