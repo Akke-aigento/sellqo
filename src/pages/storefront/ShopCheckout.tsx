@@ -269,6 +269,7 @@ export default function ShopCheckout() {
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
             shipping_cost: shipping,
+            preferred_payment_method: method,
           },
         });
 
@@ -637,6 +638,7 @@ export default function ShopCheckout() {
                   value={paymentMethod}
                   onChange={setPaymentMethod}
                   enabledMethods={enabledPaymentMethods}
+                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card', 'ideal', 'bancontact']}
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
                   transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
                 />
