@@ -36,9 +36,10 @@ export default function AcceptInvitation() {
   const [status, setStatus] = useState<InvitationStatus>('loading');
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
 
-  // Registration form state
-  const [showRegister, setShowRegister] = useState(false);
+  // Registration form state — default to register for new users
+  const [showRegister, setShowRegister] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -52,23 +53,28 @@ export default function AcceptInvitation() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('team_invitations')
-          .select('email, role, expires_at, accepted_at, tenants(name)')
-          .eq('token', token)
-          .single();
+        const response = await supabase.functions.invoke('fetch-invitation', {
+          body: { token },
+        });
 
-        if (error || !data) {
+        if (response.error) {
           setStatus('not_found');
           return;
         }
 
-        if (data.accepted_at) {
+        const data = response.data;
+
+        if (!data || data.error) {
+          setStatus('not_found');
+          return;
+        }
+
+        if (data.status === 'accepted') {
           setStatus('accepted');
           return;
         }
 
-        if (new Date(data.expires_at) < new Date()) {
+        if (data.status === 'expired') {
           setStatus('expired');
           return;
         }
@@ -76,8 +82,8 @@ export default function AcceptInvitation() {
         setInvitation({
           email: data.email,
           role: data.role,
-          tenantName: (data.tenants as any)?.name || 'Onbekende winkel',
-          expiresAt: data.expires_at,
+          tenantName: data.tenantName,
+          expiresAt: data.expiresAt,
         });
         setEmail(data.email);
         setStatus('valid');
@@ -137,18 +143,15 @@ export default function AcceptInvitation() {
 
       if (error) throw error;
 
-      // Auto sign-in after registration
+      // Try auto sign-in (works if email confirmation is disabled)
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: invitation.email,
         password,
       });
 
       if (signInError) {
-        toast({
-          title: 'Account aangemaakt',
-          description: 'Log nu in om de uitnodiging te accepteren.',
-        });
-        setShowRegister(false);
+        // Email confirmation required — show confirmation message
+        setEmailConfirmationSent(true);
       }
       // If sign-in succeeded, the auth state change will trigger handleAccept
     } catch (error: any) {
@@ -268,6 +271,36 @@ export default function AcceptInvitation() {
     );
   }
 
+  // Email confirmation sent — show waiting screen
+  if (emailConfirmationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <SellqoLogo variant="full" width={160} className="mx-auto mb-4" />
+          </div>
+          <Card>
+            <CardHeader className="text-center">
+              <Mail className="h-12 w-12 text-primary mx-auto mb-2" />
+              <CardTitle>Bevestig je e-mailadres</CardTitle>
+              <CardDescription>
+                Je account is aangemaakt! We hebben een bevestigingsmail gestuurd naar <strong>{invitation?.email}</strong>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Klik op de link in de e-mail om je account te bevestigen. Daarna word je automatisch gekoppeld aan <strong>{invitation?.tenantName}</strong>.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Geen e-mail ontvangen? Controleer je spamfolder.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md">
@@ -343,7 +376,7 @@ export default function AcceptInvitation() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Wachtwoord</Label>
+                  <Label htmlFor="password">Nieuw wachtwoord</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
