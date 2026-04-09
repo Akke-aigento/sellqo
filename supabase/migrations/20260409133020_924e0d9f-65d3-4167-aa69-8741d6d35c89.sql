@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone can view invitation by token" ON public.team_invitations;
