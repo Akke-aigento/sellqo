@@ -59,12 +59,44 @@ export function TransactionFeeSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
+  const [liveCapabilities, setLiveCapabilities] = useState<Record<string, string>>({});
+  const [capabilitiesLoaded, setCapabilitiesLoaded] = useState(false);
+
+  // Capability map: method code -> Stripe capability name
+  const capabilityMap: Record<string, string> = {
+    card: 'card_payments',
+    ideal: 'ideal_payments',
+    bancontact: 'bancontact_payments',
+    klarna: 'klarna_payments',
+  };
 
   useEffect(() => {
     if (activeTenantId) {
       loadConfig();
+      loadCapabilities();
     }
   }, [activeTenantId]);
+
+  const loadCapabilities = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-connect-status', {
+        body: { tenant_id: activeTenantId },
+      });
+      if (!error && data?.capabilities) {
+        setLiveCapabilities(data.capabilities);
+      }
+    } catch (e) {
+      console.error('Could not load Stripe capabilities:', e);
+    } finally {
+      setCapabilitiesLoaded(true);
+    }
+  };
+
+  const isMethodActive = (code: string): boolean => {
+    if (!capabilitiesLoaded || Object.keys(liveCapabilities).length === 0) return true; // unknown = allow
+    const cap = capabilityMap[code];
+    return cap ? liveCapabilities[cap] === 'active' : false;
+  };
 
   const loadConfig = async () => {
     setIsLoading(true);
