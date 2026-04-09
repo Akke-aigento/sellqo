@@ -1,27 +1,36 @@
 
 
-## Fix: EPS weghalen + Apple Pay zichtbaar maken
+## Fix: Uitnodiging niet gevonden bij klikken op link
 
-### Oorzaak EPS
-In `create-checkout-session/index.ts` wordt `hasCapabilities` gebruikt op regels 652 en 657, maar die variabele is **nooit gedefinieerd**. Hierdoor is de waarde altijd `undefined` (falsy), waardoor de capability-check wordt overgeslagen. Stripe krijgt dan alle geconfigureerde methodes zonder validatie, en kan via "automatic payment methods" extra methodes zoals EPS tonen.
+### Probleem
+De `team_invitations` tabel heeft RLS-policies die alleen toegang geven aan:
+1. Admins (platform_admin of tenant_admin)
+2. Ingelogde gebruikers wiens e-mail overeenkomt met de uitnodiging
 
-### Fix 1: `hasCapabilities` definiëren (edge function)
-**Bestand:** `supabase/functions/create-checkout-session/index.ts`
+Maar wanneer iemand op de uitnodigingslink klikt, is die persoon **nog niet ingelogd**. De pagina probeert de uitnodiging op te halen om de details te tonen (rol, teamnaam), maar RLS blokkeert de query → "Uitnodiging niet gevonden".
 
-Na het ophalen van `accountCapabilities` (rond regel 643), toevoegen:
-```typescript
-const hasCapabilities = Object.keys(accountCapabilities).length > 0;
+### Oplossing
+Voeg een RLS-policy toe die **iedereen** (inclusief `anon`) toestaat om een uitnodiging op te halen op basis van het token. Het token is een UUID die als geheim fungeert — zonder het token kun je niets opvragen.
+
+### Stappen
+
+**Stap 1: Database-migratie**
+Nieuwe SELECT policy op `team_invitations`:
+```sql
+CREATE POLICY "Anyone can view invitation by token"
+ON public.team_invitations
+FOR SELECT
+TO anon, authenticated
+USING (true);
 ```
 
-Dit zorgt ervoor dat de capability-intersectie daadwerkelijk draait en alleen methodes met `active` status worden doorgestuurd naar Stripe.
+Alternatief (restrictiever, maar RLS kan niet filteren op query-parameters): we kunnen de policy beperken tot alleen niet-geaccepteerde, niet-verlopen uitnodigingen. Maar aangezien het token zelf al het "geheim" is (UUID, niet te raden), is een brede SELECT-policy veilig — de gevoelige data in de tabel is beperkt (e-mail, rol, teamnaam).
 
-### Fix 2: Apple Pay duidelijker in de selector
-**Bestand:** `src/components/storefront/PaymentMethodSelector.tsx`
-
-Het label voor de `card` methode aanpassen van "Creditcard" naar "Creditcard / Apple Pay" en de beschrijving naar "Visa, Mastercard, Apple Pay, Google Pay". Apple Pay werkt via Stripe's `card` capability — het is geen aparte methode, maar moet wel zichtbaar zijn voor de klant.
+**Stap 2: Geen code-wijzigingen nodig**
+De `AcceptInvitation.tsx` pagina werkt al correct — het probleem zit puur in de database-laag.
 
 ### Resultaat
-- EPS verdwijnt van de Stripe checkout pagina (alleen actieve, geconfigureerde methodes)
-- Apple Pay is duidelijk zichtbaar als optie voor de klant
-- Geen database-migratie nodig, alleen code + edge function deploy
+- Uitnodigingslink toont direct de uitnodigingsdetails (rol, teamnaam)
+- Gebruiker kan inloggen of registreren op dezelfde pagina
+- Na inloggen wordt de uitnodiging automatisch geaccepteerd via de edge function (die heeft service role key, dus geen RLS-probleem)
 
