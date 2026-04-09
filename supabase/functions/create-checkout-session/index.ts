@@ -642,6 +642,8 @@ serve(async (req) => {
       logStep("Could not retrieve account capabilities, falling back to configured methods", { error: String(capErr) });
     }
 
+    const hasCapabilities = Object.keys(accountCapabilities).length > 0;
+
     // If a specific preferred method was requested, use only that one (if it's valid)
     const preferredMethod = (body as any).preferred_payment_method;
     let paymentMethodTypes: string[];
