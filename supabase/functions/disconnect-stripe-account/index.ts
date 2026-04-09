@@ -99,7 +99,12 @@ serve(async (req) => {
       await stripe.accounts.del(tenant.stripe_account_id);
       logStep("Stripe account deleted successfully");
     } catch (stripeErr: any) {
-      if (stripeErr?.code === "account_invalid" || stripeErr?.statusCode === 404) {
+      if (
+        stripeErr?.code === "account_invalid" ||
+        stripeErr?.statusCode === 404 ||
+        stripeErr?.message?.includes("does not have access") ||
+        stripeErr?.message?.includes("does not exist")
+      ) {
         logStep("Stripe account already deleted/not found, continuing cleanup");
       } else {
         logStep("Stripe delete failed", { error: stripeErr.message });
