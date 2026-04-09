@@ -136,8 +136,10 @@ Deno.serve(async (req) => {
         const message = stripeErr?.message || "";
         // If account already gone, proceed with cleanup
         if (
-          code === "account_invalid" || message.includes("No such account") ||
-          message.includes("does not exist")
+          code === "account_invalid" ||
+          message.includes("No such account") ||
+          message.includes("does not exist") ||
+          message.includes("does not have access")
         ) {
           console.log(
             `Account ${tenant.stripe_account_id} already deleted, proceeding with cleanup`,
