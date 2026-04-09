@@ -1,47 +1,49 @@
 
+## Fix voor de Stripe checkout error
 
-## Feature: Tenant kiest zelf welke Stripe betaalmethodes actief zijn
-
-### Huidige situatie
-- De checkout session (regel 621) maakt **geen** `payment_method_types` aan — Stripe bepaalt automatisch welke methodes verschijnen
-- Tenants hebben alleen een hoog-niveau toggle: "Stripe aan/uit" en "Bankoverschrijving aan/uit"
-- Er is geen `stripe_payment_methods` kolom in de database
+### Waarschijnlijke oorzaak
+- `supabase/functions/create-checkout-session/index.ts` bouwt `payment_method_types` nu op basis van `tenant.stripe_payment_methods`, maar controleert niet of die methodes ook echt actief zijn op het connected account.
+- In `src/components/admin/settings/TransactionFeeSettings.tsx` kunnen oude/stale waarden in `stripe_payment_methods` blijven zitten, ook al zijn DE/AT-methodes al uit de UI gehaald.
+- `supabase/functions/create-connect-account/index.ts` vraagt vandaag wel `card`, `ideal`/`bancontact` en `sepa` aan, maar niet betrouwbaar Klarna. Daardoor kan een tenant een methode kiezen die Stripe voor dat account niet effectief kan gebruiken.
 
 ### Plan
+1. **Checkout backend hard maken**
+   - In `supabase/functions/create-checkout-session/index.ts` eerst het connected account ophalen en de echte capabilities lezen.
+   - `payment_method_types` daarna opbouwen als doorsnede van:
+     - tenant-configuratie,
+     - methodes die de app ondersteunt,
+     - methodes die op het Stripe account effectief actief zijn.
+   - Concreet mappen:
+     - `card` → `card_payments`
+     - `ideal` → `ideal_payments`
+     - `bancontact` → `bancontact_payments`
+     - `klarna` → alleen meenemen als die capability echt actief is
+   - Als er niets geldig overblijft: geen checkout session maken, maar meteen een duidelijke fout teruggeven.
 
-#### Stap 1: Database — nieuw veld
-Migratie: voeg `stripe_payment_methods` jsonb kolom toe aan `tenants` met default `["card", "ideal", "bancontact"]`.
+2. **Stale tenant-config opschonen**
+   - In `src/components/admin/settings/TransactionFeeSettings.tsx` bij laden de opgeslagen `stripe_payment_methods` eerst normaliseren naar alleen nog geldige zichtbare codes.
+   - Bij opslaan dezelfde sanitizing opnieuw toepassen, zodat oude waarden zoals `eps`, `giropay` en `sofort` definitief verdwijnen.
+   - Als na opschoning niets overblijft: fallback naar een veilige default, bv. minimaal `card`.
 
-#### Stap 2: Admin UI — Stripe sub-methode selector
-In `TransactionFeeSettings.tsx`, wanneer Stripe actief is, toon een uitklapbare sectie met checkboxes voor elke methode:
+3. **Klarna veilig behandelen**
+   - Klarna niet meer “blind” als bruikbare methode beschouwen.
+   - Ofwel alleen tonen/selecteerbaar maken wanneer die capability actief is, of tijdelijk verbergen/disablen tot de connect-flow die methode correct ondersteunt.
+   - Zo kan een merchant zichzelf niet opnieuw in een kapotte checkout configureren.
 
-| Methode | Code | Beschrijving | Regio |
-|---------|------|-------------|-------|
-| Creditcard / Apple Pay / Google Pay | `card` | Standaard kaartbetalingen + wallets | Internationaal |
-| iDEAL | `ideal` | Directe bankoverschrijving | 🇳🇱 NL |
-| Bancontact | `bancontact` | Belgisch betaalsysteem | 🇧🇪 BE |
-| Klarna | `klarna` | Achteraf betalen / gespreid | EU |
-| PayPal | `paypal` | PayPal checkout | Internationaal |
-| SOFORT | `sofort` | Directe bankoverschrijving | 🇩🇪 DE/AT |
-| EPS | `eps` | Oostenrijks betaalsysteem | 🇦🇹 AT |
-| Giropay | `giropay` | Duits betaalsysteem | 🇩🇪 DE |
+4. **Betere foutmelding in storefront**
+   - In `src/pages/storefront/ShopCheckout.tsx` de backendfout netjes tonen wanneer er geen geldige Stripe methodes beschikbaar zijn.
+   - Dan strandt de gebruiker niet meer op een kapotte Stripe pagina, maar ziet meteen wat er mis is.
 
-Elke methode toont een icoon, naam, kostenindicatie en regio-badge. Minimaal 1 methode vereist.
+### Technische details
+- Bestanden:
+  - `supabase/functions/create-checkout-session/index.ts`
+  - `src/components/admin/settings/TransactionFeeSettings.tsx`
+  - eventueel `src/pages/storefront/ShopCheckout.tsx`
+- Geen database-migratie nodig.
+- De belangrijkste fix zit in de backend: daarmee stopt de Stripe-fout ook voor tenants met oude kapotte data.
 
-#### Stap 3: Edge function — respecteer tenant keuzes
-In `create-checkout-session/index.ts`, haal `stripe_payment_methods` op uit de tenant data en zet `payment_method_types` expliciet op de checkout session in plaats van Stripe's automatische modus.
-
-**Let op**: bij destination charges (transfer_data) worden niet alle methodes ondersteund. De code filtert automatisch methodes die niet compatibel zijn.
-
-#### Stap 4: Storefront API
-Pas `checkoutGetPaymentMethods` aan zodat de response de actieve Stripe sub-methodes teruggeeft (voor eventuele UI-hints in de checkout).
-
-### Bestanden die wijzigen
-1. **Migratie** — nieuw veld `stripe_payment_methods` op `tenants`
-2. **`src/components/admin/settings/TransactionFeeSettings.tsx`** — checkbox UI onder de Stripe toggle
-3. **`supabase/functions/create-checkout-session/index.ts`** — `payment_method_types` dynamisch zetten
-4. **Storefront API** (indien nodig) — methodes doorgeven
-
-### Scope eerste versie
-Start met **card, ideal, bancontact** (standaard aan) en **klarna** (standaard uit). Overige methodes als uitbreiding later.
-
+### Verwacht resultaat
+- Stripe Checkout krijgt alleen nog geldige `payment_method_types`.
+- Oude methodes die nog in de database hangen, breken de checkout niet meer.
+- Klarna kan geen “There are no valid payment methods available” meer veroorzaken.
+- De merchant krijgt een duidelijke melding of veilige fallback in plaats van een foutpagina bij Stripe.
