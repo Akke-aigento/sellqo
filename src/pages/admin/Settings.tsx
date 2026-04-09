@@ -184,7 +184,7 @@ export default function SettingsPage() {
             <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
               <CardContent className="p-2">
                 <nav className="space-y-4">
-                  {settingsGroups.map((group) => {
+                  {allGroups.map((group) => {
                     const visibleSections = group.sections.filter(
                       s => (!s.adminOnly || isTenantAdmin) && isSectionFeatureVisible(s)
                     );
