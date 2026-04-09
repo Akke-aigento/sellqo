@@ -72,7 +72,54 @@ serve(async (req) => {
 
     // Fetch current status from Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const account = await stripe.accounts.retrieve(tenantData.stripe_account_id);
+
+    let account;
+    try {
+      account = await stripe.accounts.retrieve(tenantData.stripe_account_id);
+    } catch (stripeError: any) {
+      const message = stripeError?.message ?? "";
+      const shouldTreatAsDisconnected =
+        stripeError?.code === "account_invalid" ||
+        stripeError?.statusCode === 404 ||
+        message.includes("does not have access") ||
+        message.includes("does not exist") ||
+        message.includes("Application access may have been revoked");
+
+      if (!shouldTreatAsDisconnected) {
+        throw stripeError;
+      }
+
+      logStep("Stripe account inaccessible, resetting tenant state", {
+        tenant_id,
+        stripe_account_id: tenantData.stripe_account_id,
+        message,
+      });
+
+      const { error: resetError } = await supabaseClient
+        .from("tenants")
+        .update({
+          stripe_account_id: null,
+          stripe_onboarding_complete: false,
+          stripe_charges_enabled: false,
+          stripe_payouts_enabled: false,
+        })
+        .eq("id", tenant_id);
+
+      if (resetError) {
+        throw new Error(`Failed to reset tenant Stripe state: ${resetError.message}`);
+      }
+
+      return new Response(JSON.stringify({
+        configured: false,
+        onboarding_complete: false,
+        charges_enabled: false,
+        payouts_enabled: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     logStep("Stripe account retrieved", { 
       accountId: account.id,
       chargesEnabled: account.charges_enabled,
