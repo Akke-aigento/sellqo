@@ -139,6 +139,18 @@ export default function SettingsPage() {
     r => r.role === 'tenant_admin' || r.role === 'platform_admin'
   );
 
+  const allGroups = [
+    ...settingsGroups,
+    ...(isPlatformAdmin && isAdminView ? [{
+      id: 'platform-tools',
+      title: 'Platform Tools',
+      description: 'Beheertools voor het platform',
+      sections: [
+        { id: 'platform-tools', title: 'Platform Tools', icon: Wrench, component: PlatformToolsSettings },
+      ],
+    }] : []),
+  ];
+
   const isSectionFeatureVisible = (section: SettingsSection): boolean => {
     if (!section.featureKey) return true;
     if (isPlatformAdmin && isAdminView) return true;
