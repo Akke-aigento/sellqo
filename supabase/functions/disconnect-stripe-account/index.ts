@@ -116,7 +116,7 @@ serve(async (req) => {
       .update({
         stripe_account_id: null,
         stripe_charges_enabled: false,
-        stripe_details_submitted: false,
+        stripe_onboarding_complete: false,
         stripe_payouts_enabled: false,
       })
       .eq("id", tenant_id);
