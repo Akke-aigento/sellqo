@@ -26,7 +26,9 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
   const { data: credits, isLoading: creditsLoading } = useTenantCredits(tenantId);
   const { data: owner, isLoading: ownerLoading } = useTenantOwner(tenantId);
 
-  const isLoading = tenantLoading || subLoading || creditsLoading || ownerLoading;
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return (
@@ -163,15 +165,59 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {tenantData?.stripe_account_id ? (
-                tenantData?.stripe_onboarding_complete ? (
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-bold">
+                {tenantData?.stripe_account_id ? (
+                  tenantData?.stripe_onboarding_complete ? (
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>
+                  ) : (
+                    <Badge variant="secondary">Onboarding</Badge>
+                  )
                 ) : (
-                  <Badge variant="secondary">Onboarding</Badge>
-                )
-              ) : (
-                <Badge variant="outline">Niet verbonden</Badge>
+                  <Badge variant="outline">Niet verbonden</Badge>
+                )}
+              </div>
+              {tenantData?.stripe_account_id && (
+                <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={isDisconnecting}>
+                      {isDisconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlink className="h-3 w-3" />}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Stripe account ontkoppelen?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Weet je zeker dat je het Stripe account wilt ontkoppelen? Dit verwijdert het connected account permanent uit Stripe. De tenant zal opnieuw moeten onboarden.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          setIsDisconnecting(true);
+                          try {
+                            const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
+                              body: { tenant_id: tenantId },
+                            });
+                            if (error) throw error;
+                            if (data?.error) throw new Error(data.error);
+                            toast.success('Stripe account ontkoppeld en verwijderd');
+                            queryClient.invalidateQueries({ queryKey: ['tenant-detail', tenantId] });
+                          } catch (err: any) {
+                            toast.error(err.message || 'Ontkoppelen mislukt');
+                          } finally {
+                            setIsDisconnecting(false);
+                            setShowDisconnectDialog(false);
+                          }
+                        }}
+                      >
+                        Ontkoppelen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate">
@@ -179,12 +225,6 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
             </p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Tenant Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tenant Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
