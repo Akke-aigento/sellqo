@@ -110,19 +110,13 @@ serve(async (req) => {
       }
     }
 
-    // Check for existing pending invitation
-    const { data: existingInvitation } = await supabase
+    // Auto-replace any existing pending invitation
+    await supabase
       .from("team_invitations")
-      .select("id")
+      .delete()
       .eq("tenant_id", tenantId)
       .ilike("email", email)
-      .is("accepted_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
-
-    if (existingInvitation) {
-      throw new Error("Er is al een openstaande uitnodiging voor dit e-mailadres");
-    }
+      .is("accepted_at", null);
 
     // Create invitation
     const { data: invitation, error: insertError } = await supabase
