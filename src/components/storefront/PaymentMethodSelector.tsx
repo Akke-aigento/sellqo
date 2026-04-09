@@ -123,7 +123,7 @@ export function PaymentMethodSelector({
   value,
   onChange,
   enabledMethods,
-  stripePaymentMethods = ['card', 'ideal', 'bancontact'],
+  stripePaymentMethods = ['card'],
   transactionFee,
   showTransactionFee = false,
   transactionFeeLabel = 'Transactiekosten',
