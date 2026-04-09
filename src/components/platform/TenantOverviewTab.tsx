@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard, Unlink, Loader2 } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface TenantOverviewTabProps {
   tenantId: string;
