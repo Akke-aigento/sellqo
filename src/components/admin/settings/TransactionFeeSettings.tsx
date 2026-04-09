@@ -54,7 +54,7 @@ export function TransactionFeeSettings() {
     transaction_fee_label: 'Transactiekosten',
     iban: null,
     bic: null,
-    stripe_payment_methods: ['card', 'ideal', 'bancontact'],
+    stripe_payment_methods: ['card'],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,7 +79,7 @@ export function TransactionFeeSettings() {
 
       // Sanitize: only keep codes that are in the current valid set
       const validStripeMethodCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
-      const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'];
+      const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card'];
       const sanitizedStripeMethods = rawStripeMethods.filter(m => validStripeMethodCodes.includes(m));
 
       const loaded = {

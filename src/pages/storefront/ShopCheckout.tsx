@@ -119,7 +119,7 @@ export default function ShopCheckout() {
   useEffect(() => {
     if (!tenant) return;
     const rawMethods = (tenant.payment_methods_enabled || []) as string[];
-    const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact']) as PaymentMethod[];
+    const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card']) as PaymentMethod[];
     
     const methods: PaymentMethod[] = [];
     // If 'stripe' is in enabled methods, expand to individual sub-methods
@@ -314,9 +314,15 @@ export default function ShopCheckout() {
           },
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error);
-      toast.error('Er ging iets mis bij het verwerken van je bestelling');
+      const errorMsg = error?.message || '';
+      if (errorMsg.includes('payment_method_unavailable') || errorMsg.includes('niet beschikbaar')) {
+        toast.error('Deze betaalmethode is momenteel niet beschikbaar. Kies een andere methode.');
+        setStep('payment');
+      } else {
+        toast.error('Er ging iets mis bij het verwerken van je bestelling');
+      }
     } finally {
       submittingRef.current = false;
       setIsProcessing(false);
@@ -638,7 +644,7 @@ export default function ShopCheckout() {
                   value={paymentMethod}
                   onChange={setPaymentMethod}
                   enabledMethods={enabledPaymentMethods}
-                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card', 'ideal', 'bancontact']}
+                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card']}
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
                   transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
                 />

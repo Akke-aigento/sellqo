@@ -620,7 +620,7 @@ serve(async (req) => {
     const tenantSlug = tenant.slug || tenant_id;
     
     // Determine payment methods: intersect tenant config with actual Stripe account capabilities
-    const configuredMethods: string[] = (tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact'];
+    const configuredMethods: string[] = (tenant as any).stripe_payment_methods || ['card'];
     const validCodes = ['card', 'ideal', 'bancontact', 'klarna'];
     const sanitizedMethods = configuredMethods.filter((m: string) => validCodes.includes(m));
 
@@ -639,46 +639,64 @@ serve(async (req) => {
       accountCapabilities = (connectedAccount.capabilities as Record<string, string>) || {};
       logStep("Connected account capabilities", accountCapabilities);
     } catch (capErr) {
-      logStep("Could not retrieve account capabilities, falling back to configured methods", { error: String(capErr) });
+      logStep("Could not retrieve account capabilities, using configured methods only", { error: String(capErr) });
     }
 
     const hasCapabilities = Object.keys(accountCapabilities).length > 0;
 
-    // If a specific preferred method was requested, use only that one (if it's valid)
+    // Build definitive available methods: intersection of configured + live capabilities
+    let availableMethods: string[];
+    if (hasCapabilities) {
+      availableMethods = sanitizedMethods.filter((m: string) => {
+        const cap = capabilityMap[m];
+        return cap && accountCapabilities[cap] === 'active';
+      });
+      // If intersection is empty but we have configured methods, fall back to 'card' only
+      // (card_payments is the most universally available capability)
+      if (availableMethods.length === 0) {
+        if (accountCapabilities['card_payments'] === 'active') {
+          availableMethods = ['card'];
+        } else {
+          // Last resort: use first configured method, Stripe will validate
+          availableMethods = sanitizedMethods.length > 0 ? [sanitizedMethods[0]] : ['card'];
+        }
+        logStep("Capability intersection empty, using fallback", { availableMethods });
+      }
+    } else {
+      // No capabilities data: trust configured methods
+      availableMethods = sanitizedMethods.length > 0 ? sanitizedMethods : ['card'];
+    }
+
+    logStep("Available methods after capability check", { availableMethods });
+
+    // If a specific preferred method was requested, validate it against available methods
     const preferredMethod = (body as any).preferred_payment_method;
     let paymentMethodTypes: string[];
 
     if (preferredMethod && validCodes.includes(preferredMethod)) {
-      // Trust the tenant's configuration — always use the preferred method
-      paymentMethodTypes = [preferredMethod];
-      logStep("Using preferred payment method", { preferredMethod });
-    } else {
-      // Filter by capabilities, but fallback to configured methods if empty
-      if (hasCapabilities) {
-        const filtered = sanitizedMethods.filter((m: string) => {
-          const cap = capabilityMap[m];
-          return cap && accountCapabilities[cap] === 'active';
-        });
-        paymentMethodTypes = filtered.length > 0 ? filtered : sanitizedMethods;
+      if (availableMethods.includes(preferredMethod)) {
+        paymentMethodTypes = [preferredMethod];
+        logStep("Using preferred payment method", { preferredMethod });
       } else {
-        paymentMethodTypes = sanitizedMethods;
+        // Preferred method not available — return 400 with available options
+        logStep("Preferred method not available", { preferredMethod, availableMethods });
+        return new Response(JSON.stringify({
+          error: `Betaalmethode '${preferredMethod}' is niet beschikbaar voor deze winkel.`,
+          error_code: 'payment_method_unavailable',
+          available_methods: availableMethods,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+    } else {
+      paymentMethodTypes = availableMethods;
     }
 
-    logStep("Payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, preferred: preferredMethod, final: paymentMethodTypes });
-
-    if (paymentMethodTypes.length === 0) {
-      logStep("No valid payment methods available after capability check");
-      return new Response(JSON.stringify({ 
-        error: "Geen geldige betaalmethodes beschikbaar. Controleer de Stripe-instellingen van deze winkel." 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    logStep("Final payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, preferred: preferredMethod, available: availableMethods, final: paymentMethodTypes });
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: paymentMethodTypes.length > 0 ? paymentMethodTypes : ['card', 'ideal', 'bancontact'],
+      payment_method_types: paymentMethodTypes,
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop/${tenantSlug}/order/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
