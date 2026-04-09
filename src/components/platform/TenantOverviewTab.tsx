@@ -31,6 +31,7 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
   const queryClient = useQueryClient();
   const isLoading = tenantLoading || subLoading || creditsLoading || ownerLoading;
 
+  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(8)].map((_, i) => (
