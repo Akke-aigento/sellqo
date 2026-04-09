@@ -115,15 +115,33 @@ export default function ShopCheckout() {
   }, []);
 
   // Load tenant payment settings
+  // Build enabled payment methods from tenant config
   useEffect(() => {
-    if (tenant?.payment_methods_enabled) {
-      const methods = tenant.payment_methods_enabled as PaymentMethod[];
-      setEnabledPaymentMethods(methods.length > 0 ? methods : ['stripe']);
-      if (methods.length > 0 && !methods.includes(paymentMethod)) {
-        setPaymentMethod(methods[0]);
+    if (!tenant) return;
+    const rawMethods = (tenant.payment_methods_enabled || []) as string[];
+    const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact']) as PaymentMethod[];
+    
+    const methods: PaymentMethod[] = [];
+    // If 'stripe' is in enabled methods, expand to individual sub-methods
+    if (rawMethods.includes('stripe') || rawMethods.length === 0) {
+      methods.push(...stripeSubMethods);
+    }
+    // Also add individual stripe methods if listed directly
+    for (const m of rawMethods) {
+      if (['card', 'ideal', 'bancontact', 'klarna'].includes(m) && !methods.includes(m as PaymentMethod)) {
+        methods.push(m as PaymentMethod);
       }
     }
-  }, [tenant?.payment_methods_enabled]);
+    if (rawMethods.includes('bank_transfer')) {
+      methods.push('bank_transfer');
+    }
+    
+    const final = methods.length > 0 ? methods : ['card' as PaymentMethod];
+    setEnabledPaymentMethods(final);
+    if (!final.includes(paymentMethod)) {
+      setPaymentMethod(final[0]);
+    }
+  }, [tenant]);
 
   // Set default country from tenant
   useEffect(() => {
@@ -239,7 +257,7 @@ export default function ShopCheckout() {
         country: customerData.country,
       };
 
-      if (method === 'stripe') {
+      if (method !== 'bank_transfer') {
         const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
           body: {
             tenant_id: tenant.id,
