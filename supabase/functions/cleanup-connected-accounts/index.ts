@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader, "starts with Bearer:", authHeader?.startsWith("Bearer "));
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     // Allow service role key OR authenticated platform_admin
