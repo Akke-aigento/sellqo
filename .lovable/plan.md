@@ -1,22 +1,47 @@
 
 
-## Fix: Ontkoppelknop toevoegen bij "Onboarding niet afgerond" status
+## Feature: Tenant kiest zelf welke Stripe betaalmethodes actief zijn
 
-### Probleem
-Wanneer een Stripe account is aangemaakt maar de onboarding niet is voltooid, toont de UI alleen "Onboarding voltooien" en "Status vernieuwen" — er is geen optie om te ontkoppelen. Als je het e-mailadres niet kent, zit je vast.
+### Huidige situatie
+- De checkout session (regel 621) maakt **geen** `payment_method_types` aan — Stripe bepaalt automatisch welke methodes verschijnen
+- Tenants hebben alleen een hoog-niveau toggle: "Stripe aan/uit" en "Bankoverschrijving aan/uit"
+- Er is geen `stripe_payment_methods` kolom in de database
 
-### Oplossing
-Voeg dezelfde "Stripe ontkoppelen" knop + bevestigingsdialoog toe aan het `status?.configured && !status?.onboarding_complete` blok in `PaymentSettings.tsx` (regels 417-437).
+### Plan
 
-### Wijziging
+#### Stap 1: Database — nieuw veld
+Migratie: voeg `stripe_payment_methods` jsonb kolom toe aan `tenants` met default `["card", "ideal", "bancontact"]`.
 
-**Bestand: `src/components/admin/settings/PaymentSettings.tsx`**
+#### Stap 2: Admin UI — Stripe sub-methode selector
+In `TransactionFeeSettings.tsx`, wanneer Stripe actief is, toon een uitklapbare sectie met checkboxes voor elke methode:
 
-Na de bestaande knoppen "Onboarding voltooien" en "Status vernieuwen" (rond regel 437), voeg een `Separator` en dezelfde gevarenzone-sectie toe met de ontkoppelknop + AlertDialog, identiek aan het blok op regels 344-393.
+| Methode | Code | Beschrijving | Regio |
+|---------|------|-------------|-------|
+| Creditcard / Apple Pay / Google Pay | `card` | Standaard kaartbetalingen + wallets | Internationaal |
+| iDEAL | `ideal` | Directe bankoverschrijving | 🇳🇱 NL |
+| Bancontact | `bancontact` | Belgisch betaalsysteem | 🇧🇪 BE |
+| Klarna | `klarna` | Achteraf betalen / gespreid | EU |
+| PayPal | `paypal` | PayPal checkout | Internationaal |
+| SOFORT | `sofort` | Directe bankoverschrijving | 🇩🇪 DE/AT |
+| EPS | `eps` | Oostenrijks betaalsysteem | 🇦🇹 AT |
+| Giropay | `giropay` | Duits betaalsysteem | 🇩🇪 DE |
 
-Dit hergebruikt exact dezelfde disconnect-logica die al werkt voor volledig geconfigureerde accounts.
+Elke methode toont een icoon, naam, kostenindicatie en regio-badge. Minimaal 1 methode vereist.
 
-### Resultaat
-- Bij "Onboarding niet afgerond" verschijnt ook een "Stripe ontkoppelen" knop
-- Mancini Milano kan direct ontkoppeld worden zonder de onboarding te hoeven voltooien
+#### Stap 3: Edge function — respecteer tenant keuzes
+In `create-checkout-session/index.ts`, haal `stripe_payment_methods` op uit de tenant data en zet `payment_method_types` expliciet op de checkout session in plaats van Stripe's automatische modus.
+
+**Let op**: bij destination charges (transfer_data) worden niet alle methodes ondersteund. De code filtert automatisch methodes die niet compatibel zijn.
+
+#### Stap 4: Storefront API
+Pas `checkoutGetPaymentMethods` aan zodat de response de actieve Stripe sub-methodes teruggeeft (voor eventuele UI-hints in de checkout).
+
+### Bestanden die wijzigen
+1. **Migratie** — nieuw veld `stripe_payment_methods` op `tenants`
+2. **`src/components/admin/settings/TransactionFeeSettings.tsx`** — checkbox UI onder de Stripe toggle
+3. **`supabase/functions/create-checkout-session/index.ts`** — `payment_method_types` dynamisch zetten
+4. **Storefront API** (indien nodig) — methodes doorgeven
+
+### Scope eerste versie
+Start met **card, ideal, bancontact** (standaard aan) en **klarna** (standaard uit). Overige methodes als uitbreiding later.
 
