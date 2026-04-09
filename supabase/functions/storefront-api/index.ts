@@ -1678,7 +1678,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         currency: currency.toLowerCase(),
         duration: 'once',
         name: cart.discount_code || 'Korting',
-      }, { stripeAccount: tenantData.stripe_account_id });
+      });
       sessionParams.discounts = [{ coupon: coupon.id }];
     }
 
