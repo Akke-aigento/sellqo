@@ -1,58 +1,28 @@
 
-Doel
 
-- De uitnodigingspagina moet standaard werken als “maak je account aan voor deze tenant”, niet als gewone login.
-- Tegelijk wil ik de publieke invite-ophaalflow veiliger maken, want de huidige SELECT-policy met `USING (true)` is te breed.
+## Fix: Uitnodiging opnieuw versturen i.p.v. blokkeren bij duplicaat
 
-Wat ik heb nagekeken
+### Probleem
+Er zijn twee fouten:
+1. **Hoofdoorzaak**: Er staat al een openstaande uitnodiging voor `aaron-mercken@hotmail.com` op tenant VanXcel. De `send-team-invitation` edge function blokkeert duplicaten met de foutmelding "Er is al een openstaande uitnodiging voor dit e-mailadres" — maar de UI toont geen duidelijke actie om dit op te lossen.
+2. **Bijkomende 403 errors**: Na het verwijderen van de brede RLS SELECT policy haalt `fetchData()` in `TenantTeamTab` de uitnodigingen op, maar sommige requests falen met 403. Dit kan een timing-issue zijn met de sessie-token.
 
-- In `src/pages/AcceptInvitation.tsx` start `showRegister` nu op `false`, waardoor de pagina standaard het loginformulier toont.
-- De accept-flow zelf is al juist: zodra er een geldige sessie is, accepteert de pagina de uitnodiging automatisch via `accept-team-invitation`.
-- De recente database-fix maakt uitnodigingen publiek leesbaar, maar momenteel op een te brede manier.
+### Oplossing
 
-Plan
+**Stap 1: send-team-invitation edge function aanpassen**
+In plaats van te blokkeren bij een bestaande uitnodiging: de oude uitnodiging automatisch verwijderen en een nieuwe aanmaken. Zo kan een admin altijd opnieuw uitnodigen zonder handmatig te moeten annuleren.
 
-1. Invite-pagina standaard naar “account aanmaken”
-- In `src/pages/AcceptInvitation.tsx` maak ik registratie de standaardflow voor niet-ingelogde gebruikers.
-- De e-mail blijft vooraf ingevuld en readonly.
-- Het wachtwoordlabel maak ik duidelijker: “Nieuw wachtwoord”.
-- De secundaire actie wordt: “Heb je al een account? Inloggen”.
+Concreet in de edge function:
+- De check "Er is al een openstaande uitnodiging" verwijderen
+- In plaats daarvan: `DELETE FROM team_invitations WHERE email = $email AND tenant_id = $tenantId AND accepted_at IS NULL` uitvoeren vóór het aanmaken van de nieuwe uitnodiging
 
-2. Signup-flow correct afwerken
-- Na accountaanmaak blijft de gebruiker terugkeren naar dezelfde uitnodigingslink via `emailRedirectTo`.
-- Als er meteen een sessie is, wordt de uitnodiging direct geaccepteerd.
-- Als e-mailbevestiging nodig is, toon ik een duidelijke tussenstatus zoals:
-  - account aangemaakt
-  - bevestig je e-mail
-  - daarna koppelen we je automatisch aan de juiste tenant
-- De bestaande auto-accept logic blijft de tenant-koppeling afmaken zodra de sessie beschikbaar is.
+**Stap 2: Bestaande uitnodiging verwijderen**
+De huidige blokkerende uitnodiging voor aaron-mercken@hotmail.com verwijderen via de TenantTeamTab (die al een delete-knop heeft), of via de edge function fix automatisch.
 
-3. Login alleen als alternatief
-- Bestaande gebruikers kunnen nog steeds expliciet kiezen voor inloggen.
-- De copy wordt aangepast zodat het verschil duidelijk is:
-  - nieuw account aanmaken en accepteren
-  - of inloggen met bestaand account
+### Bestanden die wijzigen
+- `supabase/functions/send-team-invitation/index.ts` — duplicaat-check vervangen door auto-replace
 
-4. Veilige invite lookup herstellen
-- Ik vervang de huidige brede publieke SELECT-toegang door een veiligere token-scoped backend lookup.
-- `AcceptInvitation.tsx` haalt de uitnodigingsdetails dan niet meer rechtstreeks uit de tabel op.
-- Daarna kan de te brede policy `Anyone can view invitation by token` weer verwijderd of aangescherpt worden.
+### Resultaat
+- Opnieuw uitnodigen werkt altijd — oude uitnodigingen worden automatisch vervangen
+- Geen verwarrende foutmeldingen meer bij herhaald uitnodigen
 
-Bestanden die wijzigen
-
-- `src/pages/AcceptInvitation.tsx`
-- nieuwe migratie voor veilige invite-read aanpak en het terugdraaien/aanscherpen van de brede policy
-- eventueel een kleine backend helper voor “fetch invitation by token”
-
-Technische details
-
-- Ik zet geen anonieme signups of auto-confirm aan.
-- Tenant-koppeling blijft server-side via `accept-team-invitation`.
-- De UX wordt dus logischer zonder de beveiliging te verzwakken.
-
-Verwacht resultaat
-
-- Een uitgenodigde gebruiker ziet meteen een “nieuw wachtwoord kiezen / account aanmaken” flow.
-- Na accountaanmaak en eventuele e-mailbevestiging komt die gebruiker terug op dezelfde uitnodiging en wordt automatisch aan de juiste tenant gekoppeld.
-- Bestaande gebruikers kunnen nog steeds via “Ik heb al een account” inloggen.
-- De invite-ophaalflow wordt tegelijk veiliger dan nu.
