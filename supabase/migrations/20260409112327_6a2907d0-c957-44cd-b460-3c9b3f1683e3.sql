@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS stripe_payment_methods jsonb DEFAULT '["card", "ideal", "bancontact"]'::jsonb;

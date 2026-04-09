@@ -14462,6 +14462,7 @@ export type Database = {
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
           stripe_onboarding_complete: boolean | null
+          stripe_payment_methods: Json | null
           stripe_payouts_enabled: boolean | null
           subscription_plan: string | null
           subscription_status: string | null
@@ -14561,6 +14562,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          stripe_payment_methods?: Json | null
           stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -14660,6 +14662,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          stripe_payment_methods?: Json | null
           stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
