@@ -655,10 +655,10 @@ export default function ShopCheckout() {
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Bezig...
                     </>
-                  ) : paymentMethod === 'stripe' ? (
-                    'Afrekenen met iDEAL / Card'
-                  ) : (
+                  ) : paymentMethod === 'bank_transfer' ? (
                     'Bestelling plaatsen'
+                  ) : (
+                    `Afrekenen met ${paymentMethod === 'ideal' ? 'iDEAL' : paymentMethod === 'card' ? 'Creditcard' : paymentMethod === 'bancontact' ? 'Bancontact' : paymentMethod === 'klarna' ? 'Klarna' : 'Online betaling'}`
                   )}
                 </Button>
               </div>
