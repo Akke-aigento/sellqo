@@ -90,6 +90,7 @@ interface CheckoutRequest {
   customer_type?: 'b2b' | 'b2c';
   vat_number?: string;
   company_name?: string;
+  preferred_payment_method?: string;
 }
 
 interface VatCalculation {
@@ -641,16 +642,27 @@ serve(async (req) => {
       logStep("Could not retrieve account capabilities, falling back to configured methods", { error: String(capErr) });
     }
 
-    // Filter: only keep methods whose capability is 'active' (or if we couldn't fetch capabilities, trust config)
-    const hasCapabilities = Object.keys(accountCapabilities).length > 0;
-    const paymentMethodTypes = hasCapabilities
-      ? sanitizedMethods.filter((m: string) => {
-          const cap = capabilityMap[m];
-          return cap && accountCapabilities[cap] === 'active';
-        })
-      : sanitizedMethods;
+    // If a specific preferred method was requested, use only that one (if it's valid)
+    const preferredMethod = (body as any).preferred_payment_method;
+    let paymentMethodTypes: string[];
 
-    logStep("Payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, final: paymentMethodTypes });
+    if (preferredMethod && validCodes.includes(preferredMethod)) {
+      // Check if this specific method is active on the account
+      const cap = capabilityMap[preferredMethod];
+      const isActive = !hasCapabilities || (cap && accountCapabilities[cap] === 'active');
+      paymentMethodTypes = isActive ? [preferredMethod] : [];
+      logStep("Using preferred payment method", { preferredMethod, isActive });
+    } else {
+      // Filter: only keep methods whose capability is 'active'
+      paymentMethodTypes = hasCapabilities
+        ? sanitizedMethods.filter((m: string) => {
+            const cap = capabilityMap[m];
+            return cap && accountCapabilities[cap] === 'active';
+          })
+        : sanitizedMethods;
+    }
+
+    logStep("Payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, preferred: preferredMethod, final: paymentMethodTypes });
 
     if (paymentMethodTypes.length === 0) {
       logStep("No valid payment methods available after capability check");

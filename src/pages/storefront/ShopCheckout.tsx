@@ -54,8 +54,8 @@ export default function ShopCheckout() {
     city: '',
     country: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
-  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['card']);
   const [isProcessing, setIsProcessing] = useState(false);
   const submittingRef = useRef(false);
   const [bankTransferOrder, setBankTransferOrder] = useState<{
@@ -115,15 +115,33 @@ export default function ShopCheckout() {
   }, []);
 
   // Load tenant payment settings
+  // Build enabled payment methods from tenant config
   useEffect(() => {
-    if (tenant?.payment_methods_enabled) {
-      const methods = tenant.payment_methods_enabled as PaymentMethod[];
-      setEnabledPaymentMethods(methods.length > 0 ? methods : ['stripe']);
-      if (methods.length > 0 && !methods.includes(paymentMethod)) {
-        setPaymentMethod(methods[0]);
+    if (!tenant) return;
+    const rawMethods = (tenant.payment_methods_enabled || []) as string[];
+    const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact']) as PaymentMethod[];
+    
+    const methods: PaymentMethod[] = [];
+    // If 'stripe' is in enabled methods, expand to individual sub-methods
+    if (rawMethods.includes('stripe') || rawMethods.length === 0) {
+      methods.push(...stripeSubMethods);
+    }
+    // Also add individual stripe methods if listed directly
+    for (const m of rawMethods) {
+      if (['card', 'ideal', 'bancontact', 'klarna'].includes(m) && !methods.includes(m as PaymentMethod)) {
+        methods.push(m as PaymentMethod);
       }
     }
-  }, [tenant?.payment_methods_enabled]);
+    if (rawMethods.includes('bank_transfer')) {
+      methods.push('bank_transfer');
+    }
+    
+    const final = methods.length > 0 ? methods : ['card' as PaymentMethod];
+    setEnabledPaymentMethods(final);
+    if (!final.includes(paymentMethod)) {
+      setPaymentMethod(final[0]);
+    }
+  }, [tenant]);
 
   // Set default country from tenant
   useEffect(() => {
@@ -239,7 +257,7 @@ export default function ShopCheckout() {
         country: customerData.country,
       };
 
-      if (method === 'stripe') {
+      if (method !== 'bank_transfer') {
         const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
           body: {
             tenant_id: tenant.id,
@@ -251,6 +269,7 @@ export default function ShopCheckout() {
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
             shipping_cost: shipping,
+            preferred_payment_method: method,
           },
         });
 
@@ -619,6 +638,7 @@ export default function ShopCheckout() {
                   value={paymentMethod}
                   onChange={setPaymentMethod}
                   enabledMethods={enabledPaymentMethods}
+                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card', 'ideal', 'bancontact']}
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
                   transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
                 />
@@ -637,10 +657,10 @@ export default function ShopCheckout() {
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Bezig...
                     </>
-                  ) : paymentMethod === 'stripe' ? (
-                    'Afrekenen met iDEAL / Card'
-                  ) : (
+                  ) : paymentMethod === 'bank_transfer' ? (
                     'Bestelling plaatsen'
+                  ) : (
+                    `Afrekenen met ${paymentMethod === 'ideal' ? 'iDEAL' : paymentMethod === 'card' ? 'Creditcard' : paymentMethod === 'bancontact' ? 'Bancontact' : paymentMethod === 'klarna' ? 'Klarna' : 'Online betaling'}`
                   )}
                 </Button>
               </div>
