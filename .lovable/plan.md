@@ -1,36 +1,58 @@
 
+Doel
 
-## Fix: Uitnodiging niet gevonden bij klikken op link
+- De uitnodigingspagina moet standaard werken als “maak je account aan voor deze tenant”, niet als gewone login.
+- Tegelijk wil ik de publieke invite-ophaalflow veiliger maken, want de huidige SELECT-policy met `USING (true)` is te breed.
 
-### Probleem
-De `team_invitations` tabel heeft RLS-policies die alleen toegang geven aan:
-1. Admins (platform_admin of tenant_admin)
-2. Ingelogde gebruikers wiens e-mail overeenkomt met de uitnodiging
+Wat ik heb nagekeken
 
-Maar wanneer iemand op de uitnodigingslink klikt, is die persoon **nog niet ingelogd**. De pagina probeert de uitnodiging op te halen om de details te tonen (rol, teamnaam), maar RLS blokkeert de query → "Uitnodiging niet gevonden".
+- In `src/pages/AcceptInvitation.tsx` start `showRegister` nu op `false`, waardoor de pagina standaard het loginformulier toont.
+- De accept-flow zelf is al juist: zodra er een geldige sessie is, accepteert de pagina de uitnodiging automatisch via `accept-team-invitation`.
+- De recente database-fix maakt uitnodigingen publiek leesbaar, maar momenteel op een te brede manier.
 
-### Oplossing
-Voeg een RLS-policy toe die **iedereen** (inclusief `anon`) toestaat om een uitnodiging op te halen op basis van het token. Het token is een UUID die als geheim fungeert — zonder het token kun je niets opvragen.
+Plan
 
-### Stappen
+1. Invite-pagina standaard naar “account aanmaken”
+- In `src/pages/AcceptInvitation.tsx` maak ik registratie de standaardflow voor niet-ingelogde gebruikers.
+- De e-mail blijft vooraf ingevuld en readonly.
+- Het wachtwoordlabel maak ik duidelijker: “Nieuw wachtwoord”.
+- De secundaire actie wordt: “Heb je al een account? Inloggen”.
 
-**Stap 1: Database-migratie**
-Nieuwe SELECT policy op `team_invitations`:
-```sql
-CREATE POLICY "Anyone can view invitation by token"
-ON public.team_invitations
-FOR SELECT
-TO anon, authenticated
-USING (true);
-```
+2. Signup-flow correct afwerken
+- Na accountaanmaak blijft de gebruiker terugkeren naar dezelfde uitnodigingslink via `emailRedirectTo`.
+- Als er meteen een sessie is, wordt de uitnodiging direct geaccepteerd.
+- Als e-mailbevestiging nodig is, toon ik een duidelijke tussenstatus zoals:
+  - account aangemaakt
+  - bevestig je e-mail
+  - daarna koppelen we je automatisch aan de juiste tenant
+- De bestaande auto-accept logic blijft de tenant-koppeling afmaken zodra de sessie beschikbaar is.
 
-Alternatief (restrictiever, maar RLS kan niet filteren op query-parameters): we kunnen de policy beperken tot alleen niet-geaccepteerde, niet-verlopen uitnodigingen. Maar aangezien het token zelf al het "geheim" is (UUID, niet te raden), is een brede SELECT-policy veilig — de gevoelige data in de tabel is beperkt (e-mail, rol, teamnaam).
+3. Login alleen als alternatief
+- Bestaande gebruikers kunnen nog steeds expliciet kiezen voor inloggen.
+- De copy wordt aangepast zodat het verschil duidelijk is:
+  - nieuw account aanmaken en accepteren
+  - of inloggen met bestaand account
 
-**Stap 2: Geen code-wijzigingen nodig**
-De `AcceptInvitation.tsx` pagina werkt al correct — het probleem zit puur in de database-laag.
+4. Veilige invite lookup herstellen
+- Ik vervang de huidige brede publieke SELECT-toegang door een veiligere token-scoped backend lookup.
+- `AcceptInvitation.tsx` haalt de uitnodigingsdetails dan niet meer rechtstreeks uit de tabel op.
+- Daarna kan de te brede policy `Anyone can view invitation by token` weer verwijderd of aangescherpt worden.
 
-### Resultaat
-- Uitnodigingslink toont direct de uitnodigingsdetails (rol, teamnaam)
-- Gebruiker kan inloggen of registreren op dezelfde pagina
-- Na inloggen wordt de uitnodiging automatisch geaccepteerd via de edge function (die heeft service role key, dus geen RLS-probleem)
+Bestanden die wijzigen
 
+- `src/pages/AcceptInvitation.tsx`
+- nieuwe migratie voor veilige invite-read aanpak en het terugdraaien/aanscherpen van de brede policy
+- eventueel een kleine backend helper voor “fetch invitation by token”
+
+Technische details
+
+- Ik zet geen anonieme signups of auto-confirm aan.
+- Tenant-koppeling blijft server-side via `accept-team-invitation`.
+- De UX wordt dus logischer zonder de beveiliging te verzwakken.
+
+Verwacht resultaat
+
+- Een uitgenodigde gebruiker ziet meteen een “nieuw wachtwoord kiezen / account aanmaken” flow.
+- Na accountaanmaak en eventuele e-mailbevestiging komt die gebruiker terug op dezelfde uitnodiging en wordt automatisch aan de juiste tenant gekoppeld.
+- Bestaande gebruikers kunnen nog steeds via “Ik heb al een account” inloggen.
+- De invite-ophaalflow wordt tegelijk veiliger dan nu.
