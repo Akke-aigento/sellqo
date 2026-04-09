@@ -340,6 +340,57 @@ export function PaymentSettings() {
                 Stripe Dashboard openen
               </Button>
             </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-destructive">Gevarenzone</p>
+              <p className="text-sm text-muted-foreground">
+                Door je Stripe account te ontkoppelen wordt het connected account permanent verwijderd. Je moet daarna opnieuw onboarden.
+              </p>
+              <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDisconnecting}>
+                    {isDisconnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Unlink className="h-4 w-4 mr-2" />}
+                    Stripe ontkoppelen
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Stripe account ontkoppelen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Weet je zeker dat je je Stripe account wilt ontkoppelen? Dit verwijdert het connected account permanent uit Stripe. Je zal opnieuw moeten onboarden om betalingen te kunnen ontvangen.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        setIsDisconnecting(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
+                            body: { tenant_id: currentTenant?.id },
+                          });
+                          if (error) throw error;
+                          if (data?.error) throw new Error(data.error);
+                          toast({ title: 'Stripe account ontkoppeld en verwijderd' });
+                          checkStatus();
+                          refreshTenants();
+                        } catch (err: any) {
+                          toast({ title: 'Ontkoppelen mislukt', description: err.message, variant: 'destructive' });
+                        } finally {
+                          setIsDisconnecting(false);
+                          setShowDisconnectDialog(false);
+                        }
+                      }}
+                    >
+                      Ontkoppelen
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </>
         ) : status?.configured && !status?.onboarding_complete ? (
           <>
