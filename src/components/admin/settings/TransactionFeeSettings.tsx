@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   CreditCard, 
   Building2, 
@@ -26,12 +27,23 @@ import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
+const STRIPE_PAYMENT_METHODS = [
+  { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
+  { code: 'ideal', label: 'iDEAL', description: 'Directe bankoverschrijving', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
+  { code: 'bancontact', label: 'Bancontact', description: 'Belgisch betaalsysteem', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
+  { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3-4%' },
+  { code: 'eps', label: 'EPS', description: 'Oostenrijks betaalsysteem', region: 'AT', flag: '🇦🇹', cost: '~€0,25' },
+  { code: 'giropay', label: 'Giropay', description: 'Duits betaalsysteem', region: 'DE', flag: '🇩🇪', cost: '~€0,25' },
+  { code: 'sofort', label: 'SOFORT', description: 'Directe bankoverschrijving', region: 'DE/AT', flag: '🇩🇪', cost: '~€0,25' },
+];
+
 interface TenantPaymentConfig {
   payment_methods_enabled: PaymentMethodType[];
   pass_transaction_fee_to_customer: boolean;
   transaction_fee_label: string;
   iban: string | null;
   bic: string | null;
+  stripe_payment_methods: string[];
 }
 
 export function TransactionFeeSettings() {
@@ -45,6 +57,7 @@ export function TransactionFeeSettings() {
     transaction_fee_label: 'Transactiekosten',
     iban: null,
     bic: null,
+    stripe_payment_methods: ['card', 'ideal', 'bancontact'],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,7 +74,7 @@ export function TransactionFeeSettings() {
     try {
       const { data, error } = await supabase
         .from('tenants')
-        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic')
+        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods')
         .eq('id', activeTenantId)
         .single();
 
@@ -73,6 +86,7 @@ export function TransactionFeeSettings() {
         transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
         iban: data.iban,
         bic: data.bic,
+        stripe_payment_methods: (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'],
       };
       setConfig(loaded);
       setInitialConfig(loaded);
@@ -95,6 +109,7 @@ export function TransactionFeeSettings() {
           payment_methods_enabled: config.payment_methods_enabled,
           pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
           transaction_fee_label: config.transaction_fee_label,
+          stripe_payment_methods: config.stripe_payment_methods,
         })
         .eq('id', activeTenantId);
 
@@ -254,6 +269,49 @@ export function TransactionFeeSettings() {
               onCheckedChange={() => togglePaymentMethod('stripe')}
             />
           </div>
+
+          {/* Stripe sub-methods */}
+          {config.payment_methods_enabled.includes('stripe') && (
+            <div className="ml-12 space-y-2 p-4 border rounded-lg bg-muted/30">
+              <p className="text-sm font-medium mb-3">Beschikbare Stripe betaalmethodes</p>
+              {STRIPE_PAYMENT_METHODS.map((method) => {
+                const isChecked = config.stripe_payment_methods.includes(method.code);
+                return (
+                  <label
+                    key={method.code}
+                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        setConfig(prev => {
+                          const current = prev.stripe_payment_methods;
+                          if (!checked) {
+                            if (current.length === 1) {
+                              toast.error('Minimaal één Stripe methode vereist');
+                              return prev;
+                            }
+                            return { ...prev, stripe_payment_methods: current.filter(c => c !== method.code) };
+                          }
+                          return { ...prev, stripe_payment_methods: [...current, method.code] };
+                        });
+                      }}
+                    />
+                    <div className="flex-1 flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium">{method.flag} {method.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">{method.region}</Badge>
+                        <span className="text-xs text-muted-foreground">{method.cost}</span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
 
           {/* Bank Transfer */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
