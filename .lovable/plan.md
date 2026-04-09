@@ -1,60 +1,32 @@
 
 
-## Fix: Stripe checkout "No such coupon" met destination charges
+## Cleanup Connected Accounts: Edge Function + Admin UI
 
-### Root Cause
+### 1. Edge Function: `supabase/functions/cleanup-connected-accounts/index.ts`
 
-Het probleem is dat Stripe Checkout **`discounts` niet ondersteunt in combinatie met `payment_intent_data.transfer_data`** (destination charges). De coupon wordt wél aangemaakt op het platform account, maar Stripe weigert de checkout sessie met die combinatie. Dat verklaart ook de tweede error: "Expected payment_method_types on the payment page object."
+| Aspect | Detail |
+|--------|--------|
+| Auth | Verify JWT via `supabase.auth.getUser()`, then check `user_roles` for `platform_admin` role |
+| Stripe | `import Stripe from 'https://esm.sh/stripe@13.6.0'` met `STRIPE_SECRET_KEY` |
+| Logic | Fetch all tenants with `stripe_account_id IS NOT NULL`, loop through each, try `stripe.accounts.del()`, update tenant record on success or "not found" error, skip on other errors |
+| Response | `{ success: true, cleaned: number, failed: [{ tenant_id, tenant_name, error }] }` |
+| CORS | Copy pattern from `create-connect-account` |
 
-### Oplossing
+### 2. Frontend: Button in Settings page
 
-Stop met het gebruik van Stripe coupons. Pas in plaats daarvan de korting toe door de **line item bedragen proportioneel te verlagen**. Dit werkt altijd met destination charges.
+**Bestand:** `src/pages/admin/Settings.tsx`
 
-### Wijziging
+- Add a new settings section `PlatformToolsSettings` only visible when `isPlatformAdmin && isAdminView`
+- Place it in a new group "Platform Tools" at the bottom of `settingsGroups`
 
-**Bestand:** `supabase/functions/storefront-api/index.ts` (regels 1674-1683)
+**Nieuw bestand:** `src/components/admin/settings/PlatformToolsSettings.tsx`
 
-Vervang het coupon-blok door proportionele korting op line items:
-
-```typescript
-// Was:
-if (discountAmount > 0) {
-  const coupon = await stripe.coupons.create({...});
-  sessionParams.discounts = [{ coupon: coupon.id }];
-}
-
-// Wordt:
-if (discountAmount > 0) {
-  // Bereken subtotaal (excl. verzending) en verdeel korting proportioneel
-  const subtotalCents = lineItems
-    .filter((li: any) => li.price_data.product_data.name !== 'Verzending')
-    .reduce((sum: number, li: any) => sum + li.price_data.unit_amount * li.quantity, 0);
-  
-  const discountCents = Math.round(discountAmount * 100);
-  let remaining = discountCents;
-
-  const productItems = lineItems.filter(
-    (li: any) => li.price_data.product_data.name !== 'Verzending'
-  );
-  
-  productItems.forEach((li: any, i: number) => {
-    const itemTotal = li.price_data.unit_amount * li.quantity;
-    const itemDiscount = i === productItems.length - 1
-      ? remaining  // laatste item krijgt restant
-      : Math.round((itemTotal / subtotalCents) * discountCents);
-    
-    li.price_data.unit_amount = Math.max(0,
-      li.price_data.unit_amount - Math.round(itemDiscount / li.quantity)
-    );
-    remaining -= itemDiscount;
-  });
-}
-```
-
-- Geen coupon API calls meer
-- Werkt volledig met destination charges
-- Korting wordt correct verdeeld over productregels
-- Verzendkosten blijven ongewijzigd
+- Red button "Reset alle Stripe accounts"
+- AlertDialog with warning text
+- Input field requiring user to type "RESET" to enable confirm button
+- On confirm: call `supabase.functions.invoke('cleanup-connected-accounts')`
+- Show results: cleaned count, failed list with tenant names and errors
+- Loading state during execution
 
 ### Geen database wijzigingen nodig
 
