@@ -1671,15 +1671,26 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       },
     };
 
-    // Apply discount as Stripe coupon (negative line items are not allowed)
+    // Apply discount by reducing line item amounts proportionally (coupons incompatible with destination charges)
     if (discountAmount > 0) {
-      const coupon = await stripe.coupons.create({
-        amount_off: Math.round(discountAmount * 100),
-        currency: currency.toLowerCase(),
-        duration: 'once',
-        name: cart.discount_code || 'Korting',
+      const productItems = lineItems.filter(
+        (li: any) => li.price_data.product_data.name !== 'Verzending'
+      );
+      const subtotalCents = productItems.reduce(
+        (sum: number, li: any) => sum + li.price_data.unit_amount * li.quantity, 0
+      );
+      const discountCents = Math.min(Math.round(discountAmount * 100), subtotalCents);
+      let remaining = discountCents;
+
+      productItems.forEach((li: any, i: number) => {
+        const itemTotal = li.price_data.unit_amount * li.quantity;
+        const itemDiscount = i === productItems.length - 1
+          ? remaining
+          : Math.round((itemTotal / subtotalCents) * discountCents);
+        const perUnitDiscount = Math.round(itemDiscount / li.quantity);
+        li.price_data.unit_amount = Math.max(0, li.price_data.unit_amount - perUnitDiscount);
+        remaining -= perUnitDiscount * li.quantity;
       });
-      sessionParams.discounts = [{ coupon: coupon.id }];
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
