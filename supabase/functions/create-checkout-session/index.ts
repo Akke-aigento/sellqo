@@ -375,7 +375,7 @@ serve(async (req) => {
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
         enable_b2b_checkout, simplified_vat_mode,
-        default_vat_handling
+        default_vat_handling, stripe_payment_methods
       `)
       .eq("id", tenant_id)
       .single();
@@ -618,7 +618,17 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://id-preview--9932a7fe-43a1-42de-9c64-168968599600.lovable.app";
     const tenantSlug = tenant.slug || tenant_id;
     
+    // Determine payment methods from tenant config (default: card, ideal, bancontact)
+    const configuredMethods = (tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact'];
+    // Filter to methods supported with destination charges
+    const supportedWithDestination = ['card', 'ideal', 'bancontact', 'eps', 'giropay', 'sofort', 'klarna'];
+    const paymentMethodTypes = (configuredMethods as string[]).filter(
+      (m: string) => supportedWithDestination.includes(m)
+    );
+    logStep("Payment method types", { configured: configuredMethods, filtered: paymentMethodTypes });
+
     const session = await stripe.checkout.sessions.create({
+      payment_method_types: paymentMethodTypes.length > 0 ? paymentMethodTypes : ['card', 'ideal', 'bancontact'],
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop/${tenantSlug}/order/${order.id}?session_id={CHECKOUT_SESSION_ID}`,

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   CreditCard, 
   Building2, 
@@ -26,12 +27,23 @@ import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
+const STRIPE_PAYMENT_METHODS = [
+  { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
+  { code: 'ideal', label: 'iDEAL', description: 'Directe bankoverschrijving', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
+  { code: 'bancontact', label: 'Bancontact', description: 'Belgisch betaalsysteem', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
+  { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3-4%' },
+  { code: 'eps', label: 'EPS', description: 'Oostenrijks betaalsysteem', region: 'AT', flag: '🇦🇹', cost: '~€0,25' },
+  { code: 'giropay', label: 'Giropay', description: 'Duits betaalsysteem', region: 'DE', flag: '🇩🇪', cost: '~€0,25' },
+  { code: 'sofort', label: 'SOFORT', description: 'Directe bankoverschrijving', region: 'DE/AT', flag: '🇩🇪', cost: '~€0,25' },
+];
+
 interface TenantPaymentConfig {
   payment_methods_enabled: PaymentMethodType[];
   pass_transaction_fee_to_customer: boolean;
   transaction_fee_label: string;
   iban: string | null;
   bic: string | null;
+  stripe_payment_methods: string[];
 }
 
 export function TransactionFeeSettings() {
