@@ -618,14 +618,49 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://id-preview--9932a7fe-43a1-42de-9c64-168968599600.lovable.app";
     const tenantSlug = tenant.slug || tenant_id;
     
-    // Determine payment methods from tenant config (default: card, ideal, bancontact)
-    const configuredMethods = (tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact'];
-    // Filter to methods supported with destination charges
-    const supportedWithDestination = ['card', 'ideal', 'bancontact', 'eps', 'giropay', 'sofort', 'klarna'];
-    const paymentMethodTypes = (configuredMethods as string[]).filter(
-      (m: string) => supportedWithDestination.includes(m)
-    );
-    logStep("Payment method types", { configured: configuredMethods, filtered: paymentMethodTypes });
+    // Determine payment methods: intersect tenant config with actual Stripe account capabilities
+    const configuredMethods: string[] = (tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact'];
+    const validCodes = ['card', 'ideal', 'bancontact', 'klarna'];
+    const sanitizedMethods = configuredMethods.filter((m: string) => validCodes.includes(m));
+
+    // Map method codes to Stripe capability names
+    const capabilityMap: Record<string, string> = {
+      card: 'card_payments',
+      ideal: 'ideal_payments',
+      bancontact: 'bancontact_payments',
+      klarna: 'klarna_payments',
+    };
+
+    // Retrieve connected account capabilities
+    let accountCapabilities: Record<string, string> = {};
+    try {
+      const connectedAccount = await stripe.accounts.retrieve(tenant.stripe_account_id);
+      accountCapabilities = (connectedAccount.capabilities as Record<string, string>) || {};
+      logStep("Connected account capabilities", accountCapabilities);
+    } catch (capErr) {
+      logStep("Could not retrieve account capabilities, falling back to configured methods", { error: String(capErr) });
+    }
+
+    // Filter: only keep methods whose capability is 'active' (or if we couldn't fetch capabilities, trust config)
+    const hasCapabilities = Object.keys(accountCapabilities).length > 0;
+    const paymentMethodTypes = hasCapabilities
+      ? sanitizedMethods.filter((m: string) => {
+          const cap = capabilityMap[m];
+          return cap && accountCapabilities[cap] === 'active';
+        })
+      : sanitizedMethods;
+
+    logStep("Payment method types", { configured: configuredMethods, sanitized: sanitizedMethods, final: paymentMethodTypes });
+
+    if (paymentMethodTypes.length === 0) {
+      logStep("No valid payment methods available after capability check");
+      return new Response(JSON.stringify({ 
+        error: "Geen geldige betaalmethodes beschikbaar. Controleer de Stripe-instellingen van deze winkel." 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: paymentMethodTypes.length > 0 ? paymentMethodTypes : ['card', 'ideal', 'bancontact'],

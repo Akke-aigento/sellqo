@@ -77,13 +77,18 @@ export function TransactionFeeSettings() {
 
       if (error) throw error;
 
+      // Sanitize: only keep codes that are in the current valid set
+      const validStripeMethodCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
+      const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'];
+      const sanitizedStripeMethods = rawStripeMethods.filter(m => validStripeMethodCodes.includes(m));
+
       const loaded = {
         payment_methods_enabled: (data.payment_methods_enabled as PaymentMethodType[]) || ['stripe'],
         pass_transaction_fee_to_customer: data.pass_transaction_fee_to_customer || false,
         transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
         iban: data.iban,
         bic: data.bic,
-        stripe_payment_methods: (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'],
+        stripe_payment_methods: sanitizedStripeMethods.length > 0 ? sanitizedStripeMethods : ['card'],
       };
       setConfig(loaded);
       setInitialConfig(loaded);
@@ -100,13 +105,17 @@ export function TransactionFeeSettings() {
     
     setIsSaving(true);
     try {
+      // Sanitize before saving: only valid codes, fallback to ['card']
+      const validCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
+      const cleanedMethods = config.stripe_payment_methods.filter(m => validCodes.includes(m));
+      
       const { error } = await supabase
         .from('tenants')
         .update({
           payment_methods_enabled: config.payment_methods_enabled,
           pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
           transaction_fee_label: config.transaction_fee_label,
-          stripe_payment_methods: config.stripe_payment_methods,
+          stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
         })
         .eq('id', activeTenantId);
 
