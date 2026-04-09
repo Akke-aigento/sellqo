@@ -1,37 +1,22 @@
 
 
-## Fix: Loveke en Mancini Milano Stripe accounts opruimen
+## Fix: Ontkoppelknop toevoegen bij "Onboarding niet afgerond" status
 
-### Probleem 1: Loveke (`acct_1T4KKmRoQPtwaESn`)
-Het Stripe account bestaat niet meer (al verwijderd/ingetrokken). De `disconnect-stripe-account` functie probeert `stripe.accounts.del()` aan te roepen, maar Stripe retourneert een fout met de tekst *"does not have access to account (or that account does not exist)"*. De huidige error-handling vangt alleen `account_invalid` en `statusCode === 404` op, maar niet deze specifieke foutmelding. Daardoor faalt de functie met een 500 error in plaats van door te gaan met de database-cleanup.
-
-### Probleem 2: Mancini Milano (`acct_1TI7bxRvfrLqgh95`)
-Dit account bestaat nog in Stripe (onboarding niet voltooid, charges niet enabled). De disconnect zou hier gewoon moeten werken nu de kolomnaam-fix is gedeployed. Als je dit nog niet opnieuw geprobeerd hebt na de fix, probeer het eerst nog eens.
+### Probleem
+Wanneer een Stripe account is aangemaakt maar de onboarding niet is voltooid, toont de UI alleen "Onboarding voltooien" en "Status vernieuwen" — er is geen optie om te ontkoppelen. Als je het e-mailadres niet kent, zit je vast.
 
 ### Oplossing
-Breid de error-handling in `disconnect-stripe-account` uit zodat ook "does not have access" fouten worden opgevangen als "account al weg, ga door met cleanup":
+Voeg dezelfde "Stripe ontkoppelen" knop + bevestigingsdialoog toe aan het `status?.configured && !status?.onboarding_complete` blok in `PaymentSettings.tsx` (regels 417-437).
 
-**Bestand: `supabase/functions/disconnect-stripe-account/index.ts`** (regel 101-110)
+### Wijziging
 
-Huidige check:
-```typescript
-if (stripeErr?.code === "account_invalid" || stripeErr?.statusCode === 404) {
-```
+**Bestand: `src/components/admin/settings/PaymentSettings.tsx`**
 
-Nieuwe check:
-```typescript
-if (
-  stripeErr?.code === "account_invalid" || 
-  stripeErr?.statusCode === 404 ||
-  stripeErr?.message?.includes("does not have access") ||
-  stripeErr?.message?.includes("does not exist")
-) {
-```
+Na de bestaande knoppen "Onboarding voltooien" en "Status vernieuwen" (rond regel 437), voeg een `Separator` en dezelfde gevarenzone-sectie toe met de ontkoppelknop + AlertDialog, identiek aan het blok op regels 344-393.
 
-Dezelfde verbetering ook toepassen in `cleanup-connected-accounts/index.ts` (daar staat dit al correct, maar voor consistentie).
+Dit hergebruikt exact dezelfde disconnect-logica die al werkt voor volledig geconfigureerde accounts.
 
 ### Resultaat
-- Loveke: disconnect zal het account herkennen als "al weg" en de database-velden resetten
-- Mancini Milano: disconnect zou al moeten werken na de eerdere kolomnaam-fix
-- Toekomstige edge cases met verwijderde/ingetrokken accounts worden ook correct afgehandeld
+- Bij "Onboarding niet afgerond" verschijnt ook een "Stripe ontkoppelen" knop
+- Mancini Milano kan direct ontkoppeld worden zonder de onboarding te hoeven voltooien
 
