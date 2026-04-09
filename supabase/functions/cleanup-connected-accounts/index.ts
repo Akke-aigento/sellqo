@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       {
         auth: { persistSession: false },
         global: { headers: { Authorization: authHeader } },
-      }
+      },
     );
 
     const {
@@ -52,28 +52,39 @@ Deno.serve(async (req) => {
 
     if (rolesError) {
       console.error("Role lookup failed:", rolesError);
-      return new Response(JSON.stringify({ error: "Failed to verify permissions" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to verify permissions" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    const isPlatformAdmin = roles?.some((r: any) => r.role === "platform_admin");
+    const isPlatformAdmin = roles?.some((r: any) =>
+      r.role === "platform_admin"
+    );
     if (!isPlatformAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: platform_admin required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Forbidden: platform_admin required" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     console.log("Authorization passed, proceeding with cleanup...");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
-      return new Response(JSON.stringify({ error: "STRIPE_SECRET_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "STRIPE_SECRET_KEY not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
@@ -81,7 +92,7 @@ Deno.serve(async (req) => {
     // Use service role client for tenant updates
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const { data: tenants, error: fetchError } = await supabaseAdmin
@@ -91,19 +102,25 @@ Deno.serve(async (req) => {
 
     if (fetchError) {
       console.error("Failed to fetch tenants:", fetchError);
-      return new Response(JSON.stringify({ error: "Failed to fetch tenants" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch tenants" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     console.log(`Found ${tenants?.length || 0} tenants with Stripe accounts`);
 
     let cleaned = 0;
-    const failed: { tenant_id: string; tenant_name: string; error: string }[] = [];
+    const failed: { tenant_id: string; tenant_name: string; error: string }[] =
+      [];
 
     for (const tenant of tenants || []) {
-      console.log(`Processing tenant ${tenant.id} (${tenant.name}) - account: ${tenant.stripe_account_id}`);
+      console.log(
+        `Processing tenant ${tenant.id} (${tenant.name}) - account: ${tenant.stripe_account_id}`,
+      );
       try {
         await stripe.accounts.del(tenant.stripe_account_id);
         console.log(`Deleted Stripe account ${tenant.stripe_account_id}`);
@@ -111,11 +128,23 @@ Deno.serve(async (req) => {
         const code = stripeErr?.code || stripeErr?.raw?.code || "";
         const message = stripeErr?.message || "";
         // If account already gone, proceed with cleanup
-        if (code === "account_invalid" || message.includes("No such account") || message.includes("does not exist")) {
-          console.log(`Account ${tenant.stripe_account_id} already deleted, proceeding with cleanup`);
+        if (
+          code === "account_invalid" || message.includes("No such account") ||
+          message.includes("does not exist")
+        ) {
+          console.log(
+            `Account ${tenant.stripe_account_id} already deleted, proceeding with cleanup`,
+          );
         } else {
-          console.error(`Failed to delete account for tenant ${tenant.id}:`, message);
-          failed.push({ tenant_id: tenant.id, tenant_name: tenant.name, error: message });
+          console.error(
+            `Failed to delete account for tenant ${tenant.id}:`,
+            message,
+          );
+          failed.push({
+            tenant_id: tenant.id,
+            tenant_name: tenant.name,
+            error: message,
+          });
           continue;
         }
       }
@@ -132,7 +161,11 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error(`Failed to update tenant ${tenant.id}:`, updateError);
-        failed.push({ tenant_id: tenant.id, tenant_name: tenant.name, error: "DB update failed" });
+        failed.push({
+          tenant_id: tenant.id,
+          tenant_name: tenant.name,
+          error: "DB update failed",
+        });
       } else {
         cleaned++;
         console.log(`Cleaned tenant ${tenant.id}`);
@@ -143,13 +176,19 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, cleaned, failed }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (err: any) {
     console.error("Unexpected error:", err);
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
