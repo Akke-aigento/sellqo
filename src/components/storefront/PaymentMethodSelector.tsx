@@ -123,7 +123,7 @@ export function PaymentMethodSelector({
   value,
   onChange,
   enabledMethods,
-  stripePaymentMethods = ['card'],
+  stripePaymentMethods = ['card', 'ideal', 'bancontact'],
   transactionFee,
   showTransactionFee = false,
   transactionFeeLabel = 'Transactiekosten',
@@ -135,7 +135,7 @@ export function PaymentMethodSelector({
 
   const options = buildMethodOptions(stripePaymentMethods, hasBankTransfer);
 
-  if (options.length === 0) return null;
+  if (options.length <= 1) return null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(amount);

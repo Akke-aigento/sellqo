@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,7 @@ export default function ShopCheckout() {
     country: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['card']);
   const [isProcessing, setIsProcessing] = useState(false);
   const submittingRef = useRef(false);
   const [bankTransferOrder, setBankTransferOrder] = useState<{
@@ -113,16 +114,19 @@ export default function ShopCheckout() {
     }
   }, []);
 
-  // Derive enabled payment methods from tenant config (no race condition)
-  const enabledPaymentMethods = useMemo<PaymentMethod[]>(() => {
-    if (!tenant) return ['card'];
+  // Load tenant payment settings
+  // Build enabled payment methods from tenant config
+  useEffect(() => {
+    if (!tenant) return;
     const rawMethods = (tenant.payment_methods_enabled || []) as string[];
-    const stripeSubMethods: PaymentMethod[] = (tenant.stripe_payment_methods || ['card']) as PaymentMethod[];
+    const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact']) as PaymentMethod[];
     
     const methods: PaymentMethod[] = [];
+    // If 'stripe' is in enabled methods, expand to individual sub-methods
     if (rawMethods.includes('stripe') || rawMethods.length === 0) {
       methods.push(...stripeSubMethods);
     }
+    // Also add individual stripe methods if listed directly
     for (const m of rawMethods) {
       if (['card', 'ideal', 'bancontact', 'klarna'].includes(m) && !methods.includes(m as PaymentMethod)) {
         methods.push(m as PaymentMethod);
@@ -132,15 +136,12 @@ export default function ShopCheckout() {
       methods.push('bank_transfer');
     }
     
-    return methods.length > 0 ? methods : ['card'];
-  }, [tenant]);
-
-  // Sync selected payment method when enabled methods change
-  useEffect(() => {
-    if (!enabledPaymentMethods.includes(paymentMethod)) {
-      setPaymentMethod(enabledPaymentMethods[0]);
+    const final = methods.length > 0 ? methods : ['card' as PaymentMethod];
+    setEnabledPaymentMethods(final);
+    if (!final.includes(paymentMethod)) {
+      setPaymentMethod(final[0]);
     }
-  }, [enabledPaymentMethods]);
+  }, [tenant]);
 
   // Set default country from tenant
   useEffect(() => {
@@ -313,15 +314,9 @@ export default function ShopCheckout() {
           },
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Payment error:', error);
-      const errorMsg = error?.message || '';
-      if (errorMsg.includes('payment_method_unavailable') || errorMsg.includes('niet beschikbaar')) {
-        toast.error('Deze betaalmethode is momenteel niet beschikbaar. Kies een andere methode.');
-        setStep('payment');
-      } else {
-        toast.error('Er ging iets mis bij het verwerken van je bestelling');
-      }
+      toast.error('Er ging iets mis bij het verwerken van je bestelling');
     } finally {
       submittingRef.current = false;
       setIsProcessing(false);
@@ -643,7 +638,7 @@ export default function ShopCheckout() {
                   value={paymentMethod}
                   onChange={setPaymentMethod}
                   enabledMethods={enabledPaymentMethods}
-                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card']}
+                  stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card', 'ideal', 'bancontact']}
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
                   transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
                 />

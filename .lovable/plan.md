@@ -1,38 +1,27 @@
 
-## Fix: Betaalmethode selector wordt overgeslagen
 
-### Diagnose
-Het probleem zit waarschijnlijk in een combinatie van twee zaken:
+## Fix: EPS weghalen + Apple Pay zichtbaar maken
 
-1. **`PublicTenant` type mist `stripe_payment_methods`** — het veld wordt wel opgehaald in de query maar zit niet in de TypeScript interface. De `(tenant as any).stripe_payment_methods` cast werkt op runtime, maar maakt het onduidelijk en foutgevoelig.
+### Oorzaak EPS
+In `create-checkout-session/index.ts` wordt `hasCapabilities` gebruikt op regels 652 en 657, maar die variabele is **nooit gedefinieerd**. Hierdoor is de waarde altijd `undefined` (falsy), waardoor de capability-check wordt overgeslagen. Stripe krijgt dan alle geconfigureerde methodes zonder validatie, en kan via "automatic payment methods" extra methodes zoals EPS tonen.
 
-2. **Race condition met `handleCustomerDetailsSubmit`** — op regel 229 checkt de code `enabledPaymentMethods.length === 1`. De initiële state is `['card']` (lengte 1). Als de `useEffect` die de echte methodes laadt nog niet is uitgevoerd op het moment van klikken, wordt de betalingsstap volledig overgeslagen en gaat het direct naar Stripe met `card` als default. Maar doordat de edge function daarna capability-filtering doet en `card` omzet of `ideal` als fallback gebruikt, komt de gebruiker op een Stripe-pagina met alleen iDEAL.
+### Fix 1: `hasCapabilities` definiëren (edge function)
+**Bestand:** `supabase/functions/create-checkout-session/index.ts`
 
-### Oplossing
+Na het ophalen van `accountCapabilities` (rond regel 643), toevoegen:
+```typescript
+const hasCapabilities = Object.keys(accountCapabilities).length > 0;
+```
 
-#### 1. `stripe_payment_methods` toevoegen aan `PublicTenant` interface
-**Bestand:** `src/hooks/usePublicStorefront.ts`
+Dit zorgt ervoor dat de capability-intersectie daadwerkelijk draait en alleen methodes met `active` status worden doorgestuurd naar Stripe.
 
-Voeg `stripe_payment_methods: string[] | null;` toe aan de `PublicTenant` interface zodat het veld correct getypt is.
-
-#### 2. Race condition fixen in ShopCheckout
-**Bestand:** `src/pages/storefront/ShopCheckout.tsx`
-
-- Verwijder de cast `(tenant as any)?.stripe_payment_methods` en gebruik direct `tenant?.stripe_payment_methods`
-- In `handleCustomerDetailsSubmit`: gebruik de actuele tenant config direct in plaats van de state-variabele, zodat er geen window is waar de default `['card']` actief is
-- Of beter: bereken `enabledPaymentMethods` als een `useMemo` afgeleid van `tenant`, niet als aparte state die async wordt bijgewerkt
-
-#### 3. PaymentMethodSelector vangnet
+### Fix 2: Apple Pay duidelijker in de selector
 **Bestand:** `src/components/storefront/PaymentMethodSelector.tsx`
 
-Als `options.length <= 1`, in plaats van `null` teruggeven, toon dan gewoon de ene optie zodat de gebruiker altijd het payment step ziet en niet direct wordt doorgestuurd.
-
-### Wijzigingen samengevat
-1. `src/hooks/usePublicStorefront.ts` — type-fix
-2. `src/pages/storefront/ShopCheckout.tsx` — `enabledPaymentMethods` wordt `useMemo` i.p.v. `useState` + `useEffect`, plus directe typed access
-3. `src/components/storefront/PaymentMethodSelector.tsx` — verwijder de `<= 1` early return
+Het label voor de `card` methode aanpassen van "Creditcard" naar "Creditcard / Apple Pay" en de beschrijving naar "Visa, Mastercard, Apple Pay, Google Pay". Apple Pay werkt via Stripe's `card` capability — het is geen aparte methode, maar moet wel zichtbaar zijn voor de klant.
 
 ### Resultaat
-- Geen race condition meer: methodes worden altijd correct berekend uit tenant data
-- Payment step wordt niet meer overgeslagen
-- Gebruiker ziet altijd de betaalmethode-keuzes
+- EPS verdwijnt van de Stripe checkout pagina (alleen actieve, geconfigureerde methodes)
+- Apple Pay is duidelijk zichtbaar als optie voor de klant
+- Geen database-migratie nodig, alleen code + edge function deploy
+

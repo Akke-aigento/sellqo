@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -55,49 +54,17 @@ export function TransactionFeeSettings() {
     transaction_fee_label: 'Transactiekosten',
     iban: null,
     bic: null,
-    stripe_payment_methods: ['card'],
+    stripe_payment_methods: ['card', 'ideal', 'bancontact'],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
-  const [liveCapabilities, setLiveCapabilities] = useState<Record<string, string>>({});
-  const [capabilitiesLoaded, setCapabilitiesLoaded] = useState(false);
-
-  // Capability map: method code -> Stripe capability name
-  const capabilityMap: Record<string, string> = {
-    card: 'card_payments',
-    ideal: 'ideal_payments',
-    bancontact: 'bancontact_payments',
-    klarna: 'klarna_payments',
-  };
 
   useEffect(() => {
     if (activeTenantId) {
       loadConfig();
-      loadCapabilities();
     }
   }, [activeTenantId]);
-
-  const loadCapabilities = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('check-connect-status', {
-        body: { tenant_id: activeTenantId },
-      });
-      if (!error && data?.capabilities) {
-        setLiveCapabilities(data.capabilities);
-      }
-    } catch (e) {
-      console.error('Could not load Stripe capabilities:', e);
-    } finally {
-      setCapabilitiesLoaded(true);
-    }
-  };
-
-  const isMethodActive = (code: string): boolean => {
-    if (!capabilitiesLoaded || Object.keys(liveCapabilities).length === 0) return true; // unknown = allow
-    const cap = capabilityMap[code];
-    return cap ? liveCapabilities[cap] === 'active' : false;
-  };
 
   const loadConfig = async () => {
     setIsLoading(true);
@@ -112,7 +79,7 @@ export function TransactionFeeSettings() {
 
       // Sanitize: only keep codes that are in the current valid set
       const validStripeMethodCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
-      const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card'];
+      const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'];
       const sanitizedStripeMethods = rawStripeMethods.filter(m => validStripeMethodCodes.includes(m));
 
       const loaded = {
@@ -315,21 +282,14 @@ export function TransactionFeeSettings() {
               <p className="text-sm font-medium mb-3">Beschikbare Stripe betaalmethodes</p>
               {STRIPE_PAYMENT_METHODS.map((method) => {
                 const isChecked = config.stripe_payment_methods.includes(method.code);
-                const isActive = isMethodActive(method.code);
-                const isDisabled = !isActive && capabilitiesLoaded && Object.keys(liveCapabilities).length > 0;
                 return (
                   <label
                     key={method.code}
-                    className={cn(
-                      "flex items-center gap-3 p-2 rounded-md cursor-pointer",
-                      isDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50"
-                    )}
+                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
                   >
                     <Checkbox
-                      checked={isChecked && !isDisabled}
-                      disabled={isDisabled}
+                      checked={isChecked}
                       onCheckedChange={(checked) => {
-                        if (isDisabled) return;
                         setConfig(prev => {
                           const current = prev.stripe_payment_methods;
                           if (!checked) {
@@ -347,9 +307,6 @@ export function TransactionFeeSettings() {
                       <div>
                         <span className="text-sm font-medium">{method.flag} {method.label}</span>
                         <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
-                        {isDisabled && (
-                          <span className="text-xs text-destructive ml-2">• Niet actief op Stripe-account</span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">{method.region}</Badge>

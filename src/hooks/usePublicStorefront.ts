@@ -24,7 +24,6 @@ interface PublicTenant {
   payment_methods_enabled: string[] | null;
   pass_transaction_fee_to_customer: boolean | null;
   transaction_fee_label: string | null;
-  stripe_payment_methods: string[] | null;
 }
 
 interface PublicProduct {
