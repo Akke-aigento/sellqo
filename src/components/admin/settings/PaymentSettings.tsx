@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock, ChevronDown } from 'lucide-react';
+import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock, ChevronDown, Unlink } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
 import { useStripeConnect } from '@/hooks/useStripeConnect';
@@ -27,6 +31,8 @@ export function PaymentSettings() {
   const { toast } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   
   useEffect(() => {
     if (currentTenant?.country) {
@@ -333,6 +339,57 @@ export function PaymentSettings() {
                 )}
                 Stripe Dashboard openen
               </Button>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-destructive">Gevarenzone</p>
+              <p className="text-sm text-muted-foreground">
+                Door je Stripe account te ontkoppelen wordt het connected account permanent verwijderd. Je moet daarna opnieuw onboarden.
+              </p>
+              <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDisconnecting}>
+                    {isDisconnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Unlink className="h-4 w-4 mr-2" />}
+                    Stripe ontkoppelen
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Stripe account ontkoppelen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Weet je zeker dat je je Stripe account wilt ontkoppelen? Dit verwijdert het connected account permanent uit Stripe. Je zal opnieuw moeten onboarden om betalingen te kunnen ontvangen.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        setIsDisconnecting(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
+                            body: { tenant_id: currentTenant?.id },
+                          });
+                          if (error) throw error;
+                          if (data?.error) throw new Error(data.error);
+                          toast({ title: 'Stripe account ontkoppeld en verwijderd' });
+                          checkStatus();
+                          refreshTenants();
+                        } catch (err: any) {
+                          toast({ title: 'Ontkoppelen mislukt', description: err.message, variant: 'destructive' });
+                        } finally {
+                          setIsDisconnecting(false);
+                          setShowDisconnectDialog(false);
+                        }
+                      }}
+                    >
+                      Ontkoppelen
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </>
         ) : status?.configured && !status?.onboarding_complete ? (

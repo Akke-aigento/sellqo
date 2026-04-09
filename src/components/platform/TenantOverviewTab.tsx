@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard, Unlink, Loader2 } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface TenantOverviewTabProps {
   tenantId: string;
@@ -17,9 +26,11 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
   const { data: credits, isLoading: creditsLoading } = useTenantCredits(tenantId);
   const { data: owner, isLoading: ownerLoading } = useTenantOwner(tenantId);
 
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const queryClient = useQueryClient();
   const isLoading = tenantLoading || subLoading || creditsLoading || ownerLoading;
 
-  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(8)].map((_, i) => (
@@ -154,15 +165,59 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {tenantData?.stripe_account_id ? (
-                tenantData?.stripe_onboarding_complete ? (
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-bold">
+                {tenantData?.stripe_account_id ? (
+                  tenantData?.stripe_onboarding_complete ? (
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>
+                  ) : (
+                    <Badge variant="secondary">Onboarding</Badge>
+                  )
                 ) : (
-                  <Badge variant="secondary">Onboarding</Badge>
-                )
-              ) : (
-                <Badge variant="outline">Niet verbonden</Badge>
+                  <Badge variant="outline">Niet verbonden</Badge>
+                )}
+              </div>
+              {tenantData?.stripe_account_id && (
+                <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={isDisconnecting}>
+                      {isDisconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlink className="h-3 w-3" />}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Stripe account ontkoppelen?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Weet je zeker dat je het Stripe account wilt ontkoppelen? Dit verwijdert het connected account permanent uit Stripe. De tenant zal opnieuw moeten onboarden.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          setIsDisconnecting(true);
+                          try {
+                            const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
+                              body: { tenant_id: tenantId },
+                            });
+                            if (error) throw error;
+                            if (data?.error) throw new Error(data.error);
+                            toast.success('Stripe account ontkoppeld en verwijderd');
+                            queryClient.invalidateQueries({ queryKey: ['tenant-detail', tenantId] });
+                          } catch (err: any) {
+                            toast.error(err.message || 'Ontkoppelen mislukt');
+                          } finally {
+                            setIsDisconnecting(false);
+                            setShowDisconnectDialog(false);
+                          }
+                        }}
+                      >
+                        Ontkoppelen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate">
