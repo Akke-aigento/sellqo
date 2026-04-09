@@ -32,9 +32,6 @@ const STRIPE_PAYMENT_METHODS = [
   { code: 'ideal', label: 'iDEAL', description: 'Directe bankoverschrijving', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
   { code: 'bancontact', label: 'Bancontact', description: 'Belgisch betaalsysteem', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
   { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3-4%' },
-  { code: 'eps', label: 'EPS', description: 'Oostenrijks betaalsysteem', region: 'AT', flag: '🇦🇹', cost: '~€0,25' },
-  { code: 'giropay', label: 'Giropay', description: 'Duits betaalsysteem', region: 'DE', flag: '🇩🇪', cost: '~€0,25' },
-  { code: 'sofort', label: 'SOFORT', description: 'Directe bankoverschrijving', region: 'DE/AT', flag: '🇩🇪', cost: '~€0,25' },
 ];
 
 interface TenantPaymentConfig {
