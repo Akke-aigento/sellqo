@@ -1,45 +1,27 @@
 
 
-## Feature: Aparte betaalknoppen per Stripe-methode
+## Fix: EPS weghalen + Apple Pay zichtbaar maken
 
-### Idee
-In plaats van één generieke "Online betalen" knop die naar Stripe stuurt (waar Stripe dan zelf kiest wat te tonen), krijgt de klant aparte keuzes: "Betaal met iDEAL", "Betaal met Creditcard / Apple Pay", "Betaal met Bancontact", etc. Elke keuze stuurt de klant direct naar Stripe met alleen die ene methode. Dit ziet er professioneler uit en lost het probleem op dat Stripe nu alleen iDEAL toont.
+### Oorzaak EPS
+In `create-checkout-session/index.ts` wordt `hasCapabilities` gebruikt op regels 652 en 657, maar die variabele is **nooit gedefinieerd**. Hierdoor is de waarde altijd `undefined` (falsy), waardoor de capability-check wordt overgeslagen. Stripe krijgt dan alle geconfigureerde methodes zonder validatie, en kan via "automatic payment methods" extra methodes zoals EPS tonen.
 
-### Hoe het werkt
+### Fix 1: `hasCapabilities` definiëren (edge function)
+**Bestand:** `supabase/functions/create-checkout-session/index.ts`
 
-**Stap 1: PaymentMethod type uitbreiden**
-`PaymentMethod` wordt uitgebreid van `'stripe' | 'bank_transfer'` naar `'ideal' | 'bancontact' | 'card' | 'klarna' | 'bank_transfer'`. Elke Stripe sub-methode wordt een eigen keuze.
+Na het ophalen van `accountCapabilities` (rond regel 643), toevoegen:
+```typescript
+const hasCapabilities = Object.keys(accountCapabilities).length > 0;
+```
 
-**Stap 2: PaymentMethodSelector herschrijven**
-- Haal de actieve Stripe sub-methodes op (uit tenant `stripe_payment_methods`)
-- Toon per methode een aparte radio-optie met eigen icoon, naam en beschrijving:
-  - iDEAL: iDEAL-icoon + "Direct betalen via je bank" + 🇳🇱
-  - Creditcard: Visa/MC-icoon + "Creditcard, Apple Pay, Google Pay"
-  - Bancontact: Bancontact-icoon + "Betalen met Bancontact" + 🇧🇪
-  - Klarna: Klarna-icoon + "Achteraf betalen"
-- QR/bankoverschrijving blijft als aparte optie onderaan
+Dit zorgt ervoor dat de capability-intersectie daadwerkelijk draait en alleen methodes met `active` status worden doorgestuurd naar Stripe.
 
-**Stap 3: ShopCheckout aanpassen**
-- `handlePayment` stuurt de gekozen specifieke methode mee naar `create-checkout-session` als een nieuw veld `preferred_payment_method`
-- Als de methode `bank_transfer` is, gaat het naar de bestaande QR-flow
-- Anders gaat alles naar Stripe met die ene methode
+### Fix 2: Apple Pay duidelijker in de selector
+**Bestand:** `src/components/storefront/PaymentMethodSelector.tsx`
 
-**Stap 4: Edge function aanpassen**
-In `create-checkout-session/index.ts`:
-- Lees het nieuwe `preferred_payment_method` veld uit de request body
-- Als dat gevuld is, gebruik `payment_method_types: [preferred_payment_method]` (alleen die ene methode)
-- Als het niet gevuld is (fallback), gebruik de bestaande logica met alle tenant-methodes
-
-**Stap 5: Storefront API — stripe_payment_methods doorgeven**
-De checkout moet weten welke Stripe sub-methodes de tenant heeft ingeschakeld om de juiste knoppen te tonen. Dit kan via de bestaande `usePublicStorefront` hook die al tenant-data ophaalt — voeg `stripe_payment_methods` toe aan de query.
-
-### Bestanden die wijzigen
-1. `src/components/storefront/PaymentMethodSelector.tsx` — herschrijven met aparte knoppen
-2. `src/pages/storefront/ShopCheckout.tsx` — PaymentMethod type + preferred method meesturen
-3. `supabase/functions/create-checkout-session/index.ts` — preferred_payment_method respecteren
-4. Storefront data hook — `stripe_payment_methods` meenemen
+Het label voor de `card` methode aanpassen van "Creditcard" naar "Creditcard / Apple Pay" en de beschrijving naar "Visa, Mastercard, Apple Pay, Google Pay". Apple Pay werkt via Stripe's `card` capability — het is geen aparte methode, maar moet wel zichtbaar zijn voor de klant.
 
 ### Resultaat
-- Klant ziet direct welke betaalmethode ze kiezen
-- Stripe Checkout opent met precies die ene methode — geen verwarring
-- Professionelere, duidelijkere checkout experience
+- EPS verdwijnt van de Stripe checkout pagina (alleen actieve, geconfigureerde methodes)
+- Apple Pay is duidelijk zichtbaar als optie voor de klant
+- Geen database-migratie nodig, alleen code + edge function deploy
+
