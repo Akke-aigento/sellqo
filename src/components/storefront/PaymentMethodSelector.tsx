@@ -78,7 +78,7 @@ function buildMethodOptions(stripePaymentMethods: string[], hasBankTransfer: boo
   if (stripePaymentMethods.includes('card')) {
     options.push({
       id: 'card',
-      label: 'Creditcard',
+      label: 'Creditcard / Apple Pay',
       description: 'Visa, Mastercard, Apple Pay, Google Pay',
       icon: <CardIcon />,
       isStripe: true,
