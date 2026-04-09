@@ -13,65 +13,72 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Temporary secret-based bypass for automated cleanup
+    const cleanupSecret = req.headers.get("X-Cleanup-Secret");
+    const expectedSecret = Deno.env.get("CLEANUP_SECRET");
+    const isSecretAuth = cleanupSecret && expectedSecret && cleanupSecret === expectedSecret;
 
-    const token = authHeader.replace("Bearer ", "");
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        auth: { persistSession: false },
-        global: { headers: { Authorization: authHeader } },
-      },
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error("Auth validation failed:", userError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: roles, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-
-    if (rolesError) {
-      console.error("Role lookup failed:", rolesError);
-      return new Response(
-        JSON.stringify({ error: "Failed to verify permissions" }),
-        {
-          status: 500,
+    if (!isSecretAuth) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        {
+          auth: { persistSession: false },
+          global: { headers: { Authorization: authHeader } },
         },
       );
-    }
 
-    const isPlatformAdmin = roles?.some((r: any) =>
-      r.role === "platform_admin"
-    );
-    if (!isPlatformAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden: platform_admin required" }),
-        {
-          status: 403,
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        console.error("Auth validation failed:", userError);
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        });
+      }
+
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (rolesError) {
+        console.error("Role lookup failed:", rolesError);
+        return new Response(
+          JSON.stringify({ error: "Failed to verify permissions" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const isPlatformAdmin = roles?.some((r: any) =>
+        r.role === "platform_admin"
       );
+      if (!isPlatformAdmin) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: platform_admin required" }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     console.log("Authorization passed, proceeding with cleanup...");
