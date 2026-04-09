@@ -54,8 +54,8 @@ export default function ShopCheckout() {
     city: '',
     country: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
-  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['stripe']);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['card']);
   const [isProcessing, setIsProcessing] = useState(false);
   const submittingRef = useRef(false);
   const [bankTransferOrder, setBankTransferOrder] = useState<{

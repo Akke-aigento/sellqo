@@ -60,7 +60,7 @@ export function usePublicStorefront(tenantSlug: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tenants')
-        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label')
+        .select('id, slug, name, logo_url, primary_color, secondary_color, currency, country, iban, bic, payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods')
         .eq('slug', tenantSlug)
         .maybeSingle();
       
