@@ -139,14 +139,14 @@ export default function SettingsPage() {
     r => r.role === 'tenant_admin' || r.role === 'platform_admin'
   );
 
-  const allGroups = [
+  const allGroups: SettingsGroup[] = [
     ...settingsGroups,
     ...(isPlatformAdmin && isAdminView ? [{
       id: 'platform-tools',
       title: 'Platform Tools',
       description: 'Beheertools voor het platform',
       sections: [
-        { id: 'platform-tools', title: 'Platform Tools', icon: Wrench, component: PlatformToolsSettings },
+        { id: 'platform-tools', title: 'Platform Tools', icon: Wrench, component: PlatformToolsSettings } as SettingsSection,
       ],
     }] : []),
   ];
