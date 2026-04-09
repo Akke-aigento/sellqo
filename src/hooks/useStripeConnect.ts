@@ -57,11 +57,29 @@ export function useStripeConnect(tenantId: string | undefined) {
 
       if (error) throw error;
       setStatus(data);
-    } catch (error) {
+    } catch (error: any) {
+      let description = 'Kon de betalingsstatus niet ophalen.';
+
+      try {
+        if (error?.context?.body) {
+          const body = typeof error.context.body === 'string'
+            ? JSON.parse(error.context.body)
+            : error.context.body;
+
+          if (body?.error) {
+            description = body.error;
+          }
+        } else if (error?.message && !error.message.includes('FunctionsHttpError')) {
+          description = error.message;
+        }
+      } catch {
+        // Keep fallback message
+      }
+
       console.error('Error checking Stripe status:', error);
       toast({
         title: 'Fout bij ophalen status',
-        description: 'Kon de betalingsstatus niet ophalen.',
+        description,
         variant: 'destructive',
       });
     } finally {
