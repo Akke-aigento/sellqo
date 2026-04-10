@@ -40,8 +40,49 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [bulkEditorOpen, setBulkEditorOpen] = useState(false);
   const [bulkEditorField, setBulkEditorField] = useState<string | null>(null);
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const grid = useProductGrid(products);
+
+  // Fetch all variants for visible products
+  const productIds = useMemo(() => products.map(p => p.id), [products]);
+  const { data: allVariants = [] } = useQuery({
+    queryKey: ['grid-variants', productIds, currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant || productIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .in('product_id', productIds)
+        .order('position', { ascending: true });
+      if (error) throw error;
+      return (data || []).map(v => ({
+        ...v,
+        attribute_values: (v.attribute_values as Record<string, string>) || {},
+      })) as ProductVariant[];
+    },
+    enabled: !!currentTenant && productIds.length > 0,
+  });
+
+  // Group variants by product
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of allVariants) {
+      if (!map.has(v.product_id)) map.set(v.product_id, []);
+      map.get(v.product_id)!.push(v);
+    }
+    return map;
+  }, [allVariants]);
+
+  const toggleExpand = useCallback((productId: string) => {
+    setExpandedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }, []);
 
   // Build select options
   const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }));
