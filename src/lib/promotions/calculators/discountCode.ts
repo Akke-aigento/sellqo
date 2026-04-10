@@ -23,6 +23,7 @@ export interface DiscountCode {
 export interface DiscountCodeResult {
   discount: AppliedDiscount | null;
   error: string | null;
+  freeShipping?: boolean;
 }
 
 export function validateAndCalculateDiscountCode(
@@ -61,6 +62,21 @@ export function validateAndCalculateDiscountCode(
     return { 
       discount: null, 
       error: `Minimaal bestelbedrag: €${discountCode.minimum_order_amount.toFixed(2)}` 
+    };
+  }
+
+  // Handle free shipping type
+  if (discountCode.discount_type === 'free_shipping') {
+    return {
+      discount: {
+        type: 'discount_code',
+        name: discountCode.code,
+        value: 0,
+        source_id: discountCode.id,
+        description: 'Gratis verzending',
+      },
+      error: null,
+      freeShipping: true,
     };
   }
 

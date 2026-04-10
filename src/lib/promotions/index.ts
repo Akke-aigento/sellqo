@@ -137,6 +137,10 @@ export function calculateCartPromotions(options: CalculateCartOptions): CartCalc
   if (codeResult.discount) {
     allDiscounts.push(codeResult.discount);
   }
+  if (codeResult.freeShipping) {
+    result.free_shipping = true;
+    result.free_shipping_reason = promotions.discountCode?.code || 'Kortingscode';
+  }
 
   // 2. Apply stacking rules
   let finalDiscounts: AppliedDiscount[] = [];

@@ -1096,10 +1096,15 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
     if (isPromotionActive(dc.is_active, dc.valid_from, dc.valid_until)) {
       if (!dc.usage_limit || dc.usage_count < dc.usage_limit) {
         if (!dc.minimum_order_amount || originalSubtotal >= dc.minimum_order_amount) {
-          let base = originalSubtotal;
-          if (dc.applies_to === 'specific_products' && dc.product_ids?.length) base = items.filter(i => dc.product_ids.includes(i.product_id)).reduce((s, i) => s + i.price * i.quantity, 0);
-          const discount = calculateDiscountValue(base, dc.discount_type, dc.discount_value, dc.maximum_discount_amount);
-          if (discount > 0) allDiscounts.push({ type: 'discount_code', name: dc.code, value: discount, source_id: dc.id, description: `${dc.discount_value}${dc.discount_type === 'percentage' ? '%' : '€'} korting` });
+          if (dc.discount_type === 'free_shipping') {
+            freeShipping = true; freeShippingReason = dc.code;
+            allDiscounts.push({ type: 'discount_code', name: dc.code, value: 0, source_id: dc.id, description: 'Gratis verzending' });
+          } else {
+            let base = originalSubtotal;
+            if (dc.applies_to === 'specific_products' && dc.product_ids?.length) base = items.filter(i => dc.product_ids.includes(i.product_id)).reduce((s, i) => s + i.price * i.quantity, 0);
+            const discount = calculateDiscountValue(base, dc.discount_type, dc.discount_value, dc.maximum_discount_amount);
+            if (discount > 0) allDiscounts.push({ type: 'discount_code', name: dc.code, value: discount, source_id: dc.id, description: `${dc.discount_value}${dc.discount_type === 'percentage' ? '%' : '€'} korting` });
+          }
         }
       }
     }
@@ -1896,15 +1901,28 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
   if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
 
-  const discountAmount = calculateDiscountValue(cart.subtotal, validation.discount_type, validation.discount_value, validation.max_discount_amount);
-  const shippingCost = Number(cart.shipping_cost) || 0;
-  const total = cart.subtotal - discountAmount + shippingCost;
+  let discountAmount = 0;
+  let shippingCost = Number(cart.shipping_cost) || 0;
 
-  await supabase.from('storefront_carts').update({
-    discount_code: discountCode,
-    discount_amount: discountAmount,
-    updated_at: new Date().toISOString(),
-  }).eq('id', cartId);
+  if (validation.discount_type === 'free_shipping') {
+    // Free shipping: set shipping to 0, no discount amount on subtotal
+    shippingCost = 0;
+    await supabase.from('storefront_carts').update({
+      discount_code: discountCode,
+      discount_amount: 0,
+      shipping_cost: 0,
+      updated_at: new Date().toISOString(),
+    }).eq('id', cartId);
+  } else {
+    discountAmount = calculateDiscountValue(cart.subtotal, validation.discount_type, validation.discount_value, validation.max_discount_amount);
+    await supabase.from('storefront_carts').update({
+      discount_code: discountCode,
+      discount_amount: discountAmount,
+      updated_at: new Date().toISOString(),
+    }).eq('id', cartId);
+  }
+
+  const total = cart.subtotal - discountAmount + shippingCost;
 
   return {
     cart_id: cartId,
@@ -1915,6 +1933,7 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
     subtotal: cart.subtotal,
     shipping_cost: shippingCost,
     total,
+    free_shipping: validation.discount_type === 'free_shipping',
   };
 }
 
