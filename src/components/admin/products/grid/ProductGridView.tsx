@@ -227,6 +227,73 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [grid.pendingChangesList.length, grid.editingCell]);
 
+  // Render a variant cell
+  const renderVariantCell = (variant: ProductVariant, colDef: typeof GRID_COLUMNS[number]) => {
+    const field = colDef.field;
+    // Map product fields to variant fields
+    const variantField = VARIANT_FIELD_MAP[field] || field;
+    
+    if (!VARIANT_EDITABLE_FIELDS.has(field)) {
+      return <span className="text-sm text-muted-foreground">—</span>;
+    }
+
+    const pendingVal = grid.variantPendingChanges.get(variant.id)?.get(variantField);
+    const rawValue = pendingVal !== undefined ? pendingVal : (variant as unknown as Record<string, unknown>)[variantField];
+    const hasChange = grid.hasVariantPendingChange(variant.id, variantField);
+    const isEditing = grid.editingCell?.productId === variant.id && grid.editingCell?.field === variantField;
+    const isSelected = false;
+
+    const commonProps = {
+      isEditing,
+      isSelected,
+      hasChange,
+      onStartEdit: () => grid.startEditing(variant.id, variantField),
+      onStopEdit: () => grid.stopEditing(),
+      onNavigate: grid.navigateCell,
+    };
+
+    switch (colDef.type) {
+      case 'text':
+        return (
+          <GridTextCell
+            {...commonProps}
+            value={rawValue as string ?? ''}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'number':
+        return (
+          <GridNumberCell
+            {...commonProps}
+            value={rawValue as number | null}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'currency':
+        return (
+          <GridNumberCell
+            {...commonProps}
+            value={rawValue as number | null}
+            isCurrency
+            currency={currentTenant?.currency || 'EUR'}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'toggle':
+        return (
+          <GridToggleCell
+            isSelected={false}
+            hasChange={hasChange}
+            value={rawValue as boolean}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+            onSelect={() => {}}
+          />
+        );
+      default:
+        return <span className="text-sm text-muted-foreground">—</span>;
+    }
+  };
+
   // Render a cell based on type
   const renderCell = (product: Product, colDef: typeof GRID_COLUMNS[number]) => {
     const field = colDef.field;
