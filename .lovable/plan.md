@@ -1,57 +1,37 @@
 
 
-## Fix: Duidelijke "uitverkocht" melding in plaats van generieke fout
+## Fix: Varianten automatisch synchroniseren bij optie-wijzigingen
 
 ### Probleem
-Als een product uitverkocht is en een klant de hoeveelheid probeert te verhogen, geeft de Storefront API een generieke `"Insufficient stock"` error. De custom frontend (mancini-milano) vangt dit op als "Could not update quantity. Please try again." — niet informatief voor de klant.
-
-Daarnaast toont de cart drawer op de custom frontend "Shipping: Free" terwijl er verzendkosten zijn (dat is al gefixt in de vorige update voor de ingebouwde storefront, maar de custom frontend leest direct de API).
+Als je een optiewaarde wijzigt (bijv. kleur "Rood" → "Bordeaux"), blijven de bestaande varianten ongewijzigd met de oude waarden. De "Varianten genereren" knop voegt alleen **nieuwe** combinaties toe maar ruimt verouderde niet op.
 
 ### Oplossing
+Twee aanpassingen in `src/hooks/useProductVariants.ts`:
 
-#### 1. Storefront API — Betere foutmeldingen (`supabase/functions/storefront-api/index.ts`)
+1. **Nieuwe `syncVariants` mutatie** — wordt automatisch aangeroepen na het updaten van opties. Deze:
+   - Verwijdert varianten waarvan de `attribute_values` waarden bevatten die niet meer bestaan in de huidige opties
+   - Genereert ontbrekende combinaties (hergebruikt de bestaande `generateVariants` logica)
+   - Behoudt bestaande varianten die nog geldig zijn (prijs, voorraad, SKU blijven intact)
 
-Vervang de generieke `throw new Error('Insufficient stock')` door gestructureerde foutresponses met:
-- Een duidelijke error code (`INSUFFICIENT_STOCK`)
-- Een klantvriendelijke message in het Nederlands
-- De beschikbare voorraad meegeven zodat de frontend dit kan tonen
+2. **`updateOption` callback aanpassen** — na succesvolle optie-update automatisch de sync triggeren
 
-**Bij `cartAddItem` (regel ~1245, ~1255):**
-```typescript
-// Was: throw new Error('Insufficient stock');
-// Wordt:
-throw new Error(JSON.stringify({
-  code: 'INSUFFICIENT_STOCK',
-  message: `Dit product is uitverkocht`,
-  available_stock: stockSource.stock
-}));
+### Aanpassing in `ProductVariantsTab.tsx`
+- Na het updaten van optiewaarden: automatisch `syncVariants` aanroepen
+- Gebruiker ziet een toast: "3 verouderde varianten verwijderd, 2 nieuwe aangemaakt"
+
+### Wat de gebruiker ziet
+```text
+Optie "Kleur" waarden: Rood, Blauw → Rood, Groen
+
+Resultaat:
+- Variant "Rood / M" → blijft behouden (Rood bestaat nog)
+- Variant "Blauw / M" → verwijderd (Blauw bestaat niet meer)  
+- Variant "Groen / M" → nieuw aangemaakt
 ```
 
-**Bij `cartUpdateItem` (regel ~1280):**
-```typescript
-throw new Error(JSON.stringify({
-  code: 'INSUFFICIENT_STOCK', 
-  message: `Slechts ${product.stock} beschikbaar`,
-  available_stock: product.stock
-}));
-```
-
-Daarnaast: de `cartUpdateItem` functie checkt nu alleen product-level stock, niet variant-level. Dit moet ook gefixt worden om variant stock correct te valideren.
-
-#### 2. Storefront API — Variant stock check in `cartUpdateItem`
-
-De huidige `cartUpdateItem` haalt alleen `products.stock` op maar negeert variant stock. Fix: ook `variant_id` ophalen uit het cart item en variant stock checken als die er is.
-
-### Wat er verandert
-| Wat | Was | Wordt |
-|-----|-----|-------|
-| Error bij uitverkocht | `"Insufficient stock"` | `{"code":"INSUFFICIENT_STOCK","message":"Dit product is uitverkocht","available_stock":0}` |
-| Variant stock check in update | Alleen product-level | Product + variant level |
-
-### Impact
-- De custom frontend kan nu de `code` parsen en een nette melding tonen
-- Zelfs zonder frontend-aanpassing is de `message` al in het Nederlands en begrijpelijker
-- De edge function wordt automatisch gedeployd
-
-Eén bestand: `supabase/functions/storefront-api/index.ts`
+### Bestanden
+| Bestand | Wat |
+|---------|-----|
+| `src/hooks/useProductVariants.ts` | Nieuwe `syncVariants` mutatie toevoegen |
+| `src/components/admin/products/ProductVariantsTab.tsx` | Na optie-update automatisch sync triggeren |
 
