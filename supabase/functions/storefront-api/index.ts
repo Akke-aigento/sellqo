@@ -1946,14 +1946,17 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
 async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, name')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled')
     .eq('id', tenantId).single();
 
+  const enabledMethods = (tenant?.payment_methods_enabled as string[] | null) || [];
+  const noFilter = enabledMethods.length === 0;
+
   const methods: any[] = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled) {
+  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && (noFilter || enabledMethods.includes('stripe'))) {
     methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
   }
-  if (tenant?.iban) {
+  if (tenant?.iban && (noFilter || enabledMethods.includes('bank_transfer'))) {
     methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via overschrijving of scan de QR-code met je bankapp', type: 'manual' });
   }
   return methods;
