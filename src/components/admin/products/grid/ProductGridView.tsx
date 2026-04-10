@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Pencil, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Pencil, X, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ import { useProductGrid } from '@/hooks/useProductGrid';
 import { useTenant } from '@/hooks/useTenant';
 import type { Product } from '@/types/product';
 import type { ProductSocialChannels } from '@/types/socialChannels';
+import type { ProductVariant } from '@/hooks/useProductVariants';
 import { ColumnConfig } from './ColumnConfig';
 import { GridTextCell } from './GridTextCell';
 import { GridNumberCell } from './GridNumberCell';
@@ -21,7 +23,7 @@ import { GridTagsCell } from './GridTagsCell';
 import { GridChannelsCell } from './GridChannelsCell';
 import { CellBulkEditor } from './CellBulkEditor';
 import { ChangesPanel } from './ChangesPanel';
-import { GRID_COLUMNS } from './gridTypes';
+import { GRID_COLUMNS, VARIANT_EDITABLE_FIELDS, VARIANT_FIELD_MAP } from './gridTypes';
 import { cn } from '@/lib/utils';
 
 interface ProductGridViewProps {

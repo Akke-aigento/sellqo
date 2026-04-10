@@ -408,6 +408,36 @@ export function useProductGrid(products: Product[]) {
     }
   }, [editingCell, products, visibleColumnDefs]);
 
+  // --- Variant pending changes ---
+  const [variantPendingChanges, setVariantPendingChanges] = useState<Map<string, Map<string, unknown>>>(new Map());
+
+  const setVariantCellValue = useCallback((variantId: string, field: string, value: unknown) => {
+    setVariantPendingChanges(prev => {
+      const next = new Map(prev);
+      if (!next.has(variantId)) next.set(variantId, new Map());
+      next.get(variantId)!.set(field, value);
+      return next;
+    });
+  }, []);
+
+  const hasVariantPendingChange = useCallback((variantId: string, field: string) => {
+    return variantPendingChanges.get(variantId)?.has(field) ?? false;
+  }, [variantPendingChanges]);
+
+  const getVariantChangesForSave = useCallback((): { id: string; data: Record<string, unknown> }[] => {
+    const result: { id: string; data: Record<string, unknown> }[] = [];
+    variantPendingChanges.forEach((fieldChanges, variantId) => {
+      const data: Record<string, unknown> = {};
+      fieldChanges.forEach((v, f) => { data[f] = v; });
+      if (Object.keys(data).length > 0) result.push({ id: variantId, data });
+    });
+    return result;
+  }, [variantPendingChanges]);
+
+  const clearAllVariantPendingChanges = useCallback(() => {
+    setVariantPendingChanges(new Map());
+  }, []);
+
   return {
     // Selection
     selectedCells,
@@ -428,6 +458,13 @@ export function useProductGrid(products: Product[]) {
     clearPendingChange,
     clearAllPendingChanges,
     getChangesForSave,
+    
+    // Variant changes
+    variantPendingChanges,
+    setVariantCellValue,
+    hasVariantPendingChange,
+    getVariantChangesForSave,
+    clearAllVariantPendingChanges,
     
     // Bulk operations
     applyBulkValue,
