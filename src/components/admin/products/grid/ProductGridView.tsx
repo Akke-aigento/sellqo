@@ -463,34 +463,78 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                 Geen producten om weer te geven
               </div>
             ) : (
-              products.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex border-b hover:bg-muted/30 transition-colors"
-                >
-                  {/* Row number / indicator */}
-                  <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
-                    {grid.pendingChanges.has(product.id) && (
-                      <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
-                    )}
-                  </div>
-                  
-                  {/* Cells */}
-                  {grid.visibleColumnDefs.map((col) => (
-                    <div
-                      key={col.field}
-                      className={cn(
-                        'border-r p-1',
-                        col.editable && 'cursor-pointer'
-                      )}
-                      style={{ width: col.width, minWidth: col.minWidth }}
-                      onClick={(e) => col.editable && handleCellClick(e, product.id, col.field)}
-                    >
-                      {renderCell(product, col)}
+              products.map((product) => {
+                const variants = variantsByProduct.get(product.id) || [];
+                const hasVariants = variants.length > 0;
+                const isExpanded = expandedProducts.has(product.id);
+
+                return (
+                  <div key={product.id}>
+                    <div className="flex border-b hover:bg-muted/30 transition-colors">
+                      {/* Row indicator + expand toggle */}
+                      <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
+                        {hasVariants ? (
+                          <button
+                            onClick={() => toggleExpand(product.id)}
+                            className="p-0.5 rounded hover:bg-muted transition-colors"
+                            title={`${variants.length} variant(en)`}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        ) : grid.pendingChanges.has(product.id) ? (
+                          <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                        ) : null}
+                      </div>
+                      
+                      {/* Cells */}
+                      {grid.visibleColumnDefs.map((col) => (
+                        <div
+                          key={col.field}
+                          className={cn(
+                            'border-r p-1',
+                            col.editable && 'cursor-pointer'
+                          )}
+                          style={{ width: col.width, minWidth: col.minWidth }}
+                          onClick={(e) => col.editable && handleCellClick(e, product.id, col.field)}
+                        >
+                          {renderCell(product, col)}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))
+
+                    {/* Variant sub-rows */}
+                    {isExpanded && variants.map((variant) => (
+                      <div
+                        key={variant.id}
+                        className="flex border-b bg-muted/20 hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
+                          {grid.variantPendingChanges.has(variant.id) && (
+                            <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                          )}
+                        </div>
+                        {grid.visibleColumnDefs.map((col) => (
+                          <div
+                            key={col.field}
+                            className={cn(
+                              'border-r p-1',
+                              col.field === 'name' && 'pl-6',
+                              VARIANT_EDITABLE_FIELDS.has(col.field) && 'cursor-pointer'
+                            )}
+                            style={{ width: col.width, minWidth: col.minWidth }}
+                          >
+                            {renderVariantCell(variant, col)}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
             )}
           </div>
           <ScrollBar orientation="horizontal" />
