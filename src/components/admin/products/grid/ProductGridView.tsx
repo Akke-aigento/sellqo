@@ -132,10 +132,11 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     }
   };
 
-  // Save all changes
+  // Save all changes (products + variants)
   const handleSaveAll = async () => {
     const changes = grid.getChangesForSave();
-    if (changes.length === 0) return;
+    const variantChanges = grid.getVariantChangesForSave();
+    if (changes.length === 0 && variantChanges.length === 0) return;
 
     setIsSaving(true);
     try {
@@ -175,11 +176,25 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           });
         }
       }
+
+      // Save variant changes
+      for (const vc of variantChanges) {
+        try {
+          await supabase
+            .from('product_variants')
+            .update(vc.data)
+            .eq('id', vc.id);
+        } catch (e) {
+          console.error('Failed to update variant', vc.id, e);
+        }
+      }
       
       grid.clearAllPendingChanges();
+      grid.clearAllVariantPendingChanges();
+      const totalCount = changes.length + variantChanges.length;
       toast({
         title: 'Wijzigingen opgeslagen',
-        description: `${changes.length} product(en) bijgewerkt`,
+        description: `${totalCount} item(s) bijgewerkt`,
       });
     } catch (error) {
       toast({
