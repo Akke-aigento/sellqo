@@ -266,7 +266,7 @@ export default function ShopCheckout() {
             company_name: customerData.companyName || undefined,
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
-            shipping_cost: shipping,
+            shipping_cost: undefined,
             preferred_payment_method: method,
           },
         });
@@ -291,7 +291,7 @@ export default function ShopCheckout() {
             company_name: customerData.companyName || undefined,
             shipping_address: shippingAddress,
             billing_address: shippingAddress,
-            shipping_cost: shipping,
+            shipping_cost: undefined,
           },
         });
 
