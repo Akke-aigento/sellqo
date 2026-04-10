@@ -1,49 +1,44 @@
 
 
-## Gratis verzending als kortingscode-type toevoegen
+## Fix: Betaalmethodes correct filteren wanneer uitgeschakeld
 
-### Wat er moet gebeuren
+### Probleem
+De database voor Mancini Milano bevat momenteel `["stripe", "bank_transfer"]` in `payment_methods_enabled`, terwijl de admin UI de QR/bankoverschrijving toggle als uitgeschakeld toont. Dit kan twee oorzaken hebben:
+1. De toggle is uitgezet maar niet opgeslagen
+2. De toggle-status wordt bij het laden niet correct weergegeven
 
-De automatische kortingen ondersteunen al `free_shipping`, maar bij handmatige kortingscodes ontbreekt dit. We voegen het toe als derde optie.
+Daarnaast is er een structureel probleem: zowel de ShopCheckout als de Storefront API behandelen een **lege** `payment_methods_enabled` array als "toon alles", wat een onveilige fallback is.
 
-### Aanpassingen
+### Oplossing
 
-**1. Database migratie** — CHECK constraint uitbreiden
-```sql
-ALTER TABLE discount_codes DROP CONSTRAINT IF EXISTS discount_codes_discount_type_check;
-ALTER TABLE discount_codes ADD CONSTRAINT discount_codes_discount_type_check 
-  CHECK (discount_type IN ('percentage', 'fixed_amount', 'free_shipping'));
+#### 1. Database fix — `bank_transfer` verwijderen voor Mancini
+Een migratie die `bank_transfer` uit de `payment_methods_enabled` array verwijdert voor deze tenant, zodat het direct effect heeft.
+
+#### 2. `ShopCheckout.tsx` — Fallback-logica fixen (regel 126)
 ```
+// NU (onveilig):
+if (rawMethods.includes('stripe') || rawMethods.length === 0) {
+// WORDT:
+if (rawMethods.includes('stripe')) {
+```
+Als `rawMethods` leeg is, toon alleen de default `['card']` (regel 139 doet dit al).
 
-**2. `src/types/discount.ts`** — Type uitbreiden
-- `DiscountType` wordt `'percentage' | 'fixed_amount' | 'free_shipping'`
+#### 3. `storefront-api/index.ts` — `noFilter` fallback verwijderen (regel 1998)
+```
+// NU:
+const noFilter = enabledMethods.length === 0;
+// WORDT: verwijderd — lege lijst = geen methodes
+```
+Als er geen methodes geconfigureerd zijn, toon alleen Stripe als fallback (als het account actief is).
 
-**3. `src/components/admin/DiscountCodeDialog.tsx`** — Formulier aanpassen
-- `discount_type` enum uitbreiden met `'free_shipping'`
-- Derde optie in de select: "Gratis verzending"
-- Bij `free_shipping`: `discount_value` veld verbergen (waarde is irrelevant)
-- `discount_value` validatie conditioneel maken (niet verplicht bij free_shipping)
-
-**4. `src/lib/promotions/calculators/discountCode.ts`** — Berekeningslogica
-- Bij `discount_type === 'free_shipping'`: geen bedrag-korting toepassen, maar `free_shipping: true` teruggeven in het resultaat
-
-**5. `src/lib/promotions/index.ts`** — Free shipping flag doorvoeren
-- Discount code result checken op free_shipping en doorzetten naar het totaalresultaat
-
-**6. `supabase/functions/storefront-api/index.ts`** — API-kant
-- In de discount code validatie/toepassing: `free_shipping` type herkennen en verzendkosten op €0 zetten
-
-**7. Kortingsoverzicht (`src/pages/admin/DiscountCodes.tsx` of equivalent)** — Weergave
-- Type "free_shipping" tonen als "Gratis verzending" in de lijst
+#### 4. `TransactionFeeSettings.tsx` — Auto-save bij toggle of duidelijker UX
+De toggle wijzigt alleen lokale state; pas na "Opslaan" wordt het opgeslagen. Controleren of de save-knop duidelijk zichtbaar is na een toggle-wijziging, zodat gebruikers niet vergeten op te slaan.
 
 ### Bestanden
 | Bestand | Wat |
 |---------|-----|
-| Migratie (nieuw) | CHECK constraint uitbreiden |
-| `src/types/discount.ts` | Type toevoegen |
-| `src/components/admin/DiscountCodeDialog.tsx` | Formulier + validatie |
-| `src/lib/promotions/calculators/discountCode.ts` | Berekeningslogica |
-| `src/lib/promotions/index.ts` | Free shipping flag doorvoeren |
-| `supabase/functions/storefront-api/index.ts` | API free_shipping afhandeling |
-| Kortingsoverzicht pagina | Weergave label |
+| Migratie (nieuw) | `bank_transfer` verwijderen uit Mancini's config |
+| `src/pages/storefront/ShopCheckout.tsx` | Lege-array fallback verwijderen |
+| `supabase/functions/storefront-api/index.ts` | `noFilter` fallback verwijderen |
+| `src/components/admin/settings/TransactionFeeSettings.tsx` | Save-indicator bij unsaved changes |
 
