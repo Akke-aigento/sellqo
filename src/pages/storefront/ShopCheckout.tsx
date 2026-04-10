@@ -123,7 +123,7 @@ export default function ShopCheckout() {
     
     const methods: PaymentMethod[] = [];
     // If 'stripe' is in enabled methods, expand to individual sub-methods
-    if (rawMethods.includes('stripe') || rawMethods.length === 0) {
+    if (rawMethods.includes('stripe')) {
       methods.push(...stripeSubMethods);
     }
     // Also add individual stripe methods if listed directly
