@@ -1,56 +1,47 @@
 
 
-## Fix: QR/bankoverschrijving negeren tenant-instelling
+## Fix: Inconsistente verzendkosten in winkelwagen en checkout
 
 ### Probleem
-De `checkoutGetPaymentMethods` functie in de Storefront API (edge function) controleert alleen of een IBAN aanwezig is — maar kijkt **niet** naar de `payment_methods_enabled` kolom in de tenants tabel. Hierdoor wordt bankoverschrijving/QR altijd aangeboden op de publieke checkout, zelfs als je het in de admin hebt uitgeschakeld.
+De verzendkosten worden op 3 plekken anders getoond:
 
-De custom frontend roept `checkout_get_payment_methods` of `checkout_start` aan, en die geven altijd `bank_transfer` terug zolang er een IBAN bestaat.
+1. **CartDrawer** (slide-out panel): toont geen verzendkosten — alleen subtotaal. Dat is prima.
+2. **ShopCart.tsx** (winkelwagen pagina, regel 67): `shipping = 5.95` — **HARDCODED placeholder**, nooit aangepast naar echte waarden
+3. **ShopCheckout.tsx** (checkout pagina, regel 174): zelfde hardcoded `5.95`
+4. **Storefront API**: berekent de echte verzendkosten (€8 bij Mancini) pas bij `checkout_shipping`
+
+De screenshot toont de **custom frontend** (mancini-milano.lovable.app) die waarschijnlijk dezelfde fout bevat. Maar het kernprobleem zit in de ingebouwde storefront componenten.
 
 ### Oplossing
-In `supabase/functions/storefront-api/index.ts`, de `checkoutGetPaymentMethods` functie aanpassen:
 
-**Huidige logica (regel 1946-1959):**
-```
-if (tenant?.iban) → toon bank_transfer
-```
+#### 1. ShopCart.tsx — Verwijder hardcoded shipping, toon "wordt berekend bij checkout"
+- Verwijder de hardcoded `const shipping = 5.95`
+- Toon subtotaal + tekst "Verzendkosten worden berekend bij het afrekenen"
+- Totaal = alleen subtotaal (geen nep-verzendkosten optellen)
 
-**Nieuwe logica:**
-```
-if (tenant?.iban && enabledMethods.includes('bank_transfer')) → toon bank_transfer
-if (tenant?.stripe_account_id && stripe_charges_enabled && enabledMethods.includes('stripe')) → toon stripe
-```
+#### 2. ShopCheckout.tsx — Haal echte verzendmethodes op via Storefront API
+- Bij de details-stap: toon "Verzendkosten worden berekend in de volgende stap" (zoals nu al deels gebeurt)
+- Bij de payment-stap: haal `get_shipping_methods` op via de storefront API en toon de echte prijs
+- Gebruik het resultaat van `checkout_start` dat al `available_shipping_methods` retourneert
+- Update het totaal dynamisch op basis van de gekozen verzendmethode
+
+#### 3. CartDrawer.tsx — Voeg informatieregel toe
+- Voeg onder het subtotaal een kleine tekst toe: "Excl. verzendkosten" zodat klanten niet verrast worden
 
 ### Wijzigingen
-1. **`supabase/functions/storefront-api/index.ts`** — `checkoutGetPaymentMethods` functie:
-   - Voeg `payment_methods_enabled` toe aan de SELECT query
-   - Check of `bank_transfer` in de enabled list staat vóór het toevoegen
-   - Check of `stripe` in de enabled list staat vóór het toevoegen
-   - Fallback: als `payment_methods_enabled` leeg/null is, gedraag je als voorheen (alles tonen)
+| Bestand | Wat |
+|---------|-----|
+| `src/pages/storefront/ShopCart.tsx` | Verwijder hardcoded shipping, toon info-tekst |
+| `src/pages/storefront/ShopCheckout.tsx` | Haal echte shipping op via API, toon dynamisch |
+| `src/components/storefront/CartDrawer.tsx` | Voeg "excl. verzendkosten" tekst toe |
 
-2. Dezelfde check toevoegen aan de `checkoutStart` functie die ook `checkoutGetPaymentMethods` aanroept — geen extra wijziging nodig want die hergebruikt dezelfde functie.
-
-### Technisch detail
-```typescript
-async function checkoutGetPaymentMethods(supabase, tenantId) {
-  const { data: tenant } = await supabase
-    .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled')
-    .eq('id', tenantId).single();
-
-  const enabledMethods = tenant?.payment_methods_enabled as string[] || [];
-  const noFilter = enabledMethods.length === 0; // backwards compat
-
-  const methods = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && (noFilter || enabledMethods.includes('stripe'))) {
-    methods.push({ id: 'stripe', ... });
-  }
-  if (tenant?.iban && (noFilter || enabledMethods.includes('bank_transfer'))) {
-    methods.push({ id: 'bank_transfer', ... });
-  }
-  return methods;
-}
+### Wat de klant ziet (na fix)
+```text
+CartDrawer:     Subtotaal €59,99 · "Excl. verzendkosten"
+Winkelwagen:    Subtotaal €59,99 · "Verzendkosten bij afrekenen"  
+Checkout stap 1: Subtotaal €59,99 · "Wordt berekend"
+Checkout stap 2: Verzending €8,00 · Totaal €67,99
 ```
 
-Eén bestand, één functie-aanpassing. De edge function wordt automatisch gedeployd.
+Geen edge function wijzigingen nodig — de API werkt al correct.
 
