@@ -328,6 +328,16 @@ export function AdminSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
+          {/* Admin View indicator banner */}
+          {showAdminToggles && (
+            <div className="mx-3 mt-2 mb-1 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-2">
+              <Eye className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs font-medium text-primary">
+                Admin View — oog-iconen om pagina's te verbergen
+              </span>
+            </div>
+          )}
+
           {sidebarGroups.map(group => renderGroup(group))}
 
           {isPlatformAdmin && renderGroup(platformGroup)}

@@ -71,7 +71,7 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
   'orders-all',
   'orders-fulfillment',
   'products',
-  'integrations-shipping',
+  'shipping',
 ];
 
 // DAGELIJKS - Meest gebruikte functies
@@ -190,9 +190,9 @@ const systemItems: NavItem[] = [
     children: [
       { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect' },
       { id: 'integrations-import', title: 'Importeren', url: '/admin/import' },
-      { id: 'integrations-shipping', title: 'Verzending', url: '/admin/shipping' },
     ],
   },
+  { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck },
   { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt },
   { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings },
   { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },
