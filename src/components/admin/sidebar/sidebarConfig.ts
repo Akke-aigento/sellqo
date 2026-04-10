@@ -77,7 +77,7 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { id: 'inbox', title: 'Gesprekken', url: '/admin/messages', icon: MessageSquare, badge: true },
+  { id: 'inbox', title: 'Inbox', url: '/admin/messages', icon: MessageSquare, badge: true },
   {
     id: 'orders',
     title: 'Bestellingen',
