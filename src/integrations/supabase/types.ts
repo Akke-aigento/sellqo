@@ -12348,7 +12348,7 @@ export type Database = {
           customer_last_name: string | null
           customer_phone: string | null
           discount_amount: number | null
-          discount_code: string | null
+          discount_codes: string[] | null
           expires_at: string
           id: string
           payment_method: string | null
@@ -12372,7 +12372,7 @@ export type Database = {
           customer_last_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
-          discount_code?: string | null
+          discount_codes?: string[] | null
           expires_at?: string
           id?: string
           payment_method?: string | null
@@ -12396,7 +12396,7 @@ export type Database = {
           customer_last_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
-          discount_code?: string | null
+          discount_codes?: string[] | null
           expires_at?: string
           id?: string
           payment_method?: string | null
