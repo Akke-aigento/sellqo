@@ -1,39 +1,28 @@
 
 
-## Varianten toevoegen voor Mancini Milano producten
+## Filters onthouden + floating save bar op productpagina
 
 ### Huidige situatie
-Van de T-shirts, Hoodies, Jackets en Tracksuits van Mancini Milano missen **6 producten** nog varianten. Alle Jackets en Tracksuits zijn al volledig ingericht.
+- **Filters**: De filters in `Products.tsx` (zoektekst, status, zichtbaarheid, voorraad, categorie, viewMode) worden opgeslagen in gewone `useState` — bij navigatie naar een productpagina en terug worden ze gereset.
+- **Floating save bar**: `ProductForm.tsx` heeft **al** een `FloatingSaveBar` component (regel 1770-1775). Deze verschijnt wanneer het formulier gewijzigd is. Dit deel is dus al geregeld.
 
-### Producten die varianten nodig hebben
+### Plan
 
-| Product | Categorie | Prijs | Kleur (uit beschrijving/naam) |
-|---------|-----------|-------|-------------------------------|
-| "BLUE STORM" LUXE TEE | T-shirts | €110 | Blauw (1 kleur) |
-| Diamond Silence Tee | T-shirts | €110 | Zwart (1 kleur) |
-| Doberman Power Tee | T-shirts | €47.95 | Blauw (1 kleur) |
-| Il cane del Barocco | T-shirts | €110 | Zwart (1 kleur) |
-| Silent Authority | T-shirts | €89.95 | Zwart (1 kleur) |
-| Cosmic Dragon | Hoodies | €94.95 | Zwart (1 kleur) |
+**Stap 1: Filters bewaren via sessionStorage**
 
-Alle producten hebben op basis van hun beschrijvingen en foto's slechts **1 kleur**, dus kleur-varianten zijn niet van toepassing. Ik voeg voor elk product **Maat (S, M, L, XL)** toe — 4 varianten per product, 24 varianten totaal.
+In `src/pages/admin/Products.tsx`:
+- De 5 filterwaarden (`search`, `statusFilter`, `visibilityFilter`, `stockFilter`, `categoryFilter`) en `viewMode` opslaan in `sessionStorage` onder een vaste key (bv. `admin-products-filters`).
+- Bij mount: initiële waarden laden uit `sessionStorage` i.p.v. hardcoded defaults.
+- Bij elke filterwijziging: sessionStorage updaten.
+- `sessionStorage` verdwijnt automatisch bij het sluiten van de tab, dus filters worden niet permanent bewaard — precies wat je wilt.
 
-### Wat ik ga doen
+Geen andere bestanden hoeven te wijzigen.
 
-**Stap 1: Data-inserts via database tools**
-- Per product: 1 rij in `product_variant_options` (name: "Maat", values: ["S","M","L","XL"])
-- Per product: 4 rijen in `product_variants` met:
-  - `title`: "S", "M", "L", "XL"
-  - `attribute_values`: `{"Maat": "S"}` etc.
-  - `price`: overgenomen van het hoofdproduct
-  - `stock`: 10 per variant (standaard)
-  - `is_active`: true, `track_inventory`: true
-
-**Stap 2: Geen code-wijzigingen nodig**
-Het bestaande variant-systeem (opties + varianten + storefront hydration) werkt al volledig. De producten verschijnen automatisch met maatkeuze op de webshop.
+### Bestanden die wijzigen
+- `src/pages/admin/Products.tsx` — filter-state koppelen aan sessionStorage
 
 ### Resultaat
-- 6 producten krijgen elk 4 maatvarianten (S/M/L/XL)
-- 24 varianten totaal
-- Direct zichtbaar en bestelbaar op de storefront
+- Als je vanuit het productoverzicht naar een productpagina navigeert en terugkeert, staan alle filters nog exact zoals je ze had ingesteld.
+- Bij het sluiten van de tab of browser worden de filters automatisch gewist.
+- De floating save bar werkt al op de productpagina — geen wijziging nodig.
 
