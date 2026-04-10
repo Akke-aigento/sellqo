@@ -23,7 +23,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
     createOption, updateOption, deleteOption,
-    generateVariants,
+    generateVariants, syncVariants,
   } = useProductVariants(productId);
   const { products } = useProducts();
 
@@ -64,7 +64,15 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
   const handleUpdateOptionValues = (optionId: string) => {
     const values = editOptionValues.split(',').map(v => v.trim()).filter(Boolean);
     if (values.length === 0) return;
-    updateOption.mutate({ id: optionId, data: { values } });
+    updateOption.mutate({ id: optionId, data: { values } }, {
+      onSuccess: () => {
+        // Build updated options list with the new values to sync variants
+        const updatedOptions = options.map(o =>
+          o.id === optionId ? { ...o, values } : o
+        );
+        syncVariants.mutate(updatedOptions);
+      },
+    });
     setEditingOptionId(null);
   };
 
