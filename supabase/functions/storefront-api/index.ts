@@ -1995,13 +1995,12 @@ async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
     .eq('id', tenantId).single();
 
   const enabledMethods = (tenant?.payment_methods_enabled as string[] | null) || [];
-  const noFilter = enabledMethods.length === 0;
 
   const methods: any[] = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && (noFilter || enabledMethods.includes('stripe'))) {
+  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && enabledMethods.includes('stripe')) {
     methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
   }
-  if (tenant?.iban && (noFilter || enabledMethods.includes('bank_transfer'))) {
+  if (tenant?.iban && enabledMethods.includes('bank_transfer')) {
     methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via overschrijving of scan de QR-code met je bankapp', type: 'manual' });
   }
   return methods;
