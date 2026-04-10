@@ -345,7 +345,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
     let relatedQuery = supabase
       .from('products')
-      .select('id, name, slug, price, compare_at_price, images')
+      .select('id, name, slug, price, compare_at_price, images, featured_image')
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
       .eq('hide_from_storefront', false)
@@ -376,11 +376,11 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       const relTMap = await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale);
       relatedProducts = related.map((r: any) => {
         const rt = relTMap[r.id] || {};
-        return { id: r.id, name: rt.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null };
+        return { id: r.id, name: rt.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.featured_image || r.images?.[0] || null };
       });
     } else {
       relatedProducts = (related || []).map((r: any) => ({
-        id: r.id, name: r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null,
+        id: r.id, name: r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.featured_image || r.images?.[0] || null,
       }));
     }
   }
