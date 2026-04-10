@@ -1,78 +1,37 @@
 
 
-## Meerdere kortingscodes & free_shipping fix in checkout
+## Fix: checkoutApplyDiscount idempotent maken + prijzen correct doorvoeren
 
 ### Probleem
-1. `storefront_carts.discount_code` is een `text` kolom — elke nieuwe code overschrijft de vorige
-2. `checkoutShipping` negeert free_shipping kortingscodes en overschrijft `shipping_cost` terug naar het standaardtarief
+Het Mancini frontend roept achtereenvolgens `cart_apply_discount` en `checkout_apply_discount` aan. De eerste voegt de code toe aan de `discount_codes` array. De tweede ziet dat de code al bestaat en retourneert een fout. Hierdoor worden de checkout-prijzen (discount_amount, shipping_cost, total) niet herberekend.
 
 ### Oplossing
 
-#### 1. Database migratie
-- Rename `discount_code` → `discount_codes` als `text[]` array op `storefront_carts`
-- Default `'{}'::text[]`
+**`supabase/functions/storefront-api/index.ts` — `checkoutApplyDiscount` (regel 1936-1937)**
 
-```sql
-ALTER TABLE storefront_carts 
-  ADD COLUMN discount_codes text[] DEFAULT '{}';
+In plaats van een fout teruggeven wanneer de code al in de array zit, gewoon doorgaan met herberekening (idempotent gedrag):
 
--- Migreer bestaande data
-UPDATE storefront_carts 
-  SET discount_codes = ARRAY[discount_code] 
-  WHERE discount_code IS NOT NULL;
-
-ALTER TABLE storefront_carts 
-  DROP COLUMN discount_code;
-```
-
-#### 2. Edge function: `storefront-api/index.ts`
-
-**`cartApplyDiscount`** (regel 1332):
-- Valideer code, voeg toe aan `discount_codes` array (append, niet overschrijven)
-- Check of code al in array zit → fout "Code al toegepast"
-
-**`cartRemoveDiscount`** (regel 1346):
-- Accepteer `code` param, verwijder specifieke code uit array
-
-**`checkoutApplyDiscount`** (regel 1893):
-- Code toevoegen aan array i.p.v. overschrijven
-- Alle actieve codes herberekenen: som van discount amounts, OR van free_shipping flags
-- `discount_amount` = som van alle niet-free_shipping codes
-- Als minstens 1 code `free_shipping` is → `shipping_cost: 0`
-
-**`checkoutRemoveDiscount`** (regel 1940):
-- Accepteer `code` param, verwijder specifieke code uit array
-- Herbereken totale discount en shipping na verwijdering
-
-**`checkoutShipping`** (regel 1597):
-- Na normale `free_above` berekening: check of `cart.discount_codes` een free_shipping code bevat
-- Zo ja → `shippingCost = 0` ongeacht `free_above`
-
-**`checkoutStart`** (regel 1501):
-- Return `discount_codes` array in response (i.p.v. single `discount_code`)
-
-**`createOrderFromCart`** (regel 1400):
-- `discount_code` op order: `cart.discount_codes?.join(', ')` (comma-separated string, orders tabel blijft text)
-
-**Helper functie** (nieuw):
 ```typescript
-async function recalculateCartDiscounts(supabase, tenantId, cartId, codes, subtotal, currentShippingCost) {
-  // Voor elke code: valideer + bereken discount
-  // Return { totalDiscount, shippingCost, freeShipping }
-}
+// HUIDIG (regel 1936-1937):
+if (currentCodes.includes(discountCode)) 
+  return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'Deze kortingscode is al toegepast' } };
+
+// NIEUW:
+// Als code al in array zit, skip toevoegen maar herbereken wel alles
+const updatedCodes = currentCodes.includes(discountCode) 
+  ? currentCodes 
+  : [...currentCodes, discountCode];
 ```
 
-#### 3. `getCartForCheckout` aanpassen
-- Lees `discount_codes` i.p.v. `discount_code` (selecteert `*`, dus automatisch mee)
+Verwijder de `updatedCodes` declaratie op regel 1942 (die wordt nu eerder gedaan).
+
+Dit zorgt ervoor dat:
+- Wanneer de code al door `cartApplyDiscount` is toegevoegd, `checkoutApplyDiscount` gewoon de prijzen herberekent en een success-response geeft
+- De frontend de correcte subtotal, discount_amount, shipping_cost en total terugkrijgt
+- De flow werkt ongeacht of het frontend één of beide calls doet
 
 ### Bestanden
-
 | Bestand | Wat |
 |---------|-----|
-| Nieuwe migratie | `discount_code text` → `discount_codes text[]` |
-| `supabase/functions/storefront-api/index.ts` | 7 functies aanpassen + helper toevoegen |
-
-### Volgorde
-1. Database migratie uitvoeren
-2. Edge function aanpassen en deployen
+| `supabase/functions/storefront-api/index.ts` | `checkoutApplyDiscount` idempotent maken |
 
