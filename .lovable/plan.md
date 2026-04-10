@@ -1,46 +1,39 @@
 
 
-## Twee issues: Verzending loskoppelen + Admin page-verbergen fix
+## Drie fixes: Inbox hernoemen, toggle-bug fixen, Verzending verplaatsen
 
-### Issue 1: Verzending hoort niet onder SellQo Connect
+### 1. "Gesprekken" hernoemen naar "Inbox"
+**Bestand:** `src/components/admin/sidebar/sidebarConfig.ts` regel 80
+- `title: 'Gesprekken'` → `title: 'Inbox'`
 
-In `src/components/admin/sidebar/sidebarConfig.ts` staat "Verzending" als child van "SellQo Connect" (regel 193). Dit is onlogisch — verzending is een kernfunctie van de winkel, niet een integratie/kanaal.
+**Bestand:** `src/components/admin/sidebar/InboxNavItem.tsx` regel 30
+- `<span>Gesprekken</span>` → `<span>Inbox</span>`
 
-**Aanpak:**
-- "Verzending" verplaatsen naar een eigen top-level item in de **Systeem**-groep (naast Instellingen), met het `Truck` icoon dat al geïmporteerd is
-- Het item `integrations-shipping` hernoemen naar `shipping` met eigen url `/admin/shipping`
-- `WAREHOUSE_ALLOWED_ITEMS` bijwerken van `'integrations-shipping'` naar `'shipping'`
+### 2. Toggle zichtbaar/onzichtbaar bug fixen
+**Bestand:** `src/hooks/useTenantPageOverrides.ts` regel 55-56
 
-### Issue 2: Admin kan pagina's niet verbergen
+De `onSuccess` van `togglePageMutation` zet de query-cache naar een platte array (`newHidden`), maar de query verwacht een object `{ hiddenPages: string[], grantedFeatures: string[] }`. Na de eerste toggle wordt de cache-structuur corrupt, waardoor `overrides?.hiddenPages` `undefined` wordt en de toggle niet meer werkt.
 
-De oog-toggles (👁) voor het verbergen van pagina's zijn alleen zichtbaar wanneer `showAdminToggles = isPlatformAdmin && isAdminView` (regel 136 in AdminSidebar). Dit betekent dat de Admin/Tenant toggle-switch in de header op "Admin" moet staan.
+Fix: de `onSuccess` callback het juiste object-formaat laten schrijven:
+```typescript
+onSuccess: (newHidden) => {
+  queryClient.setQueryData(['tenant-page-overrides', tenantId], (old: any) => ({
+    hiddenPages: newHidden,
+    grantedFeatures: old?.grantedFeatures || [],
+  }));
+  queryClient.invalidateQueries({ queryKey: ['platform-tenant-overrides'] });
+},
+```
 
-Mogelijke oorzaken waarom het niet werkt:
-1. De switch staat op "Tenant" mode — dan worden de eye-toggles verborgen
-2. Er is geen `currentTenant` geselecteerd — dan toont de header de switch niet (regel 69 van AdminHeader: `isPlatformAdmin && currentTenant`)
-3. De `tenant_feature_overrides` tabel geeft een RLS-fout bij het opslaan
+Dezelfde fix voor `setHiddenPages.onSuccess` (regel 81-82) — zelfde probleem.
 
-**Aanpak:**
-- Controleren of de toggle daadwerkelijk zichtbaar is en werkt wanneer Admin View actief is
-- Een duidelijker visueel signaal toevoegen wanneer Admin View actief is (bijv. een subtiele banner boven de sidebar)
-- De eye-toggle knoppen iets groter/duidelijker maken zodat ze niet over het hoofd worden gezien
+### 3. Verzending verplaatsen van Systeem naar Beheer
+**Bestand:** `src/components/admin/sidebar/sidebarConfig.ts`
+- Regel 195 verwijderen uit `systemItems`
+- Toevoegen aan `managementItems` (na Rapporten)
 
 ### Bestanden die wijzigen
-- `src/components/admin/sidebar/sidebarConfig.ts` — Verzending verplaatsen naar eigen item
-- `src/components/admin/AdminSidebar.tsx` — eventuele visuele verbeteringen aan page-toggle indicators
-
-### Technische details
-
-```text
-sidebarConfig.ts wijzigingen:
-
-// Verzending uit SellQo Connect children halen
-integrations children: [connect, import]  (zonder shipping)
-
-// Nieuw top-level item in systemItems toevoegen
-{ id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck }
-
-// WAREHOUSE_ALLOWED_ITEMS updaten
-'integrations-shipping' → 'shipping'
-```
+- `src/components/admin/sidebar/sidebarConfig.ts` — hernoemen + verplaatsen
+- `src/components/admin/sidebar/InboxNavItem.tsx` — hernoemen
+- `src/hooks/useTenantPageOverrides.ts` — cache-bug fixen
 
