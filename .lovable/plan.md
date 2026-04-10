@@ -1,54 +1,106 @@
 
+## Diagnose
+Ik heb de keten nagekeken en de kern is nu duidelijk:
 
-## Fix: Featured image correct doorgeven via Shopify sync + Storefront API
+- In de SellQo backend staat product **"No Face"** al verkeerd opgeslagen:
+  - `featured_image` = achterkant
+  - `images[0]` = achterkant
+- De Mancini Milano storefront zelf sorteert daarna al correct op basis van `featured_image`, dus het probleem zit **niet** in de storefront.
+- De list API geeft dus simpelweg foutieve brondata door.
 
-### Probleem
-Er zijn twee problemen waardoor de verkeerde afbeelding als hoofdafbeelding wordt getoond:
+## Waarschijnlijke oorzaak
+Er zijn nu twee import/sync-routes die dit kunnen veroorzaken:
 
-1. **Shopify sync** (`sync-shopify-products/index.ts` regel 104): de images worden opgeslagen als `shopifyProduct.images.map(img => img.src)` — maar **zonder te sorteren op `position`** en **zonder `featured_image` te zetten**. Shopify geeft elk image-object een `position` veld (1 = hoofdafbeelding), maar dat wordt genegeerd.
+1. **Shopify automatische sync**
+   - gebruikt `shopifyProduct.images[].position`
+   - zet `featured_image = imageUrls[0]`
+   - dit is alleen correct als Shopify’s API-volgorde/position ook echt overeenkomt met de dashboard-hoofdafbeelding
 
-2. **Storefront API** (`storefront-api/index.ts` regel 667-668): de `images` array wordt ongewijzigd doorgestuurd. Als `featured_image` wel correct is ingesteld, staat die niet gegarandeerd op `images[0]`.
+2. **Shopify handmatige CSV-import**
+   - `src/lib/shopifyImportParsers.ts` bouwt `images` puur op volgorde van CSV-regels
+   - `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx` slaat `images` op, maar zet **geen** `featured_image`
+   - daardoor blijft of ontstaat een verkeerde hoofdafbeelding bij handmatige imports
 
-### Oplossing
+Daarnaast heeft dit specifieke product nu:
+- geen `shopify_product_id`
+- geen `shopify_last_synced_at`
 
-**Bestand 1: `supabase/functions/sync-shopify-products/index.ts`**
-- Images sorteren op `position` voordat ze worden opgeslagen (Shopify's `position` 1 = hoofdafbeelding)
-- `featured_image` zetten op de eerste gesorteerde image URL (= de hoofdafbeelding uit Shopify)
+Dat wijst erop dat **"No Face" waarschijnlijk niet via de automatische Shopify product-sync is bijgewerkt**, maar via handmatige invoer/import of dashboard-opslag.
 
+## Plan van aanpak
+
+### 1. Fix handmatige Shopify CSV-import
+Bestanden:
+- `src/lib/shopifyImportParsers.ts`
+- `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx`
+
+Aanpassingen:
+- Shopify CSV-parser uitbreiden zodat de hoofdafbeelding expliciet herkend wordt:
+  - voorkeur voor rij waar `Image Position` / `Image Position`-achtig veld op hoofdpositie wijst
+  - fallback: eerste afbeelding
+- bij import ook `featured_image` opslaan naast `images`
+- optioneel: `images` direct herschikken zodat `featured_image` altijd op index 0 staat
+
+### 2. Hardening in product save-flow vanuit dashboard
+Bestanden:
+- `src/pages/admin/ProductForm.tsx`
+- eventueel `src/hooks/useProducts.ts`
+
+Aanpassingen:
+- als een gebruiker in het dashboard een hoofdafbeelding kiest:
+  - `featured_image` opslaan
+  - `images` herschikken zodat gekozen hoofdafbeelding altijd eerste staat
+- bij verwijderen van de hoofdafbeelding blijft fallback naar nieuwe `images[0]` bestaan
+
+Zo blijft database-data consistent, ook buiten Shopify-sync om.
+
+### 3. Hardening in storefront API behouden/verbeteren
+Bestand:
+- `supabase/functions/storefront-api/index.ts`
+
+Controle / eventuele aanscherping:
+- `featured_image` blijven teruggeven
+- `images` altijd normaliseren naar:
+  - `featured_image` eerst
+  - daarna overige afbeeldingen zonder duplicaten
+
+Dit is een extra veiligheidslaag, maar lost alleen nieuwe responses op — niet de foutieve opgeslagen productdata zelf.
+
+### 4. Bestaande foutieve producten corrigeren
+Omdat "No Face" nu al verkeerd in de database staat, is ook een data-correctie nodig.
+
+Uit te voeren in implementatiemodus:
+- een gerichte correctie voor bestaande producten met foutieve `featured_image`
+- minimaal voor **No Face**
+- liefst ook voor producten die via Shopify-import of handmatige import zijn binnengekomen waar:
+  - `featured_image` leeg is, of
+  - `featured_image` niet overeenkomt met de gewenste hoofdafbeelding
+
+Afhankelijk van wat beschikbaar is, zijn er 2 routes:
+- gerichte patch voor bekende producten
+- of een veilige backfill op basis van import/source-regels
+
+## Verwacht resultaat
+Na deze wijziging:
+- `featured_image` in de API komt overeen met de bedoelde hoofdafbeelding
+- `images[0]` is dezelfde afbeelding als `featured_image`
+- nieuwe handmatige Shopify imports blijven consistent
+- dashboard-keuzes voor hoofdafbeelding blijven ook in API-volgorde correct
+
+## Technische details
 ```text
-// Huidige code (regel 104):
-images: shopifyProduct.images?.map((img: any) => img.src) || [],
+Bron van probleem nu:
+DB record "No Face"
+featured_image = back-image
+images[0]      = back-image
 
-// Nieuwe code:
-const sortedImages = (shopifyProduct.images || [])
-  .sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999))
-const imageUrls = sortedImages.map((img: any) => img.src)
+Storefront normalizer:
+- gebruikt featured_image al als prioriteit
+- dus frontend volgt de foutieve backend-data correct
 
-// In productData:
-images: imageUrls,
-featured_image: imageUrls[0] || null,
+Benodigde structurele fix:
+Shopify CSV/manual import -> featured_image expliciet zetten
+Dashboard save -> images herschikken op featured_image
+Storefront API -> featured_image eerst blijven afdwingen
+Backfill -> bestaande foutieve records corrigeren
 ```
-
-**Bestand 2: `supabase/functions/storefront-api/index.ts`**
-- In de response-mapping: als `featured_image` bestaat, deze als eerste in de `images` array plaatsen (dedupliceren)
-
-```text
-// Regel 667-668 aanpassen:
-const featImg = product.featured_image || (product.images?.[0] || null);
-const orderedImages = featImg 
-  ? [featImg, ...(product.images || []).filter(i => i !== featImg)]
-  : (product.images || []);
-
-images: orderedImages,
-featured_image: featImg,
-```
-
-### Bestanden die wijzigen
-- `supabase/functions/sync-shopify-products/index.ts` — images sorteren + featured_image zetten
-- `supabase/functions/storefront-api/index.ts` — images array herordenen met featured_image eerst
-
-### Resultaat
-- Bij Shopify-sync worden afbeeldingen in de juiste volgorde opgeslagen en de hoofdafbeelding ingesteld
-- De storefront API garandeert dat `featured_image` altijd de aangeduide hoofdafbeelding is en dat `images[0]` daar mee overeenkomt
-- Producten die al in het dashboard een hoofdafbeelding hebben ingesteld, werken direct correct via de API
-
