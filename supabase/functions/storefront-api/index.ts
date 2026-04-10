@@ -1215,7 +1215,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
   return {
-    id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_code: cart.discount_code,
+    id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_codes: cart.discount_codes || [],
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
     subtotal, expires_at: cart.expires_at,
   };
@@ -1334,20 +1334,38 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   const code = params.code as string;
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
+  // Get current cart to check existing codes
+  const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
+  const currentCodes: string[] = cart?.discount_codes || [];
+  if (currentCodes.includes(code)) throw new Error('Deze kortingscode is al toegepast');
+
   // Validate code
   const validation = await validateDiscountCode(supabase, tenantId, { code });
   if (!validation.valid) throw new Error(validation.error);
 
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: code, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const updatedCodes = [...currentCodes, code];
+  const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
+  const code = params.code as string;
   if (!cartId) throw new Error('cart_id is required');
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId);
-  if (error) throw error;
+
+  if (code) {
+    // Remove specific code from array
+    const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
+    const currentCodes: string[] = cart?.discount_codes || [];
+    const updatedCodes = currentCodes.filter((c: string) => c !== code);
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
+    if (error) throw error;
+  } else {
+    // Remove all codes
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: [], updated_at: new Date().toISOString() }).eq('id', cartId);
+    if (error) throw error;
+  }
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
