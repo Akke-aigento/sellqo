@@ -228,6 +228,92 @@ export function useProductVariants(productId: string | undefined) {
     },
   });
 
+  // Sync variants: remove stale, add missing combinations
+  const syncVariants = useMutation({
+    mutationFn: async (updatedOptions?: ProductVariantOption[]) => {
+      if (!productId || !currentTenant) throw new Error('Missing product or tenant');
+      const currentOptions = updatedOptions || optionsQuery.data || [];
+      if (currentOptions.length === 0) return { removed: 0, added: 0 };
+
+      // Build valid values map per option name
+      const validValuesMap = new Map<string, Set<string>>();
+      for (const opt of currentOptions) {
+        validValuesMap.set(opt.name, new Set(opt.values));
+      }
+
+      // Find stale variants (attribute values no longer in options)
+      const existing = variantsQuery.data || [];
+      const stale = existing.filter(v => {
+        const attrs = v.attribute_values || {};
+        return Object.entries(attrs).some(([key, val]) => {
+          const validSet = validValuesMap.get(key);
+          return !validSet || !validSet.has(val);
+        });
+      });
+
+      // Delete stale
+      if (stale.length > 0) {
+        const { error } = await supabase
+          .from('product_variants')
+          .delete()
+          .in('id', stale.map(s => s.id));
+        if (error) throw error;
+      }
+
+      // Generate cartesian product of current option values
+      const combinations = currentOptions.reduce<Record<string, string>[]>(
+        (acc, option) => {
+          if (acc.length === 0) {
+            return option.values.map(v => ({ [option.name]: v }));
+          }
+          return acc.flatMap(combo =>
+            option.values.map(v => ({ ...combo, [option.name]: v }))
+          );
+        },
+        []
+      );
+
+      // Filter out still-existing valid variants
+      const kept = existing.filter(v => !stale.includes(v));
+      const newCombinations = combinations.filter(combo => {
+        return !kept.some(ev => {
+          const attrs = ev.attribute_values || {};
+          return Object.keys(combo).every(k => attrs[k] === combo[k]) &&
+            Object.keys(attrs).length === Object.keys(combo).length;
+        });
+      });
+
+      // Insert new
+      if (newCombinations.length > 0) {
+        const inserts = newCombinations.map((combo, idx) => ({
+          product_id: productId,
+          tenant_id: currentTenant.id,
+          title: Object.values(combo).join(' / '),
+          attribute_values: combo as unknown as Json,
+          position: kept.length + idx,
+        }));
+        const { error } = await supabase
+          .from('product_variants')
+          .insert(inserts);
+        if (error) throw error;
+      }
+
+      return { removed: stale.length, added: newCombinations.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['product-variants', productId] });
+      const parts: string[] = [];
+      if (result.removed > 0) parts.push(`${result.removed} verouderde verwijderd`);
+      if (result.added > 0) parts.push(`${result.added} nieuwe aangemaakt`);
+      if (parts.length > 0) {
+        toast({ title: `Varianten gesynchroniseerd`, description: parts.join(', ') });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout bij synchroniseren', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Generate all variant combinations from options
   const generateVariants = useMutation({
     mutationFn: async () => {
@@ -296,6 +382,7 @@ export function useProductVariants(productId: string | undefined) {
     updateOption,
     deleteOption,
     generateVariants,
+    syncVariants,
     refetch: () => {
       variantsQuery.refetch();
       optionsQuery.refetch();
