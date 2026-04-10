@@ -64,8 +64,6 @@ export default function ShopCart() {
   };
 
   const subtotal = getSubtotal();
-  const shipping = subtotal > 0 ? 5.95 : 0; // Example shipping cost
-  const total = subtotal + shipping;
 
   return (
     <ShopLayout>
@@ -223,15 +221,15 @@ export default function ShopCart() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
-                    <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
+                    <span className="text-muted-foreground">Berekend bij afrekenen</span>
                   </div>
                 </div>
 
                 <Separator className="my-4" />
 
                 <div className="flex justify-between font-semibold text-lg mb-6">
-                  <span>Totaal</span>
-                  <span>{formatPrice(total)}</span>
+                  <span>Subtotaal</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
 
                 <Button 

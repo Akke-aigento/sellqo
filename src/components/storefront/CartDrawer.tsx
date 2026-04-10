@@ -85,6 +85,7 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
                 <span className="font-medium">Subtotaal</span>
                 <span className="text-lg font-bold">{formatCurrency(subtotal, currency)}</span>
               </div>
+              <p className="text-xs text-muted-foreground w-full">Excl. verzendkosten</p>
               <Button asChild className="w-full" size="lg" onClick={() => onOpenChange(false)}>
                 <Link to={`${basePath}/checkout`}>Afrekenen</Link>
               </Button>

@@ -171,8 +171,6 @@ export default function ShopCheckout() {
   };
 
   const subtotal = getSubtotal();
-  const shipping = subtotal > 0 ? 5.95 : 0;
-  const total = subtotal + shipping;
 
   const handleInputChange = (field: keyof CustomerData, value: string) => {
     setCustomerData(prev => ({ ...prev, [field]: value }));
@@ -708,15 +706,15 @@ export default function ShopCheckout() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
-                    <span>{shipping > 0 ? formatPrice(shipping) : 'Gratis'}</span>
+                    <span className="text-muted-foreground">Wordt berekend</span>
                   </div>
                 </div>
 
                 <Separator className="my-4" />
 
                 <div className="flex justify-between font-semibold text-lg">
-                  <span>Totaal</span>
-                  <span>{formatPrice(total)}</span>
+                  <span>Subtotaal</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
               </CardContent>
             </Card>
