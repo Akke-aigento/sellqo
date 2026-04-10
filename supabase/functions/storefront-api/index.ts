@@ -1934,12 +1934,12 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
 
   const currentCodes: string[] = cart.discount_codes || [];
-  if (currentCodes.includes(discountCode)) return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'Deze kortingscode is al toegepast' } };
 
   const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
   if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
 
-  const updatedCodes = [...currentCodes, discountCode];
+  // Idempotent: als code al in array zit, skip toevoegen maar herbereken wel alles
+  const updatedCodes = currentCodes.includes(discountCode) ? currentCodes : [...currentCodes, discountCode];
 
   // Recalculate all discounts
   let totalDiscountAmount = 0;
