@@ -243,10 +243,15 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
       productsMap.set(handle, product);
     }
     
-    // Add image
+    // Add image with position tracking
     const imageSrc = row['Image Src'] || row['image_src'];
+    const imagePosition = parseInt(row['Image Position'] || row['image_position'] || '0') || 0;
     if (imageSrc && !product.images.includes(imageSrc)) {
       product.images.push(imageSrc);
+      // Set featured_image based on Image Position = 1 (Shopify's primary image)
+      if (imagePosition === 1 || (!product.featured_image && product.images.length === 1)) {
+        product.featured_image = imageSrc;
+      }
       // Add alt text if available
       const altText = row['Image Alt Text'] || row['image_alt_text'];
       if (altText) {
