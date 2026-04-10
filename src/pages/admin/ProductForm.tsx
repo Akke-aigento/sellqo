@@ -911,13 +911,24 @@ export default function ProductForm() {
 
                       {form.watch('track_inventory') && (
                         <div className="grid gap-4 md:grid-cols-2">
-                          <FormField control={form.control} name="stock" render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Huidige voorraad</FormLabel>
-                              <FormControl><Input {...field} type="number" min="0" /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
+                          {id && product?.product_variants && product.product_variants.filter(v => v.is_active).length > 0 ? (
+                            <div className="md:col-span-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                              <p className="font-medium text-foreground mb-1">Voorraad wordt per variant beheerd</p>
+                              <p>
+                                Totaal: {product.product_variants.filter(v => v.is_active).reduce((sum, v) => sum + (v.stock || 0), 0)} stuks 
+                                over {product.product_variants.filter(v => v.is_active).length} actieve varianten. 
+                                Pas de voorraad aan in het tabblad "Varianten".
+                              </p>
+                            </div>
+                          ) : (
+                            <FormField control={form.control} name="stock" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Huidige voorraad</FormLabel>
+                                <FormControl><Input {...field} type="number" min="0" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          )}
                           <FormField control={form.control} name="low_stock_threshold" render={({ field }) => (
                             <FormItem>
                               <FormLabel>Lage voorraad drempel</FormLabel>
