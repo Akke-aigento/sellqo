@@ -1,44 +1,78 @@
 
 
-## Fix: Betaalmethodes correct filteren wanneer uitgeschakeld
+## Meerdere kortingscodes & free_shipping fix in checkout
 
 ### Probleem
-De database voor Mancini Milano bevat momenteel `["stripe", "bank_transfer"]` in `payment_methods_enabled`, terwijl de admin UI de QR/bankoverschrijving toggle als uitgeschakeld toont. Dit kan twee oorzaken hebben:
-1. De toggle is uitgezet maar niet opgeslagen
-2. De toggle-status wordt bij het laden niet correct weergegeven
-
-Daarnaast is er een structureel probleem: zowel de ShopCheckout als de Storefront API behandelen een **lege** `payment_methods_enabled` array als "toon alles", wat een onveilige fallback is.
+1. `storefront_carts.discount_code` is een `text` kolom — elke nieuwe code overschrijft de vorige
+2. `checkoutShipping` negeert free_shipping kortingscodes en overschrijft `shipping_cost` terug naar het standaardtarief
 
 ### Oplossing
 
-#### 1. Database fix — `bank_transfer` verwijderen voor Mancini
-Een migratie die `bank_transfer` uit de `payment_methods_enabled` array verwijdert voor deze tenant, zodat het direct effect heeft.
+#### 1. Database migratie
+- Rename `discount_code` → `discount_codes` als `text[]` array op `storefront_carts`
+- Default `'{}'::text[]`
 
-#### 2. `ShopCheckout.tsx` — Fallback-logica fixen (regel 126)
-```
-// NU (onveilig):
-if (rawMethods.includes('stripe') || rawMethods.length === 0) {
-// WORDT:
-if (rawMethods.includes('stripe')) {
-```
-Als `rawMethods` leeg is, toon alleen de default `['card']` (regel 139 doet dit al).
+```sql
+ALTER TABLE storefront_carts 
+  ADD COLUMN discount_codes text[] DEFAULT '{}';
 
-#### 3. `storefront-api/index.ts` — `noFilter` fallback verwijderen (regel 1998)
-```
-// NU:
-const noFilter = enabledMethods.length === 0;
-// WORDT: verwijderd — lege lijst = geen methodes
-```
-Als er geen methodes geconfigureerd zijn, toon alleen Stripe als fallback (als het account actief is).
+-- Migreer bestaande data
+UPDATE storefront_carts 
+  SET discount_codes = ARRAY[discount_code] 
+  WHERE discount_code IS NOT NULL;
 
-#### 4. `TransactionFeeSettings.tsx` — Auto-save bij toggle of duidelijker UX
-De toggle wijzigt alleen lokale state; pas na "Opslaan" wordt het opgeslagen. Controleren of de save-knop duidelijk zichtbaar is na een toggle-wijziging, zodat gebruikers niet vergeten op te slaan.
+ALTER TABLE storefront_carts 
+  DROP COLUMN discount_code;
+```
+
+#### 2. Edge function: `storefront-api/index.ts`
+
+**`cartApplyDiscount`** (regel 1332):
+- Valideer code, voeg toe aan `discount_codes` array (append, niet overschrijven)
+- Check of code al in array zit → fout "Code al toegepast"
+
+**`cartRemoveDiscount`** (regel 1346):
+- Accepteer `code` param, verwijder specifieke code uit array
+
+**`checkoutApplyDiscount`** (regel 1893):
+- Code toevoegen aan array i.p.v. overschrijven
+- Alle actieve codes herberekenen: som van discount amounts, OR van free_shipping flags
+- `discount_amount` = som van alle niet-free_shipping codes
+- Als minstens 1 code `free_shipping` is → `shipping_cost: 0`
+
+**`checkoutRemoveDiscount`** (regel 1940):
+- Accepteer `code` param, verwijder specifieke code uit array
+- Herbereken totale discount en shipping na verwijdering
+
+**`checkoutShipping`** (regel 1597):
+- Na normale `free_above` berekening: check of `cart.discount_codes` een free_shipping code bevat
+- Zo ja → `shippingCost = 0` ongeacht `free_above`
+
+**`checkoutStart`** (regel 1501):
+- Return `discount_codes` array in response (i.p.v. single `discount_code`)
+
+**`createOrderFromCart`** (regel 1400):
+- `discount_code` op order: `cart.discount_codes?.join(', ')` (comma-separated string, orders tabel blijft text)
+
+**Helper functie** (nieuw):
+```typescript
+async function recalculateCartDiscounts(supabase, tenantId, cartId, codes, subtotal, currentShippingCost) {
+  // Voor elke code: valideer + bereken discount
+  // Return { totalDiscount, shippingCost, freeShipping }
+}
+```
+
+#### 3. `getCartForCheckout` aanpassen
+- Lees `discount_codes` i.p.v. `discount_code` (selecteert `*`, dus automatisch mee)
 
 ### Bestanden
+
 | Bestand | Wat |
 |---------|-----|
-| Migratie (nieuw) | `bank_transfer` verwijderen uit Mancini's config |
-| `src/pages/storefront/ShopCheckout.tsx` | Lege-array fallback verwijderen |
-| `supabase/functions/storefront-api/index.ts` | `noFilter` fallback verwijderen |
-| `src/components/admin/settings/TransactionFeeSettings.tsx` | Save-indicator bij unsaved changes |
+| Nieuwe migratie | `discount_code text` → `discount_codes text[]` |
+| `supabase/functions/storefront-api/index.ts` | 7 functies aanpassen + helper toevoegen |
+
+### Volgorde
+1. Database migratie uitvoeren
+2. Edge function aanpassen en deployen
 
