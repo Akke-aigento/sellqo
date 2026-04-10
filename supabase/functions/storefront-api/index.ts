@@ -1467,7 +1467,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       tax_amount: vatAmount,
       shipping_cost: shippingCost,
       discount_amount: discountAmount,
-      discount_code: cart.discount_code || null,
+      discount_code: (cart.discount_codes || []).join(', ') || null,
       total,
       customer_email: cart.customer_email,
       customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
@@ -1505,11 +1505,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     updated_at: new Date().toISOString(),
   }).eq('id', cart.id);
 
-  // Increment discount code usage
-  if (cart.discount_code) {
-    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId });
+  // Increment discount code usage for all codes
+  const discountCodes: string[] = cart.discount_codes || [];
+  for (const dc of discountCodes) {
+    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: dc, _tenant_id: tenantId });
     if (discountUsageError) {
-      console.warn('Failed to increment discount usage for', cart.discount_code, discountUsageError.message);
+      console.warn('Failed to increment discount usage for', dc, discountUsageError.message);
     }
   }
 
