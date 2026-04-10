@@ -774,7 +774,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
   // Search across name, description, sku, tags
   const { data, error } = await supabase
     .from('products')
-    .select('id, name, slug, price, compare_at_price, images, sku, tags, description')
+    .select('id, name, slug, price, compare_at_price, images, featured_image, sku, tags, description')
     .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
     .or(`name.ilike.%${query}%,description.ilike.%${query}%,sku.ilike.%${query}%`)
     .limit(limit);
@@ -791,7 +791,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
   });
 
   if (autocomplete) {
-    return { results: sorted.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug, image: p.images?.[0] || null, price: p.price })) };
+    return { results: sorted.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug, image: p.featured_image || p.images?.[0] || null, price: p.price })) };
   }
 
   const tMap = locale ? await getTranslations(supabase, tenantId, 'product', sorted.map((p: any) => p.id), locale) : {};
@@ -800,7 +800,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
       const t = tMap[p.id] || {};
       return {
         id: p.id, name: t.name || p.name, slug: p.slug, price: p.price, compare_at_price: p.compare_at_price,
-        image: p.images?.[0] || null, sku: p.sku,
+        image: p.featured_image || p.images?.[0] || null, sku: p.sku,
       };
     }),
   };
