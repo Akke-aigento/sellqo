@@ -274,7 +274,8 @@ export function useProduct(id: string | undefined) {
         .from('products')
         .select(`
           *,
-          category:categories(id, name, slug)
+          category:categories(id, name, slug),
+          product_variants(id, stock, track_inventory, is_active)
         `)
         .eq('id', id)
         .maybeSingle();
