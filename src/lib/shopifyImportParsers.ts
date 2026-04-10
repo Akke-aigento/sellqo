@@ -15,6 +15,7 @@ export interface ParsedProduct {
   product_type: string | null;
   tags: string[];
   images: string[];
+  featured_image: string | null;
   variants: ParsedVariant[];
   // Nieuwe velden voor complete import
   handle: string | null;
@@ -223,6 +224,7 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
         product_type: row['Type'] || row['product_type'] || null,
         tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
         images: [],
+        featured_image: null,
         variants: [],
         // Nieuwe velden
         handle: handle,
@@ -273,7 +275,17 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
     }
   }
   
-  return Array.from(productsMap.values());
+  // Ensure featured_image is always images[0]
+  const results = Array.from(productsMap.values());
+  for (const product of results) {
+    if (!product.featured_image && product.images.length > 0) {
+      product.featured_image = product.images[0];
+    }
+    if (product.featured_image && product.images[0] !== product.featured_image) {
+      product.images = [product.featured_image, ...product.images.filter(i => i !== product.featured_image)];
+    }
+  }
+  return results;
 }
 
 // Parse Shopify orders export
