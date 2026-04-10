@@ -1,47 +1,57 @@
 
 
-## Fix: Inconsistente verzendkosten in winkelwagen en checkout
+## Fix: Duidelijke "uitverkocht" melding in plaats van generieke fout
 
 ### Probleem
-De verzendkosten worden op 3 plekken anders getoond:
+Als een product uitverkocht is en een klant de hoeveelheid probeert te verhogen, geeft de Storefront API een generieke `"Insufficient stock"` error. De custom frontend (mancini-milano) vangt dit op als "Could not update quantity. Please try again." — niet informatief voor de klant.
 
-1. **CartDrawer** (slide-out panel): toont geen verzendkosten — alleen subtotaal. Dat is prima.
-2. **ShopCart.tsx** (winkelwagen pagina, regel 67): `shipping = 5.95` — **HARDCODED placeholder**, nooit aangepast naar echte waarden
-3. **ShopCheckout.tsx** (checkout pagina, regel 174): zelfde hardcoded `5.95`
-4. **Storefront API**: berekent de echte verzendkosten (€8 bij Mancini) pas bij `checkout_shipping`
-
-De screenshot toont de **custom frontend** (mancini-milano.lovable.app) die waarschijnlijk dezelfde fout bevat. Maar het kernprobleem zit in de ingebouwde storefront componenten.
+Daarnaast toont de cart drawer op de custom frontend "Shipping: Free" terwijl er verzendkosten zijn (dat is al gefixt in de vorige update voor de ingebouwde storefront, maar de custom frontend leest direct de API).
 
 ### Oplossing
 
-#### 1. ShopCart.tsx — Verwijder hardcoded shipping, toon "wordt berekend bij checkout"
-- Verwijder de hardcoded `const shipping = 5.95`
-- Toon subtotaal + tekst "Verzendkosten worden berekend bij het afrekenen"
-- Totaal = alleen subtotaal (geen nep-verzendkosten optellen)
+#### 1. Storefront API — Betere foutmeldingen (`supabase/functions/storefront-api/index.ts`)
 
-#### 2. ShopCheckout.tsx — Haal echte verzendmethodes op via Storefront API
-- Bij de details-stap: toon "Verzendkosten worden berekend in de volgende stap" (zoals nu al deels gebeurt)
-- Bij de payment-stap: haal `get_shipping_methods` op via de storefront API en toon de echte prijs
-- Gebruik het resultaat van `checkout_start` dat al `available_shipping_methods` retourneert
-- Update het totaal dynamisch op basis van de gekozen verzendmethode
+Vervang de generieke `throw new Error('Insufficient stock')` door gestructureerde foutresponses met:
+- Een duidelijke error code (`INSUFFICIENT_STOCK`)
+- Een klantvriendelijke message in het Nederlands
+- De beschikbare voorraad meegeven zodat de frontend dit kan tonen
 
-#### 3. CartDrawer.tsx — Voeg informatieregel toe
-- Voeg onder het subtotaal een kleine tekst toe: "Excl. verzendkosten" zodat klanten niet verrast worden
-
-### Wijzigingen
-| Bestand | Wat |
-|---------|-----|
-| `src/pages/storefront/ShopCart.tsx` | Verwijder hardcoded shipping, toon info-tekst |
-| `src/pages/storefront/ShopCheckout.tsx` | Haal echte shipping op via API, toon dynamisch |
-| `src/components/storefront/CartDrawer.tsx` | Voeg "excl. verzendkosten" tekst toe |
-
-### Wat de klant ziet (na fix)
-```text
-CartDrawer:     Subtotaal €59,99 · "Excl. verzendkosten"
-Winkelwagen:    Subtotaal €59,99 · "Verzendkosten bij afrekenen"  
-Checkout stap 1: Subtotaal €59,99 · "Wordt berekend"
-Checkout stap 2: Verzending €8,00 · Totaal €67,99
+**Bij `cartAddItem` (regel ~1245, ~1255):**
+```typescript
+// Was: throw new Error('Insufficient stock');
+// Wordt:
+throw new Error(JSON.stringify({
+  code: 'INSUFFICIENT_STOCK',
+  message: `Dit product is uitverkocht`,
+  available_stock: stockSource.stock
+}));
 ```
 
-Geen edge function wijzigingen nodig — de API werkt al correct.
+**Bij `cartUpdateItem` (regel ~1280):**
+```typescript
+throw new Error(JSON.stringify({
+  code: 'INSUFFICIENT_STOCK', 
+  message: `Slechts ${product.stock} beschikbaar`,
+  available_stock: product.stock
+}));
+```
+
+Daarnaast: de `cartUpdateItem` functie checkt nu alleen product-level stock, niet variant-level. Dit moet ook gefixt worden om variant stock correct te valideren.
+
+#### 2. Storefront API — Variant stock check in `cartUpdateItem`
+
+De huidige `cartUpdateItem` haalt alleen `products.stock` op maar negeert variant stock. Fix: ook `variant_id` ophalen uit het cart item en variant stock checken als die er is.
+
+### Wat er verandert
+| Wat | Was | Wordt |
+|-----|-----|-------|
+| Error bij uitverkocht | `"Insufficient stock"` | `{"code":"INSUFFICIENT_STOCK","message":"Dit product is uitverkocht","available_stock":0}` |
+| Variant stock check in update | Alleen product-level | Product + variant level |
+
+### Impact
+- De custom frontend kan nu de `code` parsen en een nette melding tonen
+- Zelfs zonder frontend-aanpassing is de `message` al in het Nederlands en begrijpelijker
+- De edge function wordt automatisch gedeployd
+
+Eén bestand: `supabase/functions/storefront-api/index.ts`
 
