@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
 import { 
@@ -87,17 +87,46 @@ export default function ProductsPage() {
   } = useProducts();
   const { categories } = useCategories();
   
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ProductStatus>('all');
-  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityStatus>('all');
-  const [stockFilter, setStockFilter] = useState<StockStatus>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  // Persist filters in sessionStorage so they survive navigation to product detail and back
+  const FILTER_KEY = 'admin-products-filters';
+  
+  const loadFilters = useCallback(() => {
+    try {
+      const stored = sessionStorage.getItem(FILTER_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
+  }, []);
+
+  const saveFilters = useCallback((filters: Record<string, string>) => {
+    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify(filters)); } catch {}
+  }, []);
+
+  const initial = loadFilters();
+  const [search, setSearchRaw] = useState(initial.search || '');
+  const [statusFilter, setStatusFilterRaw] = useState<ProductStatus>(initial.statusFilter || 'all');
+  const [visibilityFilter, setVisibilityFilterRaw] = useState<VisibilityStatus>(initial.visibilityFilter || 'all');
+  const [stockFilter, setStockFilterRaw] = useState<StockStatus>(initial.stockFilter || 'all');
+  const [categoryFilter, setCategoryFilterRaw] = useState<string>(initial.categoryFilter || 'all');
+  const [viewMode, setViewModeRaw] = useState<'list' | 'grid'>(initial.viewMode || 'list');
+
+  const updateFilter = useCallback((key: string, value: string) => {
+    const current = loadFilters();
+    saveFilters({ ...current, [key]: value });
+  }, [loadFilters, saveFilters]);
+
+  const setSearch = useCallback((v: string) => { setSearchRaw(v); updateFilter('search', v); }, [updateFilter]);
+  const setStatusFilter = useCallback((v: ProductStatus) => { setStatusFilterRaw(v); updateFilter('statusFilter', v); }, [updateFilter]);
+  const setVisibilityFilter = useCallback((v: VisibilityStatus) => { setVisibilityFilterRaw(v); updateFilter('visibilityFilter', v); }, [updateFilter]);
+  const setStockFilter = useCallback((v: StockStatus) => { setStockFilterRaw(v); updateFilter('stockFilter', v); }, [updateFilter]);
+  const setCategoryFilter = useCallback((v: string) => { setCategoryFilterRaw(v); updateFilter('categoryFilter', v); }, [updateFilter]);
+  const setViewMode = useCallback((v: 'list' | 'grid') => { setViewModeRaw(v); updateFilter('viewMode', v); }, [updateFilter]);
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [bulkAIDialogOpen, setBulkAIDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Filter products
   const filteredProducts = useMemo(() => {
