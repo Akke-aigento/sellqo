@@ -75,6 +75,17 @@ export const GRID_COLUMNS: ColumnDefinition[] = [
   { field: 'low_stock_threshold', header: 'Min. voorraad', type: 'number', width: 110, minWidth: 80, editable: true, bulkEditable: true },
 ];
 
+// Fields that are editable on variant sub-rows
+export const VARIANT_EDITABLE_FIELDS = new Set([
+  'name', 'sku', 'barcode', 'price', 'cost_price', 'compare_at_price',
+  'stock', 'weight', 'is_active',
+]);
+
+// Map variant fields to their column type overrides (name → title)
+export const VARIANT_FIELD_MAP: Record<string, string> = {
+  name: 'title',
+};
+
 // Get cell key for Map usage
 export function getCellKey(productId: string, field: string): string {
   return `${productId}:${field}`;

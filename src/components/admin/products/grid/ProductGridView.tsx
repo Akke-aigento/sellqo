@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Pencil, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Pencil, X, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ import { useProductGrid } from '@/hooks/useProductGrid';
 import { useTenant } from '@/hooks/useTenant';
 import type { Product } from '@/types/product';
 import type { ProductSocialChannels } from '@/types/socialChannels';
+import type { ProductVariant } from '@/hooks/useProductVariants';
 import { ColumnConfig } from './ColumnConfig';
 import { GridTextCell } from './GridTextCell';
 import { GridNumberCell } from './GridNumberCell';
@@ -21,7 +23,7 @@ import { GridTagsCell } from './GridTagsCell';
 import { GridChannelsCell } from './GridChannelsCell';
 import { CellBulkEditor } from './CellBulkEditor';
 import { ChangesPanel } from './ChangesPanel';
-import { GRID_COLUMNS } from './gridTypes';
+import { GRID_COLUMNS, VARIANT_EDITABLE_FIELDS, VARIANT_FIELD_MAP } from './gridTypes';
 import { cn } from '@/lib/utils';
 
 interface ProductGridViewProps {
@@ -38,8 +40,49 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [bulkEditorOpen, setBulkEditorOpen] = useState(false);
   const [bulkEditorField, setBulkEditorField] = useState<string | null>(null);
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const grid = useProductGrid(products);
+
+  // Fetch all variants for visible products
+  const productIds = useMemo(() => products.map(p => p.id), [products]);
+  const { data: allVariants = [] } = useQuery({
+    queryKey: ['grid-variants', productIds, currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant || productIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .in('product_id', productIds)
+        .order('position', { ascending: true });
+      if (error) throw error;
+      return (data || []).map(v => ({
+        ...v,
+        attribute_values: (v.attribute_values as Record<string, string>) || {},
+      })) as ProductVariant[];
+    },
+    enabled: !!currentTenant && productIds.length > 0,
+  });
+
+  // Group variants by product
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of allVariants) {
+      if (!map.has(v.product_id)) map.set(v.product_id, []);
+      map.get(v.product_id)!.push(v);
+    }
+    return map;
+  }, [allVariants]);
+
+  const toggleExpand = useCallback((productId: string) => {
+    setExpandedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }, []);
 
   // Build select options
   const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }));
@@ -89,10 +132,11 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     }
   };
 
-  // Save all changes
+  // Save all changes (products + variants)
   const handleSaveAll = async () => {
     const changes = grid.getChangesForSave();
-    if (changes.length === 0) return;
+    const variantChanges = grid.getVariantChangesForSave();
+    if (changes.length === 0 && variantChanges.length === 0) return;
 
     setIsSaving(true);
     try {
@@ -132,11 +176,25 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           });
         }
       }
+
+      // Save variant changes
+      for (const vc of variantChanges) {
+        try {
+          await supabase
+            .from('product_variants')
+            .update(vc.data)
+            .eq('id', vc.id);
+        } catch (e) {
+          console.error('Failed to update variant', vc.id, e);
+        }
+      }
       
       grid.clearAllPendingChanges();
+      grid.clearAllVariantPendingChanges();
+      const totalCount = changes.length + variantChanges.length;
       toast({
         title: 'Wijzigingen opgeslagen',
-        description: `${changes.length} product(en) bijgewerkt`,
+        description: `${totalCount} item(s) bijgewerkt`,
       });
     } catch (error) {
       toast({
@@ -168,6 +226,73 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [grid.pendingChangesList.length, grid.editingCell]);
+
+  // Render a variant cell
+  const renderVariantCell = (variant: ProductVariant, colDef: typeof GRID_COLUMNS[number]) => {
+    const field = colDef.field;
+    // Map product fields to variant fields
+    const variantField = VARIANT_FIELD_MAP[field] || field;
+    
+    if (!VARIANT_EDITABLE_FIELDS.has(field)) {
+      return <span className="text-sm text-muted-foreground">—</span>;
+    }
+
+    const pendingVal = grid.variantPendingChanges.get(variant.id)?.get(variantField);
+    const rawValue = pendingVal !== undefined ? pendingVal : (variant as unknown as Record<string, unknown>)[variantField];
+    const hasChange = grid.hasVariantPendingChange(variant.id, variantField);
+    const isEditing = grid.editingCell?.productId === variant.id && grid.editingCell?.field === variantField;
+    const isSelected = false;
+
+    const commonProps = {
+      isEditing,
+      isSelected,
+      hasChange,
+      onStartEdit: () => grid.startEditing(variant.id, variantField),
+      onStopEdit: () => grid.stopEditing(),
+      onNavigate: grid.navigateCell,
+    };
+
+    switch (colDef.type) {
+      case 'text':
+        return (
+          <GridTextCell
+            {...commonProps}
+            value={rawValue as string ?? ''}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'number':
+        return (
+          <GridNumberCell
+            {...commonProps}
+            value={rawValue as number | null}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'currency':
+        return (
+          <GridNumberCell
+            {...commonProps}
+            value={rawValue as number | null}
+            isCurrency
+            currency={currentTenant?.currency || 'EUR'}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+          />
+        );
+      case 'toggle':
+        return (
+          <GridToggleCell
+            isSelected={false}
+            hasChange={hasChange}
+            value={rawValue as boolean}
+            onChange={(v) => grid.setVariantCellValue(variant.id, variantField, v)}
+            onSelect={() => {}}
+          />
+        );
+      default:
+        return <span className="text-sm text-muted-foreground">—</span>;
+    }
+  };
 
   // Render a cell based on type
   const renderCell = (product: Product, colDef: typeof GRID_COLUMNS[number]) => {
@@ -338,34 +463,78 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                 Geen producten om weer te geven
               </div>
             ) : (
-              products.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex border-b hover:bg-muted/30 transition-colors"
-                >
-                  {/* Row number / indicator */}
-                  <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
-                    {grid.pendingChanges.has(product.id) && (
-                      <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
-                    )}
-                  </div>
-                  
-                  {/* Cells */}
-                  {grid.visibleColumnDefs.map((col) => (
-                    <div
-                      key={col.field}
-                      className={cn(
-                        'border-r p-1',
-                        col.editable && 'cursor-pointer'
-                      )}
-                      style={{ width: col.width, minWidth: col.minWidth }}
-                      onClick={(e) => col.editable && handleCellClick(e, product.id, col.field)}
-                    >
-                      {renderCell(product, col)}
+              products.map((product) => {
+                const variants = variantsByProduct.get(product.id) || [];
+                const hasVariants = variants.length > 0;
+                const isExpanded = expandedProducts.has(product.id);
+
+                return (
+                  <div key={product.id}>
+                    <div className="flex border-b hover:bg-muted/30 transition-colors">
+                      {/* Row indicator + expand toggle */}
+                      <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
+                        {hasVariants ? (
+                          <button
+                            onClick={() => toggleExpand(product.id)}
+                            className="p-0.5 rounded hover:bg-muted transition-colors"
+                            title={`${variants.length} variant(en)`}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        ) : grid.pendingChanges.has(product.id) ? (
+                          <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                        ) : null}
+                      </div>
+                      
+                      {/* Cells */}
+                      {grid.visibleColumnDefs.map((col) => (
+                        <div
+                          key={col.field}
+                          className={cn(
+                            'border-r p-1',
+                            col.editable && 'cursor-pointer'
+                          )}
+                          style={{ width: col.width, minWidth: col.minWidth }}
+                          onClick={(e) => col.editable && handleCellClick(e, product.id, col.field)}
+                        >
+                          {renderCell(product, col)}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))
+
+                    {/* Variant sub-rows */}
+                    {isExpanded && variants.map((variant) => (
+                      <div
+                        key={variant.id}
+                        className="flex border-b bg-muted/20 hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
+                          {grid.variantPendingChanges.has(variant.id) && (
+                            <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                          )}
+                        </div>
+                        {grid.visibleColumnDefs.map((col) => (
+                          <div
+                            key={col.field}
+                            className={cn(
+                              'border-r p-1',
+                              col.field === 'name' && 'pl-6',
+                              VARIANT_EDITABLE_FIELDS.has(col.field) && 'cursor-pointer'
+                            )}
+                            style={{ width: col.width, minWidth: col.minWidth }}
+                          >
+                            {renderVariantCell(variant, col)}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
             )}
           </div>
           <ScrollBar orientation="horizontal" />
