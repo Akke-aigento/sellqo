@@ -433,6 +433,11 @@ export default function ProductForm() {
 
   const setFeaturedImage = (url: string) => {
     form.setValue('featured_image', url);
+    // Reorder images so featured_image is always first
+    const currentImages = form.getValues('images') || [];
+    if (currentImages.includes(url) && currentImages[0] !== url) {
+      form.setValue('images', [url, ...currentImages.filter(i => i !== url)]);
+    }
   };
 
   const handleDigitalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
