@@ -26,7 +26,7 @@ export function InboxNavItem() {
       <MessageSquare className="h-4 w-4 shrink-0" />
       {!isCollapsed && (
         <>
-          <span className="flex-1">Gesprekken</span>
+          <span className="flex-1">Inbox</span>
           {count > 0 && (
             <Badge
               variant="destructive"

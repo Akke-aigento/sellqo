@@ -77,7 +77,7 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { id: 'inbox', title: 'Gesprekken', url: '/admin/messages', icon: MessageSquare, badge: true },
+  { id: 'inbox', title: 'Inbox', url: '/admin/messages', icon: MessageSquare, badge: true },
   {
     id: 'orders',
     title: 'Bestellingen',
@@ -176,6 +176,7 @@ const managementItems: NavItem[] = [
       { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics' },
     ],
   },
+  { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck },
 ];
 
 // SYSTEEM - Instellingen en integraties
@@ -192,7 +193,6 @@ const systemItems: NavItem[] = [
       { id: 'integrations-import', title: 'Importeren', url: '/admin/import' },
     ],
   },
-  { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck },
   { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt },
   { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings },
   { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },

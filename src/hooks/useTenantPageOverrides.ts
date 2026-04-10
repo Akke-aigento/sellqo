@@ -53,7 +53,10 @@ export function useTenantPageOverrides() {
       return newHidden;
     },
     onSuccess: (newHidden) => {
-      queryClient.setQueryData(['tenant-page-overrides', tenantId], newHidden);
+      queryClient.setQueryData(['tenant-page-overrides', tenantId], (old: any) => ({
+        hiddenPages: newHidden,
+        grantedFeatures: old?.grantedFeatures || [],
+      }));
       queryClient.invalidateQueries({ queryKey: ['platform-tenant-overrides'] });
     },
     onError: () => {
@@ -79,7 +82,10 @@ export function useTenantPageOverrides() {
       return pages;
     },
     onSuccess: (pages) => {
-      queryClient.setQueryData(['tenant-page-overrides', tenantId], pages);
+      queryClient.setQueryData(['tenant-page-overrides', tenantId], (old: any) => ({
+        hiddenPages: pages,
+        grantedFeatures: old?.grantedFeatures || [],
+      }));
       queryClient.invalidateQueries({ queryKey: ['platform-tenant-overrides'] });
     },
   });
