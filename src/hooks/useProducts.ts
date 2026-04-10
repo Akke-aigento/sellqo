@@ -19,7 +19,8 @@ export function useProducts() {
         .select(`
           *,
           category:categories(id, name, slug),
-          product_categories(category_id)
+          product_categories(category_id),
+          product_variants(id, stock, track_inventory, is_active)
         `)
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });

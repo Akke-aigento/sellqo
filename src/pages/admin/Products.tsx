@@ -151,10 +151,14 @@ export default function ProductsPage() {
       if (visibilityFilter === 'store_only' && (!hideFromStorefront || !product.is_active)) return false;
       if (visibilityFilter === 'hidden' && product.is_active) return false;
 
-      // Stock filter
-      if (stockFilter === 'out_of_stock' && product.stock > 0) return false;
-      if (stockFilter === 'low_stock' && (product.stock === 0 || product.stock > product.low_stock_threshold)) return false;
-      if (stockFilter === 'in_stock' && product.stock <= 0) return false;
+      // Stock filter (variant-aware)
+      const activeVariants = product.product_variants?.filter(v => v.is_active) || [];
+      const effectiveStock = activeVariants.length > 0
+        ? activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
+        : product.stock;
+      if (stockFilter === 'out_of_stock' && effectiveStock > 0) return false;
+      if (stockFilter === 'low_stock' && (effectiveStock === 0 || effectiveStock > product.low_stock_threshold)) return false;
+      if (stockFilter === 'in_stock' && effectiveStock <= 0) return false;
 
       // Category filter
       if (categoryFilter !== 'all') {
@@ -290,15 +294,36 @@ export default function ProductsPage() {
     }
   };
 
+  // Calculate effective stock (variant-aware)
+  const getEffectiveStock = (product: Product): number => {
+    const activeVariants = product.product_variants?.filter(v => v.is_active) || [];
+    if (activeVariants.length > 0) {
+      return activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+    }
+    return product.stock;
+  };
+
   // Stock badge color
   const getStockBadge = (product: Product) => {
-    if (product.stock === 0) {
+    const activeVariants = product.product_variants?.filter(v => v.is_active) || [];
+    const hasVariants = activeVariants.length > 0;
+    const effectiveStock = getEffectiveStock(product);
+
+    if (effectiveStock === 0) {
       return <Badge variant="destructive">Uitverkocht</Badge>;
     }
-    if (product.stock <= product.low_stock_threshold) {
-      return <Badge className="bg-amber-500 hover:bg-amber-600">{product.stock} stuks</Badge>;
+    if (effectiveStock <= product.low_stock_threshold) {
+      return (
+        <Badge className="bg-amber-500 hover:bg-amber-600">
+          {effectiveStock} stuks{hasVariants ? ` (${activeVariants.length} var.)` : ''}
+        </Badge>
+      );
     }
-    return <Badge variant="secondary">{product.stock} stuks</Badge>;
+    return (
+      <Badge variant="secondary">
+        {effectiveStock} stuks{hasVariants ? ` (${activeVariants.length} var.)` : ''}
+      </Badge>
+    );
   };
 
   // Visibility badge

@@ -93,6 +93,13 @@ export interface Product {
   bundle_discount_type?: 'percentage' | 'fixed_amount' | null;
   bundle_discount_value?: number | null;
   bundle_items?: BundleItem[];
+  // Variant data (fetched for stock calculations)
+  product_variants?: Array<{
+    id: string;
+    stock: number;
+    track_inventory: boolean;
+    is_active: boolean;
+  }>;
   // Shopify listing fields
   shopify_product_id?: string | null;
   shopify_variant_id?: string | null;
