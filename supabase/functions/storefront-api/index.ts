@@ -345,7 +345,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
     let relatedQuery = supabase
       .from('products')
-      .select('id, name, slug, price, compare_at_price, images')
+      .select('id, name, slug, price, compare_at_price, images, featured_image')
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
       .eq('hide_from_storefront', false)
@@ -376,11 +376,11 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       const relTMap = await getTranslations(supabase, tenantId, 'product', related.map((r: any) => r.id), locale);
       relatedProducts = related.map((r: any) => {
         const rt = relTMap[r.id] || {};
-        return { id: r.id, name: rt.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null };
+        return { id: r.id, name: rt.name || r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.featured_image || r.images?.[0] || null };
       });
     } else {
       relatedProducts = (related || []).map((r: any) => ({
-        id: r.id, name: r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.images?.[0] || null,
+        id: r.id, name: r.name, slug: r.slug, price: r.price, compare_at_price: r.compare_at_price, image: r.featured_image || r.images?.[0] || null,
       }));
     }
   }
@@ -480,7 +480,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     short_description: t.short_description || product.short_description || null,
     price: product.price,
     compare_at_price: product.compare_at_price,
-    images: product.images || [],
+    images: (() => { const fi = product.featured_image || (product.images?.[0] || null); return fi ? [fi, ...(product.images || []).filter((i: string) => i !== fi)] : (product.images || []); })(),
+    featured_image: product.featured_image || (product.images?.[0] || null),
     sku: product.sku,
     barcode: product.barcode || null,
     weight: product.weight || null,
@@ -773,7 +774,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
   // Search across name, description, sku, tags
   const { data, error } = await supabase
     .from('products')
-    .select('id, name, slug, price, compare_at_price, images, sku, tags, description')
+    .select('id, name, slug, price, compare_at_price, images, featured_image, sku, tags, description')
     .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
     .or(`name.ilike.%${query}%,description.ilike.%${query}%,sku.ilike.%${query}%`)
     .limit(limit);
@@ -790,7 +791,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
   });
 
   if (autocomplete) {
-    return { results: sorted.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug, image: p.images?.[0] || null, price: p.price })) };
+    return { results: sorted.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug, image: p.featured_image || p.images?.[0] || null, price: p.price })) };
   }
 
   const tMap = locale ? await getTranslations(supabase, tenantId, 'product', sorted.map((p: any) => p.id), locale) : {};
@@ -799,7 +800,7 @@ async function searchProducts(supabase: any, tenantId: string, params: Record<st
       const t = tMap[p.id] || {};
       return {
         id: p.id, name: t.name || p.name, slug: p.slug, price: p.price, compare_at_price: p.compare_at_price,
-        image: p.images?.[0] || null, sku: p.sku,
+        image: p.featured_image || p.images?.[0] || null, sku: p.sku,
       };
     }),
   };

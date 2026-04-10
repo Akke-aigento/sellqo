@@ -189,7 +189,7 @@ export function ShopifyManualImport() {
                 weight: product.weight,
                 tags: product.tags,
                 images: product.images,
-                is_active: product.status === 'active' && product.published,
+                featured_image: product.featured_image || product.images[0] || null,
                 track_inventory: true,
                 // Nieuwe velden
                 shopify_handle: product.handle,

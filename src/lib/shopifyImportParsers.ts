@@ -15,6 +15,7 @@ export interface ParsedProduct {
   product_type: string | null;
   tags: string[];
   images: string[];
+  featured_image: string | null;
   variants: ParsedVariant[];
   // Nieuwe velden voor complete import
   handle: string | null;
@@ -223,6 +224,7 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
         product_type: row['Type'] || row['product_type'] || null,
         tags: (row['Tags'] || row['tags'] || '').split(',').map(t => t.trim()).filter(Boolean),
         images: [],
+        featured_image: null,
         variants: [],
         // Nieuwe velden
         handle: handle,
@@ -241,10 +243,15 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
       productsMap.set(handle, product);
     }
     
-    // Add image
+    // Add image with position tracking
     const imageSrc = row['Image Src'] || row['image_src'];
+    const imagePosition = parseInt(row['Image Position'] || row['image_position'] || '0') || 0;
     if (imageSrc && !product.images.includes(imageSrc)) {
       product.images.push(imageSrc);
+      // Set featured_image based on Image Position = 1 (Shopify's primary image)
+      if (imagePosition === 1 || (!product.featured_image && product.images.length === 1)) {
+        product.featured_image = imageSrc;
+      }
       // Add alt text if available
       const altText = row['Image Alt Text'] || row['image_alt_text'];
       if (altText) {
@@ -273,7 +280,17 @@ export function parseShopifyProducts(csvString: string): ParsedProduct[] {
     }
   }
   
-  return Array.from(productsMap.values());
+  // Ensure featured_image is always images[0]
+  const results = Array.from(productsMap.values());
+  for (const product of results) {
+    if (!product.featured_image && product.images.length > 0) {
+      product.featured_image = product.images[0];
+    }
+    if (product.featured_image && product.images[0] !== product.featured_image) {
+      product.images = [product.featured_image, ...product.images.filter(i => i !== product.featured_image)];
+    }
+  }
+  return results;
 }
 
 // Parse Shopify orders export
