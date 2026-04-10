@@ -664,7 +664,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         id: product.id, name: t.name || product.name, slug: product.slug,
         description: t.description || product.description,
         price: effectivePrice, compare_at_price: product.compare_at_price,
-        images: product.images || [],
+        images: (() => { const fi = product.featured_image || (product.images?.[0] || null); return fi ? [fi, ...(product.images || []).filter((i: string) => i !== fi)] : (product.images || []); })(),
         featured_image: product.featured_image || (product.images && product.images.length > 0 ? product.images[0] : null),
         product_type: product.product_type || 'physical',
         bundle_pricing_model: product.bundle_pricing_model || null,

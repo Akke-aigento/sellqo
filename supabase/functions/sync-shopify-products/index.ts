@@ -78,6 +78,11 @@ Deno.serve(async (req) => {
       for (const shopifyProduct of shopifyProducts) {
         const mainVariant = shopifyProduct.variants?.[0]
         
+        // Sort images by position (1 = main image in Shopify)
+        const sortedImages = (shopifyProduct.images || [])
+          .sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999))
+        const imageUrls = sortedImages.map((img: any) => img.src)
+        
         // Check if product already exists by Shopify ID or SKU
         const { data: existingProduct } = await supabase
           .from('products')
@@ -101,7 +106,8 @@ Deno.serve(async (req) => {
           barcode: mainVariant?.barcode || null,
           stock: mainVariant?.inventory_quantity || 0,
           weight: mainVariant?.weight ? parseFloat(mainVariant.weight) : null,
-          images: shopifyProduct.images?.map((img: any) => img.src) || [],
+          images: imageUrls,
+          featured_image: imageUrls[0] || null,
           tags: shopifyProduct.tags ? shopifyProduct.tags.split(',').map((t: string) => t.trim()) : [],
           is_active: shopifyProduct.status === 'active',
           // SEO fields
