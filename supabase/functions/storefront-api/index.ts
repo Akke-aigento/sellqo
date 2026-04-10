@@ -1215,7 +1215,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
   return {
-    id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_code: cart.discount_code,
+    id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_codes: cart.discount_codes || [],
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
     subtotal, expires_at: cart.expires_at,
   };
@@ -1334,20 +1334,38 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   const code = params.code as string;
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
+  // Get current cart to check existing codes
+  const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
+  const currentCodes: string[] = cart?.discount_codes || [];
+  if (currentCodes.includes(code)) throw new Error('Deze kortingscode is al toegepast');
+
   // Validate code
   const validation = await validateDiscountCode(supabase, tenantId, { code });
   if (!validation.valid) throw new Error(validation.error);
 
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: code, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const updatedCodes = [...currentCodes, code];
+  const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
+  const code = params.code as string;
   if (!cartId) throw new Error('cart_id is required');
-  const { error } = await supabase.from('storefront_carts').update({ discount_code: null, updated_at: new Date().toISOString() }).eq('id', cartId);
-  if (error) throw error;
+
+  if (code) {
+    // Remove specific code from array
+    const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
+    const currentCodes: string[] = cart?.discount_codes || [];
+    const updatedCodes = currentCodes.filter((c: string) => c !== code);
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
+    if (error) throw error;
+  } else {
+    // Remove all codes
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: [], updated_at: new Date().toISOString() }).eq('id', cartId);
+    if (error) throw error;
+  }
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
@@ -1449,7 +1467,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       tax_amount: vatAmount,
       shipping_cost: shippingCost,
       discount_amount: discountAmount,
-      discount_code: cart.discount_code || null,
+      discount_code: (cart.discount_codes || []).join(', ') || null,
       total,
       customer_email: cart.customer_email,
       customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
@@ -1487,11 +1505,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     updated_at: new Date().toISOString(),
   }).eq('id', cart.id);
 
-  // Increment discount code usage
-  if (cart.discount_code) {
-    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: cart.discount_code, _tenant_id: tenantId });
+  // Increment discount code usage for all codes
+  const discountCodes: string[] = cart.discount_codes || [];
+  for (const dc of discountCodes) {
+    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: dc, _tenant_id: tenantId });
     if (discountUsageError) {
-      console.warn('Failed to increment discount usage for', cart.discount_code, discountUsageError.message);
+      console.warn('Failed to increment discount usage for', dc, discountUsageError.message);
     }
   }
 
@@ -1541,6 +1560,9 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     status: 'checkout_started',
     items,
     subtotal: cart.subtotal,
+    discount_codes: cart.discount_codes || [],
+    discount_amount: Number(cart.discount_amount) || 0,
+    shipping_cost: Number(cart.shipping_cost) || 0,
     currency: cart.currency || 'EUR',
     requires_shipping: shippingMethods.length > 0,
     available_payment_methods: paymentMethods,
@@ -1608,7 +1630,20 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
 
-  const shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
+  let shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
+
+  // Check if any discount code provides free shipping
+  const discountCodes: string[] = cart.discount_codes || [];
+  if (discountCodes.length > 0) {
+    for (const dc of discountCodes) {
+      const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+      if (v.valid && v.discount_type === 'free_shipping') {
+        shippingCost = 0;
+        break;
+      }
+    }
+  }
+
   const discountAmount = Number(cart.discount_amount) || 0;
   const total = cart.subtotal - discountAmount + shippingCost;
 
@@ -1898,61 +1933,97 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
 
+  const currentCodes: string[] = cart.discount_codes || [];
+  if (currentCodes.includes(discountCode)) return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'Deze kortingscode is al toegepast' } };
+
   const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
   if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
 
-  let discountAmount = 0;
-  let shippingCost = Number(cart.shipping_cost) || 0;
+  const updatedCodes = [...currentCodes, discountCode];
 
-  if (validation.discount_type === 'free_shipping') {
-    // Free shipping: set shipping to 0, no discount amount on subtotal
-    shippingCost = 0;
-    await supabase.from('storefront_carts').update({
-      discount_code: discountCode,
-      discount_amount: 0,
-      shipping_cost: 0,
-      updated_at: new Date().toISOString(),
-    }).eq('id', cartId);
-  } else {
-    discountAmount = calculateDiscountValue(cart.subtotal, validation.discount_type, validation.discount_value, validation.max_discount_amount);
-    await supabase.from('storefront_carts').update({
-      discount_code: discountCode,
-      discount_amount: discountAmount,
-      updated_at: new Date().toISOString(),
-    }).eq('id', cartId);
+  // Recalculate all discounts
+  let totalDiscountAmount = 0;
+  let hasFreeShipping = false;
+  for (const dc of updatedCodes) {
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+    if (!v.valid) continue;
+    if (v.discount_type === 'free_shipping') {
+      hasFreeShipping = true;
+    } else {
+      totalDiscountAmount += calculateDiscountValue(cart.subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
+    }
   }
 
-  const total = cart.subtotal - discountAmount + shippingCost;
+  let shippingCost = Number(cart.shipping_cost) || 0;
+  if (hasFreeShipping) shippingCost = 0;
+
+  await supabase.from('storefront_carts').update({
+    discount_codes: updatedCodes,
+    discount_amount: totalDiscountAmount,
+    shipping_cost: shippingCost,
+    updated_at: new Date().toISOString(),
+  }).eq('id', cartId);
+
+  const total = cart.subtotal - totalDiscountAmount + shippingCost;
 
   return {
     cart_id: cartId,
+    discount_codes: updatedCodes,
     discount_code: discountCode,
     discount_type: validation.discount_type,
     discount_value: validation.discount_value,
-    discount_amount: discountAmount,
+    discount_amount: totalDiscountAmount,
     subtotal: cart.subtotal,
     shipping_cost: shippingCost,
     total,
-    free_shipping: validation.discount_type === 'free_shipping',
+    free_shipping: hasFreeShipping,
   };
 }
 
 async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
+  const codeToRemove = params.code as string || params.discount_code as string;
   if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
 
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
 
-  const shippingCost = Number(cart.shipping_cost) || 0;
-  const total = cart.subtotal + shippingCost;
+  const currentCodes: string[] = cart.discount_codes || [];
+  const updatedCodes = codeToRemove ? currentCodes.filter((c: string) => c !== codeToRemove) : [];
+
+  // Recalculate remaining discounts
+  let totalDiscountAmount = 0;
+  let hasFreeShipping = false;
+  for (const dc of updatedCodes) {
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+    if (!v.valid) continue;
+    if (v.discount_type === 'free_shipping') {
+      hasFreeShipping = true;
+    } else {
+      totalDiscountAmount += calculateDiscountValue(cart.subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
+    }
+  }
+
+  // Recalculate shipping if free_shipping was removed
+  let shippingCost = Number(cart.shipping_cost) || 0;
+  if (!hasFreeShipping && cart.shipping_method_id) {
+    const { data: method } = await supabase.from('shipping_methods').select('price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
+    if (method) {
+      shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
+    }
+  } else if (hasFreeShipping) {
+    shippingCost = 0;
+  }
 
   await supabase.from('storefront_carts').update({
-    discount_code: null, discount_amount: 0,
+    discount_codes: updatedCodes,
+    discount_amount: totalDiscountAmount,
+    shipping_cost: shippingCost,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
-  return { cart_id: cartId, subtotal: cart.subtotal, shipping_cost: shippingCost, total };
+  const total = cart.subtotal - totalDiscountAmount + shippingCost;
+  return { cart_id: cartId, discount_codes: updatedCodes, discount_amount: totalDiscountAmount, subtotal: cart.subtotal, shipping_cost: shippingCost, total };
 }
 
 // Legacy compatibility wrappers
