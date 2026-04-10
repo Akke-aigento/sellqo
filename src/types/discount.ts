@@ -1,4 +1,4 @@
-export type DiscountType = 'percentage' | 'fixed_amount';
+export type DiscountType = 'percentage' | 'fixed_amount' | 'free_shipping';
 export type DiscountAppliesTo = 'all' | 'specific_products' | 'specific_categories';
 
 export interface DiscountCode {

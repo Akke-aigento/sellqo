@@ -7,7 +7,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, MoreVertical, Copy, Tag, Percent, Euro } from 'lucide-react';
+import { Pencil, Trash2, MoreVertical, Copy, Tag, Percent, Euro, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import type { DiscountCode } from '@/types/discount';
@@ -46,6 +46,9 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
   };
 
   const formatDiscountValue = () => {
+    if (discountCode.discount_type === 'free_shipping') {
+      return 'Gratis verzending';
+    }
     if (discountCode.discount_type === 'percentage') {
       return `${discountCode.discount_value}%`;
     }
@@ -69,12 +72,16 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
             </div>
             
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              {discountCode.discount_type === 'percentage' ? (
+              {discountCode.discount_type === 'free_shipping' ? (
+                <Truck className="h-4 w-4" />
+              ) : discountCode.discount_type === 'percentage' ? (
                 <Percent className="h-4 w-4" />
               ) : (
                 <Euro className="h-4 w-4" />
               )}
-              <span className="font-medium text-foreground">{formatDiscountValue()} korting</span>
+              <span className="font-medium text-foreground">
+                {discountCode.discount_type === 'free_shipping' ? formatDiscountValue() : `${formatDiscountValue()} korting`}
+              </span>
               {discountCode.description && (
                 <>
                   <span>•</span>

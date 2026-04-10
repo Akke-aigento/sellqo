@@ -31,8 +31,8 @@ import { generateRandomCode } from '@/hooks/useDiscountCodes';
 const formSchema = z.object({
   code: z.string().min(3, 'Code moet minimaal 3 karakters zijn').max(20, 'Code mag maximaal 20 karakters zijn'),
   description: z.string().optional(),
-  discount_type: z.enum(['percentage', 'fixed_amount']),
-  discount_value: z.coerce.number().min(0.01, 'Waarde moet groter zijn dan 0'),
+  discount_type: z.enum(['percentage', 'fixed_amount', 'free_shipping']),
+  discount_value: z.coerce.number().min(0).default(0),
   minimum_order_amount: z.coerce.number().min(0).optional().nullable(),
   maximum_discount_amount: z.coerce.number().min(0).optional().nullable(),
   usage_limit: z.coerce.number().int().min(1).optional().nullable(),
@@ -209,7 +209,12 @@ export function DiscountCodeDialog({
                   <FormLabel>Type korting</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
+                      onValueChange={(val) => {
+                        field.onChange(val);
+                        if (val === 'free_shipping') {
+                          form.setValue('discount_value', 0);
+                        }
+                      }}
                       value={field.value}
                       className="flex gap-4"
                     >
@@ -221,6 +226,10 @@ export function DiscountCodeDialog({
                         <RadioGroupItem value="fixed_amount" id="fixed_amount" />
                         <Label htmlFor="fixed_amount">Vast bedrag</Label>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="free_shipping" id="free_shipping" />
+                        <Label htmlFor="free_shipping">Gratis verzending</Label>
+                      </div>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
@@ -229,6 +238,7 @@ export function DiscountCodeDialog({
             />
 
             {/* Discount Value */}
+            {discountType !== 'free_shipping' && (
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -285,6 +295,7 @@ export function DiscountCodeDialog({
                 />
               )}
             </div>
+            )}
 
             <Separator />
 
