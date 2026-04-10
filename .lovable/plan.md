@@ -1,37 +1,38 @@
 
 
-## Fix: Varianten automatisch synchroniseren bij optie-wijzigingen
+## Fix: Voorraad berekenen op basis van varianten
 
 ### Probleem
-Als je een optiewaarde wijzigt (bijv. kleur "Rood" → "Bordeaux"), blijven de bestaande varianten ongewijzigd met de oude waarden. De "Varianten genereren" knop voegt alleen **nieuwe** combinaties toe maar ruimt verouderde niet op.
+De admin productlijst en productformulier tonen altijd `product.stock` — het veld op productniveau. Maar zodra een product varianten heeft, wordt de voorraad per variant beheerd. Het product-level stock veld is dan misleidend en niet representatief.
+
+Dit speelt op meerdere plekken:
+- **Products.tsx** (productlijst): `getStockBadge()` toont alleen `product.stock`
+- **Products.tsx** (filters): stock-filters gebruiken `product.stock`
+- **Storefront API**: berekent `in_stock` al correct op variant-niveau ✅
 
 ### Oplossing
-Twee aanpassingen in `src/hooks/useProductVariants.ts`:
 
-1. **Nieuwe `syncVariants` mutatie** — wordt automatisch aangeroepen na het updaten van opties. Deze:
-   - Verwijdert varianten waarvan de `attribute_values` waarden bevatten die niet meer bestaan in de huidige opties
-   - Genereert ontbrekende combinaties (hergebruikt de bestaande `generateVariants` logica)
-   - Behoudt bestaande varianten die nog geldig zijn (prijs, voorraad, SKU blijven intact)
-
-2. **`updateOption` callback aanpassen** — na succesvolle optie-update automatisch de sync triggeren
-
-### Aanpassing in `ProductVariantsTab.tsx`
-- Na het updaten van optiewaarden: automatisch `syncVariants` aanroepen
-- Gebruiker ziet een toast: "3 verouderde varianten verwijderd, 2 nieuwe aangemaakt"
-
-### Wat de gebruiker ziet
-```text
-Optie "Kleur" waarden: Rood, Blauw → Rood, Groen
-
-Resultaat:
-- Variant "Rood / M" → blijft behouden (Rood bestaat nog)
-- Variant "Blauw / M" → verwijderd (Blauw bestaat niet meer)  
-- Variant "Groen / M" → nieuw aangemaakt
+#### 1. `useProducts.ts` — Varianten meefetchen
+De products query uitbreiden om ook varianten op te halen:
 ```
+product_variants(id, stock, track_inventory, is_active)
+```
+
+#### 2. `Products.tsx` — `getStockBadge()` slim maken
+- Als product varianten heeft → tel de totale stock op van alle actieve varianten
+- Als geen varianten → gebruik `product.stock` zoals nu
+- Toon bijv. "15 stuks (3 varianten)" bij varianten
+
+#### 3. `Products.tsx` — Stock filters aanpassen
+- Dezelfde logica: bij varianten de som van variant-stock gebruiken voor filtering
+
+#### 4. `ProductForm.tsx` — Stock veld verbergen/readonly bij varianten
+- Als het product varianten heeft, het algemene stock-veld disablen of verbergen met een melding "Voorraad wordt per variant beheerd"
 
 ### Bestanden
 | Bestand | Wat |
 |---------|-----|
-| `src/hooks/useProductVariants.ts` | Nieuwe `syncVariants` mutatie toevoegen |
-| `src/components/admin/products/ProductVariantsTab.tsx` | Na optie-update automatisch sync triggeren |
+| `src/hooks/useProducts.ts` | Varianten meefetchen in query |
+| `src/pages/admin/Products.tsx` | Stock badge + filters variant-aware maken |
+| `src/pages/admin/ProductForm.tsx` | Stock veld verbergen bij varianten |
 
