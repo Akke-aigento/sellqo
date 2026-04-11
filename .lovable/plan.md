@@ -1,37 +1,45 @@
 
 
-## Fix: checkoutApplyDiscount idempotent maken + prijzen correct doorvoeren
+## Analyse: Wordt `featured_image` correct opgeslagen?
 
-### Probleem
-Het Mancini frontend roept achtereenvolgens `cart_apply_discount` en `checkout_apply_discount` aan. De eerste voegt de code toe aan de `discount_codes` array. De tweede ziet dat de code al bestaat en retourneert een fout. Hierdoor worden de checkout-prijzen (discount_amount, shipping_cost, total) niet herberekend.
+### Bevindingen
+
+**De save-logica werkt technisch correct.** Het formulier stuurt `featured_image` mee bij opslaan via `...data` spread → `supabase.update(data)`. De waarde komt dus WEL in de database.
+
+**Maar er zijn twee problemen:**
+
+#### 1. Lege string i.p.v. null (28 producten geraakt)
+Het Zod schema heeft `featured_image: z.string().optional().default('')`. Bij het laden van een product met `featured_image: null` wordt dit geconverteerd naar `''`. Bij opslaan wordt `''` naar de database geschreven — geen geldige URL, maar ook niet `null`.
+
+**Database-bewijs:** 28 producten hebben afbeeldingen in de `images` array maar een lege/null `featured_image`. Dit zijn waarschijnlijk Shopify-imports of producten die vóór de featured_image logica zijn aangemaakt.
+
+#### 2. Geen automatische sync bij bestaande producten
+Wanneer een product afbeeldingen heeft maar geen `featured_image`, wordt de eerste afbeelding niet automatisch als featured ingesteld — pas als de gebruiker handmatig de hoofdafbeelding selecteert en opslaat.
 
 ### Oplossing
 
-**`supabase/functions/storefront-api/index.ts` — `checkoutApplyDiscount` (regel 1936-1937)**
+#### A. Form-laadlogica fixen (`ProductForm.tsx`)
+Bij het laden van een product: als `featured_image` leeg is maar `images[0]` bestaat, automatisch `featured_image` op `images[0]` zetten.
 
-In plaats van een fout teruggeven wanneer de code al in de array zit, gewoon doorgaan met herberekening (idempotent gedrag):
+#### B. Save-logica: lege string → null
+In `onSubmit`: als `featured_image` een lege string is, converteer naar `null` (of naar `images[0]` als die bestaat).
 
-```typescript
-// HUIDIG (regel 1936-1937):
-if (currentCodes.includes(discountCode)) 
-  return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'Deze kortingscode is al toegepast' } };
-
-// NIEUW:
-// Als code al in array zit, skip toevoegen maar herbereken wel alles
-const updatedCodes = currentCodes.includes(discountCode) 
-  ? currentCodes 
-  : [...currentCodes, discountCode];
+#### C. Database-fix: bestaande producten repareren
+Eenmalige migratie die voor alle producten met lege `featured_image` maar wel `images[0]` de featured_image op de eerste image zet:
+```sql
+UPDATE products 
+SET featured_image = images[1] 
+WHERE (featured_image IS NULL OR featured_image = '') 
+  AND images IS NOT NULL 
+  AND array_length(images, 1) > 0;
 ```
 
-Verwijder de `updatedCodes` declaratie op regel 1942 (die wordt nu eerder gedaan).
-
-Dit zorgt ervoor dat:
-- Wanneer de code al door `cartApplyDiscount` is toegevoegd, `checkoutApplyDiscount` gewoon de prijzen herberekent en een success-response geeft
-- De frontend de correcte subtotal, discount_amount, shipping_cost en total terugkrijgt
-- De flow werkt ongeacht of het frontend één of beide calls doet
+#### D. Storefront API fallback behouden
+De Storefront API heeft al een fallback (`featured_image || images[0]`), maar het is beter de bron te fixen.
 
 ### Bestanden
 | Bestand | Wat |
 |---------|-----|
-| `supabase/functions/storefront-api/index.ts` | `checkoutApplyDiscount` idempotent maken |
+| `src/pages/admin/ProductForm.tsx` | featured_image auto-set bij laden + lege string → null bij save |
+| Nieuwe migratie | Bestaande producten: `featured_image = images[1]` waar leeg |
 
