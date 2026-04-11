@@ -615,9 +615,9 @@ export default function ProductForm() {
 
             {/* Product Tab - One-page 2-column layout */}
             <TabsContent value="product" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
                 {/* Left Column */}
-                <div className="space-y-6">
+                <div className="space-y-6 min-w-0">
                   {/* Product Type */}
                   <Card>
                     <CardHeader>
