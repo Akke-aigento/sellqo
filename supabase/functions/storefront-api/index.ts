@@ -1934,7 +1934,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Get cart
   const { data: cart, error: cartError } = await supabase
     .from('storefront_carts')
-    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, discount_code, payment_method, currency, discount_codes')
+    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, payment_method, currency, discount_codes')
     .eq('id', cartId)
     .eq('tenant_id', tenantId)
     .single();
@@ -2038,7 +2038,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     .insert({
       tenant_id: tenantId, order_number: orderNumber, status: 'processing', payment_status: 'paid',
       payment_method: cart.payment_method || 'stripe', subtotal, tax_amount: vatAmount,
-      shipping_cost: shippingCost, discount_amount: discountAmount, discount_code: cart.discount_code || null,
+      shipping_cost: shippingCost, discount_amount: discountAmount, discount_code: (cart.discount_codes && cart.discount_codes.length > 0) ? cart.discount_codes.join(', ') : null,
       total, customer_email: cart.customer_email,
       customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
       customer_phone: cart.customer_phone || null, customer_id: customerId,
