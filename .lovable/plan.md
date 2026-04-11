@@ -1,40 +1,35 @@
 
 
-## Fix: Lange wachttijd na Stripe-betaling (~1 minuut)
+## Fix: `discount_code` kolom bestaat niet op `storefront_carts`
 
 ### Probleem
-Na een Stripe-betaling wordt de klant doorgestuurd naar de success-pagina. De order wordt pas aangemaakt wanneer de **Stripe webhook** (`checkout.session.completed`) binnenkomt — dit kan 5-60 seconden duren. De success-pagina toont "Verifying your payment..." totdat de webhook heeft afgevuurd en de volledige orderverwerking klaar is.
+Lijn 1937 in `storefront-api/index.ts` selecteert `discount_code` uit `storefront_carts`, maar die kolom bestaat niet. De cart heeft alleen:
+- `discount_codes` (text array) — kan 0, 1 of meerdere codes bevatten
+- `discount_amount` (numeric)
 
-### Oorzaak
-Er is geen endpoint dat de Stripe-betalingsstatus actief controleert. Het systeem is volledig afhankelijk van de webhook voor het aanmaken van de order.
+De `orders` tabel heeft `discount_code` (text, enkelvoud) en `discount_code_id` (uuid).
 
-### Oplossing: `checkout_verify_payment` actie toevoegen
+### Oplossing
 
 **Bestand:** `supabase/functions/storefront-api/index.ts`
 
-Nieuwe actie `checkout_verify_payment` die:
-1. `cart_id` ontvangt van de success-pagina
-2. De `stripe_session_id` van de cart ophaalt
-3. De Stripe Checkout Session opvraagt via de Stripe API
-4. Als `payment_status === 'paid'`: de order direct aanmaakt (dezelfde logica als de webhook)
-5. Als nog niet betaald: `{ status: 'pending' }` retourneert
+1. **Lijn 1937** — Verwijder `discount_code` uit de `.select()` query (laat `discount_codes` staan, die bestaat wél)
 
-**Idempotentie:** Als de webhook de order al heeft aangemaakt (`checkout_status === 'converted'`), zoekt het de bestaande order op en retourneert die — geen dubbele orders.
+2. **Lijn 2041** — Vervang `cart.discount_code || null` door:
+   ```typescript
+   (cart.discount_codes && cart.discount_codes.length > 0)
+     ? cart.discount_codes.join(', ')
+     : null
+   ```
+   Dit werkt correct voor alle scenario's:
+   - **Geen codes**: `null`
+   - **1 code**: `"KORTING10"`
+   - **Meerdere codes**: `"KORTING10, ZOMER20"`
 
-### Stappen
-1. Helper-functie `createOrderFromCart` extraheren uit de webhook-code om duplicatie te voorkomen
-2. Nieuwe `checkoutVerifyPayment` functie toevoegen aan de storefront API
-3. Route `checkout_verify_payment` registreren in de action-switch
-4. Webhook aanpassen om dezelfde helper te gebruiken (refactor)
+3. **Deploy** de edge function en test met de bestaande cart
 
-### Resultaat
-- Success-pagina kan direct na redirect verifiëren → order in **2-5 seconden** i.p.v. 30-60
-- Webhook blijft als safety net (idempotent)
-- Geen wijzigingen nodig aan Mancini-frontend (alleen een andere API-actie aanroepen)
-
-### Bestanden
-| Bestand | Wat |
-|---------|-----|
-| `supabase/functions/storefront-api/index.ts` | `checkoutVerifyPayment` + helper + route |
-| `supabase/functions/stripe-connect-webhook/index.ts` | Refactor naar gedeelde helper (optioneel, kan later) |
+### Waarom dit veilig is
+- Het `orders.discount_code` veld is `text` — een komma-gescheiden string past daar prima
+- De `discount_code_id` (uuid) blijft `null` bij meerdere codes — dat is OK want het wordt niet gebruikt voor berekeningen
+- De `discount_amount` wordt apart berekend en opgeslagen
 
