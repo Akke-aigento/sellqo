@@ -235,7 +235,7 @@ export default function ProductForm() {
       allow_backorder: product.allow_backorder,
       low_stock_threshold: product.low_stock_threshold,
       images: product.images || [],
-      featured_image: product.featured_image || '',
+      featured_image: product.featured_image || (product.images && product.images.length > 0 ? product.images[0] : ''),
       category_id: product.category_id || '',
       tags: product.tags || [],
       meta_title: product.meta_title || '',
@@ -488,12 +488,14 @@ export default function ProductForm() {
 
     // Set legacy category_id to primary (first selected) category
     const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
-    const submitData = {
-      ...data,
-      category_id: primaryCategoryId,
-      sku: data.sku?.trim() || null,
-      barcode: data.barcode?.trim() || null,
-    };
+     const featuredImage = data.featured_image?.trim() || (data.images?.length > 0 ? data.images[0] : null);
+     const submitData = {
+       ...data,
+       category_id: primaryCategoryId,
+       sku: data.sku?.trim() || null,
+       barcode: data.barcode?.trim() || null,
+       featured_image: featuredImage,
+     };
     let productId = id;
     if (isEditing && id) {
       await updateProduct.mutateAsync({ id, data: submitData });
