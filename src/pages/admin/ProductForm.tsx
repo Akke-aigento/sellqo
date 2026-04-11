@@ -1496,7 +1496,7 @@ export default function ProductForm() {
                 </div>
 
                 {/* Right Column - Sidebar */}
-                <div className="space-y-6">
+                <div className="space-y-6 min-w-0">
                   {/* Images */}
                   <Card>
                     <CardHeader>
