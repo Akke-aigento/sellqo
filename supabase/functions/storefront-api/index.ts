@@ -2321,6 +2321,7 @@ serve(async (req) => {
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;
       case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
       case 'checkout_apply_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
       case 'checkout_remove_discount': result = await checkoutRemoveDiscount(supabase, tenant_id, params); break;
