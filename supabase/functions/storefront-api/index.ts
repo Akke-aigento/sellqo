@@ -1657,47 +1657,7 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
-  // Get available methods
-  const subtotalCents = Math.round(cart.subtotal * 100);
-  const country = (cart.shipping_address?.country as string) || 'BE';
-  const [paymentMethods, shippingMethods] = await Promise.all([
-    checkoutGetPaymentMethods(supabase, tenantId, subtotalCents, country),
-    checkoutGetShippingOptions(supabase, tenantId, { subtotal: cart.subtotal }),
-  ]);
-
-  // Get tenant fee config
-  const { data: tenantFeeData } = await supabase
-    .from('tenants')
-    .select('pass_transaction_fee_to_customer, transaction_fee_label')
-    .eq('id', tenantId).single();
-
-  const items = cart.cartItems.map((item: any) => ({
-    id: item.id,
-    product_id: item.product_id,
-    variant_id: item.variant_id,
-    product_name: item.product?.name || '',
-    variant_name: item.variant?.title || null,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    line_total: item.line_total,
-    image: item.product?.image || null,
-  }));
-
-  return {
-    cart_id: cartId,
-    status: 'checkout_started',
-    items,
-    subtotal: cart.subtotal,
-    discount_codes: cart.discount_codes || [],
-    discount_amount: Number(cart.discount_amount) || 0,
-    shipping_cost: Number(cart.shipping_cost) || 0,
-    currency: cart.currency || 'EUR',
-    requires_shipping: shippingMethods.length > 0,
-    available_payment_methods: paymentMethods,
-    available_shipping_methods: shippingMethods,
-    pass_fee_to_customer: tenantFeeData?.pass_transaction_fee_to_customer || false,
-    fee_label: tenantFeeData?.transaction_fee_label || 'Transactiekosten',
-  };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutCustomer(supabase: any, tenantId: string, params: Record<string, unknown>) {
