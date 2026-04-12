@@ -2577,6 +2577,7 @@ serve(async (req) => {
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;
       case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;
       case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
       case 'checkout_apply_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
@@ -2584,7 +2585,12 @@ serve(async (req) => {
       // Legacy checkout compat
       case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
-      case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
+      case 'checkout_get_payment_methods': {
+        const subtotal = params.subtotal_cents as number || 0;
+        const ctry = params.country as string || 'BE';
+        result = await checkoutGetPaymentMethods(supabase, tenant_id, subtotal, ctry);
+        break;
+      }
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
       case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
