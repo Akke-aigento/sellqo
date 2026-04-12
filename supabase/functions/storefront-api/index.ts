@@ -1657,9 +1657,10 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   const { error: resetError } = await supabase.from('storefront_carts').update({
     checkout_status: 'checkout',
     payment_method: null,
-    selected_shipping_method_id: null,
+    shipping_method_id: null,
     shipping_cost: 0,
     stripe_session_id: null,
+    calculated_fee_cents: 0,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (resetError) {
