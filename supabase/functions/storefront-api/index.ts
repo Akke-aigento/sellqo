@@ -2258,20 +2258,7 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
-  const total = cart.subtotal - totalDiscountAmount + shippingCost;
-
-  return {
-    cart_id: cartId,
-    discount_codes: updatedCodes,
-    discount_code: discountCode,
-    discount_type: validation.discount_type,
-    discount_value: validation.discount_value,
-    discount_amount: totalDiscountAmount,
-    subtotal: cart.subtotal,
-    shipping_cost: shippingCost,
-    total,
-    free_shipping: hasFreeShipping,
-  };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -2316,8 +2303,7 @@ async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: R
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
-  const total = cart.subtotal - totalDiscountAmount + shippingCost;
-  return { cart_id: cartId, discount_codes: updatedCodes, discount_amount: totalDiscountAmount, subtotal: cart.subtotal, shipping_cost: shippingCost, total };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 // Legacy compatibility wrappers
