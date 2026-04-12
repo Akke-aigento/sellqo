@@ -2397,16 +2397,7 @@ async function checkoutSelectPaymentMethod(supabase: any, tenantId: string, para
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
-  return {
-    payment_method: paymentMethod,
-    fee_cents: feeCents,
-    fee_label: tenant.transaction_fee_label || 'Transactiekosten',
-    subtotal: cart.subtotal,
-    discount_amount: discountAmount,
-    shipping_cost: shippingCost,
-    total,
-    currency: cart.currency || 'EUR',
-  };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
