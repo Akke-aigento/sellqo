@@ -1860,7 +1860,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       },
     };
 
-    // Apply discount by reducing line item amounts proportionally (coupons incompatible with destination charges)
+    // Apply discount by reducing line item amounts proportionally
     if (discountAmount > 0) {
       const productItems = lineItems.filter(
         (li: any) => li.price_data.product_data.name !== 'Verzending'
