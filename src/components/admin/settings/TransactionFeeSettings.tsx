@@ -3,10 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -21,15 +19,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   CreditCard, 
-  Building2, 
   QrCode, 
   Loader2, 
-  Save,
   TrendingUp,
   Infinity,
   AlertTriangle,
   CheckCircle,
   Info,
+  GripVertical,
+  Zap,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +36,31 @@ import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 import { useTenant } from '@/hooks/useTenant';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+type PaymentSectionKey = 'direct' | 'later' | 'transfer';
+
+const PAYMENT_SECTIONS: Record<PaymentSectionKey, { label: string; description: string; icon: typeof CreditCard }> = {
+  direct: { label: 'Direct betalen', description: 'Bancontact, iDEAL, Creditcard', icon: Zap },
+  later: { label: 'Achteraf betalen', description: 'Klarna', icon: Clock },
+  transfer: { label: 'Overschrijving', description: 'QR-code / SEPA Instant (gratis)', icon: QrCode },
+};
 
 const STRIPE_PAYMENT_METHODS = [
   { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
@@ -53,6 +77,47 @@ interface TenantPaymentConfig {
   bic: string | null;
   stripe_payment_methods: string[];
   bank_transfer_acknowledged_manual: boolean;
+  payment_section_order: PaymentSectionKey[];
+}
+
+function SortablePaymentSection({ id, index }: { id: PaymentSectionKey; index: number }) {
+  const section = PAYMENT_SECTIONS[id];
+  const Icon = section.icon;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-3 border rounded-lg bg-background cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 shadow-lg ring-2 ring-primary/20' : 'hover:border-primary/30'}`}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+      <div className="p-2 bg-muted rounded-md">
+        <Icon className="h-4 w-4 text-foreground" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium">{section.label}</div>
+        <div className="text-xs text-muted-foreground">{section.description}</div>
+      </div>
+      <Badge variant="outline" className="shrink-0 text-xs tabular-nums">
+        {index + 1}
+      </Badge>
+    </div>
+  );
 }
 
 export function TransactionFeeSettings() {
@@ -68,11 +133,17 @@ export function TransactionFeeSettings() {
     bic: null,
     stripe_payment_methods: ['card', 'ideal', 'bancontact'],
     bank_transfer_acknowledged_manual: false,
+    payment_section_order: ['direct', 'later', 'transfer'],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
   const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     if (activeTenantId) {
@@ -85,7 +156,7 @@ export function TransactionFeeSettings() {
     try {
       const { data, error } = await supabase
         .from('tenants')
-        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods, bank_transfer_acknowledged_manual')
+        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods, bank_transfer_acknowledged_manual, payment_section_order')
         .eq('id', activeTenantId)
         .single();
 
@@ -95,7 +166,12 @@ export function TransactionFeeSettings() {
       const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'];
       const sanitizedStripeMethods = rawStripeMethods.filter(m => validStripeMethodCodes.includes(m));
 
-      const loaded = {
+      const rawOrder = (data.payment_section_order as PaymentSectionKey[] | null) || ['direct', 'later', 'transfer'];
+      const validKeys: PaymentSectionKey[] = ['direct', 'later', 'transfer'];
+      const sanitizedOrder = rawOrder.filter(k => validKeys.includes(k));
+      const finalOrder = sanitizedOrder.length === 3 ? sanitizedOrder : ['direct', 'later', 'transfer'] as PaymentSectionKey[];
+
+      const loaded: TenantPaymentConfig = {
         payment_methods_enabled: (data.payment_methods_enabled as PaymentMethodType[]) || ['stripe'],
         pass_transaction_fee_to_customer: data.pass_transaction_fee_to_customer || false,
         transaction_fee_label: data.transaction_fee_label || 'Transactiekosten',
@@ -103,6 +179,7 @@ export function TransactionFeeSettings() {
         bic: data.bic,
         stripe_payment_methods: sanitizedStripeMethods.length > 0 ? sanitizedStripeMethods : ['card'],
         bank_transfer_acknowledged_manual: data.bank_transfer_acknowledged_manual || false,
+        payment_section_order: finalOrder,
       };
       setConfig(loaded);
       setInitialConfig(loaded);
@@ -120,9 +197,6 @@ export function TransactionFeeSettings() {
       return;
     }
     
-    console.log('[TransactionFeeSettings] activeTenantId:', activeTenantId);
-    console.log('[TransactionFeeSettings] currentTenant:', currentTenant?.name);
-    
     setIsSaving(true);
     try {
       const validCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
@@ -134,23 +208,18 @@ export function TransactionFeeSettings() {
         transaction_fee_label: config.transaction_fee_label,
         stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
         bank_transfer_acknowledged_manual: config.bank_transfer_acknowledged_manual,
+        payment_section_order: config.payment_section_order,
       };
       
-      console.log('[TransactionFeeSettings] UPDATE payload:', JSON.stringify(updatePayload));
-      console.log('[TransactionFeeSettings] UPDATE target tenant_id:', activeTenantId);
-      
-      const { error, data, count, status, statusText } = await supabase
+      const { error, data } = await supabase
         .from('tenants')
         .update(updatePayload)
         .eq('id', activeTenantId)
         .select();
 
-      console.log('[TransactionFeeSettings] UPDATE response:', { error, data, count, status, statusText });
-
       if (error) throw error;
       
       if (!data || data.length === 0) {
-        console.error('[TransactionFeeSettings] UPDATE returned 0 rows — possible RLS silent failure');
         toast.error('Opslaan mislukt: geen toegang (RLS). Neem contact op met support.');
         return;
       }
@@ -183,20 +252,14 @@ export function TransactionFeeSettings() {
 
   const handleBankTransferToggle = () => {
     const isCurrentlyEnabled = config.payment_methods_enabled.includes('bank_transfer');
-    
     if (isCurrentlyEnabled) {
-      // Turning off — no confirmation needed
       togglePaymentMethod('bank_transfer');
       return;
     }
-
-    // Turning on — check if already acknowledged
     if (config.bank_transfer_acknowledged_manual) {
       togglePaymentMethod('bank_transfer');
       return;
     }
-
-    // First time enabling — show dialog
     setShowBankTransferDialog(true);
   };
 
@@ -207,6 +270,16 @@ export function TransactionFeeSettings() {
       payment_methods_enabled: [...prev.payment_methods_enabled, 'bank_transfer'],
       bank_transfer_acknowledged_manual: true,
     }));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setConfig(prev => {
+      const oldIndex = prev.payment_section_order.indexOf(active.id as PaymentSectionKey);
+      const newIndex = prev.payment_section_order.indexOf(over.id as PaymentSectionKey);
+      return { ...prev, payment_section_order: arrayMove(prev.payment_section_order, oldIndex, newIndex) };
+    });
   };
 
   const canEnableBankTransfer = config.iban && config.iban.length >= 10;
@@ -378,7 +451,6 @@ export function TransactionFeeSettings() {
                         </div>
                       </div>
                     </label>
-                    {/* Klarna warning */}
                     {isKlarna && isChecked && (
                       <Alert className="ml-8 mt-1 mb-2">
                         <Info className="h-4 w-4" />
@@ -470,6 +542,41 @@ export function TransactionFeeSettings() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Section Order */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Volgorde betaalmethoden in checkout</CardTitle>
+          <CardDescription>
+            Bepaal in welke volgorde je klanten de betaalcategorieën zien tijdens het afrekenen. Sleep om de volgorde aan te passen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={config.payment_section_order}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {config.payment_section_order.map((key, index) => (
+                  <SortablePaymentSection key={key} id={key} index={index} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              💡 Tip: De eerste zichtbare sectie wordt het meest opgevallen. Veel tenants plaatsen 'Overschrijving' bovenaan om kosten te besparen, terwijl anderen 'Direct betalen' bovenaan zetten voor snellere conversie.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
