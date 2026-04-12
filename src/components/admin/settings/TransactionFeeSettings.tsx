@@ -121,7 +121,7 @@ export function TransactionFeeSettings() {
     }
     
     console.log('[TransactionFeeSettings] activeTenantId:', activeTenantId);
-    console.log('[TransactionFeeSettings] roles:', JSON.stringify(roles));
+    console.log('[TransactionFeeSettings] currentTenant:', currentTenant?.name);
     
     setIsSaving(true);
     try {
