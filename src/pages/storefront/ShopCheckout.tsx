@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,32 @@ interface CustomerData {
   country: string;
 }
 
+// ── Helper: call storefront-api edge function ──
+async function storefrontApi(tenantId: string, action: string, params: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.functions.invoke('storefront-api', {
+    body: { action, tenant_id: tenantId, params },
+  });
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null);
+    throw new Error(body?.error?.message || body?.error || error.message);
+  }
+  if (data?.success === false) {
+    throw new Error(data.error?.message || data.error || 'Onbekende fout');
+  }
+  return data;
+}
+
+// Session-id for server-side cart (persists per browser tab session)
+function getSessionId(): string {
+  const key = 'sellqo_session_id';
+  let id = sessionStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export default function ShopCheckout() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
@@ -40,29 +66,18 @@ export default function ShopCheckout() {
   const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
   const { t } = useTranslation();
-  
+
   const [step, setStep] = useState<CheckoutStep>('details');
   const [customerData, setCustomerData] = useState<CustomerData>({
-    email: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    companyName: '',
-    street: '',
-    houseNumber: '',
-    postalCode: '',
-    city: '',
-    country: '',
+    email: '', firstName: '', lastName: '', phone: '', companyName: '',
+    street: '', houseNumber: '', postalCode: '', city: '', country: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(['card']);
   const [isProcessing, setIsProcessing] = useState(false);
   const submittingRef = useRef(false);
   const [bankTransferOrder, setBankTransferOrder] = useState<{
-    orderId: string;
-    orderNumber: string;
-    ogmReference: string;
-    amount: number;
+    orderId: string; orderNumber: string; ogmReference: string; amount: number;
   } | null>(null);
   const [addressQuery, setAddressQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -73,12 +88,17 @@ export default function ShopCheckout() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authProcessing, setAuthProcessing] = useState(false);
 
+  // Server-side cart state
+  const [serverCartId, setServerCartId] = useState<string | null>(null);
+  const [checkoutData, setCheckoutData] = useState<any>(null);
+  const [selectedFee, setSelectedFee] = useState<{ fee_cents: number; fee_label: string } | null>(null);
+
   // Read checkout config settings
   const ts = themeSettings as any;
   const phoneRequired = ts?.checkout_phone_required || false;
   const companyField = ts?.checkout_company_field || 'hidden';
   const addressAutocomplete = ts?.checkout_address_autocomplete || false;
-  const guestEnabled = ts?.checkout_guest_enabled !== false; // default true
+  const guestEnabled = ts?.checkout_guest_enabled !== false;
 
   // Check auth state
   useEffect(() => {
@@ -89,10 +109,7 @@ export default function ShopCheckout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user || null);
       if (session?.user) {
-        setCustomerData(prev => ({
-          ...prev,
-          email: prev.email || session.user.email || '',
-        }));
+        setCustomerData(prev => ({ ...prev, email: prev.email || session.user.email || '' }));
       }
     });
     return () => subscription.unsubscribe();
@@ -100,9 +117,7 @@ export default function ShopCheckout() {
 
   // Set tenant slug for cart context
   useEffect(() => {
-    if (tenantSlug) {
-      setTenantSlug(tenantSlug);
-    }
+    if (tenantSlug) setTenantSlug(tenantSlug);
   }, [tenantSlug, setTenantSlug]);
 
   // Handle cancelled Stripe checkout redirect
@@ -114,33 +129,22 @@ export default function ShopCheckout() {
     }
   }, []);
 
-  // Load tenant payment settings
   // Build enabled payment methods from tenant config
   useEffect(() => {
     if (!tenant) return;
     const rawMethods = (tenant.payment_methods_enabled || []) as string[];
     const stripeSubMethods: PaymentMethod[] = ((tenant as any).stripe_payment_methods || ['card', 'ideal', 'bancontact']) as PaymentMethod[];
-    
     const methods: PaymentMethod[] = [];
-    // If 'stripe' is in enabled methods, expand to individual sub-methods
-    if (rawMethods.includes('stripe')) {
-      methods.push(...stripeSubMethods);
-    }
-    // Also add individual stripe methods if listed directly
+    if (rawMethods.includes('stripe')) methods.push(...stripeSubMethods);
     for (const m of rawMethods) {
       if (['card', 'ideal', 'bancontact', 'klarna'].includes(m) && !methods.includes(m as PaymentMethod)) {
         methods.push(m as PaymentMethod);
       }
     }
-    if (rawMethods.includes('bank_transfer')) {
-      methods.push('bank_transfer');
-    }
-    
+    if (rawMethods.includes('bank_transfer')) methods.push('bank_transfer');
     const final = methods.length > 0 ? methods : ['card' as PaymentMethod];
     setEnabledPaymentMethods(final);
-    if (!final.includes(paymentMethod)) {
-      setPaymentMethod(final[0]);
-    }
+    if (!final.includes(paymentMethod)) setPaymentMethod(final[0]);
   }, [tenant]);
 
   // Set default country from tenant
@@ -163,12 +167,8 @@ export default function ShopCheckout() {
     return () => clearTimeout(timer);
   }, [addressQuery, addressAutocomplete, customerData.country]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: tenant?.currency || 'EUR',
-    }).format(price);
-  };
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('nl-NL', { style: 'currency', currency: tenant?.currency || 'EUR' }).format(price);
 
   const subtotal = getSubtotal();
 
@@ -176,19 +176,14 @@ export default function ShopCheckout() {
     setCustomerData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle address search query changes (separate from individual fields)
   const handleSearchQueryChange = (value: string) => {
     setAddressQuery(value);
-    if (value.length < 3) {
-      setShowSuggestions(false);
-    }
+    if (value.length < 3) setShowSuggestions(false);
   };
 
   const handleSelectSuggestion = (suggestion: any) => {
-    // Split street into street name and house number if possible
     const streetParts = suggestion.street || '';
     const streetMatch = streetParts.match(/^(.+?)\s+(\d+\S*)$/);
-    
     setCustomerData(prev => ({
       ...prev,
       street: streetMatch ? streetMatch[1] : streetParts,
@@ -221,108 +216,174 @@ export default function ShopCheckout() {
     return true;
   };
 
-  const handleCustomerDetailsSubmit = () => {
-    if (!validateForm()) return;
-    
-    if (enabledPaymentMethods.length === 1) {
-      setPaymentMethod(enabledPaymentMethods[0]);
-      handlePayment(enabledPaymentMethods[0]);
-    } else {
-      setStep('payment');
-    }
-  };
+  // ── CANONICAL CHECKOUT FLOW ──
 
-  const handlePayment = async (method: PaymentMethod) => {
+  // Step 1: Create server cart + sync items + start checkout + save customer + address
+  const initServerCart = useCallback(async (): Promise<string> => {
+    if (!tenant) throw new Error('Tenant niet geladen');
+
+    // Create or get server-side cart
+    const sessionId = getSessionId();
+    const cartResult = await storefrontApi(tenant.id, 'cart_create', {
+      session_id: sessionId,
+      currency: tenant.currency || 'EUR',
+    });
+    const cartId = cartResult.cart_id;
+
+    // Clear existing items and add current cart items
+    // First get current server cart to avoid duplicates
+    const existingCart = await storefrontApi(tenant.id, 'cart_get', { cart_id: cartId });
+    const existingItems = existingCart?.items || [];
+    
+    // Remove all existing items
+    for (const item of existingItems) {
+      await storefrontApi(tenant.id, 'cart_remove_item', { cart_id: cartId, item_id: item.id });
+    }
+
+    // Add all current client-side items
+    for (const item of cartItems) {
+      await storefrontApi(tenant.id, 'cart_add_item', {
+        cart_id: cartId,
+        product_id: item.productId,
+        variant_id: item.variantId || undefined,
+        quantity: item.quantity,
+      });
+    }
+
+    return cartId;
+  }, [tenant, cartItems]);
+
+  const handleCustomerDetailsSubmit = async () => {
+    if (!validateForm()) return;
     if (!tenant) return;
-    if (submittingRef.current) return; // Prevent double-click
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setIsProcessing(true);
-    
-    try {
-      const formattedItems = cartItems.map(item => ({
-        product_id: item.productId,
-        product_name: item.name,
-        product_sku: item.sku,
-        product_image: item.image,
-        quantity: item.quantity,
-        unit_price: item.price,
-      }));
 
+    try {
+      // 1. Create/sync server cart
+      const cartId = await initServerCart();
+      setServerCartId(cartId);
+
+      // 2. Start checkout
+      const startData = await storefrontApi(tenant.id, 'checkout_start', { cart_id: cartId });
+      setCheckoutData(startData);
+
+      // 3. Save customer data
+      await storefrontApi(tenant.id, 'checkout_customer', {
+        cart_id: cartId,
+        customer: {
+          email: customerData.email,
+          first_name: customerData.firstName,
+          last_name: customerData.lastName,
+          phone: customerData.phone || undefined,
+        },
+      });
+
+      // 4. Save address
       const shippingAddress = {
         street: `${customerData.street} ${customerData.houseNumber}`.trim(),
         city: customerData.city,
         postal_code: customerData.postalCode,
         country: customerData.country,
       };
+      await storefrontApi(tenant.id, 'checkout_address', {
+        cart_id: cartId,
+        shipping_address: shippingAddress,
+        billing_same_as_shipping: true,
+      });
 
-      if (method !== 'bank_transfer') {
-        const { data: sessionData, error } = await supabase.functions.invoke('create-checkout-session', {
-          body: {
-            tenant_id: tenant.id,
-            items: formattedItems,
-            customer_email: customerData.email,
-            customer_name: `${customerData.firstName} ${customerData.lastName}`,
-            customer_phone: customerData.phone,
-            company_name: customerData.companyName || undefined,
-            shipping_address: shippingAddress,
-            billing_address: shippingAddress,
-            shipping_cost: undefined,
-            preferred_payment_method: method,
-          },
-        });
-
-        if (error) {
-          const body = await error.context?.json?.().catch(() => null);
-          console.error('create-checkout-session error:', body?.error || error.message);
-          throw new Error(body?.error || error.message);
-        }
-        if (sessionData?.url) {
-          clearCart();
-          window.location.href = sessionData.url;
-        }
-      } else if (method === 'bank_transfer') {
-        const { data: orderData, error } = await supabase.functions.invoke('create-bank-transfer-order', {
-          body: {
-            tenant_id: tenant.id,
-            items: formattedItems,
-            customer_email: customerData.email,
-            customer_name: `${customerData.firstName} ${customerData.lastName}`,
-            customer_phone: customerData.phone,
-            company_name: customerData.companyName || undefined,
-            shipping_address: shippingAddress,
-            billing_address: shippingAddress,
-            shipping_cost: undefined,
-          },
-        });
-
-        if (error) {
-          const body = await error.context?.json?.().catch(() => null);
-          console.error('create-bank-transfer-order error:', body?.error || error.message);
-          throw new Error(body?.error || error.message);
-        }
-        
-        clearCart();
-        navigate(`/shop/${tenantSlug}/checkout/qr-betaling`, {
-          state: {
-            orderId: orderData.order.id,
-            orderNumber: orderData.order.order_number,
-            total: orderData.order.total,
-            currency: orderData.order.currency || 'EUR',
-            bankDetails: orderData.bank_details,
-          },
-        });
+      // If only 1 payment method, go straight to payment
+      if (enabledPaymentMethods.length === 1) {
+        setPaymentMethod(enabledPaymentMethods[0]);
+        await handleSelectAndComplete(cartId, enabledPaymentMethods[0]);
+      } else {
+        // Show payment method selection step
+        setStep('payment');
       }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error('Er ging iets mis bij het verwerken van je bestelling');
+    } catch (error: any) {
+      console.error('Checkout init error:', error);
+      toast.error(error.message || 'Er ging iets mis bij het starten van de checkout');
     } finally {
       submittingRef.current = false;
       setIsProcessing(false);
     }
   };
 
+  // Handle payment method change — call checkout_select_payment_method to get fee info
+  const handlePaymentMethodChange = async (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    if (!serverCartId || !tenant) return;
+
+    try {
+      const result = await storefrontApi(tenant.id, 'checkout_select_payment_method', {
+        cart_id: serverCartId,
+        payment_method: method,
+      });
+      setSelectedFee({ fee_cents: result.fee_cents || 0, fee_label: result.fee_label || 'Transactiekosten' });
+    } catch (err: any) {
+      console.warn('Payment method select error:', err.message);
+      // Non-blocking — user can still proceed
+    }
+  };
+
+  // Select payment method + complete checkout in one go
+  const handleSelectAndComplete = async (cartId: string, method: PaymentMethod) => {
+    if (!tenant) return;
+    setIsProcessing(true);
+
+    try {
+      // Select payment method (saves fee on cart)
+      await storefrontApi(tenant.id, 'checkout_select_payment_method', {
+        cart_id: cartId,
+        payment_method: method,
+      });
+
+      // Build URLs
+      const origin = window.location.origin;
+      const successUrl = `${origin}/shop/${tenantSlug}/order/{{ORDER_ID}}?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${origin}/shop/${tenantSlug}/checkout?cancelled=true`;
+
+      // Complete checkout
+      const result = await storefrontApi(tenant.id, 'checkout_complete', {
+        cart_id: cartId,
+        payment_method: method,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      });
+
+      clearCart();
+
+      if (result.payment_type === 'redirect' && result.checkout_url) {
+        // Stripe redirect
+        window.location.href = result.checkout_url;
+      } else if (result.payment_type === 'qr') {
+        // Bank transfer — navigate to QR payment page
+        navigate(`/shop/${tenantSlug}/checkout/qr-betaling`, {
+          state: {
+            orderId: result.order_id,
+            orderNumber: result.order_number,
+            total: result.total,
+            currency: result.currency || 'EUR',
+            bankDetails: result.bank_details,
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error('Checkout complete error:', error);
+      toast.error(error.message || 'Er ging iets mis bij het verwerken van je bestelling');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePaymentMethodConfirm = () => {
-    handlePayment(paymentMethod);
+    if (!serverCartId) {
+      toast.error('Checkout sessie verlopen, probeer opnieuw');
+      setStep('details');
+      return;
+    }
+    handleSelectAndComplete(serverCartId, paymentMethod);
   };
 
   // Empty cart redirect
@@ -519,7 +580,7 @@ export default function ShopCheckout() {
                   {/* Address */}
                   <div className="space-y-4">
                     <h3 className="font-medium">{t('checkout.shippingAddress')}</h3>
-                    
+
                     {/* Separate address search bar */}
                     {addressAutocomplete && (
                       <div className="relative">
@@ -615,9 +676,7 @@ export default function ShopCheckout() {
                     size="lg"
                     onClick={handleCustomerDetailsSubmit}
                     disabled={isProcessing}
-                    style={{
-                      backgroundColor: themeSettings?.primary_color || undefined,
-                    }}
+                    style={{ backgroundColor: themeSettings?.primary_color || undefined }}
                   >
                     {isProcessing ? (
                       <>
@@ -634,21 +693,19 @@ export default function ShopCheckout() {
               <div className="space-y-6">
                 <PaymentMethodSelector
                   value={paymentMethod}
-                  onChange={setPaymentMethod}
+                  onChange={handlePaymentMethodChange}
                   enabledMethods={enabledPaymentMethods}
                   stripePaymentMethods={(tenant as any)?.stripe_payment_methods || ['card', 'ideal', 'bancontact']}
                   showTransactionFee={tenant?.pass_transaction_fee_to_customer || false}
-                  transactionFeeLabel={tenant?.transaction_fee_label || 'Transactiekosten'}
+                  transactionFeeLabel={selectedFee?.fee_label || tenant?.transaction_fee_label || 'Transactiekosten'}
                 />
-                
+
                 <Button
                   className="w-full"
                   size="lg"
                   onClick={handlePaymentMethodConfirm}
                   disabled={isProcessing}
-                  style={{
-                    backgroundColor: themeSettings?.primary_color || undefined,
-                  }}
+                  style={{ backgroundColor: themeSettings?.primary_color || undefined }}
                 >
                   {isProcessing ? (
                     <>
@@ -704,6 +761,12 @@ export default function ShopCheckout() {
                     <span className="text-muted-foreground">Subtotaal</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
+                  {selectedFee && selectedFee.fee_cents > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{selectedFee.fee_label}</span>
+                      <span>{formatPrice(selectedFee.fee_cents / 100)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
                     <span className="text-muted-foreground">Wordt berekend</span>
@@ -713,8 +776,8 @@ export default function ShopCheckout() {
                 <Separator className="my-4" />
 
                 <div className="flex justify-between font-semibold text-lg">
-                  <span>Subtotaal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>Totaal</span>
+                  <span>{formatPrice(subtotal + (selectedFee?.fee_cents || 0) / 100)}</span>
                 </div>
               </CardContent>
             </Card>
