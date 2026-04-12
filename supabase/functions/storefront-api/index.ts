@@ -1539,10 +1539,18 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   }).eq('id', cartId);
 
   // Get available methods
+  const subtotalCents = Math.round(cart.subtotal * 100);
+  const country = (cart.shipping_address?.country as string) || 'BE';
   const [paymentMethods, shippingMethods] = await Promise.all([
-    checkoutGetPaymentMethods(supabase, tenantId),
+    checkoutGetPaymentMethods(supabase, tenantId, subtotalCents, country),
     checkoutGetShippingOptions(supabase, tenantId, { subtotal: cart.subtotal }),
   ]);
+
+  // Get tenant fee config
+  const { data: tenantFeeData } = await supabase
+    .from('tenants')
+    .select('pass_transaction_fee_to_customer, transaction_fee_label')
+    .eq('id', tenantId).single();
 
   const items = cart.cartItems.map((item: any) => ({
     id: item.id,
@@ -1568,6 +1576,8 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     requires_shipping: shippingMethods.length > 0,
     available_payment_methods: paymentMethods,
     available_shipping_methods: shippingMethods,
+    pass_fee_to_customer: tenantFeeData?.pass_transaction_fee_to_customer || false,
+    fee_label: tenantFeeData?.transaction_fee_label || 'Transactiekosten',
   };
 }
 
@@ -2243,22 +2253,60 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
   }));
 }
 
-async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
+async function checkoutGetPaymentMethods(supabase: any, tenantId: string, subtotalCents = 0, country = 'BE') {
+  console.log('STOREFRONT_API v2: fine-grained payment methods');
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label')
     .eq('id', tenantId).single();
 
-  const enabledMethods = (tenant?.payment_methods_enabled as string[] | null) || [];
+  if (!tenant) return [];
+  return getAvailablePaymentMethods(tenant, subtotalCents, country);
+}
 
-  const methods: any[] = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && enabledMethods.includes('stripe')) {
-    methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
-  }
-  if (tenant?.iban && enabledMethods.includes('bank_transfer')) {
-    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via overschrijving of scan de QR-code met je bankapp', type: 'manual' });
-  }
-  return methods;
+async function checkoutSelectPaymentMethod(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const cartId = params.cart_id as string;
+  const paymentMethod = params.payment_method as string;
+  if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
+  if (!paymentMethod) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'payment_method is required' } };
+
+  const cart = await getCartForCheckout(supabase, tenantId, cartId);
+  if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label')
+    .eq('id', tenantId).single();
+  if (!tenant) return { success: false, error: { code: 'TENANT_CONFIG_ERROR', message: 'Tenant niet gevonden' } };
+
+  const subtotalCents = Math.round(cart.subtotal * 100);
+  const country = cart.shipping_address?.country || 'BE';
+  const available = getAvailablePaymentMethods(tenant, subtotalCents, country);
+  const chosen = available.find((m: any) => m.method === paymentMethod);
+  if (!chosen) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: `Betaalmethode '${paymentMethod}' is niet beschikbaar` } };
+  if (!chosen.available) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: chosen.reason_unavailable || 'Betaalmethode niet beschikbaar' } };
+
+  const feeCents = tenant.pass_transaction_fee_to_customer ? calculateStripeFee(subtotalCents, paymentMethod) : 0;
+  const shippingCost = Number(cart.shipping_cost) || 0;
+  const discountAmount = Number(cart.discount_amount) || 0;
+  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
+
+  await supabase.from('storefront_carts').update({
+    payment_method: paymentMethod,
+    calculated_fee_cents: feeCents,
+    updated_at: new Date().toISOString(),
+  }).eq('id', cartId);
+
+  return {
+    payment_method: paymentMethod,
+    fee_cents: feeCents,
+    fee_label: tenant.transaction_fee_label || 'Transactiekosten',
+    subtotal: cart.subtotal,
+    discount_amount: discountAmount,
+    shipping_cost: shippingCost,
+    total,
+    currency: cart.currency || 'EUR',
+  };
 }
 
 async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
