@@ -1425,7 +1425,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Get tenant config
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency')
+    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order')
     .eq('id', tenantId).single();
 
   const currency = cart.currency || tenant?.currency || 'EUR';
@@ -1532,6 +1532,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
     fee_label: tenant?.transaction_fee_label || 'Transactiekosten',
     pass_fee_to_customer: passFee,
+    payment_section_order: tenant?.payment_section_order || ['direct', 'later', 'transfer'],
   };
 }
 

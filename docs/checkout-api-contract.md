@@ -88,6 +88,9 @@ interface CartResponse {
   // Tenant display config
   fee_label: string;
   pass_fee_to_customer: boolean;
+
+  // Tenant-configurable display order of payment sections
+  payment_section_order: ('direct' | 'later' | 'transfer')[];
 }
 ```
 
