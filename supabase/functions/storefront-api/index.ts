@@ -1376,10 +1376,10 @@ function deriveCartCheckoutStatus(cart: any): string {
   if (cart.checkout_status === 'converted') return 'converted';
   if (cart.payment_method) return 'payment_selected';
   if (cart.shipping_method_id) return 'shipping_selected';
-  if (cart.shipping_address) return 'address_saved';
+  if (cart.shipping_address) return 'address_set';
   if (cart.customer_email) return 'customer_saved';
   if (cart.checkout_status === 'checkout') return 'checkout_started';
-  return 'shopping';
+  return 'cart';
 }
 
 async function getCartForCheckout(supabase: any, tenantId: string, cartId: string) {
@@ -1414,6 +1414,125 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
   return { ...cart, cartItems, subtotal };
+}
+
+// ============== BUILD CART RESPONSE (Single Source of Truth) ==============
+
+async function buildCartResponse(supabase: any, tenantId: string, cartId: string): Promise<Record<string, any>> {
+  const cart = await getCartForCheckout(supabase, tenantId, cartId);
+  if (!cart) throw new Error('Cart niet gevonden');
+
+  // Get tenant config
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency')
+    .eq('id', tenantId).single();
+
+  const currency = cart.currency || tenant?.currency || 'EUR';
+  const subtotal = cart.subtotal;
+  const discountCodes: string[] = cart.discount_codes || [];
+
+  // Recalculate discount amounts from stored codes
+  let discountTotal = 0;
+  let hasFreeShipping = false;
+  const appliedDiscounts: { code: string; description: string; amount: number }[] = [];
+
+  for (const dc of discountCodes) {
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal });
+    if (!v.valid) continue;
+    if (v.discount_type === 'free_shipping') {
+      hasFreeShipping = true;
+      appliedDiscounts.push({ code: dc, description: 'Gratis verzending', amount: 0 });
+    } else {
+      const amt = calculateDiscountValue(subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
+      discountTotal += amt;
+      appliedDiscounts.push({ code: dc, description: v.description || `${v.discount_value}${v.discount_type === 'percentage' ? '%' : '€'} korting`, amount: Math.round(amt * 100) / 100 });
+    }
+  }
+
+  // Shipping
+  let shippingCost = Number(cart.shipping_cost) || 0;
+  let shippingMethod: { id: string; name: string } | null = null;
+  if (cart.shipping_method_id) {
+    const { data: sm } = await supabase.from('shipping_methods').select('id, name, price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
+    if (sm) {
+      shippingMethod = { id: sm.id, name: sm.name };
+      shippingCost = (hasFreeShipping || (sm.free_above && subtotal >= sm.free_above)) ? 0 : sm.price;
+    }
+  }
+  if (hasFreeShipping) shippingCost = 0;
+
+  // Payment method & fee
+  const paymentMethod = cart.payment_method || null;
+  const subtotalCents = Math.round(subtotal * 100);
+  const country = cart.shipping_address?.country || 'BE';
+  let fee: { label: string; amount: number } | null = null;
+  const passFee = tenant?.pass_transaction_fee_to_customer || false;
+
+  if (paymentMethod && passFee) {
+    const feeCents = calculateStripeFee(subtotalCents, paymentMethod);
+    if (feeCents > 0) {
+      fee = { label: tenant?.transaction_fee_label || 'Transactiekosten', amount: Math.round(feeCents) / 100 };
+    }
+  }
+
+  // Total
+  const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
+
+  // Available shipping methods
+  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal });
+
+  // Available payment methods
+  const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
+
+  // Items
+  const items = cart.cartItems.map((item: any) => ({
+    id: item.id,
+    product_id: item.product_id,
+    variant_id: item.variant_id,
+    name: item.product?.name || '',
+    variant: item.variant?.title || null,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    line_total: item.line_total,
+    image: item.product?.image || null,
+    sku: item.product?.sku || null,
+    in_stock: item.product?.in_stock ?? true,
+  }));
+
+  return {
+    cart_id: cartId,
+    currency,
+    items,
+
+    subtotal,
+    shipping_cost: shippingCost,
+    shipping_method: shippingMethod,
+
+    applied_discounts: appliedDiscounts,
+    discount_total: Math.round(discountTotal * 100) / 100,
+
+    payment_method: paymentMethod,
+    fee,
+
+    total: Math.max(0, total),
+
+    checkout_status: deriveCartCheckoutStatus(cart),
+    customer: cart.customer_email ? {
+      email: cart.customer_email,
+      first_name: cart.customer_first_name || null,
+      last_name: cart.customer_last_name || null,
+      phone: cart.customer_phone || null,
+    } : null,
+    shipping_address: cart.shipping_address || null,
+    billing_address: cart.billing_address || null,
+
+    available_shipping_methods: availableShipping,
+    available_payment_methods: availablePayment,
+
+    fee_label: tenant?.transaction_fee_label || 'Transactiekosten',
+    pass_fee_to_customer: passFee,
+  };
 }
 
 async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
