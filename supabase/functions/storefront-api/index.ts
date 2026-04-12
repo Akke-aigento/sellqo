@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/stripe-fees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1538,10 +1539,18 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   }).eq('id', cartId);
 
   // Get available methods
+  const subtotalCents = Math.round(cart.subtotal * 100);
+  const country = (cart.shipping_address?.country as string) || 'BE';
   const [paymentMethods, shippingMethods] = await Promise.all([
-    checkoutGetPaymentMethods(supabase, tenantId),
+    checkoutGetPaymentMethods(supabase, tenantId, subtotalCents, country),
     checkoutGetShippingOptions(supabase, tenantId, { subtotal: cart.subtotal }),
   ]);
+
+  // Get tenant fee config
+  const { data: tenantFeeData } = await supabase
+    .from('tenants')
+    .select('pass_transaction_fee_to_customer, transaction_fee_label')
+    .eq('id', tenantId).single();
 
   const items = cart.cartItems.map((item: any) => ({
     id: item.id,
@@ -1567,6 +1576,8 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     requires_shipping: shippingMethods.length > 0,
     available_payment_methods: paymentMethods,
     available_shipping_methods: shippingMethods,
+    pass_fee_to_customer: tenantFeeData?.pass_transaction_fee_to_customer || false,
+    fee_label: tenantFeeData?.transaction_fee_label || 'Transactiekosten',
   };
 }
 
@@ -1686,7 +1697,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   // Get tenant info
   const { data: tenantData, error: tenantError } = await supabase
-    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency')
+    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled')
     .eq('id', tenantId).single();
 
   if (tenantError || !tenantData) {
@@ -1696,10 +1707,21 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
-  const total = cart.subtotal - discountAmount + shippingCost;
+  const feeCents = cart.calculated_fee_cents || 0;
+  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
   const currency = cart.currency || tenantData?.currency || 'EUR';
 
-  if (paymentMethodId === 'stripe' && tenantData?.stripe_account_id) {
+  // Map fine-grained methods to Stripe payment_method_types
+  const stripeMethodMap: Record<string, string> = {
+    'bancontact': 'bancontact',
+    'ideal': 'ideal',
+    'card': 'card',
+    'klarna': 'klarna',
+    'stripe': 'card', // backward compat: legacy 'stripe' umbrella defaults to card
+  };
+  const isStripeMethod = paymentMethodId in stripeMethodMap;
+
+  if (isStripeMethod && tenantData?.stripe_account_id) {
     if (!successUrl || !cancelUrl) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'success_url en cancel_url zijn verplicht voor Stripe' } };
 
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
@@ -1725,16 +1747,29 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       });
     }
 
-    // Build session params
+    // Add transaction fee as line item if applicable
+    if (tenantData.pass_transaction_fee_to_customer && feeCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: { name: tenantData.transaction_fee_label || 'Transactiekosten' },
+          unit_amount: feeCents,
+        },
+        quantity: 1,
+      });
+    }
+
+    // Build session params with specific payment method type
     const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
+      ...(paymentMethodId !== 'stripe' ? { payment_method_types: [stripeMethodMap[paymentMethodId]] } : {}),
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: cart.customer_email,
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: 0,
+        application_fee_amount: feeCents,
         transfer_data: { destination: tenantData.stripe_account_id },
       },
     };
@@ -2242,22 +2277,60 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
   }));
 }
 
-async function checkoutGetPaymentMethods(supabase: any, tenantId: string) {
+async function checkoutGetPaymentMethods(supabase: any, tenantId: string, subtotalCents = 0, country = 'BE') {
+  console.log('STOREFRONT_API v2: fine-grained payment methods');
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label')
     .eq('id', tenantId).single();
 
-  const enabledMethods = (tenant?.payment_methods_enabled as string[] | null) || [];
+  if (!tenant) return [];
+  return getAvailablePaymentMethods(tenant, subtotalCents, country);
+}
 
-  const methods: any[] = [];
-  if (tenant?.stripe_account_id && tenant?.stripe_charges_enabled && enabledMethods.includes('stripe')) {
-    methods.push({ id: 'stripe', name: 'Online betalen', description: 'iDEAL, creditcard, Bancontact', type: 'online' });
-  }
-  if (tenant?.iban && enabledMethods.includes('bank_transfer')) {
-    methods.push({ id: 'bank_transfer', name: 'Bankoverschrijving', description: 'Betaal via overschrijving of scan de QR-code met je bankapp', type: 'manual' });
-  }
-  return methods;
+async function checkoutSelectPaymentMethod(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const cartId = params.cart_id as string;
+  const paymentMethod = params.payment_method as string;
+  if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
+  if (!paymentMethod) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'payment_method is required' } };
+
+  const cart = await getCartForCheckout(supabase, tenantId, cartId);
+  if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('stripe_account_id, stripe_charges_enabled, iban, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label')
+    .eq('id', tenantId).single();
+  if (!tenant) return { success: false, error: { code: 'TENANT_CONFIG_ERROR', message: 'Tenant niet gevonden' } };
+
+  const subtotalCents = Math.round(cart.subtotal * 100);
+  const country = cart.shipping_address?.country || 'BE';
+  const available = getAvailablePaymentMethods(tenant, subtotalCents, country);
+  const chosen = available.find((m: any) => m.method === paymentMethod);
+  if (!chosen) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: `Betaalmethode '${paymentMethod}' is niet beschikbaar` } };
+  if (!chosen.available) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: chosen.reason_unavailable || 'Betaalmethode niet beschikbaar' } };
+
+  const feeCents = tenant.pass_transaction_fee_to_customer ? calculateStripeFee(subtotalCents, paymentMethod) : 0;
+  const shippingCost = Number(cart.shipping_cost) || 0;
+  const discountAmount = Number(cart.discount_amount) || 0;
+  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
+
+  await supabase.from('storefront_carts').update({
+    payment_method: paymentMethod,
+    calculated_fee_cents: feeCents,
+    updated_at: new Date().toISOString(),
+  }).eq('id', cartId);
+
+  return {
+    payment_method: paymentMethod,
+    fee_cents: feeCents,
+    fee_label: tenant.transaction_fee_label || 'Transactiekosten',
+    subtotal: cart.subtotal,
+    discount_amount: discountAmount,
+    shipping_cost: shippingCost,
+    total,
+    currency: cart.currency || 'EUR',
+  };
 }
 
 async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -2504,6 +2577,7 @@ serve(async (req) => {
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;
       case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;
       case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
       case 'checkout_apply_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
@@ -2511,7 +2585,12 @@ serve(async (req) => {
       // Legacy checkout compat
       case 'checkout_set_addresses': result = await checkoutSetAddresses(supabase, tenant_id, params); break;
       case 'checkout_get_shipping_options': result = await checkoutGetShippingOptions(supabase, tenant_id, params); break;
-      case 'checkout_get_payment_methods': result = await checkoutGetPaymentMethods(supabase, tenant_id); break;
+      case 'checkout_get_payment_methods': {
+        const subtotal = params.subtotal_cents as number || 0;
+        const ctry = params.country as string || 'BE';
+        result = await checkoutGetPaymentMethods(supabase, tenant_id, subtotal, ctry);
+        break;
+      }
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
       case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;

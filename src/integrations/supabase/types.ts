@@ -12339,6 +12339,7 @@ export type Database = {
         Row: {
           billing_address: Json | null
           billing_same_as_shipping: boolean | null
+          calculated_fee_cents: number | null
           checkout_status: string | null
           created_at: string
           currency: string
@@ -12363,6 +12364,7 @@ export type Database = {
         Insert: {
           billing_address?: Json | null
           billing_same_as_shipping?: boolean | null
+          calculated_fee_cents?: number | null
           checkout_status?: string | null
           created_at?: string
           currency?: string
@@ -12387,6 +12389,7 @@ export type Database = {
         Update: {
           billing_address?: Json | null
           billing_same_as_shipping?: boolean | null
+          calculated_fee_cents?: number | null
           checkout_status?: string | null
           created_at?: string
           currency?: string
@@ -14381,6 +14384,7 @@ export type Database = {
           auto_generate_invoice: boolean | null
           auto_send_invoice_email: boolean | null
           auto_send_invoices: boolean | null
+          bank_transfer_acknowledged_manual: boolean | null
           bic: string | null
           billing_address: Json | null
           billing_company_name: string | null
@@ -14481,6 +14485,7 @@ export type Database = {
           auto_generate_invoice?: boolean | null
           auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
+          bank_transfer_acknowledged_manual?: boolean | null
           bic?: string | null
           billing_address?: Json | null
           billing_company_name?: string | null
@@ -14581,6 +14586,7 @@ export type Database = {
           auto_generate_invoice?: boolean | null
           auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
+          bank_transfer_acknowledged_manual?: boolean | null
           bic?: string | null
           billing_address?: Json | null
           billing_company_name?: string | null
