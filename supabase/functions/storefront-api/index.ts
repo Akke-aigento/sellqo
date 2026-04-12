@@ -1653,14 +1653,18 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   }
 
   // Mark cart as in checkout — reset stale payment/shipping from previous attempts
-  await supabase.from('storefront_carts').update({
+  console.log('[checkoutStart] v2 RESET ACTIVE for cart:', cartId);
+  const { error: resetError } = await supabase.from('storefront_carts').update({
     checkout_status: 'checkout',
     payment_method: null,
     selected_shipping_method_id: null,
     shipping_cost: 0,
     stripe_session_id: null,
     updated_at: new Date().toISOString(),
-  }).eq('id', cartId);
+  }).eq('id', cartId).eq('tenant_id', tenantId);
+  if (resetError) {
+    console.error('[checkoutStart] Reset update failed:', resetError);
+  }
 
   return buildCartResponse(supabase, tenantId, cartId);
 }
