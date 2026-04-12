@@ -256,10 +256,7 @@ export function TransactionFeeSettings() {
       togglePaymentMethod('bank_transfer');
       return;
     }
-    if (config.bank_transfer_acknowledged_manual) {
-      togglePaymentMethod('bank_transfer');
-      return;
-    }
+    // Always show responsibility dialog when enabling bank transfer
     setShowBankTransferDialog(true);
   };
 
