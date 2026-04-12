@@ -1784,9 +1784,19 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
-  const feeCents = cart.calculated_fee_cents || 0;
-  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
   const currency = cart.currency || tenantData?.currency || 'EUR';
+
+  // Recalculate fee from scratch — never trust cart.calculated_fee_cents which may be stale
+  const subtotalCentsForFee = Math.round((cart.subtotal - discountAmount) * 100);
+  let feeCents = 0;
+  if (paymentMethodId && tenantData.pass_transaction_fee_to_customer) {
+    feeCents = calculateStripeFee(subtotalCentsForFee, paymentMethodId);
+  }
+  console.log('[checkoutComplete] payment_method:', paymentMethodId);
+  console.log('[checkoutComplete] pass_fee:', tenantData.pass_transaction_fee_to_customer);
+  console.log('[checkoutComplete] calculated feeCents:', feeCents);
+
+  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
 
   // Map fine-grained methods to Stripe payment_method_types
   const stripeMethodMap: Record<string, string> = {
