@@ -115,32 +115,52 @@ export function TransactionFeeSettings() {
   };
 
   const saveConfig = async () => {
-    if (!activeTenantId) return;
+    if (!activeTenantId) {
+      console.error('[TransactionFeeSettings] saveConfig called but activeTenantId is null');
+      return;
+    }
+    
+    console.log('[TransactionFeeSettings] activeTenantId:', activeTenantId);
+    console.log('[TransactionFeeSettings] roles:', JSON.stringify(roles));
     
     setIsSaving(true);
     try {
       const validCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
       const cleanedMethods = config.stripe_payment_methods.filter(m => validCodes.includes(m));
       
-      const { error } = await supabase
+      const updatePayload = {
+        payment_methods_enabled: config.payment_methods_enabled,
+        pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
+        transaction_fee_label: config.transaction_fee_label,
+        stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
+        bank_transfer_acknowledged_manual: config.bank_transfer_acknowledged_manual,
+      };
+      
+      console.log('[TransactionFeeSettings] UPDATE payload:', JSON.stringify(updatePayload));
+      console.log('[TransactionFeeSettings] UPDATE target tenant_id:', activeTenantId);
+      
+      const { error, data, count, status, statusText } = await supabase
         .from('tenants')
-        .update({
-          payment_methods_enabled: config.payment_methods_enabled,
-          pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
-          transaction_fee_label: config.transaction_fee_label,
-          stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
-          bank_transfer_acknowledged_manual: config.bank_transfer_acknowledged_manual,
-        })
-        .eq('id', activeTenantId);
+        .update(updatePayload)
+        .eq('id', activeTenantId)
+        .select();
+
+      console.log('[TransactionFeeSettings] UPDATE response:', { error, data, count, status, statusText });
 
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        console.error('[TransactionFeeSettings] UPDATE returned 0 rows — possible RLS silent failure');
+        toast.error('Opslaan mislukt: geen toegang (RLS). Neem contact op met support.');
+        return;
+      }
 
       const updatedConfig = { ...config, stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'] };
       setInitialConfig(updatedConfig);
       toast.success('Instellingen opgeslagen');
       refetchUsage();
     } catch (error) {
-      console.error('Error saving config:', error);
+      console.error('[TransactionFeeSettings] Error saving config:', error);
       toast.error('Fout bij opslaan instellingen');
     } finally {
       setIsSaving(false);
