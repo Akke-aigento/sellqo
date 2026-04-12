@@ -1697,7 +1697,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   // Get tenant info
   const { data: tenantData, error: tenantError } = await supabase
-    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency')
+    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled')
     .eq('id', tenantId).single();
 
   if (tenantError || !tenantData) {
@@ -1707,10 +1707,21 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
-  const total = cart.subtotal - discountAmount + shippingCost;
+  const feeCents = cart.calculated_fee_cents || 0;
+  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
   const currency = cart.currency || tenantData?.currency || 'EUR';
 
-  if (paymentMethodId === 'stripe' && tenantData?.stripe_account_id) {
+  // Map fine-grained methods to Stripe payment_method_types
+  const stripeMethodMap: Record<string, string> = {
+    'bancontact': 'bancontact',
+    'ideal': 'ideal',
+    'card': 'card',
+    'klarna': 'klarna',
+  };
+
+  const isStripeMethod = paymentMethodId in stripeMethodMap;
+
+  if (isStripeMethod && tenantData?.stripe_account_id) {
     if (!successUrl || !cancelUrl) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'success_url en cancel_url zijn verplicht voor Stripe' } };
 
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
@@ -1736,16 +1747,29 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       });
     }
 
-    // Build session params
+    // Add transaction fee as line item if applicable
+    if (tenantData.pass_transaction_fee_to_customer && feeCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: { name: tenantData.transaction_fee_label || 'Transactiekosten' },
+          unit_amount: feeCents,
+        },
+        quantity: 1,
+      });
+    }
+
+    // Build session params with specific payment method type
     const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
+      payment_method_types: [stripeMethodMap[paymentMethodId]],
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: cart.customer_email,
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: 0,
+        application_fee_amount: feeCents,
         transfer_data: { destination: tenantData.stripe_account_id },
       },
     };
