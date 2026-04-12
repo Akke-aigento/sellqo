@@ -1763,7 +1763,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
-      payment_method_types: [stripeMethodMap[paymentMethodId]],
+      ...(paymentMethodId !== 'stripe' ? { payment_method_types: [stripeMethodMap[paymentMethodId]] } : {}),
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: cart.customer_email,
