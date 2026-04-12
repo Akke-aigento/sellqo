@@ -1717,8 +1717,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     'ideal': 'ideal',
     'card': 'card',
     'klarna': 'klarna',
+    'stripe': 'card', // backward compat: legacy 'stripe' umbrella defaults to card
   };
-
   const isStripeMethod = paymentMethodId in stripeMethodMap;
 
   if (isStripeMethod && tenantData?.stripe_account_id) {
