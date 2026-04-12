@@ -1652,9 +1652,13 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     }
   }
 
-  // Mark cart as in checkout
+  // Mark cart as in checkout — reset stale payment/shipping from previous attempts
   await supabase.from('storefront_carts').update({
     checkout_status: 'checkout',
+    payment_method: null,
+    selected_shipping_method_id: null,
+    shipping_cost: 0,
+    stripe_session_id: null,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
 
