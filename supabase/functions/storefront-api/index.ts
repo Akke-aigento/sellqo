@@ -1857,11 +1857,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
         application_fee_amount: feeCents,
-        transfer_data: { destination: tenantData.stripe_account_id },
       },
     };
 
-    // Apply discount by reducing line item amounts proportionally (coupons incompatible with destination charges)
+    // Apply discount by reducing line item amounts proportionally
     if (discountAmount > 0) {
       const productItems = lineItems.filter(
         (li: any) => li.price_data.product_data.name !== 'Verzending'
@@ -1883,7 +1882,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       });
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await stripe.checkout.sessions.create(sessionParams, { stripeAccount: tenantData.stripe_account_id });
 
     // Save stripe session id on cart
     await supabase.from('storefront_carts').update({
@@ -2080,13 +2079,21 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
 
   if (!cart.stripe_session_id) return { success: true, status: 'pending', message: 'No Stripe session yet' };
 
-  // Check Stripe session status
+  // Check Stripe session status — retrieve from connected account (direct charges)
   const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
   const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
 
+  // Fetch tenant's stripe_account_id for direct charge retrieval
+  const { data: tenantForStripe } = await supabase
+    .from('tenants').select('stripe_account_id')
+    .eq('id', tenantId).single();
+
   let session;
   try {
-    session = await stripe.checkout.sessions.retrieve(cart.stripe_session_id);
+    session = await stripe.checkout.sessions.retrieve(
+      cart.stripe_session_id,
+      tenantForStripe?.stripe_account_id ? { stripeAccount: tenantForStripe.stripe_account_id } : undefined
+    );
   } catch (stripeErr: any) {
     console.error('Stripe session retrieve error:', stripeErr.message);
     return { success: true, status: 'pending', message: 'Could not verify payment status' };

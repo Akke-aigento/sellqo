@@ -44,10 +44,10 @@ serve(async (req) => {
       });
     }
 
-    // Fetch return with order info
+    // Fetch return with order info (include tenant's stripe_account_id for direct charge refunds)
     const { data: returnRecord, error: fetchError } = await supabase
       .from("returns")
-      .select("*, orders!returns_order_id_fkey(stripe_payment_intent_id, marketplace_source, tenant_id)")
+      .select("*, orders!returns_order_id_fkey(stripe_payment_intent_id, marketplace_source, tenant_id, tenants(stripe_account_id))")
       .eq("id", return_id)
       .single();
 
@@ -123,11 +123,16 @@ serve(async (req) => {
         ? Math.round(returnRecord.refund_amount * 100)
         : undefined;
 
-      const refund = await stripe.refunds.create({
-        payment_intent: paymentIntentId,
-        ...(refundAmount ? { amount: refundAmount } : {}),
-        reason: "requested_by_customer",
-      });
+      // Use stripeAccount for direct charge refunds (same pattern as pos-refund-payment)
+      const stripeAccountId = order?.tenants?.stripe_account_id;
+      const refund = await stripe.refunds.create(
+        {
+          payment_intent: paymentIntentId,
+          ...(refundAmount ? { amount: refundAmount } : {}),
+          reason: "requested_by_customer",
+        },
+        stripeAccountId ? { stripeAccount: stripeAccountId } : undefined
+      );
 
       await supabase
         .from("returns")
