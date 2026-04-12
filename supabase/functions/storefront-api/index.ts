@@ -1681,7 +1681,7 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
-  return { cart_id: cartId, status: 'customer_saved' };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutAddress(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -1703,7 +1703,7 @@ async function checkoutAddress(supabase: any, tenantId: string, params: Record<s
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
-  return { cart_id: cartId, status: 'address_saved' };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutShipping(supabase: any, tenantId: string, params: Record<string, unknown>) {
