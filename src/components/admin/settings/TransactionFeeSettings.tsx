@@ -9,6 +9,16 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   CreditCard, 
   Building2, 
@@ -19,6 +29,7 @@ import {
   Infinity,
   AlertTriangle,
   CheckCircle,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,7 +42,7 @@ const STRIPE_PAYMENT_METHODS = [
   { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
   { code: 'ideal', label: 'iDEAL', description: 'Directe bankoverschrijving', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
   { code: 'bancontact', label: 'Bancontact', description: 'Belgisch betaalsysteem', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
-  { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3-4%' },
+  { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3,5% + €0,30' },
 ];
 
 interface TenantPaymentConfig {
@@ -41,6 +52,7 @@ interface TenantPaymentConfig {
   iban: string | null;
   bic: string | null;
   stripe_payment_methods: string[];
+  bank_transfer_acknowledged_manual: boolean;
 }
 
 export function TransactionFeeSettings() {
@@ -55,10 +67,12 @@ export function TransactionFeeSettings() {
     iban: null,
     bic: null,
     stripe_payment_methods: ['card', 'ideal', 'bancontact'],
+    bank_transfer_acknowledged_manual: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [initialConfig, setInitialConfig] = useState<TenantPaymentConfig | null>(null);
+  const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
 
   useEffect(() => {
     if (activeTenantId) {
@@ -71,13 +85,12 @@ export function TransactionFeeSettings() {
     try {
       const { data, error } = await supabase
         .from('tenants')
-        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods')
+        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods, bank_transfer_acknowledged_manual')
         .eq('id', activeTenantId)
         .single();
 
       if (error) throw error;
 
-      // Sanitize: only keep codes that are in the current valid set
       const validStripeMethodCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
       const rawStripeMethods = (data.stripe_payment_methods as string[]) || ['card', 'ideal', 'bancontact'];
       const sanitizedStripeMethods = rawStripeMethods.filter(m => validStripeMethodCodes.includes(m));
@@ -89,6 +102,7 @@ export function TransactionFeeSettings() {
         iban: data.iban,
         bic: data.bic,
         stripe_payment_methods: sanitizedStripeMethods.length > 0 ? sanitizedStripeMethods : ['card'],
+        bank_transfer_acknowledged_manual: data.bank_transfer_acknowledged_manual || false,
       };
       setConfig(loaded);
       setInitialConfig(loaded);
@@ -105,7 +119,6 @@ export function TransactionFeeSettings() {
     
     setIsSaving(true);
     try {
-      // Sanitize before saving: only valid codes, fallback to ['card']
       const validCodes = STRIPE_PAYMENT_METHODS.map(m => m.code);
       const cleanedMethods = config.stripe_payment_methods.filter(m => validCodes.includes(m));
       
@@ -116,11 +129,14 @@ export function TransactionFeeSettings() {
           pass_transaction_fee_to_customer: config.pass_transaction_fee_to_customer,
           transaction_fee_label: config.transaction_fee_label,
           stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
+          bank_transfer_acknowledged_manual: config.bank_transfer_acknowledged_manual,
         })
         .eq('id', activeTenantId);
 
       if (error) throw error;
 
+      const updatedConfig = { ...config, stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'] };
+      setInitialConfig(updatedConfig);
       toast.success('Instellingen opgeslagen');
       refetchUsage();
     } catch (error) {
@@ -135,7 +151,6 @@ export function TransactionFeeSettings() {
     setConfig(prev => {
       const methods = prev.payment_methods_enabled;
       if (methods.includes(method)) {
-        // Don't allow removing last method
         if (methods.length === 1) {
           toast.error('Minimaal één betaalmethode vereist');
           return prev;
@@ -144,6 +159,34 @@ export function TransactionFeeSettings() {
       }
       return { ...prev, payment_methods_enabled: [...methods, method] };
     });
+  };
+
+  const handleBankTransferToggle = () => {
+    const isCurrentlyEnabled = config.payment_methods_enabled.includes('bank_transfer');
+    
+    if (isCurrentlyEnabled) {
+      // Turning off — no confirmation needed
+      togglePaymentMethod('bank_transfer');
+      return;
+    }
+
+    // Turning on — check if already acknowledged
+    if (config.bank_transfer_acknowledged_manual) {
+      togglePaymentMethod('bank_transfer');
+      return;
+    }
+
+    // First time enabling — show dialog
+    setShowBankTransferDialog(true);
+  };
+
+  const handleBankTransferAccepted = () => {
+    setShowBankTransferDialog(false);
+    setConfig(prev => ({
+      ...prev,
+      payment_methods_enabled: [...prev.payment_methods_enabled, 'bank_transfer'],
+      bank_transfer_acknowledged_manual: true,
+    }));
   };
 
   const canEnableBankTransfer = config.iban && config.iban.length >= 10;
@@ -282,44 +325,55 @@ export function TransactionFeeSettings() {
               <p className="text-sm font-medium mb-3">Beschikbare Stripe betaalmethodes</p>
               {STRIPE_PAYMENT_METHODS.map((method) => {
                 const isChecked = config.stripe_payment_methods.includes(method.code);
+                const isKlarna = method.code === 'klarna';
                 return (
-                  <label
-                    key={method.code}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        setConfig(prev => {
-                          const current = prev.stripe_payment_methods;
-                          if (!checked) {
-                            if (current.length === 1) {
-                              toast.error('Minimaal één Stripe methode vereist');
-                              return prev;
+                  <div key={method.code}>
+                    <label
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          setConfig(prev => {
+                            const current = prev.stripe_payment_methods;
+                            if (!checked) {
+                              if (current.length === 1) {
+                                toast.error('Minimaal één Stripe methode vereist');
+                                return prev;
+                              }
+                              return { ...prev, stripe_payment_methods: current.filter(c => c !== method.code) };
                             }
-                            return { ...prev, stripe_payment_methods: current.filter(c => c !== method.code) };
-                          }
-                          return { ...prev, stripe_payment_methods: [...current, method.code] };
-                        });
-                      }}
-                    />
-                    <div className="flex-1 flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium">{method.flag} {method.label}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
+                            return { ...prev, stripe_payment_methods: [...current, method.code] };
+                          });
+                        }}
+                      />
+                      <div className="flex-1 flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium">{method.flag} {method.label}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{method.region}</Badge>
+                          <span className="text-xs text-muted-foreground">{method.cost}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{method.region}</Badge>
-                        <span className="text-xs text-muted-foreground">{method.cost}</span>
-                      </div>
-                    </div>
-                  </label>
+                    </label>
+                    {/* Klarna warning */}
+                    {isKlarna && isChecked && (
+                      <Alert className="ml-8 mt-1 mb-2">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          Klarna kost 3,5% + €0,30 per transactie. Zorg dat je deze fees doorrekent aan klanten of slik ze zelf in. Klarna is alleen beschikbaar voor orders boven €35.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
                 );
               })}
             </div>
           )}
 
-          {/* Bank Transfer */}
+          {/* Bank Transfer with acknowledgement */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -338,11 +392,16 @@ export function TransactionFeeSettings() {
                     ⚠️ Configureer eerst je IBAN in Bedrijfsgegevens
                   </div>
                 )}
+                {config.bank_transfer_acknowledged_manual && config.payment_methods_enabled.includes('bank_transfer') && (
+                  <div className="text-xs text-amber-600 mt-1">
+                    ⚠️ Betalingen worden NIET automatisch gedetecteerd — je moet ze handmatig verwerken
+                  </div>
+                )}
               </div>
             </div>
             <Switch
               checked={config.payment_methods_enabled.includes('bank_transfer')}
-              onCheckedChange={() => togglePaymentMethod('bank_transfer')}
+              onCheckedChange={handleBankTransferToggle}
               disabled={!canEnableBankTransfer}
             />
           </div>
@@ -361,8 +420,8 @@ export function TransactionFeeSettings() {
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <div className="font-medium">Transactiekosten tonen bij checkout</div>
-              <div className="text-sm text-muted-foreground">
-                Indien ingeschakeld, zien klanten de transactiekosten als aparte regel
+              <div className="text-sm text-muted-foreground max-w-lg">
+                Wanneer ingeschakeld, kiest de klant zijn betaalmethode in jouw checkout en ziet hij de exacte transactiekosten van die methode bovenop het ordertotaal. Voorbeeld: Bancontact +€0,25, Creditcard +€1,75 op een €100 order. Wanneer uitgeschakeld, worden de kosten van je eigen marge afgehouden.
               </div>
             </div>
             <Switch
@@ -393,6 +452,39 @@ export function TransactionFeeSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Bank Transfer Acknowledgement Dialog */}
+      <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Belangrijk — Bankoverschrijving handmatig verifiëren
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-3">
+              <p>
+                Bij bankoverschrijving (QR-code / SEPA Instant) wordt de betaling <strong>NIET</strong> automatisch gedetecteerd. Dit betekent:
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5 text-sm">
+                <li>De bestelling blijft op status 'Wacht op betaling' tot jij de betaling handmatig bevestigt</li>
+                <li>Jij bent zelf verantwoordelijk voor het controleren van je bankrekening</li>
+                <li>Jij moet de bestelling handmatig op 'Betaald' zetten in het admin paneel</li>
+                <li>Klant ontvangt pas een verzendbevestiging nadat jij de status hebt aangepast</li>
+                <li>Als jij de betaling vergeet te controleren, kan dit leiden tot ontevreden klanten</li>
+              </ul>
+              <p className="text-sm text-muted-foreground italic">
+                Bij twijfel raden we aan om alleen Stripe-betalingen aan te bieden, deze worden automatisch verwerkt.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBankTransferAccepted}>
+              Ik begrijp het en accepteer de verantwoordelijkheid
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Save Button */}
       <FloatingSaveBar
