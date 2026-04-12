@@ -33,10 +33,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useTransactionUsage } from '@/hooks/useTransactionUsage';
 import type { PaymentMethodType } from '@/types/billing';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
+import { useTenant } from '@/hooks/useTenant';
 
 const STRIPE_PAYMENT_METHODS = [
   { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
@@ -56,8 +56,8 @@ interface TenantPaymentConfig {
 }
 
 export function TransactionFeeSettings() {
-  const { roles } = useAuth();
-  const activeTenantId = roles.find(r => r.tenant_id)?.tenant_id;
+  const { currentTenant } = useTenant();
+  const activeTenantId = currentTenant?.id;
   const { data: usageData, isLoading: usageLoading, refetch: refetchUsage } = useTransactionUsage(activeTenantId || undefined);
   
   const [config, setConfig] = useState<TenantPaymentConfig>({
