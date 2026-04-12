@@ -1734,9 +1734,6 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     }
   }
 
-  const discountAmount = Number(cart.discount_amount) || 0;
-  const total = cart.subtotal - discountAmount + shippingCost;
-
   const { error } = await supabase.from('storefront_carts').update({
     shipping_method_id: shippingMethodId,
     shipping_cost: shippingCost,
@@ -1744,7 +1741,7 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
-  return { cart_id: cartId, status: 'shipping_selected', shipping_cost: shippingCost, subtotal: cart.subtotal, total };
+  return buildCartResponse(supabase, tenantId, cartId);
 }
 
 async function checkoutComplete(supabase: any, tenantId: string, params: Record<string, unknown>) {
