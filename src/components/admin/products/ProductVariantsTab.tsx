@@ -499,9 +499,11 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                   </div>
                 ))}
               </div>
+              )}
 
-              {/* Desktop table layout */}
-              <div className="hidden xl:block overflow-x-auto">
+              {/* Desktop table layout - only when container is wide enough */}
+              {useTableLayout && (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
