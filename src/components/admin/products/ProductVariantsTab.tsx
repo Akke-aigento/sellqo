@@ -21,7 +21,7 @@ interface ProductVariantsTabProps {
   productImages?: string[];
 }
 
-export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, productImages = [] }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
