@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -395,7 +395,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Voorraad</span>
-                          <span>{variant.stock}</span>
+                          <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Actief</span>
@@ -517,7 +517,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                           {editingVariantId === variant.id ? (
                             <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                           ) : (
-                            <span>{variant.stock}</span>
+                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
                           )}
                         </TableCell>
                         <TableCell>
