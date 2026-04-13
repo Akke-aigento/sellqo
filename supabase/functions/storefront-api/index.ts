@@ -1653,7 +1653,7 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   }
 
   // Mark cart as in checkout — reset only payment-related fields, KEEP shipping & address
-  console.log('[checkoutStart] v3 RESET ACTIVE for cart:', cartId);
+  console.log('[checkoutStart] v4 RESET ACTIVE + appfee=0 for cart:', cartId);
   const { error: resetError } = await supabase.from('storefront_carts').update({
     checkout_status: 'checkout',
     payment_method: null,
@@ -1863,7 +1863,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       customer_email: cart.customer_email,
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
-        application_fee_amount: feeCents,
+        application_fee_amount: 0,
       },
     };
 
