@@ -320,7 +320,9 @@ export default function ShopCheckout() {
         cart_id: serverCartId,
         payment_method: method,
       });
-      setSelectedFee({ fee_cents: result.fee_cents || 0, fee_label: result.fee_label || 'Transactiekosten' });
+      // Update full checkout data from server response (includes shipping, totals, etc.)
+      setCheckoutData(result);
+      setSelectedFee({ fee_cents: result.fee?.amount ? Math.round(result.fee.amount * 100) : 0, fee_label: result.fee?.label || result.fee_label || 'Transactiekosten' });
     } catch (err: any) {
       console.warn('Payment method select error:', err.message);
       // Non-blocking — user can still proceed
@@ -769,15 +771,27 @@ export default function ShopCheckout() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
-                    <span className="text-muted-foreground">Wordt berekend</span>
+                    <span>
+                      {checkoutData?.shipping_cost != null && checkoutData.shipping_cost > 0
+                        ? formatPrice(checkoutData.shipping_cost)
+                        : checkoutData?.shipping_method
+                          ? 'Gratis'
+                          : <span className="text-muted-foreground">Wordt berekend</span>}
+                    </span>
                   </div>
+                  {checkoutData?.discount_total > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Korting</span>
+                      <span>-{formatPrice(checkoutData.discount_total)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <Separator className="my-4" />
 
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Totaal</span>
-                  <span>{formatPrice(subtotal + (selectedFee?.fee_cents || 0) / 100)}</span>
+                  <span>{formatPrice(checkoutData?.total ?? (subtotal + (selectedFee?.fee_cents || 0) / 100))}</span>
                 </div>
               </CardContent>
             </Card>
