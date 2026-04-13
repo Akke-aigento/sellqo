@@ -214,7 +214,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
           ))}
 
           {/* Add new option */}
-          <div className="grid grid-cols-[200px_1fr_auto] gap-2 items-end">
+          <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_auto] gap-2 lg:items-end">
             <div>
               <Label className="text-xs">Optienaam</Label>
               <Input
@@ -232,7 +232,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
-            <Button type="button" onClick={handleAddOption} disabled={createOption.isPending}>
+            <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
               <Plus className="h-4 w-4 mr-1" />
               Toevoegen
             </Button>
@@ -268,212 +268,325 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
               <p>Geen varianten. Voeg opties toe en genereer varianten, of voeg ze handmatig toe.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[60px]">Foto</TableHead>
-                    <TableHead>Variant</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Prijs</TableHead>
-                    <TableHead>Voorraad</TableHead>
-                    <TableHead>Actief</TableHead>
-                    <TableHead>Gekoppeld product</TableHead>
-                    <TableHead className="w-[100px]">Acties</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {variants.map(variant => (
-                    <TableRow key={variant.id}>
-                      {/* Image cell */}
-                      <TableCell>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className={cn(
-                                'w-10 h-10 rounded border overflow-hidden flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary transition-all',
-                                !variant.image_url && 'border-dashed border-muted-foreground/30 bg-muted/50'
-                              )}
-                            >
-                              {variant.image_url ? (
-                                <img src={variant.image_url} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-3" align="start">
-                            <p className="text-sm font-medium mb-2">Kies afbeelding</p>
-                            {productImages.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar. Voeg eerst foto's toe aan het product.</p>
-                            ) : (
-                              <div className="grid grid-cols-3 gap-2">
-                                {productImages.map((img, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => handleSelectVariantImage(variant.id, img)}
-                                    className={cn(
-                                      'aspect-square rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all',
-                                      variant.image_url === img && 'ring-2 ring-primary'
-                                    )}
-                                  >
-                                    <img src={img} alt="" className="w-full h-full object-cover" />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            {variant.image_url && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="w-full mt-2 text-destructive"
-                                onClick={() => handleSelectVariantImage(variant.id, null)}
-                              >
-                                <X className="h-3 w-3 mr-1" />
-                                Verwijderen
-                              </Button>
-                            )}
-                          </PopoverContent>
-                        </Popover>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <span className="font-medium">{variant.title}</span>
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            {Object.entries(variant.attribute_values || {}).map(([k, v]) => (
-                              <Badge key={k} variant="outline" className="text-xs">
-                                {k}: {v}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            value={editVariantData.sku ?? ''}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span className="text-sm text-muted-foreground">{variant.sku || '—'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={editVariantData.price ?? ''}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingVariantId === variant.id ? (
-                          <Input
-                            type="number"
-                            value={editVariantData.stock ?? 0}
-                            onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))}
-                            className="w-20"
-                          />
-                        ) : (
-                          <span>{variant.stock}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingVariantId === variant.id ? (
-                          <Switch
-                            checked={editVariantData.is_active ?? true}
-                            onCheckedChange={v => setEditVariantData(prev => ({ ...prev, is_active: v }))}
-                          />
-                        ) : (
-                          <Badge variant={variant.is_active ? 'default' : 'secondary'}>
-                            {variant.is_active ? 'Ja' : 'Nee'}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {variant.linked_product_id ? (
-                          <div className="flex items-center gap-1">
-                            <Badge variant="outline" className="text-xs">
-                              <Link2 className="h-3 w-3 mr-1" />
-                              {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
-                            </Badge>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => handleUnlinkProduct(variant.id)}
-                            >
-                              <Unlink className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
+            <>
+              {/* Mobile card layout */}
+              <div className="lg:hidden space-y-3">
+                {variants.map(variant => (
+                  <div key={variant.id} className="border rounded-lg p-3 space-y-3">
+                    {/* Top row: image + title + actions */}
+                    <div className="flex items-start gap-3">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
                             type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openLinkDialog(variant.id)}
+                            className={cn(
+                              'w-10 h-10 rounded border overflow-hidden flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary transition-all shrink-0',
+                              !variant.image_url && 'border-dashed border-muted-foreground/30 bg-muted/50'
+                            )}
                           >
-                            <Link2 className="h-3 w-3 mr-1" />
-                            Koppelen
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {editingVariantId === variant.id ? (
-                            <>
-                              <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </>
+                            {variant.image_url ? (
+                              <img src={variant.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3" align="start">
+                          <p className="text-sm font-medium mb-2">Kies afbeelding</p>
+                          {productImages.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar.</p>
                           ) : (
-                            <>
-                              <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button type="button" size="icon" variant="ghost" className="text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Variant verwijderen?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Variant "{variant.title}" wordt permanent verwijderd.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>
-                                      Verwijderen
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
+                            <div className="grid grid-cols-3 gap-2">
+                              {productImages.map((img, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => handleSelectVariantImage(variant.id, img)}
+                                  className={cn(
+                                    'aspect-square rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all',
+                                    variant.image_url === img && 'ring-2 ring-primary'
+                                  )}
+                                >
+                                  <img src={img} alt="" className="w-full h-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
                           )}
+                          {variant.image_url && (
+                            <Button type="button" variant="ghost" size="sm" className="w-full mt-2 text-destructive" onClick={() => handleSelectVariantImage(variant.id, null)}>
+                              <X className="h-3 w-3 mr-1" /> Verwijderen
+                            </Button>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-sm">{variant.title}</span>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {Object.entries(variant.attribute_values || {}).map(([k, v]) => (
+                            <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>
+                          ))}
                         </div>
-                      </TableCell>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {editingVariantId === variant.id ? (
+                          <>
+                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={saveEditVariant}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingVariantId(null)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVariant(variant)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Variant verwijderen?</AlertDialogTitle>
+                                  <AlertDialogDescription>Variant "{variant.title}" wordt permanent verwijderd.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>Verwijderen</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {/* Details grid */}
+                    {editingVariantId === variant.id ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">SKU</Label>
+                          <Input value={editVariantData.sku ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))} className="h-8 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Prijs</Label>
+                          <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Voorraad</Label>
+                          <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="h-8 text-sm" />
+                        </div>
+                        <div className="flex items-end gap-2 pb-1">
+                          <Label className="text-xs text-muted-foreground">Actief</Label>
+                          <Switch checked={editVariantData.is_active ?? true} onCheckedChange={v => setEditVariantData(prev => ({ ...prev, is_active: v }))} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div>
+                          <span className="text-xs text-muted-foreground block">SKU</span>
+                          <span>{variant.sku || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Prijs</span>
+                          <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Voorraad</span>
+                          <span>{variant.stock}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Actief</span>
+                          <Badge variant={variant.is_active ? 'default' : 'secondary'} className="text-xs">{variant.is_active ? 'Ja' : 'Nee'}</Badge>
+                        </div>
+                      </div>
+                    )}
+                    {/* Linked product */}
+                    <div className="flex items-center gap-2">
+                      {variant.linked_product_id ? (
+                        <>
+                          <Badge variant="outline" className="text-xs">
+                            <Link2 className="h-3 w-3 mr-1" />
+                            {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
+                          </Badge>
+                          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
+                            <Unlink className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openLinkDialog(variant.id)}>
+                          <Link2 className="h-3 w-3 mr-1" /> Koppelen
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table layout */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px]">Foto</TableHead>
+                      <TableHead>Variant</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Prijs</TableHead>
+                      <TableHead>Voorraad</TableHead>
+                      <TableHead>Actief</TableHead>
+                      <TableHead>Gekoppeld product</TableHead>
+                      <TableHead className="w-[100px]">Acties</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {variants.map(variant => (
+                      <TableRow key={variant.id}>
+                        <TableCell>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className={cn(
+                                  'w-10 h-10 rounded border overflow-hidden flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary transition-all',
+                                  !variant.image_url && 'border-dashed border-muted-foreground/30 bg-muted/50'
+                                )}
+                              >
+                                {variant.image_url ? (
+                                  <img src={variant.image_url} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-3" align="start">
+                              <p className="text-sm font-medium mb-2">Kies afbeelding</p>
+                              {productImages.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar.</p>
+                              ) : (
+                                <div className="grid grid-cols-3 gap-2">
+                                  {productImages.map((img, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => handleSelectVariantImage(variant.id, img)}
+                                      className={cn(
+                                        'aspect-square rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all',
+                                        variant.image_url === img && 'ring-2 ring-primary'
+                                      )}
+                                    >
+                                      <img src={img} alt="" className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {variant.image_url && (
+                                <Button type="button" variant="ghost" size="sm" className="w-full mt-2 text-destructive" onClick={() => handleSelectVariantImage(variant.id, null)}>
+                                  <X className="h-3 w-3 mr-1" /> Verwijderen
+                                </Button>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <span className="font-medium">{variant.title}</span>
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {Object.entries(variant.attribute_values || {}).map(([k, v]) => (
+                                <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Input value={editVariantData.sku ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))} className="w-24" />
+                          ) : (
+                            <span className="text-sm text-muted-foreground">{variant.sku || '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                          ) : (
+                            <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
+                          ) : (
+                            <span>{variant.stock}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Switch checked={editVariantData.is_active ?? true} onCheckedChange={v => setEditVariantData(prev => ({ ...prev, is_active: v }))} />
+                          ) : (
+                            <Badge variant={variant.is_active ? 'default' : 'secondary'}>{variant.is_active ? 'Ja' : 'Nee'}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {variant.linked_product_id ? (
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                <Link2 className="h-3 w-3 mr-1" />
+                                {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
+                              </Badge>
+                              <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
+                                <Unlink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button type="button" size="sm" variant="ghost" onClick={() => openLinkDialog(variant.id)}>
+                              <Link2 className="h-3 w-3 mr-1" /> Koppelen
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {editingVariantId === variant.id ? (
+                              <>
+                                <Button type="button" size="icon" variant="ghost" onClick={saveEditVariant}>
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button type="button" size="icon" variant="ghost" onClick={() => setEditingVariantId(null)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button type="button" size="icon" variant="ghost" className="text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Variant verwijderen?</AlertDialogTitle>
+                                      <AlertDialogDescription>Variant "{variant.title}" wordt permanent verwijderd.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>Verwijderen</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
