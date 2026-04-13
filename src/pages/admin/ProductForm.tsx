@@ -348,7 +348,7 @@ export default function ProductForm() {
   const handleNameChange = (value: string) => {
     form.setValue('name', value, { shouldDirty: true });
     if (!isEditing || !form.getValues('slug')) {
-      form.setValue('slug', generateSlug(value, { shouldDirty: true }));
+      form.setValue('slug', generateSlug(value), { shouldDirty: true });
     }
   };
 
@@ -436,7 +436,7 @@ export default function ProductForm() {
     // Reorder images so featured_image is always first
     const currentImages = form.getValues('images') || [];
     if (currentImages.includes(url) && currentImages[0] !== url) {
-      form.setValue('images', [url, ...currentImages.filter(i => i !== url, { shouldDirty: true })]);
+      form.setValue('images', [url, ...currentImages.filter(i => i !== url)], { shouldDirty: true });
     }
   };
 
@@ -470,13 +470,13 @@ export default function ProductForm() {
     if (!tagsInput.trim()) return;
     const tags = form.getValues('tags');
     if (!tags.includes(tagsInput.trim())) {
-      form.setValue('tags', [...tags, tagsInput.trim(, { shouldDirty: true })]);
+      form.setValue('tags', [...tags, tagsInput.trim()], { shouldDirty: true });
     }
     setTagsInput('');
   };
 
   const removeTag = (tag: string) => {
-    form.setValue('tags', form.getValues('tags', { shouldDirty: true }).filter(t => t !== tag));
+    form.setValue('tags', form.getValues('tags').filter(t => t !== tag), { shouldDirty: true });
   };
 
    const onSubmit = async (data: FormValues) => {
@@ -1101,7 +1101,7 @@ export default function ProductForm() {
                                 €{amount.toFixed(2)}
                                 <button type="button" onClick={() => {
                                   const current = form.getValues('gift_card_denominations') || [];
-                                  form.setValue('gift_card_denominations', current.filter((_, i, { shouldDirty: true }) => i !== index));
+                                  form.setValue('gift_card_denominations', current.filter((_, i) => i !== index), { shouldDirty: true });
                                 }} className="ml-2 hover:text-destructive"><X className="h-3 w-3" /></button>
                               </Badge>
                             ))}
@@ -1113,7 +1113,7 @@ export default function ProductForm() {
                               if (amount > 0) {
                                 const current = form.getValues('gift_card_denominations') || [];
                                 if (!current.includes(amount)) {
-                                  form.setValue('gift_card_denominations', [...current, amount].sort((a, b, { shouldDirty: true }) => a - b));
+                                  form.setValue('gift_card_denominations', [...current, amount].sort((a, b) => a - b), { shouldDirty: true });
                                 }
                                 setDenominationInput('');
                               }
