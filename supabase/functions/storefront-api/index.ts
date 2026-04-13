@@ -1453,14 +1453,19 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Shipping
   let shippingCost = Number(cart.shipping_cost) || 0;
   let shippingMethod: { id: string; name: string } | null = null;
+  let shippingDisplayState: 'not_calculated' | 'free' | 'charged' = 'not_calculated';
   if (cart.shipping_method_id) {
     const { data: sm } = await supabase.from('shipping_methods').select('id, name, price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
     if (sm) {
       shippingMethod = { id: sm.id, name: sm.name };
       shippingCost = (hasFreeShipping || (sm.free_above && subtotal >= sm.free_above)) ? 0 : sm.price;
+      shippingDisplayState = shippingCost === 0 ? 'free' : 'charged';
     }
   }
-  if (hasFreeShipping) shippingCost = 0;
+  if (hasFreeShipping) {
+    shippingCost = 0;
+    if (shippingMethod) shippingDisplayState = 'free';
+  }
 
   // Payment method & fee
   const paymentMethod = cart.payment_method || null;
@@ -1508,6 +1513,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     subtotal,
     shipping_cost: shippingCost,
     shipping_method: shippingMethod,
+    shipping_display_state: shippingDisplayState,
 
     applied_discounts: appliedDiscounts,
     discount_total: Math.round(discountTotal * 100) / 100,
