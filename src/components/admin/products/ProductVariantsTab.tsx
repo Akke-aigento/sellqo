@@ -16,6 +16,61 @@ import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputVal, setInputVal] = useState(stock.toString());
+
+  const handleCommit = () => {
+    const parsed = parseInt(inputVal, 10);
+    if (!isNaN(parsed) && parsed !== stock) {
+      onUpdate(Math.max(0, parsed));
+    }
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <Input
+        type="number"
+        min={0}
+        value={inputVal}
+        onChange={e => setInputVal(e.target.value)}
+        onBlur={handleCommit}
+        onKeyDown={e => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setIsEditing(false); }}
+        className="h-7 w-16 text-sm text-center"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-0.5">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-6 w-6"
+        onClick={e => { e.stopPropagation(); onUpdate(Math.max(0, stock - 1)); }}
+      >
+        <Minus className="h-3 w-3" />
+      </Button>
+      <button
+        className="min-w-[2rem] text-center text-sm font-mono hover:underline cursor-pointer bg-transparent border-none"
+        onClick={e => { e.stopPropagation(); setInputVal(stock.toString()); setIsEditing(true); }}
+      >
+        {stock}
+      </button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-6 w-6"
+        onClick={e => { e.stopPropagation(); onUpdate(stock + 1); }}
+      >
+        <Plus className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
 interface ProductVariantsTabProps {
   productId: string;
   productImages?: string[];
