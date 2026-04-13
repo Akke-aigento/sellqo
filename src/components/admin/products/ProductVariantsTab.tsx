@@ -314,7 +314,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
         <CardHeader>
           <CardTitle>Varianten ({variants.length})</CardTitle>
           <CardDescription>
-            Beheer individuele varianten, prijzen, voorraad en productbkoppelingen.
+            Beheer individuele varianten, prijzen, voorraad en productkoppelingen.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -325,7 +325,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
           ) : (
             <>
               {/* Mobile card layout */}
-              <div className="lg:hidden space-y-3">
+              <div className="xl:hidden space-y-3">
                 {variants.map(variant => (
                   <div key={variant.id} className="border rounded-lg p-3 space-y-3">
                     {/* Top row: image + title + actions */}
@@ -481,18 +481,18 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
               </div>
 
               {/* Desktop table layout */}
-              <div className="hidden lg:block overflow-x-auto">
+              <div className="hidden xl:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[60px]">Foto</TableHead>
-                      <TableHead>Variant</TableHead>
+                      <TableHead className="w-[50px]">Foto</TableHead>
+                      <TableHead className="min-w-0">Variant</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Prijs</TableHead>
                       <TableHead>Voorraad</TableHead>
                       <TableHead>Actief</TableHead>
-                      <TableHead>Gekoppeld product</TableHead>
-                      <TableHead className="w-[100px]">Acties</TableHead>
+                      <TableHead className="min-w-0">Gekoppeld</TableHead>
+                      <TableHead className="w-[80px] whitespace-nowrap">Acties</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -544,9 +544,9 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                             </PopoverContent>
                           </Popover>
                         </TableCell>
-                        <TableCell>
-                          <div>
-                            <span className="font-medium">{variant.title}</span>
+                        <TableCell className="min-w-0 max-w-[200px]">
+                          <div className="min-w-0">
+                            <span className="font-medium truncate block">{variant.title}</span>
                             <div className="flex gap-1 mt-1 flex-wrap">
                               {Object.entries(variant.attribute_values || {}).map(([k, v]) => (
                                 <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>
@@ -584,10 +584,10 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                         </TableCell>
                         <TableCell>
                           {variant.linked_product_id ? (
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                <Link2 className="h-3 w-3 mr-1" />
-                                {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Badge variant="outline" className="text-xs max-w-[120px] truncate">
+                                <Link2 className="h-3 w-3 mr-1 shrink-0" />
+                                <span className="truncate">{linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}</span>
                               </Badge>
                               <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
                                 <Unlink className="h-3 w-3" />
