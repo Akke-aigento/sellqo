@@ -85,6 +85,25 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   } = useProductVariants(productId);
   const { products } = useProducts();
 
+  // Container-width detection for existing variants section
+  const variantsContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    const el = variantsContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Only show table when container is wide enough for all 8 columns
+  const useTableLayout = containerWidth >= 900;
+
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionValues, setNewOptionValues] = useState('');
