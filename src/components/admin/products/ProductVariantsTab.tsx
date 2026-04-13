@@ -663,6 +663,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                   </TableBody>
                 </Table>
               </div>
+              )}
             </>
           )}
         </CardContent>
