@@ -336,15 +336,16 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
             Beheer individuele varianten, prijzen, voorraad en productkoppelingen.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent ref={variantsContainerRef}>
           {variants.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>Geen varianten. Voeg opties toe en genereer varianten, of voeg ze handmatig toe.</p>
             </div>
           ) : (
             <>
-              {/* Mobile card layout */}
-              <div className="xl:hidden space-y-3">
+              {/* Card layout - shown when container is not wide enough for table */}
+              {!useTableLayout && (
+                <div className="space-y-3">
                 {variants.map(variant => (
                   <div key={variant.id} className="border rounded-lg p-3 space-y-3">
                     {/* Top row: image + title + actions */}
