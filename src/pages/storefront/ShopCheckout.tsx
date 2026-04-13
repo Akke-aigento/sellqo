@@ -772,9 +772,9 @@ export default function ShopCheckout() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verzending</span>
                     <span>
-                      {checkoutData?.shipping_cost != null && checkoutData.shipping_cost > 0
+                      {checkoutData?.shipping_display_state === 'charged'
                         ? formatPrice(checkoutData.shipping_cost)
-                        : checkoutData?.shipping_method
+                        : checkoutData?.shipping_display_state === 'free'
                           ? 'Gratis'
                           : <span className="text-muted-foreground">Wordt berekend</span>}
                     </span>

@@ -35,6 +35,7 @@ interface CartResponse {
   subtotal: number;
   shipping_cost: number;
   shipping_method: { id: string; name: string } | null;
+  shipping_display_state: 'not_calculated' | 'free' | 'charged';
 
   // Discount state
   applied_discounts: Array<{
