@@ -346,48 +346,48 @@ export default function ProductForm() {
   };
 
   const handleNameChange = (value: string) => {
-    form.setValue('name', value);
+    form.setValue('name', value, { shouldDirty: true });
     if (!isEditing || !form.getValues('slug')) {
-      form.setValue('slug', generateSlug(value));
+      form.setValue('slug', generateSlug(value), { shouldDirty: true });
     }
   };
 
   const handleProductTypeChange = (type: ProductType) => {
-    form.setValue('product_type', type);
+    form.setValue('product_type', type, { shouldDirty: true });
     if (type === 'digital' || type === 'service' || type === 'gift_card') {
-      form.setValue('requires_shipping', false);
-      form.setValue('track_inventory', false);
+      form.setValue('requires_shipping', false, { shouldDirty: true });
+      form.setValue('track_inventory', false, { shouldDirty: true });
     } else if (type === 'physical') {
-      form.setValue('requires_shipping', true);
-      form.setValue('track_inventory', true);
+      form.setValue('requires_shipping', true, { shouldDirty: true });
+      form.setValue('track_inventory', true, { shouldDirty: true });
     }
     if (type !== 'digital') {
-      form.setValue('digital_delivery_type', null);
-      form.setValue('download_limit', null);
-      form.setValue('download_expiry_hours', null);
-      form.setValue('license_generator', null);
-      form.setValue('access_duration_days', null);
+      form.setValue('digital_delivery_type', null, { shouldDirty: true });
+      form.setValue('download_limit', null, { shouldDirty: true });
+      form.setValue('download_expiry_hours', null, { shouldDirty: true });
+      form.setValue('license_generator', null, { shouldDirty: true });
+      form.setValue('access_duration_days', null, { shouldDirty: true });
     } else {
-      form.setValue('digital_delivery_type', 'download');
-      form.setValue('download_expiry_hours', 72);
+      form.setValue('digital_delivery_type', 'download', { shouldDirty: true });
+      form.setValue('download_expiry_hours', 72, { shouldDirty: true });
     }
     if (type !== 'gift_card') {
-      form.setValue('gift_card_denominations', null);
-      form.setValue('gift_card_allow_custom', false);
-      form.setValue('gift_card_design_id', null);
-      form.setValue('gift_card_expiry_months', null);
+      form.setValue('gift_card_denominations', null, { shouldDirty: true });
+      form.setValue('gift_card_allow_custom', false, { shouldDirty: true });
+      form.setValue('gift_card_design_id', null, { shouldDirty: true });
+      form.setValue('gift_card_expiry_months', null, { shouldDirty: true });
     }
     if (type === 'bundle') {
-      form.setValue('requires_shipping', false);
-      form.setValue('track_inventory', false);
+      form.setValue('requires_shipping', false, { shouldDirty: true });
+      form.setValue('track_inventory', false, { shouldDirty: true });
       if (!form.getValues('bundle_pricing_model')) {
-        form.setValue('bundle_pricing_model', 'fixed');
+        form.setValue('bundle_pricing_model', 'fixed', { shouldDirty: true });
       }
     }
     if (type !== 'bundle') {
-      form.setValue('bundle_pricing_model', null);
-      form.setValue('bundle_discount_type', null);
-      form.setValue('bundle_discount_value', null);
+      form.setValue('bundle_pricing_model', null, { shouldDirty: true });
+      form.setValue('bundle_discount_type', null, { shouldDirty: true });
+      form.setValue('bundle_discount_value', null, { shouldDirty: true });
     }
   };
 
@@ -400,11 +400,11 @@ export default function ProductForm() {
       if (url) {
         currentImages.push(url);
         if (!form.getValues('featured_image')) {
-          form.setValue('featured_image', url);
+          form.setValue('featured_image', url, { shouldDirty: true });
         }
       }
     }
-    form.setValue('images', currentImages);
+    form.setValue('images', currentImages, { shouldDirty: true });
     e.target.value = '';
   };
 
@@ -425,18 +425,18 @@ export default function ProductForm() {
 
   const removeImage = (url: string) => {
     const images = form.getValues('images').filter(img => img !== url);
-    form.setValue('images', images);
+    form.setValue('images', images, { shouldDirty: true });
     if (form.getValues('featured_image') === url) {
-      form.setValue('featured_image', images[0] || '');
+      form.setValue('featured_image', images[0] || '', { shouldDirty: true });
     }
   };
 
   const setFeaturedImage = (url: string) => {
-    form.setValue('featured_image', url);
+    form.setValue('featured_image', url, { shouldDirty: true });
     // Reorder images so featured_image is always first
     const currentImages = form.getValues('images') || [];
     if (currentImages.includes(url) && currentImages[0] !== url) {
-      form.setValue('images', [url, ...currentImages.filter(i => i !== url)]);
+      form.setValue('images', [url, ...currentImages.filter(i => i !== url)], { shouldDirty: true });
     }
   };
 
@@ -470,13 +470,13 @@ export default function ProductForm() {
     if (!tagsInput.trim()) return;
     const tags = form.getValues('tags');
     if (!tags.includes(tagsInput.trim())) {
-      form.setValue('tags', [...tags, tagsInput.trim()]);
+      form.setValue('tags', [...tags, tagsInput.trim()], { shouldDirty: true });
     }
     setTagsInput('');
   };
 
   const removeTag = (tag: string) => {
-    form.setValue('tags', form.getValues('tags').filter(t => t !== tag));
+    form.setValue('tags', form.getValues('tags').filter(t => t !== tag), { shouldDirty: true });
   };
 
    const onSubmit = async (data: FormValues) => {
@@ -781,7 +781,7 @@ export default function ProductForm() {
                             <AIFieldAssistant
                               fieldType="short_description"
                               currentValue={field.value}
-                              onApply={(text) => form.setValue('short_description', text)}
+                              onApply={(text) => form.setValue('short_description', text, { shouldDirty: true })}
                               context={aiContext}
                               seoKeywords={seoKeywords}
                             />
@@ -812,7 +812,7 @@ export default function ProductForm() {
                             )}
                             <CollapsibleContent>
                               <div className="pt-2">
-                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} aiContext={aiContext} onSeoGenerated={(seo) => { form.setValue('meta_title', seo.meta_title); form.setValue('meta_description', seo.meta_description); toast.success('SEO meta titel en beschrijving automatisch ingevuld'); }} /></FormControl>
+                                <FormControl><ProductDescriptionEditor value={field.value || ''} onChange={field.onChange} aiContext={aiContext} onSeoGenerated={(seo) => { form.setValue('meta_title', seo.meta_title, { shouldDirty: true }); form.setValue('meta_description', seo.meta_description, { shouldDirty: true }); toast.success('SEO meta titel en beschrijving automatisch ingevuld'); }} /></FormControl>
                               </div>
                             </CollapsibleContent>
                           </Collapsible>
@@ -1101,7 +1101,7 @@ export default function ProductForm() {
                                 €{amount.toFixed(2)}
                                 <button type="button" onClick={() => {
                                   const current = form.getValues('gift_card_denominations') || [];
-                                  form.setValue('gift_card_denominations', current.filter((_, i) => i !== index));
+                                  form.setValue('gift_card_denominations', current.filter((_, i) => i !== index), { shouldDirty: true });
                                 }} className="ml-2 hover:text-destructive"><X className="h-3 w-3" /></button>
                               </Badge>
                             ))}
@@ -1113,7 +1113,7 @@ export default function ProductForm() {
                               if (amount > 0) {
                                 const current = form.getValues('gift_card_denominations') || [];
                                 if (!current.includes(amount)) {
-                                  form.setValue('gift_card_denominations', [...current, amount].sort((a, b) => a - b));
+                                  form.setValue('gift_card_denominations', [...current, amount].sort((a, b) => a - b), { shouldDirty: true });
                                 }
                                 setDenominationInput('');
                               }
@@ -1195,9 +1195,9 @@ export default function ProductForm() {
                             <button
                               type="button"
                               onClick={() => {
-                                form.setValue('bundle_pricing_model', 'fixed');
-                                form.setValue('bundle_discount_type', null);
-                                form.setValue('bundle_discount_value', null);
+                                form.setValue('bundle_pricing_model', 'fixed', { shouldDirty: true });
+                                form.setValue('bundle_discount_type', null, { shouldDirty: true });
+                                form.setValue('bundle_discount_value', null, { shouldDirty: true });
                               }}
                               className={cn(
                                 'rounded-lg border-2 p-4 text-left transition-all',
@@ -1209,7 +1209,7 @@ export default function ProductForm() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => form.setValue('bundle_pricing_model', 'dynamic')}
+                              onClick={() => form.setValue('bundle_pricing_model', 'dynamic', { shouldDirty: true })}
                               className={cn(
                                 'rounded-lg border-2 p-4 text-left transition-all',
                                 bundlePricingModel === 'dynamic' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/25'
@@ -1249,7 +1249,7 @@ export default function ProductForm() {
                                 <Label className="text-sm">Type korting</Label>
                                 <Select
                                   value={form.watch('bundle_discount_type') || 'none'}
-                                  onValueChange={(value) => form.setValue('bundle_discount_type', value === 'none' ? null : value as 'percentage' | 'fixed_amount')}
+                                  onValueChange={(value) => form.setValue('bundle_discount_type', value === 'none' ? null : value as 'percentage' | 'fixed_amount', { shouldDirty: true })}
                                 >
                                   <SelectTrigger><SelectValue placeholder="Geen korting" /></SelectTrigger>
                                   <SelectContent>
@@ -1694,7 +1694,7 @@ export default function ProductForm() {
                             <AIFieldAssistant
                               fieldType="meta_title"
                               currentValue={field.value}
-                              onApply={(text) => form.setValue('meta_title', text)}
+                              onApply={(text) => form.setValue('meta_title', text, { shouldDirty: true })}
                               context={aiContext}
                               seoKeywords={seoKeywords}
                             />
@@ -1711,7 +1711,7 @@ export default function ProductForm() {
                             <AIFieldAssistant
                               fieldType="meta_description"
                               currentValue={field.value}
-                              onApply={(text) => form.setValue('meta_description', text)}
+                              onApply={(text) => form.setValue('meta_description', text, { shouldDirty: true })}
                               context={aiContext}
                               seoKeywords={seoKeywords}
                             />
