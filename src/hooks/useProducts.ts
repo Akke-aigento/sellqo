@@ -20,7 +20,7 @@ export function useProducts() {
           *,
           category:categories(id, name, slug),
           product_categories(category_id),
-          product_variants(id, stock, track_inventory, is_active)
+          product_variants!product_variants_product_id_fkey(id, stock, track_inventory, is_active)
         `)
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
@@ -275,7 +275,7 @@ export function useProduct(id: string | undefined) {
         .select(`
           *,
           category:categories(id, name, slug),
-          product_variants(id, stock, track_inventory, is_active)
+          product_variants!product_variants_product_id_fkey(id, stock, track_inventory, is_active)
         `)
         .eq('id', id)
         .maybeSingle();
