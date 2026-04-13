@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,6 +84,25 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
     generateVariants, syncVariants,
   } = useProductVariants(productId);
   const { products } = useProducts();
+
+  // Container-width detection for existing variants section
+  const variantsContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    const el = variantsContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Only show table when container is wide enough for all 8 columns
+  const useTableLayout = containerWidth >= 900;
 
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
@@ -317,15 +336,16 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
             Beheer individuele varianten, prijzen, voorraad en productkoppelingen.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent ref={variantsContainerRef}>
           {variants.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>Geen varianten. Voeg opties toe en genereer varianten, of voeg ze handmatig toe.</p>
             </div>
           ) : (
             <>
-              {/* Mobile card layout */}
-              <div className="xl:hidden space-y-3">
+              {/* Card layout - shown when container is not wide enough for table */}
+              {!useTableLayout && (
+                <div className="space-y-3">
                 {variants.map(variant => (
                   <div key={variant.id} className="border rounded-lg p-3 space-y-3">
                     {/* Top row: image + title + actions */}
@@ -479,9 +499,11 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                   </div>
                 ))}
               </div>
+              )}
 
-              {/* Desktop table layout */}
-              <div className="hidden xl:block overflow-x-auto">
+              {/* Desktop table layout - only when container is wide enough */}
+              {useTableLayout && (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -641,6 +663,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                   </TableBody>
                 </Table>
               </div>
+              )}
             </>
           )}
         </CardContent>
