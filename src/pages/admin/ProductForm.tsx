@@ -1478,7 +1478,7 @@ export default function ProductForm() {
                         <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ProductVariantsTab productId={id} productImages={formData.images || []} />
+                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} />
                       </CardContent>
                     </Card>
                   ) : (
