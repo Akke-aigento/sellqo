@@ -320,7 +320,9 @@ export default function ShopCheckout() {
         cart_id: serverCartId,
         payment_method: method,
       });
-      setSelectedFee({ fee_cents: result.fee_cents || 0, fee_label: result.fee_label || 'Transactiekosten' });
+      // Update full checkout data from server response (includes shipping, totals, etc.)
+      setCheckoutData(result);
+      setSelectedFee({ fee_cents: result.fee?.amount ? Math.round(result.fee.amount * 100) : 0, fee_label: result.fee?.label || result.fee_label || 'Transactiekosten' });
     } catch (err: any) {
       console.warn('Payment method select error:', err.message);
       // Non-blocking — user can still proceed
