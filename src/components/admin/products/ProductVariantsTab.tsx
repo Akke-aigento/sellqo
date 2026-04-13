@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,15 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ProductVariantsTabProps {
   productId: string;
+  productImages?: string[];
 }
 
-export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, productImages = [] }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -88,7 +91,12 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       stock: variant.stock,
       sku: variant.sku,
       is_active: variant.is_active,
+      image_url: variant.image_url,
     });
+  };
+
+  const handleSelectVariantImage = (variantId: string, imageUrl: string | null) => {
+    updateVariant.mutate({ id: variantId, data: { image_url: imageUrl } });
   };
 
   const saveEditVariant = () => {
@@ -262,8 +270,9 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">Foto</TableHead>
                     <TableHead>Variant</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>Prijs</TableHead>
@@ -276,6 +285,60 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
                 <TableBody>
                   {variants.map(variant => (
                     <TableRow key={variant.id}>
+                      {/* Image cell */}
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                'w-10 h-10 rounded border overflow-hidden flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary transition-all',
+                                !variant.image_url && 'border-dashed border-muted-foreground/30 bg-muted/50'
+                              )}
+                            >
+                              {variant.image_url ? (
+                                <img src={variant.image_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-3" align="start">
+                            <p className="text-sm font-medium mb-2">Kies afbeelding</p>
+                            {productImages.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar. Voeg eerst foto's toe aan het product.</p>
+                            ) : (
+                              <div className="grid grid-cols-3 gap-2">
+                                {productImages.map((img, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => handleSelectVariantImage(variant.id, img)}
+                                    className={cn(
+                                      'aspect-square rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all',
+                                      variant.image_url === img && 'ring-2 ring-primary'
+                                    )}
+                                  >
+                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {variant.image_url && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="w-full mt-2 text-destructive"
+                                onClick={() => handleSelectVariantImage(variant.id, null)}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Verwijderen
+                              </Button>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
                       <TableCell>
                         <div>
                           <span className="font-medium">{variant.title}</span>
