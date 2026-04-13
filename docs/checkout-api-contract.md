@@ -117,6 +117,17 @@ Custom frontends **MUST**:
 2. **Display amounts directly** from that response — never recalculate
 3. **After any user action** (apply discount, select method, etc.): store the new response and re-render
 4. **Never do math on prices** — the `total` field is the only total
+5. **Use `shipping_display_state`** to render the shipping line — never interpret `shipping_cost` alone:
+
+```typescript
+const shippingDisplay = (() => {
+  switch (cart.shipping_display_state) {
+    case 'not_calculated': return 'Wordt berekend';
+    case 'free': return 'Gratis';
+    case 'charged': return formatPrice(cart.shipping_cost);
+  }
+})();
+```
 
 ### Example Flow (pseudocode)
 
