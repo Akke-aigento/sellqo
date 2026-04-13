@@ -1,57 +1,63 @@
 
-# Fix: varianten blijven onbewerkbaar op 14" laptop
+# Fix: bestaande varianten-sectie écht responsive maken
 
-## Wat er nu echt misgaat
-De vorige responsive fix schakelt de variantenlijst over naar de desktop-tabel vanaf `lg`. Dat kijkt naar de volledige viewportbreedte, maar deze pagina heeft binnen het productformulier pas vanaf `xl` een 2-koloms layout. Daardoor zit `ProductVariantsTab` op veel laptops in een smalle linkerkolom, terwijl hij toch de brede desktop-tabel rendert. Resultaat: de actieknoppen vallen rechts buiten beeld.
+Je hebt gelijk: het probleem zit in de sectie met de reeds bestaande varianten, niet in het aanmaken van opties.
 
-Je screenshot bevestigt dat exact: de tabel staat in de linkerkolom en de rechterkant is afgesneden.
+## Wat ik nagekeken heb
+In `src/components/admin/products/ProductVariantsTab.tsx` staat de bestaande variantenlijst nu zo:
+- card-layout: `xl:hidden`
+- tabel-layout: `hidden xl:block`
+
+In `src/pages/admin/ProductForm.tsx` zit die component binnen een 2-koloms layout:
+- `xl:grid-cols-[1fr_350px]`
+
+Daardoor gebeurt dit op een 14" MacBook:
+- de viewport is breed genoeg om `xl` te halen
+- dus de variantenlijst schakelt naar de tabel
+- maar de tabel zit ondertussen in de smallere linkerkolom van het formulier
+- resultaat: de tabel van bestaande varianten wordt afgesneden en de edit/delete acties blijven onbereikbaar
+
+Dus: de vorige fix zat wel in de juiste component, maar nog steeds op het verkeerde beslismoment.
 
 ## Aanpak
 
-### 1. Breakpoint van de variantenweergave aanpassen
+### 1. Variants-sectie laten reageren op échte beschikbare breedte
 **Bestand:** `src/components/admin/products/ProductVariantsTab.tsx`
 
-- De huidige split:
-  - mobiel/cards: `lg:hidden`
-  - desktop tabel: `hidden lg:block`
-- Dit wijzigen naar:
-  - mobiel/cards: `xl:hidden`
-  - desktop tabel: `hidden xl:block`
+Ik zal de bestaande variantenweergave niet langer laten afhangen van viewport-breakpoints (`xl`), maar van de werkelijke breedte van de container van die sectie.
 
-Zo blijft op 14" laptops en smallere desktopbreedtes de card-layout actief, wat beter past in de smalle contentkolom.
+Concreet:
+- een `ref` + `ResizeObserver` toevoegen op de bestaande varianten-card
+- op basis van die gemeten breedte kiezen tussen:
+  - compacte card/list layout voor smallere contentbreedtes
+  - tabel-layout alleen wanneer er echt genoeg ruimte is
 
-### 2. Desktop-tabel compacter maken voor echte brede schermen
+Zo blijft op 14" laptops de bestaande variantenlijst in de veilige bewerkbare layout, ook al is de totale viewport groter dan `xl`.
+
+### 2. Alleen de sectie met bestaande varianten aanpassen
+De wijziging richt zich expliciet op:
+- `Varianten ({variants.length})`
+- dus de reeds aangemaakte varianten
+- niet op het blok “Variant opties” / genereren van varianten
+
+### 3. Bestaande varianten-card verder optimaliseren voor bewerken
 In dezelfde component:
-- kolommen compacter maken waar mogelijk
-- action-kolom `whitespace-nowrap` geven
-- linked product badge laten truncaten i.p.v. uitrekken
-- varianttitel-cel `min-w-0`/truncate-vriendelijk maken
+- edit- en deleteknoppen vast bovenaan rechts houden
+- edit-modus van bestaande varianten compacter stapelen
+- stock stepper, prijs, SKU en actief-status zo plaatsen dat ze de acties niet wegduwen
+- linked product informatie onder de kernvelden tonen i.p.v. horizontaal ruimte op te eten
 
-Zo voorkomen we dat zelfs op grotere schermen de tabel onnodig breed wordt.
-
-### 3. Mobiele/card-layout verder optimaliseren voor editability
-In de card-layout:
-- actieknoppen altijd rechtsboven zichtbaar houden
-- bij edit-modus de velden onder elkaar of in 2 compacte kolommen tonen
-- stock stepper en image picker niet laten duwen tegen de actieknoppen
-
-Doel: bewerken/verwijderen moet op elke breedte zichtbaar én klikbaar blijven.
-
-### 4. Kleine copy/UX cleanup
-Ik zag ook een typefout in de beschrijving:
-- `productbkoppelingen` → `productkoppelingen`
+### 4. Desktop-tabel alleen tonen als die ook echt bruikbaar is
+Voor de brede layout:
+- tabel compacter maken met smallere paddings
+- titel- en gekoppelde productvelden laten truncaten
+- actiekolom `whitespace-nowrap` geven
+- eventueel `table-fixed`/strakkere kolombreedtes toepassen zodat edit/delete zichtbaar blijven
 
 ## Bestanden
 - `src/components/admin/products/ProductVariantsTab.tsx`
 
 ## Verwacht resultaat
-- Op 14-inch MacBook en vergelijkbare schermen zie je de veilige card-layout in plaats van de afgeknotte tabel.
-- Bewerken en verwijderen zijn weer direct bereikbaar.
-- Op echt brede schermen blijft de tabelweergave beschikbaar.
-
-## Technische noot
-Dit is geen backendprobleem en ook geen permissieprobleem. Het is puur een responsive layout-mismatch tussen:
-- `ProductForm.tsx`: 2-koloms layout vanaf `xl`
-- `ProductVariantsTab.tsx`: desktopweergave nu al vanaf `lg`
-
-Die breakpoints moeten op elkaar afgestemd worden.
+- Op een 14" MacBook blijft de lijst met bestaande varianten bewerkbaar
+- Editeren/verwijderen van reeds aangemaakte varianten blijft altijd zichtbaar
+- De tabel verschijnt alleen nog op schermen waar die sectie ook echt voldoende breed is
