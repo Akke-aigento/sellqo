@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,12 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ProductVariantsTabProps {
   productId: string;
+  productImages?: string[];
 }
 
 export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
