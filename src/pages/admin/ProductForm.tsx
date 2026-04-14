@@ -26,7 +26,8 @@ import {
   CreditCard,
   Gift,
   Languages,
-  ExternalLink
+  ExternalLink,
+  Wand2
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -81,6 +82,7 @@ import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
 import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
+import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -160,6 +162,8 @@ export default function ProductForm() {
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
   const [descOpen, setDescOpen] = useState(false);
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  const [imageEditorUrl, setImageEditorUrl] = useState('');
   const [bundleItemsState, setBundleItemsState] = useState<Array<{
     child_product_id: string;
     quantity: number;
