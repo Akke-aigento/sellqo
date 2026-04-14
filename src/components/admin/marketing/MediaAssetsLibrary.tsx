@@ -482,7 +482,7 @@ export function MediaAssetsLibrary() {
               selectionActive={selectionActive}
               onToggleFavorite={asset.source === 'upload' ? () => toggleFavorite.mutate({ id: asset.id, is_favorite: !asset.is_favorite }) : undefined}
               onDelete={asset.source === 'upload' ? () => deleteAsset.mutate(asset.id) : undefined}
-              onEdit={asset.source === 'product' ? () => handleEditProductImage(asset) : undefined}
+              onEdit={asset.file_type.startsWith('image/') ? () => handleEditProductImage(asset) : undefined}
             />
           ))}
         </div>
@@ -533,7 +533,7 @@ export function MediaAssetsLibrary() {
           open={editorOpen}
           onOpenChange={setEditorOpen}
           imageUrl={editingAsset.file_url}
-          productName={editingAsset.productName}
+          productName={editingAsset.productName || editingAsset.categoryName || editingAsset.file_name}
           onApply={(newUrl) => {
             toast.success('Afbeelding bewerkt');
             setEditorOpen(false);
