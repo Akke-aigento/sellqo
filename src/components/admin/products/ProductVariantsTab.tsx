@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { TagInput } from '@/components/ui/tag-input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -106,9 +107,9 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
 
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
-  const [newOptionValues, setNewOptionValues] = useState('');
+  const [newOptionValues, setNewOptionValues] = useState<string[]>([]);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
-  const [editOptionValues, setEditOptionValues] = useState('');
+  const [editOptionValues, setEditOptionValues] = useState<string[]>([]);
 
   // Variant edit state
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
@@ -124,23 +125,22 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
 
   const handleAddOption = () => {
     if (!newOptionName.trim()) return;
-    const values = newOptionValues.split(',').map(v => v.trim()).filter(Boolean);
-    if (values.length === 0) {
+    if (newOptionValues.length === 0) {
       toast.error('Voeg minimaal één waarde toe');
       return;
     }
     createOption.mutate({
       name: newOptionName.trim(),
-      values,
+      values: newOptionValues,
       position: options.length,
     });
     setNewOptionName('');
-    setNewOptionValues('');
+    setNewOptionValues([]);
   };
 
   const handleUpdateOptionValues = (optionId: string) => {
-    const values = editOptionValues.split(',').map(v => v.trim()).filter(Boolean);
-    if (values.length === 0) return;
+    if (editOptionValues.length === 0) return;
+    const values = editOptionValues;
     updateOption.mutate({ id: optionId, data: { values } }, {
       onSuccess: () => {
         // Build updated options list with the new values to sync variants
@@ -229,19 +229,20 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
               <div className="flex-1">
                 <Label className="font-medium">{option.name}</Label>
                 {editingOptionId === option.id ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      value={editOptionValues}
-                      onChange={e => setEditOptionValues(e.target.value)}
-                      placeholder="Waarden, komma gescheiden"
-                      className="flex-1"
+                  <div className="space-y-2 mt-1">
+                    <TagInput
+                      values={editOptionValues}
+                      onChange={setEditOptionValues}
+                      placeholder="Typ een waarde en druk Enter..."
                     />
-                    <Button type="button" size="icon" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" size="icon" variant="ghost" onClick={() => setEditingOptionId(null)}>
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
+                        <Check className="h-4 w-4 mr-1" /> Opslaan
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setEditingOptionId(null)}>
+                        <X className="h-4 w-4 mr-1" /> Annuleren
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -255,7 +256,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                       className="h-6 w-6"
                       onClick={() => {
                         setEditingOptionId(option.id);
-                        setEditOptionValues(option.values.join(', '));
+                        setEditOptionValues([...option.values]);
                       }}
                     >
                       <Pencil className="h-3 w-3" />
@@ -298,12 +299,11 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
               />
             </div>
             <div>
-              <Label className="text-xs">Waarden (komma gescheiden)</Label>
-              <Input
-                value={newOptionValues}
-                onChange={e => setNewOptionValues(e.target.value)}
+              <Label className="text-xs">Waarden</Label>
+              <TagInput
+                values={newOptionValues}
+                onChange={setNewOptionValues}
                 placeholder="bijv. Rood, Blauw, Groen"
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
               />
             </div>
             <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
