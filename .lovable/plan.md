@@ -1,38 +1,35 @@
 
 
-# Order detail mobiel optimaliseren
+# Hoofdproduct voorraad blokkeren bij varianten
 
 ## Probleem
-Op mobiel (390px viewport) is de order-detailpagina afgekapt: de tabel is te breed (min-w-[500px]), bedragen worden afgesneden, en de layout past niet goed in het scherm.
+Wanneer een product varianten heeft, zou voorraad alleen op variantniveau beheerd mogen worden. Het individuele bewerkscherm (ProductForm) handelt dit al correct af — daar verschijnt een melding "Voorraad wordt per variant beheerd". Maar in de **Grid View** is de stock-cel op de productrij nog steeds bewerkbaar, wat tot verwarring leidt.
 
 ## Aanpak
 
-**Bestand:** `src/pages/admin/OrderDetail.tsx`
+### 1. Grid View — stock-cel read-only maken bij varianten
+**Bestand:** `src/components/admin/products/grid/ProductGridView.tsx`
 
-1. **Order items tabel → mobiele kaart-layout**: De `min-w-[500px]` tabel vervangen door een responsieve weergave. Op mobiel worden orderregels als compacte kaarten getoond (afbeelding + naam + aantal × prijs), op desktop blijft de tabel. Dit voorkomt horizontaal scrollen.
+In de `renderCell` functie (of bij de cel-click handler): wanneer `col.field === 'stock'` en het product actieve varianten heeft, de cel niet-bewerkbaar maken en in plaats daarvan de totale variantvoorraad tonen met een klein label (bijv. "12 (3 var.)").
 
-2. **Header compacter**: De badges (status, betaalstatus, marketplace) wrappen al, maar de "Retour aanmaken" knop kan op mobiel full-width onder de header komen in plaats van ernaast.
+De `handleCellClick` handler moet een klik op de stock-cel negeren als het product varianten heeft.
 
-3. **Totalen sectie**: De `px-0 sm:px-6` op CardContent aanpassen zodat de padding op mobiel consistent is.
+### 2. Grid View — visuele indicator
+De stock-cel voor producten met varianten krijgt een andere styling (bijv. `text-muted-foreground italic`) om duidelijk te maken dat het een berekende waarde is, niet bewerkbaar.
 
-4. **Klant & Adressen kaart**: De adres-grid (`grid-cols-1 sm:grid-cols-2`) is al goed, geen wijziging nodig.
+### 3. Bulk stock-aanpassing — producten met varianten overslaan
+**Bestand:** `src/pages/admin/Products.tsx`
 
-5. **Verzending & Tracking / Documenten kaarten**: Controleren dat knoppen niet overlappen op 390px — eventueel `flex-wrap` toevoegen.
+Bij de bulk stock adjustment: producten met actieve varianten uitsluiten (of een waarschuwing tonen). Dit voorkomt dat de bulk-actie de product-level stock aanpast terwijl de echte voorraad op variantniveau zit.
 
-### Mobiele orderregel-layout (vervangt tabel op small screens)
-```text
-┌─────────────────────────────┐
-│ [img] Product naam          │
-│       SKU: ABC-123          │
-│       1 × € 59,95  = € 59,95│
-├─────────────────────────────┤
-│ [img] Product naam 2        │
-│       2 × € 29,95  = € 59,90│
-└─────────────────────────────┘
-```
-
-### Bestanden
+## Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/OrderDetail.tsx` | Wijzigen — responsieve orderregels, header layout, padding fixes |
+| `src/components/admin/products/grid/ProductGridView.tsx` | Stock-cel niet-bewerkbaar + totaal tonen bij varianten |
+| `src/pages/admin/Products.tsx` | Bulk stock: producten met varianten overslaan/waarschuwen |
+
+## Wat er niet verandert
+- ProductForm (al correct geïmplementeerd)
+- Variant stock editing (blijft werken)
+- Geen database-wijzigingen
 
