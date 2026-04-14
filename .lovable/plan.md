@@ -1,40 +1,64 @@
 
 
-# Tag-invoer voor variant optiewaarden
+# Productfoto Bewerking & Centraal Fotobeheer
 
-## Probleem
-De huidige invoer voor optiewaarden (bijv. "Rood, Blauw, Groen") is een platte tekst-input met komma-scheiding. Dit is foutgevoelig en niet intuïtief. De gebruiker wil "vakjes" — oftewel een tag/chip-invoer waarbij elke waarde als apart blokje verschijnt dat individueel verwijderd kan worden.
+## Twee features
 
-## Oplossing
+### 1. AI Achtergrond Bewerking — direct vanuit productfoto's
+Shopify-achtige functionaliteit waarbij tenants een productfoto kunnen selecteren en:
+- **Achtergrond verwijderen** (transparant maken)
+- **Nieuwe achtergrond kiezen** uit presets (studio wit, gradient, lifestyle settings, seizoensgebonden, etc.)
+- De bewerkte foto direct als productafbeelding opslaan of toevoegen
 
-### Nieuw component: `TagInput`
-**Bestand:** `src/components/ui/tag-input.tsx`
+**Waar dit komt:**
+- Een "Bewerk foto" knop bij elke productafbeelding in het productformulier (`ProductForm.tsx`)
+- Opent een dialog met de originele foto + bewerkingsopties
+- Gebruikt de bestaande `ai-generate-image` edge function (die al `background_remove` en `enhance` ondersteunt)
+- Resultaat kan direct de productfoto vervangen of als extra afbeelding worden toegevoegd
 
-Een herbruikbaar tag-invoer component:
-- Toont elke waarde als een `Badge` met een ×-knopje
-- Nieuwe waarde toevoegen door te typen en Enter of komma te drukken
-- Waarden individueel verwijderen door op het ×-knopje te klikken
-- Backspace verwijdert de laatste tag als het invoerveld leeg is
-- Plakken van komma-gescheiden tekst splitst automatisch in meerdere tags
+**Nieuw component:** `src/components/admin/products/ImageEditorDialog.tsx`
+- Toont originele foto links, preview rechts
+- Knoppen: "Achtergrond verwijderen", "Achtergrond wijzigen" (met presets dropdown)
+- "Toepassen" slaat de nieuwe afbeelding op naar het product
 
-```text
-  ┌─────────────────────────────────────────────┐
-  │ [Rood ×] [Blauw ×] [Groen ×]  typ hier... │
-  └─────────────────────────────────────────────┘
-```
+### 2. Centraal Fotobeheer — alle productfoto's op één plek
+Een nieuwe tab/pagina waar tenants **alle productafbeeldingen** in één overzicht zien en in bulk kunnen bewerken.
 
-### Aanpassing: `ProductVariantsTab.tsx`
+**Waar dit komt:**
+- Nieuwe tab "Foto's" in de bestaande `AIMarketingHub` (naast Assets), óf als eigen route
+- Haalt alle producten op en toont hun afbeeldingen in een grid
+- Per foto: productnaam erbij, klikbaar om te bewerken
+- Bulk-selectie: meerdere foto's selecteren → achtergrond verwijderen/wijzigen in één keer
+- Hergebruikt dezelfde `ImageEditorDialog` voor individuele bewerkingen
 
-**Twee plekken** waar de komma-gescheiden input vervangen wordt:
+**Nieuw component:** `src/components/admin/products/ProductPhotosManager.tsx`
+- Grid van alle productafbeeldingen met productnaam
+- Checkbox-selectie voor bulk-acties
+- Toolbar met "Achtergrond verwijderen" en "Achtergrond wijzigen" voor geselecteerde foto's
+- Filter op: producten zonder foto, producten met foto, categorie
 
-1. **Nieuwe optie toevoegen** (~regel 300-307): De `Input` voor `newOptionValues` wordt een `TagInput`. State verandert van `string` naar `string[]`.
+**Nieuwe route:** Toegevoegd als tab in het producten-overzicht of als sub-route
 
-2. **Bestaande optie bewerken** (~regel 231-244): De `Input` voor `editOptionValues` wordt ook een `TagInput`. State verandert van `string` naar `string[]`.
+## Technische aanpak
 
-De `handleAddOption` en `handleUpdateOptionValues` functies worden aangepast om direct met arrays te werken in plaats van `.split(',')`.
+### Bestanden
+
+| Bestand | Actie |
+|---------|-------|
+| `src/components/admin/products/ImageEditorDialog.tsx` | **Nieuw** — AI foto-editor dialog |
+| `src/components/admin/products/ProductPhotosManager.tsx` | **Nieuw** — Centraal fotobeheer grid |
+| `src/pages/admin/Products.tsx` | **Wijzigen** — tab toevoegen voor "Foto's" |
+| `src/pages/admin/ProductForm.tsx` | **Wijzigen** — "Bewerk" knop bij productafbeeldingen |
+| `src/hooks/useAIImages.ts` | Hergebruiken — bestaande `generateImage` mutatie met `enhancementType: 'background_remove'` |
+
+### Bestaande infrastructuur die hergebruikt wordt
+- `ai-generate-image` edge function (al deployed, ondersteunt `background_remove`, `enhance`, `overlay`)
+- `useAIImages` hook met `generateImage` mutatie
+- `useAICredits` voor credit-checks
+- `useProducts` voor het ophalen van alle producten + afbeeldingen
+- Setting presets (studio, gradient, lifestyle, etc.) uit `AIImageGenerator.tsx`
 
 ### Wat er niet verandert
-- De opslag-logica (options worden al als arrays opgeslagen)
-- De badge-weergave van bestaande waarden in niet-edit modus
-- Geen database-wijzigingen
-
+- Geen database-migraties nodig
+- Geen nieuwe edge functions
+- Credit-systeem blijft ongewijzigd
