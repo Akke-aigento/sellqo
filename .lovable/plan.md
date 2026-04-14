@@ -1,29 +1,40 @@
 
 
-# Productfoto's tonen in de Assets-bibliotheek
+# Eigen kleurkeuze toevoegen aan fotobewerker
 
-## Probleem
-De Assets-tab in Sellqo AI toont alleen bestanden uit de `media_assets`-tabel. Productfoto's (opgeslagen als `images[]` in de `products`-tabel) verschijnen daar niet. Logischerwijs verwacht een tenant al zijn visueel materiaal op één plek.
+## Wat
+Naast de bestaande presets (Studio wit, Marmer, etc.) komt er een extra optie "Eigen kleur" met een kleurkiezer. De tenant kiest een hex-kleur en de AI krijgt als prompt: "Place this product on a solid [hex color] background".
 
-## Oplossing
-De `MediaAssetsLibrary` uitbreiden zodat de "Producten"-folder automatisch alle productfoto's toont naast handmatig geüploade assets. Geen database-wijzigingen nodig.
+## Aanpak
 
-### Aanpak
+**Bestand:** `src/components/admin/products/ImageEditorDialog.tsx`
 
-**Bestand:** `src/components/admin/marketing/MediaAssetsLibrary.tsx`
+1. **Nieuwe preset toevoegen** aan `BACKGROUND_PRESETS`: `{ id: 'custom_color', label: 'Eigen kleur', icon: '🎨' }` — zonder vaste prompt (die wordt dynamisch opgebouwd).
 
-1. **Productfoto's ophalen** — `useProducts` hook importeren en alle productafbeeldingen als "virtuele assets" meenemen wanneer de folder "products" of "all" actief is.
+2. **State toevoegen**: `customColor` string (default `#ffffff`).
 
-2. **Samenvoegen in één grid** — Productfoto's omzetten naar hetzelfde `MediaAsset`-achtige formaat (met productnaam als titel, `source: 'product'` badge) en samenvoegen met de bestaande `media_assets` resultaten.
+3. **Kleurkiezer tonen**: Wanneer `selectedPreset === 'custom_color'`, verschijnt een `<input type="color" />` met een hex-tekstveld ernaast. Wordt getoond direct onder het preset-grid.
 
-3. **Visueel onderscheid** — Productfoto's krijgen een klein "Product"-badge op de kaart zodat je het verschil ziet met geüploade marketing-assets.
+4. **Prompt dynamisch opbouwen** in `handleProcess`: als `custom_color` geselecteerd is, wordt de prompt `Place this product on a solid ${customColor} colored background, professional product photography with soft shadows`.
 
-4. **Klikacties** — Bij productfoto's opent een klik de `ImageEditorDialog` (AI achtergrondbewerking) in plaats van standaard asset-acties. Zo kunnen tenants direct vanuit Assets hun productfoto's bewerken.
+5. **Reset** bij sluiten: `customColor` terug naar default.
 
-5. **Zoeken** — De zoekbalk filtert ook op productnaam bij productfoto's.
+```text
+Presets grid:
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│🔲 Transp.│ │⬜ Wit    │ │🔳 Grijs  │ │🌈 Gradient│
+├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤
+│🪵 Hout   │ │🏛️ Marmer │ │🌿 Natuur │ │❄️ Winter  │
+├──────────┤
+│🎨 Eigen  │  ← nieuw
+└──────────┘
 
-### Wat er niet verandert
-- Geen database-migraties
-- Bestaande upload/favoriet/verwijder-functionaliteit voor echte media_assets blijft intact
-- Andere folders (Campagnes, Social, Favorieten) blijven ongewijzigd
+Als "Eigen kleur" geselecteerd:
+┌─────────────────────────────────┐
+│ [■ kleurpicker]  #FF6B35       │
+└─────────────────────────────────┘
+```
+
+## Bestanden
+- `src/components/admin/products/ImageEditorDialog.tsx` — enige wijziging
 
