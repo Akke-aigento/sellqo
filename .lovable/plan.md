@@ -1,45 +1,31 @@
 
 
-# Variant waarden: dynamische invoervelden i.p.v. TagInput
+# Voorraad-tracking doorgeven aan varianten
 
-## Idee
-Vervang de TagInput (comma/Enter-gebaseerd) door een lijst van individuele tekstvelden. Zodra de gebruiker begint te typen in het laatste (lege) veld, verschijnt er automatisch een nieuw leeg veld eronder. Elke waarde heeft een verwijderknop (×). Simpel en intuïtief — geen Enter of komma nodig.
+## Probleem
+Wanneer op productniveau `track_inventory` uit staat (bijv. bij diensten of digitale producten), worden de variantvoorraadvelden nog steeds getoond en bewerkbaar. De varianten hebben een eigen `track_inventory` kolom in de database, maar die wordt nergens in de UI aangestuurd. Dit is verwarrend en kan tot inconsistente data leiden.
 
 ## Aanpak
 
-### 1. Nieuw component: `DynamicValueInputs`
-**Bestand:** `src/components/ui/dynamic-value-inputs.tsx`
+### 1. ProductVariantsTab: parent track_inventory doorgeven
+**Bestand:** `src/pages/admin/ProductForm.tsx`
+- De huidige `track_inventory` waarde uit het formulier meegeven als prop aan `ProductVariantsTab`.
 
-- Props: `values: string[]`, `onChange: (values: string[]) => void`, `placeholder?: string`
-- Rendert voor elke waarde een `Input` + ×-knop, plus altijd één leeg veld onderaan
-- Bij `onChange` van het laatste (lege) veld: zodra niet-leeg → voeg lege string toe aan array (= nieuw veld verschijnt)
-- Bij verwijderen: filter de waarde weg
-- Bij blur van een veld dat leeg is (en niet het laatste): verwijder het automatisch
-- Expose `commitPending()` via ref (filtert lege strings uit en retourneert finale array)
-
-### 2. ProductVariantsTab aanpassen
+### 2. ProductVariantsTab: voorraadvelden verbergen/disablen
 **Bestand:** `src/components/admin/products/ProductVariantsTab.tsx`
+- Nieuwe prop `trackInventory: boolean` accepteren.
+- Wanneer `trackInventory === false`:
+  - In de **card-layout**: de `InlineStockStepper` en het voorraadveld in de edit-modus verbergen, en een subtiele tekst tonen ("Voorraad wordt niet bijgehouden").
+  - In de **tabel-layout**: de stock-kolom verbergen of "–" tonen.
+  - Bij het **aanmaken/syncen** van varianten: `track_inventory: false` meegeven zodat de database consistent is.
 
-- Vervang `TagInput` import door `DynamicValueInputs`
-- Beide plekken (nieuw option + edit option) wisselen naar `DynamicValueInputs`
-- Ref-interface blijft compatible (`commitPending()`)
-- Verwijder hulptekst "Druk Enter na elke waarde"
-
-### Visueel voorbeeld
-```text
-Waarden:
-┌──────────────┐ ×
-│ Rood         │
-├──────────────┤ ×
-│ Blauw        │
-├──────────────┤
-│              │  ← leeg veld, verschijnt automatisch
-└──────────────┘
-```
+### 3. Sync: bij wijziging track_inventory op product, varianten updaten
+**Bestand:** `src/pages/admin/ProductForm.tsx`
+- Bij opslaan van het product: als `track_inventory` gewijzigd is, ook alle bijbehorende varianten updaten met dezelfde waarde (simpele bulk-update via Supabase).
 
 ## Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/components/ui/dynamic-value-inputs.tsx` | Nieuw — dynamische invoervelden component |
-| `src/components/admin/products/ProductVariantsTab.tsx` | Wijzigen — TagInput vervangen door DynamicValueInputs |
+| `src/pages/admin/ProductForm.tsx` | `trackInventory` prop doorgeven + sync naar varianten bij opslaan |
+| `src/components/admin/products/ProductVariantsTab.tsx` | Prop accepteren, voorraadvelden verbergen als tracking uit staat |
 
