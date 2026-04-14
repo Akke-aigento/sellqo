@@ -1,35 +1,37 @@
 
 
-# Hoofdproduct voorraad blokkeren bij varianten
+# Facturen pagina mobiel optimaliseren
 
 ## Probleem
-Wanneer een product varianten heeft, zou voorraad alleen op variantniveau beheerd mogen worden. Het individuele bewerkscherm (ProductForm) handelt dit al correct af — daar verschijnt een melding "Voorraad wordt per variant beheerd". Maar in de **Grid View** is de stock-cel op de productrij nog steeds bewerkbaar, wat tot verwarring leidt.
+Op 390px viewport is de facturentabel afgekapt — de kolommen Status en Acties vallen buiten het scherm. Zelfde probleem als bij Order Detail.
 
 ## Aanpak
 
-### 1. Grid View — stock-cel read-only maken bij varianten
-**Bestand:** `src/components/admin/products/grid/ProductGridView.tsx`
+**Bestand:** `src/pages/admin/Invoices.tsx`
 
-In de `renderCell` functie (of bij de cel-click handler): wanneer `col.field === 'stock'` en het product actieve varianten heeft, de cel niet-bewerkbaar maken en in plaats daarvan de totale variantvoorraad tonen met een klein label (bijv. "12 (3 var.)").
+Dezelfde strategie als bij Order Detail: op mobiel (`sm:hidden`) een card-layout tonen, op desktop (`hidden sm:block`) de bestaande tabel behouden.
 
-De `handleCellClick` handler moet een klik op de stock-cel negeren als het product varianten heeft.
+### Mobiele kaart-layout per factuur
+```text
+┌─────────────────────────────────┐
+│ INV-2026-0005                   │
+│ Aaron Mercken          € 59,99  │
+│ 14 apr 2026    [Betaald]        │
+│                    [📥] [✉️]    │
+└─────────────────────────────────┘
+```
 
-### 2. Grid View — visuele indicator
-De stock-cel voor producten met varianten krijgt een andere styling (bijv. `text-muted-foreground italic`) om duidelijk te maken dat het een berekende waarde is, niet bewerkbaar.
+Elke kaart toont:
+- Factuurnummer (bold)
+- Klantnaam + bedrag op één regel
+- Datum + statusbadge
+- Peppol-badge (indien van toepassing)
+- Actieknoppen (download PDF, UBL, mail, Peppol markeren)
 
-### 3. Bulk stock-aanpassing — producten met varianten overslaan
-**Bestand:** `src/pages/admin/Products.tsx`
+De bestaande `Table` krijgt `hidden sm:block`, de nieuwe kaart-lijst `sm:hidden`.
 
-Bij de bulk stock adjustment: producten met actieve varianten uitsluiten (of een waarschuwing tonen). Dit voorkomt dat de bulk-actie de product-level stock aanpast terwijl de echte voorraad op variantniveau zit.
-
-## Bestanden
+### Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/components/admin/products/grid/ProductGridView.tsx` | Stock-cel niet-bewerkbaar + totaal tonen bij varianten |
-| `src/pages/admin/Products.tsx` | Bulk stock: producten met varianten overslaan/waarschuwen |
-
-## Wat er niet verandert
-- ProductForm (al correct geïmplementeerd)
-- Variant stock editing (blijft werken)
-- Geen database-wijzigingen
+| `src/pages/admin/Invoices.tsx` | Card-layout voor mobiel toevoegen, tabel verbergen op small screens |
 
