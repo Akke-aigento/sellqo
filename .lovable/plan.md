@@ -1,31 +1,53 @@
 
 
-# Voorraad-tracking doorgeven aan varianten
+# Categorieën met hiërarchie (boom) tonen bij productkoppeling
 
 ## Probleem
-Wanneer op productniveau `track_inventory` uit staat (bijv. bij diensten of digitale producten), worden de variantvoorraadvelden nog steeds getoond en bewerkbaar. De varianten hebben een eigen `track_inventory` kolom in de database, maar die wordt nergens in de UI aangestuurd. Dit is verwarrend en kan tot inconsistente data leiden.
+De categorieën-tabel ondersteunt al `parent_id` (hiërarchie) en duplicate namen (unique constraint is alleen op `tenant_id + slug`). Dus "T-shirts" onder "Mannen" en "T-shirts" onder "Vrouwen" is technisch al mogelijk — de slug moet alleen uniek zijn (bijv. `mannen-tshirts` vs `vrouwen-tshirts`).
+
+**Maar**: de categorie-picker in het ProductForm toont categorieën als een platte lijst — alleen de naam, zonder ouder-context. Dus als je twee keer "T-shirts" hebt, weet je niet welke bij Mannen of Vrouwen hoort.
 
 ## Aanpak
 
-### 1. ProductVariantsTab: parent track_inventory doorgeven
+### 1. Categorie-picker: boomstructuur tonen
 **Bestand:** `src/pages/admin/ProductForm.tsx`
-- De huidige `track_inventory` waarde uit het formulier meegeven als prop aan `ProductVariantsTab`.
 
-### 2. ProductVariantsTab: voorraadvelden verbergen/disablen
-**Bestand:** `src/components/admin/products/ProductVariantsTab.tsx`
-- Nieuwe prop `trackInventory: boolean` accepteren.
-- Wanneer `trackInventory === false`:
-  - In de **card-layout**: de `InlineStockStepper` en het voorraadveld in de edit-modus verbergen, en een subtiele tekst tonen ("Voorraad wordt niet bijgehouden").
-  - In de **tabel-layout**: de stock-kolom verbergen of "–" tonen.
-  - Bij het **aanmaken/syncen** van varianten: `track_inventory: false` meegeven zodat de database consistent is.
+De huidige `categories.map()` in de Popover/Command vervangen door een hiërarchische weergave:
+- Hoofdcategorieën (zonder parent) als groepskoppen tonen
+- Subcategorieën ingesprongen eronder
+- Naam weergeven als `Mannen › T-shirts` zodat het altijd duidelijk is welke het is, ook in de geselecteerde badges
 
-### 3. Sync: bij wijziging track_inventory op product, varianten updaten
-**Bestand:** `src/pages/admin/ProductForm.tsx`
-- Bij opslaan van het product: als `track_inventory` gewijzigd is, ook alle bijbehorende varianten updaten met dezelfde waarde (simpele bulk-update via Supabase).
+```text
+Selecteer categorieën...
+┌─────────────────────────┐
+│ 🔍 Zoek categorie...    │
+├─────────────────────────┤
+│ ▸ Mannen                │  ← hoofdcategorie (selecteerbaar)
+│   ☐ T-shirts            │  ← subcategorie (ingesprongen)
+│   ☐ Broeken             │
+│ ▸ Vrouwen               │
+│   ☐ T-shirts            │
+│   ☐ Broeken             │
+└─────────────────────────┘
+```
+
+### 2. Geselecteerde badges: pad tonen
+In de badges onder de picker het volledige pad tonen: `Mannen › T-shirts` i.p.v. alleen `T-shirts`. Zo is altijd duidelijk welke categorie bedoeld is.
+
+### 3. Categoriebeheer: slug-suggestie verbeteren
+**Bestand:** `src/pages/admin/Categories.tsx` (of het formulier-component)
+
+Bij het aanmaken van een subcategorie de slug automatisch prefixen met de ouder-slug, bijv. `vrouwen-tshirts`. Dit voorkomt slug-conflicten bij duplicaatcategorienamen.
+
+## Wat er niet verandert
+- Database — de structuur ondersteunt dit al (parent_id + unique op tenant+slug)
+- Categoriebeheer zelf — drag & drop en boomweergave bestaan al
+- Geen migratie nodig
 
 ## Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/ProductForm.tsx` | `trackInventory` prop doorgeven + sync naar varianten bij opslaan |
-| `src/components/admin/products/ProductVariantsTab.tsx` | Prop accepteren, voorraadvelden verbergen als tracking uit staat |
+| `src/pages/admin/ProductForm.tsx` | Categorie-picker: hiërarchisch renderen + pad in badges |
+| `src/hooks/useCategories.ts` | Helper toevoegen: `getCategoryPath(id)` → "Mannen › T-shirts" |
+| Categorie-aanmaak (formulier) | Slug auto-prefix met ouder-slug bij subcategorieën |
 
