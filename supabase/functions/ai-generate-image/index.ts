@@ -98,7 +98,7 @@ serve(async (req) => {
       p_tenant_id: tenantId,
       p_credits: creditCost,
       p_feature: 'image_generation',
-      p_model: 'google/gemini-3-pro-image-preview',
+      p_model: 'google/gemini-3.1-flash-image-preview',
       p_metadata: { 
         style, 
         dimensions: `${width}x${height}`,
@@ -147,6 +147,11 @@ serve(async (req) => {
       enhancedPrompt = `${prompt}. ${stylePrompts[style] || stylePrompts.realistic}. Aspect ratio: ${width > height ? 'landscape' : width < height ? 'portrait' : 'square'}.`;
     }
 
+    // Add strong subject preservation instructions for editing tasks
+    if (sourceImageUrl && (enhancementType === 'enhance' || enhancementType === 'background_remove' || enhancementType === 'overlay')) {
+      enhancedPrompt = `CRITICAL INSTRUCTION: You MUST preserve the main subject/product EXACTLY as it is - same colors, same shape, same details, same textures. Do NOT alter, recolor, or redraw the subject in any way. Only modify the background/surroundings. ${enhancedPrompt}`;
+    }
+
     console.log("Generating image with prompt:", enhancedPrompt);
     console.log("Enhancement type:", enhancementType);
     console.log("Has source image:", !!sourceImageUrl);
@@ -169,7 +174,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [
           { role: "user", content: messageContent }
         ],

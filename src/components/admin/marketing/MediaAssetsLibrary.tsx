@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +20,7 @@ import { useAICredits } from '@/hooks/useAICredits';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const folderConfig = [
   { id: 'all', label: 'Alles', icon: FolderOpen },
@@ -191,6 +193,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
 
 export function MediaAssetsLibrary() {
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
   const [folder, setFolder] = useState('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -534,8 +537,35 @@ export function MediaAssetsLibrary() {
           onOpenChange={setEditorOpen}
           imageUrl={editingAsset.file_url}
           productName={editingAsset.productName || editingAsset.categoryName || editingAsset.file_name}
-          onApply={(newUrl) => {
-            toast.success('Afbeelding bewerkt');
+          onApply={async (newUrl) => {
+            try {
+              if (editingAsset.source === 'product' && editingAsset.id) {
+                const { error } = await (supabase as any)
+                  .from('product_images')
+                  .update({ image_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              } else if (editingAsset.source === 'upload' && editingAsset.id) {
+                const { error } = await (supabase as any)
+                  .from('media_assets')
+                  .update({ file_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              } else if (editingAsset.source === 'category' && editingAsset.id) {
+                const { error } = await (supabase as any)
+                  .from('categories')
+                  .update({ image_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              }
+              queryClient.invalidateQueries({ queryKey: ['media-assets'] });
+              queryClient.invalidateQueries({ queryKey: ['products'] });
+              queryClient.invalidateQueries({ queryKey: ['categories'] });
+              toast.success('Afbeelding opgeslagen!');
+            } catch (err: any) {
+              console.error('Failed to save edited image:', err);
+              toast.error('Kon de bewerkte afbeelding niet opslaan');
+            }
             setEditorOpen(false);
             setEditingAsset(null);
           }}
