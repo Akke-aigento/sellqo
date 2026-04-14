@@ -78,6 +78,13 @@ serve(async (req) => {
   try {
     logStep("Webhook received");
 
+    const stripeKeyDbg = Deno.env.get("STRIPE_SECRET_KEY");
+    const webhookSecretDbg = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    console.log("[DEBUG-WEBHOOK] secret length:", webhookSecretDbg?.length, 
+                "prefix:", webhookSecretDbg?.slice(0, 10),
+                "suffix:", webhookSecretDbg?.slice(-6),
+                "stripeKey length:", stripeKeyDbg?.length);
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     
