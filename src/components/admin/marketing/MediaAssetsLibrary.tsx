@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2 } from 'lucide-react';
+import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { useAIImages } from '@/hooks/useAIImages';
@@ -22,6 +23,7 @@ import { toast } from 'sonner';
 const folderConfig = [
   { id: 'all', label: 'Alles', icon: FolderOpen },
   { id: 'products', label: 'Producten', icon: Package },
+  { id: 'categories', label: 'Categorieën', icon: FolderTree },
   { id: 'campaigns', label: 'Campagnes', icon: Sparkles },
   { id: 'social', label: 'Social', icon: ImageIcon },
   { id: 'favorites', label: 'Favorieten', icon: Star },
@@ -37,9 +39,10 @@ interface VirtualAsset {
   tags: string[];
   is_ai_generated: boolean;
   is_favorite: boolean;
-  source: 'upload' | 'product';
+  source: 'upload' | 'product' | 'category';
   productId?: string;
   productName?: string;
+  categoryName?: string;
 }
 
 function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSelect, selectionActive }: { 
@@ -52,6 +55,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
   selectionActive: boolean;
 }) {
   const isProduct = asset.source === 'product';
+  const isCategory = asset.source === 'category';
 
   const handleClick = () => {
     if (selectionActive) {
@@ -69,7 +73,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
     >
       <AspectRatio ratio={1}>
         <div className="relative w-full h-full bg-muted">
-          {asset.file_type.startsWith('image/') || isProduct ? (
+          {asset.file_type.startsWith('image/') || isProduct || isCategory ? (
             <img 
               src={asset.file_url} 
               alt={asset.title || asset.file_name}
@@ -146,6 +150,12 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
                 Product
               </Badge>
             )}
+            {isCategory && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-100 text-green-700">
+                <FolderTree className="h-2.5 w-2.5 mr-0.5" />
+                Categorie
+              </Badge>
+            )}
             {asset.is_ai_generated && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700">
                 <Sparkles className="h-2.5 w-2.5 mr-0.5" />AI
@@ -163,6 +173,9 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
         <p className="text-xs font-medium truncate">{asset.title || asset.file_name}</p>
         {isProduct && asset.productName && (
           <p className="text-[10px] text-muted-foreground truncate">{asset.productName}</p>
+        )}
+        {isCategory && asset.categoryName && (
+          <p className="text-[10px] text-muted-foreground truncate">{asset.categoryName}</p>
         )}
         {asset.tags.length > 0 && (
           <div className="flex gap-1 mt-1 flex-wrap">
