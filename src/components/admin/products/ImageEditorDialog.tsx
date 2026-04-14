@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useAIImages } from '@/hooks/useAIImages';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const BACKGROUND_PRESETS = [
   { id: 'lifestyle_marble', label: 'Marmeren blad', prompt: 'Place this product on an elegant white marble surface in a premium lifestyle setting', icon: '🏛️' },
   { id: 'nature_green', label: 'Natuur groen', prompt: 'Place this product in a lush green nature setting with soft bokeh background', icon: '🌿' },
   { id: 'seasonal_winter', label: 'Winter sfeer', prompt: 'Place this product in a cozy winter holiday setting with snow and warm lighting', icon: '❄️' },
+  { id: 'custom_color', label: 'Eigen kleur', prompt: '', icon: '🎨' },
 ];
 
 interface ImageEditorDialogProps {
@@ -42,6 +44,7 @@ export function ImageEditorDialog({
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customColor, setCustomColor] = useState('#ffffff');
   const { generateImage } = useAIImages();
   const { hasCredits, getCreditCost } = useAICredits();
 
@@ -57,8 +60,12 @@ export function ImageEditorDialog({
 
     try {
       const enhancementType = selectedPreset === 'transparent' ? 'background_remove' : 'enhance';
+      const prompt = selectedPreset === 'custom_color'
+        ? `Place this product on a solid ${customColor} colored background, professional product photography with soft shadows`
+        : preset.prompt;
+
       const result = await generateImage.mutateAsync({
-        prompt: preset.prompt,
+        prompt,
         sourceImageUrl: imageUrl,
         enhancementType,
         settingPreset: selectedPreset,
@@ -80,6 +87,7 @@ export function ImageEditorDialog({
       onOpenChange(false);
       setResultUrl(null);
       setSelectedPreset(null);
+      setCustomColor('#ffffff');
     }
   };
 
@@ -87,6 +95,7 @@ export function ImageEditorDialog({
     if (!open) {
       setResultUrl(null);
       setSelectedPreset(null);
+      setCustomColor('#ffffff');
     }
     onOpenChange(open);
   };
@@ -159,6 +168,31 @@ export function ImageEditorDialog({
               ))}
             </div>
           </div>
+
+          {/* Custom color picker */}
+          {selectedPreset === 'custom_color' && (
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+              />
+              <Input
+                value={customColor}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) setCustomColor(v);
+                }}
+                className="w-28 font-mono uppercase"
+                maxLength={7}
+              />
+              <div
+                className="w-10 h-10 rounded border"
+                style={{ backgroundColor: customColor }}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-2 border-t">
