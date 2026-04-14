@@ -139,48 +139,80 @@ export default function OrderDetailPage() {
                 Orderregels
               </CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto px-0 sm:px-6">
-              <div className="min-w-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-center">Aantal</TableHead>
-                    <TableHead className="text-right">Prijs</TableHead>
-                    <TableHead className="text-right">Totaal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {order.order_items?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {item.product_image ? (
-                            <img 
-                              src={item.product_image} 
-                              alt={item.product_name}
-                              className="h-10 w-10 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium">{item.product_name}</div>
-                            {item.product_sku && (
-                              <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(Number(item.total_price))}</TableCell>
+            <CardContent className="px-4 sm:px-6">
+              {/* Mobile card layout */}
+              <div className="sm:hidden space-y-3">
+                {order.order_items?.map((item) => (
+                  <div key={item.id} className="flex gap-3 py-2 border-b last:border-0">
+                    {item.product_image ? (
+                      <img 
+                        src={item.product_image} 
+                        alt={item.product_name}
+                        className="h-12 w-12 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{item.product_name}</div>
+                      {item.product_sku && (
+                        <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                      )}
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {item.quantity} × {formatCurrency(Number(item.unit_price))}
+                        <span className="float-right font-medium text-foreground">
+                          {formatCurrency(Number(item.total_price))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table layout */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-center">Aantal</TableHead>
+                      <TableHead className="text-right">Prijs</TableHead>
+                      <TableHead className="text-right">Totaal</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {order.order_items?.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {item.product_image ? (
+                              <img 
+                                src={item.product_image} 
+                                alt={item.product_name}
+                                className="h-10 w-10 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">{item.product_name}</div>
+                              {item.product_sku && (
+                                <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(Number(item.total_price))}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
 
               <Separator className="my-4" />
