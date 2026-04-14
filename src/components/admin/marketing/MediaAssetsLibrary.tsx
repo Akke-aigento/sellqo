@@ -203,6 +203,7 @@ export function MediaAssetsLibrary() {
   const { assets, isLoading, createAsset, toggleFavorite, deleteAsset } = useMediaAssets(folder);
   const { uploadImage, uploading } = useImageUpload();
   const { products: productsList, isLoading: productsLoading } = useProducts();
+  const { categories } = useCategories();
   const { generateImage } = useAIImages();
   const { hasCredits, getCreditCost } = useAICredits();
 
@@ -229,6 +230,26 @@ export function MediaAssetsLibrary() {
     );
   }, [productsList, folder]);
 
+  // Convert category images to virtual assets
+  const categoryAssets = useMemo<VirtualAsset[]>(() => {
+    if (folder !== 'all' && folder !== 'categories') return [];
+    return (categories || [])
+      .filter(cat => cat.image_url)
+      .map(cat => ({
+        id: `category-${cat.id}`,
+        file_name: `${cat.name}.jpg`,
+        file_url: cat.image_url!,
+        file_type: 'image/jpeg',
+        file_size: null,
+        title: cat.name,
+        tags: [],
+        is_ai_generated: false,
+        is_favorite: false,
+        source: 'category' as const,
+        categoryName: cat.name,
+      }));
+  }, [categories, folder]);
+
   // Convert media assets to virtual assets
   const mediaVirtualAssets = useMemo<VirtualAsset[]>(() => {
     return assets.map(a => ({
@@ -247,7 +268,10 @@ export function MediaAssetsLibrary() {
 
   // Merge and filter
   const allAssets = useMemo(() => {
-    const combined = folder === 'products' ? productAssets : [...mediaVirtualAssets, ...productAssets];
+    let combined: VirtualAsset[];
+    if (folder === 'products') combined = productAssets;
+    else if (folder === 'categories') combined = categoryAssets;
+    else combined = [...mediaVirtualAssets, ...productAssets, ...categoryAssets];
     if (!search) return combined;
     const q = search.toLowerCase();
     return combined.filter(a =>
