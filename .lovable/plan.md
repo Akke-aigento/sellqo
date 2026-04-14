@@ -1,45 +1,38 @@
 
 
-# Bulk selectie & acties in Assets-bibliotheek
+# Order detail mobiel optimaliseren
 
-## Wat
-Checkbox-selectie toevoegen aan de asset-kaarten zodat tenants meerdere assets kunnen selecteren en in bulk kunnen bewerken (achtergrond verwijderen/wijzigen), verwijderen of downloaden — vergelijkbaar met hoe de productlijst bulk-bewerkingen afhandelt.
+## Probleem
+Op mobiel (390px viewport) is de order-detailpagina afgekapt: de tabel is te breed (min-w-[500px]), bedragen worden afgesneden, en de layout past niet goed in het scherm.
 
 ## Aanpak
 
-**Bestand:** `src/components/admin/marketing/MediaAssetsLibrary.tsx`
+**Bestand:** `src/pages/admin/OrderDetail.tsx`
 
-### 1. Selectie-state & logica
-- `selectedIds: Set<string>` state toevoegen
-- "Alles selecteren" checkbox in de header
-- Per `AssetCard`: checkbox linksboven die verschijnt bij hover of wanneer er al een selectie actief is
+1. **Order items tabel → mobiele kaart-layout**: De `min-w-[500px]` tabel vervangen door een responsieve weergave. Op mobiel worden orderregels als compacte kaarten getoond (afbeelding + naam + aantal × prijs), op desktop blijft de tabel. Dit voorkomt horizontaal scrollen.
 
-### 2. Zwevende bulk-actiebalk
-Wanneer `selectedIds.size > 0`, verschijnt een zwevende balk onderaan (conform admin design standaard: `fixed bottom-14`) met:
-- **Telling**: "X geselecteerd"
-- **Achtergrond verwijderen** (AI-actie, kost credits) — verwerkt alle geselecteerde afbeeldingen sequentieel via `generateImage`
-- **Achtergrond wijzigen** — opent een preset-kiezer (hergebruikt `BACKGROUND_PRESETS` uit `ImageEditorDialog`) en verwerkt daarna in bulk
-- **Verwijderen** — alleen voor `source: 'upload'` assets
-- **Downloaden** — URL's openen in nieuw tabblad
-- **Deselecteren** knop
+2. **Header compacter**: De badges (status, betaalstatus, marketplace) wrappen al, maar de "Retour aanmaken" knop kan op mobiel full-width onder de header komen in plaats van ernaast.
 
-### 3. AssetCard aanpassing
-- Nieuwe prop `selected: boolean` en `onSelect: () => void`
-- Checkbox overlay linksboven, altijd zichtbaar wanneer `selectedIds.size > 0`, anders alleen op hover
-- Klikken op de kaart zelf togglet selectie wanneer bulk-modus actief is
+3. **Totalen sectie**: De `px-0 sm:px-6` op CardContent aanpassen zodat de padding op mobiel consistent is.
 
-### 4. Bulk-verwerking met voortgang
-- Bij AI-acties: sequentieel verwerken met een voortgangsindicator ("3 van 8 verwerkt...")
-- Resilient pattern: individuele try/catch per afbeelding zodat een fout niet de rest blokkeert
-- Samenvattend bericht na afloop ("5 van 6 succesvol bewerkt")
+4. **Klant & Adressen kaart**: De adres-grid (`grid-cols-1 sm:grid-cols-2`) is al goed, geen wijziging nodig.
 
-## Bestanden
+5. **Verzending & Tracking / Documenten kaarten**: Controleren dat knoppen niet overlappen op 390px — eventueel `flex-wrap` toevoegen.
+
+### Mobiele orderregel-layout (vervangt tabel op small screens)
+```text
+┌─────────────────────────────┐
+│ [img] Product naam          │
+│       SKU: ABC-123          │
+│       1 × € 59,95  = € 59,95│
+├─────────────────────────────┤
+│ [img] Product naam 2        │
+│       2 × € 29,95  = € 59,90│
+└─────────────────────────────┘
+```
+
+### Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/components/admin/marketing/MediaAssetsLibrary.tsx` | Wijzigen — selectie-state, checkbox in AssetCard, zwevende bulk-balk, bulk-verwerkingslogica |
-
-## Wat er niet verandert
-- Geen database-wijzigingen
-- Bestaande individuele acties (favoriet, verwijderen, editor) blijven werken
-- Upload-zone en folder-navigatie ongewijzigd
+| `src/pages/admin/OrderDetail.tsx` | Wijzigen — responsieve orderregels, header layout, padding fixes |
 
