@@ -1584,18 +1584,18 @@ export default function ProductForm() {
                                 : 'Selecteer categorieën...'}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
+                          <PopoverContent className="w-[320px] p-0" align="start">
                             <Command shouldFilter={true}>
                               <CommandInput placeholder="Zoek categorie..." value={categorySearchQuery} onValueChange={setCategorySearchQuery} />
                               <CommandList>
                                 <CommandEmpty>Geen categorieën gevonden</CommandEmpty>
                                 <CommandGroup>
-                                  {categories.map((cat) => {
+                                  {flatCategoryTree.map(({ category: cat, level, path }) => {
                                     const isSelected = selectedCategoryIds.includes(cat.id);
                                     return (
                                       <CommandItem
                                         key={cat.id}
-                                        value={cat.name}
+                                        value={path}
                                         onSelect={() => {
                                           setSelectedCategoryIds(prev =>
                                             isSelected
@@ -1604,10 +1604,12 @@ export default function ProductForm() {
                                           );
                                         }}
                                       >
-                                        <Checkbox checked={isSelected} className="mr-2" />
-                                        <span>{cat.name}</span>
+                                        <span style={{ marginLeft: level * 16 }} className="flex items-center gap-2 flex-1 min-w-0">
+                                          <Checkbox checked={isSelected} />
+                                          <span className={level === 0 ? 'font-medium' : ''}>{cat.name}</span>
+                                        </span>
                                         {isSelected && selectedCategoryIds[0] === cat.id && (
-                                          <Badge variant="secondary" className="ml-auto text-xs">Primair</Badge>
+                                          <Badge variant="secondary" className="ml-auto text-xs shrink-0">Primair</Badge>
                                         )}
                                       </CommandItem>
                                     );
@@ -1620,11 +1622,11 @@ export default function ProductForm() {
                         {selectedCategoryIds.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {selectedCategoryIds.map((catId, index) => {
-                              const cat = categories.find(c => c.id === catId);
-                              if (!cat) return null;
+                              const categoryPath = getCategoryPath(catId);
+                              if (!categoryPath) return null;
                               return (
                                 <Badge key={catId} variant={index === 0 ? 'default' : 'secondary'} className="gap-1">
-                                  {cat.name}
+                                  {categoryPath}
                                   {index === 0 && <span className="text-xs opacity-70">(primair)</span>}
                                   <button type="button" onClick={() => setSelectedCategoryIds(prev => prev.filter(id => id !== catId))} className="hover:text-destructive">
                                     <X className="h-3 w-3" />

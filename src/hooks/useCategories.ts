@@ -224,9 +224,41 @@ export function useCategories() {
     return sortChildren(roots);
   };
 
+  // Build path string like "Mannen › T-shirts" for a category
+  const getCategoryPath = (categoryId: string): string => {
+    const allCats = categoriesQuery.data || [];
+    const buildPath = (id: string): string[] => {
+      const cat = allCats.find(c => c.id === id);
+      if (!cat) return [];
+      if (cat.parent_id) {
+        return [...buildPath(cat.parent_id), cat.name];
+      }
+      return [cat.name];
+    };
+    return buildPath(categoryId).join(' › ');
+  };
+
+  // Flatten tree for hierarchical display (with depth level)
+  const flattenCategoryTree = (tree: Category[]): { category: Category; level: number; path: string }[] => {
+    const result: { category: Category; level: number; path: string }[] = [];
+    const traverse = (cats: Category[], level: number, parentPath: string) => {
+      for (const cat of cats) {
+        const path = parentPath ? `${parentPath} › ${cat.name}` : cat.name;
+        result.push({ category: cat, level, path });
+        if (cat.children?.length) {
+          traverse(cat.children, level + 1, path);
+        }
+      }
+    };
+    traverse(tree, 0, '');
+    return result;
+  };
+
   return {
     categories: categoriesQuery.data || [],
     categoryTree: buildCategoryTree(categoriesQuery.data || []),
+    flatCategoryTree: flattenCategoryTree(buildCategoryTree(categoriesQuery.data || [])),
+    getCategoryPath,
     isLoading: categoriesQuery.isLoading,
     error: categoriesQuery.error,
     createCategory,
