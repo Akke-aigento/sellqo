@@ -1,64 +1,29 @@
 
 
-# Productfoto Bewerking & Centraal Fotobeheer
+# Productfoto's tonen in de Assets-bibliotheek
 
-## Twee features
+## Probleem
+De Assets-tab in Sellqo AI toont alleen bestanden uit de `media_assets`-tabel. Productfoto's (opgeslagen als `images[]` in de `products`-tabel) verschijnen daar niet. Logischerwijs verwacht een tenant al zijn visueel materiaal op één plek.
 
-### 1. AI Achtergrond Bewerking — direct vanuit productfoto's
-Shopify-achtige functionaliteit waarbij tenants een productfoto kunnen selecteren en:
-- **Achtergrond verwijderen** (transparant maken)
-- **Nieuwe achtergrond kiezen** uit presets (studio wit, gradient, lifestyle settings, seizoensgebonden, etc.)
-- De bewerkte foto direct als productafbeelding opslaan of toevoegen
+## Oplossing
+De `MediaAssetsLibrary` uitbreiden zodat de "Producten"-folder automatisch alle productfoto's toont naast handmatig geüploade assets. Geen database-wijzigingen nodig.
 
-**Waar dit komt:**
-- Een "Bewerk foto" knop bij elke productafbeelding in het productformulier (`ProductForm.tsx`)
-- Opent een dialog met de originele foto + bewerkingsopties
-- Gebruikt de bestaande `ai-generate-image` edge function (die al `background_remove` en `enhance` ondersteunt)
-- Resultaat kan direct de productfoto vervangen of als extra afbeelding worden toegevoegd
+### Aanpak
 
-**Nieuw component:** `src/components/admin/products/ImageEditorDialog.tsx`
-- Toont originele foto links, preview rechts
-- Knoppen: "Achtergrond verwijderen", "Achtergrond wijzigen" (met presets dropdown)
-- "Toepassen" slaat de nieuwe afbeelding op naar het product
+**Bestand:** `src/components/admin/marketing/MediaAssetsLibrary.tsx`
 
-### 2. Centraal Fotobeheer — alle productfoto's op één plek
-Een nieuwe tab/pagina waar tenants **alle productafbeeldingen** in één overzicht zien en in bulk kunnen bewerken.
+1. **Productfoto's ophalen** — `useProducts` hook importeren en alle productafbeeldingen als "virtuele assets" meenemen wanneer de folder "products" of "all" actief is.
 
-**Waar dit komt:**
-- Nieuwe tab "Foto's" in de bestaande `AIMarketingHub` (naast Assets), óf als eigen route
-- Haalt alle producten op en toont hun afbeeldingen in een grid
-- Per foto: productnaam erbij, klikbaar om te bewerken
-- Bulk-selectie: meerdere foto's selecteren → achtergrond verwijderen/wijzigen in één keer
-- Hergebruikt dezelfde `ImageEditorDialog` voor individuele bewerkingen
+2. **Samenvoegen in één grid** — Productfoto's omzetten naar hetzelfde `MediaAsset`-achtige formaat (met productnaam als titel, `source: 'product'` badge) en samenvoegen met de bestaande `media_assets` resultaten.
 
-**Nieuw component:** `src/components/admin/products/ProductPhotosManager.tsx`
-- Grid van alle productafbeeldingen met productnaam
-- Checkbox-selectie voor bulk-acties
-- Toolbar met "Achtergrond verwijderen" en "Achtergrond wijzigen" voor geselecteerde foto's
-- Filter op: producten zonder foto, producten met foto, categorie
+3. **Visueel onderscheid** — Productfoto's krijgen een klein "Product"-badge op de kaart zodat je het verschil ziet met geüploade marketing-assets.
 
-**Nieuwe route:** Toegevoegd als tab in het producten-overzicht of als sub-route
+4. **Klikacties** — Bij productfoto's opent een klik de `ImageEditorDialog` (AI achtergrondbewerking) in plaats van standaard asset-acties. Zo kunnen tenants direct vanuit Assets hun productfoto's bewerken.
 
-## Technische aanpak
-
-### Bestanden
-
-| Bestand | Actie |
-|---------|-------|
-| `src/components/admin/products/ImageEditorDialog.tsx` | **Nieuw** — AI foto-editor dialog |
-| `src/components/admin/products/ProductPhotosManager.tsx` | **Nieuw** — Centraal fotobeheer grid |
-| `src/pages/admin/Products.tsx` | **Wijzigen** — tab toevoegen voor "Foto's" |
-| `src/pages/admin/ProductForm.tsx` | **Wijzigen** — "Bewerk" knop bij productafbeeldingen |
-| `src/hooks/useAIImages.ts` | Hergebruiken — bestaande `generateImage` mutatie met `enhancementType: 'background_remove'` |
-
-### Bestaande infrastructuur die hergebruikt wordt
-- `ai-generate-image` edge function (al deployed, ondersteunt `background_remove`, `enhance`, `overlay`)
-- `useAIImages` hook met `generateImage` mutatie
-- `useAICredits` voor credit-checks
-- `useProducts` voor het ophalen van alle producten + afbeeldingen
-- Setting presets (studio, gradient, lifestyle, etc.) uit `AIImageGenerator.tsx`
+5. **Zoeken** — De zoekbalk filtert ook op productnaam bij productfoto's.
 
 ### Wat er niet verandert
-- Geen database-migraties nodig
-- Geen nieuwe edge functions
-- Credit-systeem blijft ongewijzigd
+- Geen database-migraties
+- Bestaande upload/favoriet/verwijder-functionaliteit voor echte media_assets blijft intact
+- Andere folders (Campagnes, Social, Favorieten) blijven ongewijzigd
+
