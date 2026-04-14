@@ -312,7 +312,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
       const variants = variantsByProduct.get(product.id) || [];
       const activeVariants = variants.filter(v => v.is_active);
       if (activeVariants.length > 0) {
-        const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock_quantity ?? 0), 0);
+        const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
         return (
           <div className="h-8 px-2 flex items-center justify-end text-sm font-mono text-muted-foreground italic">
             {totalStock} <span className="ml-1 text-xs">({activeVariants.length} var.)</span>
