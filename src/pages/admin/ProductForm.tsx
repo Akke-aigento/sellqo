@@ -1798,6 +1798,25 @@ export default function ProductForm() {
         onSave={form.handleSubmit(onSubmit)}
         onCancel={() => form.reset()}
       />
+
+      <ImageEditorDialog
+        open={imageEditorOpen}
+        onOpenChange={setImageEditorOpen}
+        imageUrl={imageEditorUrl}
+        productName={form.watch('name')}
+        onApply={(newUrl) => {
+          const currentImages = form.getValues('images') || [];
+          const idx = currentImages.indexOf(imageEditorUrl);
+          if (idx >= 0) {
+            const updated = [...currentImages];
+            updated[idx] = newUrl;
+            form.setValue('images', updated, { shouldDirty: true });
+            if (form.getValues('featured_image') === imageEditorUrl) {
+              form.setValue('featured_image', newUrl, { shouldDirty: true });
+            }
+          }
+        }}
+      />
     </div>
   );
 }
