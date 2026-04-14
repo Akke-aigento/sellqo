@@ -98,7 +98,7 @@ serve(async (req) => {
       p_tenant_id: tenantId,
       p_credits: creditCost,
       p_feature: 'image_generation',
-      p_model: 'google/gemini-3-pro-image-preview',
+      p_model: 'google/gemini-3.1-flash-image-preview',
       p_metadata: { 
         style, 
         dimensions: `${width}x${height}`,
@@ -174,7 +174,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [
           { role: "user", content: messageContent }
         ],
