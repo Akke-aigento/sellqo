@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
