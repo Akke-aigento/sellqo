@@ -19,6 +19,7 @@ import {
   Sparkles,
   XCircle,
   X,
+  ImageIcon,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
