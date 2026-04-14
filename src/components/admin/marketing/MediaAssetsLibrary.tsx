@@ -156,7 +156,7 @@ export function MediaAssetsLibrary() {
   // Convert product images to virtual assets
   const productAssets = useMemo<VirtualAsset[]>(() => {
     if (folder !== 'all' && folder !== 'products') return [];
-    return products.flatMap(product => 
+    return productsList.flatMap(product => 
       (product.images || []).map((url, idx) => ({
         id: `product-${product.id}-${idx}`,
         file_name: `${product.name}-${idx + 1}.jpg`,
@@ -172,7 +172,7 @@ export function MediaAssetsLibrary() {
         productName: product.name,
       }))
     );
-  }, [products, folder]);
+  }, [productsList, folder]);
 
   // Convert media assets to virtual assets
   const mediaVirtualAssets = useMemo<VirtualAsset[]>(() => {
