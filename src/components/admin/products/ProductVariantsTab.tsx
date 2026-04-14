@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { TagInput } from '@/components/ui/tag-input';
+import { TagInput, type TagInputHandle } from '@/components/ui/tag-input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -108,6 +108,8 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionValues, setNewOptionValues] = useState<string[]>([]);
+  const newTagInputRef = useRef<TagInputHandle>(null);
+  const editTagInputRef = useRef<TagInputHandle>(null);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [editOptionValues, setEditOptionValues] = useState<string[]>([]);
 
@@ -125,13 +127,15 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
 
   const handleAddOption = () => {
     if (!newOptionName.trim()) return;
-    if (newOptionValues.length === 0) {
+    // Commit any uncommitted text and get the final values
+    const finalValues = newTagInputRef.current?.commitPending() ?? newOptionValues;
+    if (finalValues.length === 0) {
       toast.error('Voeg minimaal één waarde toe');
       return;
     }
     createOption.mutate({
       name: newOptionName.trim(),
-      values: newOptionValues,
+      values: finalValues,
       position: options.length,
     });
     setNewOptionName('');
@@ -139,8 +143,9 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   };
 
   const handleUpdateOptionValues = (optionId: string) => {
-    if (editOptionValues.length === 0) return;
-    const values = editOptionValues;
+    const finalValues = editTagInputRef.current?.commitPending() ?? editOptionValues;
+    if (finalValues.length === 0) return;
+    const values = finalValues;
     updateOption.mutate({ id: optionId, data: { values } }, {
       onSuccess: () => {
         // Build updated options list with the new values to sync variants
@@ -231,10 +236,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                 {editingOptionId === option.id ? (
                   <div className="space-y-2 mt-1">
                     <TagInput
+                      ref={editTagInputRef}
                       values={editOptionValues}
                       onChange={setEditOptionValues}
-                      placeholder="Typ een waarde en druk Enter..."
+                      placeholder="Typ waarde + Enter"
                     />
+                    <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
                     <div className="flex items-center gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                         <Check className="h-4 w-4 mr-1" /> Opslaan
@@ -301,10 +308,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
             <div>
               <Label className="text-xs">Waarden</Label>
               <TagInput
+                ref={newTagInputRef}
                 values={newOptionValues}
                 onChange={setNewOptionValues}
-                placeholder="bijv. Rood, Blauw, Groen"
+                placeholder="Typ waarde + Enter"
               />
+              <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
             </div>
             <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
               <Plus className="h-4 w-4 mr-1" />
