@@ -89,11 +89,20 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   const vatRateOptions = vatRates.map(v => ({ value: v.id, label: `${v.name_nl || v.category} (${v.rate}%)` }));
 
   // Handle cell click
+  // Check if a product has active variants
+  const productHasVariants = useCallback((productId: string) => {
+    const variants = variantsByProduct.get(productId) || [];
+    return variants.some(v => v.is_active);
+  }, [variantsByProduct]);
+
   const handleCellClick = useCallback((
     e: React.MouseEvent,
     productId: string,
     field: string
   ) => {
+    // Block stock editing on products with active variants
+    if (field === 'stock' && productHasVariants(productId)) return;
+
     if (e.shiftKey) {
       grid.selectRange(productId, field);
     } else if (e.ctrlKey || e.metaKey) {
@@ -101,7 +110,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     } else {
       grid.selectCell(productId, field);
     }
-  }, [grid]);
+  }, [grid, productHasVariants]);
 
   // Handle bulk edit button click
   const handleBulkEditClick = () => {
@@ -297,6 +306,21 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   // Render a cell based on type
   const renderCell = (product: Product, colDef: typeof GRID_COLUMNS[number]) => {
     const field = colDef.field;
+
+    // Stock field: show read-only calculated total when product has active variants
+    if (field === 'stock') {
+      const variants = variantsByProduct.get(product.id) || [];
+      const activeVariants = variants.filter(v => v.is_active);
+      if (activeVariants.length > 0) {
+        const totalStock = activeVariants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+        return (
+          <div className="h-8 px-2 flex items-center justify-end text-sm font-mono text-muted-foreground italic">
+            {totalStock} <span className="ml-1 text-xs">({activeVariants.length} var.)</span>
+          </div>
+        );
+      }
+    }
+
     const isEditing = grid.editingCell?.productId === product.id && grid.editingCell?.field === field;
     const isSelected = grid.isCellSelected(product.id, field);
     const hasChange = grid.hasPendingChange(product.id, field);

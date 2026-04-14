@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
 import { 
@@ -75,6 +76,7 @@ import { ProductPhotosManager } from '@/components/admin/products/ProductPhotosM
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
   const { 
@@ -241,11 +243,28 @@ export default function ProductsPage() {
     }
     
     if (enabledFields.has('stock_adjustment') && state.stock_adjustment) {
-      await bulkAdjustStock.mutateAsync({
-        ids,
-        adjustmentType: state.stock_adjustment.type,
-        adjustmentValue: state.stock_adjustment.value,
+      // Filter out products that have active variants — stock is managed at variant level
+      const productsWithoutVariants = ids.filter(id => {
+        const product = products?.find(p => p.id === id);
+        const hasActiveVariants = product?.product_variants?.some(v => v.is_active);
+        return !hasActiveVariants;
       });
+      const skippedCount = ids.length - productsWithoutVariants.length;
+      
+      if (productsWithoutVariants.length > 0) {
+        await bulkAdjustStock.mutateAsync({
+          ids: productsWithoutVariants,
+          adjustmentType: state.stock_adjustment.type,
+          adjustmentValue: state.stock_adjustment.value,
+        });
+      }
+      
+      if (skippedCount > 0) {
+        toast({
+          title: 'Let op',
+          description: `${skippedCount} product(en) overgeslagen — voorraad wordt per variant beheerd.`,
+        });
+      }
     }
     
     if (enabledFields.has('tags_to_add') || enabledFields.has('tags_to_remove')) {
