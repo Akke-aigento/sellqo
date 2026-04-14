@@ -189,26 +189,20 @@ export function CategoryFormDialog({
       
       // Prefix with parent slug if a parent is selected
       if (watchParentId) {
-        const flatAll = flattenCategories(categories);
-        const parent = flatAll.find(c => c.id === watchParentId);
-        if (parent) {
-          const parentSlug = parent.label.split(' › ').pop()?.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') || '';
-          // Find the actual parent category to get its slug
-          const findCatSlug = (cats: Category[]): string | null => {
-            for (const c of cats) {
-              if (c.id === watchParentId) return c.slug;
-              if (c.children) {
-                const found = findCatSlug(c.children);
-                if (found) return found;
-              }
+        const findSlug = (cats: Category[]): string | null => {
+          for (const c of cats) {
+            if (c.id === watchParentId) return c.slug;
+            if (c.children) {
+              const found = findSlug(c.children);
+              if (found) return found;
             }
-            return null;
-          };
-          const parentCatSlug = findCatSlug(categories);
-          if (parentCatSlug) {
-            form.setValue('slug', `${parentCatSlug}-${nameSlug}`);
-            return;
           }
+          return null;
+        };
+        const parentSlug = findSlug(categories);
+        if (parentSlug) {
+          form.setValue('slug', `${parentSlug}-${nameSlug}`);
+          return;
         }
       }
       form.setValue('slug', nameSlug);
