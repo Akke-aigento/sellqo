@@ -534,8 +534,38 @@ export function MediaAssetsLibrary() {
           onOpenChange={setEditorOpen}
           imageUrl={editingAsset.file_url}
           productName={editingAsset.productName || editingAsset.categoryName || editingAsset.file_name}
-          onApply={(newUrl) => {
-            toast.success('Afbeelding bewerkt');
+          onApply={async (newUrl) => {
+            try {
+              if (editingAsset.source === 'product' && editingAsset.id) {
+                // Update product_images table
+                const { error } = await supabase
+                  .from('product_images')
+                  .update({ image_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              } else if (editingAsset.source === 'upload' && editingAsset.id) {
+                // Update media_assets table
+                const { error } = await supabase
+                  .from('media_assets')
+                  .update({ file_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              } else if (editingAsset.source === 'category' && editingAsset.id) {
+                // Update categories table
+                const { error } = await supabase
+                  .from('categories')
+                  .update({ image_url: newUrl })
+                  .eq('id', editingAsset.id);
+                if (error) throw error;
+              }
+              queryClient.invalidateQueries({ queryKey: ['media-assets'] });
+              queryClient.invalidateQueries({ queryKey: ['products'] });
+              queryClient.invalidateQueries({ queryKey: ['categories'] });
+              toast.success('Afbeelding opgeslagen!');
+            } catch (err: any) {
+              console.error('Failed to save edited image:', err);
+              toast.error('Kon de bewerkte afbeelding niet opslaan');
+            }
             setEditorOpen(false);
             setEditingAsset(null);
           }}
