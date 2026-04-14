@@ -1,53 +1,27 @@
 
 
-# Categorieën met hiërarchie (boom) tonen bij productkoppeling
+# Afbeelding bewerker beschikbaar maken voor alle assets
 
 ## Probleem
-De categorieën-tabel ondersteunt al `parent_id` (hiërarchie) en duplicate namen (unique constraint is alleen op `tenant_id + slug`). Dus "T-shirts" onder "Mannen" en "T-shirts" onder "Vrouwen" is technisch al mogelijk — de slug moet alleen uniek zijn (bijv. `mannen-tshirts` vs `vrouwen-tshirts`).
+De "Bewerken"-knop (die de `ImageEditorDialog` opent) is momenteel alleen beschikbaar voor assets met `source === 'product'`. Upload-assets en categorie-assets hebben deze optie niet — zij kunnen alleen de achtergrond laten verwijderen via bulk-selectie.
 
-**Maar**: de categorie-picker in het ProductForm toont categorieën als een platte lijst — alleen de naam, zonder ouder-context. Dus als je twee keer "T-shirts" hebt, weet je niet welke bij Mannen of Vrouwen hoort.
+## Oplossing
+Eén simpele wijziging in `MediaAssetsLibrary.tsx`:
 
-## Aanpak
-
-### 1. Categorie-picker: boomstructuur tonen
-**Bestand:** `src/pages/admin/ProductForm.tsx`
-
-De huidige `categories.map()` in de Popover/Command vervangen door een hiërarchische weergave:
-- Hoofdcategorieën (zonder parent) als groepskoppen tonen
-- Subcategorieën ingesprongen eronder
-- Naam weergeven als `Mannen › T-shirts` zodat het altijd duidelijk is welke het is, ook in de geselecteerde badges
-
-```text
-Selecteer categorieën...
-┌─────────────────────────┐
-│ 🔍 Zoek categorie...    │
-├─────────────────────────┤
-│ ▸ Mannen                │  ← hoofdcategorie (selecteerbaar)
-│   ☐ T-shirts            │  ← subcategorie (ingesprongen)
-│   ☐ Broeken             │
-│ ▸ Vrouwen               │
-│   ☐ T-shirts            │
-│   ☐ Broeken             │
-└─────────────────────────┘
+**Regel 485** — de `onEdit` prop wordt nu alleen doorgegeven voor product-assets:
+```tsx
+onEdit={asset.source === 'product' ? () => handleEditProductImage(asset) : undefined}
 ```
 
-### 2. Geselecteerde badges: pad tonen
-In de badges onder de picker het volledige pad tonen: `Mannen › T-shirts` i.p.v. alleen `T-shirts`. Zo is altijd duidelijk welke categorie bedoeld is.
+Dit aanpassen zodat alle image-assets (product, upload, category) de editor kunnen openen:
+```tsx
+onEdit={asset.file_type.startsWith('image/') ? () => handleEditProductImage(asset) : undefined}
+```
 
-### 3. Categoriebeheer: slug-suggestie verbeteren
-**Bestand:** `src/pages/admin/Categories.tsx` (of het formulier-component)
-
-Bij het aanmaken van een subcategorie de slug automatisch prefixen met de ouder-slug, bijv. `vrouwen-tshirts`. Dit voorkomt slug-conflicten bij duplicaatcategorienamen.
-
-## Wat er niet verandert
-- Database — de structuur ondersteunt dit al (parent_id + unique op tenant+slug)
-- Categoriebeheer zelf — drag & drop en boomweergave bestaan al
-- Geen migratie nodig
+Daarnaast de `productName` in de `ImageEditorDialog` aanpassen zodat deze ook voor niet-product assets een zinvolle naam toont (bijv. `categoryName` of `file_name`).
 
 ## Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/admin/ProductForm.tsx` | Categorie-picker: hiërarchisch renderen + pad in badges |
-| `src/hooks/useCategories.ts` | Helper toevoegen: `getCategoryPath(id)` → "Mannen › T-shirts" |
-| Categorie-aanmaak (formulier) | Slug auto-prefix met ouder-slug bij subcategorieën |
+| `src/components/admin/marketing/MediaAssetsLibrary.tsx` | `onEdit` voor alle image-assets inschakelen, naam-fallback verbeteren |
 
