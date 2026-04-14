@@ -2039,7 +2039,7 @@ async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<
   const { data: order, error } = await supabase
     .from('orders')
     .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, total, currency, shipping_address, billing_address, customer_email, customer_name, customer_phone, shipping_method_id, created_at')
-    .eq('id', orderId).eq('tenant_id', tenantId).single();
+    .eq('id', (params.order_id as string) || orderId).eq('tenant_id', tenantId).single();
   if (error || !order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
 
   const { data: items } = await supabase
