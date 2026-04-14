@@ -180,139 +180,212 @@ export default function InvoicesPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Factuurnummer</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden md:table-cell">Order</TableHead>
-                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
-                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
-                  <TableHead className="text-right">Bedrag</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Peppol</TableHead>
-                  <TableHead className="text-right">Acties</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile card layout */}
+              <div className="sm:hidden space-y-3 px-4">
                 {invoices.map((invoice) => {
                   const customer = getCustomerDisplay(invoice);
                   const invoiceAny = invoice as any;
                   return (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        {invoice.invoice_number}
-                      </TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <div>
-                          <div className="font-medium truncate">{customer.name}</div>
-                          {customer.email && (
-                            <div className="text-sm text-muted-foreground truncate">{customer.email}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {invoice.orders ? (
-                          <Button
-                            variant="link"
-                            className="p-0 h-auto font-normal"
-                            onClick={() => navigate(`/admin/orders/${invoice.order_id}`)}
-                          >
-                            {invoice.orders.order_number}
-                            <ExternalLink className="h-3 w-3 ml-1" />
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <OrderMarketplaceBadge
-                          source={invoice.orders?.marketplace_source || (invoice.order_id ? null : 'manual')} 
-                        />
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(invoice.total)}
-                      </TableCell>
-                      <TableCell>
+                    <div key={invoice.id} className="border rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{invoice.invoice_number}</span>
                         <InvoiceStatusBadge status={invoice.status} />
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {getPeppolStatusBadge(invoiceAny)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="truncate mr-2">{customer.name}</span>
+                        <span className="font-medium whitespace-nowrap">{formatCurrency(invoice.total)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
+                          </span>
+                          {getPeppolStatusBadge(invoiceAny)}
+                        </div>
+                        <div className="flex items-center gap-1">
                           {invoice.pdf_url && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => window.open(invoice.pdf_url!, '_blank')}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Download PDF</TooltipContent>
-                            </Tooltip>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => window.open(invoice.pdf_url!, '_blank')}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                           {invoice.ubl_url && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => window.open(invoice.ubl_url!, '_blank')}
+                            >
+                              <FileCode className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {invoiceAny.peppol_status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-green-600"
+                              onClick={() => markPeppolSent.mutate(invoice.id)}
+                              disabled={markPeppolSent.isPending}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => resendInvoice.mutate(invoice.id)}
+                            disabled={resendInvoice.isPending}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Factuurnummer</TableHead>
+                    <TableHead>Klant</TableHead>
+                    <TableHead className="hidden md:table-cell">Order</TableHead>
+                    <TableHead className="hidden lg:table-cell">Bron</TableHead>
+                    <TableHead>Datum</TableHead>
+                    <TableHead className="text-right">Bedrag</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Peppol</TableHead>
+                    <TableHead className="text-right">Acties</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((invoice) => {
+                    const customer = getCustomerDisplay(invoice);
+                    const invoiceAny = invoice as any;
+                    return (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">
+                          {invoice.invoice_number}
+                        </TableCell>
+                        <TableCell className="max-w-[180px]">
+                          <div>
+                            <div className="font-medium truncate">{customer.name}</div>
+                            {customer.email && (
+                              <div className="text-sm text-muted-foreground truncate">{customer.email}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {invoice.orders ? (
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-normal"
+                              onClick={() => navigate(`/admin/orders/${invoice.order_id}`)}
+                            >
+                              {invoice.orders.order_number}
+                              <ExternalLink className="h-3 w-3 ml-1" />
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <OrderMarketplaceBadge
+                            source={invoice.orders?.marketplace_source || (invoice.order_id ? null : 'manual')} 
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(invoice.created_at), 'd MMM yyyy', { locale: nl })}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(invoice.total)}
+                        </TableCell>
+                        <TableCell>
+                          <InvoiceStatusBadge status={invoice.status} />
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {getPeppolStatusBadge(invoiceAny)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {invoice.pdf_url && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => window.open(invoice.pdf_url!, '_blank')}
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Download PDF</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {invoice.ubl_url && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => window.open(invoice.ubl_url!, '_blank')}
+                                  >
+                                    <FileCode className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('peppol.download_ubl')}</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {invoiceAny.peppol_status === 'pending' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => markPeppolSent.mutate(invoice.id)}
+                                    disabled={markPeppolSent.isPending}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('peppol.mark_as_sent')}</TooltipContent>
+                              </Tooltip>
+                            )}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
-                                  onClick={() => window.open(invoice.ubl_url!, '_blank')}
+                                  onClick={() => resendInvoice.mutate(invoice.id)}
+                                  disabled={resendInvoice.isPending}
                                 >
-                                  <FileCode className="h-4 w-4" />
+                                  <Mail className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>{t('peppol.download_ubl')}</TooltipContent>
+                              <TooltipContent>Opnieuw versturen</TooltipContent>
                             </Tooltip>
-                          )}
-                          {invoiceAny.peppol_status === 'pending' && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                  onClick={() => markPeppolSent.mutate(invoice.id)}
-                                  disabled={markPeppolSent.isPending}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{t('peppol.mark_as_sent')}</TooltipContent>
-                            </Tooltip>
-                          )}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => resendInvoice.mutate(invoice.id)}
-                                disabled={resendInvoice.isPending}
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Opnieuw versturen</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
