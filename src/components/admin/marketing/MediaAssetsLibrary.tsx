@@ -540,22 +540,19 @@ export function MediaAssetsLibrary() {
           onApply={async (newUrl) => {
             try {
               if (editingAsset.source === 'product' && editingAsset.id) {
-                // Update product_images table
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                   .from('product_images')
                   .update({ image_url: newUrl })
                   .eq('id', editingAsset.id);
                 if (error) throw error;
               } else if (editingAsset.source === 'upload' && editingAsset.id) {
-                // Update media_assets table
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                   .from('media_assets')
                   .update({ file_url: newUrl })
                   .eq('id', editingAsset.id);
                 if (error) throw error;
               } else if (editingAsset.source === 'category' && editingAsset.id) {
-                // Update categories table
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                   .from('categories')
                   .update({ image_url: newUrl })
                   .eq('id', editingAsset.id);
