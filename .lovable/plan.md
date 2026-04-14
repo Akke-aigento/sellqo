@@ -1,27 +1,45 @@
 
 
-# Variant waarden-invoer duidelijker maken
+# Variant waarden: dynamische invoervelden i.p.v. TagInput
 
-## Probleem
-De `TagInput` is technisch al aanwezig, maar gebruikers herkennen het niet als een tag-invoer. Ze typen "Rood" en klikken direct op "Toevoegen" — maar de waarde is nog niet als tag bevestigd (Enter niet ingedrukt), waardoor `newOptionValues` leeg is en ze een foutmelding krijgen. De placeholder "bijv. Rood, Blauw, Groen" versterkt de verwarring.
+## Idee
+Vervang de TagInput (comma/Enter-gebaseerd) door een lijst van individuele tekstvelden. Zodra de gebruiker begint te typen in het laatste (lege) veld, verschijnt er automatisch een nieuw leeg veld eronder. Elke waarde heeft een verwijderknop (×). Simpel en intuïtief — geen Enter of komma nodig.
 
 ## Aanpak
 
+### 1. Nieuw component: `DynamicValueInputs`
+**Bestand:** `src/components/ui/dynamic-value-inputs.tsx`
+
+- Props: `values: string[]`, `onChange: (values: string[]) => void`, `placeholder?: string`
+- Rendert voor elke waarde een `Input` + ×-knop, plus altijd één leeg veld onderaan
+- Bij `onChange` van het laatste (lege) veld: zodra niet-leeg → voeg lege string toe aan array (= nieuw veld verschijnt)
+- Bij verwijderen: filter de waarde weg
+- Bij blur van een veld dat leeg is (en niet het laatste): verwijder het automatisch
+- Expose `commitPending()` via ref (filtert lege strings uit en retourneert finale array)
+
+### 2. ProductVariantsTab aanpassen
 **Bestand:** `src/components/admin/products/ProductVariantsTab.tsx`
 
-1. **Uncommitted tekst automatisch opvangen**: In `handleAddOption` en `handleUpdateOptionValues` de huidige (niet-bevestigde) invoertekst van de TagInput meenemen. Dit vereist een kleine aanpassing: een ref of callback toevoegen zodat de niet-bevestigde tekst ook als waarde wordt meegenomen bij klik op "Toevoegen".
+- Vervang `TagInput` import door `DynamicValueInputs`
+- Beide plekken (nieuw option + edit option) wisselen naar `DynamicValueInputs`
+- Ref-interface blijft compatible (`commitPending()`)
+- Verwijder hulptekst "Druk Enter na elke waarde"
 
-2. **Placeholder verduidelijken**: Wijzigen naar `"Typ waarde + Enter"` — kort en duidelijk.
-
-3. **Hulptekst onder het veld**: Kleine `text-muted-foreground text-xs` tekst: "Druk Enter na elke waarde om toe te voegen".
-
-**Bestand:** `src/components/ui/tag-input.tsx`
-
-4. **Commit-functie blootstellen**: Een `ref` (via `useImperativeHandle`) toevoegen met een `commitPending()` methode die de huidige invoertekst als tag toevoegt — zodat de parent dit kan aanroepen voordat hij de waarden uitleest.
+### Visueel voorbeeld
+```text
+Waarden:
+┌──────────────┐ ×
+│ Rood         │
+├──────────────┤ ×
+│ Blauw        │
+├──────────────┤
+│              │  ← leeg veld, verschijnt automatisch
+└──────────────┘
+```
 
 ## Bestanden
 | Bestand | Actie |
 |---------|-------|
-| `src/components/ui/tag-input.tsx` | `forwardRef` + `commitPending()` methode toevoegen |
-| `src/components/admin/products/ProductVariantsTab.tsx` | Bij "Toevoegen" pending tekst committen, placeholder + hulptekst aanpassen |
+| `src/components/ui/dynamic-value-inputs.tsx` | Nieuw — dynamische invoervelden component |
+| `src/components/admin/products/ProductVariantsTab.tsx` | Wijzigen — TagInput vervangen door DynamicValueInputs |
 
