@@ -759,6 +759,13 @@ export default function ProductsPage() {
         </div>
       )}
 
+        </TabsContent>
+
+        <TabsContent value="photos" className="mt-6">
+          <ProductPhotosManager />
+        </TabsContent>
+      </Tabs>
+
       {/* Delete confirmation dialogs */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
