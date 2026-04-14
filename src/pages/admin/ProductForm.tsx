@@ -26,7 +26,8 @@ import {
   CreditCard,
   Gift,
   Languages,
-  ExternalLink
+  ExternalLink,
+  Wand2
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -81,6 +82,7 @@ import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
 import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
+import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
@@ -160,6 +162,8 @@ export default function ProductForm() {
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [denominationInput, setDenominationInput] = useState('');
   const [descOpen, setDescOpen] = useState(false);
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  const [imageEditorUrl, setImageEditorUrl] = useState('');
   const [bundleItemsState, setBundleItemsState] = useState<Array<{
     child_product_id: string;
     quantity: number;
@@ -1533,6 +1537,9 @@ export default function ProductForm() {
                                   <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
                                     <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
                                   </Button>
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => { setImageEditorUrl(url); setImageEditorOpen(true); }} title="AI bewerken">
+                                    <Wand2 className="h-4 w-4" />
+                                  </Button>
                                   <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
                                     <Download className="h-4 w-4" />
                                   </Button>
@@ -1790,6 +1797,25 @@ export default function ProductForm() {
         isSaving={isSubmitting}
         onSave={form.handleSubmit(onSubmit)}
         onCancel={() => form.reset()}
+      />
+
+      <ImageEditorDialog
+        open={imageEditorOpen}
+        onOpenChange={setImageEditorOpen}
+        imageUrl={imageEditorUrl}
+        productName={form.watch('name')}
+        onApply={(newUrl) => {
+          const currentImages = form.getValues('images') || [];
+          const idx = currentImages.indexOf(imageEditorUrl);
+          if (idx >= 0) {
+            const updated = [...currentImages];
+            updated[idx] = newUrl;
+            form.setValue('images', updated, { shouldDirty: true });
+            if (form.getValues('featured_image') === imageEditorUrl) {
+              form.setValue('featured_image', newUrl, { shouldDirty: true });
+            }
+          }
+        }}
       />
     </div>
   );

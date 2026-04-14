@@ -19,6 +19,7 @@ import {
   Sparkles,
   XCircle,
   X,
+  ImageIcon,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -69,6 +70,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProductPhotosManager } from '@/components/admin/products/ProductPhotosManager';
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
@@ -127,6 +130,7 @@ export default function ProductsPage() {
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [bulkAIDialogOpen, setBulkAIDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState('catalog');
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -401,6 +405,19 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="catalog">
+            <Package className="mr-1.5 h-4 w-4" />
+            Catalogus
+          </TabsTrigger>
+          <TabsTrigger value="photos">
+            <ImageIcon className="mr-1.5 h-4 w-4" />
+            Foto's
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="catalog" className="space-y-6 mt-6">
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -741,6 +758,13 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="photos" className="mt-6">
+          <ProductPhotosManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Delete confirmation dialogs */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
