@@ -1985,6 +1985,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const orderId = params.order_id as string;
   const cartId = params.cart_id as string;
+  const stripeSessionId = params.stripe_session_id as string;
 
   // If cart_id provided, return cart checkout state
   if (cartId) {
@@ -2016,13 +2017,29 @@ async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<
     };
   }
 
+  // Stripe session lookup (post-payment from thank-you page)
+  if (stripeSessionId) {
+    const { data: orderBySession } = await supabase
+      .from('orders')
+      .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, total, currency, shipping_address, billing_address, customer_email, customer_name, customer_phone, shipping_method_id, created_at')
+      .eq('stripe_checkout_session_id', stripeSessionId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+    
+    if (orderBySession) {
+      params.order_id = orderBySession.id;
+    } else {
+      return { success: true, status: 'pending', message: 'Order not yet created' };
+    }
+  }
+
   // Order-based lookup (post-payment)
-  if (!orderId) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id or cart_id is required' } };
+  if (!orderId && !params.order_id) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'order_id or cart_id is required' } };
 
   const { data: order, error } = await supabase
     .from('orders')
     .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, discount_amount, total, currency, shipping_address, billing_address, customer_email, customer_name, customer_phone, shipping_method_id, created_at')
-    .eq('id', orderId).eq('tenant_id', tenantId).single();
+    .eq('id', (params.order_id as string) || orderId).eq('tenant_id', tenantId).single();
   if (error || !order) return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order niet gevonden' } };
 
   const { data: items } = await supabase
