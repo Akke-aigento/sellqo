@@ -405,6 +405,19 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="catalog">
+            <Package className="mr-1.5 h-4 w-4" />
+            Catalogus
+          </TabsTrigger>
+          <TabsTrigger value="photos">
+            <ImageIcon className="mr-1.5 h-4 w-4" />
+            Foto's
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="catalog" className="space-y-6 mt-6">
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
