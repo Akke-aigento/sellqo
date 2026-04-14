@@ -175,19 +175,45 @@ export function CategoryFormDialog({
     }
   }, [open, category, parentId, form]);
 
-  // Auto-generate slug from name
+  // Auto-generate slug from name, with parent slug prefix for subcategories
   const watchName = form.watch('name');
+  const watchParentId = form.watch('parent_id');
   useEffect(() => {
     if (!isEditing && watchName) {
-      const slug = watchName
+      const nameSlug = watchName
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
-      form.setValue('slug', slug);
+      
+      // Prefix with parent slug if a parent is selected
+      if (watchParentId) {
+        const flatAll = flattenCategories(categories);
+        const parent = flatAll.find(c => c.id === watchParentId);
+        if (parent) {
+          const parentSlug = parent.label.split(' › ').pop()?.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') || '';
+          // Find the actual parent category to get its slug
+          const findCatSlug = (cats: Category[]): string | null => {
+            for (const c of cats) {
+              if (c.id === watchParentId) return c.slug;
+              if (c.children) {
+                const found = findCatSlug(c.children);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const parentCatSlug = findCatSlug(categories);
+          if (parentCatSlug) {
+            form.setValue('slug', `${parentCatSlug}-${nameSlug}`);
+            return;
+          }
+        }
+      }
+      form.setValue('slug', nameSlug);
     }
-  }, [watchName, isEditing, form]);
+  }, [watchName, watchParentId, isEditing, form, categories]);
 
   const handleSubmit = async (data: CategoryFormData) => {
     await onSubmit(data);
