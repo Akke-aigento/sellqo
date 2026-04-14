@@ -147,7 +147,7 @@ export default function ProductForm() {
   const { enforceLimit } = useUsageLimits();
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { products: allProducts, createProduct, updateProduct } = useProducts();
-  const { categories } = useCategories();
+  const { categories, flatCategoryTree, getCategoryPath } = useCategories();
   const { uploadImage, uploading } = useImageUpload();
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
