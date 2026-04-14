@@ -127,31 +127,24 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
 
   const handleAddOption = () => {
     if (!newOptionName.trim()) return;
-    // Commit any uncommitted text in the tag input
-    newTagInputRef.current?.commitPending();
-    // Use a microtask to let state update from commitPending
-    setTimeout(() => {}, 0);
-  };
-
-  // Effect-based approach: trigger add after values update from commitPending
-  const pendingAddRef = useRef(false);
-  const handleAddOptionEffect = useCallback(() => {
-    if (!newOptionName.trim()) return;
-    if (newOptionValues.length === 0) {
+    // Commit any uncommitted text and get the final values
+    const finalValues = newTagInputRef.current?.commitPending() ?? newOptionValues;
+    if (finalValues.length === 0) {
       toast.error('Voeg minimaal één waarde toe');
       return;
     }
     createOption.mutate({
       name: newOptionName.trim(),
-      values: newOptionValues,
+      values: finalValues,
       position: options.length,
     });
     setNewOptionName('');
     setNewOptionValues([]);
-  }, [newOptionName, newOptionValues, options.length, createOption]);
+  };
 
   const handleUpdateOptionValues = (optionId: string) => {
-    if (editOptionValues.length === 0) return;
+    const finalValues = editTagInputRef.current?.commitPending() ?? editOptionValues;
+    if (finalValues.length === 0) return;
     const values = editOptionValues;
     updateOption.mutate({ id: optionId, data: { values } }, {
       onSuccess: () => {

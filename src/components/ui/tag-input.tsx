@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export interface TagInputHandle {
-  commitPending: () => void;
+  /** Commits any uncommitted text and returns the full updated values array */
+  commitPending: () => string[];
 }
 
 interface TagInputProps {
@@ -32,10 +33,19 @@ export const TagInput = React.forwardRef<TagInputHandle, TagInputProps>(
     React.useImperativeHandle(ref, () => ({
       commitPending: () => {
         if (inputValue.trim()) {
-          addTags(inputValue);
+          const newTags = inputValue.split(",").map(v => v.trim()).filter(Boolean);
+          const unique = newTags.filter(t => !values.includes(t));
+          if (unique.length > 0) {
+            const updated = [...values, ...unique];
+            onChange(updated);
+            setInputValue("");
+            return updated;
+          }
+          setInputValue("");
         }
+        return values;
       },
-    }), [inputValue, addTags]);
+    }), [inputValue, values, onChange]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" || e.key === ",") {
