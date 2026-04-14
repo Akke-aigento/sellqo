@@ -70,6 +70,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProductPhotosManager } from '@/components/admin/products/ProductPhotosManager';
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
