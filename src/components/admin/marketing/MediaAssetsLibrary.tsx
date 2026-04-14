@@ -20,6 +20,7 @@ import { useAICredits } from '@/hooks/useAICredits';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const folderConfig = [
   { id: 'all', label: 'Alles', icon: FolderOpen },
@@ -192,6 +193,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
 
 export function MediaAssetsLibrary() {
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
   const [folder, setFolder] = useState('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
