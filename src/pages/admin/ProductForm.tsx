@@ -1537,6 +1537,9 @@ export default function ProductForm() {
                                   <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
                                     <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
                                   </Button>
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => { setImageEditorUrl(url); setImageEditorOpen(true); }} title="AI bewerken">
+                                    <Wand2 className="h-4 w-4" />
+                                  </Button>
                                   <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
                                     <Download className="h-4 w-4" />
                                   </Button>
