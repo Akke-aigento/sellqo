@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type RefObject } from 'react';
 import { Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { TagInput } from '@/components/ui/tag-input';
+import { TagInput, type TagInputHandle } from '@/components/ui/tag-input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -108,6 +108,8 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionValues, setNewOptionValues] = useState<string[]>([]);
+  const newTagInputRef = useRef<TagInputHandle>(null);
+  const editTagInputRef = useRef<TagInputHandle>(null);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [editOptionValues, setEditOptionValues] = useState<string[]>([]);
 
@@ -125,6 +127,16 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
 
   const handleAddOption = () => {
     if (!newOptionName.trim()) return;
+    // Commit any uncommitted text in the tag input
+    newTagInputRef.current?.commitPending();
+    // Use a microtask to let state update from commitPending
+    setTimeout(() => {}, 0);
+  };
+
+  // Effect-based approach: trigger add after values update from commitPending
+  const pendingAddRef = useRef(false);
+  const handleAddOptionEffect = useCallback(() => {
+    if (!newOptionName.trim()) return;
     if (newOptionValues.length === 0) {
       toast.error('Voeg minimaal één waarde toe');
       return;
@@ -136,7 +148,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
     });
     setNewOptionName('');
     setNewOptionValues([]);
-  };
+  }, [newOptionName, newOptionValues, options.length, createOption]);
 
   const handleUpdateOptionValues = (optionId: string) => {
     if (editOptionValues.length === 0) return;
