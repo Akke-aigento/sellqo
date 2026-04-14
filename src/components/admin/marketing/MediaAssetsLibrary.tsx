@@ -103,7 +103,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
           {/* Overlay - hide when selection is active */}
           {!selectionActive && (
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              {isProduct && onEdit && (
+              {onEdit && (
                 <Button size="icon" variant="secondary" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                   <Wand2 className="h-4 w-4" />
                 </Button>
