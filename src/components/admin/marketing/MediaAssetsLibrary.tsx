@@ -278,9 +278,10 @@ export function MediaAssetsLibrary() {
       a.file_name.toLowerCase().includes(q) ||
       a.title?.toLowerCase().includes(q) ||
       a.productName?.toLowerCase().includes(q) ||
+      a.categoryName?.toLowerCase().includes(q) ||
       a.tags.some(t => t.toLowerCase().includes(q))
     );
-  }, [mediaVirtualAssets, productAssets, folder, search]);
+  }, [mediaVirtualAssets, productAssets, categoryAssets, folder, search]);
 
   const selectionActive = selectedIds.size > 0;
 
