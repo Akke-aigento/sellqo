@@ -145,7 +145,7 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   const handleUpdateOptionValues = (optionId: string) => {
     const finalValues = editTagInputRef.current?.commitPending() ?? editOptionValues;
     if (finalValues.length === 0) return;
-    const values = editOptionValues;
+    const values = finalValues;
     updateOption.mutate({ id: optionId, data: { values } }, {
       onSuccess: () => {
         // Build updated options list with the new values to sync variants
