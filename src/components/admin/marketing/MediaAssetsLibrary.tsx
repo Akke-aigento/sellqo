@@ -151,8 +151,7 @@ export function MediaAssetsLibrary() {
   
   const { assets, isLoading, createAsset, toggleFavorite, deleteAsset } = useMediaAssets(folder);
   const { uploadImage, uploading } = useImageUpload();
-  const { productsQuery } = useProducts();
-  const products = productsQuery.data || [];
+  const { products: productsList, isLoading: productsLoading } = useProducts();
 
   // Convert product images to virtual assets
   const productAssets = useMemo<VirtualAsset[]>(() => {
