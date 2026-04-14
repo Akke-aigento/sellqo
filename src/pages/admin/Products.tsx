@@ -76,6 +76,7 @@ import { ProductPhotosManager } from '@/components/admin/products/ProductPhotosM
 
 export default function ProductsPage() {
   const { currentTenant } = useTenant();
+  const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
   const { 
