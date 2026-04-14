@@ -1,27 +1,25 @@
 
 
-# Afbeelding bewerker beschikbaar maken voor alle assets
+# Fix: Bewerk-knop tonen voor alle afbeeldingen in Assets
 
 ## Probleem
-De "Bewerken"-knop (die de `ImageEditorDialog` opent) is momenteel alleen beschikbaar voor assets met `source === 'product'`. Upload-assets en categorie-assets hebben deze optie niet — zij kunnen alleen de achtergrond laten verwijderen via bulk-selectie.
+Op regel 106 van `MediaAssetsLibrary.tsx` staat:
+```tsx
+{isProduct && onEdit && (
+```
+De `onEdit` prop wordt correct doorgegeven voor alle image-assets, maar de **Wand2-knop** (✨) wordt alleen gerenderd als `isProduct === true`. Categorie- en upload-afbeeldingen krijgen de knop dus nooit te zien.
 
 ## Oplossing
-Eén simpele wijziging in `MediaAssetsLibrary.tsx`:
+**Bestand:** `src/components/admin/marketing/MediaAssetsLibrary.tsx`
 
-**Regel 485** — de `onEdit` prop wordt nu alleen doorgegeven voor product-assets:
+Regel 106 wijzigen van:
 ```tsx
-onEdit={asset.source === 'product' ? () => handleEditProductImage(asset) : undefined}
+{isProduct && onEdit && (
+```
+naar:
+```tsx
+{onEdit && (
 ```
 
-Dit aanpassen zodat alle image-assets (product, upload, category) de editor kunnen openen:
-```tsx
-onEdit={asset.file_type.startsWith('image/') ? () => handleEditProductImage(asset) : undefined}
-```
-
-Daarnaast de `productName` in de `ImageEditorDialog` aanpassen zodat deze ook voor niet-product assets een zinvolle naam toont (bijv. `categoryName` of `file_name`).
-
-## Bestanden
-| Bestand | Actie |
-|---------|-------|
-| `src/components/admin/marketing/MediaAssetsLibrary.tsx` | `onEdit` voor alle image-assets inschakelen, naam-fallback verbeteren |
+Dat is de enige wijziging die nodig is. De `onEdit` prop is al correct ingesteld op regel 485 voor alle image-types.
 
