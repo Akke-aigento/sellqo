@@ -75,9 +75,10 @@ function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val
 interface ProductVariantsTabProps {
   productId: string;
   productImages?: string[];
+  trackInventory?: boolean;
 }
 
-export function ProductVariantsTab({ productId, productImages = [] }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, productImages = [], trackInventory = true }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -456,10 +457,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                           <Label className="text-xs text-muted-foreground">Prijs</Label>
                           <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
+                        {trackInventory && (
                         <div>
                           <Label className="text-xs text-muted-foreground">Voorraad</Label>
                           <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="h-8 text-sm" />
                         </div>
+                        )}
                         <div className="flex items-end gap-2 pb-1">
                           <Label className="text-xs text-muted-foreground">Actief</Label>
                           <Switch checked={editVariantData.is_active ?? true} onCheckedChange={v => setEditVariantData(prev => ({ ...prev, is_active: v }))} />
@@ -477,7 +480,11 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Voorraad</span>
-                          <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                          {trackInventory ? (
+                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">Niet bijgehouden</span>
+                          )}
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Actief</span>
@@ -598,10 +605,14 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                           )}
                         </TableCell>
                         <TableCell>
-                          {editingVariantId === variant.id ? (
-                            <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
+                          {trackInventory ? (
+                            editingVariantId === variant.id ? (
+                              <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
+                            ) : (
+                              <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                            )
                           ) : (
-                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                            <span className="text-xs text-muted-foreground italic">—</span>
                           )}
                         </TableCell>
                         <TableCell>

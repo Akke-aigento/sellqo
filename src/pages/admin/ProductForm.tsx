@@ -523,6 +523,14 @@ export default function ProductForm() {
       });
     }
 
+    // Sync track_inventory to all variants
+    if (productId && isEditing) {
+      await supabase
+        .from('product_variants')
+        .update({ track_inventory: data.track_inventory })
+        .eq('product_id', productId);
+    }
+
     // Save category associations to junction table
     if (productId) {
       // Delete existing
@@ -1482,7 +1490,7 @@ export default function ProductForm() {
                         <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} />
+                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} />
                       </CardContent>
                     </Card>
                   ) : (
