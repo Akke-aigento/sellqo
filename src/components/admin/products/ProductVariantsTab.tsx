@@ -236,10 +236,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                 {editingOptionId === option.id ? (
                   <div className="space-y-2 mt-1">
                     <TagInput
+                      ref={editTagInputRef}
                       values={editOptionValues}
                       onChange={setEditOptionValues}
-                      placeholder="Typ een waarde en druk Enter..."
+                      placeholder="Typ waarde + Enter"
                     />
+                    <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
                     <div className="flex items-center gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                         <Check className="h-4 w-4 mr-1" /> Opslaan
@@ -306,10 +308,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
             <div>
               <Label className="text-xs">Waarden</Label>
               <TagInput
+                ref={newTagInputRef}
                 values={newOptionValues}
                 onChange={setNewOptionValues}
-                placeholder="bijv. Rood, Blauw, Groen"
+                placeholder="Typ waarde + Enter"
               />
+              <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
             </div>
             <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
               <Plus className="h-4 w-4 mr-1" />
