@@ -130,6 +130,7 @@ export default function ProductsPage() {
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [bulkAIDialogOpen, setBulkAIDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState('catalog');
 
   // Filter products
   const filteredProducts = useMemo(() => {
