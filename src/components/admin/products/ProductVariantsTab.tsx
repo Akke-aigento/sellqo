@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { TagInput, type TagInputHandle } from '@/components/ui/tag-input';
+import { DynamicValueInputs, type DynamicValueInputsHandle } from '@/components/ui/dynamic-value-inputs';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -108,8 +108,8 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
   // Option management state
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionValues, setNewOptionValues] = useState<string[]>([]);
-  const newTagInputRef = useRef<TagInputHandle>(null);
-  const editTagInputRef = useRef<TagInputHandle>(null);
+  const newTagInputRef = useRef<DynamicValueInputsHandle>(null);
+  const editTagInputRef = useRef<DynamicValueInputsHandle>(null);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [editOptionValues, setEditOptionValues] = useState<string[]>([]);
 
@@ -235,13 +235,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
                 <Label className="font-medium">{option.name}</Label>
                 {editingOptionId === option.id ? (
                   <div className="space-y-2 mt-1">
-                    <TagInput
+                    <DynamicValueInputs
                       ref={editTagInputRef}
                       values={editOptionValues}
                       onChange={setEditOptionValues}
-                      placeholder="Typ waarde + Enter"
+                      placeholder="Typ waarde..."
                     />
-                    <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
                     <div className="flex items-center gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
                         <Check className="h-4 w-4 mr-1" /> Opslaan
@@ -307,13 +306,12 @@ export function ProductVariantsTab({ productId, productImages = [] }: ProductVar
             </div>
             <div>
               <Label className="text-xs">Waarden</Label>
-              <TagInput
+              <DynamicValueInputs
                 ref={newTagInputRef}
                 values={newOptionValues}
                 onChange={setNewOptionValues}
-                placeholder="Typ waarde + Enter"
+                placeholder="Typ waarde..."
               />
-              <p className="text-xs text-muted-foreground">Druk Enter na elke waarde</p>
             </div>
             <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
               <Plus className="h-4 w-4 mr-1" />
