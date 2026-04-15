@@ -33,6 +33,7 @@ export interface ReturnSettings {
   notify_customer_refund_processed: boolean;
   notify_admin_new_request: boolean;
   enabled_reason_codes: string[];
+  refund_requires_inspection: boolean;
 }
 
 const DEFAULT_SETTINGS: Omit<ReturnSettings, 'tenant_id'> = {
@@ -67,6 +68,7 @@ const DEFAULT_SETTINGS: Omit<ReturnSettings, 'tenant_id'> = {
     'defect', 'damaged_in_transit', 'wrong_product', 'wrong_size',
     'not_as_described', 'changed_mind', 'late_delivery', 'duplicate_order', 'other',
   ],
+  refund_requires_inspection: true,
 };
 
 export function useReturnSettings() {

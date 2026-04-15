@@ -91,7 +91,7 @@ export function NewReturnFromScratchDialog({ open, onOpenChange }: Props) {
         orderDiscountAmount={orderDetails.discount_amount}
         orderDiscountCode={orderDetails.discount_code}
         shippingCost={orderDetails.shipping_cost || 0}
-        orderSource={orderDetails.source}
+        orderSource={orderDetails.marketplace_source || undefined}
         paymentMethod={
           orderDetails.marketplace_source === 'bol_com' ? 'bolcom' :
           orderDetails.marketplace_source === 'amazon' ? 'amazon' :
@@ -145,7 +145,7 @@ export function NewReturnFromScratchDialog({ open, onOpenChange }: Props) {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-sm">{formatCurrency(order.total_amount)}</p>
+                        <p className="font-medium text-sm">{formatCurrency(order.total_amount || 0)}</p>
                         <OrderStatusBadge status={order.status} />
                       </div>
                     </CardContent>
