@@ -11840,6 +11840,7 @@ export type Database = {
         Row: {
           changed_by: string | null
           created_at: string | null
+          flow_type: string | null
           from_status: string | null
           id: string
           notes: string | null
@@ -11849,6 +11850,7 @@ export type Database = {
         Insert: {
           changed_by?: string | null
           created_at?: string | null
+          flow_type?: string | null
           from_status?: string | null
           id?: string
           notes?: string | null
@@ -11858,6 +11860,7 @@ export type Database = {
         Update: {
           changed_by?: string | null
           created_at?: string | null
+          flow_type?: string | null
           from_status?: string | null
           id?: string
           notes?: string | null
@@ -11886,6 +11889,10 @@ export type Database = {
           id: string
           internal_notes: string | null
           items: Json | null
+          label_carrier: string | null
+          label_sent_at: string | null
+          label_tracking_number: string | null
+          label_url: string | null
           marketplace_connection_id: string | null
           marketplace_order_id: string | null
           marketplace_return_id: string | null
@@ -11893,9 +11900,18 @@ export type Database = {
           raw_marketplace_data: Json | null
           received_at: string | null
           refund_amount: number | null
+          refund_approved_at: string | null
+          refund_approved_by: string | null
+          refund_completed_at: string | null
+          refund_failed_at: string | null
+          refund_failure_reason: string | null
+          refund_initiated_at: string | null
+          refund_initiated_by: string | null
           refund_method: string | null
           refund_notes: string | null
-          refund_status: string | null
+          refund_status:
+            | Database["public"]["Enums"]["refund_status_enum"]
+            | null
           registration_date: string | null
           restocking_fees_total: number | null
           return_reason: string | null
@@ -11920,6 +11936,10 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           items?: Json | null
+          label_carrier?: string | null
+          label_sent_at?: string | null
+          label_tracking_number?: string | null
+          label_url?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_return_id?: string | null
@@ -11927,9 +11947,18 @@ export type Database = {
           raw_marketplace_data?: Json | null
           received_at?: string | null
           refund_amount?: number | null
+          refund_approved_at?: string | null
+          refund_approved_by?: string | null
+          refund_completed_at?: string | null
+          refund_failed_at?: string | null
+          refund_failure_reason?: string | null
+          refund_initiated_at?: string | null
+          refund_initiated_by?: string | null
           refund_method?: string | null
           refund_notes?: string | null
-          refund_status?: string | null
+          refund_status?:
+            | Database["public"]["Enums"]["refund_status_enum"]
+            | null
           registration_date?: string | null
           restocking_fees_total?: number | null
           return_reason?: string | null
@@ -11954,6 +11983,10 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           items?: Json | null
+          label_carrier?: string | null
+          label_sent_at?: string | null
+          label_tracking_number?: string | null
+          label_url?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_return_id?: string | null
@@ -11961,9 +11994,18 @@ export type Database = {
           raw_marketplace_data?: Json | null
           received_at?: string | null
           refund_amount?: number | null
+          refund_approved_at?: string | null
+          refund_approved_by?: string | null
+          refund_completed_at?: string | null
+          refund_failed_at?: string | null
+          refund_failure_reason?: string | null
+          refund_initiated_at?: string | null
+          refund_initiated_by?: string | null
           refund_method?: string | null
           refund_notes?: string | null
-          refund_status?: string | null
+          refund_status?:
+            | Database["public"]["Enums"]["refund_status_enum"]
+            | null
           registration_date?: string | null
           restocking_fees_total?: number | null
           return_reason?: string | null
@@ -15280,6 +15322,7 @@ export type Database = {
           notify_customer_package_received: boolean | null
           notify_customer_refund_processed: boolean | null
           notify_customer_request_received: boolean | null
+          refund_requires_inspection: boolean | null
           refund_shipping_by_default: boolean | null
           return_shipping_paid_by: string | null
           return_shipping_provider: string | null
@@ -15313,6 +15356,7 @@ export type Database = {
           notify_customer_package_received?: boolean | null
           notify_customer_refund_processed?: boolean | null
           notify_customer_request_received?: boolean | null
+          refund_requires_inspection?: boolean | null
           refund_shipping_by_default?: boolean | null
           return_shipping_paid_by?: string | null
           return_shipping_provider?: string | null
@@ -15346,6 +15390,7 @@ export type Database = {
           notify_customer_package_received?: boolean | null
           notify_customer_refund_processed?: boolean | null
           notify_customer_request_received?: boolean | null
+          refund_requires_inspection?: boolean | null
           refund_shipping_by_default?: boolean | null
           return_shipping_paid_by?: string | null
           return_shipping_provider?: string | null
@@ -17246,6 +17291,7 @@ export type Database = {
       }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
       generate_rma_number: { Args: { _tenant_id: string }; Returns: string }
+      get_order_return_tag: { Args: { _order_id: string }; Returns: string }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -17524,6 +17570,14 @@ export type Database = {
         | "declined"
         | "expired"
         | "converted"
+      refund_status_enum:
+        | "pending"
+        | "approved_for_refund"
+        | "initiated"
+        | "completed"
+        | "failed"
+        | "denied"
+        | "not_applicable"
       return_status:
         | "registered"
         | "in_transit"
@@ -17539,6 +17593,10 @@ export type Database = {
         | "awaiting_refund"
         | "completed"
         | "cancelled"
+        | "label_sent"
+        | "shipped"
+        | "inspected"
+        | "closed"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -17809,6 +17867,15 @@ export const Constants = {
         "expired",
         "converted",
       ],
+      refund_status_enum: [
+        "pending",
+        "approved_for_refund",
+        "initiated",
+        "completed",
+        "failed",
+        "denied",
+        "not_applicable",
+      ],
       return_status: [
         "registered",
         "in_transit",
@@ -17824,6 +17891,10 @@ export const Constants = {
         "awaiting_refund",
         "completed",
         "cancelled",
+        "label_sent",
+        "shipped",
+        "inspected",
+        "closed",
       ],
       supplier_document_type: [
         "invoice",
