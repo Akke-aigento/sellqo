@@ -49,7 +49,6 @@ const SETTING_KEY: Record<ReturnEmailEvent, string> = {
   approved: 'notify_customer_approved',
   package_received: 'notify_customer_package_received',
   refund_processed: 'notify_customer_refund_processed',
-  admin_new_request: 'notify_admin_new_request',
 };
 
 serve(async (req) => {
@@ -72,7 +71,7 @@ serve(async (req) => {
     const { return_id, event } = await req.json();
     if (!return_id || !event) throw new Error('return_id and event are required');
 
-    const validEvents: ReturnEmailEvent[] = ['request_received', 'approved', 'package_received', 'refund_processed', 'admin_new_request'];
+    const validEvents: ReturnEmailEvent[] = ['request_received', 'approved', 'package_received', 'refund_processed'];
     if (!validEvents.includes(event)) throw new Error(`Invalid event: ${event}`);
 
     log('Processing', { return_id, event });
@@ -121,10 +120,9 @@ serve(async (req) => {
       );
     }
 
-    // Determine recipient
-    const isAdmin = event === 'admin_new_request';
+    // Determine recipient (all remaining events are customer-facing)
     const supportEmail = tenant?.support_email || tenant?.contact_email || 'admin@sellqo.app';
-    const to = isAdmin ? supportEmail : order.customer_email;
+    const to = order.customer_email;
 
     if (!to) {
       log('No recipient email');
@@ -135,9 +133,9 @@ serve(async (req) => {
     }
 
     // Resolve locale
-    const locale: Locale = isAdmin ? 'nl' : await resolveLocale(supabase, order, tenantId);
+    const locale: Locale = await resolveLocale(supabase, order, tenantId);
 
-    log('Resolved locale', { locale, to, isAdmin });
+    log('Resolved locale', { locale, to });
 
     const items = (ret.return_items || []).map((i: any) => ({
       name: i.product_name || 'Onbekend product',
@@ -153,7 +151,6 @@ serve(async (req) => {
       refundMethod: ret.refund_method || 'manual',
       items,
       supportEmail,
-      adminLink: isAdmin ? `https://sellqo.lovable.app/admin/returns/${ret.id}` : undefined,
     };
 
     const template = getTemplate(event as ReturnEmailEvent, locale, templateData);

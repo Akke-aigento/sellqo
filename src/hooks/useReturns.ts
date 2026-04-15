@@ -336,7 +336,7 @@ export function useReturnMutations() {
       invalidateAll();
       if (data?.id) {
         fireReturnEmail(data.id, 'request_received');
-        fireReturnEmail(data.id, 'admin_new_request');
+        fireAdminReturnNotification(data);
       }
       toast.success('Retour aangemaakt');
     },
@@ -572,6 +572,47 @@ export function useReturnMutations() {
     supabase.functions.invoke('send-return-email', {
       body: { return_id: returnId, event },
     }).catch(err => console.warn('[return-email]', event, 'failed:', err));
+  };
+
+  const fireAdminReturnNotification = async (newReturn: any) => {
+    try {
+      const { data: settings } = await supabase
+        .from('tenant_return_settings')
+        .select('notify_admin_new_request')
+        .eq('tenant_id', newReturn.tenant_id)
+        .single();
+
+      if (settings && settings.notify_admin_new_request === false) return;
+
+      const { data: order } = await supabase
+        .from('orders')
+        .select('order_number, customer_name, total, currency')
+        .eq('id', newReturn.order_id)
+        .single();
+
+      await supabase.functions.invoke('create-notification', {
+        body: {
+          tenant_id: newReturn.tenant_id,
+          category: 'returns',
+          type: 'return_new_request',
+          title: `Nieuwe retour: ${newReturn.rma_number || 'RMA'}`,
+          message: `${order?.customer_name || 'Klant'} heeft een retour aangevraagd voor order ${order?.order_number || ''}`,
+          priority: 'medium',
+          action_url: `/admin/returns/${newReturn.id}`,
+          data: {
+            return_id: newReturn.id,
+            rma_number: newReturn.rma_number,
+            order_id: newReturn.order_id,
+            order_number: order?.order_number,
+            customer_name: order?.customer_name,
+            refund_amount: newReturn.refund_amount,
+            currency: order?.currency || 'EUR',
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[admin-return-notification] failed:', err);
+    }
   };
 
   const executeRefund = useMutation({
