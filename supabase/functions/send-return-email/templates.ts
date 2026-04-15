@@ -2,8 +2,7 @@ export type ReturnEmailEvent =
   | 'request_received'
   | 'approved'
   | 'package_received'
-  | 'refund_processed'
-  | 'admin_new_request';
+  | 'refund_processed';
 
 export interface TemplateData {
   tenantName: string;
@@ -39,11 +38,6 @@ const subjects: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => str
     nl: (d) => `Je refund van ${d.refundAmountFormatted} is verwerkt`,
     en: (d) => `Your refund of ${d.refundAmountFormatted} has been processed`,
     fr: (d) => `Votre remboursement de ${d.refundAmountFormatted} a été traité`,
-  },
-  admin_new_request: {
-    nl: (d) => `Nieuwe retour aangevraagd — order ${d.orderNumber}`,
-    en: (d) => `New return request — order ${d.orderNumber}`,
-    fr: (d) => `Nouvelle demande de retour — commande ${d.orderNumber}`,
   },
 };
 
@@ -168,35 +162,6 @@ const bodies: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => strin
       <ul>${itemList(d.items)}</ul>
       <p>Le montant apparaîtra généralement sur votre relevé sous 3 à 5 jours ouvrables.</p>
       <p>Cordialement,<br/>${escapeHtml(d.tenantName)}</p>
-    `,
-  },
-  admin_new_request: {
-    nl: (d) => `
-      <p>Er is een nieuwe retour aangevraagd.</p>
-      <p><strong>Klant:</strong> ${escapeHtml(d.customerName)}<br/>
-      <strong>Bestelling:</strong> ${escapeHtml(d.orderNumber)}<br/>
-      <strong>RMA:</strong> ${escapeHtml(d.rmaNumber)}</p>
-      <p><strong>Artikelen:</strong></p>
-      <ul>${itemList(d.items)}</ul>
-      ${d.adminLink ? `<p><a href="${d.adminLink}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Bekijk retour</a></p>` : ''}
-    `,
-    en: (d) => `
-      <p>A new return has been requested.</p>
-      <p><strong>Customer:</strong> ${escapeHtml(d.customerName)}<br/>
-      <strong>Order:</strong> ${escapeHtml(d.orderNumber)}<br/>
-      <strong>RMA:</strong> ${escapeHtml(d.rmaNumber)}</p>
-      <p><strong>Items:</strong></p>
-      <ul>${itemList(d.items)}</ul>
-      ${d.adminLink ? `<p><a href="${d.adminLink}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">View return</a></p>` : ''}
-    `,
-    fr: (d) => `
-      <p>Une nouvelle demande de retour a été soumise.</p>
-      <p><strong>Client :</strong> ${escapeHtml(d.customerName)}<br/>
-      <strong>Commande :</strong> ${escapeHtml(d.orderNumber)}<br/>
-      <strong>RMA :</strong> ${escapeHtml(d.rmaNumber)}</p>
-      <p><strong>Articles :</strong></p>
-      <ul>${itemList(d.items)}</ul>
-      ${d.adminLink ? `<p><a href="${d.adminLink}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Voir le retour</a></p>` : ''}
     `,
   },
 };
