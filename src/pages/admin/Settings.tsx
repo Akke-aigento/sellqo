@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Bot,
   Inbox,
+  Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +48,7 @@ import { CustomerCommunicationSettings } from '@/components/admin/settings/Custo
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
+import { ReturnSettingsPage } from '@/components/admin/settings/ReturnSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
