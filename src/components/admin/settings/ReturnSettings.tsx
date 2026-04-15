@@ -84,6 +84,7 @@ export function ReturnSettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Retourinstellingen</h2>
         <p className="text-muted-foreground">Configureer het retourbeleid, refund logica en klant-portaal.</p>
+      </div>
       <Accordion type="multiple" defaultValue={['general', 'credit-notes', 'portal', 'refund', 'marketplace', 'shipping', 'stock', 'notifications', 'reasons']} className="space-y-4">
         
         {/* 1. Algemeen */}
