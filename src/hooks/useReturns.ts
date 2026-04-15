@@ -379,8 +379,13 @@ export function useReturnMutations() {
         flow_type: 'logistics',
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidateAll();
+      if (variables.status === 'approved') {
+        fireReturnEmail(variables.returnId, 'approved');
+      } else if (variables.status === 'received') {
+        fireReturnEmail(variables.returnId, 'package_received');
+      }
       toast.success('Logistieke status bijgewerkt');
     },
     onError: (error) => {
