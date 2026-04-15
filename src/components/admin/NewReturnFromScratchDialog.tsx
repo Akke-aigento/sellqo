@@ -145,7 +145,7 @@ export function NewReturnFromScratchDialog({ open, onOpenChange }: Props) {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-sm">{formatCurrency(order.total_amount || 0)}</p>
+                        <p className="font-medium text-sm">{formatCurrency(order.total || 0)}</p>
                         <OrderStatusBadge status={order.status} />
                       </div>
                     </CardContent>

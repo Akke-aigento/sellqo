@@ -115,7 +115,7 @@ export interface ReturnRecord {
   updated_at: string;
   orders?: {
     order_number: string;
-    total_amount: number;
+    total: number;
     stripe_payment_intent_id?: string;
     marketplace_source?: string;
     shipping_cost?: number;
@@ -143,7 +143,7 @@ export function useReturns(filters?: ReturnFilters) {
 
       let query = supabase
         .from('returns')
-        .select('*, orders!returns_order_id_fkey(order_number, total_amount, stripe_payment_intent_id, marketplace_source, shipping_cost)')
+        .select('*, orders!returns_order_id_fkey(order_number, total, stripe_payment_intent_id, marketplace_source, shipping_cost)')
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
 
@@ -175,7 +175,7 @@ export function useReturn(id: string | undefined) {
       if (!id) return null;
       const { data, error } = await supabase
         .from('returns')
-        .select('*, orders!returns_order_id_fkey(order_number, total_amount, stripe_payment_intent_id, marketplace_source, shipping_cost)')
+        .select('*, orders!returns_order_id_fkey(order_number, total, stripe_payment_intent_id, marketplace_source, shipping_cost)')
         .eq('id', id)
         .single();
       if (error) throw error;

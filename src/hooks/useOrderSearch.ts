@@ -22,7 +22,7 @@ export function useOrderSearchForReturn(searchQuery: string) {
 
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, customer_email, total_amount, status, payment_status, created_at, source, marketplace_connection_id, shipping_cost, subtotal, discount_amount, discount_code')
+        .select('id, order_number, customer_name, customer_email, total, status, payment_status, created_at, source, marketplace_connection_id, shipping_cost, subtotal, discount_amount, discount_code')
         .eq('tenant_id', currentTenant.id)
         .or(`order_number.ilike.%${cleanQuery}%,customer_name.ilike.%${cleanQuery}%,customer_email.ilike.%${cleanQuery}%`)
         .order('created_at', { ascending: false })
