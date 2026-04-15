@@ -6,6 +6,7 @@ import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
 import { usePaymentConfirmation } from '@/hooks/usePaymentConfirmation';
+import { useOrderReturnable } from '@/hooks/useOrderReturnable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,9 +40,14 @@ export default function OrderDetailPage() {
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
+  const { data: returnableMap } = useOrderReturnable(id);
   const [internalNotes, setInternalNotes] = useState('');
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
+
+  const totalReturnable = returnableMap
+    ? Array.from(returnableMap.values()).reduce((s, v) => s + v.returnable, 0)
+    : null;
 
   const handleMarkAsPaid = (data: { 
     paymentMethod: PaymentMethodType; 
@@ -124,7 +130,12 @@ export default function OrderDetailPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setShowReturnDialog(true)}>
+        <Button
+          variant="outline"
+          onClick={() => setShowReturnDialog(true)}
+          disabled={totalReturnable === 0}
+          title={totalReturnable === 0 ? 'Alle items uit deze bestelling zijn al geretourneerd' : undefined}
+        >
           <RotateCcw className="h-4 w-4 mr-2" />
           Retour aanmaken
         </Button>
@@ -338,6 +349,8 @@ export default function OrderDetailPage() {
                       <SelectItem value="shipped">Verzonden</SelectItem>
                       <SelectItem value="delivered">Afgeleverd</SelectItem>
                       <SelectItem value="cancelled">Geannuleerd</SelectItem>
+                      <SelectItem value="returned">Geretourneerd</SelectItem>
+                      <SelectItem value="partially_returned">Deels geretourneerd</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -603,6 +616,7 @@ export default function OrderDetailPage() {
           sku: item.sku,
           quantity: item.quantity,
           price: item.unit_price || 0,
+          already_returned: returnableMap?.get(item.id)?.alreadyReturned || 0,
         }))}
         orderSubtotal={order.subtotal}
         orderDiscountAmount={(order as any).discount_amount}

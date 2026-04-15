@@ -233,6 +233,9 @@ export function useReturnMutations() {
     queryClient.invalidateQueries({ queryKey: ['return-status-history'] });
     queryClient.invalidateQueries({ queryKey: ['return-items'] });
     queryClient.invalidateQueries({ queryKey: ['order-return-tag'] });
+    queryClient.invalidateQueries({ queryKey: ['order-returnable'] });
+    queryClient.invalidateQueries({ queryKey: ['orders'] });
+    queryClient.invalidateQueries({ queryKey: ['order'] });
   };
 
   const createReturn = useMutation({

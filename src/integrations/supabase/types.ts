@@ -17291,7 +17291,20 @@ export type Database = {
       }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
       generate_rma_number: { Args: { _tenant_id: string }; Returns: string }
+      get_already_returned_quantity: {
+        Args: { _order_item_id: string }
+        Returns: number
+      }
       get_order_return_tag: { Args: { _order_id: string }; Returns: string }
+      get_order_returnable_items: {
+        Args: { _order_id: string }
+        Returns: {
+          already_returned: number
+          order_item_id: string
+          ordered_quantity: number
+          returnable_quantity: number
+        }[]
+      }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -17410,6 +17423,10 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      sync_order_from_returns: {
+        Args: { _order_id: string }
+        Returns: undefined
       }
       track_user_behavior: {
         Args: {
@@ -17544,7 +17561,14 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
-      payment_status: "pending" | "paid" | "refunded" | "failed"
+        | "returned"
+        | "partially_returned"
+      payment_status:
+        | "pending"
+        | "paid"
+        | "refunded"
+        | "failed"
+        | "partially_refunded"
       pending_payment_status: "pending" | "confirmed" | "expired" | "cancelled"
       platform_payment_method: "stripe" | "bank_transfer"
       platform_payment_type: "subscription" | "addon" | "ai_credits"
@@ -17837,8 +17861,16 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "returned",
+        "partially_returned",
       ],
-      payment_status: ["pending", "paid", "refunded", "failed"],
+      payment_status: [
+        "pending",
+        "paid",
+        "refunded",
+        "failed",
+        "partially_refunded",
+      ],
       pending_payment_status: ["pending", "confirmed", "expired", "cancelled"],
       platform_payment_method: ["stripe", "bank_transfer"],
       platform_payment_type: ["subscription", "addon", "ai_credits"],

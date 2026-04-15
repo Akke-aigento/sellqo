@@ -1,7 +1,7 @@
 import type { Json } from '@/integrations/supabase/types';
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned' | 'partially_returned';
+export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed' | 'partially_refunded';
 export type DeliveryType = 'home_delivery' | 'service_point';
 
 export interface Address {
