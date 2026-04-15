@@ -106,6 +106,7 @@ export default function ReturnDetailPage() {
   const [showDenyDialog, setShowDenyDialog] = useState(false);
   const [showFailDialog, setShowFailDialog] = useState(false);
   const [showRefundWarning, setShowRefundWarning] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [manualStatus, setManualStatus] = useState<string>('');
   const [noteText, setNoteText] = useState('');
   const [denyReason, setDenyReason] = useState('');
