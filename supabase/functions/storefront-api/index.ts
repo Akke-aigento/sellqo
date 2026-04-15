@@ -1609,6 +1609,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       currency: cart.currency || tenant?.currency || 'EUR',
       stripe_payment_intent_id: stripePaymentIntentId || null,
       expires_at: expiresAt || null,
+      locale: cart.locale || null,
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
