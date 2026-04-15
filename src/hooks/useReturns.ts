@@ -556,6 +556,12 @@ export function useReturnMutations() {
     },
   });
 
+  const fireReturnEmail = (returnId: string, event: string) => {
+    supabase.functions.invoke('send-return-email', {
+      body: { return_id: returnId, event },
+    }).catch(err => console.warn('[return-email]', event, 'failed:', err));
+  };
+
   const executeRefund = useMutation({
     mutationFn: async ({ returnId, refundMethod }: {
       returnId: string;
@@ -563,8 +569,25 @@ export function useReturnMutations() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Non-Stripe: just transition to 'initiated' for manual confirmation
-      if (refundMethod !== 'stripe') {
+      // Fetch tenant's refund preference
+      const { data: returnRow } = await supabase
+        .from('returns')
+        .select('tenant_id')
+        .eq('id', returnId)
+        .single();
+
+      if (!returnRow) throw new Error('Retour niet gevonden');
+
+      const { data: tenantSettings } = await supabase
+        .from('tenant_return_settings')
+        .select('default_refund_method')
+        .eq('tenant_id', returnRow.tenant_id)
+        .single();
+
+      const autoStripeEnabled = tenantSettings?.default_refund_method === 'auto_stripe';
+
+      // Non-Stripe or manual mode: just transition to 'initiated' for manual confirmation
+      if (refundMethod !== 'stripe' || !autoStripeEnabled) {
         await supabase.from('returns').update({
           refund_status: 'initiated',
           refund_initiated_at: new Date().toISOString(),
