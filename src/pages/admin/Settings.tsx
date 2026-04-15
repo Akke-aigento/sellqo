@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { 
   User, 
   Building2, 
@@ -21,6 +22,7 @@ import {
   MessageSquare,
   Bot,
   Inbox,
+  Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,6 +48,7 @@ import { CustomerCommunicationSettings } from '@/components/admin/settings/Custo
 import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSettings';
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
+import { ReturnSettingsPage } from '@/components/admin/settings/ReturnSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
@@ -106,6 +109,14 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'payments', title: 'Betalingsmethoden', icon: CreditCard, component: PaymentSettings },
       { id: 'transactions', title: 'Transacties & Kosten', icon: Banknote, component: TransactionFeeSettings },
+    ],
+  },
+  {
+    id: 'returns',
+    title: 'Retouren',
+    description: 'Retourbeleid, refund logica en klant-portaal',
+    sections: [
+      { id: 'return-settings', title: 'Retourinstellingen', icon: Undo2, component: ReturnSettingsPage },
     ],
   },
   {

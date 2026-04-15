@@ -11743,11 +11743,145 @@ export type Database = {
           },
         ]
       }
+      return_items: {
+        Row: {
+          condition: string | null
+          created_at: string | null
+          id: string
+          inspected_at: string | null
+          inspected_by: string | null
+          inspection_notes: string | null
+          line_total: number
+          order_item_id: string | null
+          product_id: string | null
+          product_name: string
+          quantity: number
+          reason_code: string
+          reason_notes: string | null
+          received_quantity: number | null
+          refund_amount: number
+          restock: boolean | null
+          restocking_fee: number | null
+          return_id: string
+          sku: string | null
+          unit_price: number
+          updated_at: string | null
+          variant_id: string | null
+          variant_title: string | null
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string | null
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          inspection_notes?: string | null
+          line_total: number
+          order_item_id?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          reason_code: string
+          reason_notes?: string | null
+          received_quantity?: number | null
+          refund_amount: number
+          restock?: boolean | null
+          restocking_fee?: number | null
+          return_id: string
+          sku?: string | null
+          unit_price: number
+          updated_at?: string | null
+          variant_id?: string | null
+          variant_title?: string | null
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string | null
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          inspection_notes?: string | null
+          line_total?: number
+          order_item_id?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          reason_code?: string
+          reason_notes?: string | null
+          received_quantity?: number | null
+          refund_amount?: number
+          restock?: boolean | null
+          restocking_fee?: number | null
+          return_id?: string
+          sku?: string | null
+          unit_price?: number
+          updated_at?: string | null
+          variant_id?: string | null
+          variant_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          from_status: string | null
+          id: string
+          notes: string | null
+          return_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          return_id: string
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          return_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_status_history_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       returns: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           customer_id: string | null
           customer_name: string | null
+          expected_arrival_date: string | null
           handling_result: string | null
           id: string
           internal_notes: string | null
@@ -11757,23 +11891,31 @@ export type Database = {
           marketplace_return_id: string | null
           order_id: string | null
           raw_marketplace_data: Json | null
+          received_at: string | null
           refund_amount: number | null
           refund_method: string | null
           refund_notes: string | null
           refund_status: string | null
           registration_date: string | null
+          restocking_fees_total: number | null
           return_reason: string | null
           return_reason_code: string | null
+          rma_number: string | null
+          shipping_refund: number | null
           source: string | null
           status: Database["public"]["Enums"]["return_status"]
           stripe_refund_id: string | null
+          subtotal: number | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string | null
+          expected_arrival_date?: string | null
           handling_result?: string | null
           id?: string
           internal_notes?: string | null
@@ -11783,23 +11925,31 @@ export type Database = {
           marketplace_return_id?: string | null
           order_id?: string | null
           raw_marketplace_data?: Json | null
+          received_at?: string | null
           refund_amount?: number | null
           refund_method?: string | null
           refund_notes?: string | null
           refund_status?: string | null
           registration_date?: string | null
+          restocking_fees_total?: number | null
           return_reason?: string | null
           return_reason_code?: string | null
+          rma_number?: string | null
+          shipping_refund?: number | null
           source?: string | null
           status?: Database["public"]["Enums"]["return_status"]
           stripe_refund_id?: string | null
+          subtotal?: number | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string | null
+          expected_arrival_date?: string | null
           handling_result?: string | null
           id?: string
           internal_notes?: string | null
@@ -11809,16 +11959,21 @@ export type Database = {
           marketplace_return_id?: string | null
           order_id?: string | null
           raw_marketplace_data?: Json | null
+          received_at?: string | null
           refund_amount?: number | null
           refund_method?: string | null
           refund_notes?: string | null
           refund_status?: string | null
           registration_date?: string | null
+          restocking_fees_total?: number | null
           return_reason?: string | null
           return_reason_code?: string | null
+          rma_number?: string | null
+          shipping_refund?: number | null
           source?: string | null
           status?: Database["public"]["Enums"]["return_status"]
           stripe_refund_id?: string | null
+          subtotal?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -15100,6 +15255,123 @@ export type Database = {
           },
         ]
       }
+      tenant_return_settings: {
+        Row: {
+          allow_partial_refunds: boolean | null
+          auto_approve_within_window: boolean | null
+          auto_generate_return_label: boolean | null
+          auto_no_restock_damaged: boolean | null
+          auto_restock_new_condition: boolean | null
+          conditional_free_reasons: string[] | null
+          created_at: string | null
+          credit_note_auto_email: boolean | null
+          credit_note_policy: string | null
+          credit_note_prefix: string | null
+          customer_portal_auth: string | null
+          customer_portal_enabled: boolean | null
+          default_refund_method: string | null
+          default_restocking_fee_percent: number | null
+          enabled_reason_codes: string[] | null
+          manual_approval_outside_window: boolean | null
+          marketplace_auto_accept_within_window: boolean | null
+          marketplace_refund_mode: string | null
+          notify_admin_new_request: boolean | null
+          notify_customer_approved: boolean | null
+          notify_customer_package_received: boolean | null
+          notify_customer_refund_processed: boolean | null
+          notify_customer_request_received: boolean | null
+          refund_shipping_by_default: boolean | null
+          return_shipping_paid_by: string | null
+          return_shipping_provider: string | null
+          return_window_days: number | null
+          returns_enabled: boolean | null
+          stock_impact_notification_threshold: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allow_partial_refunds?: boolean | null
+          auto_approve_within_window?: boolean | null
+          auto_generate_return_label?: boolean | null
+          auto_no_restock_damaged?: boolean | null
+          auto_restock_new_condition?: boolean | null
+          conditional_free_reasons?: string[] | null
+          created_at?: string | null
+          credit_note_auto_email?: boolean | null
+          credit_note_policy?: string | null
+          credit_note_prefix?: string | null
+          customer_portal_auth?: string | null
+          customer_portal_enabled?: boolean | null
+          default_refund_method?: string | null
+          default_restocking_fee_percent?: number | null
+          enabled_reason_codes?: string[] | null
+          manual_approval_outside_window?: boolean | null
+          marketplace_auto_accept_within_window?: boolean | null
+          marketplace_refund_mode?: string | null
+          notify_admin_new_request?: boolean | null
+          notify_customer_approved?: boolean | null
+          notify_customer_package_received?: boolean | null
+          notify_customer_refund_processed?: boolean | null
+          notify_customer_request_received?: boolean | null
+          refund_shipping_by_default?: boolean | null
+          return_shipping_paid_by?: string | null
+          return_shipping_provider?: string | null
+          return_window_days?: number | null
+          returns_enabled?: boolean | null
+          stock_impact_notification_threshold?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allow_partial_refunds?: boolean | null
+          auto_approve_within_window?: boolean | null
+          auto_generate_return_label?: boolean | null
+          auto_no_restock_damaged?: boolean | null
+          auto_restock_new_condition?: boolean | null
+          conditional_free_reasons?: string[] | null
+          created_at?: string | null
+          credit_note_auto_email?: boolean | null
+          credit_note_policy?: string | null
+          credit_note_prefix?: string | null
+          customer_portal_auth?: string | null
+          customer_portal_enabled?: boolean | null
+          default_refund_method?: string | null
+          default_restocking_fee_percent?: number | null
+          enabled_reason_codes?: string[] | null
+          manual_approval_outside_window?: boolean | null
+          marketplace_auto_accept_within_window?: boolean | null
+          marketplace_refund_mode?: string | null
+          notify_admin_new_request?: boolean | null
+          notify_customer_approved?: boolean | null
+          notify_customer_package_received?: boolean | null
+          notify_customer_refund_processed?: boolean | null
+          notify_customer_request_received?: boolean | null
+          refund_shipping_by_default?: boolean | null
+          return_shipping_paid_by?: string | null
+          return_shipping_provider?: string | null
+          return_window_days?: number | null
+          returns_enabled?: boolean | null
+          stock_impact_notification_threshold?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_return_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_return_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_subscriptions: {
         Row: {
           billing_interval: string
@@ -16973,6 +17245,7 @@ export type Database = {
         Returns: string
       }
       generate_quote_number: { Args: { _tenant_id: string }; Returns: string }
+      generate_rma_number: { Args: { _tenant_id: string }; Returns: string }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -17260,6 +17533,12 @@ export type Database = {
         | "exchanged"
         | "repaired"
         | "refunded"
+        | "requested"
+        | "shipped_by_customer"
+        | "inspecting"
+        | "awaiting_refund"
+        | "completed"
+        | "cancelled"
       supplier_document_type:
         | "invoice"
         | "quote"
@@ -17539,6 +17818,12 @@ export const Constants = {
         "exchanged",
         "repaired",
         "refunded",
+        "requested",
+        "shipped_by_customer",
+        "inspecting",
+        "awaiting_refund",
+        "completed",
+        "cancelled",
       ],
       supplier_document_type: [
         "invoice",
