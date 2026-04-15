@@ -10,10 +10,10 @@ interface ReturnFiltersProps {
 }
 
 export function ReturnFilters({ filters, onFiltersChange }: ReturnFiltersProps) {
-  const hasFilters = filters.status || filters.source || filters.search;
+  const hasFilters = filters.status || filters.refundStatus || filters.source || filters.search;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3">
+    <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
       <Input
         placeholder="Zoek op RMA, klantnaam of order-ID..."
         value={filters.search || ''}
@@ -25,19 +25,38 @@ export function ReturnFilters({ filters, onFiltersChange }: ReturnFiltersProps) 
         onValueChange={(v) => onFiltersChange({ ...filters, status: v === 'all' ? undefined : v as any })}
       >
         <SelectTrigger className="sm:w-[180px]">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder="Logistieke status" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle statussen</SelectItem>
           <SelectItem value="requested">Aangevraagd</SelectItem>
           <SelectItem value="approved">Goedgekeurd</SelectItem>
-          <SelectItem value="shipped_by_customer">Verzonden</SelectItem>
+          <SelectItem value="label_sent">Label verstuurd</SelectItem>
+          <SelectItem value="shipped">Verzonden</SelectItem>
           <SelectItem value="received">Ontvangen</SelectItem>
           <SelectItem value="inspecting">In inspectie</SelectItem>
-          <SelectItem value="awaiting_refund">Wacht op refund</SelectItem>
-          <SelectItem value="completed">Afgerond</SelectItem>
+          <SelectItem value="inspected">Geïnspecteerd</SelectItem>
+          <SelectItem value="closed">Gesloten</SelectItem>
           <SelectItem value="rejected">Geweigerd</SelectItem>
           <SelectItem value="cancelled">Geannuleerd</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.refundStatus || 'all'}
+        onValueChange={(v) => onFiltersChange({ ...filters, refundStatus: v === 'all' ? undefined : v as any })}
+      >
+        <SelectTrigger className="sm:w-[180px]">
+          <SelectValue placeholder="Refund status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Alle refund statussen</SelectItem>
+          <SelectItem value="pending">In afwachting</SelectItem>
+          <SelectItem value="approved_for_refund">Goedgekeurd</SelectItem>
+          <SelectItem value="initiated">Geïnitieerd</SelectItem>
+          <SelectItem value="completed">Voltooid</SelectItem>
+          <SelectItem value="failed">Mislukt</SelectItem>
+          <SelectItem value="denied">Afgewezen</SelectItem>
+          <SelectItem value="not_applicable">N.v.t.</SelectItem>
         </SelectContent>
       </Select>
       <Select
