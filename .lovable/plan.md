@@ -1,24 +1,30 @@
 
 
-# Plan: Reset return tag when all returns are cancelled
+# Plan: Add "Inspectie vereist voor refund" toggle to Return Settings
 
 ## Problem
-The `get_order_return_tag` function checks `EXISTS (SELECT 1 FROM returns WHERE order_id = _order_id)` without excluding cancelled returns. So when a return is cancelled, the order still shows a return badge (likely "retour_lopend" or "retour_afgewezen").
+ReturnDetail.tsx references `refund_requires_inspection` and even tells the user to go to "Instellingen → Retouren → Inspectie vereist voor refund" to change it — but that toggle doesn't exist in the settings UI.
 
 ## Fix
-One migration to update the function. Change line 68 to exclude cancelled returns from the initial check:
 
-```sql
-SELECT EXISTS (
-  SELECT 1 FROM public.returns 
-  WHERE order_id = _order_id AND status != 'cancelled'
-) INTO has_returns;
+**One file change: `src/components/admin/settings/ReturnSettings.tsx`**
+
+Add a Switch toggle after line 222 (after "Gedeeltelijke refunds toestaan") in the "Refund logica" accordion section:
+
+```
+<div className="flex items-center justify-between">
+  <div>
+    <Label>Inspectie vereist voor refund</Label>
+    <p className="text-xs text-muted-foreground">
+      Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
+    </p>
+  </div>
+  <Switch
+    checked={settings.refund_requires_inspection}
+    onCheckedChange={v => handleSwitch('refund_requires_inspection', v)}
+  />
+</div>
 ```
 
-This way, if ALL returns on an order are cancelled, the function returns `NULL` → no badge shown.
-
-The rest of the function already handles cancelled correctly (line 87 checks for `cancelled` in `any_denied`, line 94 excludes cancelled from item counts), so this one-line change is all that's needed.
-
-## Files
-- **New migration**: `CREATE OR REPLACE FUNCTION public.get_order_return_tag` with the updated `has_returns` check
+No DB migration needed — the column already exists in `tenant_return_settings` and the hook already includes it.
 
