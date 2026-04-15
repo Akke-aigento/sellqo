@@ -15,7 +15,7 @@ export function ReturnFilters({ filters, onFiltersChange }: ReturnFiltersProps) 
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       <Input
-        placeholder="Zoek op klantnaam of order-ID..."
+        placeholder="Zoek op RMA, klantnaam of order-ID..."
         value={filters.search || ''}
         onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
         className="sm:max-w-xs"
@@ -29,12 +29,15 @@ export function ReturnFilters({ filters, onFiltersChange }: ReturnFiltersProps) 
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle statussen</SelectItem>
-          <SelectItem value="registered">Geregistreerd</SelectItem>
-          <SelectItem value="in_transit">In transit</SelectItem>
-          <SelectItem value="received">Ontvangen</SelectItem>
+          <SelectItem value="requested">Aangevraagd</SelectItem>
           <SelectItem value="approved">Goedgekeurd</SelectItem>
+          <SelectItem value="shipped_by_customer">Verzonden</SelectItem>
+          <SelectItem value="received">Ontvangen</SelectItem>
+          <SelectItem value="inspecting">In inspectie</SelectItem>
+          <SelectItem value="awaiting_refund">Wacht op refund</SelectItem>
+          <SelectItem value="completed">Afgerond</SelectItem>
           <SelectItem value="rejected">Geweigerd</SelectItem>
-          <SelectItem value="refunded">Terugbetaald</SelectItem>
+          <SelectItem value="cancelled">Geannuleerd</SelectItem>
         </SelectContent>
       </Select>
       <Select
@@ -46,7 +49,7 @@ export function ReturnFilters({ filters, onFiltersChange }: ReturnFiltersProps) 
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle bronnen</SelectItem>
-          <SelectItem value="manual">Manueel</SelectItem>
+          <SelectItem value="manual">SellQo / Stripe</SelectItem>
           <SelectItem value="bolcom">Bol.com</SelectItem>
           <SelectItem value="amazon">Amazon</SelectItem>
         </SelectContent>
