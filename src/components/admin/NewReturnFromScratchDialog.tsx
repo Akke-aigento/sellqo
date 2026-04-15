@@ -169,7 +169,7 @@ export function NewReturnFromScratchDialog({ open, onOpenChange }: Props) {
                 <CardContent className="py-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="font-mono font-medium">{orderDetails.order_number}</span>
-                    <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                    <span className="font-medium">{formatCurrency(Number(orderDetails.subtotal) || 0)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">{orderDetails.customer_name || '-'}</p>
                   <p className="text-xs text-muted-foreground">
