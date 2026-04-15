@@ -470,7 +470,7 @@ export default function ReturnDetailPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      if (returnRecord.refund_method === 'stripe' && !logisticsInspected && refundRequiresInspection) {
+                      if (returnRecord.refund_method === 'stripe' && !logisticsInspected && !refundRequiresInspection) {
                         setShowRefundWarning(true);
                         return;
                       }
