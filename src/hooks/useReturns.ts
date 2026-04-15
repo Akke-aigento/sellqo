@@ -6,9 +6,13 @@ import { toast } from 'sonner';
 export type ReturnStatus =
   | 'registered' | 'requested' | 'approved' | 'shipped_by_customer'
   | 'in_transit' | 'received' | 'inspecting' | 'awaiting_refund'
-  | 'completed' | 'rejected' | 'exchanged' | 'repaired' | 'refunded' | 'cancelled';
+  | 'completed' | 'rejected' | 'exchanged' | 'repaired' | 'refunded' | 'cancelled'
+  | 'label_sent' | 'shipped' | 'inspected' | 'closed';
 
-export type RefundStatus = 'pending' | 'completed' | 'failed' | 'not_applicable';
+export type RefundStatusEnum =
+  | 'pending' | 'approved_for_refund' | 'initiated' | 'completed'
+  | 'failed' | 'denied' | 'not_applicable';
+
 export type ReturnSource = 'manual' | 'bolcom' | 'amazon';
 
 export interface ReturnItemInput {
@@ -62,6 +66,7 @@ export interface StatusHistoryRecord {
   to_status: string;
   changed_by: string | null;
   notes: string | null;
+  flow_type: string | null;
   created_at: string | null;
 }
 
@@ -77,7 +82,7 @@ export interface ReturnRecord {
   return_reason: string | null;
   return_reason_code: string | null;
   refund_method: string | null;
-  refund_status: string | null;
+  refund_status: RefundStatusEnum | null;
   refund_amount: number | null;
   refund_notes: string | null;
   stripe_refund_id: string | null;
@@ -95,6 +100,17 @@ export interface ReturnRecord {
   received_at: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  refund_approved_at: string | null;
+  refund_approved_by: string | null;
+  refund_initiated_at: string | null;
+  refund_initiated_by: string | null;
+  refund_completed_at: string | null;
+  refund_failed_at: string | null;
+  refund_failure_reason: string | null;
+  label_url: string | null;
+  label_tracking_number: string | null;
+  label_carrier: string | null;
+  label_sent_at: string | null;
   created_at: string;
   updated_at: string;
   orders?: {
@@ -108,6 +124,7 @@ export interface ReturnRecord {
 
 export interface ReturnFilters {
   status?: ReturnStatus;
+  refundStatus?: RefundStatusEnum;
   source?: ReturnSource;
   search?: string;
   dateFrom?: string;
@@ -131,6 +148,7 @@ export function useReturns(filters?: ReturnFilters) {
         .order('created_at', { ascending: false });
 
       if (filters?.status) query = query.eq('status', filters.status);
+      if (filters?.refundStatus) query = query.eq('refund_status', filters.refundStatus);
       if (filters?.source) query = query.eq('source', filters.source);
       if (filters?.dateFrom) query = query.gte('created_at', filters.dateFrom);
       if (filters?.dateTo) query = query.lte('created_at', filters.dateTo);
@@ -209,6 +227,14 @@ export function useReturnMutations() {
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['returns'] });
+    queryClient.invalidateQueries({ queryKey: ['return'] });
+    queryClient.invalidateQueries({ queryKey: ['return-status-history'] });
+    queryClient.invalidateQueries({ queryKey: ['return-items'] });
+    queryClient.invalidateQueries({ queryKey: ['order-return-tag'] });
+  };
+
   const createReturn = useMutation({
     mutationFn: async (data: {
       order_id: string;
@@ -229,15 +255,12 @@ export function useReturnMutations() {
     }) => {
       if (!currentTenant?.id) throw new Error('Geen tenant geselecteerd');
 
-      // Generate RMA number
       const { data: rmaNumber, error: rmaError } = await supabase
         .rpc('generate_rma_number', { _tenant_id: currentTenant.id });
       if (rmaError) throw rmaError;
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Insert return
       const { data: returnRow, error: returnError } = await supabase
         .from('returns')
         .insert({
@@ -269,7 +292,6 @@ export function useReturnMutations() {
 
       if (returnError) throw returnError;
 
-      // Insert return items
       if (data.items.length > 0) {
         const itemRows = data.items.map((item) => ({
           return_id: returnRow.id,
@@ -296,22 +318,19 @@ export function useReturnMutations() {
         if (itemsError) throw itemsError;
       }
 
-      // Insert initial status history
-      const { error: historyError } = await supabase
-        .from('return_status_history')
-        .insert({
-          return_id: returnRow.id,
-          from_status: null,
-          to_status: 'approved',
-          changed_by: user?.id,
-          notes: 'Retour aangemaakt door admin',
-        });
-      if (historyError) console.error('Status history error:', historyError);
+      await supabase.from('return_status_history').insert({
+        return_id: returnRow.id,
+        from_status: null,
+        to_status: 'approved',
+        changed_by: user?.id,
+        notes: 'Retour aangemaakt door admin',
+        flow_type: 'logistics',
+      });
 
       return returnRow;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['returns'] });
+      invalidateAll();
       toast.success('Retour aangemaakt');
     },
     onError: (error) => {
@@ -321,7 +340,6 @@ export function useReturnMutations() {
 
   const updateReturnStatus = useMutation({
     mutationFn: async ({ returnId, status, notes }: { returnId: string; status: ReturnStatus; notes?: string }) => {
-      // Get current status
       const { data: current, error: fetchError } = await supabase
         .from('returns')
         .select('status')
@@ -331,12 +349,69 @@ export function useReturnMutations() {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Update status
       const updateData: any = { status };
       if (status === 'received') updateData.received_at = new Date().toISOString();
       if (status === 'approved') {
         updateData.approved_at = new Date().toISOString();
         updateData.approved_by = user?.id;
+      }
+      if (status === 'label_sent') updateData.label_sent_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('returns')
+        .update(updateData)
+        .eq('id', returnId);
+      if (error) throw error;
+
+      await supabase.from('return_status_history').insert({
+        return_id: returnId,
+        from_status: current.status,
+        to_status: status,
+        changed_by: user?.id,
+        notes: notes || null,
+        flow_type: 'logistics',
+      });
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast.success('Logistieke status bijgewerkt');
+    },
+    onError: (error) => {
+      toast.error('Fout bij bijwerken status: ' + error.message);
+    },
+  });
+
+  const updateReturnRefundStatus = useMutation({
+    mutationFn: async ({ returnId, refundStatus, notes, reason }: {
+      returnId: string;
+      refundStatus: RefundStatusEnum;
+      notes?: string;
+      reason?: string;
+    }) => {
+      const { data: current, error: fetchError } = await supabase
+        .from('returns')
+        .select('refund_status')
+        .eq('id', returnId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const updateData: any = { refund_status: refundStatus };
+      if (refundStatus === 'approved_for_refund') {
+        updateData.refund_approved_at = new Date().toISOString();
+        updateData.refund_approved_by = user?.id;
+      }
+      if (refundStatus === 'initiated') {
+        updateData.refund_initiated_at = new Date().toISOString();
+        updateData.refund_initiated_by = user?.id;
+      }
+      if (refundStatus === 'completed') {
+        updateData.refund_completed_at = new Date().toISOString();
+      }
+      if (refundStatus === 'failed') {
+        updateData.refund_failed_at = new Date().toISOString();
+        updateData.refund_failure_reason = reason || null;
       }
 
       const { error } = await supabase
@@ -345,26 +420,49 @@ export function useReturnMutations() {
         .eq('id', returnId);
       if (error) throw error;
 
-      // Write history
-      const { error: historyError } = await supabase
-        .from('return_status_history')
-        .insert({
-          return_id: returnId,
-          from_status: current.status,
-          to_status: status,
-          changed_by: user?.id,
-          notes: notes || null,
-        });
-      if (historyError) console.error('Status history error:', historyError);
+      await supabase.from('return_status_history').insert({
+        return_id: returnId,
+        from_status: current.refund_status || 'pending',
+        to_status: refundStatus,
+        changed_by: user?.id,
+        notes: notes || reason || null,
+        flow_type: 'financial',
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['returns'] });
-      queryClient.invalidateQueries({ queryKey: ['return'] });
-      queryClient.invalidateQueries({ queryKey: ['return-status-history'] });
-      toast.success('Retourstatus bijgewerkt');
+      invalidateAll();
+      toast.success('Refund status bijgewerkt');
     },
     onError: (error) => {
-      toast.error('Fout bij bijwerken status: ' + error.message);
+      toast.error('Fout bij bijwerken refund status: ' + error.message);
+    },
+  });
+
+  const closeReturn = useMutation({
+    mutationFn: async ({ returnId }: { returnId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from('returns')
+        .update({ status: 'closed' as any })
+        .eq('id', returnId);
+      if (error) throw error;
+
+      await supabase.from('return_status_history').insert({
+        return_id: returnId,
+        from_status: 'inspected',
+        to_status: 'closed',
+        changed_by: user?.id,
+        notes: 'Retour gesloten',
+        flow_type: 'logistics',
+      });
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast.success('Retour gesloten');
+    },
+    onError: (error) => {
+      toast.error('Fout bij sluiten retour: ' + error.message);
     },
   });
 
@@ -411,7 +509,7 @@ export function useReturnMutations() {
   });
 
   const addStatusNote = useMutation({
-    mutationFn: async ({ returnId, notes }: { returnId: string; notes: string }) => {
+    mutationFn: async ({ returnId, notes, flowType = 'system' }: { returnId: string; notes: string; flowType?: string }) => {
       const { data: current } = await supabase
         .from('returns')
         .select('status')
@@ -428,6 +526,7 @@ export function useReturnMutations() {
           to_status: current?.status || 'approved',
           changed_by: user?.id,
           notes,
+          flow_type: flowType,
         });
       if (error) throw error;
     },
@@ -446,8 +545,7 @@ export function useReturnMutations() {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['returns'] });
-      queryClient.invalidateQueries({ queryKey: ['return'] });
+      invalidateAll();
       toast.success(data?.message || 'Terugbetaling verwerkt');
     },
     onError: (error) => {
@@ -458,6 +556,8 @@ export function useReturnMutations() {
   return {
     createReturn,
     updateReturnStatus,
+    updateReturnRefundStatus,
+    closeReturn,
     updateReturnNotes,
     inspectReturnItem,
     addStatusNote,

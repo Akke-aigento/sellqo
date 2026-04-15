@@ -6,12 +6,16 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   registered: { label: 'Geregistreerd', variant: 'outline' },
   requested: { label: 'Aangevraagd', variant: 'outline' },
   approved: { label: 'Goedgekeurd', variant: 'default' },
+  label_sent: { label: 'Label verstuurd', variant: 'secondary' },
   shipped_by_customer: { label: 'Verzonden door klant', variant: 'secondary' },
+  shipped: { label: 'Verzonden', variant: 'secondary' },
   in_transit: { label: 'In transit', variant: 'secondary' },
   received: { label: 'Ontvangen', variant: 'default' },
   inspecting: { label: 'In inspectie', variant: 'secondary' },
+  inspected: { label: 'Geïnspecteerd', variant: 'default' },
   awaiting_refund: { label: 'Wacht op refund', variant: 'outline' },
   completed: { label: 'Afgerond', variant: 'default' },
+  closed: { label: 'Gesloten', variant: 'default' },
   rejected: { label: 'Geweigerd', variant: 'destructive' },
   exchanged: { label: 'Omgeruild', variant: 'secondary' },
   repaired: { label: 'Hersteld', variant: 'secondary' },
@@ -21,8 +25,11 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 
 const refundStatusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { label: 'In afwachting', variant: 'outline' },
+  approved_for_refund: { label: 'Goedgekeurd', variant: 'secondary' },
+  initiated: { label: 'Geïnitieerd', variant: 'secondary' },
   completed: { label: 'Voltooid', variant: 'default' },
   failed: { label: 'Mislukt', variant: 'destructive' },
+  denied: { label: 'Afgewezen', variant: 'destructive' },
   not_applicable: { label: 'N.v.t.', variant: 'secondary' },
 };
 

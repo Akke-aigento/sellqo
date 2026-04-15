@@ -593,13 +593,20 @@ export default function OrderDetailPage() {
         customerId={order.customer_id || undefined}
         customerName={order.customer_name || undefined}
         orderItems={(order.order_items || []).map((item: any) => ({
+          id: item.id,
           product_id: item.product_id,
           product_name: item.product_name || 'Product',
           variant_id: item.variant_id,
           variant_name: item.variant_name,
+          sku: item.sku,
           quantity: item.quantity,
           price: item.unit_price || 0,
         }))}
+        orderSubtotal={order.subtotal}
+        orderDiscountAmount={(order as any).discount_amount}
+        orderDiscountCode={(order as any).discount_code}
+        shippingCost={order.shipping_cost || 0}
+        orderSource={order.marketplace_source || undefined}
         paymentMethod={
           order.marketplace_source === 'bol_com' ? 'bolcom' :
           order.marketplace_source === 'amazon' ? 'amazon' :

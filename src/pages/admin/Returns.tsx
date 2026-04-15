@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, MoreHorizontal, Eye, XCircle } from 'lucide-react';
+import { RotateCcw, MoreHorizontal, Eye, XCircle, Plus } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useReturns, useReturnMutations, type ReturnFilters as ReturnFiltersType } from '@/hooks/useReturns';
@@ -19,6 +19,7 @@ import { ReturnFilters } from '@/components/admin/ReturnFilters';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NewReturnFromScratchDialog } from '@/components/admin/NewReturnFromScratchDialog';
 
 export default function ReturnsPage() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function ReturnsPage() {
   const [filters, setFilters] = useState<ReturnFiltersType>({});
   const { returns, isLoading } = useReturns(filters);
   const { updateReturnStatus } = useReturnMutations();
+  const [showNewReturn, setShowNewReturn] = useState(false);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('nl-NL', {
@@ -52,12 +54,17 @@ export default function ReturnsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <RotateCcw className="h-6 w-6" />
-          Retouren
-        </h1>
-        <p className="text-muted-foreground">Beheer alle retouren van alle kanalen.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <RotateCcw className="h-6 w-6" />
+            Retouren
+          </h1>
+          <p className="text-muted-foreground">Beheer alle retouren van alle kanalen.</p>
+        </div>
+        <Button onClick={() => setShowNewReturn(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Nieuwe retour
+        </Button>
       </div>
 
       <ReturnFilters filters={filters} onFiltersChange={setFilters} />
@@ -79,7 +86,7 @@ export default function ReturnsPage() {
               <RotateCcw className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground">Nog geen retouren.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Retours kunnen worden aangemaakt vanaf de order detail pagina.
+                Retours kunnen worden aangemaakt vanaf de order detail pagina of via "+ Nieuwe retour".
               </p>
             </div>
           ) : (
@@ -93,8 +100,9 @@ export default function ReturnsPage() {
                       <TableHead>Klant</TableHead>
                       <TableHead className="text-center">Items</TableHead>
                       <TableHead>Bron</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Refund</TableHead>
+                      <TableHead>Logistiek</TableHead>
+                      <TableHead>Refund</TableHead>
+                      <TableHead className="text-right">Bedrag</TableHead>
                       <TableHead>Datum</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
@@ -124,6 +132,9 @@ export default function ReturnsPage() {
                           <TableCell>
                             <ReturnStatusBadge status={ret.status} />
                           </TableCell>
+                          <TableCell>
+                            <RefundStatusBadge status={ret.refund_status} />
+                          </TableCell>
                           <TableCell className="text-right">
                             {ret.refund_amount ? formatCurrency(ret.refund_amount) : '-'}
                           </TableCell>
@@ -151,7 +162,7 @@ export default function ReturnsPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   Bekijken
                                 </DropdownMenuItem>
-                                {ret.status !== 'cancelled' && ret.status !== 'completed' && (
+                                {ret.status !== 'cancelled' && ret.status !== 'closed' && ret.status !== 'completed' && (
                                   <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => updateReturnStatus.mutate({ returnId: ret.id, status: 'cancelled' })}
@@ -173,6 +184,11 @@ export default function ReturnsPage() {
           )}
         </CardContent>
       </Card>
+
+      <NewReturnFromScratchDialog
+        open={showNewReturn}
+        onOpenChange={setShowNewReturn}
+      />
     </div>
   );
 }
