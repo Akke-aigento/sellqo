@@ -739,6 +739,24 @@ export default function ReturnDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* CANCEL RETURN DIALOG */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retour annuleren</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je deze retour wilt annuleren? Dit kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updateReturnStatus.mutate({ returnId: returnRecord.id, status: 'cancelled' }); setShowCancelDialog(false); }}>
+              Annuleren
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
