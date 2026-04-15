@@ -1,40 +1,31 @@
 
 
-# Fix Image Editor: betere resultaten + daadwerkelijk opslaan
+# Plan: Enable return cancellation
 
-## Probleem 1: Slechte bewerkingsresultaten
-Het huidige model (`google/gemini-3-pro-image-preview`) is een generatief model dat de hele afbeelding hertekent. Bij "maak achtergrond zwart" verandert het ook het product zelf (gele jas → beige jas). 
+## Problem
+The ReturnDetail page has no "Annuleren" (cancel) button. Only the Returns list has one hidden in a dropdown menu. The user needs to be able to cancel returns from the detail page.
 
-**Oplossing**: De prompt engineering verbeteren zodat het model expliciet wordt geïnstrueerd het product **niet** te wijzigen. Specifiek:
-- Bij `enhance`-type: prompt aanpassen met sterke instructie zoals "Do NOT modify the subject/product in any way. Only change the background."
-- Bij `background_remove`: zelfde bescherming toevoegen
-- Model upgraden naar `google/gemini-3.1-flash-image-preview` dat sneller is en beter met editing omgaat
+## Changes
 
-**Bestand:** `supabase/functions/ai-generate-image/index.ts`
-- Prompt templates aanpassen met expliciete "preserve subject" instructies
-- Model wisselen naar `google/gemini-3.1-flash-image-preview`
+### 1. Add cancel button to ReturnDetail.tsx header area (~line 206)
+Add a destructive "Retour annuleren" button in the header next to the RMA number, visible when the return is not already cancelled/closed/completed. Clicking it shows a confirmation AlertDialog (to prevent accidental cancellation).
 
-## Probleem 2: Bewerkte afbeeldingen worden niet opgeslagen
-In `MediaAssetsLibrary.tsx` doet de `onApply` callback niets met de nieuwe URL:
-```tsx
-onApply={(newUrl) => {
-  toast.success('Afbeelding bewerkt');
-  // newUrl wordt WEGGEGOOID!
-}}
-```
+- Add state: `showCancelDialog`
+- Button: red outline, with XCircle icon, positioned in the header actions area
+- AlertDialog: "Weet je zeker dat je deze retour wilt annuleren?" with confirm/cancel
+- On confirm: calls `updateReturnStatus.mutate({ returnId, status: 'cancelled' })`
 
-**Oplossing**: De bewerkte afbeelding opslaan afhankelijk van het asset-type:
-- **Product-assets**: product_images record updaten met nieuwe URL
-- **Upload-assets**: media_assets record updaten met nieuwe file_url
-- **Categorie-assets**: categories record updaten met nieuwe image_url
+### 2. Verify list page cancel still works
+The Returns.tsx list page already has cancel in the dropdown — no changes needed there. Just ensure the mutation works (it uses the same `updateReturnStatus`).
 
-**Bestand:** `src/components/admin/marketing/MediaAssetsLibrary.tsx`
-- `onApply` implementeren zodat de nieuwe URL wordt teruggeschreven naar de juiste tabel op basis van `asset.source`
-- Na opslaan: query invalideren zodat de lijst ververst wordt
+### 3. Handle cancelled state in detail UI
+When status is `cancelled`, both the logistics and financial panels should show a disabled/greyed state with no action buttons. This already works because the action buttons are gated on specific statuses, but we should add a visible "Geannuleerd" indicator.
 
-## Bestanden
-| Bestand | Actie |
-|---------|-------|
-| `supabase/functions/ai-generate-image/index.ts` | Prompt verbeteren + model upgraden |
-| `src/components/admin/marketing/MediaAssetsLibrary.tsx` | `onApply` daadwerkelijk laten opslaan per asset-type |
+## Technical details
+
+**ReturnDetail.tsx changes:**
+- Add `showCancelDialog` state
+- Add cancel button in header (line ~206), conditionally rendered when `!['cancelled','closed','completed'].includes(returnRecord.status)`
+- Add AlertDialog for confirmation
+- No hook changes needed — `updateReturnStatus` already supports `cancelled` as a valid `ReturnStatus`
 
