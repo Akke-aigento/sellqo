@@ -135,7 +135,7 @@ serve(async (req) => {
     // Resolve locale
     const locale: Locale = await resolveLocale(supabase, order, tenantId);
 
-    log('Resolved locale', { locale, to, isAdmin });
+    log('Resolved locale', { locale, to });
 
     const items = (ret.return_items || []).map((i: any) => ({
       name: i.product_name || 'Onbekend product',
