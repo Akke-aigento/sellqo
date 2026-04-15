@@ -349,6 +349,8 @@ export default function OrderDetailPage() {
                       <SelectItem value="shipped">Verzonden</SelectItem>
                       <SelectItem value="delivered">Afgeleverd</SelectItem>
                       <SelectItem value="cancelled">Geannuleerd</SelectItem>
+                      <SelectItem value="returned">Geretourneerd</SelectItem>
+                      <SelectItem value="partially_returned">Deels geretourneerd</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
