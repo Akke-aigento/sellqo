@@ -32,6 +32,8 @@ import { ReturnStatusBadge, RefundStatusBadge, ReturnSourceBadge } from '@/compo
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+const CANCEL_BLOCKED_STATUSES: ReturnStatus[] = ['cancelled', 'closed', 'completed'];
+
 const LOGISTICS_TIMELINE: ReturnStatus[] = [
   'approved', 'label_sent', 'shipped', 'received', 'inspecting', 'inspected', 'closed',
 ];
