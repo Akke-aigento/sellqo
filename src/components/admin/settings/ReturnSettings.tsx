@@ -84,7 +84,16 @@ export function ReturnSettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Retourinstellingen</h2>
         <p className="text-muted-foreground">Configureer het retourbeleid, refund logica en klant-portaal.</p>
-      </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Inspectie vereist voor refund</Label>
+                <p className="text-xs text-muted-foreground">
+                  Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
+                </p>
+              </div>
+              <Switch checked={settings.refund_requires_inspection} onCheckedChange={v => handleSwitch('refund_requires_inspection', v)} />
+            </div>
 
       <Accordion type="multiple" defaultValue={['general', 'credit-notes', 'portal', 'refund', 'marketplace', 'shipping', 'stock', 'notifications', 'reasons']} className="space-y-4">
         
