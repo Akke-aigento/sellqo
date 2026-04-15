@@ -1,3 +1,4 @@
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingBag, Store, Globe } from 'lucide-react';
 
@@ -53,5 +54,3 @@ export function ReturnSourceBadge({ source }: { source: string | null }) {
     </Badge>
   );
 }
-
-import React from 'react';
