@@ -441,8 +441,11 @@ export function useReturnMutations() {
         flow_type: 'financial',
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidateAll();
+      if (variables.refundStatus === 'completed') {
+        fireReturnEmail(variables.returnId, 'refund_processed');
+      }
       toast.success('Refund status bijgewerkt');
     },
     onError: (error) => {
@@ -657,9 +660,10 @@ export function useReturnMutations() {
 
       return { auto: true, method: 'stripe', stripeRefundId: updated?.stripe_refund_id };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       invalidateAll();
       if (result.auto) {
+        fireReturnEmail(variables.returnId, 'refund_processed');
         toast.success(`✓ Stripe refund uitgevoerd (${result.stripeRefundId || 'success'})`);
       } else {
         toast.success(`Refund stap geopend voor ${result.method} — bevestig na uitvoering`);
