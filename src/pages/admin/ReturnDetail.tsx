@@ -485,42 +485,43 @@ export default function ReturnDetailPage() {
                   >
                     {executeRefund.isPending ? (
                       <><Loader2 className="h-3 w-3 mr-2 animate-spin" /> Bezig...</>
-                    ) : returnRecord.refund_method === 'stripe' ? (
-                      'Voer refund uit via Stripe'
-                    ) : (
-                      'Markeer refund als gestart'
-                    )}
-                  </Button>
+                     ) : returnRecord.refund_method === 'stripe' && settings?.default_refund_method === 'auto_stripe' ? (
+                       'Voer refund uit via Stripe'
+                     ) : (
+                       'Markeer refund als gestart'
+                     )}
+                   </Button>
                   <Button size="sm" variant="outline" onClick={() => updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'not_applicable' })}>
                     N.v.t. markeren
                   </Button>
                 </>
               )}
-              {refundStatus === 'initiated' && returnRecord.refund_method !== 'stripe' && (
-                <>
-                  <Button size="sm" onClick={() => updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'completed' })}>
-                    Refund geslaagd
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => setShowFailDialog(true)}>
-                    Refund mislukt
-                  </Button>
-                </>
-              )}
+               {refundStatus === 'initiated' && showManualConfirmUI && (
+                 <>
+                   <Button size="sm" onClick={() => updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'completed' })}>
+                     Refund geslaagd
+                   </Button>
+                   <Button size="sm" variant="destructive" onClick={() => setShowFailDialog(true)}>
+                     Refund mislukt
+                   </Button>
+                 </>
+               )}
             </div>
 
-            {refundStatus === 'initiated' && returnRecord.refund_method !== 'stripe' && (
-              <p className="text-xs text-muted-foreground">
-                Voer de refund handmatig uit in het{' '}
-                {returnRecord.refund_method === 'bolcom' ? 'Bol.com' :
-                  returnRecord.refund_method === 'amazon' ? 'Amazon' : 'betalings'} dashboard,
-                bevestig daarna hier.
-              </p>
-            )}
-            {refundStatus === 'initiated' && returnRecord.refund_method === 'stripe' && (
-              <p className="text-xs text-muted-foreground">
-                Stripe refund wordt verwerkt — dit duurt meestal enkele seconden.
-              </p>
-            )}
+             {refundStatus === 'initiated' && showManualConfirmUI && (
+               <p className="text-xs text-muted-foreground">
+                 Voer de refund handmatig uit in het{' '}
+                 {returnRecord.refund_method === 'bolcom' ? 'Bol.com' :
+                   returnRecord.refund_method === 'amazon' ? 'Amazon' :
+                   returnRecord.refund_method === 'stripe' ? 'Stripe' : 'betalings'} dashboard,
+                 bevestig daarna hier.
+               </p>
+             )}
+             {refundStatus === 'initiated' && !showManualConfirmUI && returnRecord.refund_method === 'stripe' && (
+               <p className="text-xs text-muted-foreground">
+                 Stripe refund wordt verwerkt — dit duurt meestal enkele seconden.
+               </p>
+             )}
 
             <Separator />
 
