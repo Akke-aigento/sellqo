@@ -1688,14 +1688,17 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(customer.email)) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Ongeldig e-mailadres', fields: { email: 'Ongeldig e-mailadres' } } };
 
-  const { error } = await supabase.from('storefront_carts').update({
+  const updateData: any = {
     customer_email: customer.email,
     customer_first_name: customer.first_name,
     customer_last_name: customer.last_name,
     customer_phone: customer.phone || null,
     checkout_status: 'checkout',
     updated_at: new Date().toISOString(),
-  }).eq('id', cartId).eq('tenant_id', tenantId);
+  };
+  if (params.locale) updateData.locale = params.locale;
+
+  const { error } = await supabase.from('storefront_carts').update(updateData).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
   return buildCartResponse(supabase, tenantId, cartId);
