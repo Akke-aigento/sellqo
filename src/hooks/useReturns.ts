@@ -332,8 +332,12 @@ export function useReturnMutations() {
 
       return returnRow;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidateAll();
+      if (data?.id) {
+        fireReturnEmail(data.id, 'request_received');
+        fireReturnEmail(data.id, 'admin_new_request');
+      }
       toast.success('Retour aangemaakt');
     },
     onError: (error) => {
