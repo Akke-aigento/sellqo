@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-import { getTemplate, type ReturnEmailEvent, type TemplateData } from "./templates.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,17 +11,27 @@ const log = (step: string, details?: any) => {
 };
 
 type Locale = 'nl' | 'en' | 'fr';
+type ReturnEmailEvent = 'request_received' | 'approved' | 'package_received' | 'refund_processed';
+
+interface TemplateData {
+  tenantName: string;
+  customerName: string;
+  orderNumber: string;
+  rmaNumber: string;
+  refundAmountFormatted: string;
+  refundMethod: string;
+  items: { name: string; quantity: number }[];
+  supportEmail: string;
+}
+
+// ── Locale resolution ──────────────────────────────────────
 
 async function resolveLocale(supabase: any, order: any, tenantId: string): Promise<Locale> {
-  if (order.locale && ['nl', 'en', 'fr'].includes(order.locale)) {
-    return order.locale as Locale;
-  }
+  if (order.locale && ['nl', 'en', 'fr'].includes(order.locale)) return order.locale as Locale;
 
   const { data: domains } = await supabase
-    .from('tenant_domains')
-    .select('locale')
-    .eq('tenant_id', tenantId)
-    .eq('is_active', true);
+    .from('tenant_domains').select('locale')
+    .eq('tenant_id', tenantId).eq('is_active', true);
 
   if (domains?.length === 1 && domains[0].locale) {
     const loc = domains[0].locale.toLowerCase();
@@ -33,16 +41,92 @@ async function resolveLocale(supabase: any, order: any, tenantId: string): Promi
   const country = (order.shipping_address?.country || '').toUpperCase();
   if (['NL', 'BE'].includes(country)) return 'nl';
   if (['FR', 'CH', 'LU', 'MC'].includes(country)) return 'fr';
-
   return 'nl';
 }
 
 function formatAmount(amount: number, currency: string, locale: Locale): string {
   const localeMap: Record<Locale, string> = { nl: 'nl-NL', en: 'en-US', fr: 'fr-FR' };
-  return new Intl.NumberFormat(localeMap[locale], {
-    style: 'currency', currency: currency || 'EUR',
-  }).format(amount);
+  return new Intl.NumberFormat(localeMap[locale], { style: 'currency', currency: currency || 'EUR' }).format(amount);
 }
+
+// ── Templates (inline) ─────────────────────────────────────
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function itemList(items: TemplateData['items']): string {
+  return items.map(i => `<li>${esc(i.name)} × ${i.quantity}</li>`).join('');
+}
+
+function refundLabel(method: string, locale: Locale): string {
+  const m: Record<string, Record<Locale, string>> = {
+    stripe: { nl: 'je oorspronkelijke betaalmethode', en: 'your original payment method', fr: 'votre mode de paiement initial' },
+    manual: { nl: 'bankoverschrijving', en: 'bank transfer', fr: 'virement bancaire' },
+    bolcom: { nl: 'Bol.com', en: 'Bol.com', fr: 'Bol.com' },
+    amazon: { nl: 'Amazon', en: 'Amazon', fr: 'Amazon' },
+  };
+  return m[method]?.[locale] || method;
+}
+
+const subjects: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => string>> = {
+  request_received: {
+    nl: (d) => `Retour-aanvraag ontvangen — RMA ${d.rmaNumber}`,
+    en: (d) => `Return request received — RMA ${d.rmaNumber}`,
+    fr: (d) => `Demande de retour reçue — RMA ${d.rmaNumber}`,
+  },
+  approved: {
+    nl: () => `Je retour is goedgekeurd — instructies binnen`,
+    en: () => `Your return has been approved — instructions inside`,
+    fr: () => `Votre retour est approuvé — instructions ci-dessous`,
+  },
+  package_received: {
+    nl: () => `We hebben je pakket ontvangen`,
+    en: () => `We have received your package`,
+    fr: () => `Nous avons bien reçu votre colis`,
+  },
+  refund_processed: {
+    nl: (d) => `Je refund van ${d.refundAmountFormatted} is verwerkt`,
+    en: (d) => `Your refund of ${d.refundAmountFormatted} has been processed`,
+    fr: (d) => `Votre remboursement de ${d.refundAmountFormatted} a été traité`,
+  },
+};
+
+const bodies: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => string>> = {
+  request_received: {
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retour-aanvraag ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We bekijken je aanvraag en je ontvangt bericht zodra deze is goedgekeurd.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We have received your return request for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We'll review your request and notify you once it's approved.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre demande de retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous examinerons votre demande et vous informerons dès qu'elle sera approuvée.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+  },
+  approved: {
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je retour voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is goedgekeurd!</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Stuur de artikelen retour. Zodra we je pakket ontvangen, sturen we je opnieuw een e-mail.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your return for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been approved!</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>Please ship the items back to us. We'll email you again once we receive your package.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été approuvé !</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Veuillez nous renvoyer les articles. Nous vous enverrons un e-mail dès réception de votre colis.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+  },
+  package_received: {
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retourpakket ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We inspecteren de artikelen. Zodra alles in orde is, verwerken we je refund en ontvang je hierover bericht.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We've received your return package for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We're inspecting the items. Once everything checks out, we'll process your refund and notify you.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre colis retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous inspectons les articles. Une fois la vérification terminée, nous traiterons votre remboursement et vous en informerons.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+  },
+  refund_processed: {
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je refund van <strong>${d.refundAmountFormatted}</strong> voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is verwerkt via ${refundLabel(d.refundMethod, 'nl')}.</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Het duurt doorgaans 3-5 werkdagen voordat het bedrag op je rekening verschijnt.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your refund of <strong>${d.refundAmountFormatted}</strong> for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been processed via ${refundLabel(d.refundMethod, 'en')}.</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>It typically takes 3-5 business days for the amount to appear on your statement.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre remboursement de <strong>${d.refundAmountFormatted}</strong> pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été traité via ${refundLabel(d.refundMethod, 'fr')}.</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Le montant apparaîtra généralement sur votre relevé sous 3 à 5 jours ouvrables.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+  },
+};
+
+function wrapHtml(body: string, tenantName: string, supportEmail: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 16px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);"><tr><td style="padding:24px 32px;border-bottom:1px solid #eee;"><h1 style="margin:0;font-size:20px;font-weight:600;color:#111;">${esc(tenantName)}</h1></td></tr><tr><td style="padding:32px;font-size:15px;line-height:1.6;color:#333;">${body}</td></tr><tr><td style="padding:16px 32px;border-top:1px solid #eee;text-align:center;"><p style="margin:0 0 4px;font-size:12px;color:#999;">Vragen? <a href="mailto:${esc(supportEmail)}" style="color:#2563eb;">${esc(supportEmail)}</a></p><p style="margin:0;font-size:11px;color:#ccc;">Powered by SellQo</p></td></tr></table></td></tr></table></body></html>`;
+}
+
+function getTemplate(event: ReturnEmailEvent, locale: Locale, data: TemplateData): { subject: string; html: string } {
+  return {
+    subject: subjects[event][locale](data),
+    html: wrapHtml(bodies[event][locale](data), data.tenantName, data.supportEmail),
+  };
+}
+
+// ── Setting key map ─────────────────────────────────────────
 
 const SETTING_KEY: Record<ReturnEmailEvent, string> = {
   request_received: 'notify_customer_request_received',
@@ -51,16 +135,14 @@ const SETTING_KEY: Record<ReturnEmailEvent, string> = {
   refund_processed: 'notify_customer_refund_processed',
 };
 
+// ── Handler ─────────────────────────────────────────────────
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) throw new Error('RESEND_API_KEY is not set');
-
-    const resend = new Resend(resendApiKey);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -76,26 +158,20 @@ serve(async (req) => {
 
     log('Processing', { return_id, event });
 
-    // Fetch return + order + tenant + items
     const { data: ret, error: retError } = await supabase
       .from('returns')
       .select(`
         id, rma_number, refund_amount, refund_method,
         orders!returns_order_id_fkey(
           order_number, customer_email, customer_name,
-          shipping_address, total, currency, locale,
-          tenant_id,
+          shipping_address, total, currency, locale, tenant_id,
           tenants(name, support_email, contact_email)
         ),
         return_items(product_name, quantity)
       `)
-      .eq('id', return_id)
-      .single();
+      .eq('id', return_id).single();
 
-    if (retError || !ret) {
-      log('Return not found', { retError });
-      throw new Error('Return niet gevonden');
-    }
+    if (retError || !ret) throw new Error('Return niet gevonden');
 
     const order = ret.orders as any;
     if (!order) throw new Error('Order niet gevonden bij retour');
@@ -103,44 +179,28 @@ serve(async (req) => {
     const tenant = order.tenants as any;
     const tenantId = order.tenant_id;
 
-    // Check notification settings
     const { data: settings } = await supabase
       .from('tenant_return_settings')
-      .select('notify_customer_request_received, notify_customer_approved, notify_customer_package_received, notify_customer_refund_processed, notify_admin_new_request')
-      .eq('tenant_id', tenantId)
-      .maybeSingle();
+      .select('notify_customer_request_received, notify_customer_approved, notify_customer_package_received, notify_customer_refund_processed')
+      .eq('tenant_id', tenantId).maybeSingle();
 
     const settingKey = SETTING_KEY[event as ReturnEmailEvent];
-    // Default to true if no settings row exists
     if (settings && settings[settingKey] === false) {
-      log('Notification disabled', { event, settingKey });
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'notification disabled' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      log('Notification disabled', { event });
+      return new Response(JSON.stringify({ skipped: true, reason: 'notification disabled' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Determine recipient (all remaining events are customer-facing)
     const supportEmail = tenant?.support_email || tenant?.contact_email || 'admin@sellqo.app';
     const to = order.customer_email;
 
     if (!to) {
-      log('No recipient email');
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'no recipient email' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: 'no recipient email' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Resolve locale
-    const locale: Locale = await resolveLocale(supabase, order, tenantId);
-
-    log('Resolved locale', { locale, to });
-
-    const items = (ret.return_items || []).map((i: any) => ({
-      name: i.product_name || 'Onbekend product',
-      quantity: i.quantity || 1,
-    }));
+    const locale = await resolveLocale(supabase, order, tenantId);
+    log('Resolved', { locale, to });
 
     const templateData: TemplateData = {
       tenantName: tenant?.name || 'SellQo',
@@ -149,13 +209,15 @@ serve(async (req) => {
       rmaNumber: ret.rma_number || '-',
       refundAmountFormatted: formatAmount(ret.refund_amount || 0, order.currency || 'EUR', locale),
       refundMethod: ret.refund_method || 'manual',
-      items,
+      items: (ret.return_items || []).map((i: any) => ({ name: i.product_name || 'Onbekend product', quantity: i.quantity || 1 })),
       supportEmail,
     };
 
     const template = getTemplate(event as ReturnEmailEvent, locale, templateData);
+    log('Sending', { to, subject: template.subject });
 
-    log('Sending email', { to, subject: template.subject });
+    const { Resend } = await import("https://esm.sh/resend@2.0.0");
+    const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: `${tenant?.name || 'SellQo'} <retouren@sellqo.app>`,
@@ -165,22 +227,14 @@ serve(async (req) => {
       reply_to: supportEmail !== 'admin@sellqo.app' ? supportEmail : undefined,
     });
 
-    if (emailError) {
-      log('Resend error', emailError);
-      throw new Error(`Email verzenden mislukt: ${emailError.message}`);
-    }
+    if (emailError) throw new Error(`Email verzenden mislukt: ${emailError.message}`);
 
-    log('Email sent', { id: emailData?.id });
-
-    return new Response(
-      JSON.stringify({ success: true, email_id: emailData?.id }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    log('Sent', { id: emailData?.id });
+    return new Response(JSON.stringify({ success: true, email_id: emailData?.id }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     log('Error', { message: error.message });
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
