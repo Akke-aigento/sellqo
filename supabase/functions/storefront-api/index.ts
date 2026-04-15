@@ -1982,8 +1982,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Onbekende betaalmethode' } };
 }
 
-// REDEPLOY MARKER: fix stripe_session_id lookup v2
 async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  console.log("[STOREFRONT-API-VERSION] checkoutGetOrder v3 with stripe_session_id support, deployed:", new Date().toISOString());
   const orderId = params.order_id as string;
   const cartId = params.cart_id as string;
   const stripeSessionId = params.stripe_session_id as string;
