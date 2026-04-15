@@ -659,6 +659,20 @@ function generateUBL(data: {
     </cac:PayeeFinancialAccount>
   </cac:PaymentMeans>` : ''}
 ${shippingCharge}
+${discountAmount > 0 ? `
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+    <cbc:AllowanceChargeReasonCode>95</cbc:AllowanceChargeReasonCode>
+    <cbc:AllowanceChargeReason>${discountCode ? escapeXml('Discount: ' + discountCode) : 'Discount'}</cbc:AllowanceChargeReason>
+    <cbc:Amount currencyID="${currency}">${discountAmount.toFixed(2)}</cbc:Amount>
+    <cac:TaxCategory>
+      <cbc:ID>S</cbc:ID>
+      <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
+      <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+      </cac:TaxScheme>
+    </cac:TaxCategory>
+  </cac:AllowanceCharge>` : ''}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${currency}">${taxAmount.toFixed(2)}</cbc:TaxAmount>
 ${taxSubtotals}
@@ -666,9 +680,10 @@ ${taxSubtotals}
 
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${currency}">${subtotal.toFixed(2)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${currency}">${(subtotal + shippingCost).toFixed(2)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currency}">${(subtotal - discountAmount + shippingCost).toFixed(2)}</cbc:TaxExclusiveAmount>
     <cbc:TaxInclusiveAmount currencyID="${currency}">${total.toFixed(2)}</cbc:TaxInclusiveAmount>
     ${shippingCost > 0 ? `<cbc:ChargeTotalAmount currencyID="${currency}">${shippingCost.toFixed(2)}</cbc:ChargeTotalAmount>` : ''}
+    ${discountAmount > 0 ? `<cbc:AllowanceTotalAmount currencyID="${currency}">${discountAmount.toFixed(2)}</cbc:AllowanceTotalAmount>` : ''}
     <cbc:PayableAmount currencyID="${currency}">${total.toFixed(2)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 
