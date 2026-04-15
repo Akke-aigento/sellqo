@@ -300,6 +300,8 @@ function generateCIIXml(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
   ogmReference: string;
@@ -308,6 +310,7 @@ function generateCIIXml(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown, ogmReference, isB2B 
   } = data;
   
@@ -452,10 +455,17 @@ function generateCIIXml(data: {
         </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
       </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
 ${taxBreakdownXml}
+${discountAmount > 0 ? `
+      <ram:SpecifiedTradeAllowanceCharge>
+        <ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>
+        <ram:ActualAmount>${discountAmount.toFixed(2)}</ram:ActualAmount>
+        <ram:Reason>${discountCode ? escapeXml('Korting: ' + discountCode) : 'Korting'}</ram:Reason>
+      </ram:SpecifiedTradeAllowanceCharge>` : ''}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${subtotal.toFixed(2)}</ram:LineTotalAmount>
         ${shippingCost > 0 ? `<ram:ChargeTotalAmount>${shippingCost.toFixed(2)}</ram:ChargeTotalAmount>` : ''}
-        <ram:TaxBasisTotalAmount>${(subtotal + shippingCost).toFixed(2)}</ram:TaxBasisTotalAmount>
+        ${discountAmount > 0 ? `<ram:AllowanceTotalAmount>${discountAmount.toFixed(2)}</ram:AllowanceTotalAmount>` : ''}
+        <ram:TaxBasisTotalAmount>${(subtotal - discountAmount + shippingCost).toFixed(2)}</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="${currency}">${taxAmount.toFixed(2)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${total.toFixed(2)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${total.toFixed(2)}</ram:DuePayableAmount>
@@ -480,12 +490,15 @@ function generateUBL(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
 }): string {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost,
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown 
   } = data;
   
