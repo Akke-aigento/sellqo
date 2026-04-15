@@ -8375,6 +8375,7 @@ export type Database = {
           import_source: string | null
           internal_notes: string | null
           last_tracking_check: string | null
+          locale: string | null
           marketplace_connection_id: string | null
           marketplace_order_id: string | null
           marketplace_source: string | null
@@ -8443,6 +8444,7 @@ export type Database = {
           import_source?: string | null
           internal_notes?: string | null
           last_tracking_check?: string | null
+          locale?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_source?: string | null
@@ -8511,6 +8513,7 @@ export type Database = {
           import_source?: string | null
           internal_notes?: string | null
           last_tracking_check?: string | null
+          locale?: string | null
           marketplace_connection_id?: string | null
           marketplace_order_id?: string | null
           marketplace_source?: string | null
@@ -13564,6 +13567,7 @@ export type Database = {
           discount_codes: string[] | null
           expires_at: string
           id: string
+          locale: string | null
           payment_method: string | null
           session_id: string
           shipping_address: Json | null
@@ -13589,6 +13593,7 @@ export type Database = {
           discount_codes?: string[] | null
           expires_at?: string
           id?: string
+          locale?: string | null
           payment_method?: string | null
           session_id: string
           shipping_address?: Json | null
@@ -13614,6 +13619,7 @@ export type Database = {
           discount_codes?: string[] | null
           expires_at?: string
           id?: string
+          locale?: string | null
           payment_method?: string | null
           session_id?: string
           shipping_address?: Json | null
@@ -15999,6 +16005,7 @@ export type Database = {
           stripe_payouts_enabled: boolean | null
           subscription_plan: string | null
           subscription_status: string | null
+          support_email: string | null
           tax_percentage: number | null
           transaction_fee_label: string | null
           updated_at: string | null
@@ -16101,6 +16108,7 @@ export type Database = {
           stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
+          support_email?: string | null
           tax_percentage?: number | null
           transaction_fee_label?: string | null
           updated_at?: string | null
@@ -16203,6 +16211,7 @@ export type Database = {
           stripe_payouts_enabled?: boolean | null
           subscription_plan?: string | null
           subscription_status?: string | null
+          support_email?: string | null
           tax_percentage?: number | null
           transaction_fee_label?: string | null
           updated_at?: string | null
