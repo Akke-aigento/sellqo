@@ -1168,9 +1168,12 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
 
   if (existing) return { cart_id: existing.id };
 
+  const cartData: any = { tenant_id: tenantId, session_id: sessionId, currency };
+  if (params.locale) cartData.locale = params.locale;
+
   const { data, error } = await supabase
     .from('storefront_carts')
-    .insert({ tenant_id: tenantId, session_id: sessionId, currency })
+    .insert(cartData)
     .select('id').single();
   if (error) throw error;
   return { cart_id: data.id };
@@ -2086,7 +2089,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Get cart
   const { data: cart, error: cartError } = await supabase
     .from('storefront_carts')
-    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, payment_method, currency, discount_codes')
+    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, payment_method, currency, discount_codes, locale')
     .eq('id', cartId)
     .eq('tenant_id', tenantId)
     .single();
@@ -2208,6 +2211,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       currency: cart.currency || tenantData?.currency || 'EUR',
       stripe_payment_intent_id: session.payment_intent as string,
       stripe_checkout_session_id: session.id,
+      locale: cart.locale || null,
     })
     .select('id, order_number').single();
 
