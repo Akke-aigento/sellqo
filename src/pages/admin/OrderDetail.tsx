@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
+import { OrderReturnTag } from '@/components/admin/OrderReturnTag';
 import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
 import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
 import { TrackingInfoCard } from '@/components/admin/TrackingInfoCard';
@@ -111,6 +112,7 @@ export default function OrderDetailPage() {
               <OrderMarketplaceBadge source={order.marketplace_source} />
               <OrderStatusBadge status={order.status} />
               <PaymentStatusBadge status={order.payment_status} />
+              <OrderReturnTag orderId={order.id} />
             </div>
             <p className="text-muted-foreground">
               {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: nl })}
