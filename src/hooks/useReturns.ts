@@ -556,6 +556,89 @@ export function useReturnMutations() {
     },
   });
 
+  const executeRefund = useMutation({
+    mutationFn: async ({ returnId, refundMethod }: {
+      returnId: string;
+      refundMethod: string | null;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Non-Stripe: just transition to 'initiated' for manual confirmation
+      if (refundMethod !== 'stripe') {
+        await supabase.from('returns').update({
+          refund_status: 'initiated',
+          refund_initiated_at: new Date().toISOString(),
+          refund_initiated_by: user?.id,
+        }).eq('id', returnId);
+
+        await supabase.from('return_status_history').insert({
+          return_id: returnId,
+          from_status: 'approved_for_refund',
+          to_status: 'initiated',
+          changed_by: user?.id,
+          notes: `Handmatige refund-stap gestart (${refundMethod || 'manual'})`,
+          flow_type: 'financial',
+        });
+
+        return { auto: false, method: refundMethod };
+      }
+
+      // Stripe: mark initiated, then auto-execute via edge function
+      await supabase.from('returns').update({
+        refund_status: 'initiated',
+        refund_initiated_at: new Date().toISOString(),
+        refund_initiated_by: user?.id,
+      }).eq('id', returnId);
+
+      const { data, error } = await supabase.functions.invoke('process-refund', {
+        body: { return_id: returnId },
+      });
+
+      if (error) {
+        // Rollback to approved_for_refund so user can retry
+        await supabase.from('returns').update({
+          refund_status: 'approved_for_refund',
+          refund_failure_reason: error.message || 'Onbekende fout bij Stripe call',
+        }).eq('id', returnId);
+        throw new Error(error.message || 'Refund mislukt');
+      }
+
+      // Re-check status — process-refund might have set 'failed' internally
+      const { data: updated } = await supabase
+        .from('returns')
+        .select('refund_status, refund_failure_reason, stripe_refund_id')
+        .eq('id', returnId)
+        .single();
+
+      if (updated?.refund_status === 'failed') {
+        throw new Error(updated.refund_failure_reason || 'Stripe refund mislukt');
+      }
+
+      await supabase.from('return_status_history').insert({
+        return_id: returnId,
+        from_status: 'initiated',
+        to_status: 'completed',
+        changed_by: user?.id,
+        notes: `Stripe refund ${updated?.stripe_refund_id || ''} automatisch uitgevoerd`,
+        flow_type: 'financial',
+      });
+
+      return { auto: true, method: 'stripe', stripeRefundId: updated?.stripe_refund_id };
+    },
+    onSuccess: (result) => {
+      invalidateAll();
+      if (result.auto) {
+        toast.success(`✓ Stripe refund uitgevoerd (${result.stripeRefundId || 'success'})`);
+      } else {
+        toast.success(`Refund stap geopend voor ${result.method} — bevestig na uitvoering`);
+      }
+    },
+    onError: (error) => {
+      invalidateAll();
+      toast.error(`❌ Refund mislukt: ${error.message} — Probeer opnieuw of check Stripe dashboard`);
+    },
+  });
+
   return {
     createReturn,
     updateReturnStatus,
@@ -565,5 +648,6 @@ export function useReturnMutations() {
     inspectReturnItem,
     addStatusNote,
     processRefund,
+    executeRefund,
   };
 }

@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
   ArrowLeft, Package, CreditCard, ExternalLink, MessageSquarePlus,
-  ChevronDown, CheckCircle2, Clock, AlertTriangle, Lock, XCircle,
+  ChevronDown, CheckCircle2, Clock, AlertTriangle, Lock, XCircle, Loader2,
 } from 'lucide-react';
 import {
   useReturn, useReturnItems, useReturnStatusHistory,
