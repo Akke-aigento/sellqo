@@ -112,6 +112,14 @@ const settingsGroups: SettingsGroup[] = [
     ],
   },
   {
+    id: 'returns',
+    title: 'Retouren',
+    description: 'Retourbeleid, refund logica en klant-portaal',
+    sections: [
+      { id: 'return-settings', title: 'Retourinstellingen', icon: Undo2, component: ReturnSettingsPage },
+    ],
+  },
+  {
     id: 'channels',
     title: 'SellQo Connect',
     description: 'Beheer al je externe kanalen en koppelingen',
