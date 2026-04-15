@@ -207,6 +207,11 @@ export default function ReturnDetailPage() {
             </p>
           </div>
         </div>
+        {!CANCEL_BLOCKED_STATUSES.includes(returnRecord.status as ReturnStatus) && (
+          <Button variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10" onClick={() => setShowCancelDialog(true)}>
+            <XCircle className="h-4 w-4 mr-1" /> Retour annuleren
+          </Button>
+        )}
       </div>
 
       {/* ORDER + CUSTOMER INFO */}
