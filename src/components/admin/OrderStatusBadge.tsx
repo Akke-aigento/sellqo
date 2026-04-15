@@ -27,6 +27,14 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
     label: 'Geannuleerd', 
     className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200' 
   },
+  returned: { 
+    label: 'Geretourneerd', 
+    className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200' 
+  },
+  partially_returned: { 
+    label: 'Deels geretourneerd', 
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' 
+  },
 };
 
 export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
@@ -59,6 +67,10 @@ const paymentConfig: Record<PaymentStatus, { label: string; className: string }>
   failed: { 
     label: 'Mislukt', 
     className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200' 
+  },
+  partially_refunded: { 
+    label: 'Deels terugbetaald', 
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' 
   },
 };
 
