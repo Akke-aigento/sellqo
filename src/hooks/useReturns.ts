@@ -332,8 +332,12 @@ export function useReturnMutations() {
 
       return returnRow;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidateAll();
+      if (data?.id) {
+        fireReturnEmail(data.id, 'request_received');
+        fireReturnEmail(data.id, 'admin_new_request');
+      }
       toast.success('Retour aangemaakt');
     },
     onError: (error) => {
@@ -375,8 +379,13 @@ export function useReturnMutations() {
         flow_type: 'logistics',
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidateAll();
+      if (variables.status === 'approved') {
+        fireReturnEmail(variables.returnId, 'approved');
+      } else if (variables.status === 'received') {
+        fireReturnEmail(variables.returnId, 'package_received');
+      }
       toast.success('Logistieke status bijgewerkt');
     },
     onError: (error) => {
@@ -432,8 +441,11 @@ export function useReturnMutations() {
         flow_type: 'financial',
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidateAll();
+      if (variables.refundStatus === 'completed') {
+        fireReturnEmail(variables.returnId, 'refund_processed');
+      }
       toast.success('Refund status bijgewerkt');
     },
     onError: (error) => {
@@ -556,6 +568,12 @@ export function useReturnMutations() {
     },
   });
 
+  const fireReturnEmail = (returnId: string, event: string) => {
+    supabase.functions.invoke('send-return-email', {
+      body: { return_id: returnId, event },
+    }).catch(err => console.warn('[return-email]', event, 'failed:', err));
+  };
+
   const executeRefund = useMutation({
     mutationFn: async ({ returnId, refundMethod }: {
       returnId: string;
@@ -563,8 +581,25 @@ export function useReturnMutations() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Non-Stripe: just transition to 'initiated' for manual confirmation
-      if (refundMethod !== 'stripe') {
+      // Fetch tenant's refund preference
+      const { data: returnRow } = await supabase
+        .from('returns')
+        .select('tenant_id')
+        .eq('id', returnId)
+        .single();
+
+      if (!returnRow) throw new Error('Retour niet gevonden');
+
+      const { data: tenantSettings } = await supabase
+        .from('tenant_return_settings')
+        .select('default_refund_method')
+        .eq('tenant_id', returnRow.tenant_id)
+        .single();
+
+      const autoStripeEnabled = tenantSettings?.default_refund_method === 'auto_stripe';
+
+      // Non-Stripe or manual mode: just transition to 'initiated' for manual confirmation
+      if (refundMethod !== 'stripe' || !autoStripeEnabled) {
         await supabase.from('returns').update({
           refund_status: 'initiated',
           refund_initiated_at: new Date().toISOString(),
@@ -625,9 +660,10 @@ export function useReturnMutations() {
 
       return { auto: true, method: 'stripe', stripeRefundId: updated?.stripe_refund_id };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       invalidateAll();
       if (result.auto) {
+        fireReturnEmail(variables.returnId, 'refund_processed');
         toast.success(`✓ Stripe refund uitgevoerd (${result.stripeRefundId || 'success'})`);
       } else {
         toast.success(`Refund stap geopend voor ${result.method} — bevestig na uitvoering`);

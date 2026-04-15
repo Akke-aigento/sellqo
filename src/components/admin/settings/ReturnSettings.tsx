@@ -208,7 +208,6 @@ export function ReturnSettingsPage() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="auto_stripe" id="refund-auto" />
                   <Label htmlFor="refund-auto">Automatisch via Stripe</Label>
-                  <Badge variant="outline" className="text-xs">Komt in fase 2</Badge>
                 </div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="manual" id="refund-manual" /><Label htmlFor="refund-manual">Handmatig (admin bevestigt)</Label></div>
               </RadioGroup>
