@@ -93,7 +93,7 @@ export default function ReturnDetailPage() {
   const { settings } = useReturnSettings();
   const {
     updateReturnStatus, updateReturnRefundStatus, closeReturn,
-    updateReturnNotes, inspectReturnItem, addStatusNote,
+    updateReturnNotes, inspectReturnItem, addStatusNote, executeRefund,
   } = useReturnMutations();
 
   const [notes, setNotes] = useState<string | null>(null);
@@ -467,15 +467,34 @@ export default function ReturnDetailPage() {
               )}
               {refundStatus === 'approved_for_refund' && (
                 <>
-                  <Button size="sm" onClick={() => handleRefundAction('initiated')}>
-                    Voer refund uit
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (returnRecord.refund_method === 'stripe' && !logisticsInspected && refundRequiresInspection) {
+                        setShowRefundWarning(true);
+                        return;
+                      }
+                      executeRefund.mutate({
+                        returnId: returnRecord.id,
+                        refundMethod: returnRecord.refund_method,
+                      });
+                    }}
+                    disabled={executeRefund.isPending}
+                  >
+                    {executeRefund.isPending ? (
+                      <><Loader2 className="h-3 w-3 mr-2 animate-spin" /> Bezig...</>
+                    ) : returnRecord.refund_method === 'stripe' ? (
+                      'Voer refund uit via Stripe'
+                    ) : (
+                      'Markeer refund als gestart'
+                    )}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'not_applicable' })}>
                     N.v.t. markeren
                   </Button>
                 </>
               )}
-              {refundStatus === 'initiated' && (
+              {refundStatus === 'initiated' && returnRecord.refund_method !== 'stripe' && (
                 <>
                   <Button size="sm" onClick={() => updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'completed' })}>
                     Refund geslaagd
@@ -487,13 +506,17 @@ export default function ReturnDetailPage() {
               )}
             </div>
 
-            {refundStatus === 'initiated' && (
+            {refundStatus === 'initiated' && returnRecord.refund_method !== 'stripe' && (
               <p className="text-xs text-muted-foreground">
-                Voor nu: voer de refund handmatig uit in het{' '}
-                {returnRecord.refund_method === 'stripe' ? 'Stripe' :
-                  returnRecord.refund_method === 'bolcom' ? 'Bol.com' :
-                    returnRecord.refund_method === 'amazon' ? 'Amazon' : 'betalings'} dashboard,
+                Voer de refund handmatig uit in het{' '}
+                {returnRecord.refund_method === 'bolcom' ? 'Bol.com' :
+                  returnRecord.refund_method === 'amazon' ? 'Amazon' : 'betalings'} dashboard,
                 bevestig daarna hier.
+              </p>
+            )}
+            {refundStatus === 'initiated' && returnRecord.refund_method === 'stripe' && (
+              <p className="text-xs text-muted-foreground">
+                Stripe refund wordt verwerkt — dit duurt meestal enkele seconden.
               </p>
             )}
 
@@ -699,7 +722,7 @@ export default function ReturnDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { updateReturnRefundStatus.mutate({ returnId: returnRecord.id, refundStatus: 'initiated' }); setShowRefundWarning(false); }}>
+            <AlertDialogAction onClick={() => { executeRefund.mutate({ returnId: returnRecord.id, refundMethod: returnRecord.refund_method }); setShowRefundWarning(false); }}>
               Doorgaan
             </AlertDialogAction>
           </AlertDialogFooter>
