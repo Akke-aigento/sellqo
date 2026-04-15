@@ -300,6 +300,8 @@ function generateCIIXml(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
   ogmReference: string;
@@ -308,6 +310,7 @@ function generateCIIXml(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown, ogmReference, isB2B 
   } = data;
   
@@ -452,10 +455,17 @@ function generateCIIXml(data: {
         </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
       </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
 ${taxBreakdownXml}
+${discountAmount > 0 ? `
+      <ram:SpecifiedTradeAllowanceCharge>
+        <ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>
+        <ram:ActualAmount>${discountAmount.toFixed(2)}</ram:ActualAmount>
+        <ram:Reason>${discountCode ? escapeXml('Korting: ' + discountCode) : 'Korting'}</ram:Reason>
+      </ram:SpecifiedTradeAllowanceCharge>` : ''}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${subtotal.toFixed(2)}</ram:LineTotalAmount>
         ${shippingCost > 0 ? `<ram:ChargeTotalAmount>${shippingCost.toFixed(2)}</ram:ChargeTotalAmount>` : ''}
-        <ram:TaxBasisTotalAmount>${(subtotal + shippingCost).toFixed(2)}</ram:TaxBasisTotalAmount>
+        ${discountAmount > 0 ? `<ram:AllowanceTotalAmount>${discountAmount.toFixed(2)}</ram:AllowanceTotalAmount>` : ''}
+        <ram:TaxBasisTotalAmount>${(subtotal - discountAmount + shippingCost).toFixed(2)}</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="${currency}">${taxAmount.toFixed(2)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${total.toFixed(2)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${total.toFixed(2)}</ram:DuePayableAmount>
@@ -480,12 +490,15 @@ function generateUBL(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
 }): string {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost,
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown 
   } = data;
   
@@ -646,6 +659,20 @@ function generateUBL(data: {
     </cac:PayeeFinancialAccount>
   </cac:PaymentMeans>` : ''}
 ${shippingCharge}
+${discountAmount > 0 ? `
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+    <cbc:AllowanceChargeReasonCode>95</cbc:AllowanceChargeReasonCode>
+    <cbc:AllowanceChargeReason>${discountCode ? escapeXml('Discount: ' + discountCode) : 'Discount'}</cbc:AllowanceChargeReason>
+    <cbc:Amount currencyID="${currency}">${discountAmount.toFixed(2)}</cbc:Amount>
+    <cac:TaxCategory>
+      <cbc:ID>S</cbc:ID>
+      <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
+      <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+      </cac:TaxScheme>
+    </cac:TaxCategory>
+  </cac:AllowanceCharge>` : ''}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${currency}">${taxAmount.toFixed(2)}</cbc:TaxAmount>
 ${taxSubtotals}
@@ -653,9 +680,10 @@ ${taxSubtotals}
 
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${currency}">${subtotal.toFixed(2)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${currency}">${(subtotal + shippingCost).toFixed(2)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currency}">${(subtotal - discountAmount + shippingCost).toFixed(2)}</cbc:TaxExclusiveAmount>
     <cbc:TaxInclusiveAmount currencyID="${currency}">${total.toFixed(2)}</cbc:TaxInclusiveAmount>
     ${shippingCost > 0 ? `<cbc:ChargeTotalAmount currencyID="${currency}">${shippingCost.toFixed(2)}</cbc:ChargeTotalAmount>` : ''}
+    ${discountAmount > 0 ? `<cbc:AllowanceTotalAmount currencyID="${currency}">${discountAmount.toFixed(2)}</cbc:AllowanceTotalAmount>` : ''}
     <cbc:PayableAmount currencyID="${currency}">${total.toFixed(2)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 
@@ -678,6 +706,8 @@ async function generateFacturXPDF(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
   ogmReference: string;
@@ -686,6 +716,7 @@ async function generateFacturXPDF(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown, ogmReference, isB2B 
   } = data;
 
@@ -949,6 +980,13 @@ async function generateFacturXPDF(data: {
     page.drawText(formatAmount(shippingCost), { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
   }
 
+  if (discountAmount > 0) {
+    yPos -= 16;
+    const discountLabel = discountCode ? `Korting (${discountCode})` : 'Korting';
+    page.drawText(discountLabel, { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
+    page.drawText(`-${formatAmount(discountAmount)}`, { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  }
+
   // Tax breakdown
   for (const tax of taxBreakdown) {
     yPos -= 16;
@@ -1210,12 +1248,14 @@ serve(async (req) => {
 
     const orderSubtotal = Number(order.subtotal) || 0;
     const shippingCost = Number(order.shipping_cost) || 0;
+    const discountAmount = Number(order.discount_amount) || 0;
+    const discountCode = order.discount_code || null;
     
     // Check if prices are inclusive or exclusive of VAT
     const vatHandling = tenant.default_vat_handling || 'exclusive';
     const taxPercent = tenant.tax_percentage || 21;
     
-    logStep("VAT handling mode", { vatHandling, taxPercent, orderSubtotal, shippingCost });
+    logStep("VAT handling mode", { vatHandling, taxPercent, orderSubtotal, shippingCost, discountAmount, discountCode });
     
     // Calculate VAT based on customer location (for reverse charge, OSS, etc.)
     const vatCalculation = calculateVat({
@@ -1233,7 +1273,8 @@ serve(async (req) => {
     if (vatHandling === 'inclusive') {
       // Prices are INCLUSIVE of VAT - back-calculate to get net amounts
       // The order total already includes VAT, so we need to extract it
-      finalTotal = orderSubtotal + shippingCost;
+      // Discount is also VAT-inclusive, so subtract before back-calculation
+      finalTotal = orderSubtotal + shippingCost - discountAmount;
       
       // If VAT rate is 0 (reverse charge, export, etc.), no tax extraction needed
       if (vatCalculation.vatRate === 0) {
@@ -1249,18 +1290,28 @@ serve(async (req) => {
         finalTotal, 
         subtotalExcl: subtotalExcl.toFixed(2), 
         calculatedTaxAmount: calculatedTaxAmount.toFixed(2),
-        vatRate: vatCalculation.vatRate
+        vatRate: vatCalculation.vatRate,
+        discountAmount
       });
     } else {
       // Prices are EXCLUSIVE of VAT - add tax on top (original behavior)
-      subtotalExcl = orderSubtotal + shippingCost;
-      calculatedTaxAmount = vatCalculation.vatAmount;
+      // Discount is on the net amount, subtract before adding VAT
+      const netBeforeDiscount = orderSubtotal + shippingCost;
+      subtotalExcl = netBeforeDiscount - discountAmount;
+      
+      // Recalculate VAT on discounted amount
+      if (vatCalculation.vatRate === 0) {
+        calculatedTaxAmount = 0;
+      } else {
+        calculatedTaxAmount = subtotalExcl * (vatCalculation.vatRate / 100);
+      }
       finalTotal = subtotalExcl + calculatedTaxAmount;
       
       logStep("Exclusive VAT calculation", { 
         subtotalExcl, 
         calculatedTaxAmount, 
-        finalTotal 
+        finalTotal,
+        discountAmount
       });
     }
 
@@ -1284,6 +1335,17 @@ serve(async (req) => {
     const ogmReference = generateOGM(invoiceNumber);
     logStep("OGM generated", { ogmReference });
 
+    // For the PDF display: show pre-discount product subtotal, then discount line
+    // subtotalExcl already has discount subtracted; we need the pre-discount value for display
+    const productSubtotalForDisplay = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? (orderSubtotal + shippingCost) / (1 + vatCalculation.vatRate / 100) - (shippingCost / (1 + vatCalculation.vatRate / 100))
+      : orderSubtotal;
+    
+    // Discount net amount (for exclusive: same as discountAmount; for inclusive: back-calculate)
+    const discountAmountNet = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? discountAmount / (1 + vatCalculation.vatRate / 100)
+      : discountAmount;
+
     const invoiceData = {
       invoiceNumber,
       issueDate,
@@ -1294,10 +1356,14 @@ serve(async (req) => {
       order,
       orderItems: adjustedOrderItems,
       invoiceLines: [], // Will be populated from invoice_lines table in future
-      subtotal: subtotalExcl - shippingCost, // Product subtotal (net)
+      subtotal: productSubtotalForDisplay, // Product subtotal (net, before discount)
       taxAmount: calculatedTaxAmount,
       total: finalTotal,
-      shippingCost,
+      shippingCost: vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+        ? shippingCost / (1 + vatCalculation.vatRate / 100)
+        : shippingCost,
+      discountAmount: discountAmountNet,
+      discountCode,
       vatCalculation: {
         ...vatCalculation,
         vatAmount: calculatedTaxAmount, // Use recalculated amount
