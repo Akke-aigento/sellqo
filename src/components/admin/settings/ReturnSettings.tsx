@@ -85,7 +85,6 @@ export function ReturnSettingsPage() {
         <h2 className="text-2xl font-bold tracking-tight">Retourinstellingen</h2>
         <p className="text-muted-foreground">Configureer het retourbeleid, refund logica en klant-portaal.</p>
       </div>
-
       <Accordion type="multiple" defaultValue={['general', 'credit-notes', 'portal', 'refund', 'marketplace', 'shipping', 'stock', 'notifications', 'reasons']} className="space-y-4">
         
         {/* 1. Algemeen */}
@@ -219,6 +218,15 @@ export function ReturnSettingsPage() {
             <div className="flex items-center justify-between">
               <Label>Gedeeltelijke refunds toestaan (per item)</Label>
               <Switch checked={settings.allow_partial_refunds} onCheckedChange={v => handleSwitch('allow_partial_refunds', v)} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Inspectie vereist voor refund</Label>
+                <p className="text-xs text-muted-foreground">
+                  Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
+                </p>
+              </div>
+              <Switch checked={settings.refund_requires_inspection} onCheckedChange={v => handleSwitch('refund_requires_inspection', v)} />
             </div>
           </AccordionContent>
         </AccordionItem>
