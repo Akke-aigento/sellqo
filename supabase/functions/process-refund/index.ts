@@ -124,19 +124,30 @@ serve(async (req) => {
 
       // Use stripeAccount for direct charge refunds (same pattern as pos-refund-payment)
       const stripeAccountId = order?.tenants?.stripe_account_id;
-      const refund = await stripe.refunds.create(
-        {
-          payment_intent: paymentIntentId,
-          ...(refundAmount ? { amount: refundAmount } : {}),
-          reason: "requested_by_customer",
-        },
-        stripeAccountId ? { stripeAccount: stripeAccountId } : undefined
-      );
+      let refund;
+      try {
+        refund = await stripe.refunds.create(
+          {
+            payment_intent: paymentIntentId,
+            ...(refundAmount ? { amount: refundAmount } : {}),
+            reason: "requested_by_customer",
+          },
+          stripeAccountId ? { stripeAccount: stripeAccountId } : undefined
+        );
+      } catch (stripeErr: any) {
+        await supabase.from("returns").update({
+          refund_status: "failed",
+          refund_failed_at: new Date().toISOString(),
+          refund_failure_reason: stripeErr.message || 'Stripe refund failed',
+        }).eq("id", return_id);
+        return new Response(JSON.stringify({ error: stripeErr.message }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       await supabase
         .from("returns")
         .update({
-          status: "refunded",
           refund_status: "completed",
           stripe_refund_id: refund.id,
           refund_notes: `Stripe refund ${refund.id} aangemaakt`,
@@ -153,11 +164,10 @@ serve(async (req) => {
       );
     }
 
-    // Manual refund: status update only
+    // Manual refund: financial status update only
     await supabase
       .from("returns")
       .update({
-        status: "refunded",
         refund_status: "completed",
         refund_notes: "Handmatig als terugbetaald gemarkeerd",
       })
