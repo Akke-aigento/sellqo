@@ -61,12 +61,11 @@ serve(async (req) => {
     const refundMethod = returnRecord.refund_method || "manual";
     const order = returnRecord.orders as any;
 
-    // Marketplace returns: status update only
+    // Marketplace returns: status update only (financial, not logistics)
     if (refundMethod === "bolcom" || refundMethod === "amazon") {
       await supabase
         .from("returns")
         .update({
-          status: "refunded",
           refund_status: "completed",
           refund_notes: `Terugbetaling verloopt via ${refundMethod === "bolcom" ? "Bol.com" : "Amazon"}`,
         })
