@@ -138,6 +138,8 @@ export default function ReturnDetailPage() {
   const refundStatus = (returnRecord.refund_status || 'pending') as RefundStatusEnum;
   const refundRequiresInspection = settings?.refund_requires_inspection ?? true;
   const logisticsInspected = ['inspected', 'closed'].includes(logisticsStatus);
+  const showManualConfirmUI = returnRecord.refund_method !== 'stripe'
+    || settings?.default_refund_method !== 'auto_stripe';
   const refundBlocked = refundRequiresInspection && !logisticsInspected;
   const allItemsInspected = returnItems.length > 0 && returnItems.every((it) => it.received_quantity != null);
 
