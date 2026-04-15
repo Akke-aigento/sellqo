@@ -219,6 +219,15 @@ export function ReturnSettingsPage() {
               <Label>Gedeeltelijke refunds toestaan (per item)</Label>
               <Switch checked={settings.allow_partial_refunds} onCheckedChange={v => handleSwitch('allow_partial_refunds', v)} />
             </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Inspectie vereist voor refund</Label>
+                <p className="text-xs text-muted-foreground">
+                  Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
+                </p>
+              </div>
+              <Switch checked={settings.refund_requires_inspection} onCheckedChange={v => handleSwitch('refund_requires_inspection', v)} />
+            </div>
           </AccordionContent>
         </AccordionItem>
 
