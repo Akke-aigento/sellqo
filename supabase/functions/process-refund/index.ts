@@ -44,7 +44,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch return with order info (include tenant's stripe_account_id for direct charge refunds)
+    // Fetch return with order info
     const { data: returnRecord, error: fetchError } = await supabase
       .from("returns")
       .select("*, orders!returns_order_id_fkey(stripe_payment_intent_id, marketplace_source, tenant_id, tenants(stripe_account_id))")
@@ -58,15 +58,43 @@ serve(async (req) => {
       });
     }
 
+    // ── Idempotency guard ──
+    if (returnRecord.refund_status === 'completed') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Refund was reeds verwerkt',
+          already_completed: true,
+          stripe_refund_id: returnRecord.stripe_refund_id,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (returnRecord.stripe_refund_id) {
+      // Previous attempt created Stripe refund but crashed before status update
+      await supabase.from("returns").update({
+        refund_status: "completed",
+        refund_completed_at: new Date().toISOString(),
+        refund_notes: `Idempotency recovery: refund ${returnRecord.stripe_refund_id} already existed`,
+      }).eq("id", return_id);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Refund hersteld', already_completed: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const refundMethod = returnRecord.refund_method || "manual";
     const order = returnRecord.orders as any;
 
-    // Marketplace returns: status update only (financial, not logistics)
+    // Marketplace returns: status update only
     if (refundMethod === "bolcom" || refundMethod === "amazon") {
       await supabase
         .from("returns")
         .update({
           refund_status: "completed",
+          refund_completed_at: new Date().toISOString(),
           refund_notes: `Terugbetaling verloopt via ${refundMethod === "bolcom" ? "Bol.com" : "Amazon"}`,
         })
         .eq("id", return_id);
@@ -122,7 +150,6 @@ serve(async (req) => {
         ? Math.round(returnRecord.refund_amount * 100)
         : undefined;
 
-      // Use stripeAccount for direct charge refunds (same pattern as pos-refund-payment)
       const stripeAccountId = order?.tenants?.stripe_account_id;
       let refund;
       try {
@@ -149,6 +176,7 @@ serve(async (req) => {
         .from("returns")
         .update({
           refund_status: "completed",
+          refund_completed_at: new Date().toISOString(),
           stripe_refund_id: refund.id,
           refund_notes: `Stripe refund ${refund.id} aangemaakt`,
         })
@@ -169,6 +197,7 @@ serve(async (req) => {
       .from("returns")
       .update({
         refund_status: "completed",
+        refund_completed_at: new Date().toISOString(),
         refund_notes: "Handmatig als terugbetaald gemarkeerd",
       })
       .eq("id", return_id);
