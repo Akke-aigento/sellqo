@@ -706,6 +706,8 @@ async function generateFacturXPDF(data: {
   taxAmount: number;
   total: number;
   shippingCost: number;
+  discountAmount: number;
+  discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
   ogmReference: string;
@@ -714,6 +716,7 @@ async function generateFacturXPDF(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
+    discountAmount, discountCode,
     vatCalculation, taxBreakdown, ogmReference, isB2B 
   } = data;
 
@@ -975,6 +978,13 @@ async function generateFacturXPDF(data: {
     yPos -= 16;
     page.drawText('Verzendkosten', { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
     page.drawText(formatAmount(shippingCost), { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
+  }
+
+  if (discountAmount > 0) {
+    yPos -= 16;
+    const discountLabel = discountCode ? `Korting (${discountCode})` : 'Korting';
+    page.drawText(discountLabel, { x: totalsX, y: yPos, size: 10, font: helveticaFont, color: textColor });
+    page.drawText(`-${formatAmount(discountAmount)}`, { x: 480, y: yPos, size: 10, font: helveticaFont, color: textColor });
   }
 
   // Tax breakdown
