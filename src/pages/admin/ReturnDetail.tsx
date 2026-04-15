@@ -32,6 +32,8 @@ import { ReturnStatusBadge, RefundStatusBadge, ReturnSourceBadge } from '@/compo
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+const CANCEL_BLOCKED_STATUSES: ReturnStatus[] = ['cancelled', 'closed', 'completed'];
+
 const LOGISTICS_TIMELINE: ReturnStatus[] = [
   'approved', 'label_sent', 'shipped', 'received', 'inspecting', 'inspected', 'closed',
 ];
@@ -104,6 +106,7 @@ export default function ReturnDetailPage() {
   const [showDenyDialog, setShowDenyDialog] = useState(false);
   const [showFailDialog, setShowFailDialog] = useState(false);
   const [showRefundWarning, setShowRefundWarning] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [manualStatus, setManualStatus] = useState<string>('');
   const [noteText, setNoteText] = useState('');
   const [denyReason, setDenyReason] = useState('');
@@ -204,6 +207,11 @@ export default function ReturnDetailPage() {
             </p>
           </div>
         </div>
+        {!CANCEL_BLOCKED_STATUSES.includes(returnRecord.status as ReturnStatus) && (
+          <Button variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10" onClick={() => setShowCancelDialog(true)}>
+            <XCircle className="h-4 w-4 mr-1" /> Retour annuleren
+          </Button>
+        )}
       </div>
 
       {/* ORDER + CUSTOMER INFO */}
@@ -727,6 +735,24 @@ export default function ReturnDetailPage() {
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction onClick={() => { executeRefund.mutate({ returnId: returnRecord.id, refundMethod: returnRecord.refund_method }); setShowRefundWarning(false); }}>
               Doorgaan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* CANCEL RETURN DIALOG */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retour annuleren</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je deze retour wilt annuleren? Dit kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updateReturnStatus.mutate({ returnId: returnRecord.id, status: 'cancelled' }); setShowCancelDialog(false); }}>
+              Annuleren
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
