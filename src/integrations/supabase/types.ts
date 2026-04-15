@@ -17544,7 +17544,14 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
-      payment_status: "pending" | "paid" | "refunded" | "failed"
+        | "returned"
+        | "partially_returned"
+      payment_status:
+        | "pending"
+        | "paid"
+        | "refunded"
+        | "failed"
+        | "partially_refunded"
       pending_payment_status: "pending" | "confirmed" | "expired" | "cancelled"
       platform_payment_method: "stripe" | "bank_transfer"
       platform_payment_type: "subscription" | "addon" | "ai_credits"
@@ -17837,8 +17844,16 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "returned",
+        "partially_returned",
       ],
-      payment_status: ["pending", "paid", "refunded", "failed"],
+      payment_status: [
+        "pending",
+        "paid",
+        "refunded",
+        "failed",
+        "partially_refunded",
+      ],
       pending_payment_status: ["pending", "confirmed", "expired", "cancelled"],
       platform_payment_method: ["stripe", "bank_transfer"],
       platform_payment_type: ["subscription", "addon", "ai_credits"],
