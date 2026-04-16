@@ -51,20 +51,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
         },
       });
 
-      if (error) {
-        // Fallback: insert directly into newsletter_subscribers
-        const { error: insertError } = await supabase
-          .from('newsletter_subscribers')
-          .insert({
-            tenant_id: tenantId,
-            email: email.trim(),
-            source: 'popup',
-            status: 'active',
-          });
-        if (insertError && insertError.code !== '23505') {
-          throw insertError;
-        }
-      }
+      if (error) throw error;
 
       setSubmitted(true);
       localStorage.setItem(`${STORAGE_KEY}-${tenantSlug}`, '1');
