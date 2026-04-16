@@ -2641,7 +2641,8 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
       const tenantWebsite = tenantData?.website || '';
 
       // Replace variables in welcome email body and subject
-      const unsubscribeUrl = `#unsubscribe`; // placeholder – actual unsubscribe handled by transactional system
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(email)}&tenant=${tenantId}`;
       const replacements: Record<string, string> = {
         '{{customer_first_name}}': firstName || '',
         '{{customer_name}}': firstName || '',
@@ -2660,27 +2661,20 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
         processedSubject = processedSubject.replace(regex, value);
       }
 
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateName: 'tenant-welcome',
-          recipientEmail: email,
-          idempotencyKey: `welcome-newsletter-${tenantId}-${email}-${Date.now()}`,
-          templateData: {
-            subject: processedSubject,
-            body: processedBody,
-            firstName: firstName || '',
-          },
-        }),
-      });
-      if (!emailRes.ok) {
-        const errBody = await emailRes.text();
-        console.error(`Welcome email failed (${emailRes.status}):`, errBody);
+      // Send welcome email directly via Resend (same pattern as campaign emails)
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      if (resendApiKey) {
+        const { Resend } = await import("https://esm.sh/resend@2.0.0");
+        const resend = new Resend(resendApiKey);
+        const emailResponse = await resend.emails.send({
+          from: `${tenantName || 'Sellqo'} <noreply@sellqo.app>`,
+          to: [email],
+          subject: processedSubject,
+          html: processedBody,
+        });
+        console.log('Welcome email sent via Resend for:', email, emailResponse);
       } else {
-        console.log('Welcome email enqueued for:', email);
+        console.warn('RESEND_API_KEY not configured, skipping welcome email');
       }
     } catch (e) {
       console.error('Welcome email send error:', e);
