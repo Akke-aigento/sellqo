@@ -2631,14 +2631,17 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
   // Send welcome email if enabled and not re-subscribing an existing active user
   if (config?.welcome_email_enabled && config?.welcome_email_body && !doubleOptin && existing?.status !== 'active') {
     try {
-      // Fetch tenant name and website for variable replacement
-      const { data: tenantData } = await supabase
+      // Fetch tenant name and custom_domain for variable replacement
+      const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
-        .select('name, website')
+        .select('name, custom_domain')
         .eq('id', tenantId)
         .single();
+      if (tenantError) {
+        console.error('[WELCOME-EMAIL] Tenant lookup failed:', tenantError.message);
+      }
       const tenantName = tenantData?.name || '';
-      const tenantWebsite = tenantData?.website || '';
+      const tenantWebsite = tenantData?.custom_domain ? `https://${tenantData.custom_domain}` : '';
 
       // Replace variables in welcome email body and subject
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -2664,6 +2667,7 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
       // Send welcome email directly via Resend (same pattern as campaign emails)
       const resendApiKey = Deno.env.get('RESEND_API_KEY');
       if (resendApiKey) {
+        console.log('[WELCOME-EMAIL] Sending to:', email, '| tenant:', tenantName);
         const { Resend } = await import("https://esm.sh/resend@2.0.0");
         const resend = new Resend(resendApiKey);
         const emailResponse = await resend.emails.send({
@@ -2672,12 +2676,12 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
           subject: processedSubject,
           html: processedBody,
         });
-        console.log('Welcome email sent via Resend for:', email, emailResponse);
+        console.log('[WELCOME-EMAIL] Resend response for:', email, JSON.stringify(emailResponse));
       } else {
-        console.warn('RESEND_API_KEY not configured, skipping welcome email');
+        console.warn('[WELCOME-EMAIL] RESEND_API_KEY not configured, skipping');
       }
     } catch (e) {
-      console.error('Welcome email send error:', e);
+      console.error('[WELCOME-EMAIL] Send error for:', email, e);
     }
   }
 
