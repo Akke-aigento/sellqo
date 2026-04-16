@@ -65,18 +65,22 @@ export function useTenantSubscription() {
       if (!currentTenant?.id || !subscription?.pricing_plan) return null;
 
       // Get counts
-      const [productsRes, ordersRes, customersRes, usersRes] = await Promise.all([
+      const [productsRes, ordersRes, crmCustomersRes, storefrontCustomersRes, usersRes, storageRes] = await Promise.all([
         supabase.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         supabase.from('customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
+        supabase.from('storefront_customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         supabase.from('user_roles').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
+        supabase.rpc('get_tenant_storage_bytes', { p_tenant_id: currentTenant.id }),
       ]);
 
       const plan = subscription.pricing_plan;
       const products = productsRes.count || 0;
       const orders = ordersRes.count || 0;
-      const customers = customersRes.count || 0;
+      const customers = (crmCustomersRes.count || 0) + (storefrontCustomersRes.count || 0);
       const users = usersRes.count || 0;
+      const storageBytes = (storageRes.data as number) || 0;
+      const storageGb = Number((storageBytes / (1024 * 1024 * 1024)).toFixed(2));
 
       const calcPercentage = (current: number, limit: number | null) => 
         limit ? (current / limit) * 100 : 0;
@@ -98,9 +102,9 @@ export function useTenantSubscription() {
           percentage: calcPercentage(customers, plan.limit_customers),
         },
         storage: {
-          current: 0, // TODO: Calculate actual storage
+          current: storageGb,
           limit: plan.limit_storage_gb,
-          percentage: 0,
+          percentage: calcPercentage(storageGb, plan.limit_storage_gb),
         },
         users: {
           current: users,
