@@ -2570,9 +2570,14 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
       if (!currentTags.includes('nieuwsbrief')) {
         updates.tags = [...currentTags, 'nieuwsbrief'];
       }
-      await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
+      const { error: updateErr } = await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
+      if (updateErr) {
+        console.error('Customer update failed:', JSON.stringify(updateErr));
+      } else {
+        console.log('Customer updated with nieuwsbrief tag:', existingCustomer.id);
+      }
     } else {
-      await supabase.from('customers').insert({
+      const { error: insertErr } = await supabase.from('customers').insert({
         tenant_id: tenantId,
         email,
         first_name: firstName || null,
@@ -2580,11 +2585,15 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
         tags: ['nieuwsbrief'],
         email_subscribed: true,
         email_subscribed_at: new Date().toISOString(),
-        source: source,
       });
+      if (insertErr) {
+        console.error('Customer insert failed:', JSON.stringify(insertErr));
+      } else {
+        console.log('New prospect customer created for newsletter:', email);
+      }
     }
   } catch (customerErr) {
-    console.error('Customer upsert error (non-fatal):', customerErr);
+    console.error('Customer upsert error:', customerErr);
   }
 
   // Get tenant newsletter config
