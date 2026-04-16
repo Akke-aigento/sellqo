@@ -1,30 +1,42 @@
 
 
-# Plan: Add "Inspectie vereist voor refund" toggle to Return Settings
+# Plan: Fix newsletter subscription flow
 
-## Problem
-ReturnDetail.tsx references `refund_requires_inspection` and even tells the user to go to "Instellingen → Retouren → Inspectie vereist voor refund" to change it — but that toggle doesn't exist in the settings UI.
+## Problemen gevonden
 
-## Fix
+1. **NewsletterSection roept de verkeerde functie aan**: De newsletter sectie op de storefront roept `newsletter-subscribe` aan (een losse edge function), terwijl de popup `storefront-api` met actie `newsletter_subscribe` aanroept. De storefront-api versie heeft extra logica voor welkomst-e-mails. Beide moeten dezelfde route gebruiken.
 
-**One file change: `src/components/admin/settings/ReturnSettings.tsx`**
+2. **Geen duidelijke success-state**: Na inschrijving verdwijnt de toast snel en reset het formulier — er is geen visuele bevestiging die blijft staan (bijv. "Bedankt, je bent ingeschreven!").
 
-Add a Switch toggle after line 222 (after "Gedeeltelijke refunds toestaan") in the "Refund logica" accordion section:
+3. **Geen newsletter config aanwezig**: Er is geen `tenant_newsletter_config` record in de database, waardoor de instellingen (welkomstmail, provider, double opt-in) nooit worden geladen. De subscriber wordt aangemaakt maar er gebeurt verder niets.
 
-```
-<div className="flex items-center justify-between">
-  <div>
-    <Label>Inspectie vereist voor refund</Label>
-    <p className="text-xs text-muted-foreground">
-      Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
-    </p>
-  </div>
-  <Switch
-    checked={settings.refund_requires_inspection}
-    onCheckedChange={v => handleSwitch('refund_requires_inspection', v)}
-  />
-</div>
-```
+## Wijzigingen
 
-No DB migration needed — the column already exists in `tenant_return_settings` and the hook already includes it.
+### 1. NewsletterSection: gebruik storefront-api in plaats van newsletter-subscribe
+**Bestand:** `src/components/storefront/sections/NewsletterSection.tsx`
+
+- Vervang `supabase.functions.invoke('newsletter-subscribe', ...)` door `supabase.functions.invoke('storefront-api', { body: { action: 'newsletter_subscribe', tenant_id: tenantId, email, source: 'website' } })`
+- Dit zorgt ervoor dat dezelfde logica (welkomstmail, provider sync) wordt gebruikt als de popup
+
+### 2. Success-state toevoegen aan NewsletterSection
+**Bestand:** `src/components/storefront/sections/NewsletterSection.tsx`
+
+- Voeg een `submitted` state toe
+- Na succesvolle inschrijving: toon een "Bedankt voor je aanmelding!" bericht in plaats van het formulier
+- Consistent met de popup die dit al doet
+
+### 3. Success-state toevoegen aan NewsletterPopup
+**Bestand:** `src/components/storefront/NewsletterPopup.tsx`
+
+- De popup heeft al een success-state — geen wijzigingen nodig
+
+## Technische details
+
+**NewsletterSection.tsx** krijgt:
+- Nieuwe `submitted` boolean state
+- Na success: `setSubmitted(true)` in plaats van alleen `setEmail('')`  
+- Conditionele rendering: formulier vs bedankbericht
+- De `storefront-api` aanroep gebruikt dezelfde structuur als de popup
+
+Geen database- of edge function-wijzigingen nodig — de `storefront-api` `newsletter_subscribe` actie werkt al correct.
 
