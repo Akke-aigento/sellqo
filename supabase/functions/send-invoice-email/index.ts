@@ -273,7 +273,7 @@ serve(async (req) => {
     logStep("Sending primary email", { to: customer.email, attachments: emailAttachments.length });
 
     const emailResponse = await resend.emails.send({
-      from: `${tenant.name} <facturen@sellqo.app>`,
+      from: `${tenant.name} <noreply@sellqo.app>`,
       to: toEmails,
       subject: emailSubject,
       html: emailHtml,
@@ -292,7 +292,7 @@ serve(async (req) => {
       try {
         logStep("Sending copy email", { to: copyRecipients });
         const copyResponse = await resend.emails.send({
-          from: `${tenant.name} <facturen@sellqo.app>`,
+          from: `${tenant.name} <noreply@sellqo.app>`,
           to: copyRecipients,
           subject: `[Kopie] ${emailSubject}`,
           html: emailHtml,

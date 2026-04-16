@@ -220,7 +220,7 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${tenant?.name || 'SellQo'} <retouren@sellqo.app>`,
+      from: `${tenant?.name || 'SellQo'} <noreply@sellqo.app>`,
       to: [to],
       subject: template.subject,
       html: template.html,

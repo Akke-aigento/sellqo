@@ -247,7 +247,7 @@ serve(async (req) => {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                from: `${storeName} <noreply@sellqo.nl>`,
+                from: `${storeName} <noreply@sellqo.app>`,
                 to: [email],
                 subject: `Wachtwoord herstellen — ${storeName}`,
                 html: `
