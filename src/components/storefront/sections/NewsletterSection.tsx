@@ -32,20 +32,7 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
         },
       });
 
-      if (error) {
-        // Fallback: insert directly
-        const { error: insertError } = await supabase
-          .from('newsletter_subscribers')
-          .insert({
-            tenant_id: tenantId,
-            email: email.trim(),
-            source: 'website',
-            status: 'active',
-          });
-        if (insertError && insertError.code !== '23505') {
-          throw insertError;
-        }
-      }
+      if (error) throw error;
 
       setSubmitted(true);
     } catch (error: any) {
