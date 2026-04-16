@@ -15,6 +15,7 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
   const settings = section.settings;
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,18 +23,31 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('newsletter-subscribe', {
+      const { error } = await supabase.functions.invoke('storefront-api', {
         body: {
-          tenantId,
-          email,
+          action: 'newsletter_subscribe',
+          tenant_id: tenantId,
+          email: email.trim(),
           source: 'website',
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback: insert directly
+        const { error: insertError } = await supabase
+          .from('newsletter_subscribers')
+          .insert({
+            tenant_id: tenantId,
+            email: email.trim(),
+            source: 'website',
+            status: 'active',
+          });
+        if (insertError && insertError.code !== '23505') {
+          throw insertError;
+        }
+      }
 
-      toast.success(data?.message || 'Bedankt voor je aanmelding!');
-      setEmail('');
+      setSubmitted(true);
     } catch (error: any) {
       console.error('Newsletter subscribe error:', error);
       toast.error('Er ging iets mis. Probeer het opnieuw.');
@@ -65,19 +79,26 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={content.placeholder || 'Jouw e-mailadres'}
-              required
-              className="flex-1"
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? '...' : content.button_text || 'Aanmelden'}
-            </Button>
-          </form>
+          {submitted ? (
+            <div className="py-4">
+              <p className="text-lg font-semibold">✓ Bedankt voor je aanmelding!</p>
+              <p className="text-sm text-muted-foreground mt-1">Je bent succesvol ingeschreven voor onze nieuwsbrief.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={content.placeholder || 'Jouw e-mailadres'}
+                required
+                className="flex-1"
+              />
+              <Button type="submit" disabled={loading}>
+                {loading ? '...' : content.button_text || 'Aanmelden'}
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </section>
