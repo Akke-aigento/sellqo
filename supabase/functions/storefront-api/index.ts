@@ -2662,13 +2662,13 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
 
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+      const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           templateName: 'tenant-welcome',
           recipientEmail: email,
-          idempotencyKey: `welcome-newsletter-${tenantId}-${email}`,
+          idempotencyKey: `welcome-newsletter-${tenantId}-${email}-${Date.now()}`,
           templateData: {
             subject: processedSubject,
             body: processedBody,
@@ -2676,8 +2676,14 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
           },
         }),
       });
+      if (!emailRes.ok) {
+        const errBody = await emailRes.text();
+        console.error(`Welcome email failed (${emailRes.status}):`, errBody);
+      } else {
+        console.log('Welcome email enqueued for:', email);
+      }
     } catch (e) {
-      console.error('Welcome email send error (non-fatal):', e);
+      console.error('Welcome email send error:', e);
     }
   }
 
