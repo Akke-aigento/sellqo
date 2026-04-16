@@ -464,7 +464,7 @@ export function NewsletterSettings() {
                 </Tabs>
                 <VariableInserter
                   onInsert={(variable) => setFormData(prev => ({ ...prev, welcome_email_body: prev.welcome_email_body + variable }))}
-                  filterKeys={['{{customer_first_name}}', '{{customer_email}}', '{{company_name}}', '{{unsubscribe_url}}']}
+                  filterKeys={['{{customer_first_name}}', '{{customer_email}}', '{{company_name}}', '{{company_website}}', '{{unsubscribe_url}}']}
                 />
                 <p className="text-xs text-muted-foreground">
                   Dit bericht wordt automatisch verstuurd wanneer iemand zich aanmeldt voor je nieuwsbrief.

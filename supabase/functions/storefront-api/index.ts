@@ -2622,13 +2622,14 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
   // Send welcome email if enabled and not re-subscribing an existing active user
   if (config?.welcome_email_enabled && config?.welcome_email_body && !doubleOptin && existing?.status !== 'active') {
     try {
-      // Fetch tenant name for variable replacement
+      // Fetch tenant name and website for variable replacement
       const { data: tenantData } = await supabase
         .from('tenants')
-        .select('name')
+        .select('name, website')
         .eq('id', tenantId)
         .single();
       const tenantName = tenantData?.name || '';
+      const tenantWebsite = tenantData?.website || '';
 
       // Replace variables in welcome email body and subject
       const unsubscribeUrl = `#unsubscribe`; // placeholder – actual unsubscribe handled by transactional system
@@ -2638,6 +2639,7 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
         '{{first_name}}': firstName || '',
         '{{customer_email}}': email,
         '{{company_name}}': tenantName,
+        '{{company_website}}': tenantWebsite,
         '{{unsubscribe_url}}': unsubscribeUrl,
       };
 
