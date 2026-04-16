@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle, XCircle, Mail, Users, AlertCircle, ExternalLink } from 'lucide-react';
 import { useNewsletterConfig, useNewsletterSubscribers } from '@/hooks/useNewsletterConfig';
 import { toast } from 'sonner';
 import { CampaignRichEditor } from '@/components/admin/marketing/CampaignRichEditor';
+import { VariableInserter } from '@/components/admin/marketing/VariableInserter';
 
 export function NewsletterSettings() {
   const { config, isLoading, saveConfig, testConnection } = useNewsletterConfig();
@@ -438,10 +441,30 @@ export function NewsletterSettings() {
               </div>
               <div className="space-y-2">
                 <Label>Inhoud</Label>
-                <CampaignRichEditor
-                  content={formData.welcome_email_body}
-                  onChange={(html) => setFormData(prev => ({ ...prev, welcome_email_body: html }))}
-                  placeholder="Schrijf je welkomstbericht..."
+                <Tabs defaultValue="visual" className="w-full">
+                  <TabsList className="mb-2">
+                    <TabsTrigger value="visual">Visueel</TabsTrigger>
+                    <TabsTrigger value="html">HTML</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="visual">
+                    <CampaignRichEditor
+                      content={formData.welcome_email_body}
+                      onChange={(html) => setFormData(prev => ({ ...prev, welcome_email_body: html }))}
+                      placeholder="Schrijf je welkomstbericht..."
+                    />
+                  </TabsContent>
+                  <TabsContent value="html">
+                    <Textarea
+                      value={formData.welcome_email_body}
+                      onChange={(e) => setFormData(prev => ({ ...prev, welcome_email_body: e.target.value }))}
+                      placeholder="<p>Schrijf je welkomstbericht...</p>"
+                      className="min-h-[200px] font-mono text-xs"
+                    />
+                  </TabsContent>
+                </Tabs>
+                <VariableInserter
+                  onInsert={(variable) => setFormData(prev => ({ ...prev, welcome_email_body: prev.welcome_email_body + variable }))}
+                  filterKeys={['{{customer_first_name}}', '{{customer_email}}', '{{company_name}}', '{{unsubscribe_url}}']}
                 />
                 <p className="text-xs text-muted-foreground">
                   Dit bericht wordt automatisch verstuurd wanneer iemand zich aanmeldt voor je nieuwsbrief.
