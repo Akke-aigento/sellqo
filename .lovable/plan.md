@@ -1,67 +1,76 @@
 
+Plan: nieuwsbrief welkomstmail debug + fix
 
-# Plan: Klanten- en opslagtelling fixen in abonnementspagina
+Wat ik heb nagekeken
+- De storefront schrijft inschrijvingen wel degelijk weg:
+  - `newsletter_subscribers` bevat recente records voor tenant `2606c5b9-caf8-4a42-94cd-80e3f3f31988`
+  - o.a. `info@vanxcel.nl` op `2026-04-16 09:41:39` met `status=active` en `sync_status=synced`
+- De nieuwsbriefconfig voor die tenant staat ook correct aan:
+  - `provider=internal`
+  - `double_optin=false`
+  - `welcome_email_enabled=true`
+  - er is ook effectief een `welcome_email_body`
+- De flow wordt dus wel uitgevoerd tot en met “subscriber aanmaken/activeren”.
 
-## Probleem
+Root cause
+- In `supabase/functions/storefront-api/index.ts` zit de welkomstmail achter deze stap:
+  - eerst wordt tenant-info opgehaald met `.select('name, website')`
+- In de live database bestaat kolom `website` helemaal niet op `public.tenants`
+- Daardoor klapt net dat stukje in de `try` van de welcome-email flow
+- De fout wordt daarna geslikt door:
+  - `catch (e) { console.error('Welcome email send error:', e); }`
+- Resultaat:
+  - inschrijving lukt
+  - subscriber wordt active/synced
+  - maar de welkomstmail wordt nooit verstuurd
 
-Twee metrics op de Facturatie-pagina tonen altijd 0:
-
-1. **Klanten** — de query telt alleen `customers`, maar klanten die via de webshop binnenkomen staan in `storefront_customers`. Die worden niet meegeteld.
-2. **Opslag (GB)** — is hardcoded op `0` met een `// TODO` commentaar. Er wordt nooit iets berekend.
-
-## Wijzigingen
-
-**Bestand:** `src/hooks/useTenantSubscription.ts`
-
-### 1. Klanten: beide tabellen tellen
-
-Huidige code (regel 71):
-```typescript
-supabase.from('customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
+Is de flow inhoudelijk goed?
+Ja, grotendeels wel:
+```text
+Nieuwsbrief formulier/popup
+→ storefront-api action=newsletter_subscribe
+→ subscriber insert/update
+→ status active
+→ welcome email proberen te sturen
 ```
+Alleen het e-mailstuk faalt door die foutieve tenant-query, en omdat die fout niet naar de UI bubbelt lijkt alles “geslaagd”.
 
-Wordt:
-```typescript
-// Tel customers + storefront_customers (deduplicated count niet nodig — plan limiet gaat over totaal)
-Promise.all([
-  supabase.from('customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
-  supabase.from('storefront_customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
-]).then(([a, b]) => ({ count: (a.count || 0) + (b.count || 0) })),
-```
+Belangrijk inzicht
+- Ik zie geen harde bevestiging dat er ooit echt iets verstuurd is voor deze inschrijving.
+- Er is voor deze welcome-email flow ook geen aparte duurzame mail-log tabel in gebruik.
+- Dus op dit moment heb je wel bewijs van inschrijving, maar niet van een succesvolle verzending.
 
-### 2. Opslag: werkelijke storage berekenen
+Wat ik zou aanpassen
+1. Fix de tenant-query in `storefront-api`
+- `select('name, website')` vervangen door alleen bestaande velden
+- minimaal: `select('name, custom_domain')`
+- of gewoon `select('name')` als website-merge niet nodig is
 
-De bestanden in storage buckets zijn geprefixed met `tenant_id`. We kunnen de totale opslag berekenen via een RPC of directe query. Aangezien `storage.objects` niet beschikbaar is via de client library, maak ik een database functie:
+2. Veilige fallback voor `{{company_website}}`
+- waarde afleiden uit:
+  - `custom_domain` als die bestaat
+  - anders leeg laten
+- zodat een ontbrekende website nooit de mail blokkeert
 
-**Migratie:** Nieuwe functie `get_tenant_storage_bytes(tenant_uuid)`
-```sql
-CREATE OR REPLACE FUNCTION public.get_tenant_storage_bytes(p_tenant_id uuid)
-RETURNS bigint
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-AS $$
-  SELECT COALESCE(SUM((metadata->>'size')::bigint), 0)
-  FROM storage.objects
-  WHERE name LIKE p_tenant_id::text || '/%'
-$$;
-```
+3. Logging verbeteren
+- expliciete log vóór de send
+- expliciete log met response na de send
+- expliciete foutlog als tenant-data lookup faalt
+- zo kunnen we nadien exact zien: “template opgebouwd”, “send geprobeerd”, “send geslaagd/mislukt”
 
-**In de hook:** de TODO vervangen door:
-```typescript
-storage: {
-  current: Number((storageBytes / (1024 * 1024 * 1024)).toFixed(2)), // bytes → GB
-  limit: plan.limit_storage_gb,
-  percentage: calcPercentage(storageBytes / (1024*1024*1024), plan.limit_storage_gb),
-}
-```
+4. Optioneel maar sterk aanbevolen: kleine audit trail
+- bijv. een status of foutmelding opslaan op subscriber-niveau voor welcome email
+- dan zie je in admin meteen waarom een mail niet ging
 
-## Samenvatting
+Concrete implementatie
+- Bestand: `supabase/functions/storefront-api/index.ts`
+- Wijzigingen:
+  - tenant select corrigeren
+  - website-placeholder robuust maken
+  - logging rond welcome-email send uitbreiden
+- Daarna de functie opnieuw deployen en een nieuwe testinschrijving doen
 
-| Metric | Nu | Straks |
-|--------|-----|--------|
-| Klanten | Alleen `customers` (0) | `customers` + `storefront_customers` (2) |
-| Opslag | Hardcoded 0 | Werkelijke opslag uit storage buckets |
-
-Twee bestanden worden aangepast, één database functie aangemaakt. Geen UI-wijzigingen nodig.
-
+Verwacht resultaat na fix
+- Nieuwe nieuwsbriefinschrijvingen blijven gewoon aangemaakt worden
+- Welkomstmail wordt daarna effectief verstuurd via Resend
+- Als verzending toch nog faalt, krijgen we eindelijk een bruikbare fout in de logs in plaats van een stille mislukking
