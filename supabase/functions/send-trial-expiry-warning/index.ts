@@ -200,7 +200,7 @@ serve(async (req) => {
           `;
 
           const emailResponse = await resend.emails.send({
-            from: "Sellqo <noreply@sellqo.app>",
+            from: `${tenantName} <noreply@sellqo.app>`,
             to: [tenant.owner_email],
             subject: `⏰ Je proefperiode eindigt morgen`,
             html: htmlContent,

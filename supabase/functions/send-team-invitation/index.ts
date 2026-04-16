@@ -145,7 +145,7 @@ serve(async (req) => {
     });
 
     const emailResponse = await resend.emails.send({
-      from: "Sellqo <noreply@sellqo.app>",
+      from: `${tenant.name || 'Sellqo'} <noreply@sellqo.app>`,
       to: [email],
       subject: `Je bent uitgenodigd voor ${tenant.name}`,
       html: `
