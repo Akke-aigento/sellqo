@@ -2622,6 +2622,33 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
   // Send welcome email if enabled and not re-subscribing an existing active user
   if (config?.welcome_email_enabled && config?.welcome_email_body && !doubleOptin && existing?.status !== 'active') {
     try {
+      // Fetch tenant name for variable replacement
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('name')
+        .eq('id', tenantId)
+        .single();
+      const tenantName = tenantData?.name || '';
+
+      // Replace variables in welcome email body and subject
+      const unsubscribeUrl = `#unsubscribe`; // placeholder – actual unsubscribe handled by transactional system
+      const replacements: Record<string, string> = {
+        '{{customer_first_name}}': firstName || '',
+        '{{customer_name}}': firstName || '',
+        '{{first_name}}': firstName || '',
+        '{{customer_email}}': email,
+        '{{company_name}}': tenantName,
+        '{{unsubscribe_url}}': unsubscribeUrl,
+      };
+
+      let processedBody = config.welcome_email_body;
+      let processedSubject = config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!';
+      for (const [key, value] of Object.entries(replacements)) {
+        const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
+        processedBody = processedBody.replace(regex, value);
+        processedSubject = processedSubject.replace(regex, value);
+      }
+
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
@@ -2632,8 +2659,8 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
           recipientEmail: email,
           idempotencyKey: `welcome-newsletter-${tenantId}-${email}`,
           templateData: {
-            subject: config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!',
-            body: config.welcome_email_body,
+            subject: processedSubject,
+            body: processedBody,
             firstName: firstName || '',
           },
         }),

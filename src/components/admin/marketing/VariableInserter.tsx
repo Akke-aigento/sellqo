@@ -48,9 +48,10 @@ const variableGroups: VariableGroup[] = [
 
 interface VariableInserterProps {
   onInsert: (variable: string) => void;
+  filterKeys?: string[];
 }
 
-export function VariableInserter({ onInsert }: VariableInserterProps) {
+export function VariableInserter({ onInsert, filterKeys }: VariableInserterProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -61,26 +62,32 @@ export function VariableInserter({ onInsert }: VariableInserterProps) {
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2 space-y-2">
-        {variableGroups.map((group) => (
-          <div key={group.label}>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
-              {group.label}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {group.variables.map((v) => (
-                <Badge
-                  key={v.key}
-                  variant="outline"
-                  className="cursor-pointer text-[11px] px-1.5 py-0 h-5 hover:bg-accent transition-colors"
-                  onClick={() => onInsert(v.key)}
-                  title={v.key}
-                >
-                  {v.label}
-                </Badge>
-              ))}
+        {variableGroups.map((group) => {
+          const filteredVars = filterKeys
+            ? group.variables.filter((v) => filterKeys.includes(v.key))
+            : group.variables;
+          if (filteredVars.length === 0) return null;
+          return (
+            <div key={group.label}>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                {group.label}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {filteredVars.map((v) => (
+                  <Badge
+                    key={v.key}
+                    variant="outline"
+                    className="cursor-pointer text-[11px] px-1.5 py-0 h-5 hover:bg-accent transition-colors"
+                    onClick={() => onInsert(v.key)}
+                    title={v.key}
+                  >
+                    {v.label}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </CollapsibleContent>
     </Collapsible>
   );
