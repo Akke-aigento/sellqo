@@ -17314,6 +17314,10 @@ export type Database = {
           returnable_quantity: number
         }[]
       }
+      get_tenant_storage_bytes: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
