@@ -2552,6 +2552,41 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
     if (error) throw error;
   }
 
+  // Upsert customer record for unified customer overview
+  try {
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id, tags, customer_type')
+      .eq('tenant_id', tenantId)
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingCustomer) {
+      const currentTags: string[] = existingCustomer.tags || [];
+      const updates: Record<string, unknown> = {
+        email_subscribed: true,
+        email_subscribed_at: new Date().toISOString(),
+      };
+      if (!currentTags.includes('nieuwsbrief')) {
+        updates.tags = [...currentTags, 'nieuwsbrief'];
+      }
+      await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
+    } else {
+      await supabase.from('customers').insert({
+        tenant_id: tenantId,
+        email,
+        first_name: firstName || null,
+        customer_type: 'prospect',
+        tags: ['nieuwsbrief'],
+        email_subscribed: true,
+        email_subscribed_at: new Date().toISOString(),
+        source: source,
+      });
+    }
+  } catch (customerErr) {
+    console.error('Customer upsert error (non-fatal):', customerErr);
+  }
+
   // Get tenant newsletter config
   const { data: config } = await supabase
     .from('tenant_newsletter_config').select('provider, double_optin, welcome_email_enabled, welcome_email_subject, welcome_email_body, mailchimp_api_key, mailchimp_audience_id, mailchimp_server_prefix, klaviyo_api_key, klaviyo_list_id')
