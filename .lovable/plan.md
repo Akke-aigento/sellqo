@@ -1,45 +1,57 @@
 
 
-# Plan: Create customer record on newsletter subscription
+# Plan: Variable inserter + HTML toggle voor welkomstmail editor
 
-## Problem
-When someone subscribes to the newsletter, only a `newsletter_subscribers` record is created. No corresponding `customers` record is created, so the subscriber doesn't appear in the customer overview. The `customers` table already supports `customer_type = 'prospect'` and has a `tags` array column that can hold labels like `['nieuwsbrief']`.
+## Probleem
+1. **Variabelen werken niet**: De welkomstmail body bevat `{{first_name}}` maar de edge function vervangt die niet — het stuurt de body ongewijzigd door naar `send-transactional-email`
+2. **Geen variabele-inserter**: In de campagne-editor zit een `VariableInserter` component, maar die ontbreekt in de nieuwsbrief-instellingen
+3. **Geen HTML toggle**: De campagne-editor heeft een visueel/HTML toggle, maar de welkomstmail editor heeft alleen de visuele editor
 
-## Changes
+## Wijzigingen
 
-### 1. Update `storefront-api` edge function — `newsletterSubscribe` action
-**File:** `supabase/functions/storefront-api/index.ts` (~line 2553, after subscriber insert/update)
+### 1. VariableInserter + HTML toggle toevoegen aan NewsletterSettings
+**Bestand:** `src/components/admin/storefront/NewsletterSettings.tsx`
 
-Add logic to upsert a customer record:
-- Check if a `customers` record with matching `tenant_id` + `email` exists
-- If not: insert a new customer with `customer_type = 'prospect'`, `tags = ['nieuwsbrief']`, `email_subscribed = true`
-- If exists but doesn't have the `nieuwsbrief` tag: append the tag to the existing `tags` array and set `email_subscribed = true`
+- Importeer `VariableInserter` uit `@/components/admin/marketing/VariableInserter`
+- Voeg een `editorMode` state toe (`'visual' | 'html'`)
+- Voeg tabknoppen toe boven de editor (Visueel / HTML)
+- In visuele modus: huidige `CampaignRichEditor` + `VariableInserter` eronder
+- In HTML modus: een `<Textarea>` met de ruwe HTML
+- `VariableInserter.onInsert` voegt de variabele in de body in (append bij HTML modus, of insert via editor in visuele modus)
 
-```sql
--- Pseudo logic added in the edge function:
-INSERT INTO customers (tenant_id, email, customer_type, tags, email_subscribed, email_subscribed_at)
-VALUES (tenantId, email, 'prospect', ['nieuwsbrief'], true, now())
-ON CONFLICT (tenant_id, email) DO UPDATE SET
-  tags = array_append(customers.tags, 'nieuwsbrief') -- only if not already present
-  email_subscribed = true,
-  email_subscribed_at = now()
+### 2. Variabele-vervanging toevoegen in de edge function
+**Bestand:** `supabase/functions/storefront-api/index.ts` (~regel 2634)
+
+Vóór het versturen van de welkomstmail, doe regex-vervanging op de body:
+```
+body.replace(/\{\{first_name\}\}/g, firstName || '')
+    .replace(/\{\{customer_email\}\}/g, email)
+    .replace(/\{\{company_name\}\}/g, tenantName)
+    .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl)
 ```
 
-This will be implemented via the Supabase JS client in the edge function (not raw SQL).
+Dit volgt exact hetzelfde patroon als `send-campaign-batch/index.ts` (regel 114-119). We moeten de tenant naam ophalen (al beschikbaar via een extra select) en de unsubscribe URL genereren.
 
-### 2. No database migration needed
-The `customers` table already has all required columns: `customer_type`, `tags`, `email_subscribed`, `email_subscribed_at`.
+### 3. Subset variabelen voor welkomstmail
+De `VariableInserter` toont nu alle klant-, bedrijfs- en systeemvariabelen. Voor de welkomstmail zijn slechts enkele relevant (we hebben geen volledige klantdata). We filteren de getoonde variabelen of voegen een `filter` prop toe:
+- `{{first_name}}` — Voornaam (uit aanmelding)
+- `{{customer_email}}` — E-mail
+- `{{company_name}}` — Winkelnaam
+- `{{unsubscribe_url}}` — Uitschrijflink
 
-### 3. No frontend changes needed
-The unified customer overview already displays customers with their tags and types.
+## Technische details
 
-## Technical details
+**NewsletterSettings.tsx** wijzigingen:
+- Nieuwe state: `editorMode: 'visual' | 'html'`
+- Tabs component boven editor
+- VariableInserter onder editor met `onInsert` callback
+- Bij HTML mode: textarea die direct `welcome_email_body` bewerkt
 
-- The upsert uses `tenant_id` + `email` as the unique match (there's likely a unique constraint or we use select-then-insert)
-- `customer_type` is set to `'prospect'` for newsletter-only subscribers — they graduate to `'b2c'` when they place an order
-- The `nieuwsbrief` tag provides clear labeling in the customer overview
-- Existing customers who subscribe get the tag added without changing their `customer_type`
+**storefront-api/index.ts** wijzigingen:
+- Tenant naam ophalen (als dat nog niet gebeurt op dat punt)
+- Regex replacements op `config.welcome_email_body` voordat het naar de email service gaat
 
-## Files
-- **`supabase/functions/storefront-api/index.ts`**: Add customer upsert logic in the `newsletterSubscribe` function after the subscriber record is created/updated
+## Bestanden
+- `src/components/admin/storefront/NewsletterSettings.tsx` — UI uitbreiding
+- `supabase/functions/storefront-api/index.ts` — Variabele vervanging
 
