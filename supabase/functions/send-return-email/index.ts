@@ -13,8 +13,18 @@ const log = (step: string, details?: any) => {
 type Locale = 'nl' | 'en' | 'fr';
 type ReturnEmailEvent = 'request_received' | 'approved' | 'package_received' | 'refund_processed';
 
+interface TenantBranding {
+  name: string;
+  primary_color?: string;
+  logo_url?: string;
+  street?: string;
+  house_number?: string;
+  postal_code?: string;
+  city?: string;
+}
+
 interface TemplateData {
-  tenantName: string;
+  tenant: TenantBranding;
   customerName: string;
   orderNumber: string;
   rmaNumber: string;
@@ -48,8 +58,6 @@ function formatAmount(amount: number, currency: string, locale: Locale): string 
   const localeMap: Record<Locale, string> = { nl: 'nl-NL', en: 'en-US', fr: 'fr-FR' };
   return new Intl.NumberFormat(localeMap[locale], { style: 'currency', currency: currency || 'EUR' }).format(amount);
 }
-
-// ── Templates (inline) ─────────────────────────────────────
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -94,39 +102,82 @@ const subjects: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => str
 
 const bodies: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => string>> = {
   request_received: {
-    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retour-aanvraag ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We bekijken je aanvraag en je ontvangt bericht zodra deze is goedgekeurd.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
-    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We have received your return request for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We'll review your request and notify you once it's approved.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
-    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre demande de retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous examinerons votre demande et vous informerons dès qu'elle sera approuvée.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retour-aanvraag ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We bekijken je aanvraag en je ontvangt bericht zodra deze is goedgekeurd.</p><p>Met vriendelijke groet,<br/>${esc(d.tenant.name)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We have received your return request for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We'll review your request and notify you once it's approved.</p><p>Kind regards,<br/>${esc(d.tenant.name)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre demande de retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous examinerons votre demande et vous informerons dès qu'elle sera approuvée.</p><p>Cordialement,<br/>${esc(d.tenant.name)}</p>`,
   },
   approved: {
-    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je retour voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is goedgekeurd!</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Stuur de artikelen retour. Zodra we je pakket ontvangen, sturen we je opnieuw een e-mail.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
-    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your return for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been approved!</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>Please ship the items back to us. We'll email you again once we receive your package.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
-    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été approuvé !</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Veuillez nous renvoyer les articles. Nous vous enverrons un e-mail dès réception de votre colis.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je retour voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is goedgekeurd!</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Stuur de artikelen retour. Zodra we je pakket ontvangen, sturen we je opnieuw een e-mail.</p><p>Met vriendelijke groet,<br/>${esc(d.tenant.name)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your return for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been approved!</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>Please ship the items back to us. We'll email you again once we receive your package.</p><p>Kind regards,<br/>${esc(d.tenant.name)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été approuvé !</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Veuillez nous renvoyer les articles. Nous vous enverrons un e-mail dès réception de votre colis.</p><p>Cordialement,<br/>${esc(d.tenant.name)}</p>`,
   },
   package_received: {
-    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retourpakket ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We inspecteren de artikelen. Zodra alles in orde is, verwerken we je refund en ontvang je hierover bericht.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
-    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We've received your return package for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We're inspecting the items. Once everything checks out, we'll process your refund and notify you.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
-    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre colis retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous inspectons les articles. Une fois la vérification terminée, nous traiterons votre remboursement et vous en informerons.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>We hebben je retourpakket ontvangen voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>We inspecteren de artikelen. Zodra alles in orde is, verwerken we je refund en ontvang je hierover bericht.</p><p>Met vriendelijke groet,<br/>${esc(d.tenant.name)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>We've received your return package for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>We're inspecting the items. Once everything checks out, we'll process your refund and notify you.</p><p>Kind regards,<br/>${esc(d.tenant.name)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Nous avons bien reçu votre colis retour pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>).</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Nous inspectons les articles. Une fois la vérification terminée, nous traiterons votre remboursement et vous en informerons.</p><p>Cordialement,<br/>${esc(d.tenant.name)}</p>`,
   },
   refund_processed: {
-    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je refund van <strong>${d.refundAmountFormatted}</strong> voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is verwerkt via ${refundLabel(d.refundMethod, 'nl')}.</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Het duurt doorgaans 3-5 werkdagen voordat het bedrag op je rekening verschijnt.</p><p>Met vriendelijke groet,<br/>${esc(d.tenantName)}</p>`,
-    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your refund of <strong>${d.refundAmountFormatted}</strong> for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been processed via ${refundLabel(d.refundMethod, 'en')}.</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>It typically takes 3-5 business days for the amount to appear on your statement.</p><p>Kind regards,<br/>${esc(d.tenantName)}</p>`,
-    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre remboursement de <strong>${d.refundAmountFormatted}</strong> pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été traité via ${refundLabel(d.refundMethod, 'fr')}.</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Le montant apparaîtra généralement sur votre relevé sous 3 à 5 jours ouvrables.</p><p>Cordialement,<br/>${esc(d.tenantName)}</p>`,
+    nl: (d) => `<p>Beste ${esc(d.customerName)},</p><p>Je refund van <strong>${d.refundAmountFormatted}</strong> voor bestelling <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) is verwerkt via ${refundLabel(d.refundMethod, 'nl')}.</p><p><strong>Artikelen:</strong></p><ul>${itemList(d.items)}</ul><p>Het duurt doorgaans 3-5 werkdagen voordat het bedrag op je rekening verschijnt.</p><p>Met vriendelijke groet,<br/>${esc(d.tenant.name)}</p>`,
+    en: (d) => `<p>Dear ${esc(d.customerName)},</p><p>Your refund of <strong>${d.refundAmountFormatted}</strong> for order <strong>${esc(d.orderNumber)}</strong> (RMA: <strong>${esc(d.rmaNumber)}</strong>) has been processed via ${refundLabel(d.refundMethod, 'en')}.</p><p><strong>Items:</strong></p><ul>${itemList(d.items)}</ul><p>It typically takes 3-5 business days for the amount to appear on your statement.</p><p>Kind regards,<br/>${esc(d.tenant.name)}</p>`,
+    fr: (d) => `<p>Cher/Chère ${esc(d.customerName)},</p><p>Votre remboursement de <strong>${d.refundAmountFormatted}</strong> pour la commande <strong>${esc(d.orderNumber)}</strong> (RMA : <strong>${esc(d.rmaNumber)}</strong>) a été traité via ${refundLabel(d.refundMethod, 'fr')}.</p><p><strong>Articles :</strong></p><ul>${itemList(d.items)}</ul><p>Le montant apparaîtra généralement sur votre relevé sous 3 à 5 jours ouvrables.</p><p>Cordialement,<br/>${esc(d.tenant.name)}</p>`,
   },
 };
 
-function wrapHtml(body: string, tenantName: string, supportEmail: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 16px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);"><tr><td style="padding:24px 32px;border-bottom:1px solid #eee;"><h1 style="margin:0;font-size:20px;font-weight:600;color:#111;">${esc(tenantName)}</h1></td></tr><tr><td style="padding:32px;font-size:15px;line-height:1.6;color:#333;">${body}</td></tr><tr><td style="padding:16px 32px;border-top:1px solid #eee;text-align:center;"><p style="margin:0 0 4px;font-size:12px;color:#999;">Vragen? <a href="mailto:${esc(supportEmail)}" style="color:#2563eb;">${esc(supportEmail)}</a></p><p style="margin:0;font-size:11px;color:#ccc;">Powered by SellQo</p></td></tr></table></td></tr></table></body></html>`;
+// ── Canonical SellQo layout ─────────────────────────────────
+
+function wrapHtml(body: string, tenant: TenantBranding, supportEmail: string): string {
+  const primaryColor = tenant.primary_color || '#3b82f6';
+  const tenantName = esc(tenant.name);
+  const address = [tenant.street, tenant.house_number, tenant.postal_code, tenant.city]
+    .filter(Boolean).join(', ');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="background:${primaryColor};padding:24px 32px;text-align:center;">
+              ${tenant.logo_url
+                ? `<img src="${esc(tenant.logo_url)}" alt="${tenantName}" style="max-height:48px;max-width:200px;">`
+                : `<span style="color:#ffffff;font-size:24px;font-weight:600;">${tenantName}</span>`}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;font-size:16px;line-height:1.6;color:#374151;">
+              ${body}
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center;">
+              <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">
+                <strong>${tenantName}</strong>${address ? ` &middot; ${esc(address)}` : ''}
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">
+                Vragen? <a href="mailto:${esc(supportEmail)}" style="color:${primaryColor};text-decoration:none;">${esc(supportEmail)}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 function getTemplate(event: ReturnEmailEvent, locale: Locale, data: TemplateData): { subject: string; html: string } {
   return {
     subject: subjects[event][locale](data),
-    html: wrapHtml(bodies[event][locale](data), data.tenantName, data.supportEmail),
+    html: wrapHtml(bodies[event][locale](data), data.tenant, data.supportEmail),
   };
 }
-
-// ── Setting key map ─────────────────────────────────────────
 
 const SETTING_KEY: Record<ReturnEmailEvent, string> = {
   request_received: 'notify_customer_request_received',
@@ -165,7 +216,7 @@ serve(async (req) => {
         orders!returns_order_id_fkey(
           order_number, customer_email, customer_name,
           shipping_address, total, currency, locale, tenant_id,
-          tenants(name, support_email, contact_email)
+          tenants(name, support_email, contact_email, primary_color, logo_url, street, house_number, postal_code, city, country, vat_number)
         ),
         return_items(product_name, quantity)
       `)
@@ -202,8 +253,18 @@ serve(async (req) => {
     const locale = await resolveLocale(supabase, order, tenantId);
     log('Resolved', { locale, to });
 
+    const tenantBranding: TenantBranding = {
+      name: tenant?.name || 'SellQo',
+      primary_color: tenant?.primary_color,
+      logo_url: tenant?.logo_url,
+      street: tenant?.street,
+      house_number: tenant?.house_number,
+      postal_code: tenant?.postal_code,
+      city: tenant?.city,
+    };
+
     const templateData: TemplateData = {
-      tenantName: tenant?.name || 'SellQo',
+      tenant: tenantBranding,
       customerName: order.customer_name || 'Klant',
       orderNumber: order.order_number || '-',
       rmaNumber: ret.rma_number || '-',
@@ -220,7 +281,7 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${tenant?.name || 'SellQo'} <noreply@sellqo.app>`,
+      from: `${tenant?.name || 'SellQo'} <retouren@sellqo.app>`,
       to: [to],
       subject: template.subject,
       html: template.html,
