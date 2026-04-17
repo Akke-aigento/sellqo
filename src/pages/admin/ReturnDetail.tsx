@@ -536,18 +536,24 @@ export default function ReturnDetailPage() {
             {/* Refund summary */}
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
+                <span className={cn(
+                  'text-muted-foreground',
+                  refundStatus === 'completed' && 'text-green-600 dark:text-green-400 font-medium',
+                  refundStatus === 'failed' && 'text-destructive font-medium',
+                )}>
                   {refundStatus === 'completed' ? 'Terugbetaald' :
                    refundStatus === 'initiated' ? 'Refund bezig' :
                    refundStatus === 'failed' ? 'Refund mislukt' :
                    refundStatus === 'denied' ? 'Refund afgewezen' :
+                   refundStatus === 'not_applicable' ? 'N.v.t.' :
                    'Te refunden'}
                 </span>
-                <span className={`font-bold ${
-                  refundStatus === 'completed' ? 'text-green-600 dark:text-green-400' :
-                  refundStatus === 'failed' ? 'text-destructive' :
-                  'text-primary'
-                }`}>{returnRecord.refund_amount ? formatCurrency(returnRecord.refund_amount) : '-'}</span>
+                <span className={cn(
+                  'font-bold',
+                  refundStatus === 'completed' && 'text-green-600 dark:text-green-400',
+                  refundStatus === 'failed' && 'text-destructive',
+                  refundStatus !== 'completed' && refundStatus !== 'failed' && 'text-primary',
+                )}>{returnRecord.refund_amount ? formatCurrency(returnRecord.refund_amount) : '-'}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Methode</span>
