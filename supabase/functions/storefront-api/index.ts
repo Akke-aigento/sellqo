@@ -2567,14 +2567,14 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
         email_subscribed: true,
         email_subscribed_at: new Date().toISOString(),
       };
-      if (!currentTags.includes('nieuwsbrief')) {
-        updates.tags = [...currentTags, 'nieuwsbrief'];
+      if (!currentTags.includes('subscribed')) {
+        updates.tags = [...currentTags, 'subscribed'];
       }
       const { error: updateErr } = await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
       if (updateErr) {
         console.error('Customer update failed:', JSON.stringify(updateErr));
       } else {
-        console.log('Customer updated with nieuwsbrief tag:', existingCustomer.id);
+        console.log('Customer updated with subscribed tag:', existingCustomer.id);
       }
     } else {
       const { error: insertErr } = await supabase.from('customers').insert({
@@ -2582,7 +2582,7 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
         email,
         first_name: firstName || null,
         customer_type: 'prospect',
-        tags: ['nieuwsbrief'],
+        tags: ['subscribed'],
         email_subscribed: true,
         email_subscribed_at: new Date().toISOString(),
       });
