@@ -56,7 +56,10 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card
+      className="hover:shadow-md hover:bg-muted/30 transition-all cursor-pointer"
+      onClick={() => onEdit(discountCode)}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -65,7 +68,15 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
                 <Tag className="h-4 w-4 text-muted-foreground" />
                 <span className="font-mono font-semibold text-lg">{discountCode.code}</span>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyCode}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyCode();
+                }}
+              >
                 <Copy className="h-3.5 w-3.5" />
               </Button>
               <Badge variant={status.variant}>{status.label}</Badge>
