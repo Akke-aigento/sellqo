@@ -150,7 +150,7 @@ function buildItemsTable(
     <tr style="border-bottom:1px solid #e5e7eb;">
       <td style="padding:12px 8px;font-size:14px;color:#111827;">
         <div style="font-weight:500;">${esc(item.product_name || '')}</div>
-        ${item.variant_name ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${esc(item.variant_name)}</div>` : ''}
+        ${item.variant_title ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${esc(item.variant_title)}</div>` : ''}
         <div style="font-size:12px;color:#6b7280;margin-top:2px;">${L.quantity}: ${item.quantity}</div>
       </td>
       <td style="padding:12px 8px;font-size:14px;color:#111827;text-align:right;white-space:nowrap;">
