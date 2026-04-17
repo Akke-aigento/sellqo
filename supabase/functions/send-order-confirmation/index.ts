@@ -240,7 +240,7 @@ serve(async (req) => {
         id, order_number, customer_email, customer_name, total, subtotal,
         shipping_cost, tax_amount, discount_amount, currency, locale,
         shipping_address, created_at, payment_method, tenant_id,
-        tenants(name, primary_color, logo_url, support_email, contact_email,
+        tenants(name, primary_color, logo_url, support_email, owner_email,
           street, house_number, postal_code, city, country),
         order_items(product_name, variant_name, quantity, unit_price, total_price)
       `)
@@ -271,7 +271,7 @@ serve(async (req) => {
 
     const locale = await resolveLocale(supabase, order, tenantId);
     const L = labels[locale];
-    const supportEmail = tenant?.support_email || tenant?.contact_email || 'admin@sellqo.app';
+    const supportEmail = tenant?.support_email || tenant?.owner_email || 'admin@sellqo.app';
     const tenantName = tenant?.name || 'SellQo';
 
     const tenantBranding: TenantBranding = {
