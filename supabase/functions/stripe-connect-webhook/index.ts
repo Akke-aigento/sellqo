@@ -446,6 +446,40 @@ serve(async (req) => {
             logStep("Invoice generation error (non-blocking)", { error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) });
           }
 
+          // Send order confirmation email (non-blocking)
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: newOrder.id }),
+            });
+          } catch (e) {
+            logStep("Order confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
+          }
+
+          // Admin notification for new storefront order (non-blocking)
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            const totalFormatted = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: tenant?.currency || 'EUR' }).format(Number(newOrder.total) || 0);
+            await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({
+                tenant_id: tenantId,
+                category: 'orders',
+                type: 'storefront_order_new',
+                title: `Nieuwe bestelling: ${newOrder.order_number}`,
+                message: `${cart.customer_first_name || 'Klant'} ${cart.customer_last_name || ''} — ${totalFormatted}`.trim(),
+                priority: 'medium',
+                action_url: `/admin/orders/${newOrder.id}`,
+                data: { order_id: newOrder.id, order_number: newOrder.order_number, total: newOrder.total },
+              }),
+            });
+          } catch (e) {
+            logStep("Admin notification error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
+          }
+
         } else if (orderId) {
           // LEGACY FLOW: Order-based (backward compat for old sessions)
           logStep("Legacy order-based checkout", { orderId });
@@ -500,6 +534,18 @@ serve(async (req) => {
             }
           } catch (invoiceError) {
             logStep("Invoice generation error (non-blocking)", { error: invoiceError instanceof Error ? invoiceError.message : String(invoiceError) });
+          }
+
+          // Send order confirmation email (non-blocking) — legacy path
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: orderId }),
+            });
+          } catch (e) {
+            logStep("Order confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
           }
         } else {
           logStep("No cart_id or order_id in session metadata");
