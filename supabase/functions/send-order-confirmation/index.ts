@@ -150,7 +150,7 @@ function buildItemsTable(
     <tr style="border-bottom:1px solid #e5e7eb;">
       <td style="padding:12px 8px;font-size:14px;color:#111827;">
         <div style="font-weight:500;">${esc(item.product_name || '')}</div>
-        ${item.variant_name ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${esc(item.variant_name)}</div>` : ''}
+        ${item.variant_title ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${esc(item.variant_title)}</div>` : ''}
         <div style="font-size:12px;color:#6b7280;margin-top:2px;">${L.quantity}: ${item.quantity}</div>
       </td>
       <td style="padding:12px 8px;font-size:14px;color:#111827;text-align:right;white-space:nowrap;">
@@ -240,9 +240,9 @@ serve(async (req) => {
         id, order_number, customer_email, customer_name, total, subtotal,
         shipping_cost, tax_amount, discount_amount, currency, locale,
         shipping_address, created_at, payment_method, tenant_id,
-        tenants(name, primary_color, logo_url, support_email, contact_email,
-          street, house_number, postal_code, city, country),
-        order_items(product_name, variant_name, quantity, unit_price, total_price)
+        tenants(name, primary_color, logo_url, support_email, owner_email,
+          address, postal_code, city, country),
+        order_items(product_name, variant_title, quantity, unit_price, total_price)
       `)
       .eq('id', order_id).single();
 
@@ -271,15 +271,15 @@ serve(async (req) => {
 
     const locale = await resolveLocale(supabase, order, tenantId);
     const L = labels[locale];
-    const supportEmail = tenant?.support_email || tenant?.contact_email || 'admin@sellqo.app';
+    const supportEmail = tenant?.support_email || tenant?.owner_email || 'admin@sellqo.app';
     const tenantName = tenant?.name || 'SellQo';
 
     const tenantBranding: TenantBranding = {
       name: tenantName,
       primary_color: tenant?.primary_color,
       logo_url: tenant?.logo_url,
-      street: tenant?.street,
-      house_number: tenant?.house_number,
+      street: tenant?.address,
+      house_number: undefined,
       postal_code: tenant?.postal_code,
       city: tenant?.city,
       country: tenant?.country,
