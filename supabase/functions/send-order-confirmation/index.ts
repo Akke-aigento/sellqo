@@ -241,7 +241,7 @@ serve(async (req) => {
         shipping_cost, tax_amount, discount_amount, currency, locale,
         shipping_address, created_at, payment_method, tenant_id,
         tenants(name, primary_color, logo_url, support_email, owner_email,
-          street, house_number, postal_code, city, country),
+          address, postal_code, city, country),
         order_items(product_name, variant_name, quantity, unit_price, total_price)
       `)
       .eq('id', order_id).single();
