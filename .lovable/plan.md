@@ -1,36 +1,21 @@
 
+Goede vraag — even checken: de nieuwsbrief-**configuratie** (provider, API keys, welkomstmail-instellingen in `tenant_newsletter_config`) blijft sowieso staan, want dat is een setting van de tenant.
 
-## Probleem
-De `send-order-confirmation` edge function faalt voor élke bestelling met:
-> `column tenants_1.contact_email does not exist`
+Wat ik in het oorspronkelijke plan wél bij "verwijderen" had staan zijn de **abonnees** zelf (`newsletter_subscribers` — momenteel 1 record). Dat past bij "verse lei voor klanten".
 
-De function selecteert `tenants(... support_email, contact_email, ...)` maar in de `tenants` tabel bestaat alleen `support_email` (en `owner_email`, `billing_email`, `notification_email`) — géén `contact_email`. Hierdoor wordt de order opgehaald maar de query crasht direct, waardoor er nooit een mail uitgaat.
+Wil je dat ik die abonnee(s) tóch behoud?
 
-## Fix
-In `supabase/functions/send-order-confirmation/index.ts`:
+## Aangepast reset-plan (nieuwsbrief volledig behouden)
 
-1. **Regel 243-244** — verwijder `contact_email` uit de tenants select:
-   ```ts
-   tenants(name, primary_color, logo_url, support_email,
-     street, house_number, postal_code, city, country),
-   ```
+**Extra BEHOUDEN naast eerder plan:**
+- `tenant_newsletter_config` — provider + welkomstmail-instellingen (stond al op behouden)
+- `newsletter_subscribers` — alle abonnees blijven staan ✅
+- `email_unsubscribes` — uitschrijvingen blijven (anders kan een uitgeschreven persoon weer mails krijgen)
 
-2. **Regel 274** — vervang fallback chain door bestaande kolommen:
-   ```ts
-   const supportEmail = tenant?.support_email || tenant?.owner_email || 'admin@sellqo.app';
-   ```
-   (en `owner_email` toevoegen aan select indien nodig als extra fallback)
+**Rest van het plan ongewijzigd** — alle orders, klanten (CRM), facturen, offertes, retouren, kortingen, POS-sessies, notificaties, ads-historie en logs worden nog steeds opgeschoond. Producten, categorieën, media en alle settings blijven intact.
 
-3. **Redeploy** `send-order-confirmation`.
+## Bevestig
+- **Ja, nieuwsbrief-abonnees behouden** → ik voer reset uit met bovenstaande aanpassing
+- **Nee, abonnees ook wissen** → originele plan ongewijzigd uitvoeren (alleen de config blijft)
 
-## Verificatie achteraf
-- Plaats nieuwe testbestelling → check edge function logs op `Email sent successfully` ipv error
-- Klant ontvangt branded "Bedankt voor je bestelling" mail
-
-## Optioneel: handmatig versturen voor de gemiste order
-Order `35e73fc7-d1f8-43b5-a055-39b4d7288cef` is nooit bevestigd per mail. Na de fix kunnen we deze handmatig opnieuw triggeren door `send-order-confirmation` aan te roepen met dat order_id, zodat jij/de klant alsnog de bevestiging krijgt.
-
-## Niet aanraken
-- Geen wijziging aan trigger-points (stripe-connect-webhook, storefront-api) — die werken correct.
-- Geen wijziging aan layout/templates — die zijn goed.
-
+Welke wil je?
