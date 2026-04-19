@@ -141,33 +141,58 @@ export function LandingFooter() {
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 border-t border-border flex flex-col lg:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground text-center lg:text-left">
-            © 2025 SellQo BV - Made with ❤️ in Belgium
-          </p>
-          
-          <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-            {legalLinks.map((link) => (
-              <Link
-                key={link.label}
-                to={link.href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+        {/* Legal entity block — required for App Store / regulatory transparency */}
+        <div className="pt-8 border-t border-border">
+          <div className="bg-secondary/40 rounded-lg p-5 md:p-6 mb-6">
+            <h4 className="font-semibold text-foreground mb-2 text-sm uppercase tracking-wide">
+              Legal entity
+            </h4>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p className="text-foreground font-medium">SellQo is a product of Nomadix BV</p>
+              <p>Beekstraat 49, 3051 Oud-Heverlee, Belgium</p>
+              <p>VAT / Company number: BE 1017.500.207</p>
+              <p>
+                Contact:{' '}
+                <a href="mailto:info@sellqo.app" className="hover:text-foreground transition-colors underline">
+                  info@sellqo.app
+                </a>
+              </p>
+            </div>
           </div>
 
-          {/* Language selector */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <button className="hover:text-foreground transition-colors">🇳🇱 NL</button>
-            <span>|</span>
-            <button className="hover:text-foreground transition-colors">🇬🇧 EN</button>
-            <span>|</span>
-            <button className="hover:text-foreground transition-colors">🇫🇷 FR</button>
-            <span>|</span>
-            <button className="hover:text-foreground transition-colors">🇩🇪 DE</button>
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground text-center lg:text-left">
+              © {new Date().getFullYear()} Nomadix BV. All rights reserved.
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                to="/contact"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Contact
+              </Link>
+            </div>
+
+            {/* Language selector */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <button className="hover:text-foreground transition-colors">🇳🇱 NL</button>
+              <span>|</span>
+              <button className="hover:text-foreground transition-colors">🇬🇧 EN</button>
+              <span>|</span>
+              <button className="hover:text-foreground transition-colors">🇫🇷 FR</button>
+              <span>|</span>
+              <button className="hover:text-foreground transition-colors">🇩🇪 DE</button>
+            </div>
           </div>
         </div>
       </div>
