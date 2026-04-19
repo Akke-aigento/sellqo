@@ -85,6 +85,13 @@ export default function About() {
             markt. Of je nu verkoopt via je eigen webshop, Bol.com, Amazon of fysieke winkel - wij 
             brengen alles samen in één platform.
           </p>
+          <p className="text-muted-foreground mt-4 pt-4 border-t border-border text-sm">
+            <span className="font-medium text-foreground">Legal entity:</span> SellQo is a SaaS product
+            developed and operated by <span className="font-medium text-foreground">Nomadix BV</span>,
+            a Belgian company registered under VAT/company number BE 1017.500.207, with registered
+            office at Beekstraat 49, 3051 Oud-Heverlee, Belgium. Contact:{' '}
+            <a href="mailto:info@sellqo.app" className="text-accent hover:underline">info@sellqo.app</a>.
+          </p>
         </div>
       </section>
 

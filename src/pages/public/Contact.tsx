@@ -154,25 +154,28 @@ export default function Contact() {
             </div>
           </div>
 
-          {/* Address */}
+          {/* Company Information — legal entity */}
           <div className="bg-card rounded-2xl border border-border p-6">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5 text-accent" />
+                <Building2 className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Kantoor</h3>
-                <p className="text-muted-foreground text-sm">
-                  SellQo BV<br />
-                  Koningsstraat 123<br />
-                  1000 Brussel<br />
-                  België
+                <h3 className="font-semibold text-foreground mb-2">Company Information</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  SellQo is operated by:
+                </p>
+                <p className="text-foreground text-sm leading-relaxed mt-2">
+                  <span className="font-medium">Nomadix BV</span><br />
+                  Beekstraat 49<br />
+                  3051 Oud-Heverlee, Belgium<br />
+                  Company number: BE 1017.500.207<br />
+                  Email:{' '}
+                  <a href="mailto:info@sellqo.app" className="text-accent hover:underline">
+                    info@sellqo.app
+                  </a>
                 </p>
               </div>
-            </div>
-            {/* Map Placeholder */}
-            <div className="mt-4 bg-secondary/50 rounded-lg h-32 flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">🗺️ Kaart wordt geladen...</span>
             </div>
           </div>
 
