@@ -253,23 +253,47 @@ serve(async (req) => {
     // Determine VAT handling mode: 'inclusive' means prices already contain VAT
     const vatHandling = (tenant as any).default_vat_handling || 'inclusive';
 
-    let vatAmount: number;
+    // Per-line VAT resolution. For reverse_charge and export, ALL lines go to 0% regardless of product setting.
+    const effectiveTenantRate = (vatType === 'reverse_charge' || vatType === 'export') ? 0 : vatRate;
+
+    const vatMap = await resolveLineVatBatch(
+      supabaseClient,
+      verifiedItems.map((i: any) => i.product_id),
+      effectiveTenantRate
+    );
+
+    const enrichedItems = verifiedItems.map((item: any) => {
+      const lineGross = (item.unit_price || 0) * (item.quantity || 0);
+      const { vat_rate, vat_rate_id } = (vatType === 'reverse_charge' || vatType === 'export')
+        ? { vat_rate: 0, vat_rate_id: null }
+        : resolveLineVatSync(item.product_id, vatMap, effectiveTenantRate);
+      return { item, vat_rate, vat_rate_id, lineGross, lineVatAmount: 0 };
+    });
+
+    let vatAmount = 0;
     let total: number;
 
     if (vatHandling === 'inclusive') {
-      // Prices INCLUDE VAT — extract VAT from inclusive prices for bookkeeping
-      if (vatRate === 0) {
-        vatAmount = 0;
-      } else {
-        vatAmount = Math.round((totalAmount - totalAmount / (1 + vatRate / 100)) * 100) / 100;
-      }
-      total = totalAmount; // No extra VAT added — prices already include it
-      logStep("Inclusive VAT - extracting from prices", { grossAmount: totalAmount, extractedVat: vatAmount, total });
+      const linesVat = enrichedItems.reduce((s: number, e: any) =>
+        s + extractVatFromGross(e.lineGross, e.vat_rate), 0);
+      const shippingVat = extractVatFromGross(shipping_cost, effectiveTenantRate);
+      vatAmount = Math.round((linesVat + shippingVat) * 100) / 100;
+      total = totalAmount;
+      logStep("Inclusive VAT - extracted per line", { linesVat, shippingVat, vatAmount, total });
     } else {
-      // Prices EXCLUDE VAT — add VAT on top
-      vatAmount = Math.round(totalAmount * (vatRate / 100) * 100) / 100;
-      total = totalAmount + vatAmount;
-      logStep("Exclusive VAT - adding on top", { vatAmount, total });
+      const linesVat = enrichedItems.reduce((s: number, e: any) =>
+        s + (e.lineGross * (e.vat_rate / 100)), 0);
+      const shippingVat = shipping_cost * (effectiveTenantRate / 100);
+      vatAmount = Math.round((linesVat + shippingVat) * 100) / 100;
+      total = Math.round((totalAmount + vatAmount) * 100) / 100;
+      logStep("Exclusive VAT - added per line", { linesVat, shippingVat, vatAmount, total });
+    }
+
+    // Persist per-line VAT amount for order_items insert
+    for (const e of enrichedItems) {
+      e.lineVatAmount = (vatHandling === 'inclusive')
+        ? extractVatFromGross(e.lineGross, e.vat_rate)
+        : e.lineGross * (e.vat_rate / 100);
     }
 
     logStep("Totals calculated", { subtotal, shipping_cost, vatAmount, total, vatHandling });
