@@ -359,17 +359,19 @@ serve(async (req) => {
     }
     logStep("Order created", { orderId: order.id });
 
-    // Create order items (using verified prices)
-    const orderItems = verifiedItems.map(item => ({
+    // Create order items with per-line VAT snapshot
+    const orderItems = enrichedItems.map((e: any) => ({
       order_id: order.id,
-      product_id: item.product_id,
-      product_name: item.product_name,
-      product_sku: item.product_sku,
-      product_image: item.product_image,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      vat_rate: item.vat_rate || vatRate,
-      total_price: item.unit_price * item.quantity,
+      product_id: e.item.product_id,
+      product_name: e.item.product_name,
+      product_sku: e.item.product_sku,
+      product_image: e.item.product_image,
+      quantity: e.item.quantity,
+      unit_price: e.item.unit_price,
+      total_price: e.item.unit_price * e.item.quantity,
+      vat_rate: e.vat_rate,
+      vat_rate_id: e.vat_rate_id,
+      vat_amount: Math.round(e.lineVatAmount * 100) / 100,
     }));
 
     const { error: itemsError } = await supabaseClient
