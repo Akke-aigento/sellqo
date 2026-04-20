@@ -8265,7 +8265,9 @@ export type Database = {
           unit_price: number
           variant_id: string | null
           variant_title: string | null
+          vat_amount: number | null
           vat_rate: number | null
+          vat_rate_id: string | null
           vendor: string | null
         }
         Insert: {
@@ -8284,7 +8286,9 @@ export type Database = {
           unit_price: number
           variant_id?: string | null
           variant_title?: string | null
+          vat_amount?: number | null
           vat_rate?: number | null
+          vat_rate_id?: string | null
           vendor?: string | null
         }
         Update: {
@@ -8303,7 +8307,9 @@ export type Database = {
           unit_price?: number
           variant_id?: string | null
           variant_title?: string | null
+          vat_amount?: number | null
           vat_rate?: number | null
+          vat_rate_id?: string | null
           vendor?: string | null
         }
         Relationships: [
@@ -8340,6 +8346,13 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_vat_rate_id_fkey"
+            columns: ["vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
             referencedColumns: ["id"]
           },
         ]
