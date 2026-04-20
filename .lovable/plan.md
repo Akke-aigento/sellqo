@@ -1,21 +1,27 @@
 
 
-## Per-line VAT in `checkoutVerifyPayment` (storefront-api)
+## Per-line VAT in `stripe-connect-webhook`
 
-Spiegelt het werk uit `createOrderFromCart` naar het tweede order-creatie pad: de Stripe-checkout verificatie. Helper is al geïmporteerd op regel 4.
+Spiegelt het per-regel VAT-patroon van de twee storefront-api paden naar de Stripe Connect webhook (derde en laatste online order-creatie pad). `supabaseClient` blijft de client variabele.
 
-### Wijzigingen in `supabase/functions/storefront-api/index.ts`
+### Wijzigingen in `supabase/functions/stripe-connect-webhook/index.ts`
 
-**Vervang VAT-blok (regel 2208–2213)** door batch-resolve + per-regel berekening met proportionele kortingsverdeling:
+**1. Import toevoegen (na regel 3)**
 
 ```ts
-const tenantDefaultRate = Number(tenantData?.default_vat_rate) || 21;
+import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
+```
+
+**2. Vervang VAT-blok (regel 325–330)** door batch-resolve + per-regel berekening met proportionele kortingsverdeling. `processedItems` (regel 307) en `subtotal` (regel 318) zijn al beschikbaar; `tenant` (regel 321) ook.
+
+```ts
+const tenantDefaultRate = Number(tenant?.default_vat_rate) || 21;
 const shippingCost = Number(cart.shipping_cost) || 0;
 const discountAmount = Number(cart.discount_amount) || 0;
 const total = subtotal - discountAmount + shippingCost;
 
 const vatMap = await resolveLineVatBatch(
-  supabase,
+  supabaseClient,
   processedItems.map((i: any) => i.product_id),
   tenantDefaultRate
 );
@@ -31,12 +37,14 @@ const enrichedItems = processedItems.map((item: any) => {
   return { item, vat_rate, vat_rate_id, lineVatAmount };
 });
 
-const linesVatSum = enrichedItems.reduce((s, e) => s + e.lineVatAmount, 0);
+const linesVatSum = enrichedItems.reduce((s: number, e: any) => s + e.lineVatAmount, 0);
 const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
 const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
 ```
 
-**Vervang `orderItems` map (regel 2266–2271)** door mapping over `enrichedItems` met de VAT-snapshot:
+`orders.insert(...)` (regel 353–378) blijft ongewijzigd — gebruikt al `vatAmount`, `subtotal`, `shippingCost`, `discountAmount`, `total`.
+
+**3. Vervang `orderItems` map (regel 388–399)** door mapping over `enrichedItems` met VAT-snapshot:
 
 ```ts
 const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }: any) => ({
@@ -54,29 +62,29 @@ const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmou
   vat_rate_id,
   vat_amount: Math.round(lineVatAmount * 100) / 100,
 }));
+await supabaseClient.from("order_items").insert(orderItems);
 ```
 
 ### Niet aanraken
-- `orders.insert(...)` blijft ongewijzigd — gebruikt al `vatAmount`, `subtotal`, `total`, `shippingCost`, `discountAmount`.
-- Stripe session retrieve, race-condition handling, customer lookup/insert.
-- Stock decrement loop, `record_transaction`, invoice/email triggers.
-- `processedItems` blijft de bron voor stock/items.
-- `createOrderFromCart` (al gedaan), `stripe-connect-webhook` (volgende prompt).
+- Stripe signature verification, event dispatch, payout/account.updated handlers.
+- `processedItems` constructie (regel 300–316) en `subtotal` (regel 318).
+- Klant lookup/insert, `generate_order_number`, stock decrement loop, invoice/email triggers, cart-conversie.
+- Andere edge functions (`create-bank-transfer-order`, POS, marketplace syncs) — separate vervolgprompts.
+- Geen DB-migratie, geen RLS, geen types.
 
-### Edge cases
+### Edge cases (door helper afgedekt)
 - Lege `processedItems` → `enrichedItems = []`, `linesVatSum = 0`, geen crash.
 - `subtotal = 0` → discount-allocatie overgeslagen (deel-door-nul-check).
 - `tenantDefaultRate = 0` → `extractVatFromGross` retourneert 0, geen NaN.
 - Producten zonder `vat_rate_id` → fallback naar tenant default, `vat_rate_id = null` op de regel.
 
 ### Acceptance
-1. Stripe-checkout Mancini Milano €59,99 → `orders.tax_amount = 10.41`, `order_items.vat_rate = 21.00`, `vat_amount = 10.41`, `vat_rate_id = null`.
+1. Stripe Connect webhook fires voor Mancini Milano €59,99 cart → `orders.tax_amount = 10.41`, `order_items.vat_rate = 21.00`, `vat_amount = 10.41`, `vat_rate_id = null` — identiek aan beide andere paden.
 2. Multi-item order → som van per-regel VAT klopt op order-niveau.
-3. Product met override naar 6%-rij → `order_items.vat_rate = 6.00` met bijbehorend bedrag.
-4. TypeScript compileert zonder errors (helper-imports staan al op regel 4).
+3. Product met `vat_rate_id` override naar 6%-rij → `order_items.vat_rate = 6.00` met bijbehorend bedrag.
+4. TypeScript compileert; `supabaseClient` consistent gebruikt.
 
 ### Vervolg (out-of-scope)
-- `stripe-connect-webhook` (volgende prompt).
-- `create-bank-transfer-order`, POS, marketplace syncs.
+- `create-bank-transfer-order`, POS order-creatie, `sync-bol-orders`, `import-bol-shipments`.
 - Shipping-method-niveau VAT-override.
 
