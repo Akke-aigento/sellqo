@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -322,12 +323,31 @@ serve(async (req) => {
             .from("tenants").select("default_vat_rate, currency, name")
             .eq("id", tenantId).single();
 
-          const vatRate = tenant?.default_vat_rate || 21;
+          const tenantDefaultRate = Number(tenant?.default_vat_rate) || 21;
           const shippingCost = Number(cart.shipping_cost) || 0;
           const discountAmount = Number(cart.discount_amount) || 0;
           const total = subtotal - discountAmount + shippingCost;
-          const vatBase = Math.max(0, subtotal - discountAmount + shippingCost);
-          const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+
+          const vatMap = await resolveLineVatBatch(
+            supabaseClient,
+            processedItems.map((i: any) => i.product_id),
+            tenantDefaultRate
+          );
+
+          const enrichedItems = processedItems.map((item: any) => {
+            const lineGross = item.line_total;
+            const lineDiscount = (discountAmount > 0 && subtotal > 0)
+              ? (lineGross / subtotal) * discountAmount
+              : 0;
+            const lineNetGross = Math.max(0, lineGross - lineDiscount);
+            const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
+            const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
+            return { item, vat_rate, vat_rate_id, lineVatAmount };
+          });
+
+          const linesVatSum = enrichedItems.reduce((s: number, e: any) => s + e.lineVatAmount, 0);
+          const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
+          const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
 
           // Find or create customer
           let customerId: string | null = null;
@@ -384,8 +404,8 @@ serve(async (req) => {
 
           logStep("Order created from cart", { orderId: newOrder.id, orderNumber: newOrder.order_number });
 
-          // Create order items
-          const orderItems = processedItems.map((item: any) => ({
+          // Create order items with per-line VAT snapshot
+          const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }: any) => ({
             order_id: newOrder.id,
             product_id: item.product_id,
             product_name: item.product?.name || '',
@@ -396,6 +416,9 @@ serve(async (req) => {
             product_image: item.product?.image || null,
             variant_id: item.variant_id || null,
             variant_title: item.variant?.title || null,
+            vat_rate,
+            vat_rate_id,
+            vat_amount: Math.round(lineVatAmount * 100) / 100,
           }));
           await supabaseClient.from("order_items").insert(orderItems);
 
