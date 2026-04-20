@@ -252,6 +252,14 @@ Deno.serve(async (req) => {
         const settings = connection.settings as Record<string, unknown> || {}
         const stats = (connection.stats as Record<string, unknown>) || {}
         
+        // Load tenant VAT rate for tax calculation on incoming orders
+        const { data: tenantForTax } = await supabase
+          .from('tenants')
+          .select('tax_percentage, default_vat_rate')
+          .eq('id', connection.tenant_id)
+          .single()
+        const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
+
         // Get OAuth token
         const accessToken = await getBolAccessToken(credentials)
         console.log('Successfully obtained access token')
@@ -396,6 +404,9 @@ Deno.serve(async (req) => {
                 customer_phone: shipment?.deliveryPhoneNumber,
                 subtotal: safeSubtotal,
                 total: safeSubtotal,
+                tax_amount: vatRate > 0
+                  ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
+                  : 0,
                 status: status,
                 payment_status: paymentStatus,
                 fulfillment_status: 'unfulfilled',
