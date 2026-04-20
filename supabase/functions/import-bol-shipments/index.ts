@@ -213,6 +213,14 @@ Deno.serve(async (req) => {
     const accessToken = await getBolAccessToken(credentials)
     console.log('Successfully obtained access token')
 
+    // Load tenant VAT rate for tax calculation on incoming orders
+    const { data: tenantForTax } = await supabase
+      .from('tenants')
+      .select('tax_percentage, default_vat_rate')
+      .eq('id', connection.tenant_id)
+      .single()
+    const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
+
     // Fetch all shipments for both FBR and FBB
     let allShipments: ShipmentSummary[] = []
     const fulfillmentMethods = ['FBR', 'FBB']
@@ -322,6 +330,9 @@ Deno.serve(async (req) => {
             customer_phone: customer?.deliveryPhoneNumber,
             subtotal: safeSubtotal,
             total: safeSubtotal,
+            tax_amount: vatRate > 0
+              ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
+              : 0,
             status: 'shipped', // Shipments are already shipped
             payment_status: 'paid', // Bol.com orders are prepaid
             fulfillment_status: 'fulfilled',
