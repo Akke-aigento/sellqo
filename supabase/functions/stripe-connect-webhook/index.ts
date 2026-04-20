@@ -326,7 +326,8 @@ serve(async (req) => {
           const shippingCost = Number(cart.shipping_cost) || 0;
           const discountAmount = Number(cart.discount_amount) || 0;
           const total = subtotal - discountAmount + shippingCost;
-          const vatAmount = Math.round(subtotal * (vatRate / (100 + vatRate)) * 100) / 100;
+          const vatBase = Math.max(0, subtotal - discountAmount + shippingCost);
+          const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
 
           // Find or create customer
           let customerId: string | null = null;
