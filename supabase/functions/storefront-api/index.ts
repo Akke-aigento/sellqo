@@ -2205,12 +2205,31 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     .from('tenants').select('default_vat_rate, currency, name')
     .eq('id', tenantId).single();
 
-  const vatRate = tenantData?.default_vat_rate || 21;
+  const tenantDefaultRate = Number(tenantData?.default_vat_rate) || 21;
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
   const total = subtotal - discountAmount + shippingCost;
-  const vatBase = Math.max(0, total);
-  const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+
+  const vatMap = await resolveLineVatBatch(
+    supabase,
+    processedItems.map((i: any) => i.product_id),
+    tenantDefaultRate
+  );
+
+  const enrichedItems = processedItems.map((item: any) => {
+    const lineGross = Number(item.line_total) || 0;
+    const lineDiscount = (discountAmount > 0 && subtotal > 0)
+      ? (lineGross / subtotal) * discountAmount
+      : 0;
+    const lineNetGross = Math.max(0, lineGross - lineDiscount);
+    const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
+    const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
+    return { item, vat_rate, vat_rate_id, lineVatAmount };
+  });
+
+  const linesVatSum = enrichedItems.reduce((s: number, e: any) => s + e.lineVatAmount, 0);
+  const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
+  const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
 
   // Find or create customer
   let customerId: string | null = null;
