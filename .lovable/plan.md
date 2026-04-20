@@ -1,74 +1,37 @@
 
 
-## Bol.com sync: BTW correct opslaan op nieuwe orders
+## Add VAT snapshot columns to `order_items`
 
-### Probleem
-Inkomende Bol.com orders worden opgeslagen met `tax_amount = 0`, waardoor BTW-rapportages €0 tonen voor alle Bol-omzet. Bol verkoopt B2C inclusief BTW, dus moet de BTW per order uit het totaalbedrag geëxtraheerd worden met het tenant default BTW-percentage.
+Additieve migratie die drie nullable kolommen toevoegt aan `order_items` om per-regel BTW-data te bevriezen op het moment van order-aanmaak. Geen bestaande data wordt gewijzigd, geen RLS/triggers worden geraakt.
 
-### Wijzigingen
+### Migratie SQL
 
-**1. `supabase/functions/sync-bol-orders/index.ts`**
+```sql
+ALTER TABLE public.order_items
+  ADD COLUMN IF NOT EXISTS vat_rate DECIMAL(5,2),
+  ADD COLUMN IF NOT EXISTS vat_amount DECIMAL(10,2),
+  ADD COLUMN IF NOT EXISTS vat_rate_id UUID REFERENCES public.vat_rates(id);
 
-Binnen de `for (const connection of connections || [])` loop, direct na regel 253 (`const stats = ...`):
-
-```ts
-// Load tenant VAT rate for tax calculation on incoming orders
-const { data: tenantForTax } = await supabase
-  .from('tenants')
-  .select('tax_percentage, default_vat_rate')
-  .eq('id', connection.tenant_id)
-  .single()
-const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
+COMMENT ON COLUMN public.order_items.vat_rate IS 'VAT rate applied to this line at order creation (frozen snapshot, e.g. 21.00 for 21%)';
+COMMENT ON COLUMN public.order_items.vat_amount IS 'VAT amount included in total_price (inclusive pricing model)';
+COMMENT ON COLUMN public.order_items.vat_rate_id IS 'Reference to vat_rates row, frozen at order creation';
 ```
 
-In de order insert (regel 386-407), `tax_amount` toevoegen direct na `total`:
-
-```ts
-subtotal: safeSubtotal,
-total: safeSubtotal,
-tax_amount: vatRate > 0
-  ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
-  : 0,
-```
-
-**2. `supabase/functions/import-bol-shipments/index.ts`**
-
-> Let op: deze functie heeft geen `for (const connection of connections)` loop — het werkt op één enkele connection die op regel ~199 wordt opgehaald via `connectionId`. De VAT lookup gebeurt dus eenmalig vóór de shipment-loop.
-
-Direct na regel 214 (`console.log('Successfully obtained access token')`), vóór het ophalen van shipments:
-
-```ts
-// Load tenant VAT rate for tax calculation on incoming orders
-const { data: tenantForTax } = await supabase
-  .from('tenants')
-  .select('tax_percentage, default_vat_rate')
-  .eq('id', connection.tenant_id)
-  .single()
-const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
-```
-
-In de order insert (regel 312-336), `tax_amount` toevoegen direct na `total`:
-
-```ts
-subtotal: safeSubtotal,
-total: safeSubtotal,
-tax_amount: vatRate > 0
-  ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
-  : 0,
-```
-
-### Deploy
-Na de edits: `sync-bol-orders` en `import-bol-shipments` Edge Functions herdeployen.
+### Eigenschappen
+- Alle drie kolommen zijn **nullable** (geen `NOT NULL`, geen `DEFAULT`).
+- `IF NOT EXISTS` maakt de migratie idempotent.
+- `vat_rate_id` heeft een FK naar `public.vat_rates(id)` zonder `ON DELETE` clausule (default = `NO ACTION`), zodat een vat_rate die nog door een order_item wordt gerefereerd niet per ongeluk verwijderd kan worden.
 
 ### Niet aanraken
-- `subtotal` / `total` waarden zelf (Bol-bedragen blijven SSOT)
-- `order_items` inserts (geen line-level tax nodig voor deze fix)
-- `sync-shopify-orders`, `sync-woocommerce-orders` (lezen al `total_tax` van bron)
-- Reeds historisch via SQL gecorrigeerde orders
+- Geen RLS-policies, triggers, indexes of andere tabellen.
+- Geen backfill / UPDATE op bestaande rijen — historische rijen blijven `NULL` in de nieuwe kolommen voor boekhoudconsistentie.
+- Geen wijzigingen aan order-creatie code in deze stap (is een aparte vervolgstap).
 
-### Verificatie (acceptance)
-- Bol-order €33,95 totaal @ 21% → `tax_amount = €5,89` ✅
-- Bol-order €100 @ 21% → `tax_amount = €17,36` ✅
-- Tenant met BTW = 0 (export-only) → `tax_amount = 0`, geen deel-door-nul ✅
-- Status, klantgegevens, adressen en items blijven onveranderd ✅
+### Verificatie na migratie
+1. `information_schema.columns` query bevestigt dat de drie kolommen bestaan op `public.order_items` met types `numeric(5,2)`, `numeric(10,2)`, `uuid` en allemaal `is_nullable = YES`.
+2. `SELECT COUNT(*) FROM order_items WHERE vat_rate IS NOT NULL OR vat_amount IS NOT NULL OR vat_rate_id IS NOT NULL` → moet `0` zijn.
+3. Een test-insert van een `order_items` rij zonder de nieuwe kolommen (oude code-pad) blijft slagen — backward compatible.
+
+### Vervolg (out-of-scope voor deze taak)
+Het daadwerkelijk vullen van deze kolommen bij order-aanmaak (in `storefront-api`, `stripe-connect-webhook`, `sync-bol-orders`, `import-bol-shipments`, POS) is een aparte follow-up.
 
