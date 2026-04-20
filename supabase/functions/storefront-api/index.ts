@@ -2281,12 +2281,21 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
 
   console.log('[checkoutVerifyPayment] Order created:', newOrder.id, newOrder.order_number);
 
-  // Create order items
-  const orderItems = processedItems.map((item: any) => ({
-    order_id: newOrder.id, product_id: item.product_id, product_name: item.product?.name || '',
-    quantity: item.quantity, unit_price: item.unit_price, total_price: item.line_total,
-    product_sku: item.product?.sku || null, product_image: item.product?.image || null,
-    variant_id: item.variant_id || null, variant_title: item.variant?.title || null,
+  // Create order items (with per-line VAT snapshot)
+  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }: any) => ({
+    order_id: newOrder.id,
+    product_id: item.product_id,
+    product_name: item.product?.name || '',
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.line_total,
+    product_sku: item.product?.sku || null,
+    product_image: item.product?.image || null,
+    variant_id: item.variant_id || null,
+    variant_title: item.variant?.title || null,
+    vat_rate,
+    vat_rate_id,
+    vat_amount: Math.round(lineVatAmount * 100) / 100,
   }));
   await supabase.from('order_items').insert(orderItems);
 
