@@ -1,56 +1,74 @@
 
-## VAT calculation fix on discounted orders
+
+## Bol.com sync: BTW correct opslaan op nieuwe orders
 
 ### Probleem
-Bij een korting wordt `tax_amount` opgeslagen op basis van `subtotal` i.p.v. het werkelijk betaalde bedrag (`total = subtotal − discount + shipping`). Voorbeeld: order met subtotaal €59,99, korting −€58,19, totaal €1,80 krijgt `tax_amount = €10,41` opgeslagen, terwijl het correcte BTW-bedrag (incl. 21%) €0,31 is.
+Inkomende Bol.com orders worden opgeslagen met `tax_amount = 0`, waardoor BTW-rapportages €0 tonen voor alle Bol-omzet. Bol verkoopt B2C inclusief BTW, dus moet de BTW per order uit het totaalbedrag geëxtraheerd worden met het tenant default BTW-percentage.
 
-### Wijzigingen (3 plekken, identieke fix)
+### Wijzigingen
 
-**1. `supabase/functions/stripe-connect-webhook/index.ts` (regel 329)**
+**1. `supabase/functions/sync-bol-orders/index.ts`**
+
+Binnen de `for (const connection of connections || [])` loop, direct na regel 253 (`const stats = ...`):
+
 ```ts
-const vatBase = Math.max(0, subtotal - discountAmount + shippingCost);
-const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+// Load tenant VAT rate for tax calculation on incoming orders
+const { data: tenantForTax } = await supabase
+  .from('tenants')
+  .select('tax_percentage, default_vat_rate')
+  .eq('id', connection.tenant_id)
+  .single()
+const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
 ```
 
-**2. `supabase/functions/storefront-api/index.ts` (regel 1563, `createOrderFromCart`)**
+In de order insert (regel 386-407), `tax_amount` toevoegen direct na `total`:
+
 ```ts
-const vatBase = Math.max(0, total);
-const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+subtotal: safeSubtotal,
+total: safeSubtotal,
+tax_amount: vatRate > 0
+  ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
+  : 0,
 ```
-(`total` staat al op regel 1562)
 
-**3. `supabase/functions/storefront-api/index.ts` (regel 2182, Stripe checkout session handler)**
+**2. `supabase/functions/import-bol-shipments/index.ts`**
+
+> Let op: deze functie heeft geen `for (const connection of connections)` loop — het werkt op één enkele connection die op regel ~199 wordt opgehaald via `connectionId`. De VAT lookup gebeurt dus eenmalig vóór de shipment-loop.
+
+Direct na regel 214 (`console.log('Successfully obtained access token')`), vóór het ophalen van shipments:
+
 ```ts
-const vatBase = Math.max(0, total);
-const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+// Load tenant VAT rate for tax calculation on incoming orders
+const { data: tenantForTax } = await supabase
+  .from('tenants')
+  .select('tax_percentage, default_vat_rate')
+  .eq('id', connection.tenant_id)
+  .single()
+const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
 ```
-(`total` staat al op regel 2181)
 
-### .gitignore
-Toevoegen onder `*.local`:
-```
-.env
-.env.local
-```
-(`*.local` dekt `.env.local` al, maar expliciet toevoegen zoals gevraagd; `.env` ontbreekt en wordt nu wel uitgesloten.)
+In de order insert (regel 312-336), `tax_amount` toevoegen direct na `total`:
 
-### Niet aanraken
-- `send-order-confirmation`, `generate-invoice`, `create-manual-invoice`, `create-bank-transfer-order` — lezen `tax_amount` of gebruiken een andere correcte formule.
-- Stripe charge-bedragen / `total` berekeningen — die zijn al correct.
-- Geen retro-actieve migratie op bestaande orders (boekhoudconsistentie met reeds verzonden facturen).
+```ts
+subtotal: safeSubtotal,
+total: safeSubtotal,
+tax_amount: vatRate > 0
+  ? Math.round(safeSubtotal * (vatRate / (100 + vatRate)) * 100) / 100
+  : 0,
+```
 
 ### Deploy
-Na de edit: `stripe-connect-webhook` en `storefront-api` Edge Functions herdeployen.
+Na de edits: `sync-bol-orders` en `import-bol-shipments` Edge Functions herdeployen.
+
+### Niet aanraken
+- `subtotal` / `total` waarden zelf (Bol-bedragen blijven SSOT)
+- `order_items` inserts (geen line-level tax nodig voor deze fix)
+- `sync-shopify-orders`, `sync-woocommerce-orders` (lezen al `total_tax` van bron)
+- Reeds historisch via SQL gecorrigeerde orders
 
 ### Verificatie (acceptance)
-- Subtotaal €59,99 / korting €58,19 / shipping €0 / 21% → `tax_amount = €0,31`, `total = €1,80` ✅
-- Subtotaal €100 / korting €0 / shipping €0 / 21% → `tax_amount = €17,36` (geen regressie) ✅
-- Subtotaal €100 / korting €20 / shipping €5 / 21% → vatBase €85 → `tax_amount = €14,79` ✅
-- `total = subtotal − discount + shipping` blijft ongewijzigd ✅
-- Bevestigingsmail toont automatisch correcte BTW (leest uit `orders.tax_amount`) ✅
+- Bol-order €33,95 totaal @ 21% → `tax_amount = €5,89` ✅
+- Bol-order €100 @ 21% → `tax_amount = €17,36` ✅
+- Tenant met BTW = 0 (export-only) → `tax_amount = 0`, geen deel-door-nul ✅
+- Status, klantgegevens, adressen en items blijven onveranderd ✅
 
-<lov-actions>
-<lov-suggestion message="Plaats een testbestelling met een kortingscode en controleer dat tax_amount in orders correct is opgeslagen en dat de bevestigingsmail het juiste BTW-bedrag toont.">Test end-to-end met kortingsorder</lov-suggestion>
-<lov-suggestion message="Voeg een database CHECK of validatie-trigger toe op de orders tabel die waarschuwt als tax_amount > total bij inclusief-VAT pricing, zodat dit type bug nooit meer onopgemerkt blijft.">Voeg sanity-check toe op orders.tax_amount</lov-suggestion>
-<lov-suggestion message="Maak een admin-rapport dat historische orders toont waar tax_amount inconsistent is met (total * vatRate / (100+vatRate)), zodat je kunt beoordelen welke facturen mogelijk handmatig gecorrigeerd moeten worden.">Rapport: inconsistente BTW historisch</lov-suggestion>
-</lov-actions>
