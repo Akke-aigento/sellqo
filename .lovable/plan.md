@@ -1,68 +1,46 @@
 
 
-## Per-line VAT in `createOrderFromCart` (storefront-api)
+## Per-line VAT in `checkoutVerifyPayment` (storefront-api)
 
-Refactor de eerste order-creatie pad in `supabase/functions/storefront-api/index.ts` zodat BTW per regel wordt geresolved en als snapshot wordt opgeslagen op `order_items`. Het tweede pad (Stripe session, ~regel 2140) blijft buiten scope.
+Spiegelt het werk uit `createOrderFromCart` naar het tweede order-creatie pad: de Stripe-checkout verificatie. Helper is al geïmporteerd op regel 4.
 
 ### Wijzigingen in `supabase/functions/storefront-api/index.ts`
 
-**1. Import toevoegen (top van het bestand, na regel 3)**
+**Vervang VAT-blok (regel 2208–2213)** door batch-resolve + per-regel berekening met proportionele kortingsverdeling:
 
 ```ts
-import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from '../_shared/vat.ts';
-```
-
-**2. Refactor binnen `createOrderFromCart` (regel 1548–1632)**
-
-Vervang het `vatAmount`-blok (regel 1558–1564) door een per-regel berekening, en verrijk de `orderItems` map (regel 1619–1630) met de VAT-snapshot.
-
-Nieuwe flow tussen tenant-fetch en customer-lookup:
-
-```ts
-const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
-const subtotal = Number(cart.subtotal) || 0;
+const tenantDefaultRate = Number(tenantData?.default_vat_rate) || 21;
 const shippingCost = Number(cart.shipping_cost) || 0;
 const discountAmount = Number(cart.discount_amount) || 0;
 const total = subtotal - discountAmount + shippingCost;
 
-const cartItems: any[] = Array.isArray(cart.cartItems) ? cart.cartItems : [];
-
-// Batch-resolve VAT for all product_ids in one query (avoids N+1)
 const vatMap = await resolveLineVatBatch(
   supabase,
-  cartItems.map((i) => i.product_id),
+  processedItems.map((i: any) => i.product_id),
   tenantDefaultRate
 );
 
-// Per-line: proportional discount allocation + inclusive VAT extraction
-const enrichedItems = cartItems.map((item: any) => {
-  const qty = Number(item.quantity) || 0;
-  const unit = Number(item.unit_price) || 0;
-  const lineGross = qty * unit;
+const enrichedItems = processedItems.map((item: any) => {
+  const lineGross = item.line_total;
   const lineDiscount = (discountAmount > 0 && subtotal > 0)
     ? (lineGross / subtotal) * discountAmount
     : 0;
   const lineNetGross = Math.max(0, lineGross - lineDiscount);
-
   const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
   const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
-
   return { item, vat_rate, vat_rate_id, lineVatAmount };
 });
 
-// Order-level VAT = sum of line VATs + shipping VAT (tenant default rate for now)
 const linesVatSum = enrichedItems.reduce((s, e) => s + e.lineVatAmount, 0);
 const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
 const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
 ```
 
-`total`, `subtotal`, `discountAmount`, `shippingCost` blijven exact zoals nu — alleen `tax_amount` op het order-niveau verandert van bron-formule.
-
-**3. `orderItems` map verrijken (regel 1619–1630)**
+**Vervang `orderItems` map (regel 2266–2271)** door mapping over `enrichedItems` met de VAT-snapshot:
 
 ```ts
-const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }) => ({
-  order_id: order.id,
+const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }: any) => ({
+  order_id: newOrder.id,
   product_id: item.product_id,
   product_name: item.product?.name || '',
   quantity: item.quantity,
@@ -79,26 +57,26 @@ const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmou
 ```
 
 ### Niet aanraken
-- `subtotal`, `total`, `discount_amount` op de `orders`-insert (klantbedrag onveranderd).
-- Stripe payment-flow, customer lookup/insert, cart-conversie, discount-usage increment.
-- Het tweede order-creatie pad rond regel 2140 (Stripe session handler) — separate vervolgprompt.
-- Andere functies in het bestand.
-- Geen DB-migratie, geen RLS, geen types.
+- `orders.insert(...)` blijft ongewijzigd — gebruikt al `vatAmount`, `subtotal`, `total`, `shippingCost`, `discountAmount`.
+- Stripe session retrieve, race-condition handling, customer lookup/insert.
+- Stock decrement loop, `record_transaction`, invoice/email triggers.
+- `processedItems` blijft de bron voor stock/items.
+- `createOrderFromCart` (al gedaan), `stripe-connect-webhook` (volgende prompt).
 
-### Edge cases gedekt
-- Lege cart of cart zonder geldige `product_id`'s → `enrichedItems = []`, `linesVatSum = 0`, geen crash.
-- `subtotal = 0` → discount-allocatie wordt overgeslagen (deel-door-nul-check).
-- `tenantDefaultRate = 0` (export-only) → `extractVatFromGross` retourneert `0`, geen NaN.
-- Producten zonder `vat_rate_id` → `resolveLineVatSync` valt terug op `tenantDefaultRate`, `vat_rate_id = null` op de regel.
+### Edge cases
+- Lege `processedItems` → `enrichedItems = []`, `linesVatSum = 0`, geen crash.
+- `subtotal = 0` → discount-allocatie overgeslagen (deel-door-nul-check).
+- `tenantDefaultRate = 0` → `extractVatFromGross` retourneert 0, geen NaN.
+- Producten zonder `vat_rate_id` → fallback naar tenant default, `vat_rate_id = null` op de regel.
 
-### Acceptance verificatie
-1. Mancini Milano €59,99 zonder discount → `orders.tax_amount = 10.41`, `order_items.vat_rate = 21.00`, `vat_amount = 10.41`, `vat_rate_id = null`.
-2. Product met override naar 6%-rij → `order_items.vat_rate = 6.00` met bijbehorend bedrag.
-3. Subtotal €100 (€60 + €40), discount €10 → line VAT op €54 en €36 net.
-4. Lege cart → `vatAmount = 0`, geen errors.
+### Acceptance
+1. Stripe-checkout Mancini Milano €59,99 → `orders.tax_amount = 10.41`, `order_items.vat_rate = 21.00`, `vat_amount = 10.41`, `vat_rate_id = null`.
+2. Multi-item order → som van per-regel VAT klopt op order-niveau.
+3. Product met override naar 6%-rij → `order_items.vat_rate = 6.00` met bijbehorend bedrag.
+4. TypeScript compileert zonder errors (helper-imports staan al op regel 4).
 
 ### Vervolg (out-of-scope)
-- Tweede order-creatie pad rond regel 2140 (Stripe session).
-- `stripe-connect-webhook`, `create-bank-transfer-order`, POS, marketplace syncs.
-- Shipping-method-niveau VAT-override (nu nog tenant default).
+- `stripe-connect-webhook` (volgende prompt).
+- `create-bank-transfer-order`, POS, marketplace syncs.
+- Shipping-method-niveau VAT-override.
 
