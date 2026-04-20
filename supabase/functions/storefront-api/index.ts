@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/stripe-fees.ts";
+import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1555,13 +1556,38 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     .eq('id', tenantId).single();
   if (tenantErr) console.error('Tenant query error in order creation:', tenantErr);
 
-  const vatRate = tenant?.tax_percentage || 21;
-  const subtotal = cart.subtotal;
+  const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
+  const subtotal = Number(cart.subtotal) || 0;
   const shippingCost = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
   const total = subtotal - discountAmount + shippingCost;
-  const vatBase = Math.max(0, total);
-  const vatAmount = Math.round(vatBase * (vatRate / (100 + vatRate)) * 100) / 100;
+
+  // Per-line VAT resolution (snapshot at order-creation time)
+  const cartItems: any[] = Array.isArray(cart.cartItems) ? cart.cartItems : [];
+  const vatMap = await resolveLineVatBatch(
+    supabase,
+    cartItems.map((i) => i.product_id),
+    tenantDefaultRate
+  );
+
+  const enrichedItems = cartItems.map((item: any) => {
+    const qty = Number(item.quantity) || 0;
+    const unit = Number(item.unit_price) || 0;
+    const lineGross = qty * unit;
+    const lineDiscount = (discountAmount > 0 && subtotal > 0)
+      ? (lineGross / subtotal) * discountAmount
+      : 0;
+    const lineNetGross = Math.max(0, lineGross - lineDiscount);
+
+    const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
+    const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
+
+    return { item, vat_rate, vat_rate_id, lineVatAmount };
+  });
+
+  const linesVatSum = enrichedItems.reduce((s, e) => s + e.lineVatAmount, 0);
+  const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
+  const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
 
   // Find or create customer
   let customerId: string | null = null;
@@ -1616,7 +1642,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   if (orderError) throw orderError;
 
   // Create order items
-  const orderItems = cart.cartItems.map((item: any) => ({
+  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }) => ({
     order_id: order.id,
     product_id: item.product_id,
     product_name: item.product?.name || '',
@@ -1627,6 +1653,9 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
     variant_title: item.variant?.title || null,
+    vat_rate,
+    vat_rate_id,
+    vat_amount: Math.round(lineVatAmount * 100) / 100,
   }));
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
