@@ -288,6 +288,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         ...palette.cssVariables,
       } as React.CSSProperties}
     >
+      {/* Sandbox banner - only for demo tenants */}
+      <SandboxBanner isDemo={isDemo} />
       {/* Announcement Bar Carousel */}
       {showAnnouncement && announcementTexts.length > 0 && (
         <AnnouncementCarousel
