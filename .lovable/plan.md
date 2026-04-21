@@ -1,48 +1,67 @@
 
 
-## Shared Stripe key resolver (`_shared/stripe.ts`)
+## Refactor Connect-account & Connect-status naar shared Stripe helper
 
-Foundationele toevoeging: één nieuw helper-bestand, één nieuwe Supabase secret. Geen enkele bestaande edge function wordt aangeraakt — zero-risk deploy.
+Twee chirurgische wijzigingen. De helper bestaat al en wordt nu voor het eerst gebruikt: demo-tenants → test key, live tenants → live key (ongewijzigd gedrag).
 
-### Stap 1: Secret toevoegen
+### Pre-flight: kolomnaam-correctie in cleanup-SQL
 
-Via de `add_secret`-flow vraag ik je om de **STRIPE_TEST_SECRET_KEY** in te voeren.
+De prompt-SQL gebruikt `stripe_onboarding_completed`, maar het schema heeft `stripe_onboarding_complete` (zonder `d`). Migratie draait dus met de juiste kolomnaam:
 
-- Waar te vinden: Stripe Dashboard → toggle linksboven naar **Test mode** → Developers → API keys → "Secret key" (start met `sk_test_…`).
-- Deze secret wordt enkel door de nieuwe helper gelezen; bestaande functies blijven `STRIPE_SECRET_KEY` (live) gebruiken.
+```sql
+UPDATE public.tenants
+SET stripe_account_id = NULL,
+    stripe_onboarding_complete = false,
+    stripe_charges_enabled = false,
+    stripe_payouts_enabled = false
+WHERE is_demo = true;
+```
 
-### Stap 2: Nieuw bestand `supabase/functions/_shared/stripe.ts`
+Effect: de SellQo Sandbox-tenant heeft een leeg Stripe-veld, zodat de volgende "Betalingen activeren"-klik een **vers test-mode** account aanmaakt in plaats van het oude live-account te refreshen.
 
-Exporteert exact vier functies, conform de prompt:
+### Wijziging 1: `supabase/functions/create-connect-account/index.ts`
 
-| Export | Doel |
-|---|---|
-| `getStripeForTenant(supabase, tenantId, apiVersion?)` | Laadt `tenants.is_demo`; demo → test key, anders live key. Bij DB-error → live (met warning). |
-| `getStripeTest(apiVersion?)` | Forceert test key; valt terug op live als `STRIPE_TEST_SECRET_KEY` ontbreekt (met warning). |
-| `getStripeLive(apiVersion?)` | Forceert live key; throwt als `STRIPE_SECRET_KEY` ontbreekt. Voor platform-niveau (SellQo subscriptions, platform-webhooks). |
-| `getStripeForAccountId(accountId, apiVersion?)` | Probeert eerst test key (als geconfigureerd) door `stripe.accounts.retrieve(accountId)` aan te roepen; fall-through naar live bij `resource_missing` / permission error. Voor webhook handlers zonder `tenant_id`. |
+- Verwijder `import Stripe from "https://esm.sh/stripe@18.5.0";` (niet meer nodig — helper construeert).
+- Voeg toe: `import { getStripeForTenant } from "../_shared/stripe.ts";`
+- Verwijder regels 22-24 (`const stripeKey = Deno.env.get(...)` + check + log).
+- Vervang regel 64 (`const stripe = new Stripe(stripeKey, ...)`) door:
+  ```ts
+  const { stripe, keyMode } = await getStripeForTenant(supabaseClient, tenant_id);
+  logStep("Stripe client initialised", { keyMode });
+  ```
+  Plaatsing: direct ná de tenant-lookup (regel 51-62) en vóór de `if (tenantData.stripe_account_id)`-check op regel 53. Daarmee zijn zowel de "bestaand account → nieuwe link" als "nieuw account aanmaken" paden op de juiste key-mode.
+- Alle `stripe.accountLinks.create(...)` en `stripe.accounts.create(...)` calls blijven ongewijzigd (zelfde SDK-API, andere key onder de motorkap).
 
-Plus `interface StripeResolution { stripe: Stripe; keyMode: 'live' | 'test'; keyUsed: string }`.
+### Wijziging 2: `supabase/functions/check-connect-status/index.ts`
 
-Stripe-import: `https://esm.sh/stripe@14.21.0?target=deno`. Default `apiVersion`: `"2025-08-27.basil"`.
+- Verwijder `import Stripe from "https://esm.sh/stripe@18.5.0";`.
+- Voeg toe: `import { getStripeForTenant } from "../_shared/stripe.ts";`
+- Verwijder regels 23-24.
+- Vervang regel 74 (`const stripe = new Stripe(stripeKey, ...)`) door:
+  ```ts
+  const { stripe, keyMode } = await getStripeForTenant(supabaseClient, tenant_id);
+  logStep("Stripe client initialised", { keyMode });
+  ```
+  Plaatsing: direct ná de "no Stripe account configured" early-return (na regel 71), vóór de `stripe.accounts.retrieve(...)` op regel 78. Demo-tenants zonder account verlaten de functie nog steeds zonder Stripe-call (efficiency behouden).
+
+### Belangrijke noot: SDK-versie mismatch
+
+De helper importeert `stripe@14.21.0`; deze twee functies gebruikten `stripe@18.5.0`. De helper-versie wordt nu gebruikt. De SDK-API voor `accounts.create`, `accounts.retrieve`, `accountLinks.create`, `balance.retrieve`, `payouts.list` is identiek tussen 14 en 18 — geen breaking changes voor de calls in deze twee bestanden. `apiVersion` blijft `"2025-08-27.basil"`. Geen runtime-impact verwacht.
 
 ### Niet aanraken
-- Geen wijziging in `stripe-connect-webhook`, `create-checkout`, `create-bank-transfer-order`, `create-ai-credits-checkout`, `create-connect-account`, `check-connect-status`, `get-stripe-login-link`, of welke andere bestaande Stripe-functie dan ook.
-- Helper wordt enkel aangemaakt — nog nergens geïmporteerd. Volgende prompts migreren één edge function tegelijk.
-- Geen `supabase/config.toml` aanpassing (shared file, geen function-specific config).
-- Geen Stripe Dashboard webhook-wijziging.
+- Geen wijziging in `_shared/stripe.ts`.
+- Geen wijziging aan de overige 10 Stripe edge functions (`stripe-connect-webhook`, `create-checkout`, `get-stripe-login-link`, `cleanup-connect-accounts`, `merchant-transactions`, etc.) — komen in volgende prompts.
+- Geen wijziging aan request/response shapes, error handling, auth, of CORS.
+- Geen wijziging aan `supabase/config.toml`.
+- Geen Stripe Dashboard / webhook-config aanraken.
 
-### Acceptance check
-1. Bestand `supabase/functions/_shared/stripe.ts` bestaat met de 4 exports + `StripeResolution` interface.
-2. `STRIPE_TEST_SECRET_KEY` zichtbaar in Supabase secrets (waarde verborgen).
-3. VanXcel admin → Merchant Transactions blijft werken (regressie: gebruikt nog steeds `STRIPE_SECRET_KEY` direct).
-4. TypeScript compileert; geen unused-import warnings (helper wordt nog niet gebruikt — dat is OK voor shared bestanden).
-5. Live-tenant checkout en Connect-onboarding flows ongewijzigd.
+### Acceptance
+1. **Live regressie (VanXcel)**: Settings → Payments toont status; "Beheer Stripe" opent live-mode dashboard. Edge logs: `keyMode: 'live'`.
+2. **Sandbox onboarding**: SellQo Sandbox → "Betalingen activeren" → Stripe URL bevat `/test/`. Geen Nomadix BV livemode-clash meer.
+3. **Logs**: `[CREATE-CONNECT-ACCOUNT] Stripe client initialised - {"keyMode":"test"}` voor sandbox; `"live"` voor andere tenants.
+4. Bestaande sandbox-tenant met `stripe_account_id = NULL` (na cleanup-SQL) start frisse onboarding in test-mode.
 
-### Vervolg (out-of-scope, volgende prompts)
-- `create-checkout` migreren naar `getStripeForTenant`.
-- `create-bank-transfer-order` blijft live (geen Stripe-call) — niet relevant.
-- `stripe-connect-webhook` migreren naar `getStripeForAccountId`.
-- `create-connect-account` / `check-connect-status` migreren naar `getStripeForTenant` zodat sandbox-tenant test-Connect-accounts aanmaakt.
-- Tweede webhook endpoint in Stripe test-dashboard registreren met dezelfde URL maar test-mode signing secret (vereist apart `STRIPE_TEST_WEBHOOK_SIGNING_SECRET`-secret).
+### Vervolg (out-of-scope)
+- `stripe-connect-webhook` migreren naar `getStripeForAccountId` + tweede webhook-endpoint met test-mode signing secret.
+- `create-checkout` / `get-stripe-login-link` / `merchant-transactions` migreren naar `getStripeForTenant`.
 
