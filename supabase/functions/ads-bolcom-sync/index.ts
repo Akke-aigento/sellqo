@@ -127,6 +127,15 @@ Deno.serve(async (req) => {
 
     for (const bc of bolCampaigns) {
       try {
+        if (bc.state === "ARCHIVED" || bc.state === "ENDED") {
+          // Defensive cleanup: remove any stale local row
+          await supabase
+            .from("ads_bolcom_campaigns")
+            .delete()
+            .eq("tenant_id", tenantId)
+            .eq("bolcom_campaign_id", String(bc.campaignId));
+          continue;
+        }
         const campaignData = {
           tenant_id: tenantId,
           bolcom_campaign_id: String(bc.campaignId),
