@@ -1,67 +1,57 @@
 
 
-## Verify & redeploy Bol ads edge functions
+## Fix zombie Bol-campagnes in `ads-bolcom-sync`
 
-Operationele taak. Vijf functies zijn aanwezig in de repo met `Deno.serve()` exports. De 404 in productie betekent dat Supabase ze niet heeft gedeployd — waarschijnlijk een gevolg van de recente std-upgrade. Deze taak deployt, verifieert en patcht alleen import-statements indien nodig.
+Eén chirurgische wijziging. Bol's `POST /campaigns/list` retourneert ook `ARCHIVED` en `ENDED` campagnes, waardoor lokaal verwijderde rijen na sync terugkeren. Fix: skip die states en ruim eventuele stale rij defensief op.
 
-### Stap 1: Force redeploy
+### Stap 1: Code-wijziging
 
-Via `supabase--deploy_edge_functions`:
+In `supabase/functions/ads-bolcom-sync/index.ts`, voeg in de `for (const bc of bolCampaigns)` loop (regel 128) als allereerste statement binnen het `try`-block (vóór `const campaignData = {...}` op regel 130) toe:
+
+```ts
+if (bc.state === "ARCHIVED" || bc.state === "ENDED") {
+  // Defensive cleanup: remove any stale local row
+  await supabase
+    .from("ads_bolcom_campaigns")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("bolcom_campaign_id", String(bc.campaignId));
+  continue;
+}
 ```
-["push-bol-campaign", "ads-bolcom-sync", "ads-bolcom-manage", "ads-bolcom-reports", "sync-bol-campaign-status"]
-```
 
-### Stap 2: Health-check via logs
+Geen andere wijzigingen. `statusMap` blijft ongemoeid (de `archived`/`ended` mappings blijven staan voor backwards compat, maar worden niet meer geraakt). Bestaande retry-, rate-limit- en error-handling blijven exact gelijk.
 
-Voor elk van de vijf functies via `supabase--edge_function_logs`. Zoek naar:
-- Lingering `std@0.168.0` imports
-- Module resolution errors op boot
-- Type conflicts uit de std-upgrade
+### Stap 2: Redeploy
 
-Per functie rapport: ✅ boot OK, of ❌ + stack trace.
+`supabase--deploy_edge_functions` met `["ads-bolcom-sync"]`.
 
-Indien een import faalt → grep in de specifieke function (en `supabase/functions/_shared/` indien nodig) op `std@0.168.0`, vervang met `std@0.190.0`, en redeploy alleen die ene functie. Géén andere wijzigingen.
+### Stap 3: Health-check
 
-### Stap 3: No-auth curl-test van `push-bol-campaign`
-
-Via `supabase--curl_edge_functions`: POST zonder Authorization header en zonder body.
-
-Verwacht: HTTP 401 met body `{"error":"Unauthorized"}` — bewijst dat de runtime de function heeft geladen tot aan de auth-check (regel 75-80) zonder DB- of business-logic te raken.
+- `supabase--edge_function_logs` voor `ads-bolcom-sync`: bevestig succesvolle boot, geen import/bundle errors.
+- `supabase--curl_edge_functions`: POST zonder Authorization header → verwacht `HTTP 401` + body `{"error":"Unauthorized"}`.
 
 Interpretatie:
-- 401 + `{"error":"Unauthorized"}` → ✅
-- 404 + `{"error":"Function not found"}` of HTML → ❌ niet deployed
-- 503 / timeout → ❌ bundle error (terug naar Stap 2)
-- Iets anders → rapporteer body letterlijk
-
-### Stap 4: No-auth curl-test van de overige vier
-
-Identieke POST (geen auth, geen body) tegen:
-- `ads-bolcom-sync`
-- `ads-bolcom-manage`
-- `ads-bolcom-reports`
-- `sync-bol-campaign-status`
-
-Alle vier moeten HTTP 401 + `{"error":"Unauthorized"}` teruggeven. Geen sync, geen Bol-API-calls, geen DB-writes.
+- 401 + `{"error":"Unauthorized"}` → ✅ deployed
+- 404 / HTML / 503 / timeout → ❌ rapporteer logs
 
 ### Acceptance
 
-1. Vijf functies retourneren op no-auth POST: HTTP 401 + `{"error":"Unauthorized"}`.
-2. Boot-logs tonen geen import/bundle errors; geen `std@0.168.0` resterend.
-3. Geen business-logic wijzigingen. Import-fixes mogen wél (en ook in `_shared/` indien nodig).
+1. Nieuwe `if`-block staat exact zoals boven, vóór `const campaignData = {...}` in de try.
+2. Geen andere code-wijzigingen in de function.
+3. Function deployed + 401-signaal OK.
 
 ### Niet aanraken
 
-- Geen `supabase/config.toml`-wijzigingen.
+- Geen andere edge functions.
+- Geen frontend hooks (`useBolcomAds`, `useBolcomCampaignDetail`).
 - Geen DB-migraties.
-- Geen frontend-wijzigingen (`useAdCampaigns.ts` etc.).
-- Geen logica binnen `Deno.serve()` na de auth-check.
-- Geen andere functions dan de vijf genoemde.
+- Geen wijziging aan `statusMap` of upsert-logica elders.
 
-### Final report
+### Final report (na uitvoering in default mode)
 
-- Deploy status per functie (5× ✅/❌)
-- Curl-resultaat per functie (5× HTTP-status + body)
-- Gewijzigde imports (file + oud → nieuw), indien van toepassing
-- Slotbevestiging: "Alle vijf functies zijn reachable en retourneren 401 zonder auth"
+- Diff van de gewijzigde regels (voor/na, regels 128-130).
+- Deploy status: ✅/❌
+- Curl result: HTTP-status + body.
+- Slotbevestiging: "ads-bolcom-sync patched, deployed en reachable".
 
