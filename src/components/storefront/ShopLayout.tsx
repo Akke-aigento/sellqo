@@ -48,6 +48,7 @@ function sanitizeCSS(css: string): string {
 }
 import type { ReviewPlatform } from '@/types/reviews-hub';
 import { supabase } from '@/integrations/supabase/client';
+import { SandboxBanner } from '@/components/SandboxBanner';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -68,9 +69,21 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [redirecting, setRedirecting] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
+
+  // Fetch is_demo flag for the active tenant (not in storefront-api payload)
+  useEffect(() => {
+    if (!tenant?.id) return;
+    supabase
+      .from('tenants')
+      .select('is_demo')
+      .eq('id', tenant.id)
+      .maybeSingle()
+      .then(({ data }) => setIsDemo(data?.is_demo === true));
+  }, [tenant?.id]);
 
   // Storefront activity tracking
   const { trackEvent } = useStorefrontTracking({
@@ -275,6 +288,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         ...palette.cssVariables,
       } as React.CSSProperties}
     >
+      {/* Sandbox banner - only for demo tenants */}
+      <SandboxBanner isDemo={isDemo} />
       {/* Announcement Bar Carousel */}
       {showAnnouncement && announcementTexts.length > 0 && (
         <AnnouncementCarousel
