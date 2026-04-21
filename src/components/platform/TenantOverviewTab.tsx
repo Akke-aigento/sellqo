@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard, Unlink, Loader2 } from 'lucide-react';
+import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard, Unlink, Loader2, Copy } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -43,6 +43,7 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
 
   const planName = (subscription?.pricing_plans as { name?: string } | null)?.name || 'Geen plan';
   const tenantData = tenant as {
+    id?: string;
     name?: string;
     slug?: string;
     subscription_status?: string;
@@ -234,6 +235,27 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
           <CardTitle>Tenant Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Tenant ID</p>
+            <div className="flex items-center gap-2">
+              <code className="font-mono text-sm bg-muted px-2 py-1 rounded select-all break-all">
+                {tenantData?.id || tenantId}
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => {
+                  const id = tenantData?.id || tenantId;
+                  navigator.clipboard.writeText(id);
+                  toast.success('Tenant ID gekopieerd');
+                }}
+                aria-label="Kopieer Tenant ID"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Naam</p>
