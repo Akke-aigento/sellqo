@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
+import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getStripeForTenant } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,11 +20,6 @@ serve(async (req) => {
 
   try {
     logStep("Request received");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -68,6 +64,9 @@ serve(async (req) => {
         status: 200,
       });
     }
+
+    const { stripe, keyMode } = await getStripeForTenant(supabaseClient, userRole.tenant_id);
+    logStep("Stripe client initialised", { keyMode });
 
     logStep("Fetching payouts for Stripe account", { accountId: tenant.stripe_account_id });
 
