@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getStripeForTenant } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,12 +19,6 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY is not configured");
-    }
-    logStep("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -68,10 +62,8 @@ serve(async (req) => {
       throw new Error("Tenant has no Stripe account configured");
     }
 
-    // Initialize Stripe
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2023-10-16",
-    });
+    const { stripe, keyMode } = await getStripeForTenant(supabaseClient, tenant_id);
+    logStep("Stripe client initialised", { keyMode });
 
     // Create login link for the Express account
     logStep("Creating login link for account", { accountId: tenantData.stripe_account_id });
