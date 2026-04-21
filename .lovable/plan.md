@@ -1,28 +1,48 @@
 
 
-## Tenant ID zichtbaar maken in Tenant Details
+## Shared Stripe key resolver (`_shared/stripe.ts`)
 
-Op de "Overzicht"-tab van een tenant (`/admin/platform/tenants/:tenantId`) staat momenteel onderaan een "Tenant Details"-blok met Naam, Slug, Status en Laatst bijgewerkt. De UUID ontbreekt — die wil je als platform eigenaar kunnen zien én snel kunnen kopiëren.
+Foundationele toevoeging: één nieuw helper-bestand, één nieuwe Supabase secret. Geen enkele bestaande edge function wordt aangeraakt — zero-risk deploy.
 
-### Wijziging
+### Stap 1: Secret toevoegen
 
-**Bestand**: `src/components/platform/TenantOverviewTab.tsx`
+Via de `add_secret`-flow vraag ik je om de **STRIPE_TEST_SECRET_KEY** in te voeren.
 
-In het "Tenant Details"-grid wordt één extra veld toegevoegd: **Tenant ID**, met de volledige UUID in `font-mono` en een kleine kopieerknop ernaast.
+- Waar te vinden: Stripe Dashboard → toggle linksboven naar **Test mode** → Developers → API keys → "Secret key" (start met `sk_test_…`).
+- Deze secret wordt enkel door de nieuwe helper gelezen; bestaande functies blijven `STRIPE_SECRET_KEY` (live) gebruiken.
 
-- Label: `Tenant ID`
-- Waarde: `tenant.id` in `font-mono text-sm`, selecteerbaar
-- Naast de waarde een ghost-button (icoon `Copy` van lucide-react) die `navigator.clipboard.writeText(tenant.id)` aanroept en een toast toont (`"Tenant ID gekopieerd"`)
-- Plaatsing: bovenaan het Details-blok (boven Naam), zodat het direct opvalt voor admins
+### Stap 2: Nieuw bestand `supabase/functions/_shared/stripe.ts`
+
+Exporteert exact vier functies, conform de prompt:
+
+| Export | Doel |
+|---|---|
+| `getStripeForTenant(supabase, tenantId, apiVersion?)` | Laadt `tenants.is_demo`; demo → test key, anders live key. Bij DB-error → live (met warning). |
+| `getStripeTest(apiVersion?)` | Forceert test key; valt terug op live als `STRIPE_TEST_SECRET_KEY` ontbreekt (met warning). |
+| `getStripeLive(apiVersion?)` | Forceert live key; throwt als `STRIPE_SECRET_KEY` ontbreekt. Voor platform-niveau (SellQo subscriptions, platform-webhooks). |
+| `getStripeForAccountId(accountId, apiVersion?)` | Probeert eerst test key (als geconfigureerd) door `stripe.accounts.retrieve(accountId)` aan te roepen; fall-through naar live bij `resource_missing` / permission error. Voor webhook handlers zonder `tenant_id`. |
+
+Plus `interface StripeResolution { stripe: Stripe; keyMode: 'live' | 'test'; keyUsed: string }`.
+
+Stripe-import: `https://esm.sh/stripe@14.21.0?target=deno`. Default `apiVersion`: `"2025-08-27.basil"`.
 
 ### Niet aanraken
-- Geen wijziging in `usePlatformAdmin` of `useTenantDetail` — `tenant.id` zit al in de payload.
-- Geen wijziging in tenant-lijstpagina (UUID's daar tonen zou de tabel onleesbaar maken; detailpagina is de juiste plek).
-- Geen extra tab of sectie — past binnen bestaande "Tenant Details"-card.
+- Geen wijziging in `stripe-connect-webhook`, `create-checkout`, `create-bank-transfer-order`, `create-ai-credits-checkout`, `create-connect-account`, `check-connect-status`, `get-stripe-login-link`, of welke andere bestaande Stripe-functie dan ook.
+- Helper wordt enkel aangemaakt — nog nergens geïmporteerd. Volgende prompts migreren één edge function tegelijk.
+- Geen `supabase/config.toml` aanpassing (shared file, geen function-specific config).
+- Geen Stripe Dashboard webhook-wijziging.
 
-### Acceptance
-1. Open een tenant detail → Overzicht tab → "Tenant ID" zichtbaar bovenaan Tenant Details met volledige UUID.
-2. Klik op kopieer-icoon → UUID staat op klembord, toast bevestigt.
-3. UUID is selecteerbaar voor handmatig kopiëren.
-4. Werkt identiek voor SellQo Sandbox (`75c80e40-…`), Mancini, VanXcel, en alle overige tenants.
+### Acceptance check
+1. Bestand `supabase/functions/_shared/stripe.ts` bestaat met de 4 exports + `StripeResolution` interface.
+2. `STRIPE_TEST_SECRET_KEY` zichtbaar in Supabase secrets (waarde verborgen).
+3. VanXcel admin → Merchant Transactions blijft werken (regressie: gebruikt nog steeds `STRIPE_SECRET_KEY` direct).
+4. TypeScript compileert; geen unused-import warnings (helper wordt nog niet gebruikt — dat is OK voor shared bestanden).
+5. Live-tenant checkout en Connect-onboarding flows ongewijzigd.
+
+### Vervolg (out-of-scope, volgende prompts)
+- `create-checkout` migreren naar `getStripeForTenant`.
+- `create-bank-transfer-order` blijft live (geen Stripe-call) — niet relevant.
+- `stripe-connect-webhook` migreren naar `getStripeForAccountId`.
+- `create-connect-account` / `check-connect-status` migreren naar `getStripeForTenant` zodat sandbox-tenant test-Connect-accounts aanmaakt.
+- Tweede webhook endpoint in Stripe test-dashboard registreren met dezelfde URL maar test-mode signing secret (vereist apart `STRIPE_TEST_WEBHOOK_SIGNING_SECRET`-secret).
 
