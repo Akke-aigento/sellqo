@@ -137,7 +137,8 @@ serve(async (req) => {
       }
     }
 
-    if (invoice.ubl_url && (invoiceFormat === 'ubl' || invoiceFormat === 'both')) {
+    // Always attach UBL XML if available — required for Odoo / Peppol e-invoice digitalization
+    if (invoice.ubl_url) {
       try {
         logStep("Downloading UBL for attachment", { url: invoice.ubl_url });
         const ublResponse = await fetch(invoice.ubl_url);
@@ -159,7 +160,7 @@ serve(async (req) => {
     if (invoice.pdf_url && (invoiceFormat === 'pdf' || invoiceFormat === 'both')) {
       attachmentsInfo.push(`<a href="${invoice.pdf_url}" style="color: #3b82f6;">Download factuur (PDF)</a>`);
     }
-    if (invoice.ubl_url && (invoiceFormat === 'ubl' || invoiceFormat === 'both')) {
+    if (invoice.ubl_url) {
       attachmentsInfo.push(`<a href="${invoice.ubl_url}" style="color: #3b82f6;">Download factuur (UBL/XML)</a>`);
     }
 
