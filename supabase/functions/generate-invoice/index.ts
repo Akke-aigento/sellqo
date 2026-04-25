@@ -1414,7 +1414,8 @@ serve(async (req) => {
     const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
     const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
     
-    if (invoiceFormat === 'ubl' || invoiceFormat === 'both' || isB2B) {
+    // Always generate UBL for Odoo / Peppol compatibility — attached to every invoice email
+    if (true) {
       logStep("Generating UBL XML for Peppol");
       const ublXml = generateUBL(invoiceData);
       
