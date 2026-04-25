@@ -450,9 +450,10 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("push-bol-campaign error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({
-        error: error.message || "Internal server error",
+        error: message || "Internal server error",
       }),
       {
         status: 500,

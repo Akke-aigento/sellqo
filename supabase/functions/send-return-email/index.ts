@@ -236,7 +236,7 @@ serve(async (req) => {
       .eq('tenant_id', tenantId).maybeSingle();
 
     const settingKey = SETTING_KEY[event as ReturnEmailEvent];
-    if (settings && settings[settingKey] === false) {
+    if (settings && (settings as Record<string, any>)[settingKey] === false) {
       log('Notification disabled', { event });
       return new Response(JSON.stringify({ skipped: true, reason: 'notification disabled' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -294,8 +294,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, email_id: emailData?.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
-    log('Error', { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }),
+    const message = error instanceof Error ? error.message : String(error);
+    log('Error', { message });
+    return new Response(JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

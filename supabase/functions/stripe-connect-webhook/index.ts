@@ -395,7 +395,7 @@ serve(async (req) => {
               stripe_payment_intent_id: session.payment_intent as string,
               stripe_checkout_session_id: session.id,
             })
-            .select("id, order_number").single();
+            .select("id, order_number, total").single();
 
           if (orderCreateError) {
             logStep("Error creating order from cart", { error: orderCreateError.message });
