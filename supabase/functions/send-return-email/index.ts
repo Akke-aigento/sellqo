@@ -294,8 +294,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, email_id: emailData?.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
-    log('Error', { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }),
+    const message = error instanceof Error ? error.message : String(error);
+    log('Error', { message });
+    return new Response(JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
