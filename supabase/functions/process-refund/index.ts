@@ -208,8 +208,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Process refund error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message || "Onbekende fout" }),
+      JSON.stringify({ error: message || "Onbekende fout" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

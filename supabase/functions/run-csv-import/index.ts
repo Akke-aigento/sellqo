@@ -382,7 +382,7 @@ async function linkProductToCategory(
       }
       categoryId = newCat.id;
     }
-    cache.set(cacheKey, categoryId);
+    if (categoryId) cache.set(cacheKey, categoryId);
   }
 
   // Upsert product-category link
