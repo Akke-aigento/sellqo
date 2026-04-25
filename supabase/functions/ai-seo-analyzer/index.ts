@@ -234,8 +234,8 @@ serve(async (req) => {
       const categoryIssues: SEOIssue[] = [];
       let categoryScore = 100;
 
-      const catMetaTitle = category[`meta_title_${lang}`] as string | null;
-      const catMetaDesc = category[`meta_description_${lang}`] as string | null;
+      const catMetaTitle = (category as Record<string, any>)[`meta_title_${lang}`] as string | null;
+      const catMetaDesc = (category as Record<string, any>)[`meta_description_${lang}`] as string | null;
 
       // Check meta title
       if (!catMetaTitle) {
