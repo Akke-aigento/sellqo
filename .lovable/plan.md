@@ -1,65 +1,72 @@
-## UBL XML altijd meesturen voor Odoo-digitalisering
+## Bol.com VVB retry-storm fix — drie bugs
 
-Klein, chirurgisch fix. De UBL XML wordt vandaag al gegenereerd door `generate-invoice` (Peppol BIS 3.0 / UBL 2.1) en de Factur-X CII XML zit zelfs al embedded in de PDF. Het enige wat ontbreekt: `send-invoice-email` hangt de UBL alleen aan als `tenant.invoice_format` op `ubl` of `both` staat — voor de meeste tenants staat die op `pdf`, dus krijgt Odoo geen XML.
+Bevestigd in code + DB: `shipping_labels_status_check` accepteert alleen `pending,created,printed,shipped,delivered,cancelled,error` (dus `'failed'` faalt silent), en er staan momenteel ~20+ `pending`-rijen voor één order (#1137) die eindeloos retryen omdat het Bol-item al verzonden is (404). Plan past exact de drie voorgestelde fixes toe en ruimt de bestaande zombies op.
 
-We zetten de gating uit en sturen UBL altijd mee als die beschikbaar is.
+---
 
-### Wijziging 1 — `supabase/functions/generate-invoice/index.ts`
+### Fix 1 — `supabase/functions/sync-bol-orders/index.ts` (regels 694-744)
 
-UBL altijd genereren (niet meer alleen voor B2B of als format = ubl/both). Eén regel:
+LABEL-PDF-RETRY block volledig vervangen:
 
+- `metadata` toevoegen aan de `.select(...)` van `shipping_labels`.
+- `MAX_LABEL_RETRIES = 5` constante invoeren.
+- Per label `retry_count = Number(meta.retry_count ?? 0)` lezen.
+- Circuit breaker: bij `retry_count >= 5` → update naar `status: 'error'` + `error_message: 'Exceeded 5 retry attempts'` en `continue`.
+- In de fetch-body **`label_id: label.id` meesturen** (de daadwerkelijke fix die retry-mode triggert in `create-bol-vvb-label`).
+- Bij elke mislukte retry (HTTP non-2xx óf throw) `metadata` updaten met `{ ...meta, retry_count: retryCount + 1, last_retry_at: <iso> }`.
+- 1s sleep tussen labels behouden.
+
+### Fix 2 — `supabase/functions/create-bol-vvb-label/index.ts`
+
+**2a. Regel 279** — vervang ongeldige status:
 ```ts
-// regel 1417 — was:
-if (invoiceFormat === 'ubl' || invoiceFormat === 'both' || isB2B) {
-// wordt:
-if (true) { // Always generate UBL for Odoo / Peppol compatibility
+status: "failed",
+```
+door:
+```ts
+status: "error",
+error_message: "Label not found at Bol.com (404) - may have expired",
+```
+(Voldoet nu aan de CHECK constraint, dus de update slaagt en het label valt definitief uit de retry-set.)
+
+**2b. Regels 65-92** — `getBolAccessToken` met retry-wrapper:
+- Loop met `MAX_AUTH_ATTEMPTS = 4`.
+- 4xx → direct throw (geen retry, credentials zijn fout).
+- 5xx of network/timeout → retry met exponentiële backoff `1s → 2s → 4s → 8s` (cap).
+- Behoud bestaande `console.log` over `clientId.substring(0, 8)`.
+- Behoud return-shape (`access_token` string).
+
+### Fix 3 — `supabase/functions/sync-bol-orders/index.ts` (regels 73-105)
+
+`getBolAccessToken` met **dezelfde** retry-wrapper als Fix 2b, maar respecteer de bestaande gecachte-token check bovenaan (return early als `accessToken` + `tokenExpiry` nog geldig zijn). Alleen het netwerk-stuk (token request) wordt in de retry-loop geplaatst.
+
+### Recovery — zombie-labels opruimen
+
+Migration die de huidige stuck rijen direct sluit zodat de eerstvolgende cyclus al schoon is:
+
+```sql
+UPDATE public.shipping_labels
+SET status = 'error',
+    error_message = COALESCE(error_message, 'Cleared by retry-storm recovery (item already shipped or label expired)')
+WHERE provider = 'bol_vvb'
+  AND label_url IS NULL
+  AND (status = 'pending' OR status = 'created')
+  AND created_at < now() - interval '1 hour';
 ```
 
-Resultaat: elke factuur krijgt een `ubl_url` in de DB en in storage.
+(Filter op >1u oud zodat verse, lopende labels niet worden geraakt.)
 
-### Wijziging 2 — `supabase/functions/send-invoice-email/index.ts`
+### Deploy + verificatie
 
-UBL-bijlage en download-link niet meer afhankelijk maken van `invoiceFormat`:
-
-```ts
-// regel 140 — was:
-if (invoice.ubl_url && (invoiceFormat === 'ubl' || invoiceFormat === 'both')) {
-// wordt:
-if (invoice.ubl_url) {
-
-// regel 162 — was:
-if (invoice.ubl_url && (invoiceFormat === 'ubl' || invoiceFormat === 'both')) {
-// wordt:
-if (invoice.ubl_url) {
-```
-
-PDF-gating blijft ongemoeid (PDF werd al altijd meegestuurd). De Factur-X embedded XML in de PDF blijft ook ongemoeid — dat is je tweede laag (CII) voor Odoo 16+.
-
-### Resultaat per email
-
-Elke automatische factuur-mail (klant + CC + BCC boekhouding) krijgt nu:
-- `factuur-2025-001.pdf` — met embedded Factur-X CII XML voor mens + Odoo hybrid
-- `factuur-2025-001.xml` — losse UBL 2.1 / Peppol BIS 3.0 voor Odoo's "Upload e-invoice" digitalisering
-
-Odoo's e-factuur-importer pikt de losse `.xml` automatisch op en boekt de factuur direct in zonder OCR. De PDF blijft als visueel archief.
-
-### Deploy & verificatie
-
-1. Redeploy `generate-invoice` en `send-invoice-email`.
-2. Genereer 1 testfactuur via `auto-invoice-cron` of een handmatige bestelling.
-3. Check in `/admin/invoices` dat de nieuwe factuur een `ubl_url` heeft.
-4. Open de mail in de inbox en bevestig: 2 bijlagen (`.pdf` + `.xml`).
+1. Code-wijzigingen toepassen (Fix 1, 2a, 2b, 3).
+2. Migration uitvoeren voor de cleanup.
+3. `supabase--deploy_edge_functions` voor `sync-bol-orders` en `create-bol-vvb-label`.
+4. `supabase--edge_function_logs` checken voor beide functions: geen 400-storm meer, en bij een transient 500 op `login.bol.com` zie je nu `Retrying token request in 1000ms...` i.p.v. een hard fail.
+5. DB-spotcheck: `SELECT count(*) FROM shipping_labels WHERE provider='bol_vvb' AND status='pending' AND label_url IS NULL` moet 0 zijn (of alleen verse rijen <1u).
 
 ### Niet aanraken
 
-- Geen wijzigingen aan `auto-invoice-cron`, `create-manual-invoice`, `sync-odoo-invoices`.
-- Geen DB-migraties (de `ubl_url`-kolom bestaat al).
-- Geen UI-wijzigingen in `InvoiceAutomationSettings.tsx` — `invoice_format` blijft bestaan voor downstream gebruik (bv. download-knoppen elders), maar bepaalt niet meer of de XML wordt meegestuurd.
-- Geen wijziging aan de Factur-X embedded-XML logica (regels 1139-1141).
-- Geen wijzigingen aan `generateUBL()` of `generateCII()` — XML-formaat blijft Peppol BIS 3.0 / UBL 2.1.
-
-### Final report
-
-- Diff van de 3 gewijzigde regels (1× generate-invoice, 2× send-invoice-email)
-- Deploy status: ✅/❌ per functie
-- Bevestiging: testfactuur heeft 2 bijlagen in mail
+- Geen andere edge functions.
+- Geen frontend hooks of UI.
+- Geen wijziging aan de CHECK constraint zelf (we conformeren ons aan het bestaande schema).
+- Geen wijziging aan de happy-path label-creatie of `confirm-bol-shipment`.
