@@ -83,25 +83,53 @@ async function getBolAccessToken(credentials: BolCredentials): Promise<string> {
 
   // Get a new token using client credentials
   const authString = btoa(`${clientId}:${clientSecret}`)
-  
-  const response = await fetch(BOL_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${authString}`,
-      'Accept': 'application/json'
-    },
-    body: 'grant_type=client_credentials'
-  })
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Token request failed:', errorText)
-    throw new Error(`Token request failed: ${response.statusText}`)
+  // Retry on transient 5xx / network errors with exponential backoff.
+  // Bol's login.bol.com sits behind Akamai which intermittently returns 500s.
+  const MAX_AUTH_ATTEMPTS = 4
+  let lastError = ''
+
+  for (let attempt = 1; attempt <= MAX_AUTH_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(BOL_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${authString}`,
+          'Accept': 'application/json'
+        },
+        body: 'grant_type=client_credentials'
+      })
+
+      if (response.ok) {
+        const tokenData = await response.json()
+        if (attempt > 1) console.log(`Got Bol.com access token on attempt ${attempt}`)
+        return tokenData.access_token
+      }
+
+      // 4xx: don't retry (credentials are wrong or request is bad)
+      if (response.status >= 400 && response.status < 500) {
+        const errorText = await response.text()
+        console.error(`Token request failed (non-retryable ${response.status}):`, errorText)
+        throw new Error(`Token request failed: ${response.status} - ${errorText}`)
+      }
+
+      // 5xx: retry
+      lastError = `${response.status} - ${(await response.text()).slice(0, 200)}`
+      console.warn(`Token request failed attempt ${attempt}/${MAX_AUTH_ATTEMPTS}: ${lastError}`)
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err)
+      console.warn(`Token request error attempt ${attempt}/${MAX_AUTH_ATTEMPTS}:`, lastError)
+    }
+
+    if (attempt < MAX_AUTH_ATTEMPTS) {
+      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 8000)
+      console.log(`Retrying token request in ${backoffMs}ms...`)
+      await new Promise((resolve) => setTimeout(resolve, backoffMs))
+    }
   }
 
-  const tokenData = await response.json()
-  return tokenData.access_token
+  throw new Error(`Failed to get Bol.com access token after ${MAX_AUTH_ATTEMPTS} attempts: ${lastError}`)
 }
 
 function mapBolOrderStatus(orderItems: BolOrderItem[]): string {
@@ -692,26 +720,45 @@ Deno.serve(async (req) => {
         }
 
         // === LABEL-PDF-RETRY: Retry labels that exist but have no PDF ===
+        // Circuit breaker: skip labels that have been retried >= MAX_LABEL_RETRIES times.
+        // Retry counter lives in shipping_labels.metadata.retry_count.
+        const MAX_LABEL_RETRIES = 5
         if (vvbEnabled) {
           try {
             console.log(`[LABEL-PDF-RETRY] Checking for labels without PDF (connection: ${connection.id})...`)
 
             const { data: incompleteLabelOrders } = await supabase
               .from('shipping_labels')
-              .select('id, order_id, external_id, status, orders!inner(marketplace_order_id, order_number, tenant_id)')
+              .select('id, order_id, external_id, status, metadata, orders!inner(marketplace_order_id, order_number, tenant_id)')
               .or('status.eq.pending,and(status.eq.created,label_url.is.null)')
               .eq('provider', 'bol_vvb')
               .not('external_id', 'is', null)
 
             if (incompleteLabelOrders && incompleteLabelOrders.length > 0) {
-              console.log(`[LABEL-PDF-RETRY] Found ${incompleteLabelOrders.length} labels without PDF`)
+              console.log(`[LABEL-PDF-RETRY] Found ${incompleteLabelOrders.length} candidate labels`)
               const supabaseUrl = Deno.env.get('SUPABASE_URL')!
               const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
               for (const label of incompleteLabelOrders) {
                 const orderData = label.orders as unknown as { marketplace_order_id: string; order_number: string; tenant_id: string }
+                const meta = (label.metadata as Record<string, unknown>) || {}
+                const retryCount = Number(meta.retry_count ?? 0)
+
+                // Circuit breaker
+                if (retryCount >= MAX_LABEL_RETRIES) {
+                  console.warn(`[LABEL-PDF-RETRY] Label ${label.id} (${orderData.order_number}) has ${retryCount} failed retries, marking as error`)
+                  await supabase
+                    .from('shipping_labels')
+                    .update({
+                      status: 'error',
+                      error_message: `Exceeded ${MAX_LABEL_RETRIES} retry attempts`,
+                    })
+                    .eq('id', label.id)
+                  continue
+                }
+
                 try {
-                  console.log(`[LABEL-PDF-RETRY] Retrying PDF fetch for label ${label.id} (order ${orderData.order_number})...`)
+                  console.log(`[LABEL-PDF-RETRY] Retrying PDF fetch for label ${label.id} (order ${orderData.order_number}, attempt ${retryCount + 1}/${MAX_LABEL_RETRIES})...`)
                   const retryRes = await fetch(`${supabaseUrl}/functions/v1/create-bol-vvb-label`, {
                     method: 'POST',
                     headers: {
@@ -720,6 +767,7 @@ Deno.serve(async (req) => {
                     },
                     body: JSON.stringify({
                       order_id: label.order_id,
+                      label_id: label.id,
                       carrier: (settings.vvbDefaultCarrier as string) || 'POSTNL',
                       retry: true,
                     }),
@@ -729,9 +777,21 @@ Deno.serve(async (req) => {
                     console.log(`[LABEL-PDF-RETRY] PDF fetched for ${orderData.order_number}: ${retryBody}`)
                   } else {
                     console.error(`[LABEL-PDF-RETRY] Failed for ${orderData.order_number}: ${retryRes.status} ${retryBody}`)
+                    await supabase
+                      .from('shipping_labels')
+                      .update({
+                        metadata: { ...meta, retry_count: retryCount + 1, last_retry_at: new Date().toISOString() },
+                      })
+                      .eq('id', label.id)
                   }
                 } catch (retryErr) {
                   console.error(`[LABEL-PDF-RETRY] Error for ${orderData.order_number}:`, retryErr)
+                  await supabase
+                    .from('shipping_labels')
+                    .update({
+                      metadata: { ...meta, retry_count: retryCount + 1, last_retry_at: new Date().toISOString() },
+                    })
+                    .eq('id', label.id)
                 }
                 await new Promise(r => setTimeout(r, 1000))
               }
