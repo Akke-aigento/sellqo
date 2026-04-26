@@ -66,29 +66,57 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
   const authString = btoa(`${credentials.clientId}:${credentials.clientSecret}`);
   console.log("Requesting Bol.com access token, clientId starts with:", credentials.clientId.substring(0, 8) + "...");
 
-  const response = await fetchWithTimeout(
-    "https://login.bol.com/token",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-        Authorization: `Basic ${authString}`,
-      },
-      body: "grant_type=client_credentials",
-    },
-    15000,
-  );
+  // Retry on transient 5xx / network errors with exponential backoff.
+  // Bol's login.bol.com sits behind Akamai which intermittently returns 500s.
+  const MAX_AUTH_ATTEMPTS = 4;
+  let lastError = "";
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error("Token request failed:", response.status, error);
-    throw new Error(`Failed to get Bol.com access token: ${response.status} - ${error}`);
+  for (let attempt = 1; attempt <= MAX_AUTH_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetchWithTimeout(
+        "https://login.bol.com/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+            Authorization: `Basic ${authString}`,
+          },
+          body: "grant_type=client_credentials",
+        },
+        15000,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Got Bol.com access token on attempt ${attempt}, expires in:`, data.expires_in);
+        return data.access_token;
+      }
+
+      // 4xx: don't retry (credentials are wrong or request is bad)
+      if (response.status >= 400 && response.status < 500) {
+        const error = await response.text();
+        console.error(`Token request failed (non-retryable ${response.status}):`, error);
+        throw new Error(`Failed to get Bol.com access token: ${response.status} - ${error}`);
+      }
+
+      // 5xx: retry
+      lastError = `${response.status} - ${(await response.text()).slice(0, 200)}`;
+      console.warn(`Token request failed attempt ${attempt}/${MAX_AUTH_ATTEMPTS}: ${lastError}`);
+    } catch (err) {
+      // Network errors / timeouts: retry
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn(`Token request error attempt ${attempt}/${MAX_AUTH_ATTEMPTS}:`, lastError);
+    }
+
+    if (attempt < MAX_AUTH_ATTEMPTS) {
+      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 8000); // 1s, 2s, 4s, 8s cap
+      console.log(`Retrying token request in ${backoffMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    }
   }
 
-  const data = await response.json();
-  console.log("Got Bol.com access token, expires in:", data.expires_in);
-  return data.access_token;
+  throw new Error(`Failed to get Bol.com access token after ${MAX_AUTH_ATTEMPTS} attempts: ${lastError}`);
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -276,7 +304,8 @@ const handler = async (req: Request): Promise<Response> => {
           await supabase
             .from("shipping_labels")
             .update({
-              status: "failed",
+              status: "error",
+              error_message: "Label not found at Bol.com (404) - may have expired",
             })
             .eq("id", label_id);
 
