@@ -727,6 +727,27 @@ Deno.serve(async (req) => {
           try {
             console.log(`[LABEL-PDF-RETRY] Checking for labels without PDF (connection: ${connection.id})...`)
 
+            // Defense: ALSO check for orders with multiple active labels (shouldn't
+            // exist after the unique index, but log loudly if it ever does).
+            const { data: dupCheck } = await supabase
+              .from('shipping_labels')
+              .select('order_id')
+              .eq('provider', 'bol_vvb')
+              .not('status', 'in', '("error","cancelled")')
+
+            if (dupCheck && dupCheck.length > 0) {
+              const counts = new Map<string, number>()
+              for (const row of dupCheck) {
+                counts.set(row.order_id, (counts.get(row.order_id) || 0) + 1)
+              }
+              const dups = [...counts.entries()].filter(([, c]) => c > 1)
+              if (dups.length > 0) {
+                console.error(
+                  `[CRITICAL] Detected ${dups.length} order(s) with multiple active VVB labels — DB constraint may have been bypassed: ${dups.map(([oid, c]) => `${oid}=${c}`).join(', ')}`,
+                )
+              }
+            }
+
             const { data: incompleteLabelOrders } = await supabase
               .from('shipping_labels')
               .select('id, order_id, external_id, status, metadata, orders!inner(marketplace_order_id, order_number, tenant_id)')
