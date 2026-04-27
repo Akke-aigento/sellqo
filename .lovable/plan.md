@@ -1,72 +1,69 @@
-## Bol.com VVB retry-storm fix — drie bugs
+## Hard Stop: maximaal 1 actief Bol VVB label per order
 
-Bevestigd in code + DB: `shipping_labels_status_check` accepteert alleen `pending,created,printed,shipped,delivered,cancelled,error` (dus `'failed'` faalt silent), en er staan momenteel ~20+ `pending`-rijen voor één order (#1137) die eindeloos retryen omdat het Bol-item al verzonden is (404). Plan past exact de drie voorgestelde fixes toe en ruimt de bestaande zombies op.
+### Waarom
 
----
+Order #1137 heeft op dit moment **200 shipping_labels rijen** in de DB, #1136 heeft er 91, en #1120 heeft zelfs nu nog **3 actieve** labels. De vorige retry-storm fix heeft de retry-loop wel gestopt, maar de schade is gedaan en er bestaat geen structurele garantie dat dit niet weer kan gebeuren als er ergens een nieuwe bug binnensluipt. We bouwen 3 onafhankelijke verdedigingslagen.
 
-### Fix 1 — `supabase/functions/sync-bol-orders/index.ts` (regels 694-744)
+### Layer 1 — DB partial unique index (de echte hard stop)
 
-LABEL-PDF-RETRY block volledig vervangen:
+Nieuwe migratie `prevent_duplicate_bol_vvb_labels.sql`:
 
-- `metadata` toevoegen aan de `.select(...)` van `shipping_labels`.
-- `MAX_LABEL_RETRIES = 5` constante invoeren.
-- Per label `retry_count = Number(meta.retry_count ?? 0)` lezen.
-- Circuit breaker: bij `retry_count >= 5` → update naar `status: 'error'` + `error_message: 'Exceeded 5 retry attempts'` en `continue`.
-- In de fetch-body **`label_id: label.id` meesturen** (de daadwerkelijke fix die retry-mode triggert in `create-bol-vvb-label`).
-- Bij elke mislukte retry (HTTP non-2xx óf throw) `metadata` updaten met `{ ...meta, retry_count: retryCount + 1, last_retry_at: <iso> }`.
-- 1s sleep tussen labels behouden.
+1. **Pre-cleanup zombies**: rijen met `provider='bol_vvb'`, `label_url IS NULL`, `status IN (pending,created)`, ouder dan 1u → status `error`. (Vorige cleanup pakte deze al, maar idempotent herhalen voor de zekerheid.)
+2. **Dedup actieve rijen**: per `order_id` alleen de nieuwste actieve (= status NOT IN error/cancelled) houden, oudere actieven worden `error` met `error_message` aangevuld. Dit pakt #1120 (3 actieve) en eventuele andere achterblijvers.
+3. **Partial unique index** `uniq_active_bol_vvb_label_per_order` op `(order_id) WHERE provider='bol_vvb' AND status NOT IN ('error','cancelled')`. Postgres weigert nu fysiek élke INSERT die een 2e actief label per order zou opleveren. Audit trail van failed pogingen blijft behouden.
+4. **Helper-index** `idx_shipping_labels_order_provider_status` op `(order_id, provider, status)` voor de idempotency lookup in Layer 2.
+5. COMMENT op de unique index met context.
 
-### Fix 2 — `supabase/functions/create-bol-vvb-label/index.ts`
+### Layer 2 — Idempotency guard in `create-bol-vvb-label`
 
-**2a. Regel 279** — vervang ongeldige status:
-```ts
-status: "failed",
-```
-door:
-```ts
-status: "error",
-error_message: "Label not found at Bol.com (404) - may have expired",
-```
-(Voldoet nu aan de CHECK constraint, dus de update slaagt en het label valt definitief uit de retry-set.)
+Net vóór het block dat naar Bol's delivery-options/create-label endpoints gaat (rond regel 446-450), twee aanpassingen:
 
-**2b. Regels 65-92** — `getBolAccessToken` met retry-wrapper:
-- Loop met `MAX_AUTH_ATTEMPTS = 4`.
-- 4xx → direct throw (geen retry, credentials zijn fout).
-- 5xx of network/timeout → retry met exponentiële backoff `1s → 2s → 4s → 8s` (cap).
-- Behoud bestaande `console.log` over `clientId.substring(0, 8)`.
-- Behoud return-shape (`access_token` string).
+**2a. `force_new` mode niet meer hard deleten** maar markeren als `status='error'` met `error_message='Replaced by force_new request'`. Reden: de nieuwe unique index staat geen 2e actief label toe, dus de oude moet eerst non-actief worden i.p.v. weggegooid. Audit trail blijft ook beter.
 
-### Fix 3 — `supabase/functions/sync-bol-orders/index.ts` (regels 73-105)
+**2b. Idempotency lookup vóór nieuwe label-creatie**: query `shipping_labels` op `order_id + provider='bol_vvb' + status NOT IN (error,cancelled)`. Als er al een actief label bestaat → return **HTTP 409** met de bestaande label-info en een hint (`Pass retry: true … or force_new: true …`). Geen Bol API call, geen kosten. De bestaande retry-mode (regel ~270 e.v.) draait al vóór dit blok en blijft ongewijzigd.
 
-`getBolAccessToken` met **dezelfde** retry-wrapper als Fix 2b, maar respecteer de bestaande gecachte-token check bovenaan (return early als `accessToken` + `tokenExpiry` nog geldig zijn). Alleen het netwerk-stuk (token request) wordt in de retry-loop geplaatst.
+### Layer 3 — Defensive monitoring in `sync-bol-orders`
 
-### Recovery — zombie-labels opruimen
+In de LABEL-PDF-RETRY sectie (rond regel 730), vlak vóór de bestaande `incompleteLabelOrders` query, een lichte scan toevoegen: tel actieve labels per order. Als één order ≥2 actieve labels heeft → `console.error('[CRITICAL] Detected N order(s) with multiple active VVB labels — DB constraint may have been bypassed: ...')`. Met de unique index uit Layer 1 zou dit nooit mogen triggeren, maar service-role + raw SQL kunnen het in theorie wel omzeilen. Vroege waarschuwing in monitoring zonder dat de business-flow geraakt wordt.
 
-Migration die de huidige stuck rijen direct sluit zodat de eerstvolgende cyclus al schoon is:
+### Deploy-volgorde
+
+1. Code-patches Layer 2 + Layer 3 toepassen.
+2. `supabase--deploy_edge_functions` voor `create-bol-vvb-label` en `sync-bol-orders`.
+3. Migratie van Layer 1 uitvoeren (pre-cleanup + dedup + index).
+
+Reden voor deze volgorde: als de constraint vóór de idempotency guard live gaat, kan een lopende sync-cyclus rauwe `unique_violation` errors uitspuwen tussen migratie en deploy. Andersom worden 2e-pogingen netjes met 409 afgevangen vóór de DB constraint überhaupt nodig is.
+
+### Verificatie na deploy
 
 ```sql
-UPDATE public.shipping_labels
-SET status = 'error',
-    error_message = COALESCE(error_message, 'Cleared by retry-storm recovery (item already shipped or label expired)')
-WHERE provider = 'bol_vvb'
-  AND label_url IS NULL
-  AND (status = 'pending' OR status = 'created')
-  AND created_at < now() - interval '1 hour';
+-- Per order maximaal 1 actief label
+SELECT o.order_number,
+       COUNT(*) FILTER (WHERE sl.status NOT IN ('error','cancelled')) AS active_labels,
+       COUNT(*) AS total_labels
+FROM orders o
+LEFT JOIN shipping_labels sl ON sl.order_id = o.id AND sl.provider = 'bol_vvb'
+WHERE o.marketplace_source = 'bol_com'
+GROUP BY o.order_number
+HAVING COUNT(*) > 0
+ORDER BY active_labels DESC, total_labels DESC
+LIMIT 50;
+
+-- Index moet bestaan
+SELECT indexname FROM pg_indexes
+WHERE tablename = 'shipping_labels'
+  AND indexname = 'uniq_active_bol_vvb_label_per_order';
 ```
 
-(Filter op >1u oud zodat verse, lopende labels niet worden geraakt.)
+Verwachte uitkomst: `active_labels` is voor élke order 0 of 1; index-query geeft 1 rij.
 
-### Deploy + verificatie
+### Niet aangeraakt
 
-1. Code-wijzigingen toepassen (Fix 1, 2a, 2b, 3).
-2. Migration uitvoeren voor de cleanup.
-3. `supabase--deploy_edge_functions` voor `sync-bol-orders` en `create-bol-vvb-label`.
-4. `supabase--edge_function_logs` checken voor beide functions: geen 400-storm meer, en bij een transient 500 op `login.bol.com` zie je nu `Retrying token request in 1000ms...` i.p.v. een hard fail.
-5. DB-spotcheck: `SELECT count(*) FROM shipping_labels WHERE provider='bol_vvb' AND status='pending' AND label_url IS NULL` moet 0 zijn (of alleen verse rijen <1u).
+- Geen wijziging aan de happy-path label-creatie of bestaande retry-mode.
+- Geen wijziging aan `confirm-bol-shipment` of andere edge functions.
+- Geen wijziging aan de `shipping_labels_status_check` constraint zelf.
+- Geen frontend wijzigingen.
 
-### Niet aanraken
+### Wat dit NIET dekt (ter info, geen actie)
 
-- Geen andere edge functions.
-- Geen frontend hooks of UI.
-- Geen wijziging aan de CHECK constraint zelf (we conformeren ons aan het bestaande schema).
-- Geen wijziging aan de happy-path label-creatie of `confirm-bol-shipment`.
+De ~€300 aan reeds verloren label-kosten bij Bol kun je niet via code terughalen — dat vraagt contact met Bol partner support voor een eventuele duplicate-refund op factuur C00042CX12 (#1137).

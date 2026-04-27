@@ -443,10 +443,57 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ===== FORCE NEW: Delete stuck label and create fresh =====
+    // ===== FORCE NEW: Mark stuck label as error and create fresh =====
+    // NOTE: we now mark as 'error' instead of deleting, to preserve audit trail
+    // and to satisfy the partial unique index on active labels.
     if (force_new && label_id) {
-      console.log(`Force new mode: deleting stuck label ${label_id}`);
-      await supabase.from("shipping_labels").delete().eq("id", label_id);
+      console.log(`Force new mode: marking stuck label ${label_id} as error`);
+      await supabase
+        .from("shipping_labels")
+        .update({
+          status: "error",
+          error_message: "Replaced by force_new request",
+        })
+        .eq("id", label_id);
+    }
+
+    // ===== IDEMPOTENCY GUARD =====
+    // Refuse to create a new label if this order already has an active
+    // (non-error, non-cancelled) Bol VVB label. This is the application-layer
+    // backstop — the DB constraint (uniq_active_bol_vvb_label_per_order) is
+    // the actual hard stop, but this gives a cleaner 409 response than a
+    // raw constraint violation.
+    {
+      const { data: existingActiveLabels, error: lookupError } = await supabase
+        .from("shipping_labels")
+        .select("id, external_id, label_url, status, created_at")
+        .eq("order_id", order_id)
+        .eq("provider", "bol_vvb")
+        .not("status", "in", '("error","cancelled")')
+        .order("created_at", { ascending: false });
+
+      if (lookupError) {
+        console.error("Idempotency lookup failed:", lookupError);
+      } else if (existingActiveLabels && existingActiveLabels.length > 0) {
+        const existing = existingActiveLabels[0];
+        console.warn(
+          `[IDEMPOTENCY] Order ${order.order_number} already has an active VVB label (id: ${existing.id}, status: ${existing.status}). Refusing to create new.`,
+        );
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Order already has an active VVB label",
+            existing_label: existing,
+            hint: existing.label_url
+              ? "Label already complete — re-use existing"
+              : "Pass retry: true and label_id to retry PDF fetch, or force_new: true to recreate",
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     // ===== AUTO-ACCEPT: Mark order as accepted if not yet =====
