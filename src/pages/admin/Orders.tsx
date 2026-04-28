@@ -255,13 +255,13 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <div className="font-medium truncate">{order.customer_name || '-'}</div>
         <div className="text-sm text-muted-foreground truncate">{order.customer_email}</div>
       </TableCell>
-      <TableCell className="hidden lg:table-cell" onClick={onView}>
+      <TableCell className="hidden xl:table-cell" onClick={onView}>
         <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      <TableCell className="hidden md:table-cell" onClick={onView}>
+      <TableCell className="hidden lg:table-cell" onClick={onView}>
         <div className="flex flex-col gap-1">
           <PaymentStatusBadge status={order.payment_status} />
           {order.payment_status === 'pending' && order.expires_at && (
@@ -278,7 +278,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
       <TableCell className="text-right font-medium" onClick={onView}>
         {formatCurrency(Number(order.total))}
       </TableCell>
-      <TableCell className="hidden sm:table-cell text-muted-foreground" onClick={onView}>
+      <TableCell className="hidden xl:table-cell text-muted-foreground" onClick={onView}>
         {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
