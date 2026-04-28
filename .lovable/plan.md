@@ -1,69 +1,55 @@
-## Hard Stop: maximaal 1 actief Bol VVB label per order
+# Fix: "Bekijk bestelling" link in notificatie-emails werkt niet
 
-### Waarom
+## Probleem
 
-Order #1137 heeft op dit moment **200 shipping_labels rijen** in de DB, #1136 heeft er 91, en #1120 heeft zelfs nu nog **3 actieve** labels. De vorige retry-storm fix heeft de retry-loop wel gestopt, maar de schade is gedaan en er bestaat geen structurele garantie dat dit niet weer kan gebeuren als er ergens een nieuwe bug binnensluipt. We bouwen 3 onafhankelijke verdedigingslagen.
+De `action_url` in de `notifications` tabel is opgeslagen als **relatief pad**, bijv:
+- `/admin/orders/13eec77c-7b7f-4624-bda4-7a4413d1fbee`
+- `/admin/invoices?invoice=5377c52b-...`
 
-### Layer 1 — DB partial unique index (de echte hard stop)
+In de in-app notificaties werkt dat prima (React Router navigeert intern), maar in de email wordt het direct in `<a href="/admin/orders/...">` gezet. Email-clients (Gmail, Outlook) hebben geen base URL, dus de link doet niets / opent een ongeldige URL.
 
-Nieuwe migratie `prevent_duplicate_bol_vvb_labels.sql`:
+## Oplossing
 
-1. **Pre-cleanup zombies**: rijen met `provider='bol_vvb'`, `label_url IS NULL`, `status IN (pending,created)`, ouder dan 1u → status `error`. (Vorige cleanup pakte deze al, maar idempotent herhalen voor de zekerheid.)
-2. **Dedup actieve rijen**: per `order_id` alleen de nieuwste actieve (= status NOT IN error/cancelled) houden, oudere actieven worden `error` met `error_message` aangevuld. Dit pakt #1120 (3 actieve) en eventuele andere achterblijvers.
-3. **Partial unique index** `uniq_active_bol_vvb_label_per_order` op `(order_id) WHERE provider='bol_vvb' AND status NOT IN ('error','cancelled')`. Postgres weigert nu fysiek élke INSERT die een 2e actief label per order zou opleveren. Audit trail van failed pogingen blijft behouden.
-4. **Helper-index** `idx_shipping_labels_order_provider_status` op `(order_id, provider, status)` voor de idempotency lookup in Layer 2.
-5. COMMENT op de unique index met context.
+In `supabase/functions/create-notification/index.ts` het relatieve pad omzetten naar een absolute URL voordat het in de email-HTML wordt geplaatst.
 
-### Layer 2 — Idempotency guard in `create-bol-vvb-label`
+### Logica voor base URL bepaling
 
-Net vóór het block dat naar Bol's delivery-options/create-label endpoints gaat (rond regel 446-450), twee aanpassingen:
+1. Probeer eerst een env var `ADMIN_BASE_URL` (zodat we per omgeving kunnen overrulen)
+2. Fallback naar `https://sellqo.app` (productie admin)
+3. Als `action_url` al begint met `http://` of `https://` → laat ongemoeid (al absoluut)
+4. Als het begint met `/` → prefix met base URL
+5. Anders → prefix met base URL + `/`
 
-**2a. `force_new` mode niet meer hard deleten** maar markeren als `status='error'` met `error_message='Replaced by force_new request'`. Reden: de nieuwe unique index staat geen 2e actief label toe, dus de oude moet eerst non-actief worden i.p.v. weggegooid. Audit trail blijft ook beter.
+### Concrete wijziging
 
-**2b. Idempotency lookup vóór nieuwe label-creatie**: query `shipping_labels` op `order_id + provider='bol_vvb' + status NOT IN (error,cancelled)`. Als er al een actief label bestaat → return **HTTP 409** met de bestaande label-info en een hint (`Pass retry: true … or force_new: true …`). Geen Bol API call, geen kosten. De bestaande retry-mode (regel ~270 e.v.) draait al vóór dit blok en blijft ongewijzigd.
-
-### Layer 3 — Defensive monitoring in `sync-bol-orders`
-
-In de LABEL-PDF-RETRY sectie (rond regel 730), vlak vóór de bestaande `incompleteLabelOrders` query, een lichte scan toevoegen: tel actieve labels per order. Als één order ≥2 actieve labels heeft → `console.error('[CRITICAL] Detected N order(s) with multiple active VVB labels — DB constraint may have been bypassed: ...')`. Met de unique index uit Layer 1 zou dit nooit mogen triggeren, maar service-role + raw SQL kunnen het in theorie wel omzeilen. Vroege waarschuwing in monitoring zonder dat de business-flow geraakt wordt.
-
-### Deploy-volgorde
-
-1. Code-patches Layer 2 + Layer 3 toepassen.
-2. `supabase--deploy_edge_functions` voor `create-bol-vvb-label` en `sync-bol-orders`.
-3. Migratie van Layer 1 uitvoeren (pre-cleanup + dedup + index).
-
-Reden voor deze volgorde: als de constraint vóór de idempotency guard live gaat, kan een lopende sync-cyclus rauwe `unique_violation` errors uitspuwen tussen migratie en deploy. Andersom worden 2e-pogingen netjes met 409 afgevangen vóór de DB constraint überhaupt nodig is.
-
-### Verificatie na deploy
-
-```sql
--- Per order maximaal 1 actief label
-SELECT o.order_number,
-       COUNT(*) FILTER (WHERE sl.status NOT IN ('error','cancelled')) AS active_labels,
-       COUNT(*) AS total_labels
-FROM orders o
-LEFT JOIN shipping_labels sl ON sl.order_id = o.id AND sl.provider = 'bol_vvb'
-WHERE o.marketplace_source = 'bol_com'
-GROUP BY o.order_number
-HAVING COUNT(*) > 0
-ORDER BY active_labels DESC, total_labels DESC
-LIMIT 50;
-
--- Index moet bestaan
-SELECT indexname FROM pg_indexes
-WHERE tablename = 'shipping_labels'
-  AND indexname = 'uniq_active_bol_vvb_label_per_order';
+In de email-HTML template, vervang:
+```js
+<a href="${notification.action_url}" ...>
 ```
 
-Verwachte uitkomst: `active_labels` is voor élke order 0 of 1; index-query geeft 1 rij.
+Door een vooraf berekende `fullActionUrl`:
+```js
+const ADMIN_BASE_URL = Deno.env.get('ADMIN_BASE_URL') || 'https://sellqo.app';
+const fullActionUrl = notification.action_url
+  ? (notification.action_url.startsWith('http')
+      ? notification.action_url
+      : `${ADMIN_BASE_URL}${notification.action_url.startsWith('/') ? '' : '/'}${notification.action_url}`)
+  : null;
+```
 
-### Niet aangeraakt
+En dan in de HTML `${fullActionUrl}` gebruiken in plaats van `${notification.action_url}`.
 
-- Geen wijziging aan de happy-path label-creatie of bestaande retry-mode.
-- Geen wijziging aan `confirm-bol-shipment` of andere edge functions.
-- Geen wijziging aan de `shipping_labels_status_check` constraint zelf.
-- Geen frontend wijzigingen.
+## Wat NIET wijzigt
 
-### Wat dit NIET dekt (ter info, geen actie)
+- De `notifications.action_url` kolom blijft relatieve paden opslaan (in-app navigatie blijft werken zoals nu).
+- Andere callers die `action_url` zetten (`stripe-connect-webhook`, `storefront-api`, `sync-bol-orders`, `check-scheduled-notifications`, etc.) hoeven niets aan te passen.
+- Alleen de email-rendering in `create-notification` wordt gefixt.
 
-De ~€300 aan reeds verloren label-kosten bij Bol kun je niet via code terughalen — dat vraagt contact met Bol partner support voor een eventuele duplicate-refund op factuur C00042CX12 (#1137).
+## Bestanden
+
+- `supabase/functions/create-notification/index.ts` — base URL prefix logica toevoegen + email HTML aanpassen
+- Deploy de edge function
+
+## Test
+
+Na deploy: trigger een nieuwe order-notificatie (of stuur een test door met `notification_email`) en controleer dat de "Bekijk details →" link in de mail nu naar `https://sellqo.app/admin/orders/...` gaat en de juiste pagina opent.

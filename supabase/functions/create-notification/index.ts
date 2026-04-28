@@ -109,6 +109,16 @@ serve(async (req: Request): Promise<Response> => {
         const tenantName = tenant?.name || 'Sellqo';
         const logoUrl = tenant?.logo_url;
 
+        // Convert relative action_url (e.g. "/admin/orders/abc") to absolute URL for email links.
+        // In-app navigation uses relative paths, but email clients need absolute URLs.
+        const ADMIN_BASE_URL = (Deno.env.get('ADMIN_BASE_URL') || 'https://sellqo.app').replace(/\/$/, '');
+        const rawActionUrl = notification.action_url;
+        const fullActionUrl = rawActionUrl
+          ? (/^https?:\/\//i.test(rawActionUrl)
+              ? rawActionUrl
+              : `${ADMIN_BASE_URL}${rawActionUrl.startsWith('/') ? '' : '/'}${rawActionUrl}`)
+          : null;
+
         const htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -140,8 +150,8 @@ serve(async (req: Request): Promise<Response> => {
                       ${notification.message}
                     </p>
                     
-                    ${notification.action_url ? `
-                      <a href="${notification.action_url}" style="display: inline-block; background-color: ${primaryColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+                    ${fullActionUrl ? `
+                      <a href="${fullActionUrl}" style="display: inline-block; background-color: ${primaryColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
                         Bekijk details →
                       </a>
                     ` : ''}
