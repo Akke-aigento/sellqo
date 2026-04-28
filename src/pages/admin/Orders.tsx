@@ -115,7 +115,7 @@ export default function OrdersPage() {
       />
 
       {/* Orders Table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
@@ -158,7 +158,7 @@ export default function OrdersPage() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="overflow-x-auto w-full -mx-4 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -172,11 +172,11 @@ export default function OrdersPage() {
                   </TableHead>
                   <TableHead>Bestelling</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
+                  <TableHead className="hidden xl:table-cell">Bron</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Betaling</TableHead>
+                  <TableHead className="hidden lg:table-cell">Betaling</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
+                  <TableHead className="hidden xl:table-cell">Datum</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
