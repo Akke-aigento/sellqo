@@ -1,55 +1,39 @@
-# Fix: "Bekijk bestelling" link in notificatie-emails werkt niet
-
 ## Probleem
 
-De `action_url` in de `notifications` tabel is opgeslagen als **relatief pad**, bijv:
-- `/admin/orders/13eec77c-7b7f-4624-bda4-7a4413d1fbee`
-- `/admin/invoices?invoice=5377c52b-...`
+Op de `/admin/orders` pagina wordt de tabel rechts afgesneden bij viewports rond 768–1100px (tablet). De "Datum"-kolom toont alleen "D..." en de acties-knop (⋮) is niet bereikbaar.
 
-In de in-app notificaties werkt dat prima (React Router navigeert intern), maar in de email wordt het direct in `<a href="/admin/orders/...">` gezet. Email-clients (Gmail, Outlook) hebben geen base URL, dus de link doet niets / opent een ongeldige URL.
+**Oorzaken:**
+1. `useIsMobile` schakelt om bij `<768px`. Vanaf 768px wordt de volledige 9-koloms tabel gerenderd, terwijl daar simpelweg geen ruimte voor is.
+2. De wrapper `<div className="overflow-x-auto">` om de tabel werkt niet zichtbaar omdat de parent `<Card>` (shadcn) standaard `overflow-hidden` heeft → horizontaal scrollen onmogelijk.
+3. De Tailwind responsive-prefixes op de kolommen (`hidden sm:table-cell`, `hidden md:table-cell`, `hidden lg:table-cell`) zijn te agressief: alle kolommen verschijnen al op `md` (768px) terwijl er pas vanaf ~1100px voldoende ruimte is.
 
-## Oplossing
+## Oplossing (kaartlayout blijft zoals nu)
 
-In `supabase/functions/create-notification/index.ts` het relatieve pad omzetten naar een absolute URL voordat het in de email-HTML wordt geplaatst.
+Ik wijzig **niets** aan de kaart of de mobiele card-view. Alleen de tabel-rendering tussen ~768px en ~1100px wordt repareert zodat alles past of netjes scrollt.
 
-### Logica voor base URL bepaling
+### Wijzigingen in `src/pages/admin/Orders.tsx`
 
-1. Probeer eerst een env var `ADMIN_BASE_URL` (zodat we per omgeving kunnen overrulen)
-2. Fallback naar `https://sellqo.app` (productie admin)
-3. Als `action_url` al begint met `http://` of `https://` → laat ongemoeid (al absoluut)
-4. Als het begint met `/` → prefix met base URL
-5. Anders → prefix met base URL + `/`
+1. **Card horizontaal laten scrollen indien nodig**  
+   Zet `overflow-hidden` op de `<Card>` om naar `overflow-x-auto` (of voeg een wrapper toe), zodat de bestaande `overflow-x-auto` op de tabel-wrapper daadwerkelijk werkt als laatste vangnet.
 
-### Concrete wijziging
+2. **Kolom-breakpoints opschuiven** zodat ze pas verschijnen wanneer er ruimte is:
+   - `Bron`: `hidden lg:table-cell` → `hidden xl:table-cell`
+   - `Betaling`: `hidden md:table-cell` → `hidden lg:table-cell`
+   - `Datum`: `hidden sm:table-cell` → `hidden xl:table-cell`
+   
+   Resultaat bij ~840px (tablet): checkbox, Bestelling, Klant, Status, Totaal, ⋮ → past comfortabel zonder afsnijden.
 
-In de email-HTML template, vervang:
-```js
-<a href="${notification.action_url}" ...>
-```
+3. **Klein veiligheidsnet**: `min-w-0` op de tabel-cellen die lange tekst kunnen bevatten (klant-email staat al getrunceerd, dus alleen verifiëren).
 
-Door een vooraf berekende `fullActionUrl`:
-```js
-const ADMIN_BASE_URL = Deno.env.get('ADMIN_BASE_URL') || 'https://sellqo.app';
-const fullActionUrl = notification.action_url
-  ? (notification.action_url.startsWith('http')
-      ? notification.action_url
-      : `${ADMIN_BASE_URL}${notification.action_url.startsWith('/') ? '' : '/'}${notification.action_url}`)
-  : null;
-```
+### Geen wijzigingen
+- `MobileOrderCard` blijft identiek.
+- De Card-styling, header, filter-rij blijven zoals ze zijn.
+- `useIsMobile` breakpoint blijft 768px.
 
-En dan in de HTML `${fullActionUrl}` gebruiken in plaats van `${notification.action_url}`.
+## Verificatie
 
-## Wat NIET wijzigt
-
-- De `notifications.action_url` kolom blijft relatieve paden opslaan (in-app navigatie blijft werken zoals nu).
-- Andere callers die `action_url` zetten (`stripe-connect-webhook`, `storefront-api`, `sync-bol-orders`, `check-scheduled-notifications`, etc.) hoeven niets aan te passen.
-- Alleen de email-rendering in `create-notification` wordt gefixt.
-
-## Bestanden
-
-- `supabase/functions/create-notification/index.ts` — base URL prefix logica toevoegen + email HTML aanpassen
-- Deploy de edge function
-
-## Test
-
-Na deploy: trigger een nieuwe order-notificatie (of stuur een test door met `notification_email`) en controleer dat de "Bekijk details →" link in de mail nu naar `https://sellqo.app/admin/orders/...` gaat en de juiste pagina opent.
+Browser openen op de bestellingen-pagina bij viewport 839×620 (huidige situatie van de gebruiker) en checken:
+- Geen afgeknipte kolomkop meer ("D..." weg)
+- ⋮ acties-knop zichtbaar en klikbaar
+- Tabel toont logische subset: Bestelling / Klant / Status / Totaal / acties
+- Bij desktop (>1280px) verschijnen Bron / Betaling / Datum weer

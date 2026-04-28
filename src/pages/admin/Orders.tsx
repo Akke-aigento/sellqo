@@ -115,7 +115,7 @@ export default function OrdersPage() {
       />
 
       {/* Orders Table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
@@ -158,7 +158,7 @@ export default function OrdersPage() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="overflow-x-auto w-full -mx-4 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -172,11 +172,11 @@ export default function OrdersPage() {
                   </TableHead>
                   <TableHead>Bestelling</TableHead>
                   <TableHead>Klant</TableHead>
-                  <TableHead className="hidden lg:table-cell">Bron</TableHead>
+                  <TableHead className="hidden xl:table-cell">Bron</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Betaling</TableHead>
+                  <TableHead className="hidden lg:table-cell">Betaling</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
+                  <TableHead className="hidden xl:table-cell">Datum</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -255,13 +255,13 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <div className="font-medium truncate">{order.customer_name || '-'}</div>
         <div className="text-sm text-muted-foreground truncate">{order.customer_email}</div>
       </TableCell>
-      <TableCell className="hidden lg:table-cell" onClick={onView}>
+      <TableCell className="hidden xl:table-cell" onClick={onView}>
         <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell onClick={onView}>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      <TableCell className="hidden md:table-cell" onClick={onView}>
+      <TableCell className="hidden lg:table-cell" onClick={onView}>
         <div className="flex flex-col gap-1">
           <PaymentStatusBadge status={order.payment_status} />
           {order.payment_status === 'pending' && order.expires_at && (
@@ -278,7 +278,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
       <TableCell className="text-right font-medium" onClick={onView}>
         {formatCurrency(Number(order.total))}
       </TableCell>
-      <TableCell className="hidden sm:table-cell text-muted-foreground" onClick={onView}>
+      <TableCell className="hidden xl:table-cell text-muted-foreground" onClick={onView}>
         {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
