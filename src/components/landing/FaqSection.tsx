@@ -38,7 +38,7 @@ const faqs = [
   },
   {
     question: 'Is SellQo geschikt voor B2B verkoop?',
-    answer: 'Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-invoicing voor zakelijke klanten.',
+    answer: 'Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-invoicing voor zakelijke klanten (binnenkort beschikbaar).',
   },
   {
     question: 'Hoe werken de AI credits?',
@@ -62,7 +62,7 @@ const faqs = [
   },
   {
     question: 'Wat is Peppol en waarom is het belangrijk?',
-    answer: 'Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. SellQo genereert automatisch Peppol-compliant facturen, zodat jij klaar bent voor de toekomst.',
+    answer: 'Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. Onze Peppol-integratie is in ontwikkeling en wordt vóór de deadline gelanceerd, zodat jij op tijd compliant bent.',
   },
   {
     question: 'Wat gebeurt er met mijn data als ik stop?',

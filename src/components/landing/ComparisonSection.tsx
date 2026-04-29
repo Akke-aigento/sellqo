@@ -33,7 +33,7 @@ const comparisonData: Array<{
   { feature: 'Loyaliteitsprogramma', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { feature: 'Cadeaubonnen systeem', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { feature: 'BTW/OSS compliance', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
-  { feature: 'Peppol e-invoicing', sellqo: true, shopify: false, lightspeed: false, custom: 'partial' },
+  { feature: 'Peppol e-invoicing (coming soon)', sellqo: 'partial', shopify: false, lightspeed: false, custom: 'partial' },
   { feature: 'WhatsApp Business', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
   { feature: 'Nederlandse support', sellqo: true, shopify: false, lightspeed: true, custom: 'partial' },
   { feature: 'Gratis migratie', sellqo: true, shopify: false, lightspeed: false, custom: false },

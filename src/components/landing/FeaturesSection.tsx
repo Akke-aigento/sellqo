@@ -71,8 +71,8 @@ const features: Feature[] = [
     icon: FileText,
     title: 'Slimme Financiën',
     subtitle: 'Facturen & BTW',
-    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B.',
-    badge: 'Peppol 2026',
+    description: 'Factur-X PDF\'s in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B (coming soon).',
+    badge: 'Peppol Coming Soon',
     gridSpan: 1,
   },
   // Rij 4: 1 + 1 + 1 = 3 (alle span-1 voor balans)
