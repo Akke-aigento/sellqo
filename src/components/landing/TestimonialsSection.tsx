@@ -11,7 +11,7 @@ const testimonials = [
     color: 'bg-primary',
   },
   {
-    quote: 'De Peppol integratie alleen al is goud waard. Onze boekhouder is er blij mee, en ik bespaar uren per week.',
+    quote: 'De unified inbox en automatische BTW/OSS berekening besparen me uren per week. Mijn boekhouder is er ook blij mee.',
     name: 'Thomas Hermans',
     company: 'CEO, TechGear België',
     initials: 'TH',

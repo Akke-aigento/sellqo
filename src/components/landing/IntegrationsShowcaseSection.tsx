@@ -73,7 +73,7 @@ const categories: IntegrationCategory[] = [
       { name: 'DHL', icon: Truck, status: 'live' },
       { name: 'Sendcloud', icon: Package, status: 'live' },
       { name: 'Stripe', icon: CreditCard, status: 'live' },
-      { name: 'Peppol', icon: FileText, status: 'live', badge: 'B2B' },
+      { name: 'Peppol', icon: FileText, status: 'coming-soon', badge: 'Coming Soon' },
       { name: 'Resend', icon: Mail, status: 'live' },
     ],
   },
