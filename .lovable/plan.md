@@ -1,39 +1,35 @@
-## Probleem
+## Doel
+Peppol e-invoicing op de marketing/landingspagina markeren als **"Coming Soon"** in plaats van als beschikbare feature. Reden: feature is nog niet live, maar wel verplicht vanaf 2026 — moet duidelijk zijn dat het binnenkort komt.
 
-Op de `/admin/orders` pagina wordt de tabel rechts afgesneden bij viewports rond 768–1100px (tablet). De "Datum"-kolom toont alleen "D..." en de acties-knop (⋮) is niet bereikbaar.
+## Wijzigingen per landing-component
 
-**Oorzaken:**
-1. `useIsMobile` schakelt om bij `<768px`. Vanaf 768px wordt de volledige 9-koloms tabel gerenderd, terwijl daar simpelweg geen ruimte voor is.
-2. De wrapper `<div className="overflow-x-auto">` om de tabel werkt niet zichtbaar omdat de parent `<Card>` (shadcn) standaard `overflow-hidden` heeft → horizontaal scrollen onmogelijk.
-3. De Tailwind responsive-prefixes op de kolommen (`hidden sm:table-cell`, `hidden md:table-cell`, `hidden lg:table-cell`) zijn te agressief: alle kolommen verschijnen al op `md` (768px) terwijl er pas vanaf ~1100px voldoende ruimte is.
+### 1. `src/components/landing/IntegrationsShowcaseSection.tsx`
+- **Regel 76**: `Peppol` chip status `'live'` → `'coming-soon'`, badge `'B2B'` → `'Coming Soon'`. Het bestaande `IntegrationChip`-component rendert coming-soon al gedimd (muted styling), dus visueel onderscheid is automatisch.
 
-## Oplossing (kaartlayout blijft zoals nu)
+### 2. `src/components/landing/PricingSection.tsx`
+- **Pro plan features (regel 67)**: `'Peppol e-invoicing'` → `'Peppol e-invoicing (coming soon)'`.
+- **Add-on kaart "Peppol e-Invoicing" (regel 117–126)**: 
+  - `urgencyBadge` aanpassen naar `'🔜 Coming Soon — Verplicht 2026'`.
+  - `description` lichtjes aanpassen naar `'Binnenkort beschikbaar — verplicht vanaf 2026 in BE'`.
 
-Ik wijzig **niets** aan de kaart of de mobiele card-view. Alleen de tabel-rendering tussen ~768px en ~1100px wordt repareert zodat alles past of netjes scrollt.
+### 3. `src/components/landing/FeaturesSection.tsx`
+- **Slimme Financiën kaart (regel 71–77)**: 
+  - `description` aanpassen: `…credit notes en Peppol e-invoicing voor B2B (coming soon).`
+  - `badge` van `'Peppol 2026'` → `'Peppol Coming Soon'`.
 
-### Wijzigingen in `src/pages/admin/Orders.tsx`
+### 4. `src/components/landing/ComparisonSection.tsx`
+- **Regel 36**: `Peppol e-invoicing` row — voor SellQo waarde wijzigen van `true` → `'partial'` zodat het in de vergelijkingstabel als gedeeltelijk/in ontwikkeling toont (consistent met "coming soon"). Alternatief: featurelabel naar `'Peppol e-invoicing (Q1 2026)'` houden met `true`. **Voorstel**: `'partial'` met label `'Peppol e-invoicing (coming soon)'`.
 
-1. **Card horizontaal laten scrollen indien nodig**  
-   Zet `overflow-hidden` op de `<Card>` om naar `overflow-x-auto` (of voeg een wrapper toe), zodat de bestaande `overflow-x-auto` op de tabel-wrapper daadwerkelijk werkt als laatste vangnet.
+### 5. `src/components/landing/FaqSection.tsx`
+- **Regel 41 (FAQ-antwoord)**: zinsdeel `automatische Peppol e-invoicing voor zakelijke klanten` → `automatische Peppol e-invoicing voor zakelijke klanten (binnenkort beschikbaar)`.
+- **Regel 65 (Peppol FAQ)**: antwoord aanpassen naar iets als: *"Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. SellQo's Peppol-integratie is in ontwikkeling en wordt vóór de deadline gelanceerd, zodat jij op tijd compliant bent."*
 
-2. **Kolom-breakpoints opschuiven** zodat ze pas verschijnen wanneer er ruimte is:
-   - `Bron`: `hidden lg:table-cell` → `hidden xl:table-cell`
-   - `Betaling`: `hidden md:table-cell` → `hidden lg:table-cell`
-   - `Datum`: `hidden sm:table-cell` → `hidden xl:table-cell`
-   
-   Resultaat bij ~840px (tablet): checkbox, Bestelling, Klant, Status, Totaal, ⋮ → past comfortabel zonder afsnijden.
+### 6. `src/components/landing/TestimonialsSection.tsx`
+- **Regel 14**: testimonial die expliciet "De Peppol integratie alleen al is goud waard" zegt — herformuleren of vervangen om misleidend pre-launch claim te vermijden. **Voorstel**: vervangen door een andere kwaliteit van het platform (bijv. AI Business Coach of Unified Inbox), of testimonial verwijderen.
 
-3. **Klein veiligheidsnet**: `min-w-0` op de tabel-cellen die lange tekst kunnen bevatten (klant-email staat al getrunceerd, dus alleen verifiëren).
+## Buiten scope
+- Admin-pagina's (`PeppolSettings.tsx`, `PeppolUpgradeCard.tsx`, billing) blijven ongewijzigd — gebruiker vroeg specifiek de **marketingpagina**.
+- Vertaalbestanden (`i18n/locales/*.json`) bevatten geen landing-page Peppol-strings, dus geen wijzigingen daar nodig.
 
-### Geen wijzigingen
-- `MobileOrderCard` blijft identiek.
-- De Card-styling, header, filter-rij blijven zoals ze zijn.
-- `useIsMobile` breakpoint blijft 768px.
-
-## Verificatie
-
-Browser openen op de bestellingen-pagina bij viewport 839×620 (huidige situatie van de gebruiker) en checken:
-- Geen afgeknipte kolomkop meer ("D..." weg)
-- ⋮ acties-knop zichtbaar en klikbaar
-- Tabel toont logische subset: Bestelling / Klant / Status / Totaal / acties
-- Bij desktop (>1280px) verschijnen Bron / Betaling / Datum weer
+## Resultaat
+Bezoekers van de landingspagina zien overal duidelijk dat Peppol "coming soon" is — geen verkeerde verwachting bij signup, juridisch veilig, en behoudt urgentie rond de 2026-deadline.
