@@ -452,16 +452,96 @@ Deno.serve(async (req) => {
               continue
             }
 
-            // Insert order items
-            const orderItems = (bolOrder.orderItems || []).map((item) => ({
-              order_id: newOrder.id,
-              marketplace_order_item_id: item.orderItemId,
-              product_name: item.product?.title || `EAN: ${item.ean || item.product?.ean || 'Unknown'}`,
-              product_sku: item.ean || item.product?.ean,
-              quantity: item.quantity,
-              unit_price: item.unitPrice ?? item.offerPrice ?? 0,
-              total_price: item.quantity * (item.unitPrice ?? item.offerPrice ?? 0)
+            // ============================================================
+            // PRODUCT LINKING + STOCK DEDUCTION
+            // Match Bol order_items to SellQo products via EAN, then
+            // decrement stock atomically. Three-field matching (bol_ean,
+            // barcode, sku) makes it robust to whichever field admin filled.
+            // ============================================================
+
+            const orderItemsRaw = (bolOrder.orderItems || []).map((item) => {
+              const ean: string | undefined = item.ean || item.product?.ean
+              return {
+                order_id: newOrder.id,
+                marketplace_order_item_id: item.orderItemId,
+                product_name: item.product?.title || `EAN: ${ean || 'Unknown'}`,
+                product_sku: ean,
+                quantity: item.quantity,
+                unit_price: item.unitPrice ?? item.offerPrice ?? 0,
+                total_price: item.quantity * (item.unitPrice ?? item.offerPrice ?? 0),
+                _ean: ean,
+              }
+            })
+
+            // Bulk-lookup products by EAN across THREE possible columns
+            const eans = orderItemsRaw.map(i => i._ean).filter((e): e is string => Boolean(e))
+            const eanToProduct = new Map<string, { id: string; stock: number; track_inventory: boolean; name: string }>()
+
+            if (eans.length > 0) {
+              const eanList = eans.map(e => `"${e}"`).join(',')
+              const { data: matchedProducts, error: lookupErr } = await supabase
+                .from('products')
+                .select('id, bol_ean, barcode, sku, stock, track_inventory, name')
+                .eq('tenant_id', connection.tenant_id)
+                .or(`bol_ean.in.(${eanList}),barcode.in.(${eanList}),sku.in.(${eanList})`)
+
+              if (lookupErr) {
+                console.error(`[BOL-LINK] Product lookup failed for order ${bolOrder.orderId}:`, lookupErr.message)
+              } else {
+                for (const p of matchedProducts || []) {
+                  const productInfo = {
+                    id: p.id,
+                    stock: p.stock || 0,
+                    track_inventory: p.track_inventory ?? true,
+                    name: p.name,
+                  }
+                  if (p.sku && eans.includes(p.sku)) eanToProduct.set(p.sku, productInfo)
+                  if (p.barcode && eans.includes(p.barcode)) eanToProduct.set(p.barcode, productInfo)
+                  if (p.bol_ean && eans.includes(p.bol_ean)) eanToProduct.set(p.bol_ean, productInfo)
+                }
+              }
+            }
+
+            // Apply product_id, strip _ean before insert
+            const orderItems = orderItemsRaw.map(({ _ean, ...item }) => ({
+              ...item,
+              product_id: _ean ? eanToProduct.get(_ean)?.id || null : null,
             }))
+
+            // Visibility: warn + notify on unmatched items
+            const unmatched = orderItems.filter(i => !i.product_id && i.product_sku)
+            if (unmatched.length > 0) {
+              console.warn(
+                `[BOL-LINK] Order ${bolOrder.orderId}: ${unmatched.length}/${orderItems.length} items unmatched. ` +
+                  `Missing mapping for EAN(s): ${unmatched.map(i => i.product_sku).join(', ')}`
+              )
+
+              try {
+                await supabase.functions.invoke('create-notification', {
+                  body: {
+                    tenant_id: connection.tenant_id,
+                    category: 'inventory',
+                    type: 'product_unmapped',
+                    title: 'Bol-order zonder product-koppeling',
+                    message:
+                      `Order ${bolOrder.orderId} bevat ${unmatched.length} item(s) zonder gekoppeld product. ` +
+                      `EAN(s): ${unmatched.map(i => i.product_sku).join(', ')}. ` +
+                      `Vul bol_ean of barcode in op deze producten zodat voorraad automatisch wordt afgetrokken.`,
+                    priority: 'medium',
+                    action_url: `/admin/products`,
+                    data: {
+                      order_id: newOrder.id,
+                      marketplace_order_id: bolOrder.orderId,
+                      unmatched_eans: unmatched.map(i => i.product_sku),
+                    },
+                  },
+                })
+              } catch (notifErr) {
+                console.error(`[BOL-LINK] Failed to send unmapped-product notification:`, notifErr)
+              }
+            } else if (orderItems.length > 0) {
+              console.log(`[BOL-LINK] Order ${bolOrder.orderId}: ${orderItems.length}/${orderItems.length} items matched ✓`)
+            }
 
             if (orderItems.length > 0) {
               const { error: itemsError } = await supabase
@@ -470,6 +550,58 @@ Deno.serve(async (req) => {
 
               if (itemsError) {
                 console.error(`Failed to insert order items for ${bolOrder.orderId}:`, itemsError)
+              }
+            }
+
+            // ============================================================
+            // STOCK DEDUCTION via decrement_stock RPC (atomic)
+            // ============================================================
+            for (const item of orderItemsRaw) {
+              const productInfo = item._ean ? eanToProduct.get(item._ean) : undefined
+              if (!productInfo) continue
+              if (!productInfo.track_inventory) {
+                console.log(`[BOL-STOCK] Skipping ${productInfo.name} — track_inventory=false`)
+                continue
+              }
+
+              try {
+                const { error: stockErr } = await supabase.rpc('decrement_stock', {
+                  p_product_id: productInfo.id,
+                  p_quantity: item.quantity,
+                })
+                if (stockErr) {
+                  console.error(
+                    `[BOL-STOCK] Failed for ${productInfo.name} (${item.quantity}x):`,
+                    stockErr.message
+                  )
+                } else {
+                  const after = Math.max(0, productInfo.stock - item.quantity)
+                  console.log(
+                    `[BOL-STOCK] -${item.quantity} ${productInfo.name} (${productInfo.stock} → ${after})`
+                  )
+
+                  if (after === 0) {
+                    try {
+                      await supabase.functions.invoke('create-notification', {
+                        body: {
+                          tenant_id: connection.tenant_id,
+                          category: 'inventory',
+                          type: 'out_of_stock',
+                          title: `Uitverkocht: ${productInfo.name}`,
+                          message: `${productInfo.name} is uitverkocht na verkoop via Bol order ${bolOrder.orderId}.`,
+                          priority: 'high',
+                          action_url: `/admin/products`,
+                          data: { product_id: productInfo.id, marketplace_order_id: bolOrder.orderId },
+                        },
+                      })
+                    } catch { /* non-blocking */ }
+                  }
+                }
+              } catch (stockEx) {
+                console.error(
+                  `[BOL-STOCK] Exception for ${productInfo.name}:`,
+                  stockEx instanceof Error ? stockEx.message : stockEx
+                )
               }
             }
 
