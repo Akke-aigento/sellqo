@@ -299,6 +299,13 @@ const handler = async (req: Request): Promise<Response> => {
         );
         console.log("PDF response status:", pdfResponse.status);
 
+        // Capture tracking from response headers — saves the separate HEAD call below
+        const inlineTrackingRetry = pdfResponse.headers.get("X-Track-And-Trace-Code");
+        if (inlineTrackingRetry) {
+          retryTracking = inlineTrackingRetry;
+          console.log(`Got tracking from PDF GET headers: ${inlineTrackingRetry}`);
+        }
+
         if (pdfResponse.status === 404) {
           console.log("Label not found at Bol.com (404) - marking as failed");
           await supabase
@@ -342,13 +349,18 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Upload to storage
+        // Upload to storage with upsert so retries overwrite cleanly.
+        // Without upsert:true, Supabase Storage returns 400 "resource already exists"
+        // on every retry, leaving label_url NULL and the label stuck forever.
         console.log("Uploading PDF to Supabase Storage...");
         const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-        const fileName = `bol-vvb-${order.order_number}${formatSuffix}-retry-${Date.now()}.pdf`;
+        const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
-          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, { contentType: "application/pdf" });
+          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
 
         if (uploadError) {
           console.error("PDF upload to storage failed:", uploadError);
@@ -392,7 +404,7 @@ const handler = async (req: Request): Promise<Response> => {
               method: "HEAD",
               headers: {
                 Authorization: `Bearer ${accessToken}`,
-                Accept: "application/vnd.retailer.v10+json",
+                Accept: "application/vnd.retailer.v10+pdf",
               },
             },
             15000,
@@ -729,6 +741,12 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("PDF response status:", pdfResponse.status);
 
         if (pdfResponse.ok) {
+          // Capture tracking from response headers — saves the separate HEAD call below
+          const inlineTrackingNew = pdfResponse.headers.get("X-Track-And-Trace-Code");
+          if (inlineTrackingNew) {
+            trackingNumber = inlineTrackingNew;
+            console.log(`Got tracking from PDF GET headers: ${inlineTrackingNew}`);
+          }
           const pdfBlob = await pdfResponse.blob();
           let pdfBuffer = await pdfBlob.arrayBuffer();
           console.log("PDF downloaded, size:", pdfBuffer.byteLength);
@@ -744,11 +762,12 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
-          const fileName = `bol-vvb-${order.order_number}${formatSuffix}-${Date.now()}.pdf`;
+          const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
             .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
               contentType: "application/pdf",
+              upsert: true,
             });
 
           if (!uploadError && uploadData) {
@@ -776,7 +795,7 @@ const handler = async (req: Request): Promise<Response> => {
             method: "HEAD",
             headers: {
               Authorization: `Bearer ${accessToken}`,
-              Accept: "application/vnd.retailer.v10+json",
+              Accept: "application/vnd.retailer.v10+pdf",
             },
           },
           15000,
@@ -817,24 +836,44 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Label saved, id:", label?.id);
     }
 
-    // Update order status based on result
-    if (transporterLabelId && trackingNumber) {
-      console.log("Label complete with tracking, marking order as shipped...");
-      await supabase
-        .from("orders")
-        .update({
-          carrier: selectedOffer.transporterCode,
-          tracking_number: trackingNumber,
-          status: "shipped",
-          shipped_at: new Date().toISOString(),
-          fulfillment_status: "shipped",
-          sync_status: "shipped",
-        })
-        .eq("id", order.id);
+    // For VVB shipments, we ONLY need transporterLabelId to confirm the shipment
+    // at Bol.com — the confirm-bol-shipment edge function uses shippingLabelId
+    // (not transport.trackAndTrace) for VVB mode. Tracking number is nice-to-have
+    // for our local DB but NOT a precondition for confirming.
+    //
+    // Previous code required (transporterLabelId && trackingNumber), which meant
+    // a single HEAD-tracking failure would prevent the order from ever being
+    // confirmed at Bol — leaving it stuck in "Eigen verzendwijze" forever.
+    if (transporterLabelId) {
+      console.log(
+        `Label created (transporterLabelId=${transporterLabelId}, trackingNumber=${trackingNumber || "missing"}). ` +
+          `Updating order and confirming shipment...`,
+      );
 
-      // Confirm shipment at Bol.com
+      const orderUpdate: Record<string, unknown> = {
+        carrier: selectedOffer.transporterCode,
+        status: "shipped",
+        shipped_at: new Date().toISOString(),
+        fulfillment_status: "shipped",
+        sync_status: "shipped",
+      };
+      if (trackingNumber) orderUpdate.tracking_number = trackingNumber;
+      if (labelPdfUrl) orderUpdate.label_url = labelPdfUrl;
+
+      await supabase.from("orders").update(orderUpdate).eq("id", order.id);
+
+      // Confirm shipment at Bol.com — for VVB this works on shippingLabelId only
       try {
         console.log(`Confirming shipment to Bol.com for order ${order.order_number}...`);
+        const confirmBody: Record<string, unknown> = {
+          order_id: order.id,
+          shipping_label_id: transporterLabelId,
+        };
+        // Pass tracking too if we have it — confirm-bol-shipment will use VVB mode
+        // anyway (auto-detected via DB lookup), but this future-proofs callers.
+        if (trackingNumber) confirmBody.tracking_number = trackingNumber;
+        if (selectedOffer.transporterCode) confirmBody.carrier = selectedOffer.transporterCode;
+
         const confirmRes = await fetchWithTimeout(
           `${supabaseUrl}/functions/v1/confirm-bol-shipment`,
           {
@@ -843,25 +882,15 @@ const handler = async (req: Request): Promise<Response> => {
               Authorization: `Bearer ${supabaseServiceKey}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              order_id: order.id,
-              tracking_number: trackingNumber,
-              carrier: selectedOffer.transporterCode,
-            }),
+            body: JSON.stringify(confirmBody),
           },
           30000,
         );
-        const confirmBody = await confirmRes.text();
+        const confirmText = await confirmRes.text();
         if (confirmRes.ok) {
-          console.log(`Shipment confirmed to Bol.com`);
+          console.log(`Shipment confirmed to Bol.com: ${confirmText}`);
         } else {
-          console.error(`Failed to confirm shipment: ${confirmRes.status} ${confirmBody}`);
-          await supabase
-            .from("orders")
-            .update({
-              marketplace_sync_error: `Shipment confirmation failed: ${confirmBody}`,
-            })
-            .eq("id", order.id);
+          console.error(`Failed to confirm shipment: ${confirmRes.status} ${confirmText}`);
         }
       } catch (confirmError) {
         console.error(
@@ -870,13 +899,12 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
     } else {
-      console.warn(`VVB label incomplete: transporterLabelId=${transporterLabelId}, trackingNumber=${trackingNumber}`);
+      console.warn(`VVB label incomplete: no transporterLabelId obtained from Bol`);
       const partialUpdate: Record<string, unknown> = {
         carrier: selectedOffer.transporterCode,
       };
       if (trackingNumber) partialUpdate.tracking_number = trackingNumber;
       if (labelPdfUrl) partialUpdate.label_url = labelPdfUrl;
-
       await supabase.from("orders").update(partialUpdate).eq("id", order.id);
     }
 
