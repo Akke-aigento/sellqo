@@ -13460,6 +13460,72 @@ export type Database = {
           },
         ]
       }
+      stock_snapshot_pre_reconcile_20260430: {
+        Row: {
+          bol_ean: string | null
+          name: string | null
+          product_id: string | null
+          sku: string | null
+          snapshot_at: string | null
+          stock_before: number | null
+          tenant_id: string | null
+          track_inventory: boolean | null
+        }
+        Insert: {
+          bol_ean?: string | null
+          name?: string | null
+          product_id?: string | null
+          sku?: string | null
+          snapshot_at?: string | null
+          stock_before?: number | null
+          tenant_id?: string | null
+          track_inventory?: boolean | null
+        }
+        Update: {
+          bol_ean?: string | null
+          name?: string | null
+          product_id?: string | null
+          sku?: string | null
+          snapshot_at?: string | null
+          stock_before?: number | null
+          tenant_id?: string | null
+          track_inventory?: boolean | null
+        }
+        Relationships: []
+      }
+      stock_snapshot_pre_reconcile_final: {
+        Row: {
+          bol_ean_before: string | null
+          name: string | null
+          product_id: string | null
+          sku: string | null
+          snapshot_at: string | null
+          stock_before: number | null
+          tenant_id: string | null
+          track_inventory: boolean | null
+        }
+        Insert: {
+          bol_ean_before?: string | null
+          name?: string | null
+          product_id?: string | null
+          sku?: string | null
+          snapshot_at?: string | null
+          stock_before?: number | null
+          tenant_id?: string | null
+          track_inventory?: boolean | null
+        }
+        Update: {
+          bol_ean_before?: string | null
+          name?: string | null
+          product_id?: string | null
+          sku?: string | null
+          snapshot_at?: string | null
+          stock_before?: number | null
+          tenant_id?: string | null
+          track_inventory?: boolean | null
+        }
+        Relationships: []
+      }
       storefront_api_keys: {
         Row: {
           created_at: string | null
