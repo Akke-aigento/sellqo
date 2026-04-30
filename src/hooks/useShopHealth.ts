@@ -104,9 +104,18 @@ export function useShopHealth(): ShopHealthData {
       ? Math.max(...unreadMessages.map(m => differenceInHours(now, new Date(m.created_at))))
       : 0;
     
-    // Finance analysis - filter unpaid invoices that are sent (overdue concept)
-    const unpaidSentInvoices = invoices?.filter(inv => inv.status === 'sent') || [];
-    const overdueAmount = unpaidSentInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
+    // Finance analysis — only count TRULY overdue invoices.
+    // Exclude:
+    //   1) Invoices that already have a paid_at timestamp (paid out-of-band)
+    //   2) Marketplace-source orders (Bol/Amazon settle outside Stripe;
+    //      their invoices stay 'sent' forever even though money is received)
+    const unpaidSentInvoices = (invoices || []).filter((inv: any) => {
+      if (inv.status !== 'sent') return false;
+      if (inv.paid_at) return false;
+      if (inv.orders?.marketplace_source) return false;
+      return true;
+    });
+    const overdueAmount = unpaidSentInvoices.reduce((sum: number, inv: any) => sum + Number(inv.total), 0);
     
     // SEO analysis
     const productsWithoutMeta = activeProducts.filter(p => !p.meta_description).length;
