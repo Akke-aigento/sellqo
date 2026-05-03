@@ -1,35 +1,81 @@
-## Doel
-Peppol e-invoicing op de marketing/landingspagina markeren als **"Coming Soon"** in plaats van als beschikbare feature. Reden: feature is nog niet live, maar wel verplicht vanaf 2026 — moet duidelijk zijn dat het binnenkort komt.
+## Probleem
 
-## Wijzigingen per landing-component
+De geleverde label-PDF heeft mediabox `[0, 175.47, 297.64, 595]` (≈ A6 staand: 297.64 × 419.53 pt). Maar de werkelijke label-inhoud die Bol/bpost stuurt voor internationale `bpack World Business` zendingen is **A5 staand** (≈ 419.53 × 595.27 pt). Daardoor wordt aan de **rechterkant** flink content afgesneden:
 
-### 1. `src/components/landing/IntegrationsShowcaseSection.tsx`
-- **Regel 76**: `Peppol` chip status `'live'` → `'coming-soon'`, badge `'B2B'` → `'Coming Soon'`. Het bestaande `IntegrationChip`-component rendert coming-soon al gedimd (muted styling), dus visueel onderscheid is automatisch.
+- "Sender address" kolom (Nomadix / Beekstraat 49 / 3051 Oud Heverlee / Belgium) — half/heel weg
+- "NL" landcode rechts naast adres — weg
+- "OUTSIDE THE EU" einde van de tekst — weg  
+- Streepjescode + tracking nr `CD119629590BE` + EPC-vakje rechts — afgekapt
 
-### 2. `src/components/landing/PricingSection.tsx`
-- **Pro plan features (regel 67)**: `'Peppol e-invoicing'` → `'Peppol e-invoicing (coming soon)'`.
-- **Add-on kaart "Peppol e-Invoicing" (regel 117–126)**: 
-  - `urgencyBadge` aanpassen naar `'🔜 Coming Soon — Verplicht 2026'`.
-  - `description` lichtjes aanpassen naar `'Binnenkort beschikbaar — verplicht vanaf 2026 in BE'`.
+In de uitgebreide render (mediabox opgerekt) zien we dat alle elementen netjes binnen ~A5-portrait passen. De crop is dus simpelweg te smal.
 
-### 3. `src/components/landing/FeaturesSection.tsx`
-- **Slimme Financiën kaart (regel 71–77)**: 
-  - `description` aanpassen: `…credit notes en Peppol e-invoicing voor B2B (coming soon).`
-  - `badge` van `'Peppol 2026'` → `'Peppol Coming Soon'`.
+## Oorzaak
 
-### 4. `src/components/landing/ComparisonSection.tsx`
-- **Regel 36**: `Peppol e-invoicing` row — voor SellQo waarde wijzigen van `true` → `'partial'` zodat het in de vergelijkingstabel als gedeeltelijk/in ontwikkeling toont (consistent met "coming soon"). Alternatief: featurelabel naar `'Peppol e-invoicing (Q1 2026)'` houden met `true`. **Voorstel**: `'partial'` met label `'Peppol e-invoicing (coming soon)'`.
+In `supabase/functions/create-bol-vvb-label/index.ts` regel 28-47:
 
-### 5. `src/components/landing/FaqSection.tsx`
-- **Regel 41 (FAQ-antwoord)**: zinsdeel `automatische Peppol e-invoicing voor zakelijke klanten` → `automatische Peppol e-invoicing voor zakelijke klanten (binnenkort beschikbaar)`.
-- **Regel 65 (Peppol FAQ)**: antwoord aanpassen naar iets als: *"Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. SellQo's Peppol-integratie is in ontwikkeling en wordt vóór de deadline gelanceerd, zodat jij op tijd compliant bent."*
+```ts
+const A6_WIDTH = 297.64;
+const A6_HEIGHT = 419.53;
+page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+```
 
-### 6. `src/components/landing/TestimonialsSection.tsx`
-- **Regel 14**: testimonial die expliciet "De Peppol integratie alleen al is goud waard" zegt — herformuleren of vervangen om misleidend pre-launch claim te vermijden. **Voorstel**: vervangen door een andere kwaliteit van het platform (bijv. AI Business Coach of Unified Inbox), of testimonial verwijderen.
+Hardcoded A6 — werkt voor binnenlandse bpost A6-labels maar niet voor de A5 internationale/World Business labels (die op een A4-pagina geprint staan in de top-left A5-zone).
 
-## Buiten scope
-- Admin-pagina's (`PeppolSettings.tsx`, `PeppolUpgradeCard.tsx`, billing) blijven ongewijzigd — gebruiker vroeg specifiek de **marketingpagina**.
-- Vertaalbestanden (`i18n/locales/*.json`) bevatten geen landing-page Peppol-strings, dus geen wijzigingen daar nodig.
+## Fix
 
-## Resultaat
-Bezoekers van de landingspagina zien overal duidelijk dat Peppol "coming soon" is — geen verkeerde verwachting bij signup, juridisch veilig, en behoudt urgentie rond de 2026-deadline.
+Vervang `cropToA6` door een slimmere `cropToLabel` die het label-formaat bepaalt op basis van de source page-grootte:
+
+1. Als `pageHeight > 700` → A4-bron met A5-label in top-left → crop naar **A5 portrait** (419.53 × 595.27)
+2. Als `pageHeight ≈ 595` (A4 landscape) en `pageWidth ≈ 842` → bevat 2× A6 of 1× A5 → crop naar A5 portrait top-left
+3. Als de page al ≤ A5 is → geen crop, gewoon doorlaten zoals hij is
+
+Concreet voor dit geval (pagina 595 hoog): crop naar `[0, 0, 419.53, 595]` (volledige hoogte, breedte uitgebreid van 297.64 → 419.53).
+
+```ts
+async function cropToLabel(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
+  const PDFDoc = await loadPdfLib();
+  const pdfDoc = await PDFDoc.load(pdfBytes);
+  const page = pdfDoc.getPages()[0];
+  const { width, height } = page.getSize();
+
+  const A5_WIDTH = 419.53;
+  const A5_HEIGHT = 595.27;
+
+  // Bepaal label-zone (top-left) op basis van source pagina
+  let cropW = Math.min(width, A5_WIDTH);
+  let cropH = Math.min(height, A5_HEIGHT);
+  // Als source kleiner is dan A5: laat het zoals het is
+  if (width <= A5_WIDTH + 5 && height <= A5_HEIGHT + 5) {
+    cropW = width;
+    cropH = height;
+  }
+  const x = 0;
+  const y = height - cropH; // top-left
+
+  page.setCropBox(x, y, cropW, cropH);
+  page.setMediaBox(x, y, cropW, cropH);
+
+  const newPdf = await PDFDoc.create();
+  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
+  newPdf.addPage(copiedPage);
+  return await newPdf.save();
+}
+```
+
+En `cropToA6(...)` calls hernoemen naar `cropToLabel(...)`.
+
+## Impact
+
+- Geen DB-wijzigingen, geen schema-changes
+- Eén edge function aanpassing: `supabase/functions/create-bol-vvb-label/index.ts`
+- Bestaande binnenlandse A6-labels blijven werken (vallen onder regel 3, of worden in A5-vak geplaatst — beide formaten passen op een 10×15 cm thermolabelprinter)
+- Internationale bpack World Business labels tonen nu volledige zender-/EPC-/tracking-info
+
+## Verificatie
+
+Na deploy een nieuw VVB-label genereren voor een internationale order en controleren dat:
+- Sender address volledig zichtbaar
+- "NL" / landcode zichtbaar  
+- Volledige barcode + tracking nr + EPC-vakje zichtbaar
+- Tekst "PLEASE ALWAYS ADD CN23 DOCUMENTS FOR ALL SHIPMENTS OUTSIDE THE EU" niet afgekapt

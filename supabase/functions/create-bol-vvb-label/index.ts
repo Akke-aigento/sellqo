@@ -25,19 +25,35 @@ interface VVBLabelRequest {
   force_new?: boolean; // NEW: force create a new label, ignore stuck ones
 }
 
-// Crop A4 PDF to A6 (label is positioned top-left)
-async function cropToA6(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
+// Crop label PDF to its visible label area (top-left of source page).
+// Bol/bpost ships A6 labels for domestic and A5 labels for international
+// (bpack World Business). Detect the label size from the source page so
+// we don't clip the right-hand side (sender address, barcode, EPC) on
+// international shipments.
+async function cropToLabel(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
   const PDFDoc = await loadPdfLib();
   const pdfDoc = await PDFDoc.load(pdfBytes);
-  const pages = pdfDoc.getPages();
-  const page = pages[0];
+  const page = pdfDoc.getPages()[0];
+  const { width, height } = page.getSize();
 
-  const A6_WIDTH = 297.64;
-  const A6_HEIGHT = 419.53;
-  const { height } = page.getSize();
+  const A5_WIDTH = 419.53;
+  const A5_HEIGHT = 595.27;
 
-  page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
-  page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+  // Default to A5 portrait label area in the top-left.
+  let cropW = Math.min(width, A5_WIDTH);
+  let cropH = Math.min(height, A5_HEIGHT);
+
+  // If source is already <= A5 (e.g. a pre-cropped A6 label), keep as-is.
+  if (width <= A5_WIDTH + 5 && height <= A5_HEIGHT + 5) {
+    cropW = width;
+    cropH = height;
+  }
+
+  const x = 0;
+  const y = height - cropH; // anchor top-left
+
+  page.setCropBox(x, y, cropW, cropH);
+  page.setMediaBox(x, y, cropW, cropH);
 
   const newPdf = await PDFDoc.create();
   const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
@@ -341,7 +357,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (labelFormat === "a6_cropped") {
           try {
             console.log("Cropping PDF to A6...");
-            const croppedPdf = await cropToA6(pdfBuffer);
+            const croppedPdf = await cropToLabel(pdfBuffer);
             pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
             console.log("PDF cropped to A6 successfully");
           } catch (cropError) {
@@ -753,7 +769,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (labelFormat === "a6_cropped") {
             try {
-              const croppedPdf = await cropToA6(pdfBuffer);
+              const croppedPdf = await cropToLabel(pdfBuffer);
               pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
               console.log("Successfully cropped PDF to A6 format");
             } catch (cropError) {
