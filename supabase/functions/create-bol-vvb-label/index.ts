@@ -357,7 +357,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (labelFormat === "a6_cropped") {
           try {
             console.log("Cropping PDF to A6...");
-            const croppedPdf = await cropToA6(pdfBuffer);
+            const croppedPdf = await cropToLabel(pdfBuffer);
             pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
             console.log("PDF cropped to A6 successfully");
           } catch (cropError) {
@@ -769,7 +769,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (labelFormat === "a6_cropped") {
             try {
-              const croppedPdf = await cropToA6(pdfBuffer);
+              const croppedPdf = await cropToLabel(pdfBuffer);
               pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
               console.log("Successfully cropped PDF to A6 format");
             } catch (cropError) {
