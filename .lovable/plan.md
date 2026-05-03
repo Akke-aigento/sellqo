@@ -1,81 +1,44 @@
-## Probleem
+## Doel
 
-De geleverde label-PDF heeft mediabox `[0, 175.47, 297.64, 595]` (≈ A6 staand: 297.64 × 419.53 pt). Maar de werkelijke label-inhoud die Bol/bpost stuurt voor internationale `bpack World Business` zendingen is **A5 staand** (≈ 419.53 × 595.27 pt). Daardoor wordt aan de **rechterkant** flink content afgesneden:
+De laatste 3 VanXcel Bol-orders (#1140, #1141, #1142) hebben hun PDF-label opgehaald en geüpload **vóór** de cropping-fix (oude `cropToA6` met harde A6-grenzen). De `external_id` (transporterLabelId) staat nog in de database, dus we kunnen het originele PDF opnieuw bij Bol ophalen en met de nieuwe `cropToLabel` functie herschrijven — zonder een nieuw label te maken (geen extra kosten, zelfde tracking).
 
-- "Sender address" kolom (Nomadix / Beekstraat 49 / 3051 Oud Heverlee / Belgium) — half/heel weg
-- "NL" landcode rechts naast adres — weg
-- "OUTSIDE THE EU" einde van de tekst — weg  
-- Streepjescode + tracking nr `CD119629590BE` + EPC-vakje rechts — afgekapt
+## Aanpak
 
-In de uitgebreide render (mediabox opgerekt) zien we dat alle elementen netjes binnen ~A5-portrait passen. De crop is dus simpelweg te smal.
+### 1. Recrop-modus toevoegen aan `create-bol-vvb-label`
 
-## Oorzaak
+Nieuwe optionele parameter `recrop: true`:
+- Skipt de "already_fetched" early-return in de retry branch
+- Haalt het originele PDF opnieuw op via `GET /retailer/shipping-labels/{external_id}` met de bestaande `external_id`
+- Crop met de nieuwe `cropToLabel` (A5 fallback voor internationale labels)
+- Upload naar dezelfde storage path met `upsert: true` — bestaande `label_url` blijft geldig
+- Werkt `tracking_number` niet bij (blijft hetzelfde), markeert geen extra shipment confirm
 
-In `supabase/functions/create-bol-vvb-label/index.ts` regel 28-47:
+### 2. Drie orders opnieuw verwerken
 
-```ts
-const A6_WIDTH = 297.64;
-const A6_HEIGHT = 419.53;
-page.setCropBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
-page.setMediaBox(0, height - A6_HEIGHT, A6_WIDTH, A6_HEIGHT);
+Aanroepen via de bestaande edge-function infrastructuur (handmatig of via een eenmalig script) voor:
+| Order  | label_id                              | external_id                            |
+|--------|---------------------------------------|----------------------------------------|
+| #1142  | b76163d0-6f57-4977-af0c-ce3a62e13141  | cbcc827e-01de-4dc0-887b-d9f9be9e3ba6   |
+| #1141  | 0170f045-970d-4cdc-81bc-361de409f4d2  | 4d6b3486-38a7-4861-8c13-c37ae929973d   |
+| #1140  | ae79f422-865b-4e6c-9e6a-9ed48ccdeb48  | 6ef1bc34-a935-472e-ad6c-2a1e776af1b4   |
+
+Body per call:
+```json
+{ "order_id": "<uuid>", "label_id": "<uuid>", "retry": true, "recrop": true }
 ```
 
-Hardcoded A6 — werkt voor binnenlandse bpost A6-labels maar niet voor de A5 internationale/World Business labels (die op een A4-pagina geprint staan in de top-left A5-zone).
+### 3. Verificatie
 
-## Fix
+- PDF in storage opnieuw downloaden en visueel checken: zenderadres, landcode en barcode volledig zichtbaar
+- `label_url` ongewijzigd (hetzelfde public URL, browser cache mogelijk verversen)
+- Geen nieuwe entry in `shipping_labels`, geen extra Bol API-label gegenereerd
 
-Vervang `cropToA6` door een slimmere `cropToLabel` die het label-formaat bepaalt op basis van de source page-grootte:
+## Belangrijke notities
 
-1. Als `pageHeight > 700` → A4-bron met A5-label in top-left → crop naar **A5 portrait** (419.53 × 595.27)
-2. Als `pageHeight ≈ 595` (A4 landscape) en `pageWidth ≈ 842` → bevat 2× A6 of 1× A5 → crop naar A5 portrait top-left
-3. Als de page al ≤ A5 is → geen crop, gewoon doorlaten zoals hij is
+- De Bol shipping-label PDFs blijven (per Bol docs) een tijd beschikbaar via `external_id`. Als één of meerdere PDF's al verlopen zijn (404), faalt de recrop voor dat label en kunnen we alleen via `force_new` een volledig nieuw label aanmaken (kost een nieuw VVB-label) — dat doen we alleen op uitdrukkelijke bevestiging.
+- De drie orders zijn NL-adressen via BPOST_BE; meestal passen die al in A6, maar de nieuwe `cropToLabel` is veiliger voor randgevallen waar Bol een groter formaat retourneert.
 
-Concreet voor dit geval (pagina 595 hoog): crop naar `[0, 0, 419.53, 595]` (volledige hoogte, breedte uitgebreid van 297.64 → 419.53).
+## Wijzigingen
 
-```ts
-async function cropToLabel(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
-  const PDFDoc = await loadPdfLib();
-  const pdfDoc = await PDFDoc.load(pdfBytes);
-  const page = pdfDoc.getPages()[0];
-  const { width, height } = page.getSize();
-
-  const A5_WIDTH = 419.53;
-  const A5_HEIGHT = 595.27;
-
-  // Bepaal label-zone (top-left) op basis van source pagina
-  let cropW = Math.min(width, A5_WIDTH);
-  let cropH = Math.min(height, A5_HEIGHT);
-  // Als source kleiner is dan A5: laat het zoals het is
-  if (width <= A5_WIDTH + 5 && height <= A5_HEIGHT + 5) {
-    cropW = width;
-    cropH = height;
-  }
-  const x = 0;
-  const y = height - cropH; // top-left
-
-  page.setCropBox(x, y, cropW, cropH);
-  page.setMediaBox(x, y, cropW, cropH);
-
-  const newPdf = await PDFDoc.create();
-  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
-  newPdf.addPage(copiedPage);
-  return await newPdf.save();
-}
-```
-
-En `cropToA6(...)` calls hernoemen naar `cropToLabel(...)`.
-
-## Impact
-
-- Geen DB-wijzigingen, geen schema-changes
-- Eén edge function aanpassing: `supabase/functions/create-bol-vvb-label/index.ts`
-- Bestaande binnenlandse A6-labels blijven werken (vallen onder regel 3, of worden in A5-vak geplaatst — beide formaten passen op een 10×15 cm thermolabelprinter)
-- Internationale bpack World Business labels tonen nu volledige zender-/EPC-/tracking-info
-
-## Verificatie
-
-Na deploy een nieuw VVB-label genereren voor een internationale order en controleren dat:
-- Sender address volledig zichtbaar
-- "NL" / landcode zichtbaar  
-- Volledige barcode + tracking nr + EPC-vakje zichtbaar
-- Tekst "PLEASE ALWAYS ADD CN23 DOCUMENTS FOR ALL SHIPMENTS OUTSIDE THE EU" niet afgekapt
+- `supabase/functions/create-bol-vvb-label/index.ts`: `recrop` flag toevoegen aan retry branch (skip `already_fetched` short-circuit, hergebruik bestaande PDF-fetch + crop + upload code).
+- Eenmalige uitvoer: 3× function-aanroep voor de orders hierboven.
