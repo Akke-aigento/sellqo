@@ -23,6 +23,7 @@ interface VVBLabelRequest {
   retry?: boolean;
   label_id?: string;
   force_new?: boolean; // NEW: force create a new label, ignore stuck ones
+  recrop?: boolean; // NEW: re-download PDF + re-crop existing label, no new label at Bol
 }
 
 // Crop label PDF to its visible label area (top-left of source page).
@@ -153,8 +154,9 @@ const handler = async (req: Request): Promise<Response> => {
       retry = false,
       label_id,
       force_new = false,
+      recrop = false,
     }: VVBLabelRequest = await req.json();
-    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new }));
+    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
 
     if (!order_id) {
       return new Response(JSON.stringify({ error: "order_id is required" }), {
@@ -283,7 +285,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Race condition guard: if label already has a URL, another instance already fetched it
-      if (existingLabel.label_url) {
+      if (existingLabel.label_url && !recrop) {
         console.log("Label already has a URL, returning existing data");
         return new Response(
           JSON.stringify({
@@ -295,6 +297,9 @@ const handler = async (req: Request): Promise<Response> => {
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
+      }
+      if (recrop) {
+        console.log("Recrop mode: re-fetching PDF from Bol.com to apply latest crop logic");
       }
 
       let retryPdfUrl: string | null = null;
