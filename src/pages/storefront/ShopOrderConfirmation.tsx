@@ -32,16 +32,6 @@ interface Order {
   total: number;
   ogm_reference?: string | null;
   created_at: string;
-  shipping_address: {
-    first_name?: string;
-    last_name?: string;
-    company_name?: string;
-    street?: string;
-    house_number?: string;
-    postal_code?: string;
-    city?: string;
-    country?: string;
-  } | null;
 }
 
 export default function ShopOrderConfirmation() {
@@ -60,63 +50,40 @@ export default function ShopOrderConfirmation() {
 
   // Load order and set up realtime subscription
   useEffect(() => {
-    const loadOrder = async () => {
-      if (!orderId) return;
-
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at, shipping_address')
-        .eq('id', orderId)
-        .maybeSingle();
-
-      if (orderError) {
-        console.error('Error loading order:', orderError);
-        setIsLoading(false);
-        return;
-      }
-
-      if (orderData) {
-        setOrder(orderData as unknown as Order);
-
-        const { data: itemsData } = await supabase
-          .from('order_items')
-          .select('id, product_name, quantity, unit_price, total_price')
-          .eq('order_id', orderId);
-
-        if (itemsData) {
-          setOrderItems(itemsData);
-        }
-      }
-
-      setIsLoading(false);
-    };
-
     loadOrder();
-
-    // Set up realtime subscription for order updates
-    if (orderId) {
-      const channel = supabase
-        .channel(`order-${orderId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'orders',
-            filter: `id=eq.${orderId}`,
-          },
-          (payload) => {
-            console.log('Order updated:', payload);
-            setOrder(prev => prev ? { ...prev, ...(payload.new as Partial<Order>) } : null);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
   }, [orderId]);
+
+  const loadOrder = async () => {
+    if (!orderId) return;
+    setIsLoading(true);
+
+    const { data: orderData, error: orderError } = await supabase
+      .from('order_confirmation_view' as any)
+      .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (orderError) {
+      console.error('Error loading order:', orderError);
+      setIsLoading(false);
+      return;
+    }
+
+    if (orderData) {
+      setOrder(orderData as unknown as Order);
+
+      const { data: itemsData } = await supabase
+        .from('order_items_confirmation_view' as any)
+        .select('id, product_name, quantity, unit_price, total_price')
+        .eq('order_id', orderId);
+
+      if (itemsData) {
+        setOrderItems(itemsData as unknown as OrderItem[]);
+      }
+    }
+
+    setIsLoading(false);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -179,7 +146,6 @@ export default function ShopOrderConfirmation() {
 
   const isPaid = order.payment_status === 'paid';
   const isBankTransfer = order.payment_method === 'bank_transfer';
-  const shippingAddress = order.shipping_address;
 
   return (
     <ShopLayout>
@@ -261,39 +227,29 @@ export default function ShopOrderConfirmation() {
                 {!isPaid && isBankTransfer && (
                   <p className="mt-4 text-sm text-muted-foreground">
                     <RefreshCw className="h-4 w-4 inline mr-1" />
-                    Deze pagina wordt automatisch bijgewerkt zodra we je betaling ontvangen.
+                    Klik op "Status vernieuwen" zodra je betaald hebt om de status bij te werken.
                   </p>
                 )}
+                <div className="mt-4">
+                  <Button variant="outline" size="sm" onClick={loadOrder}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Status vernieuwen
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Shipping Address */}
-            {shippingAddress && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Verzendadres</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm space-y-1">
-                    {shippingAddress.company_name && (
-                      <p className="font-medium">{shippingAddress.company_name}</p>
-                    )}
-                    <p>
-                      {shippingAddress.first_name} {shippingAddress.last_name}
-                    </p>
-                    <p>
-                      {shippingAddress.street} {shippingAddress.house_number}
-                    </p>
-                    <p>
-                      {shippingAddress.postal_code} {shippingAddress.city}
-                    </p>
-                    {shippingAddress.country && (
-                      <p>{shippingAddress.country}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Shipping Address — verzonden per e-mail */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Verzendadres</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Verzendadres bevestigd per e-mail.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Order Summary Sidebar */}
