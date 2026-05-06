@@ -78,23 +78,33 @@ export function usePublicStorefront(tenantSlug: string) {
     queryKey: ['public-theme-settings', tenantId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('tenant_theme_settings')
-        .select(`
-          *,
-          themes (*)
-        `)
+        .from('tenant_theme_public' as any)
+        .select('*')
         .eq('tenant_id', tenantId!)
         .maybeSingle();
       
       if (error) throw error;
       if (!data) return null;
 
+      // Separate themes query (view doesn't support embedded FK)
+      const themeId = (data as any).theme_id;
+      let themeData: any = null;
+      if (themeId) {
+        const { data: t } = await supabase
+          .from('themes')
+          .select('*')
+          .eq('id', themeId)
+          .maybeSingle();
+        themeData = t;
+      }
+
       // Parse JSON fields and cast
       return {
-        ...data,
-        social_links: typeof data.social_links === 'string' 
-          ? JSON.parse(data.social_links) 
-          : data.social_links || {},
+        ...(data as any),
+        themes: themeData || null,
+        social_links: typeof (data as any).social_links === 'string'
+          ? JSON.parse((data as any).social_links)
+          : (data as any).social_links || {},
       } as unknown as TenantThemeSettings;
     },
     enabled: !!tenantId,
