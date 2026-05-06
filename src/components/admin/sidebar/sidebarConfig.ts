@@ -109,6 +109,7 @@ const salesItems: NavItem[] = [
     children: [
       { id: 'ads-overview', title: 'Overzicht', url: '/admin/ads' },
       { id: 'ads-bolcom', title: 'Bol.com', url: '/admin/ads/bolcom' },
+      { id: 'ads-products', title: 'Product Mapping', url: '/admin/ads/products' },
       { id: 'ads-amazon', title: 'Amazon', url: '/admin/ads/amazon', disabled: true },
       { id: 'ads-google', title: 'Google', url: '/admin/ads/google', disabled: true },
       { id: 'ads-meta', title: 'Meta', url: '/admin/ads/meta', disabled: true },
