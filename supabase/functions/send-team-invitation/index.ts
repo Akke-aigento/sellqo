@@ -38,7 +38,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const auth = await authenticateRequest(req);
-    const user = { id: auth.userId };
+    const user = { id: auth.user_id };
 
     const { email, role, tenantId }: InvitationRequest = await req.json();
 
