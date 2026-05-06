@@ -4557,6 +4557,13 @@ export type Database = {
             foreignKeyName: "customer_messages_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -4995,6 +5002,13 @@ export type Database = {
             foreignKeyName: "digital_deliveries_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: false
+            referencedRelation: "order_items_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_deliveries_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
             referencedRelation: "order_items_warehouse"
             referencedColumns: ["id"]
           },
@@ -5052,6 +5066,13 @@ export type Database = {
             columns: ["discount_code_id"]
             isOneToOne: false
             referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -6122,6 +6143,13 @@ export type Database = {
             foreignKeyName: "gift_card_transactions_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -6219,6 +6247,13 @@ export type Database = {
             columns: ["design_id"]
             isOneToOne: false
             referencedRelation: "gift_card_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -7123,6 +7158,13 @@ export type Database = {
             foreignKeyName: "invoices_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -7448,6 +7490,13 @@ export type Database = {
             columns: ["customer_loyalty_id"]
             isOneToOne: false
             referencedRelation: "customer_loyalty"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -8324,6 +8373,13 @@ export type Database = {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -8703,6 +8759,13 @@ export type Database = {
             foreignKeyName: "packing_slips_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packing_slips_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -8764,6 +8827,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_confirmations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_confirmations_order_id_fkey"
             columns: ["order_id"]
@@ -9933,6 +10003,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -11726,6 +11803,13 @@ export type Database = {
             foreignKeyName: "quotes_converted_order_id_fkey"
             columns: ["converted_order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -12048,6 +12132,13 @@ export type Database = {
             columns: ["marketplace_connection_id"]
             isOneToOne: false
             referencedRelation: "marketplace_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -12923,6 +13014,13 @@ export type Database = {
             foreignKeyName: "shipping_labels_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -13086,6 +13184,13 @@ export type Database = {
             columns: ["label_id"]
             isOneToOne: false
             referencedRelation: "shipping_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_status_updates_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
             referencedColumns: ["id"]
           },
           {
@@ -17101,6 +17206,81 @@ export type Database = {
           },
         ]
       }
+      order_confirmation_view: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          ogm_reference: string | null
+          order_number: string | null
+          payment_method: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          shipping_cost: number | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          subtotal: number | null
+          tax_amount: number | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          ogm_reference?: string | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          ogm_reference?: string | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          shipping_cost?: number | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total?: number | null
+        }
+        Relationships: []
+      }
+      order_items_confirmation_view: {
+        Row: {
+          id: string | null
+          order_id: string | null
+          product_name: string | null
+          quantity: number | null
+          total_price: number | null
+          unit_price: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items_warehouse: {
         Row: {
           id: string | null
@@ -17130,6 +17310,13 @@ export type Database = {
           quantity?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_confirmation_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -17257,6 +17444,253 @@ export type Database = {
           slug?: string | null
         }
         Relationships: []
+      }
+      tenant_theme_public: {
+        Row: {
+          accent_color: string | null
+          announcement_link: string | null
+          announcement_text: string | null
+          background_color: string | null
+          body_font: string | null
+          brand_color: string | null
+          checkout_address_autocomplete: boolean | null
+          checkout_company_field: string | null
+          checkout_guest_enabled: boolean | null
+          checkout_phone_required: boolean | null
+          cookie_banner_enabled: boolean | null
+          cookie_banner_style: string | null
+          created_at: string | null
+          custom_css: string | null
+          custom_frontend_config: Json | null
+          custom_frontend_url: string | null
+          exit_intent_popup: boolean | null
+          favicon_url: string | null
+          footer_text: string | null
+          header_sticky: boolean | null
+          header_style: string | null
+          heading_font: string | null
+          id: string | null
+          is_published: boolean | null
+          logo_url: string | null
+          mobile_bottom_nav: boolean | null
+          nav_style: string | null
+          newsletter_enabled: boolean | null
+          newsletter_incentive_text: string | null
+          newsletter_popup_delay_seconds: number | null
+          newsletter_popup_enabled: boolean | null
+          newsletter_provider: string | null
+          primary_color: string | null
+          product_card_style: string | null
+          product_image_zoom: string | null
+          product_related_mode: string | null
+          product_reviews_display: string | null
+          product_stock_indicator: boolean | null
+          product_variant_style: string | null
+          products_per_row: number | null
+          published_at: string | null
+          reviews_aggregate_display: boolean | null
+          reviews_auto_feature_threshold: number | null
+          reviews_display_platforms: Json | null
+          reviews_floating_style: string | null
+          reviews_homepage_section: boolean | null
+          reviews_hub_enabled: boolean | null
+          reviews_min_rating_filter: number | null
+          reviews_trust_bar_enabled: boolean | null
+          reviews_widget_position: string | null
+          search_display: string | null
+          secondary_color: string | null
+          show_announcement_bar: boolean | null
+          show_breadcrumbs: boolean | null
+          show_recent_purchases: boolean | null
+          show_stock_count: boolean | null
+          show_viewers_count: boolean | null
+          show_wishlist: boolean | null
+          social_links: Json | null
+          storefront_default_language: string | null
+          storefront_language_selector_style: string | null
+          storefront_languages: Json | null
+          storefront_multilingual_enabled: boolean | null
+          storefront_status: string | null
+          tenant_id: string | null
+          text_color: string | null
+          theme_id: string | null
+          theme_mode: string | null
+          theme_style: string | null
+          trust_badges: Json | null
+          updated_at: string | null
+          use_custom_frontend: boolean | null
+        }
+        Insert: {
+          accent_color?: string | null
+          announcement_link?: string | null
+          announcement_text?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          brand_color?: string | null
+          checkout_address_autocomplete?: boolean | null
+          checkout_company_field?: string | null
+          checkout_guest_enabled?: boolean | null
+          checkout_phone_required?: boolean | null
+          cookie_banner_enabled?: boolean | null
+          cookie_banner_style?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          custom_frontend_config?: Json | null
+          custom_frontend_url?: string | null
+          exit_intent_popup?: boolean | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          header_sticky?: boolean | null
+          header_style?: string | null
+          heading_font?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          logo_url?: string | null
+          mobile_bottom_nav?: boolean | null
+          nav_style?: string | null
+          newsletter_enabled?: boolean | null
+          newsletter_incentive_text?: string | null
+          newsletter_popup_delay_seconds?: number | null
+          newsletter_popup_enabled?: boolean | null
+          newsletter_provider?: string | null
+          primary_color?: string | null
+          product_card_style?: string | null
+          product_image_zoom?: string | null
+          product_related_mode?: string | null
+          product_reviews_display?: string | null
+          product_stock_indicator?: boolean | null
+          product_variant_style?: string | null
+          products_per_row?: number | null
+          published_at?: string | null
+          reviews_aggregate_display?: boolean | null
+          reviews_auto_feature_threshold?: number | null
+          reviews_display_platforms?: Json | null
+          reviews_floating_style?: string | null
+          reviews_homepage_section?: boolean | null
+          reviews_hub_enabled?: boolean | null
+          reviews_min_rating_filter?: number | null
+          reviews_trust_bar_enabled?: boolean | null
+          reviews_widget_position?: string | null
+          search_display?: string | null
+          secondary_color?: string | null
+          show_announcement_bar?: boolean | null
+          show_breadcrumbs?: boolean | null
+          show_recent_purchases?: boolean | null
+          show_stock_count?: boolean | null
+          show_viewers_count?: boolean | null
+          show_wishlist?: boolean | null
+          social_links?: Json | null
+          storefront_default_language?: string | null
+          storefront_language_selector_style?: string | null
+          storefront_languages?: Json | null
+          storefront_multilingual_enabled?: boolean | null
+          storefront_status?: string | null
+          tenant_id?: string | null
+          text_color?: string | null
+          theme_id?: string | null
+          theme_mode?: string | null
+          theme_style?: string | null
+          trust_badges?: Json | null
+          updated_at?: string | null
+          use_custom_frontend?: boolean | null
+        }
+        Update: {
+          accent_color?: string | null
+          announcement_link?: string | null
+          announcement_text?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          brand_color?: string | null
+          checkout_address_autocomplete?: boolean | null
+          checkout_company_field?: string | null
+          checkout_guest_enabled?: boolean | null
+          checkout_phone_required?: boolean | null
+          cookie_banner_enabled?: boolean | null
+          cookie_banner_style?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          custom_frontend_config?: Json | null
+          custom_frontend_url?: string | null
+          exit_intent_popup?: boolean | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          header_sticky?: boolean | null
+          header_style?: string | null
+          heading_font?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          logo_url?: string | null
+          mobile_bottom_nav?: boolean | null
+          nav_style?: string | null
+          newsletter_enabled?: boolean | null
+          newsletter_incentive_text?: string | null
+          newsletter_popup_delay_seconds?: number | null
+          newsletter_popup_enabled?: boolean | null
+          newsletter_provider?: string | null
+          primary_color?: string | null
+          product_card_style?: string | null
+          product_image_zoom?: string | null
+          product_related_mode?: string | null
+          product_reviews_display?: string | null
+          product_stock_indicator?: boolean | null
+          product_variant_style?: string | null
+          products_per_row?: number | null
+          published_at?: string | null
+          reviews_aggregate_display?: boolean | null
+          reviews_auto_feature_threshold?: number | null
+          reviews_display_platforms?: Json | null
+          reviews_floating_style?: string | null
+          reviews_homepage_section?: boolean | null
+          reviews_hub_enabled?: boolean | null
+          reviews_min_rating_filter?: number | null
+          reviews_trust_bar_enabled?: boolean | null
+          reviews_widget_position?: string | null
+          search_display?: string | null
+          secondary_color?: string | null
+          show_announcement_bar?: boolean | null
+          show_breadcrumbs?: boolean | null
+          show_recent_purchases?: boolean | null
+          show_stock_count?: boolean | null
+          show_viewers_count?: boolean | null
+          show_wishlist?: boolean | null
+          social_links?: Json | null
+          storefront_default_language?: string | null
+          storefront_language_selector_style?: string | null
+          storefront_languages?: Json | null
+          storefront_multilingual_enabled?: boolean | null
+          storefront_status?: string | null
+          tenant_id?: string | null
+          text_color?: string | null
+          theme_id?: string | null
+          theme_mode?: string | null
+          theme_style?: string | null
+          trust_badges?: Json | null
+          updated_at?: string | null
+          use_custom_frontend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_theme_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_theme_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_theme_settings_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "themes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
