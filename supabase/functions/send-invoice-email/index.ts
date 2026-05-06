@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +37,8 @@ serve(async (req) => {
 
   try {
     logStep("Starting invoice email send");
+
+    await authenticateRequest(req);
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -322,6 +325,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
