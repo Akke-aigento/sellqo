@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1158,6 +1159,8 @@ serve(async (req) => {
   try {
     logStep("Starting invoice generation");
 
+    await authenticateRequest(req);
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -1618,6 +1621,9 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     logStep("Error", { message: error.message, stack: error.stack });
     return new Response(JSON.stringify({ 
       success: false, 
