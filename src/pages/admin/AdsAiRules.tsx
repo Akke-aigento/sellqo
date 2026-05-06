@@ -42,10 +42,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 const RULE_TYPE_LABELS: Record<string, string> = {
   auto_negative: 'Auto Negatief',
-  bid_adjustment: 'Bod Aanpassing',
-  budget_pacing: 'Budget Pacing',
-  inventory_pause: 'Voorraad Pauze',
 };
+// Disabled until ads-ai-engine implements them:
+// bid_adjustment, budget_pacing, inventory_pause
 
 function fmt(d: string | null) {
   if (!d) return '—';
@@ -355,34 +354,6 @@ export default function AdsAiRulesPage() {
                     <div><Label>Max Conversies</Label><Input type="number" value={newRule.max_conversions} onChange={(e) => setNewRule(p => ({ ...p, max_conversions: +e.target.value }))} /></div>
                     <div><Label>Min Spend (€)</Label><Input type="number" value={newRule.min_spend} onChange={(e) => setNewRule(p => ({ ...p, min_spend: +e.target.value }))} /></div>
                     <div><Label>Lookback (dagen)</Label><Input type="number" value={newRule.lookback_days} onChange={(e) => setNewRule(p => ({ ...p, lookback_days: +e.target.value }))} /></div>
-                  </div>
-                )}
-                {newRule.rule_type === 'bid_adjustment' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Target ACoS (%)</Label><Input type="number" value={newRule.target_acos} onChange={(e) => setNewRule(p => ({ ...p, target_acos: +e.target.value }))} /></div>
-                    <div><Label>Min Datapunten</Label><Input type="number" value={newRule.min_data_points} onChange={(e) => setNewRule(p => ({ ...p, min_data_points: +e.target.value }))} /></div>
-                    <div><Label>Max Bod Wijziging (%)</Label><Input type="number" value={newRule.max_bid_change} onChange={(e) => setNewRule(p => ({ ...p, max_bid_change: +e.target.value }))} /></div>
-                  </div>
-                )}
-                {newRule.rule_type === 'inventory_pause' && (
-                  <div>
-                    <Label>Min Voorraad Level</Label>
-                    <Input type="number" value={newRule.min_stock_level} onChange={(e) => setNewRule(p => ({ ...p, min_stock_level: +e.target.value }))} />
-                  </div>
-                )}
-                {newRule.rule_type === 'budget_pacing' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Budget Drempel (%)</Label><Input type="number" value={newRule.budget_threshold} onChange={(e) => setNewRule(p => ({ ...p, budget_threshold: +e.target.value }))} /></div>
-                    <div>
-                      <Label>Actie</Label>
-                      <Select value={newRule.budget_action} onValueChange={(v) => setNewRule(p => ({ ...p, budget_action: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="warn">Waarschuwen</SelectItem>
-                          <SelectItem value="reduce">Biedingen verlagen</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                 )}
 
