@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +30,8 @@ serve(async (req) => {
       order_id,
       quote_id,
     } = await req.json();
+
+    await authenticateRequest(req, tenant_id);
 
     if (!tenant_id || !platform || !recipient_id || !message) {
       return new Response(
@@ -152,6 +155,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in send-meta-message:', error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
