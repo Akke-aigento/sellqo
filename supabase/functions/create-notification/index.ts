@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +42,8 @@ serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const notification: NotificationRequest = await req.json();
+    await authenticateRequest(req, notification.tenant_id);
+
     const priority = notification.priority || 'medium';
     const skipInApp = notification.skip_in_app || false;
     let notificationId = notification.notification_id || null;
@@ -206,6 +209,9 @@ serve(async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("Error in create-notification:", errorMessage);
     return new Response(

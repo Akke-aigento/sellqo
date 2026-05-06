@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,6 +177,8 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    await authenticateRequest(req);
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -466,6 +469,9 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Error sending quote email:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

@@ -1,5 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
+
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -167,6 +170,9 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in send-campaign-batch:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
