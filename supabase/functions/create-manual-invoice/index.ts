@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -532,13 +533,18 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Authenticate and verify tenant access
+    const rawBody = await req.text();
+    const body = JSON.parse(rawBody);
+    const auth = await authenticateRequest(req, body.tenant_id);
+
     const { 
       tenant_id, 
       customer_id,
       items,
       notes,
       send_email = false
-    } = await req.json();
+    } = body;
 
     if (!tenant_id) {
       throw new Error("tenant_id is required");
@@ -711,6 +717,9 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     logStep("Error", { error: error.message });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
