@@ -1,5 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +38,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { tenantId, toEmail, subject, htmlContent, previewData }: SendTestEmailRequest = await req.json();
+
+    await authenticateRequest(req, tenantId);
 
     if (!tenantId || !toEmail || !subject || !htmlContent) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -119,6 +122,9 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Send test email error:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : "Failed to send test email" 
     }), {
