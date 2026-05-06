@@ -56,6 +56,7 @@ import AdsBolcomCampaignDetailPage from "./pages/admin/AdsBolcomCampaignDetail";
 import AdsBolcomKeywordsPage from "./pages/admin/AdsBolcomKeywords";
 import AdsBolcomSearchTermsPage from "./pages/admin/AdsBolcomSearchTerms";
 import AdsAiRulesPage from "./pages/admin/AdsAiRules";
+import AdsProductMapPage from "./pages/admin/AdsProductMap";
 import ReportsPage from "./pages/admin/Reports";
 import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
@@ -220,6 +221,7 @@ const App = () => (
               <Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
               <Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTermsPage />} />
               <Route path="ads/ai" element={<AdsAiRulesPage />} />
+              <Route path="ads/products" element={<AdsProductMapPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
