@@ -11,6 +11,35 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.slice(7);
+    const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    const supabaseAuthCheck = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      isServiceRole
+        ? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        : Deno.env.get("SUPABASE_ANON_KEY")!,
+      isServiceRole
+        ? undefined
+        : { global: { headers: { Authorization: authHeader } } }
+    );
+    if (!isServiceRole) {
+      const { data: { user }, error: userError } = await supabaseAuthCheck.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { tenant_id } = await req.json();
     if (!tenant_id) {
       return new Response(JSON.stringify({ error: "tenant_id required" }), {
