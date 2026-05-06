@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -60,6 +61,8 @@ const handler = async (req: Request): Promise<Response> => {
       bcc,
       attachments,
     }: SendMessageRequest = await req.json();
+
+    await authenticateRequest(req, tenant_id);
 
     // Fetch tenant info for branding and reply-to
     const { data: tenant, error: tenantError } = await supabaseClient
@@ -252,6 +255,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     console.error("Error in send-customer-message:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),
