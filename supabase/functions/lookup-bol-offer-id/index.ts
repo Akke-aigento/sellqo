@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,6 +82,7 @@ Deno.serve(async (req) => {
     )
 
     const body: LookupRequest = await req.json()
+    await authenticateRequest(req, tenant_id);
     const { ean, tenant_id, connection_id, product_id } = body
 
     if (!ean || !tenant_id || !connection_id) {
@@ -239,6 +241,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in lookup-bol-offer-id:', errorMessage)
     return new Response(

@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,7 @@ serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
     const { access_token } = await req.json();
 
     if (!access_token) {
@@ -89,6 +91,9 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Fetch catalogs error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
@@ -156,6 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
       force_new = false,
       recrop = false,
     }: VVBLabelRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
     console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
 
     if (!order_id) {
@@ -943,6 +945,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : "";
     console.error("FATAL Error creating VVB label:", errorMsg);

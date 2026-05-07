@@ -1,5 +1,6 @@
 // CSV Import Edge Function v3 - Fixed customer_type constraint
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body: ImportRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
     const { tenant_id, platform, data_type, records, options } = body;
 
     if (!tenant_id || !data_type || !records?.length) {
@@ -104,6 +106,9 @@ Deno.serve(async (req) => {
         await importOrders(supabase, tenant_id, records, options, result);
       }
     } catch (importError) {
+    if (importError instanceof AuthError) {
+      return authErrorResponse(importError, corsHeaders);
+    }
       console.error(`Import error for ${data_type}:`, importError);
       result.status = "failed";
       result.errors.push({

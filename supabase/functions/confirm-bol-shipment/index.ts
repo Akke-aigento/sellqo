@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // Extended CORS headers (compatible with all Supabase client variants)
 const corsHeaders = {
@@ -104,6 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    await authenticateRequest(req);
     const { order_id, tracking_number, carrier, tracking_url, shipping_label_id }: ConfirmShipmentRequest =
       await req.json();
 
@@ -348,6 +350,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[confirm-bol-shipment] FATAL:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {

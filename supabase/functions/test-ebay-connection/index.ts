@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
     const { credentials } = await req.json();
     
     if (!credentials?.ebayAppId || !credentials?.ebayCertId || !credentials?.ebayRefreshToken) {
@@ -81,6 +82,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('eBay connection test error:', error);
     
     return new Response(

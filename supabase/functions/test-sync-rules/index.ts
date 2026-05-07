@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
 
   try {
     const { connectionId, dataType, direction, sampleSize = 10 } = await req.json() as TestSyncRequest
+    await authenticateRequest(req, tenantId);
 
     if (!connectionId || !dataType) {
       return new Response(
@@ -238,6 +240,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Test sync error:', errorMessage)
 

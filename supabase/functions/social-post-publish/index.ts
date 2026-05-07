@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -150,6 +151,7 @@ serve(async (req) => {
 
   try {
     const { tenantId, platform, text, imageUrls, scheduledFor, contentId }: PostRequest = await req.json();
+    await authenticateRequest(req, tenantId);
 
     if (!tenantId || !platform || !text) {
       return new Response(
@@ -254,6 +256,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Post publish error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

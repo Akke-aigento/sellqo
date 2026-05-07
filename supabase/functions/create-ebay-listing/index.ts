@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,6 +75,7 @@ serve(async (req) => {
 
   try {
     const { product_id, tenant_id, connection_id, offer_data }: CreateListingRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
 
     // Validate input
     if (!product_id || !tenant_id || !connection_id || !offer_data) {
@@ -322,6 +324,9 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error creating eBay listing:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to create eBay listing';
     return new Response(

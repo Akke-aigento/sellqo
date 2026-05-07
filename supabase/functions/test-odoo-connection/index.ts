@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -133,6 +134,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
     const { credentials } = await req.json()
 
     console.log('Testing Odoo connection...')
@@ -156,6 +158,9 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error testing Odoo connection:', errorMessage)
     return new Response(

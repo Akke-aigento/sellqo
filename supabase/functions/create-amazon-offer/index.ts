@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +69,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { product_id, tenant_id, connection_id, offer_data }: CreateOfferRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
 
     console.log('Creating Amazon offer for product:', product_id);
 
@@ -216,6 +218,9 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error creating Amazon offer:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to create listing';
     return new Response(

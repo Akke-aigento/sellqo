@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -188,6 +189,7 @@ Deno.serve(async (req) => {
     )
 
     const body = await req.json().catch(() => ({}))
+    await authenticateRequest(req, tenant_id);
     const { connectionId } = body
 
     if (!connectionId) {
@@ -432,6 +434,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in import-bol-shipments:', errorMessage)
     return new Response(
