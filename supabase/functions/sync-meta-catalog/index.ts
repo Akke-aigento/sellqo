@@ -108,9 +108,6 @@ async function syncProductToMeta(
 
     return { success: true };
   } catch (error: any) {
-    if (error instanceof AuthError) {
-      return authErrorResponse(error, corsHeaders);
-    }
     return { success: false, error: error.message };
   }
 }
@@ -276,6 +273,9 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Sync error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

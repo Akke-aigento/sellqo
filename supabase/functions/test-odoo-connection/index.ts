@@ -114,9 +114,6 @@ async function testOdooConnection(credentials: OdooCredentials): Promise<{ succe
     }
 
   } catch (error) {
-    if (error instanceof AuthError) {
-      return authErrorResponse(error, corsHeaders);
-    }
     console.error('Odoo connection test error:', error)
     
     if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -161,6 +158,9 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error testing Odoo connection:', errorMessage)
     return new Response(

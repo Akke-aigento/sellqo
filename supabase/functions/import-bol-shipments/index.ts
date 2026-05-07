@@ -170,9 +170,6 @@ async function fetchShipmentDetails(
 
     return await response.json()
   } catch (error) {
-    if (error instanceof AuthError) {
-      return authErrorResponse(error, corsHeaders);
-    }
     console.error(`Error fetching shipment ${shipmentId}:`, error)
     return null
   }
@@ -437,6 +434,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in import-bol-shipments:', errorMessage)
     return new Response(

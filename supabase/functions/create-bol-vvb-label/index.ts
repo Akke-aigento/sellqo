@@ -122,9 +122,6 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
       lastError = `${response.status} - ${(await response.text()).slice(0, 200)}`;
       console.warn(`Token request failed attempt ${attempt}/${MAX_AUTH_ATTEMPTS}: ${lastError}`);
     } catch (err) {
-    if (err instanceof AuthError) {
-      return authErrorResponse(err, corsHeaders);
-    }
       // Network errors / timeouts: retry
       lastError = err instanceof Error ? err.message : String(err);
       console.warn(`Token request error attempt ${attempt}/${MAX_AUTH_ATTEMPTS}:`, lastError);
@@ -948,6 +945,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : "";
     console.error("FATAL Error creating VVB label:", errorMsg);

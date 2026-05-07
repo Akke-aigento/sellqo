@@ -70,9 +70,6 @@ async function postToFacebook(accessToken: string, text: string, imageUrls?: str
       return { success: false, error: result.error?.message || 'Onbekende Facebook fout' };
     }
   } catch (err: any) {
-    if (err instanceof AuthError) {
-      return authErrorResponse(err, corsHeaders);
-    }
     return { success: false, error: err.message };
   }
 }
@@ -259,6 +256,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Post publish error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
