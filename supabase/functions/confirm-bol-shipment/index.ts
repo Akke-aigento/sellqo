@@ -89,9 +89,6 @@ async function pollProcessStatus(
         return { status: data.status, errorMessage: data.errorMessage };
       }
     } catch (e) {
-    if (e instanceof AuthError) {
-      return authErrorResponse(e, corsHeaders);
-    }
       console.warn(`[confirm-bol-shipment] poll error attempt ${attempt + 1}:`, e instanceof Error ? e.message : e);
     }
   }
@@ -108,8 +105,8 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    await authenticateRequest(req);
     const { order_id, tracking_number, carrier, tracking_url, shipping_label_id }: ConfirmShipmentRequest =
-      await authenticateRequest(req);
       await req.json();
 
     if (!order_id) {
