@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,8 @@ Deno.serve(async (req) => {
 
   try {
     const { campaign_id, tenant_id } = await req.json();
+
+    await authenticateRequest(req, tenant_id);
     if (!campaign_id || !tenant_id) {
       return new Response(JSON.stringify({ error: "campaign_id and tenant_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -230,6 +233,9 @@ REGELS:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
     console.error("ads-campaign-analyze error:", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

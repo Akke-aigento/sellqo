@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,8 @@ serve(async (req) => {
 
     const { message, conversation_history = [], current_route = "" } = await req.json();
 
+
+    await authenticateRequest(req, tenant_id);
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: "Message required" }), { status: 400, headers: corsHeaders });
     }
@@ -192,6 +195,9 @@ ${knowledgeBase || "Er is momenteel geen documentatie beschikbaar."}
                 current_route: current_route || null,
               });
             } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
               console.error("Failed to log unanswered question:", e);
             }
           }
@@ -218,6 +224,9 @@ ${knowledgeBase || "Er is momenteel geen documentatie beschikbaar."}
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
     console.error("ai-help-assistant error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +36,8 @@ serve(async (req) => {
 
     const { tenant_id, session_id, message, conversation_history }: ChatRequest = await req.json();
 
+
+    await authenticateRequest(req, tenant_id);
     if (!tenant_id || !session_id || !message) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -126,6 +129,9 @@ serve(async (req) => {
             webResearchUsed = true;
           }
         } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
           console.error('Perplexity error:', e);
           // Continue without web research
         }
@@ -266,6 +272,9 @@ ${config.chatbot_welcome_message || 'Hallo! Hoe kan ik je helpen?'}`;
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Chatbot error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

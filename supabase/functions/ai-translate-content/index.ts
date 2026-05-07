@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,8 @@ serve(async (req) => {
     const { tenantId, entityType, entityId, entityTypes, targetLanguages, mode = 'missing' } = 
       await req.json() as TranslationRequest;
 
+
+    await authenticateRequest(req, tenantId);
     if (!tenantId || !targetLanguages?.length) {
       return new Response(JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -145,6 +148,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error("Translation error:", error);
     return new Response(JSON.stringify({ error: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

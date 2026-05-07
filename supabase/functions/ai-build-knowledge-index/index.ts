@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +69,8 @@ serve(async (req) => {
 
     const { tenant_id, full_rebuild }: IndexRequest = await req.json();
 
+
+    await authenticateRequest(req, tenant_id);
     if (!tenant_id) {
       return new Response(
         JSON.stringify({ error: 'tenant_id is required' }),
@@ -256,6 +259,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Knowledge index error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

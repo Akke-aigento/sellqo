@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,6 +86,9 @@ Deno.serve(async (req) => {
           results.push({ tenant_id: tenantId, success: false, status: res.status, error: text });
         }
       } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[ads-bolcom-scheduler] ✗ ${tenantId} threw: ${message}`);
         results.push({ tenant_id: tenantId, success: false, error: message });
@@ -105,6 +109,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
     console.error("[ads-bolcom-scheduler] error:", err);
     return new Response(
       JSON.stringify({ success: false, error: err instanceof Error ? err.message : String(err) }),

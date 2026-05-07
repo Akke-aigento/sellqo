@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,6 +129,8 @@ serve(async (req) => {
   try {
     const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
     
+
+    await authenticateRequest(req, tenantId);
     const ids = entityType === 'category' ? categoryIds : productIds;
     
     if (!tenantId || !type || !ids || ids.length === 0) {
@@ -246,7 +249,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: unknown) {
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error("SEO Content Generator error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(

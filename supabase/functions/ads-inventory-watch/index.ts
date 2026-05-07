@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,6 +142,9 @@ Deno.serve(async (req) => {
                 try {
                   await bolPut(bolToken, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "PAUSED" });
                 } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
                   console.error(`Failed to pause campaign ${campId} on Bol:`, e);
                 }
               }
@@ -161,6 +165,9 @@ Deno.serve(async (req) => {
 
             pausedCount++;
           } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
             console.error(`Failed to pause campaign ${campId}:`, e);
           }
         }
@@ -193,6 +200,9 @@ Deno.serve(async (req) => {
                 try {
                   await bolPut(bolToken, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "ENABLED" });
                 } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
                   console.error(`Failed to resume campaign ${campId} on Bol:`, e);
                 }
               }
@@ -213,6 +223,9 @@ Deno.serve(async (req) => {
 
             resumedCount++;
           } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
             console.error(`Failed to resume campaign ${campId}:`, e);
           }
         }
@@ -221,6 +234,9 @@ Deno.serve(async (req) => {
 
     return jsonRes({ success: true, paused: pausedCount, resumed: resumedCount });
   } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
     console.error("ads-inventory-watch error:", err);
     return jsonRes({ error: err instanceof Error ? err.message : String(err) }, 500);
   }

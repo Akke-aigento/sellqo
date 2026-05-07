@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +30,8 @@ serve(async (req) => {
 
     const { tenantId, feedbackId, userId, originalContent, editedContent, contentType }: LearnRequest = await req.json();
 
+
+    await authenticateRequest(req, tenantId);
     if (!tenantId || !originalContent || !editedContent) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -117,6 +120,9 @@ Analyze the changes and extract learning patterns.`
           }
         }
       } catch (aiError) {
+    if (aiError instanceof AuthError) {
+      return authErrorResponse(aiError, corsHeaders);
+    }
         console.error('AI analysis error:', aiError);
         // Continue with basic pattern detection
       }
@@ -183,6 +189,9 @@ Analyze the changes and extract learning patterns.`
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Learning error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
