@@ -110,9 +110,6 @@ async function testAmazonConnection(credentials: AmazonCredentials): Promise<{ s
     }
 
   } catch (error) {
-    if (error instanceof AuthError) {
-      return authErrorResponse(error, corsHeaders);
-    }
     console.error('Amazon connection test error:', error)
     return { 
       success: false, 
@@ -424,6 +421,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error testing connection:', errorMessage)
     return new Response(
