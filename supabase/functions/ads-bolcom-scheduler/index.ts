@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    await authenticateRequest(req);
+
     const url = new URL(req.url);
     const mode = (url.searchParams.get("mode") || "sync") as Mode;
     if (!MODE_FUNCTION_MAP[mode]) {
@@ -86,9 +88,6 @@ Deno.serve(async (req) => {
           results.push({ tenant_id: tenantId, success: false, status: res.status, error: text });
         }
       } catch (err) {
-    if (err instanceof AuthError) {
-      return authErrorResponse(err, corsHeaders);
-    }
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[ads-bolcom-scheduler] ✗ ${tenantId} threw: ${message}`);
         results.push({ tenant_id: tenantId, success: false, error: message });
