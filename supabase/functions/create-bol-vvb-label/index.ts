@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
@@ -121,6 +122,9 @@ async function getBolAccessToken(credentials: { clientId: string; clientSecret: 
       lastError = `${response.status} - ${(await response.text()).slice(0, 200)}`;
       console.warn(`Token request failed attempt ${attempt}/${MAX_AUTH_ATTEMPTS}: ${lastError}`);
     } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
       // Network errors / timeouts: retry
       lastError = err instanceof Error ? err.message : String(err);
       console.warn(`Token request error attempt ${attempt}/${MAX_AUTH_ATTEMPTS}:`, lastError);
@@ -156,6 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
       force_new = false,
       recrop = false,
     }: VVBLabelRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
     console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
 
     if (!order_id) {

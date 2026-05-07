@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +43,7 @@ serve(async (req) => {
     }
 
     const { order_id, provider, search_type, search_value }: FetchLabelRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
 
     if (!order_id || !provider || !search_type || !search_value) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -193,6 +195,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error("Error in fetch-external-label:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new Response(

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
     )
 
     const { order_id, connection_id, strategy = 'cheapest' } = await req.json()
+    await authenticateRequest(req, tenant_id);
 
     if (!order_id || !connection_id) {
       throw new Error('order_id and connection_id are required')
@@ -314,6 +316,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in create-amazon-buy-shipping-label:', errorMessage)
     return new Response(

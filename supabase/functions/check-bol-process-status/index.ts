@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +50,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { product_id, tenant_id, connection_id, process_status_id }: CheckStatusRequest = await req.json();
+    await authenticateRequest(req, tenant_id);
 
     // Validate required fields
     if (!product_id || !tenant_id || !connection_id || !process_status_id) {
@@ -185,6 +187,9 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Check Bol process status error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

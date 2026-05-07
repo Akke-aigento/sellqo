@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -109,6 +110,9 @@ async function testAmazonConnection(credentials: AmazonCredentials): Promise<{ s
     }
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Amazon connection test error:', error)
     return { 
       success: false, 
@@ -258,6 +262,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
     const { marketplaceType, credentials } = await req.json()
 
     console.log(`Testing connection for marketplace: ${marketplaceType}`)

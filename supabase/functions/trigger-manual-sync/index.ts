@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,7 @@ Deno.serve(async (req) => {
 
   try {
     const { connectionId, dataType, direction = 'import' } = await req.json() as ManualSyncRequest
+    await authenticateRequest(req, tenant_id);
 
     if (!connectionId || !dataType) {
       return new Response(
@@ -159,6 +161,9 @@ Deno.serve(async (req) => {
       )
 
     } catch (syncError) {
+    if (syncError instanceof AuthError) {
+      return authErrorResponse(syncError, corsHeaders);
+    }
       const errorMessage = syncError instanceof Error ? syncError.message : 'Unknown sync error'
       
       // Update log entry with failure

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // Extended CORS headers (compatible with all Supabase client variants)
 const corsHeaders = {
@@ -88,6 +89,9 @@ async function pollProcessStatus(
         return { status: data.status, errorMessage: data.errorMessage };
       }
     } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
       console.warn(`[confirm-bol-shipment] poll error attempt ${attempt + 1}:`, e instanceof Error ? e.message : e);
     }
   }
@@ -105,6 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { order_id, tracking_number, carrier, tracking_url, shipping_label_id }: ConfirmShipmentRequest =
+      await authenticateRequest(req);
       await req.json();
 
     if (!order_id) {

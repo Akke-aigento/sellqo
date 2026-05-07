@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -107,6 +108,9 @@ async function syncProductToMeta(
 
     return { success: true };
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     return { success: false, error: error.message };
   }
 }
@@ -123,6 +127,7 @@ serve(async (req) => {
 
     // Get request body
     const { connection_id, full_sync = false } = await req.json();
+    await authenticateRequest(req, tenant_id);
 
     if (!connection_id) {
       return new Response(

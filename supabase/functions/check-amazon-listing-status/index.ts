@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,6 +51,7 @@ serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
+    await authenticateRequest(req, tenant_id);
     const { product_id, tenant_id, connection_id, sku } = body;
 
     console.log('Checking Amazon listing status:', { product_id, sku });
@@ -95,6 +97,9 @@ serve(async (req) => {
     try {
       accessToken = await getAmazonAccessToken(credentials);
     } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
       console.error('Failed to get access token:', error);
       return new Response(
         JSON.stringify({ 

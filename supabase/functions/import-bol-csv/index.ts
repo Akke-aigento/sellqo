@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,6 +133,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { connectionId, headers, rows } = await req.json();
+    await authenticateRequest(req, tenant_id);
     
     if (!connectionId || !headers || !rows) {
       return new Response(
@@ -267,6 +269,9 @@ Deno.serve(async (req: Request) => {
 
         ordersImported++;
       } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
         ordersFailed++;
         const message = error instanceof Error ? error.message : 'Unknown error';
         errors.push(`Order ${orderId}: ${message}`);
