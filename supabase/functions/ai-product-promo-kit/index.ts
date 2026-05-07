@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,6 +59,8 @@ serve(async (req) => {
       generateImages = true,
     }: PromoKitRequest = await req.json();
 
+
+    await authenticateRequest(req, tenantId);
     if (!tenantId || !productId || !productName || !tone || !language) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -198,6 +201,9 @@ Antwoord ALLEEN met een JSON object in dit exacte format (geen markdown, geen ba
     try {
       parsedContent = JSON.parse(contentText);
     } catch (parseError) {
+    if (parseError instanceof AuthError) {
+      return authErrorResponse(parseError, corsHeaders);
+    }
       console.error('Failed to parse AI response:', contentText);
       throw new Error('Failed to parse AI response');
     }
@@ -247,6 +253,9 @@ Make it look like a high-end advertisement.`;
           }
         }
       } catch (imageError) {
+    if (imageError instanceof AuthError) {
+      return authErrorResponse(imageError, corsHeaders);
+    }
         console.error('Failed to generate enhanced image:', imageError);
         // Continue without enhanced image
       }
@@ -285,6 +294,9 @@ Make it Instagram-worthy and eye-catching. Square format, high quality.`;
           }
         }
       } catch (imageError) {
+    if (imageError instanceof AuthError) {
+      return authErrorResponse(imageError, corsHeaders);
+    }
         console.error('Failed to generate new image:', imageError);
         // Continue without generated image
       }
@@ -314,6 +326,9 @@ Make it Instagram-worthy and eye-catching. Square format, high quality.`;
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error in ai-product-promo-kit:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

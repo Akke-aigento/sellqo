@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,8 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    await authenticateRequest(req);
 
     const url = new URL(req.url);
     const mode = (url.searchParams.get("mode") || "sync") as Mode;
@@ -105,6 +108,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
     console.error("[ads-bolcom-scheduler] error:", err);
     return new Response(
       JSON.stringify({ success: false, error: err instanceof Error ? err.message : String(err) }),

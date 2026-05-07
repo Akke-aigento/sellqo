@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +39,7 @@ serve(async (req) => {
   }
 
   try {
+    await authenticateRequest(req);
     const { product, marketplace, language = 'nl' }: OptimizeRequest = await req.json();
     
     if (!product?.name) {
@@ -175,6 +177,9 @@ Only return valid JSON, no markdown or explanation.`;
       const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
       optimizedContent = JSON.parse(cleanContent);
     } catch (parseError) {
+    if (parseError instanceof AuthError) {
+      return authErrorResponse(parseError, corsHeaders);
+    }
       console.error('Failed to parse AI response:', content);
       // Fallback: create basic optimization
       optimizedContent = {
@@ -221,7 +226,10 @@ Only return valid JSON, no markdown or explanation.`;
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: unknown) {
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error optimizing content:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to optimize content';
     return new Response(

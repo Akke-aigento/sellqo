@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,6 +80,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    await authenticateRequest(req);
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -221,6 +223,9 @@ Deno.serve(async (req) => {
 
     return jsonRes({ success: true, paused: pausedCount, resumed: resumedCount });
   } catch (err) {
+    if (err instanceof AuthError) {
+      return authErrorResponse(err, corsHeaders);
+    }
     console.error("ads-inventory-watch error:", err);
     return jsonRes({ error: err instanceof Error ? err.message : String(err) }, 500);
   }
