@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    await authenticateRequest(req);
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -142,9 +143,6 @@ Deno.serve(async (req) => {
                 try {
                   await bolPut(bolToken, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "PAUSED" });
                 } catch (e) {
-    if (e instanceof AuthError) {
-      return authErrorResponse(e, corsHeaders);
-    }
                   console.error(`Failed to pause campaign ${campId} on Bol:`, e);
                 }
               }
@@ -165,9 +163,6 @@ Deno.serve(async (req) => {
 
             pausedCount++;
           } catch (e) {
-    if (e instanceof AuthError) {
-      return authErrorResponse(e, corsHeaders);
-    }
             console.error(`Failed to pause campaign ${campId}:`, e);
           }
         }
@@ -200,9 +195,6 @@ Deno.serve(async (req) => {
                 try {
                   await bolPut(bolToken, `${BOL_ADV_BASE}/campaigns/${camp.bolcom_campaign_id}`, { state: "ENABLED" });
                 } catch (e) {
-    if (e instanceof AuthError) {
-      return authErrorResponse(e, corsHeaders);
-    }
                   console.error(`Failed to resume campaign ${campId} on Bol:`, e);
                 }
               }
@@ -223,9 +215,6 @@ Deno.serve(async (req) => {
 
             resumedCount++;
           } catch (e) {
-    if (e instanceof AuthError) {
-      return authErrorResponse(e, corsHeaders);
-    }
             console.error(`Failed to resume campaign ${campId}:`, e);
           }
         }
