@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body: ImportRequest = await req.json();
-    await authenticateRequest(req, tenant_id);
     const { tenant_id, platform, data_type, records, options } = body;
+    await authenticateRequest(req, tenant_id);
 
     if (!tenant_id || !data_type || !records?.length) {
       return new Response(
