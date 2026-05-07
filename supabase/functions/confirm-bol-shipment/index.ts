@@ -350,6 +350,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[confirm-bol-shipment] FATAL:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
