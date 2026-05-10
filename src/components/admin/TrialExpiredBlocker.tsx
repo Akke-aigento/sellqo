@@ -1,23 +1,58 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, LogOut, CreditCard, Sparkles } from 'lucide-react';
+import { AlertTriangle, LogOut, CreditCard, Sparkles, X, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useAuth } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
+const dismissKey = (tenantId?: string | null) =>
+  `trial_blocker_dismissed_${tenantId ?? 'unknown'}`;
+
 export function TrialExpiredBlocker() {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, isPlatformAdmin } = useAuth();
+  const { currentTenant } = useTenant();
   const { isLoading, shouldBlockAccess, planName } = useTrialStatus();
   const { plans } = usePricingPlans();
+
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(dismissKey(currentTenant?.id)) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  // Re-evaluate dismiss state when active tenant changes
+  useEffect(() => {
+    try {
+      setDismissed(sessionStorage.getItem(dismissKey(currentTenant?.id)) === '1');
+    } catch {
+      setDismissed(false);
+    }
+  }, [currentTenant?.id]);
 
   // Don't render if still loading or shouldn't block
   if (isLoading || !shouldBlockAccess()) {
     return null;
   }
+
+  // Platform admins can dismiss the blocker (per-tenant, per-session)
+  if (isPlatformAdmin && dismissed) {
+    return null;
+  }
+
+  const handleDismiss = () => {
+    try {
+      sessionStorage.setItem(dismissKey(currentTenant?.id), '1');
+    } catch {}
+    setDismissed(true);
+  };
 
   // Get recommended plans (exclude free)
   const paidPlans = plans.filter(p => p.monthly_price > 0).slice(0, 3);
@@ -33,7 +68,19 @@ export function TrialExpiredBlocker() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-background/98 backdrop-blur-sm flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-2xl">
+      <Card className="w-full max-w-2xl shadow-2xl relative">
+        {isPlatformAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDismiss}
+            className="absolute right-2 top-2 h-8 w-8 z-10"
+            title="Sluiten (platform admin)"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Sluiten</span>
+          </Button>
+        )}
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -91,7 +138,17 @@ export function TrialExpiredBlocker() {
           </div>
 
           {/* Logout option */}
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center gap-2 pt-2 flex-wrap">
+            {isPlatformAdmin && (
+              <Button
+                variant="outline"
+                onClick={handleDismiss}
+                className="text-muted-foreground"
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Doorgaan zonder upgrade (admin)
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               onClick={handleLogout}
