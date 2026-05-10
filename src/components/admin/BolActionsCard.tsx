@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,6 +34,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [showFetchDialog, setShowFetchDialog] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<string>('default');
 
   // Label printer hook
   const { 
@@ -103,6 +105,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       const { data, error } = await supabase.functions.invoke('create-bol-vvb-label', {
         body: {
           order_id: order.id,
+          ...(selectedFormat !== 'default' ? { label_format: selectedFormat } : {}),
         },
       });
 
@@ -333,6 +336,20 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
         )}
 
         {!isShipped && !hasVvbLabel && (
+          <>
+          <Select value={selectedFormat} onValueChange={setSelectedFormat}>
+            <SelectTrigger className="w-full h-8 text-xs">
+              <SelectValue placeholder="Labelformaat" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Standaard (uit instellingen)</SelectItem>
+              <SelectItem value="a6">A6 (105×148 mm)</SelectItem>
+              <SelectItem value="4x6_thermal">4×6 thermal</SelectItem>
+              <SelectItem value="brother_62mm">Brother 62 mm</SelectItem>
+              <SelectItem value="a5">A5</SelectItem>
+              <SelectItem value="a4_original">A4 origineel</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="default"
             size="sm"
@@ -347,6 +364,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
             )}
             VVB Label Aanmaken
           </Button>
+          </>
         )}
 
         {!isShipped && order.tracking_number && order.carrier && (

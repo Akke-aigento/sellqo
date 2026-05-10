@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Truck, Package, AlertCircle, Info, Euro, FileText, ShoppingBag } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { MarketplaceSettings } from '@/types/marketplace';
@@ -29,9 +28,21 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
   );
   const [vvbDefaultCarrier, setVvbDefaultCarrier] = useState(settings.vvbDefaultCarrier || 'POSTNL');
   const [autoConfirmShipment, setAutoConfirmShipment] = useState(settings.autoConfirmShipment || false);
-  const [vvbLabelFormat, setVvbLabelFormat] = useState<'a4_original' | 'a6_cropped'>(
-    settings.vvbLabelFormat || 'a6_cropped'
-  );
+  // Supported label formats. 'a4_original' = no crop, others = crop top-left.
+  type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm';
+  const LEGACY_MAP: Record<string, LabelFormat> = {
+    a6_cropped: 'a6',
+    a4_original: 'a4_original',
+  };
+  const resolveDefault = (s: MarketplaceSettings): LabelFormat => {
+    const explicit = s.vvbLabelFormatDefault as LabelFormat | undefined;
+    if (explicit) return explicit;
+    const first = (s.vvbLabelFormats?.[0] as LabelFormat | undefined);
+    if (first) return first;
+    if (s.vvbLabelFormat && LEGACY_MAP[s.vvbLabelFormat]) return LEGACY_MAP[s.vvbLabelFormat];
+    return 'a6';
+  };
+  const [vvbLabelFormat, setVvbLabelFormat] = useState<LabelFormat>(resolveDefault(settings));
 
   // Sync local state with props
   useEffect(() => {
@@ -41,11 +52,21 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
     setVvbFallbackProvider(settings.vvbFallbackProvider || 'sendcloud');
     setVvbDefaultCarrier(settings.vvbDefaultCarrier || 'POSTNL');
     setAutoConfirmShipment(settings.autoConfirmShipment || false);
-    setVvbLabelFormat(settings.vvbLabelFormat || 'a6_cropped');
+    setVvbLabelFormat(resolveDefault(settings));
   }, [settings]);
 
   const handleChange = (key: keyof MarketplaceSettings, value: unknown) => {
     onSettingsChange({ [key]: value });
+  };
+
+  const handleFormatChange = (value: LabelFormat) => {
+    setVvbLabelFormat(value);
+    // Write new + legacy keys for backwards compat with existing edge function reads
+    onSettingsChange({
+      vvbLabelFormatDefault: value,
+      vvbLabelFormats: [value],
+      vvbLabelFormat: value === 'a4_original' ? 'a4_original' : (value === 'a6' ? 'a6_cropped' : value),
+    });
   };
 
   return (
@@ -199,34 +220,25 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
                 </Select>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Labelformaat
+                  Standaard labelformaat
                 </Label>
-                <RadioGroup
-                  value={vvbLabelFormat}
-                  onValueChange={(value: 'a4_original' | 'a6_cropped') => {
-                    setVvbLabelFormat(value);
-                    handleChange('vvbLabelFormat', value);
-                  }}
-                  className="space-y-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="a4_original" id="a4_original" />
-                    <Label htmlFor="a4_original" className="font-normal cursor-pointer">
-                      A4 Origineel (handmatig knippen nodig)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="a6_cropped" id="a6_cropped" />
-                    <Label htmlFor="a6_cropped" className="font-normal cursor-pointer">
-                      A6 Automatisch bijgesneden (aanbevolen)
-                    </Label>
-                  </div>
-                </RadioGroup>
+                <Select value={vvbLabelFormat} onValueChange={(v) => handleFormatChange(v as LabelFormat)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kies formaat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a6">A6 — 105×148 mm (aanbevolen, labelprinter)</SelectItem>
+                    <SelectItem value="4x6_thermal">4×6 inch thermal (Zebra, Dymo)</SelectItem>
+                    <SelectItem value="brother_62mm">Brother QL 62 mm continuous</SelectItem>
+                    <SelectItem value="a5">A5 — 148×210 mm</SelectItem>
+                    <SelectItem value="a4_original">A4 origineel (geen crop)</SelectItem>
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-muted-foreground">
-                  A6 labels kunnen direct op een labelprinter of A6 papier geprint worden zonder knippen.
+                  Standaard formaat voor nieuwe labels. Per print kan je dit nog aanpassen via de printknop op het order.
                 </p>
               </div>
             </>

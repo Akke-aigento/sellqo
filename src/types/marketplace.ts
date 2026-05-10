@@ -78,7 +78,11 @@ export interface MarketplaceSettings {
   // Automatische verzendbevestiging
   autoConfirmShipment?: boolean;  // Auto bevestigen naar Bol.com
   // Label formaat
-  vvbLabelFormat?: 'a4_original' | 'a6_cropped';  // Label output formaat
+  // Legacy single-format selector (kept for backwards compat)
+  vvbLabelFormat?: 'a4_original' | 'a6_cropped' | 'a6' | '4x6_thermal' | 'a5' | 'brother_62mm';
+  // New: tenant default + allowed formats
+  vvbLabelFormatDefault?: 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm';
+  vvbLabelFormats?: Array<'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm'>;
   // Amazon Buy Shipping
   amazonBuyShippingEnabled?: boolean;
   amazonShippingStrategy?: 'cheapest' | 'fastest' | 'manual';

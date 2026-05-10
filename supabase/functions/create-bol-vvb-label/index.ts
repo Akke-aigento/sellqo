@@ -25,32 +25,46 @@ interface VVBLabelRequest {
   label_id?: string;
   force_new?: boolean; // NEW: force create a new label, ignore stuck ones
   recrop?: boolean; // NEW: re-download PDF + re-crop existing label, no new label at Bol
+  label_format?: LabelFormat; // NEW: explicit format override from print dropdown
 }
 
-// Crop label PDF to its visible label area (top-left of source page).
-// Bol/bpost ships A6 labels for domestic and A5 labels for international
-// (bpack World Business). Detect the label size from the source page so
-// we don't clip the right-hand side (sender address, barcode, EPC) on
-// international shipments.
-async function cropToLabel(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
+// Supported label formats. Each maps to a fixed crop window anchored at the
+// top-left of the source page (where Bol/bpost always renders the label).
+type LabelFormat = "a6" | "4x6_thermal" | "a5" | "a4_original" | "brother_62mm";
+
+const FORMAT_DIMENSIONS: Record<LabelFormat, { w: number; h: number } | null> = {
+  a6: { w: 298, h: 420 }, // 105×148 mm
+  "4x6_thermal": { w: 288, h: 432 }, // 4×6 inch
+  a5: { w: 420, h: 595 }, // 148×210 mm
+  a4_original: null, // no crop
+  brother_62mm: { w: 175, h: 350 }, // 62 mm continuous roll
+};
+
+const FORMAT_SUFFIX: Record<LabelFormat, string> = {
+  a6: "-a6",
+  "4x6_thermal": "-4x6",
+  a5: "-a5",
+  a4_original: "",
+  brother_62mm: "-brother",
+};
+
+// Crop label PDF to the requested format. Anchor top-left because Bol always
+// renders the printable label there (the rest of the page is whitespace on
+// international bpost World Business labels).
+async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<Uint8Array> {
+  const dims = FORMAT_DIMENSIONS[format];
+  if (!dims) {
+    // a4_original — return as-is
+    return new Uint8Array(pdfBytes);
+  }
+
   const PDFDoc = await loadPdfLib();
   const pdfDoc = await PDFDoc.load(pdfBytes);
   const page = pdfDoc.getPages()[0];
   const { width, height } = page.getSize();
 
-  const A5_WIDTH = 419.53;
-  const A5_HEIGHT = 595.27;
-
-  // Default to A5 portrait label area in the top-left.
-  let cropW = Math.min(width, A5_WIDTH);
-  let cropH = Math.min(height, A5_HEIGHT);
-
-  // If source is already <= A5 (e.g. a pre-cropped A6 label), keep as-is.
-  if (width <= A5_WIDTH + 5 && height <= A5_HEIGHT + 5) {
-    cropW = width;
-    cropH = height;
-  }
-
+  const cropW = Math.min(width, dims.w);
+  const cropH = Math.min(height, dims.h);
   const x = 0;
   const y = height - cropH; // anchor top-left
 
@@ -62,6 +76,57 @@ async function cropToLabel(pdfBytes: ArrayBuffer): Promise<Uint8Array> {
   newPdf.addPage(copiedPage);
 
   return await newPdf.save();
+}
+
+function isValidLabelFormat(v: unknown): v is LabelFormat {
+  return typeof v === "string" && v in FORMAT_DIMENSIONS;
+}
+
+// Resolve the active label format from (in priority order):
+//   1. body.label_format       — explicit dropdown choice at print time
+//   2. user_label_preferences  — per-user default
+//   3. settings.vvbLabelFormatDefault — tenant default
+//   4. settings.vvbLabelFormats[0]    — first allowed format
+//   5. legacy settings.vvbLabelFormat ('a6_cropped' | 'a4_original')
+//   6. hard fallback 'a6'
+async function resolveLabelFormat(
+  supabase: any,
+  bodyFormat: unknown,
+  userId: string | null,
+  tenantId: string | null,
+  settings: {
+    vvbLabelFormat?: string;
+    vvbLabelFormats?: string[];
+    vvbLabelFormatDefault?: string;
+  },
+): Promise<LabelFormat> {
+  if (isValidLabelFormat(bodyFormat)) return bodyFormat;
+
+  if (userId && tenantId) {
+    try {
+      const { data: pref } = await supabase
+        .from("user_label_preferences")
+        .select("preferred_format")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (pref?.preferred_format && isValidLabelFormat(pref.preferred_format)) {
+        return pref.preferred_format;
+      }
+    } catch (e) {
+      console.warn("user_label_preferences lookup failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
+  if (isValidLabelFormat(settings.vvbLabelFormatDefault)) return settings.vvbLabelFormatDefault;
+  const first = settings.vvbLabelFormats?.[0];
+  if (isValidLabelFormat(first)) return first;
+
+  // Legacy: 'a6_cropped' / 'a4_original'
+  if (settings.vvbLabelFormat === "a6_cropped") return "a6";
+  if (settings.vvbLabelFormat === "a4_original") return "a4_original";
+
+  return "a6";
 }
 
 // Fetch with timeout to prevent hanging requests
@@ -156,8 +221,9 @@ const handler = async (req: Request): Promise<Response> => {
       label_id,
       force_new = false,
       recrop = false,
+      label_format: bodyLabelFormat,
     }: VVBLabelRequest = await req.json();
-    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
+    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop, bodyLabelFormat }));
 
     if (!order_id) {
       return new Response(JSON.stringify({ error: "order_id is required" }), {
@@ -229,10 +295,32 @@ const handler = async (req: Request): Promise<Response> => {
       (connection.settings as {
         vvbDefaultCarrier?: string;
         vvbDefaultDeliveryCode?: string;
-        vvbLabelFormat?: "a4_original" | "a6_cropped";
+        vvbLabelFormat?: string;
+        vvbLabelFormats?: string[];
+        vvbLabelFormatDefault?: string;
       }) || {};
     const finalCarrier = carrier || settings.vvbDefaultCarrier || "POSTNL";
-    const labelFormat = settings.vvbLabelFormat || "a6_cropped";
+
+    // Resolve effective label format (body → user pref → tenant default → fallback)
+    let callerUserId: string | null = null;
+    try {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      if (token) {
+        const { data: userResult } = await supabase.auth.getUser(token);
+        callerUserId = userResult?.user?.id ?? null;
+      }
+    } catch (_) {
+      // best-effort only — auth has already been verified earlier
+    }
+    const labelFormat = await resolveLabelFormat(
+      supabase,
+      bodyLabelFormat,
+      callerUserId,
+      order.tenant_id,
+      settings,
+    );
+    console.log(`Resolved label format: ${labelFormat}`);
 
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
@@ -361,15 +449,15 @@ const handler = async (req: Request): Promise<Response> => {
         let pdfBuffer = await pdfBlob.arrayBuffer();
         console.log("PDF downloaded, size:", pdfBuffer.byteLength, "bytes");
 
-        // Crop to A6 if needed
-        if (labelFormat === "a6_cropped") {
+        // Crop to selected format (skip for a4_original)
+        if (labelFormat !== "a4_original") {
           try {
-            console.log("Cropping PDF to A6...");
-            const croppedPdf = await cropToLabel(pdfBuffer);
+            console.log(`Cropping PDF to ${labelFormat}...`);
+            const croppedPdf = await cropToLabel(pdfBuffer, labelFormat);
             pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
-            console.log("PDF cropped to A6 successfully");
+            console.log(`PDF cropped to ${labelFormat} successfully`);
           } catch (cropError) {
-            console.error("Error cropping PDF to A6 (using original):", cropError);
+            console.error(`Error cropping PDF to ${labelFormat} (using original):`, cropError);
           }
         }
 
@@ -377,7 +465,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Without upsert:true, Supabase Storage returns 400 "resource already exists"
         // on every retry, leaving label_url NULL and the label stuck forever.
         console.log("Uploading PDF to Supabase Storage...");
-        const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
+        const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
         const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
@@ -775,17 +863,17 @@ const handler = async (req: Request): Promise<Response> => {
           let pdfBuffer = await pdfBlob.arrayBuffer();
           console.log("PDF downloaded, size:", pdfBuffer.byteLength);
 
-          if (labelFormat === "a6_cropped") {
+          if (labelFormat !== "a4_original") {
             try {
-              const croppedPdf = await cropToLabel(pdfBuffer);
+              const croppedPdf = await cropToLabel(pdfBuffer, labelFormat);
               pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
-              console.log("Successfully cropped PDF to A6 format");
+              console.log(`Successfully cropped PDF to ${labelFormat} format`);
             } catch (cropError) {
-              console.error("Error cropping PDF to A6, using original:", cropError);
+              console.error(`Error cropping PDF to ${labelFormat}, using original:`, cropError);
             }
           }
 
-          const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
+          const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
           const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
