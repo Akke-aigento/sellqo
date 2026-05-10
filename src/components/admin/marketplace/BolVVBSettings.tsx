@@ -220,27 +220,17 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Standaard labelformaat
-                </Label>
-                <Select value={vvbLabelFormat} onValueChange={(v) => handleFormatChange(v as LabelFormat)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kies formaat" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a6">A6 — 105×148 mm (aanbevolen, labelprinter)</SelectItem>
-                    <SelectItem value="4x6_thermal">4×6 inch thermal (Zebra, Dymo)</SelectItem>
-                    <SelectItem value="brother_62mm">Brother QL 62 mm continuous</SelectItem>
-                    <SelectItem value="a5">A5 — 148×210 mm</SelectItem>
-                    <SelectItem value="a4_original">A4 origineel (geen crop)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Standaard formaat voor nieuwe labels. Per print kan je dit nog aanpassen via de printknop op het order.
-                </p>
-              </div>
+              <Alert>
+                <FileText className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Labelformaat instellen?</strong> Dit beheer je centraal onder{' '}
+                  <a href="/admin/shipping" className="underline font-medium">
+                    Verzending → Verzendlabel formaat
+                  </a>
+                  . Daar bepaal je welke formaten beschikbaar zijn en welk formaat standaard is — ook
+                  per gebruiker.
+                </AlertDescription>
+              </Alert>
             </>
           )}
         </CardContent>
