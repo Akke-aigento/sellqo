@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Building2, User, Loader2 } from 'lucide-react';
+import { FileText, Building2, User, Loader2, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,12 +19,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RequestPrinterDialog } from './RequestPrinterDialog';
 
-type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm';
+type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm' | 'dymo_lw_4xl';
 
 const FORMAT_OPTIONS: Array<{ value: LabelFormat; label: string; hint: string }> = [
   { value: 'a6', label: 'A6 — 105 × 148 mm', hint: 'Standaard labelprinter (aanbevolen)' },
   { value: '4x6_thermal', label: '4 × 6 inch thermal', hint: 'Zebra, Dymo, Rollo' },
+  { value: 'dymo_lw_4xl', label: 'Dymo LabelWriter 4XL — 102 × 210 mm', hint: 'Dymo LW550/LW650 met S0904980 verzendlabels' },
   { value: 'brother_62mm', label: 'Brother QL 62 mm', hint: 'Brother QL labelprinters' },
   { value: 'a5', label: 'A5 — 148 × 210 mm', hint: 'Halve A4-pagina' },
   { value: 'a4_original', label: 'A4 origineel (geen crop)', hint: 'Gewone laser-/inkjet-printer' },
@@ -94,6 +96,7 @@ export function LabelFormatSettings() {
 
   const [userPreferred, setUserPreferred] = useState<LabelFormat | 'tenant_default'>('tenant_default');
   const [savingUser, setSavingUser] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   useEffect(() => {
     if (userPref?.preferred_format) {
@@ -334,6 +337,24 @@ export function LabelFormatSettings() {
             Mijn voorkeur opslaan
           </Button>
         </section>
+
+        {/* REQUEST BLOCK */}
+        <section className="border-t pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="font-medium">Vind je jouw printer of labelformaat niet?</p>
+              <p className="text-sm text-muted-foreground">
+                Laat het ons weten — we voegen ondersteuning toe waar mogelijk.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setRequestOpen(true)}>
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Printer aanvragen
+            </Button>
+          </div>
+        </section>
+
+        <RequestPrinterDialog open={requestOpen} onOpenChange={setRequestOpen} />
       </CardContent>
     </Card>
   );
