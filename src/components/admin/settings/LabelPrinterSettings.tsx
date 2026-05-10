@@ -18,7 +18,6 @@ interface LabelPrinterConfig {
   vendorId?: number;
   productId?: number;
   protocol?: PrinterProtocol;
-  labelFormat: 'a6' | '4x6' | 'brother_62mm';
   printMethod: 'webusb' | 'browser';
 }
 
@@ -36,7 +35,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
     testPrint,
   } = useLabelPrinter();
 
-  const [labelFormat, setLabelFormat] = useState<'a6' | '4x6' | 'brother_62mm'>('a6');
   const [printMethod, setPrintMethod] = useState<'webusb' | 'browser'>('webusb');
   const [isDetecting, setIsDetecting] = useState(false);
 
@@ -57,7 +55,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
     await disconnectPrinter();
     onSettingsChange?.({
       enabled: false,
-      labelFormat,
       printMethod,
     });
   };
@@ -68,19 +65,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
       vendorId: printer?.vendorId,
       productId: printer?.productId,
       protocol: printer?.protocol,
-      labelFormat,
-      printMethod,
-    });
-  };
-
-  const handleLabelFormatChange = (value: 'a6' | '4x6' | 'brother_62mm') => {
-    setLabelFormat(value);
-    onSettingsChange?.({
-      enabled: isConnected,
-      vendorId: connectedPrinter?.vendorId,
-      productId: connectedPrinter?.productId,
-      protocol: connectedPrinter?.protocol,
-      labelFormat: value,
       printMethod,
     });
   };
@@ -92,7 +76,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
       vendorId: connectedPrinter?.vendorId,
       productId: connectedPrinter?.productId,
       protocol: connectedPrinter?.protocol,
-      labelFormat,
       printMethod: value,
     });
   };
@@ -181,44 +164,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
               </div>
             </div>
           )}
-        </div>
-
-        {/* Label Format */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Labelformaat</Label>
-          <RadioGroup
-            value={labelFormat}
-            onValueChange={handleLabelFormatChange}
-            className="space-y-2"
-          >
-            <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="a6" id="format-a6" />
-              <Label htmlFor="format-a6" className="flex-1 cursor-pointer">
-                <div className="font-medium">A6 (105 × 148 mm)</div>
-                <div className="text-sm text-muted-foreground">
-                  Standaard verzendlabel - Meest gebruikt
-                </div>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="4x6" id="format-4x6" />
-              <Label htmlFor="format-4x6" className="flex-1 cursor-pointer">
-                <div className="font-medium">4×6 inch (102 × 152 mm)</div>
-                <div className="text-sm text-muted-foreground">
-                  US standaard - Zebra printers
-                </div>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="brother_62mm" id="format-brother" />
-              <Label htmlFor="format-brother" className="flex-1 cursor-pointer">
-                <div className="font-medium">Brother 62mm breed</div>
-                <div className="text-sm text-muted-foreground">
-                  Brother QL labelprinters
-                </div>
-              </Label>
-            </div>
-          </RadioGroup>
         </div>
 
         {/* Print Method */}
