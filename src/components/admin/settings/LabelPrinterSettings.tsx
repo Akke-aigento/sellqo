@@ -18,7 +18,6 @@ interface LabelPrinterConfig {
   vendorId?: number;
   productId?: number;
   protocol?: PrinterProtocol;
-  labelFormat: 'a6' | '4x6' | 'brother_62mm';
   printMethod: 'webusb' | 'browser';
 }
 
@@ -36,7 +35,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
     testPrint,
   } = useLabelPrinter();
 
-  const [labelFormat, setLabelFormat] = useState<'a6' | '4x6' | 'brother_62mm'>('a6');
   const [printMethod, setPrintMethod] = useState<'webusb' | 'browser'>('webusb');
   const [isDetecting, setIsDetecting] = useState(false);
 
@@ -57,7 +55,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
     await disconnectPrinter();
     onSettingsChange?.({
       enabled: false,
-      labelFormat,
       printMethod,
     });
   };
@@ -68,19 +65,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
       vendorId: printer?.vendorId,
       productId: printer?.productId,
       protocol: printer?.protocol,
-      labelFormat,
-      printMethod,
-    });
-  };
-
-  const handleLabelFormatChange = (value: 'a6' | '4x6' | 'brother_62mm') => {
-    setLabelFormat(value);
-    onSettingsChange?.({
-      enabled: isConnected,
-      vendorId: connectedPrinter?.vendorId,
-      productId: connectedPrinter?.productId,
-      protocol: connectedPrinter?.protocol,
-      labelFormat: value,
       printMethod,
     });
   };
@@ -92,7 +76,6 @@ export function LabelPrinterSettings({ onSettingsChange }: LabelPrinterSettingsP
       vendorId: connectedPrinter?.vendorId,
       productId: connectedPrinter?.productId,
       protocol: connectedPrinter?.protocol,
-      labelFormat,
       printMethod: value,
     });
   };
