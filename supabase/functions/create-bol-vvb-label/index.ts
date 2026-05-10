@@ -30,7 +30,7 @@ interface VVBLabelRequest {
 
 // Supported label formats. Each maps to a fixed crop window anchored at the
 // top-left of the source page (where Bol/bpost always renders the label).
-type LabelFormat = "a6" | "4x6_thermal" | "a5" | "a4_original" | "brother_62mm";
+type LabelFormat = "a6" | "4x6_thermal" | "a5" | "a4_original" | "brother_62mm" | "dymo_lw_4xl";
 
 const FORMAT_DIMENSIONS: Record<LabelFormat, { w: number; h: number } | null> = {
   a6: { w: 298, h: 420 }, // 105×148 mm
@@ -38,6 +38,7 @@ const FORMAT_DIMENSIONS: Record<LabelFormat, { w: number; h: number } | null> = 
   a5: { w: 420, h: 595 }, // 148×210 mm
   a4_original: null, // no crop
   brother_62mm: { w: 175, h: 350 }, // 62 mm continuous roll
+  dymo_lw_4xl: { w: 289, h: 595 }, // 102×210 mm — Dymo LW 4XL S0904980
 };
 
 const FORMAT_SUFFIX: Record<LabelFormat, string> = {
@@ -46,6 +47,7 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
   a5: "-a5",
   a4_original: "",
   brother_62mm: "-brother",
+  dymo_lw_4xl: "-dymo4xl",
 };
 
 // Crop label PDF to the requested format. Anchor top-left because Bol always
