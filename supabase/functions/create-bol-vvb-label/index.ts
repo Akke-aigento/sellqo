@@ -157,7 +157,6 @@ const handler = async (req: Request): Promise<Response> => {
       force_new = false,
       recrop = false,
     }: VVBLabelRequest = await req.json();
-    await authenticateRequest(req, tenant_id);
     console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
 
     if (!order_id) {
@@ -183,6 +182,8 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
     console.log("Order found:", order.order_number, "marketplace:", order.marketplace_source);
+
+    await authenticateRequest(req, order.tenant_id);
 
     // Verify this is a Bol.com order
     if (order.marketplace_source !== "bol_com" || !order.marketplace_connection_id) {
