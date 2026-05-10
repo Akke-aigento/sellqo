@@ -449,15 +449,15 @@ const handler = async (req: Request): Promise<Response> => {
         let pdfBuffer = await pdfBlob.arrayBuffer();
         console.log("PDF downloaded, size:", pdfBuffer.byteLength, "bytes");
 
-        // Crop to A6 if needed
-        if (labelFormat === "a6_cropped") {
+        // Crop to selected format (skip for a4_original)
+        if (labelFormat !== "a4_original") {
           try {
-            console.log("Cropping PDF to A6...");
-            const croppedPdf = await cropToLabel(pdfBuffer);
+            console.log(`Cropping PDF to ${labelFormat}...`);
+            const croppedPdf = await cropToLabel(pdfBuffer, labelFormat);
             pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
-            console.log("PDF cropped to A6 successfully");
+            console.log(`PDF cropped to ${labelFormat} successfully`);
           } catch (cropError) {
-            console.error("Error cropping PDF to A6 (using original):", cropError);
+            console.error(`Error cropping PDF to ${labelFormat} (using original):`, cropError);
           }
         }
 
@@ -465,7 +465,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Without upsert:true, Supabase Storage returns 400 "resource already exists"
         // on every retry, leaving label_url NULL and the label stuck forever.
         console.log("Uploading PDF to Supabase Storage...");
-        const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
+        const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
         const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
@@ -863,17 +863,17 @@ const handler = async (req: Request): Promise<Response> => {
           let pdfBuffer = await pdfBlob.arrayBuffer();
           console.log("PDF downloaded, size:", pdfBuffer.byteLength);
 
-          if (labelFormat === "a6_cropped") {
+          if (labelFormat !== "a4_original") {
             try {
-              const croppedPdf = await cropToLabel(pdfBuffer);
+              const croppedPdf = await cropToLabel(pdfBuffer, labelFormat);
               pdfBuffer = new Uint8Array(croppedPdf).buffer as ArrayBuffer;
-              console.log("Successfully cropped PDF to A6 format");
+              console.log(`Successfully cropped PDF to ${labelFormat} format`);
             } catch (cropError) {
-              console.error("Error cropping PDF to A6, using original:", cropError);
+              console.error(`Error cropping PDF to ${labelFormat}, using original:`, cropError);
             }
           }
 
-          const formatSuffix = labelFormat === "a6_cropped" ? "-a6" : "";
+          const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
           const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
