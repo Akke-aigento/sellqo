@@ -1,55 +1,56 @@
-## Waar staat het nu
+## Wat ik zie op je screenshot
 
-De label-format instellingen die we hebben toegevoegd staan momenteel **verspreid en verstopt**:
+Je print via de **browser print-dialoog** (geen WebUSB) op een **Dymo LabelWriter LW650XL PRO** met paper-size **Label S0904980** (Dymo 4XL Shipping Label, 102 × 210 mm).
 
-1. **Tenant default voor VVB labels** (a6 / 4x6_thermal / a5 / a4_original / brother_62mm)
-   → alleen op **Beheer → Marketplaces → Bol.com (detail) → VVB Settings**
-   Niet logisch — een gebruiker zoekt dit in Instellingen of Verzending, niet in een marketplace-detailpagina.
+Twee dingen om te weten:
+- Voor het **detecteren via USB** (Chrome/Edge) wordt Dymo *al* herkend op vendor-ID `0x0922` — dus elke Dymo wordt automatisch als "Dymo Printer" aangeboden in de WebUSB-flow. Daar hoeven we niets toe te voegen.
+- Wat *ontbreekt* is een **paper-size preset** voor jouw S0904980-label in de lijst van Verzendlabel formaten. Nu staan er alleen A6 / 4×6 / Brother 62 / A5 / A4. Als je nu A4 of A6 kiest en "Fit to paper" gebruikt schaalt Chrome het wél, maar dat is niet ideaal qua scherpte en marges.
 
-2. **Per-print override dropdown** → alleen op een order in `BolActionsCard` (klopt qua plek).
+## Plan
 
-3. **Per-user voorkeur** (`user_label_preferences` tabel die we hebben aangemaakt)
-   → **nog geen UI**. Niemand kan zijn persoonlijke default kiezen, terwijl dat juist de kern van je vraag was (verschillende printers per medewerker).
+### 1. Nieuw labelformaat toevoegen: Dymo LW 4XL (102 × 210 mm)
+- **Frontend** — `src/components/admin/settings/LabelFormatSettings.tsx`
+  Nieuwe optie in `FORMAT_OPTIONS` + `LabelFormat` union:
+  - `value: 'dymo_lw_4xl'`
+  - label: *"Dymo LabelWriter 4XL — 102 × 210 mm"*
+  - hint: *"Dymo LW550/LW650 met S0904980 verzendlabels"*
+- **Edge function** — `supabase/functions/create-bol-vvb-label/index.ts`
+  - Toevoegen aan `LabelFormat` union + `FORMAT_DIMENSIONS` map: `dymo_lw_4xl: { w: 289, h: 595 }` (102 × 210 mm in PDF-points)
+  - Toevoegen aan `FORMAT_SUFFIX`: `dymo_lw_4xl: "-dymo4xl"`
+  - Crop-logica werkt automatisch zodra dimensies bekend zijn
 
-4. **Bestaande `LabelPrinterSettings`** op `/admin/shipping` heeft nog een aparte oude `labelFormat` (a6/4x6/brother_62mm) die nergens wordt gepersisteerd en niets met VVB doet.
+### 2. Knop "Vind je jouw printer niet?"
+Onderin de `LabelFormatSettings`-kaart:
 
-Geen wonder dat je het niet kan vinden.
+```
+[ Vind je jouw printer/labelformaat niet? Stuur ons een verzoek → ]
+```
 
-## Plan: alles centraliseren onder Verzending → Labelinstellingen
+Klikken opent een dialog `RequestPrinterDialog.tsx` met velden:
+- Printer-merk + model (verplicht, vrije tekst)
+- Labelformaat / paper-size (bv. "S0904980, 102 × 210 mm")
+- Optioneel: extra info / link naar specs
+- Tenant + user worden automatisch meegestuurd
 
-### A. Nieuwe sectie op `/admin/shipping`: **"Verzendlabel formaat"**
-Eén nieuwe kaart `LabelFormatSettings.tsx` met twee blokken:
+Submit → maakt een record in `support_tickets` met:
+- `category: 'printer_request'`
+- `subject: "Printer toevoegen: <merk> <model>"`
+- `body: <samengestelde details>`
+- routing zoals al bestaat (naar SellQo interne tenant — Support Alert Routing memory)
 
-**Blok 1 — Tenant defaults (alleen tenant_admin)**
-- Multi-select checkboxes: welke formaten zijn beschikbaar voor dit bedrijf
-  (A6, 4×6 thermisch, A5, A4 origineel, Brother 62mm)
-- Dropdown: welk formaat is bedrijfs-default
-- Slaat op naar `marketplace_connections.settings.vvbLabelFormats` + `vvbLabelFormatDefault` (zelfde keys als BolVVBSettings nu al gebruikt → blijft compatibel)
-- Helptekst: "Deze formaten kunnen je teamleden kiezen bij het printen van labels."
+Bevestiging: *"Bedankt! We bekijken je verzoek en voegen je printer/labelformaat toe waar mogelijk."*
 
-**Blok 2 — Mijn voorkeur (elke ingelogde user, ook fulfillment)**
-- Eén dropdown: "Mijn standaard labelformaat" — toont alleen formaten die in Blok 1 zijn aangevinkt
-- Slaat op in `user_label_preferences` (tabel bestaat al) via upsert op `(user_id, tenant_id)`
-- Helptekst: "Dit is het formaat dat standaard geselecteerd wordt als jij een label print. Handig als jullie verschillende printers gebruiken."
+### 3. Geen automatische toevoeging zonder review
+Bewust **niet** auto-toevoegen aan de tenant-lijst, omdat:
+- Een nieuw paper-size vereist juiste PDF-crop dimensies (anders scheef/afgesneden label)
+- We willen één gecureerde lijst voor alle tenants houden i.p.v. per-tenant custom formaten
+- Alternatief idee voor later: een "custom" optie waarbij de gebruiker zelf mm-breedte/hoogte invult, maar dat is een groter project (preview, validatie, kalibratie). Voorstel: nu eerst de request-flow, en als blijkt dat veel tenants verschillende exotische printers hebben, dan in v2 een custom-size editor.
 
-### B. `BolVVBSettings.tsx` opschonen
-- Format-dropdown daar **weghalen** (verplaatst naar Verzending)
-- Vervangen door een korte info-regel met link: *"Labelformaat instellen → Verzending → Verzendlabel formaat"*
-- Rest van VVB settings (auto-create, retry-instellingen etc.) blijft staan
-
-### C. Bestaande oude `LabelPrinterSettings` (WebUSB sectie)
-- Niets aan veranderen qua functionaliteit (printer-koppeling, WebUSB, test print blijft)
-- Wel: de oude lokale `labelFormat` state (a6/4x6/brother_62mm) verwijderen — die wordt nergens opgeslagen en is nu overbodig omdat het nieuwe blok dit beheert
-- Volgorde op `/admin/shipping`: Verzendmethodes → Integraties → **Verzendlabel formaat** (nieuw) → Labelprinter (WebUSB)
-
-### D. Per-print dropdown in `BolActionsCard` blijft
-- Resolutie-volgorde wordt: per-print keuze → user-preference → tenant-default → fallback `a6` (zoals al geïmplementeerd in edge function)
-
-## Niet aangeraakt
-- Edge function `create-bol-vvb-label` (resolutie-chain klopt al)
-- DB schema (`user_label_preferences` bestaat al)
-- Crop-logica
-- Andere shipping providers / Sendcloud
+## Wat ik **niet** raak
+- WebUSB-detectie (Dymo werkt al)
+- Bestaande crop-logica
+- Andere formaten of `BolVVBSettings`
+- Database schema (gebruikt bestaande `support_tickets`)
 
 ## Vraag
-Klinkt deze plek (Verzending → Verzendlabel formaat) goed, of liever onder **Instellingen → Algemene Instellingen** als aparte tab "Labels"?
+Akkoord met deze drie stappen? Of wil je liever dat de "request"-knop een **custom mm-invoer** wordt (eigen breedte/hoogte) i.p.v. een verzoek naar ons?
