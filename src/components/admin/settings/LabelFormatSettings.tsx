@@ -20,11 +20,12 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm';
+type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm' | 'dymo_lw_4xl';
 
 const FORMAT_OPTIONS: Array<{ value: LabelFormat; label: string; hint: string }> = [
   { value: 'a6', label: 'A6 — 105 × 148 mm', hint: 'Standaard labelprinter (aanbevolen)' },
   { value: '4x6_thermal', label: '4 × 6 inch thermal', hint: 'Zebra, Dymo, Rollo' },
+  { value: 'dymo_lw_4xl', label: 'Dymo LabelWriter 4XL — 102 × 210 mm', hint: 'Dymo LW550/LW650 met S0904980 verzendlabels' },
   { value: 'brother_62mm', label: 'Brother QL 62 mm', hint: 'Brother QL labelprinters' },
   { value: 'a5', label: 'A5 — 148 × 210 mm', hint: 'Halve A4-pagina' },
   { value: 'a4_original', label: 'A4 origineel (geen crop)', hint: 'Gewone laser-/inkjet-printer' },
