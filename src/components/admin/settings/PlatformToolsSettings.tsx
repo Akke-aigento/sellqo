@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, AlertTriangle, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Trash2, AlertTriangle, Loader2, CheckCircle2, XCircle, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTenant } from '@/hooks/useTenant';
 
 interface FailedAccount {
   tenant_id: string;
@@ -34,6 +35,21 @@ export function PlatformToolsSettings() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<CleanupResult | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { currentTenant } = useTenant();
+
+  const handleTestTrialBlocker = () => {
+    try {
+      // Wis dismiss-flag voor alle tenants in deze sessie
+      const keys: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith('trial_blocker_dismissed_')) keys.push(k);
+      }
+      keys.forEach((k) => sessionStorage.removeItem(k));
+    } catch {}
+    toast.success('Trial blocker dismiss gereset — pagina wordt herladen');
+    setTimeout(() => window.location.reload(), 600);
+  };
 
   const handleCleanup = async () => {
     setIsRunning(true);
@@ -132,6 +148,25 @@ export function PlatformToolsSettings() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5" />
+            Test: Trial Expired Blocker
+          </CardTitle>
+          <CardDescription>
+            Reset de "trial verlopen" overlay zodat je hem opnieuw te zien krijgt op een tenant met verlopen trial
+            {currentTenant?.name ? ` (huidige tenant: ${currentTenant.name})` : ''}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={handleTestTrialBlocker}>
+            <FlaskConical className="h-4 w-4 mr-2" />
+            Reset & herlaad
+          </Button>
         </CardContent>
       </Card>
     </div>
