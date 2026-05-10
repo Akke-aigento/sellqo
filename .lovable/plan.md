@@ -1,44 +1,85 @@
-## Doel
+## Probleem-diagnose
 
-De laatste 3 VanXcel Bol-orders (#1140, #1141, #1142) hebben hun PDF-label opgehaald en geüpload **vóór** de cropping-fix (oude `cropToA6` met harde A6-grenzen). De `external_id` (transporterLabelId) staat nog in de database, dus we kunnen het originele PDF opnieuw bij Bol ophalen en met de nieuwe `cropToLabel` functie herschrijven — zonder een nieuw label te maken (geen extra kosten, zelfde tracking).
+De geüploade PDF bevestigt het cropping-probleem:
+
+- **Page size**: 419.53 × 595pt (A5 portrait)
+- **Eigenlijke label-inhoud**: alleen de bovenste **~280pt** (ongeveer A6-hoogte)
+- **Onderste helft**: volledig wit
+- **Resultaat op printer**: A6/4×6 thermal printer rolt half pagina weg, of A4-printer print het label klein in de hoek
+
+De huidige `cropToLabel` ziet "page ≤ A5" en houdt het zoals het is — daarom blijft de witte helft staan. Bol levert internationale (bpost World Business) labels op A5-canvas, maar de echte label-content is A6-formaat in de top-left.
+
+Verder: gebruikers werken met verschillende printers (thermal 4×6, A6 sticker, A4 papier, Brother 62mm) en in fulfillment-omgevingen kiest elke medewerker zijn eigen printer.
 
 ## Aanpak
 
-### 1. Recrop-modus toevoegen aan `create-bol-vvb-label`
+### 1. Cropping fix — content-detectie ipv vaste A5-aanname
 
-Nieuwe optionele parameter `recrop: true`:
-- Skipt de "already_fetched" early-return in de retry branch
-- Haalt het originele PDF opnieuw op via `GET /retailer/shipping-labels/{external_id}` met de bestaande `external_id`
-- Crop met de nieuwe `cropToLabel` (A5 fallback voor internationale labels)
-- Upload naar dezelfde storage path met `upsert: true` — bestaande `label_url` blijft geldig
-- Werkt `tracking_number` niet bij (blijft hetzelfde), markeert geen extra shipment confirm
+In `supabase/functions/create-bol-vvb-label/index.ts` → functie `cropToLabel`:
 
-### 2. Drie orders opnieuw verwerken
+- Vervang vaste A5-fallback door **content-area detectie**: scan met `pdf-lib` waar de daadwerkelijke tekst/elementen staan en crop strak om het ingevulde gebied (met kleine marge).
+- Fallback per gekozen output-formaat als detectie faalt:
+  - `a6` → 298 × 419pt (top-left)
+  - `4x6_thermal` → 288 × 432pt (4×6 inch)
+  - `a5` → 419 × 595pt (huidige a5 fallback)
+  - `a4_original` → geen crop
+  - `brother_62mm` → 175 × 350pt (62mm continuous roll)
 
-Aanroepen via de bestaande edge-function infrastructuur (handmatig of via een eenmalig script) voor:
-| Order  | label_id                              | external_id                            |
-|--------|---------------------------------------|----------------------------------------|
-| #1142  | b76163d0-6f57-4977-af0c-ce3a62e13141  | cbcc827e-01de-4dc0-887b-d9f9be9e3ba6   |
-| #1141  | 0170f045-970d-4cdc-81bc-361de409f4d2  | 4d6b3486-38a7-4861-8c13-c37ae929973d   |
-| #1140  | ae79f422-865b-4e6c-9e6a-9ed48ccdeb48  | 6ef1bc34-a935-472e-ad6c-2a1e776af1b4   |
+### 2. Datamodel — meerdere formaten + per-user default
 
-Body per call:
-```json
-{ "order_id": "<uuid>", "label_id": "<uuid>", "retry": true, "recrop": true }
+**Per tenant** (uitbreiden `marketplace_connections.settings`):
+```ts
+vvbLabelFormats?: Array<'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm'>
+vvbLabelFormatDefault?: <één van bovenstaande>  // tenant-fallback
 ```
+Migratie van bestaande `vvbLabelFormat` → in nieuwe array zetten zodat niets breekt.
 
-### 3. Verificatie
+**Per user** (nieuwe tabel `user_label_preferences`):
+```
+user_id  uuid (FK auth.users)
+tenant_id uuid
+preferred_format text
+updated_at timestamptz
+```
+- RLS: gebruiker mag alleen eigen rij lezen/schrijven binnen tenant.
+- Werkt automatisch ook voor warehouse/fulfillment users (gewoon hun eigen `user_id`).
 
-- PDF in storage opnieuw downloaden en visueel checken: zenderadres, landcode en barcode volledig zichtbaar
-- `label_url` ongewijzigd (hetzelfde public URL, browser cache mogelijk verversen)
-- Geen nieuwe entry in `shipping_labels`, geen extra Bol API-label gegenereerd
+### 3. Edge function uitbreiden
 
-## Belangrijke notities
+`create-bol-vvb-label` accepteert optioneel `label_format` in body. Resolutie-volgorde:
+1. Body `label_format` (uit dropdown bij printen)
+2. User preference (`user_label_preferences.preferred_format`)
+3. Tenant default (`vvbLabelFormatDefault`)
+4. Eerste in `vvbLabelFormats` array
+5. Hard fallback `a6`
 
-- De Bol shipping-label PDFs blijven (per Bol docs) een tijd beschikbaar via `external_id`. Als één of meerdere PDF's al verlopen zijn (404), faalt de recrop voor dat label en kunnen we alleen via `force_new` een volledig nieuw label aanmaken (kost een nieuw VVB-label) — dat doen we alleen op uitdrukkelijke bevestiging.
-- De drie orders zijn NL-adressen via BPOST_BE; meestal passen die al in A6, maar de nieuwe `cropToLabel` is veiliger voor randgevallen waar Bol een groter formaat retourneert.
+Format wordt doorgegeven aan `cropToLabel(pdfBytes, format)`.
 
-## Wijzigingen
+### 4. UI — Settings
 
-- `supabase/functions/create-bol-vvb-label/index.ts`: `recrop` flag toevoegen aan retry branch (skip `already_fetched` short-circuit, hergebruik bestaande PDF-fetch + crop + upload code).
-- Eenmalige uitvoer: 3× function-aanroep voor de orders hierboven.
+`src/components/admin/marketplace/BolVVBSettings.tsx`:
+- Vervang RadioGroup door **multi-select checkboxes** voor toegestane formaten.
+- Voeg dropdown "Standaard formaat" toe (gevuld vanuit selectie).
+
+`src/components/admin/settings/LabelPrinterSettings.tsx` (bestaat al):
+- Persisteer keuze naar `user_label_preferences` (nu nog alleen lokale state).
+- Toon alleen formaten die de tenant heeft toegestaan.
+
+### 5. UI — Print dropdown
+
+Op de plek waar VVB-print getriggerd wordt (orderdetail / fulfillment workspace):
+- Splitknop "Print label" + chevron-dropdown met de toegestane formaten.
+- Pre-selectie = user-pref → tenant-default.
+- Geselecteerd formaat wordt meegestuurd als `label_format` in de invoke.
+
+### 6. Verificatie
+
+- Recrop van #1140/#1141/#1142 met nieuwe `a6` content-detectie → PDF heeft géén witte onderhelft meer.
+- Schakelen tussen `a6`/`4x6_thermal`/`a5` in dropdown → upload genereert verschillende bestandsnamen (`-a6.pdf`, `-4x6.pdf` enz.), label-content blijft compleet.
+- Test met fulfillment-user account: dropdown laat alleen tenant-toegestane formaten zien, eigen default wordt vooraf geselecteerd.
+
+## Niet aangeraakt
+
+- Bol API-calls / token flow / VVB-creation logica.
+- Andere shipping providers (Sendcloud/MyParcel — die hebben eigen flow).
+- Auth-pattern (`authenticateRequest(req, order.tenant_id)` blijft).
