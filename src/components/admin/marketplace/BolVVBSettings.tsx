@@ -28,21 +28,6 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
   );
   const [vvbDefaultCarrier, setVvbDefaultCarrier] = useState(settings.vvbDefaultCarrier || 'POSTNL');
   const [autoConfirmShipment, setAutoConfirmShipment] = useState(settings.autoConfirmShipment || false);
-  // Supported label formats. 'a4_original' = no crop, others = crop top-left.
-  type LabelFormat = 'a6' | '4x6_thermal' | 'a5' | 'a4_original' | 'brother_62mm';
-  const LEGACY_MAP: Record<string, LabelFormat> = {
-    a6_cropped: 'a6',
-    a4_original: 'a4_original',
-  };
-  const resolveDefault = (s: MarketplaceSettings): LabelFormat => {
-    const explicit = s.vvbLabelFormatDefault as LabelFormat | undefined;
-    if (explicit) return explicit;
-    const first = (s.vvbLabelFormats?.[0] as LabelFormat | undefined);
-    if (first) return first;
-    if (s.vvbLabelFormat && LEGACY_MAP[s.vvbLabelFormat]) return LEGACY_MAP[s.vvbLabelFormat];
-    return 'a6';
-  };
-  const [vvbLabelFormat, setVvbLabelFormat] = useState<LabelFormat>(resolveDefault(settings));
 
   // Sync local state with props
   useEffect(() => {
@@ -52,21 +37,10 @@ export function BolVVBSettings({ settings, onSettingsChange }: BolVVBSettingsPro
     setVvbFallbackProvider(settings.vvbFallbackProvider || 'sendcloud');
     setVvbDefaultCarrier(settings.vvbDefaultCarrier || 'POSTNL');
     setAutoConfirmShipment(settings.autoConfirmShipment || false);
-    setVvbLabelFormat(resolveDefault(settings));
   }, [settings]);
 
   const handleChange = (key: keyof MarketplaceSettings, value: unknown) => {
     onSettingsChange({ [key]: value });
-  };
-
-  const handleFormatChange = (value: LabelFormat) => {
-    setVvbLabelFormat(value);
-    // Write new + legacy keys for backwards compat with existing edge function reads
-    onSettingsChange({
-      vvbLabelFormatDefault: value,
-      vvbLabelFormats: [value],
-      vvbLabelFormat: value === 'a4_original' ? 'a4_original' : (value === 'a6' ? 'a6_cropped' : value),
-    });
   };
 
   return (
