@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
+import type { MarketplaceSettings } from '@/types/marketplace';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,7 +49,8 @@ export function LabelFormatSettings() {
     [connections]
   );
 
-  const tenantSettings = bolConnection?.settings ?? {};
+  const tenantSettings: Partial<MarketplaceSettings> =
+    (bolConnection?.settings as Partial<MarketplaceSettings> | undefined) ?? {};
   const initialFormats: LabelFormat[] = useMemo(() => {
     const fromArray = (tenantSettings.vvbLabelFormats as LabelFormat[] | undefined) ?? [];
     if (fromArray.length > 0) return fromArray;
@@ -147,7 +149,7 @@ export function LabelFormatSettings() {
                 : finalDefault === 'a6'
                 ? 'a6_cropped'
                 : finalDefault,
-          },
+          } as MarketplaceSettings,
         },
       });
       toast.success('Bedrijfsinstellingen voor labelformaten opgeslagen');
