@@ -221,8 +221,9 @@ const handler = async (req: Request): Promise<Response> => {
       label_id,
       force_new = false,
       recrop = false,
+      label_format: bodyLabelFormat,
     }: VVBLabelRequest = await req.json();
-    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop }));
+    console.log("Request received:", JSON.stringify({ order_id, carrier, retry, label_id, force_new, recrop, bodyLabelFormat }));
 
     if (!order_id) {
       return new Response(JSON.stringify({ error: "order_id is required" }), {
@@ -294,10 +295,32 @@ const handler = async (req: Request): Promise<Response> => {
       (connection.settings as {
         vvbDefaultCarrier?: string;
         vvbDefaultDeliveryCode?: string;
-        vvbLabelFormat?: "a4_original" | "a6_cropped";
+        vvbLabelFormat?: string;
+        vvbLabelFormats?: string[];
+        vvbLabelFormatDefault?: string;
       }) || {};
     const finalCarrier = carrier || settings.vvbDefaultCarrier || "POSTNL";
-    const labelFormat = settings.vvbLabelFormat || "a6_cropped";
+
+    // Resolve effective label format (body → user pref → tenant default → fallback)
+    let callerUserId: string | null = null;
+    try {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      if (token) {
+        const { data: userResult } = await supabase.auth.getUser(token);
+        callerUserId = userResult?.user?.id ?? null;
+      }
+    } catch (_) {
+      // best-effort only — auth has already been verified earlier
+    }
+    const labelFormat = await resolveLabelFormat(
+      supabase,
+      bodyLabelFormat,
+      callerUserId,
+      order.tenant_id,
+      settings,
+    );
+    console.log(`Resolved label format: ${labelFormat}`);
 
     // Get access token
     const accessToken = await getBolAccessToken(credentials);
