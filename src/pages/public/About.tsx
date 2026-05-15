@@ -68,6 +68,12 @@ const pressLogos = [
 
 export default function About() {
   return (
+    <>
+    <PageMeta
+      title="Over Sellqo — Belgisch e-commerce platform voor MKB"
+      description="Sellqo is het Belgische e-commerce platform voor ambitieuze ondernemers: webshop, POS en marketplace integraties in één tool. Leer ons team en missie kennen."
+      path="/about"
+    />
     <PublicPageLayout 
       title="Over SellQo" 
       subtitle="De Belgische e-commerce oplossing die groeit met jouw ambities"
