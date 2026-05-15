@@ -258,5 +258,6 @@ export default function Blog() {
         </p>
       </div>
     </PublicPageLayout>
+    </>
   );
 }
