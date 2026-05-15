@@ -61,6 +61,12 @@ export default function Contact() {
   const currentSubject = subjects.find(s => s.value === selectedSubject);
 
   return (
+    <>
+    <PageMeta
+      title="Contact — Sellqo support en sales"
+      description="Neem contact op met het Sellqo team. Snel antwoord per e-mail, WhatsApp of telefoon. We helpen je graag met sales, support en partnership vragen."
+      path="/contact"
+    />
     <PublicPageLayout 
       title="Neem Contact Op" 
       subtitle="Vragen? We helpen je graag verder."

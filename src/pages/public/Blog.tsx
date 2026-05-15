@@ -127,6 +127,12 @@ export default function Blog() {
   };
 
   return (
+    <>
+    <PageMeta
+      title="Blog — Sellqo inzichten over e-commerce"
+      description="Tips, trends en tutorials over webshops, marketplaces en e-commerce groei voor Belgische en Nederlandse ondernemers."
+      path="/blog"
+    />
     <PublicPageLayout 
       title="Blog" 
       subtitle="Inzichten, tips en nieuws over e-commerce"

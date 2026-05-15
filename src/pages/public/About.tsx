@@ -222,5 +222,6 @@ export default function About() {
         </Button>
       </section>
     </PublicPageLayout>
+    </>
   );
 }
