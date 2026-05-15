@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
 import { Target, Users, Zap, Heart, Globe, Shield, Store, ShoppingBag, Euro, CheckCircle, Building2, Rocket, Award, TrendingUp } from 'lucide-react';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const stats = [
   { icon: Store, value: '1.000+', label: 'Actieve Shops' },

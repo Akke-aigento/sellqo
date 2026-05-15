@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Calendar, Clock, User, Sparkles, TrendingUp, BookOpen, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const categories = [
   { id: 'all', label: 'Alles', icon: Sparkles },

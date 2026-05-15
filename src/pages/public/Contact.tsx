@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, Phone, MapPin, MessageSquare, Clock, Calendar, Headphones, Building2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const subjects = [
   { value: 'sales', label: 'Verkoop & Prijzen', responseTime: '< 4 uur' },

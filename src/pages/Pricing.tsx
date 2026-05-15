@@ -83,6 +83,11 @@ export default function PricingPage() {
 
   return (
     <ForcedLightMode>
+    <PageMeta
+      title="Prijzen — Sellqo abonnementen vanaf €19/maand"
+      description="Transparante prijzen voor je webshop, POS en marketplace integraties. Geen transactiekosten. 14 dagen gratis proberen, op elk moment opzegbaar."
+      path="/pricing"
+    />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
