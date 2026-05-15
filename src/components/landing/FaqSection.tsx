@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const faqs = [
   {
@@ -113,8 +114,21 @@ export function FaqSection() {
   const leftColumnFaqs = faqs.slice(0, midPoint);
   const rightColumnFaqs = faqs.slice(midPoint);
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer },
+    })),
+  };
+
   return (
     <section id="faq" className="py-20 md:py-28 bg-secondary/20">
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+      </Helmet>
       <div className="container mx-auto px-4">
         <div
           ref={ref}

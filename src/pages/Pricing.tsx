@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Link } from 'react-router-dom';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const featureLabels: Record<string, { nl: string; en: string }> = {
   customDomain: { nl: 'Eigen domein', en: 'Custom domain' },
@@ -82,6 +83,11 @@ export default function PricingPage() {
 
   return (
     <ForcedLightMode>
+    <PageMeta
+      title="Prijzen — Sellqo abonnementen vanaf €19/maand"
+      description="Transparante prijzen voor je webshop, POS en marketplace integraties. Geen transactiekosten. 14 dagen gratis proberen, op elk moment opzegbaar."
+      path="/pricing"
+    />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">

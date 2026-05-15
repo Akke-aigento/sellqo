@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
 import { Target, Users, Zap, Heart, Globe, Shield, Store, ShoppingBag, Euro, CheckCircle, Building2, Rocket, Award, TrendingUp } from 'lucide-react';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const stats = [
   { icon: Store, value: '1.000+', label: 'Actieve Shops' },
@@ -67,6 +68,12 @@ const pressLogos = [
 
 export default function About() {
   return (
+    <>
+    <PageMeta
+      title="Over Sellqo — Belgisch e-commerce platform voor MKB"
+      description="Sellqo is het Belgische e-commerce platform voor ambitieuze ondernemers: webshop, POS en marketplace integraties in één tool. Leer ons team en missie kennen."
+      path="/about"
+    />
     <PublicPageLayout 
       title="Over SellQo" 
       subtitle="De Belgische e-commerce oplossing die groeit met jouw ambities"
@@ -215,5 +222,6 @@ export default function About() {
         </Button>
       </section>
     </PublicPageLayout>
+    </>
   );
 }

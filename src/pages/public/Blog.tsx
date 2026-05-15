@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Calendar, Clock, User, Sparkles, TrendingUp, BookOpen, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const categories = [
   { id: 'all', label: 'Alles', icon: Sparkles },
@@ -126,6 +127,12 @@ export default function Blog() {
   };
 
   return (
+    <>
+    <PageMeta
+      title="Blog — Sellqo inzichten over e-commerce"
+      description="Tips, trends en tutorials over webshops, marketplaces en e-commerce groei voor Belgische en Nederlandse ondernemers."
+      path="/blog"
+    />
     <PublicPageLayout 
       title="Blog" 
       subtitle="Inzichten, tips en nieuws over e-commerce"
@@ -251,5 +258,6 @@ export default function Blog() {
         </p>
       </div>
     </PublicPageLayout>
+    </>
   );
 }

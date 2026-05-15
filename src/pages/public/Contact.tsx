@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, Phone, MapPin, MessageSquare, Clock, Calendar, Headphones, Building2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const subjects = [
   { value: 'sales', label: 'Verkoop & Prijzen', responseTime: '< 4 uur' },
@@ -60,6 +61,12 @@ export default function Contact() {
   const currentSubject = subjects.find(s => s.value === selectedSubject);
 
   return (
+    <>
+    <PageMeta
+      title="Contact — Sellqo support en sales"
+      description="Neem contact op met het Sellqo team. Snel antwoord per e-mail, WhatsApp of telefoon. We helpen je graag met sales, support en partnership vragen."
+      path="/contact"
+    />
     <PublicPageLayout 
       title="Neem Contact Op" 
       subtitle="Vragen? We helpen je graag verder."
@@ -217,5 +224,6 @@ export default function Contact() {
         </div>
       </div>
     </PublicPageLayout>
+    </>
   );
 }
