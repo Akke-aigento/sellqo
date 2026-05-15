@@ -1,0 +1,11 @@
+# Sellqo
+
+> Belgisch e-commerce platform voor MKB ondernemers: webshop, POS en marketplace integraties (bol.com, Amazon, Shopify) in één tool, zonder transactiekosten.
+
+## Pages
+
+- [Home](/): Overzicht van het Sellqo platform en features.
+- [Pricing](/pricing): Abonnementen, add-ons en transparante prijzen.
+- [About](/about): Missie, team en achtergrond van Sellqo.
+- [Contact](/contact): Contactopties voor sales en support.
+- [Blog](/blog): Inzichten en tips over e-commerce.
