@@ -13,10 +13,16 @@ import { FaqSection } from '@/components/landing/FaqSection';
 import { FinalCtaSection } from '@/components/landing/FinalCtaSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 export default function LandingPage() {
   return (
     <ForcedLightMode>
+      <PageMeta
+        title="Sellqo — Jouw webshop, bol.com & POS in één platform"
+        description="Start je webshop, koppel bol.com en verkoop in de winkel met de POS. Eén abonnement, geen transactiekosten. 14 dagen gratis proberen."
+        path="/"
+      />
       <div className="min-h-screen bg-background">
         <LandingNavbar />
         <main>

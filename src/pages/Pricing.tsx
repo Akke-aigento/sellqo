@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Link } from 'react-router-dom';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const featureLabels: Record<string, { nl: string; en: string }> = {
   customDomain: { nl: 'Eigen domein', en: 'Custom domain' },
