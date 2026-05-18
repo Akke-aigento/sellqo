@@ -2603,6 +2603,31 @@ async function checkoutCreateSession(supabase: any, tenantId: string, params: Re
 }
 
 async function checkoutGetConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  return await _checkoutGetConfirmationImpl(supabase, tenantId, params);
+}
+
+async function getOrderConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  if (!orderId) {
+    return { success: false, error: { code: 'ORDER_ID_REQUIRED', message: 'order_id is required' } };
+  }
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at')
+    .eq('id', orderId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (orderError || !order) {
+    return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } };
+  }
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('id, product_name, quantity, unit_price, total_price')
+    .eq('order_id', orderId);
+  return { success: true, order, items: items || [] };
+}
+
+async function _checkoutGetConfirmationImpl(supabase: any, tenantId: string, params: Record<string, unknown>) {
   return checkoutGetOrder(supabase, tenantId, params);
 }
 
