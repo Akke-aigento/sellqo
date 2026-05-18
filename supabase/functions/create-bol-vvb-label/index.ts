@@ -50,9 +50,16 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
   dymo_lw_4xl: "-dymo4xl",
 };
 
-// Crop label PDF to the requested format. Anchor top-left because Bol always
-// renders the printable label there (the rest of the page is whitespace on
-// international bpost World Business labels).
+// Fit the printable label area onto the requested paper format.
+//
+// Bol/bpost render the actual label in the top-left of the source page. The
+// total label artwork (including the wide bpost barcode strip and right-hand
+// info block) can be up to ~A5 wide. Previously we hard-cropped to the target
+// paper width which silently clipped the right side of wider labels (e.g. the
+// bpost barcode). We now:
+//   1. Take the top-left "content" region of the source page (capped at A5).
+//   2. Scale it proportionally onto the target paper so nothing is clipped.
+//   3. Center it horizontally and vertically with whitespace if needed.
 async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<Uint8Array> {
   const dims = FORMAT_DIMENSIONS[format];
   if (!dims) {
@@ -61,23 +68,43 @@ async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<
   }
 
   const PDFDoc = await loadPdfLib();
-  const pdfDoc = await PDFDoc.load(pdfBytes);
-  const page = pdfDoc.getPages()[0];
-  const { width, height } = page.getSize();
+  const srcDoc = await PDFDoc.load(pdfBytes);
+  const srcPage = srcDoc.getPages()[0];
+  const { width: srcW, height: srcH } = srcPage.getSize();
 
-  const cropW = Math.min(width, dims.w);
-  const cropH = Math.min(height, dims.h);
-  const x = 0;
-  const y = height - cropH; // anchor top-left
+  // Largest label artwork we expect on a Bol source page is ~A5 (420 x 595 pt).
+  // We anchor top-left because that's where Bol/bpost always render the label.
+  const A5_W = 420;
+  const A5_H = 595;
+  const contentW = Math.min(srcW, A5_W);
+  const contentH = Math.min(srcH, A5_H);
+  const contentX = 0;
+  const contentY = srcH - contentH; // PDF coords: 0 = bottom
 
-  page.setCropBox(x, y, cropW, cropH);
-  page.setMediaBox(x, y, cropW, cropH);
+  const newDoc = await PDFDoc.create();
+  const embeddedPage = await newDoc.embedPage(srcPage, {
+    left: contentX,
+    bottom: contentY,
+    right: contentX + contentW,
+    top: contentY + contentH,
+  });
 
-  const newPdf = await PDFDoc.create();
-  const [copiedPage] = await newPdf.copyPages(pdfDoc, [0]);
-  newPdf.addPage(copiedPage);
+  // Scale to fit while preserving aspect ratio (no distortion, no clipping).
+  const scale = Math.min(dims.w / contentW, dims.h / contentH);
+  const drawW = contentW * scale;
+  const drawH = contentH * scale;
+  const offsetX = (dims.w - drawW) / 2;
+  const offsetY = dims.h - drawH; // anchor to top of paper
 
-  return await newPdf.save();
+  const page = newDoc.addPage([dims.w, dims.h]);
+  page.drawPage(embeddedPage, {
+    x: offsetX,
+    y: offsetY,
+    width: drawW,
+    height: drawH,
+  });
+
+  return await newDoc.save();
 }
 
 function isValidLabelFormat(v: unknown): v is LabelFormat {
