@@ -51,37 +51,28 @@ export default function ShopOrderConfirmation() {
   // Load order and set up realtime subscription
   useEffect(() => {
     loadOrder();
-  }, [orderId]);
+  }, [orderId, tenant?.id]);
 
   const loadOrder = async () => {
-    if (!orderId) return;
+    if (!orderId || !tenant?.id) return;
     setIsLoading(true);
 
-    const { data: orderData, error: orderError } = await supabase
-      .from('order_confirmation_view' as any)
-      .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at')
-      .eq('id', orderId)
-      .maybeSingle();
+    const { data, error } = await supabase.functions.invoke('storefront-api', {
+      body: {
+        action: 'get_order_confirmation',
+        tenant_id: tenant.id,
+        params: { order_id: orderId },
+      },
+    });
 
-    if (orderError) {
-      console.error('Error loading order:', orderError);
+    if (error || !data?.success) {
+      console.error('Error loading order:', error || data?.error);
       setIsLoading(false);
       return;
     }
 
-    if (orderData) {
-      setOrder(orderData as unknown as Order);
-
-      const { data: itemsData } = await supabase
-        .from('order_items_confirmation_view' as any)
-        .select('id, product_name, quantity, unit_price, total_price')
-        .eq('order_id', orderId);
-
-      if (itemsData) {
-        setOrderItems(itemsData as unknown as OrderItem[]);
-      }
-    }
-
+    setOrder(data.order as Order);
+    setOrderItems((data.items || []) as OrderItem[]);
     setIsLoading(false);
   };
 
