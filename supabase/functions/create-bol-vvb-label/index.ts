@@ -52,14 +52,12 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
 
 // Fit the printable label area onto the requested paper format.
 //
-// Bol/bpost render the actual label in the top-left of the source page. The
-// total label artwork (including the wide bpost barcode strip and right-hand
-// info block) can be up to ~A5 wide. Previously we hard-cropped to the target
-// paper width which silently clipped the right side of wider labels (e.g. the
-// bpost barcode). We now:
-//   1. Take the top-left "content" region of the source page (capped at A5).
-//   2. Scale it proportionally onto the target paper so nothing is clipped.
-//   3. Center it horizontally and vertically with whitespace if needed.
+// Bol/bpost render the actual label in the top-left of the source page, but
+// the right-hand barcode strip and info column can extend well past A5 width.
+// Earlier versions capped the captured area at A5 (420pt wide) and silently
+// clipped wider labels. We now take the FULL source page as the content area
+// and scale-to-fit on the target paper. Worst case we get whitespace; we
+// never clip the barcode anymore.
 async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<Uint8Array> {
   const dims = FORMAT_DIMENSIONS[format];
   if (!dims) {
@@ -72,28 +70,25 @@ async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<
   const srcPage = srcDoc.getPages()[0];
   const { width: srcW, height: srcH } = srcPage.getSize();
 
-  // Largest label artwork we expect on a Bol source page is ~A5 (420 x 595 pt).
-  // We anchor top-left because that's where Bol/bpost always render the label.
-  const A5_W = 420;
-  const A5_H = 595;
-  const contentW = Math.min(srcW, A5_W);
-  const contentH = Math.min(srcH, A5_H);
-  const contentX = 0;
-  const contentY = srcH - contentH; // PDF coords: 0 = bottom
+  // Use the full source page. Bol/bpost anchors the label top-left, so any
+  // unused area on the source is on the bottom/right and becomes harmless
+  // whitespace after scale-to-fit.
+  const contentW = srcW;
+  const contentH = srcH;
 
   const newDoc = await PDFDoc.create();
   const embeddedPage = await newDoc.embedPage(srcPage, {
-    left: contentX,
-    bottom: contentY,
-    right: contentX + contentW,
-    top: contentY + contentH,
+    left: 0,
+    bottom: 0,
+    right: contentW,
+    top: contentH,
   });
 
   // Scale to fit while preserving aspect ratio (no distortion, no clipping).
   const scale = Math.min(dims.w / contentW, dims.h / contentH);
   const drawW = contentW * scale;
   const drawH = contentH * scale;
-  const offsetX = (dims.w - drawW) / 2;
+  const offsetX = 0; // anchor to left so the label stays in the top-left corner
   const offsetY = dims.h - drawH; // anchor to top of paper
 
   const page = newDoc.addPage([dims.w, dims.h]);
