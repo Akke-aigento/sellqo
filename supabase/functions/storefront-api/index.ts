@@ -2603,7 +2603,7 @@ async function checkoutCreateSession(supabase: any, tenantId: string, params: Re
 }
 
 async function checkoutGetConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  return await _checkoutGetConfirmationImpl(supabase, tenantId, params);
+  return checkoutGetOrder(supabase, tenantId, params);
 }
 
 async function getOrderConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -2625,10 +2625,6 @@ async function getOrderConfirmation(supabase: any, tenantId: string, params: Rec
     .select('id, product_name, quantity, unit_price, total_price')
     .eq('order_id', orderId);
   return { success: true, order, items: items || [] };
-}
-
-async function _checkoutGetConfirmationImpl(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  return checkoutGetOrder(supabase, tenantId, params);
 }
 
 // ============== NEWSLETTER SUBSCRIBE ==============
