@@ -2606,6 +2606,27 @@ async function checkoutGetConfirmation(supabase: any, tenantId: string, params: 
   return checkoutGetOrder(supabase, tenantId, params);
 }
 
+async function getOrderConfirmation(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const orderId = params.order_id as string;
+  if (!orderId) {
+    return { success: false, error: { code: 'ORDER_ID_REQUIRED', message: 'order_id is required' } };
+  }
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('id, order_number, status, payment_status, payment_method, subtotal, shipping_cost, tax_amount, total, ogm_reference, created_at')
+    .eq('id', orderId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (orderError || !order) {
+    return { success: false, error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } };
+  }
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('id, product_name, quantity, unit_price, total_price')
+    .eq('order_id', orderId);
+  return { success: true, order, items: items || [] };
+}
+
 // ============== NEWSLETTER SUBSCRIBE ==============
 
 async function newsletterSubscribe(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -2870,6 +2891,7 @@ serve(async (req) => {
       case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
       case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
+      case 'get_order_confirmation': result = await getOrderConfirmation(supabase, tenant_id, params); break;
       case 'checkout_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
       default:
         return new Response(JSON.stringify({ success: false, error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
