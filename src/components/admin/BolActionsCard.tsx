@@ -33,6 +33,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isRecropping, setIsRecropping] = useState(false);
   const [showFetchDialog, setShowFetchDialog] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<string>('default');
 
@@ -261,6 +262,45 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
+          )}
+          {latestLabel.label_url && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={async () => {
+                setIsRecropping(true);
+                try {
+                  const response = await supabase.functions.invoke('create-bol-vvb-label', {
+                    body: {
+                      order_id: order.id,
+                      retry: true,
+                      recrop: true,
+                      label_id: latestLabel.id,
+                    },
+                  });
+                  if (response.error) throw response.error;
+                  if (!response.data?.success) throw new Error(response.data?.error || 'Re-crop mislukt');
+                  toast.success('Label opnieuw bijgesneden');
+                  queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
+                  if (response.data.label_url) {
+                    window.open(`${response.data.label_url}?t=${Date.now()}`, '_blank');
+                  }
+                } catch (err: any) {
+                  toast.error(`Re-crop fout: ${err?.message || 'Onbekende fout'}`);
+                } finally {
+                  setIsRecropping(false);
+                }
+              }}
+              disabled={isRecropping}
+            >
+              {isRecropping ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Label opnieuw bijsnijden
+            </Button>
           )}
           {!latestLabel.label_url && latestLabel.status === 'created' && (
             <div className="flex gap-2">
