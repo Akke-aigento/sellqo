@@ -1,33 +1,30 @@
-## Situatie
+# Plan: fix the Bol VVB recrop width assumption
 
-Geen SQL nodig — de cropping gebeurt op de PDF in storage, niet in de database. De `create-bol-vvb-label` edge function heeft al een `recrop: true` modus die:
+## Goal
+Make recropped Bol/bpost labels render fully on Dymo 4XL labels so the barcode and right-hand info column are no longer cut off.
 
-1. Het originele label opnieuw downloadt bij Bol (via `transporterLabelId`)
-2. Het door de nieuwe scale-to-fit logica haalt
-3. Het bestaande bestand in storage overschrijft (zelfde `label_url`)
-4. Geen nieuw label aanmaakt bij Bol (geen kosten, geen nieuwe tracking)
+## What I’ll change
+1. Update the `create-bol-vvb-label` function so it no longer assumes the usable source label area is capped at A5 width (`420 pt`).
+2. Replace that fixed source extraction with a wider or source-aware capture area, then scale that full content into the Dymo 4XL page.
+3. Keep the current recrop button/UI as-is, since it is already correctly triggering the backend flow.
+4. Re-run recrop for the affected VanXcel labels and verify the output visually.
 
-## De 2 betreffende labels
+## Why this should fix it
+The current recrop flow is working, but it still extracts only the first `420 pt` of the source PDF before scaling. Your uploaded result proves the right side is already missing before scaling happens. So the real fix is in the backend PDF extraction logic, not in SQL or the UI.
 
-Beide VanXcel, BPOST_BE, dymo4xl formaat:
+## Validation
+- Confirm the regenerated PDF still has Dymo 4XL page size (`289 x 595 pt`)
+- Confirm the barcode is fully visible
+- Confirm the right-hand top section is fully visible
+- Confirm the same fix works for both orders `#1144` and `#1145`
 
-| Order | Label ID |
-|---|---|
-| #1145 | `de8eb4d7-9af4-430b-8f0a-591e70676c16` |
-| #1144 | `31db0584-54d1-46b1-8296-fe0ebe6e5144` |
-
-## Plan
-
-1. Voor elk van de 2 labels de edge function aanroepen met:
-   ```json
-   { "order_id": "...", "retry": true, "recrop": true, "label_id": "..." }
-   ```
-2. Verifiëren door de PDF opnieuw te downloaden en als afbeelding te renderen → checken of de rechterkant (barcode + info kolom) nu volledig zichtbaar is.
-3. Als beide labels visueel correct zijn → klaar. Je hoeft dan niks in de UI te doen, de bestaande `label_url` werkt gewoon weer.
-4. Indien de fix nog niet goed is → debuggen op basis van de nieuwe render, niet op de oude PDF.
-
-## Optioneel: knop in UI
-
-Als je dit vaker wil kunnen doen zonder mij, kan ik in de `BolActionsCard` een "Re-crop label" knop toevoegen die exact deze call doet. Laat maar weten of je dat erbij wil.
-
-Wil je dat ik nu de 2 labels recrop en visueel valideer?
+## Technical details
+- File: `supabase/functions/create-bol-vvb-label/index.ts`
+- Likely change area: `cropToLabel()`
+- Current problematic assumption:
+  ```ts
+  const A5_W = 420;
+  const contentW = Math.min(srcW, A5_W);
+  ```
+- Planned direction: use the real source width or a better bounded extraction window, then scale-to-fit into `dymo_lw_4xl`
+- After that, test the deployed function by recropping the affected labels and checking the resulting PDFs visually.
