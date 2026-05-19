@@ -1,30 +1,24 @@
-# Plan: fix the Bol VVB recrop width assumption
+## Probleem
 
-## Goal
-Make recropped Bol/bpost labels render fully on Dymo 4XL labels so the barcode and right-hand info column are no longer cut off.
+Wanneer "Voorraad bijhouden" uit staat op een product, toont de **admin productenlijst** alsnog een rode **"Uitverkocht"** badge zodra de stock 0 is (of, bij varianten, zodra alle varianten 0 zijn). De storefront werkt correct — daar wordt `track_inventory` wél in de check meegenomen — dus dit is puur een UI-bug in de admin.
 
-## What I’ll change
-1. Update the `create-bol-vvb-label` function so it no longer assumes the usable source label area is capped at A5 width (`420 pt`).
-2. Replace that fixed source extraction with a wider or source-aware capture area, then scale that full content into the Dymo 4XL page.
-3. Keep the current recrop button/UI as-is, since it is already correctly triggering the backend flow.
-4. Re-run recrop for the affected VanXcel labels and verify the output visually.
+Locatie: `src/pages/admin/Products.tsx`
+- `getStockBadge()` (rond regel 330) kijkt enkel naar `effectiveStock` zonder `track_inventory` te checken.
+- Het stock-filter (regel 160-167) doet hetzelfde, waardoor niet-getrackte producten verkeerd uit "Op voorraad" filteren.
 
-## Why this should fix it
-The current recrop flow is working, but it still extracts only the first `420 pt` of the source PDF before scaling. Your uploaded result proves the right side is already missing before scaling happens. So the real fix is in the backend PDF extraction logic, not in SQL or the UI.
+## Wat ga ik aanpassen
 
-## Validation
-- Confirm the regenerated PDF still has Dymo 4XL page size (`289 x 595 pt`)
-- Confirm the barcode is fully visible
-- Confirm the right-hand top section is fully visible
-- Confirm the same fix works for both orders `#1144` and `#1145`
+**Enkel `src/pages/admin/Products.tsx`** — geen backend, geen storefront-wijzigingen.
 
-## Technical details
-- File: `supabase/functions/create-bol-vvb-label/index.ts`
-- Likely change area: `cropToLabel()`
-- Current problematic assumption:
-  ```ts
-  const A5_W = 420;
-  const contentW = Math.min(srcW, A5_W);
-  ```
-- Planned direction: use the real source width or a better bounded extraction window, then scale-to-fit into `dymo_lw_4xl`
-- After that, test the deployed function by recropping the affected labels and checking the resulting PDFs visually.
+1. **`getStockBadge()`** — als `track_inventory === false` (én er zijn geen actieve varianten die wél tracking hebben), toon een neutrale grijze badge **"Niet bijgehouden"** in plaats van Uitverkocht / aantallen.
+
+2. **Stock-filter** — niet-getrackte producten beschouwen als "Op voorraad" zodat ze niet onterecht in de Uitverkocht-filter verschijnen en niet wegvallen uit de Op voorraad-filter.
+
+3. **Effectieve stock voor variant-producten** — als de parent én alle actieve varianten tracking uit hebben staan, ook "Niet bijgehouden" tonen. Als sommige varianten wel tracken: huidige som-logica behouden.
+
+## Verificatie
+
+- Product "Loveke Cadeaukaart" (track_inventory=false, stock=0) → toont nu **"Niet bijgehouden"**, niet meer "Uitverkocht".
+- Bundles van VanXcel (track_inventory=false, stock=1000) → tonen ook **"Niet bijgehouden"** (consistent).
+- Normaal fysiek product met tracking aan en stock=0 → blijft "Uitverkocht".
+- Filter "Op voorraad" toont nu ook niet-getrackte producten; "Uitverkocht" verbergt ze.
