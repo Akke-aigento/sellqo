@@ -162,9 +162,13 @@ export default function ProductsPage() {
       const effectiveStock = activeVariants.length > 0
         ? activeVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
         : product.stock;
-      if (stockFilter === 'out_of_stock' && effectiveStock > 0) return false;
-      if (stockFilter === 'low_stock' && (effectiveStock === 0 || effectiveStock > product.low_stock_threshold)) return false;
-      if (stockFilter === 'in_stock' && effectiveStock <= 0) return false;
+      // Determine if inventory is tracked (parent or any active variant)
+      const isTracked = activeVariants.length > 0
+        ? activeVariants.some(v => v.track_inventory !== false)
+        : product.track_inventory !== false;
+      if (stockFilter === 'out_of_stock' && (!isTracked || effectiveStock > 0)) return false;
+      if (stockFilter === 'low_stock' && (!isTracked || effectiveStock === 0 || effectiveStock > product.low_stock_threshold)) return false;
+      if (stockFilter === 'in_stock' && isTracked && effectiveStock <= 0) return false;
 
       // Category filter
       if (categoryFilter !== 'all') {
@@ -331,6 +335,14 @@ export default function ProductsPage() {
     const activeVariants = product.product_variants?.filter(v => v.is_active) || [];
     const hasVariants = activeVariants.length > 0;
     const effectiveStock = getEffectiveStock(product);
+
+    // If inventory is not tracked at all, show a neutral badge
+    const isTracked = hasVariants
+      ? activeVariants.some(v => v.track_inventory !== false)
+      : product.track_inventory !== false;
+    if (!isTracked) {
+      return <Badge variant="outline" className="text-muted-foreground">Niet bijgehouden</Badge>;
+    }
 
     if (effectiveStock === 0) {
       return <Badge variant="destructive">Uitverkocht</Badge>;
