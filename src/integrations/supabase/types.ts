@@ -6950,6 +6950,7 @@ export type Database = {
           description: string
           discount_amount: number | null
           discount_percentage: number | null
+          gl_account_code: string | null
           gross_amount: number | null
           id: string
           invoice_id: string
@@ -6962,6 +6963,7 @@ export type Database = {
           sort_order: number | null
           unit_price: number
           vat_amount: number
+          vat_box_code: string | null
           vat_category: string | null
           vat_rate: number
         }
@@ -6970,6 +6972,7 @@ export type Database = {
           description: string
           discount_amount?: number | null
           discount_percentage?: number | null
+          gl_account_code?: string | null
           gross_amount?: number | null
           id?: string
           invoice_id: string
@@ -6982,6 +6985,7 @@ export type Database = {
           sort_order?: number | null
           unit_price: number
           vat_amount?: number
+          vat_box_code?: string | null
           vat_category?: string | null
           vat_rate?: number
         }
@@ -6990,6 +6994,7 @@ export type Database = {
           description?: string
           discount_amount?: number | null
           discount_percentage?: number | null
+          gl_account_code?: string | null
           gross_amount?: number | null
           id?: string
           invoice_id?: string
@@ -7002,6 +7007,7 @@ export type Database = {
           sort_order?: number | null
           unit_price?: number
           vat_amount?: number
+          vat_box_code?: string | null
           vat_category?: string | null
           vat_rate?: number
         }
@@ -7037,16 +7043,21 @@ export type Database = {
           id: string
           invoice_number: string
           is_b2b: boolean | null
+          issue_date: string
           last_reminder_at: string | null
           ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
           pdf_url: string | null
+          peppol_delivered_at: string | null
+          peppol_error: string | null
+          peppol_message_id: string | null
           peppol_required: boolean | null
           peppol_sent_at: string | null
           peppol_status: string | null
           proforma_reference: string | null
           reminder_level: number | null
+          reporting_country: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subscription_id: string | null
@@ -7056,6 +7067,11 @@ export type Database = {
           total: number
           ubl_url: string | null
           updated_at: string
+          vat_number_validated_at: string | null
+          vat_number_validated_value: string | null
+          vat_point_date: string | null
+          vat_regime: string | null
+          vat_rounding_strategy: string | null
         }
         Insert: {
           created_at?: string
@@ -7064,16 +7080,21 @@ export type Database = {
           id?: string
           invoice_number: string
           is_b2b?: boolean | null
+          issue_date?: string
           last_reminder_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_delivered_at?: string | null
+          peppol_error?: string | null
+          peppol_message_id?: string | null
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
           proforma_reference?: string | null
           reminder_level?: number | null
+          reporting_country?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subscription_id?: string | null
@@ -7083,6 +7104,11 @@ export type Database = {
           total?: number
           ubl_url?: string | null
           updated_at?: string
+          vat_number_validated_at?: string | null
+          vat_number_validated_value?: string | null
+          vat_point_date?: string | null
+          vat_regime?: string | null
+          vat_rounding_strategy?: string | null
         }
         Update: {
           created_at?: string
@@ -7091,16 +7117,21 @@ export type Database = {
           id?: string
           invoice_number?: string
           is_b2b?: boolean | null
+          issue_date?: string
           last_reminder_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
+          peppol_delivered_at?: string | null
+          peppol_error?: string | null
+          peppol_message_id?: string | null
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
           peppol_status?: string | null
           proforma_reference?: string | null
           reminder_level?: number | null
+          reporting_country?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subscription_id?: string | null
@@ -7110,6 +7141,11 @@ export type Database = {
           total?: number
           ubl_url?: string | null
           updated_at?: string
+          vat_number_validated_at?: string | null
+          vat_number_validated_value?: string | null
+          vat_point_date?: string | null
+          vat_regime?: string | null
+          vat_rounding_strategy?: string | null
         }
         Relationships: [
           {
@@ -7153,6 +7189,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_vat_regime_fkey"
+            columns: ["vat_regime"]
+            isOneToOne: false
+            referencedRelation: "vat_regimes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -16646,6 +16689,96 @@ export type Database = {
           },
           {
             foreignKeyName: "vat_rates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_regimes: {
+        Row: {
+          applies_vat: boolean
+          code: string
+          created_at: string
+          description_en: string | null
+          description_fr: string | null
+          description_nl: string | null
+          invoice_text_en: string | null
+          invoice_text_fr: string | null
+          invoice_text_nl: string | null
+          output_vat_box: string | null
+          reverse_charge: boolean
+        }
+        Insert: {
+          applies_vat?: boolean
+          code: string
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          description_nl?: string | null
+          invoice_text_en?: string | null
+          invoice_text_fr?: string | null
+          invoice_text_nl?: string | null
+          output_vat_box?: string | null
+          reverse_charge?: boolean
+        }
+        Update: {
+          applies_vat?: boolean
+          code?: string
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          description_nl?: string | null
+          invoice_text_en?: string | null
+          invoice_text_fr?: string | null
+          invoice_text_nl?: string | null
+          output_vat_box?: string | null
+          reverse_charge?: boolean
+        }
+        Relationships: []
+      }
+      vat_report_cache: {
+        Row: {
+          computed_at: string
+          id: string
+          invalidated_at: string | null
+          payload: Json
+          period_end: string
+          period_start: string
+          period_type: string
+          tenant_id: string
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          invalidated_at?: string | null
+          payload: Json
+          period_end: string
+          period_start: string
+          period_type: string
+          tenant_id: string
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          invalidated_at?: string | null
+          payload?: Json
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_report_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_report_cache_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
