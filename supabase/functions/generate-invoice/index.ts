@@ -1511,6 +1511,7 @@ serve(async (req) => {
         reporting_country: resolvedRegime.reporting_country,
         ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
         ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
+        ...(override_regime ? { metadata: { vat_regime_override: { regime: override_regime, applied_by: auth.user_id, applied_at: new Date().toISOString() } } } : {}),
       })
       .select()
       .single();
