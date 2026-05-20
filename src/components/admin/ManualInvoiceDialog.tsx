@@ -262,6 +262,15 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
             </Button>
           </div>
 
+          {/* VAT regime indicator + override */}
+          <VatRegimeIndicator
+            resolution={preview.resolution}
+            loading={preview.loading}
+            error={preview.error}
+            overrideRegime={overrideRegime}
+            onOverrideChange={setOverrideRegime}
+          />
+
           {/* Totals */}
           <div className="bg-muted/50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
