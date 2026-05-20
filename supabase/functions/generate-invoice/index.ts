@@ -1553,10 +1553,6 @@ serve(async (req) => {
 
     // Create invoice lines for tracking - use net prices for inclusive VAT
     if (orderItems && orderItems.length > 0) {
-      const vatDivisor = vatHandling === 'inclusive' && vatCalculation.vatRate > 0 
-        ? (1 + vatCalculation.vatRate / 100) 
-        : 1;
-      
       const invoiceLines = orderItems.map((item, index) => {
         const originalUnitPrice = Number(item.unit_price);
         const originalLineTotal = Number(item.total_price);
