@@ -232,10 +232,15 @@ export async function resolveVatRegime(
     }
 
     const lookup = regimeMap.get(lineRegime);
-    const vat_box_code = lookup?.output_vat_box ?? REGIME_TO_BOX[lineRegime] ?? '00';
+    const isOss = lineRegime === 'oss_b2c_eu';
+    const vat_box_code = isOss
+      ? ''
+      : (lookup?.output_vat_box ?? REGIME_TO_BOX[lineRegime] ?? '00');
     const vat_rate = rateForRegime(lineRegime, customerCountry);
-    const gl_account_code = REGIME_TO_GL[lineRegime] ?? '700000';
-    const invoice_text_required = lookup?.invoice_text_nl || undefined;
+    const gl_account_code = isOss ? '700500' : (REGIME_TO_GL[lineRegime] ?? '700000');
+    const invoice_text_required = isOss
+      ? `OSS-aangifte ${customerCountry}`
+      : (lookup?.invoice_text_nl || undefined);
 
     return {
       line_index: idx,
