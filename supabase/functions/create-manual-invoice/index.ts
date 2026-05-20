@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { resolveVatRegimeSafe, type VatRegimeCode } from "../_shared/regimeResolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -543,7 +544,8 @@ serve(async (req) => {
       customer_id,
       items,
       notes,
-      send_email = false
+      send_email = false,
+      override_regime,
     } = body;
 
     if (!tenant_id) {
@@ -673,6 +675,43 @@ serve(async (req) => {
 
     logStep("Creating invoice record");
 
+    // ---- VAT-regime resolution (canonical engine) ----
+    let resolvedRegime: { vat_regime: string; reporting_country: string; vat_number_validated_at?: string; vat_number_validated_value?: string } = {
+      vat_regime: 'domestic_standard',
+      reporting_country: customerCountry,
+    };
+    const invoiceMetadata: Record<string, unknown> = {};
+    if (customer_id) {
+      const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
+        tenant_id,
+        customer_id,
+        invoice_lines: (items as InvoiceItem[]).map((it) => ({
+          line_type: 'product' as const,
+          amount: Number(it.total_price) || 0,
+        })),
+        sales_channel: 'b2b_direct',
+        override_regime: override_regime as VatRegimeCode | undefined,
+      });
+      if (resolution) {
+        resolvedRegime = {
+          vat_regime: resolution.invoice_level.vat_regime,
+          reporting_country: resolution.invoice_level.reporting_country,
+          vat_number_validated_at: resolution.invoice_level.vat_number_validated_at,
+          vat_number_validated_value: resolution.invoice_level.vat_number_validated_value,
+        };
+        logStep("VAT regime resolved", { regime: resolvedRegime.vat_regime, warnings: resolution.warnings });
+      } else {
+        logStep("VAT regime resolution failed — fallback", { error: regimeErr });
+      }
+    }
+    if (override_regime) {
+      invoiceMetadata.vat_regime_override = {
+        regime: override_regime,
+        applied_by: auth.user_id,
+        applied_at: new Date().toISOString(),
+      };
+    }
+
     // Create invoice record
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -687,6 +726,11 @@ serve(async (req) => {
         total: total,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
+        vat_regime: resolvedRegime.vat_regime,
+        reporting_country: resolvedRegime.reporting_country,
+        ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
+        ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
+        ...(Object.keys(invoiceMetadata).length > 0 ? { metadata: invoiceMetadata } : {}),
       })
       .select()
       .single();
