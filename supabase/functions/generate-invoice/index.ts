@@ -1168,7 +1168,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email } = await req.json();
+    const { order_id, auto_send_email, override_regime } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
