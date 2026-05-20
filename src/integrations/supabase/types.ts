@@ -7045,6 +7045,7 @@ export type Database = {
           is_b2b: boolean | null
           issue_date: string
           last_reminder_at: string | null
+          metadata: Json
           ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
@@ -7082,6 +7083,7 @@ export type Database = {
           is_b2b?: boolean | null
           issue_date?: string
           last_reminder_at?: string | null
+          metadata?: Json
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -7119,6 +7121,7 @@ export type Database = {
           is_b2b?: boolean | null
           issue_date?: string
           last_reminder_at?: string | null
+          metadata?: Json
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
