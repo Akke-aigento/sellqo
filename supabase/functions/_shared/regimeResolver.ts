@@ -150,8 +150,10 @@ export async function resolveVatRegime(
   if (!customer) throw new Error('Customer not found');
 
   const { data: tenant } = await supabase
-    .from('tenants').select('id, country').eq('id', input.tenant_id).maybeSingle();
+    .from('tenants').select('id, country, oss_enabled, simplified_vat_mode').eq('id', input.tenant_id).maybeSingle();
   const tenantCountry = ((tenant?.country as string | null) || 'BE').toUpperCase();
+  const ossEnabled = (tenant as { oss_enabled?: boolean } | null)?.oss_enabled === true;
+  const simplifiedVat = (tenant as { simplified_vat_mode?: boolean } | null)?.simplified_vat_mode === true;
   const customerCountry = ((customer.billing_country as string | null) || tenantCountry).toUpperCase();
   const isB2B = ((customer.customer_type as string | null) || '').toLowerCase() === 'b2b';
 
@@ -193,9 +195,20 @@ export async function resolveVatRegime(
           (l) => l.product_category === 'digital_service' || l.product_category === 'professional_service',
         );
         invoiceLevel.vat_regime = hasGoods ? 'ic_supply_goods' : (hasService ? 'ic_supply_services' : 'ic_supply_goods');
-      } else {
+      } else if (!isB2B && simplifiedVat) {
+        // PRIORITY 1: simplified VAT mode overrides cross-border complexity
         invoiceLevel.vat_regime = 'domestic_standard';
-        if (isB2B) warnings.push('EU B2B customer without valid VIES — treated as B2C (domestic_standard)');
+      } else if (!isB2B && ossEnabled) {
+        // PRIORITY 2: OSS B2C EU
+        invoiceLevel.vat_regime = 'oss_b2c_eu';
+      } else {
+        // PRIORITY 3: fallback domestic_standard (tenant home country rate)
+        invoiceLevel.vat_regime = 'domestic_standard';
+        if (isB2B) {
+          warnings.push('EU B2B customer without valid VIES — treated as B2C (domestic_standard)');
+        } else {
+          warnings.push('Cross-border EU B2C zonder OSS — controleer of jaaromzet onder €10k drempel blijft');
+        }
       }
     } else {
       invoiceLevel.vat_regime = 'export_outside_eu';
@@ -219,10 +232,15 @@ export async function resolveVatRegime(
     }
 
     const lookup = regimeMap.get(lineRegime);
-    const vat_box_code = lookup?.output_vat_box ?? REGIME_TO_BOX[lineRegime] ?? '00';
+    const isOss = lineRegime === 'oss_b2c_eu';
+    const vat_box_code = isOss
+      ? ''
+      : (lookup?.output_vat_box ?? REGIME_TO_BOX[lineRegime] ?? '00');
     const vat_rate = rateForRegime(lineRegime, customerCountry);
-    const gl_account_code = REGIME_TO_GL[lineRegime] ?? '700000';
-    const invoice_text_required = lookup?.invoice_text_nl || undefined;
+    const gl_account_code = isOss ? '700500' : (REGIME_TO_GL[lineRegime] ?? '700000');
+    const invoice_text_required = isOss
+      ? `OSS-aangifte ${customerCountry}`
+      : (lookup?.invoice_text_nl || undefined);
 
     return {
       line_index: idx,
