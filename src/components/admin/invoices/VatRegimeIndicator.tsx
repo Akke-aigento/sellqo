@@ -33,7 +33,7 @@ const NONE = '__none__';
 
 function regimeColor(code: VatRegimeCode | undefined): string {
   if (!code) return 'bg-muted text-muted-foreground';
-  if (code === 'oss_b2c_eu') return 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200';
+  if (code === 'oss_b2c_eu') return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200';
   if (code === 'export_outside_eu' || code === 'marketplace_deemed_supplier') {
     return 'bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-200';
   }
@@ -77,6 +77,19 @@ export function VatRegimeIndicator({
   const rate = resolution?.per_line[0]?.vat_rate ?? 0;
   const viesAt = resolution?.invoice_level.vat_number_validated_at;
   const invoiceText = resolution?.per_line[0]?.invoice_text_required;
+  const reportingCountry = resolution?.invoice_level.reporting_country;
+  const crossBorderNoOss = !!resolution?.warnings.some((w) =>
+    w.startsWith('Cross-border EU B2C zonder OSS'),
+  );
+  let displayLabel = description;
+  if (regimeCode === 'oss_b2c_eu' && reportingCountry) {
+    let countryName = reportingCountry;
+    try {
+      const dn = new Intl.DisplayNames(['en'], { type: 'region' });
+      countryName = dn.of(reportingCountry) || reportingCountry;
+    } catch { /* ignore */ }
+    displayLabel = `OSS ${countryName} — ${rate}%`;
+  }
 
   return (
     <Card>
@@ -104,7 +117,7 @@ export function VatRegimeIndicator({
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className={cn('font-medium', regimeColor(regimeCode))}>{description}</Badge>
+              <Badge className={cn('font-medium', regimeColor(regimeCode))}>{displayLabel}</Badge>
               <Badge variant="secondary" className="font-mono text-xs">
                 {boxCode ? `Vak ${boxCode}` : '—'}
               </Badge>
@@ -115,6 +128,12 @@ export function VatRegimeIndicator({
                 </Badge>
               )}
             </div>
+
+            {crossBorderNoOss && regimeCode === 'domestic_standard' && (
+              <p className="text-xs text-muted-foreground">
+                Cross-border verkoop zonder OSS — verifieer drempel
+              </p>
+            )}
 
             {viesAt && (
               <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
