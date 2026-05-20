@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { resolveVatRegimeSafe, type SalesChannel } from "../_shared/regimeResolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1159,7 +1160,7 @@ serve(async (req) => {
   try {
     logStep("Starting invoice generation");
 
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -1167,7 +1168,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email } = await req.json();
+    const { order_id, auto_send_email, override_regime } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
@@ -1443,6 +1444,51 @@ serve(async (req) => {
     // Determine Peppol status
     const peppolStatus = peppolRequired ? 'pending' : null;
 
+    // ---- VAT-regime resolution (canonical engine) ----
+    // Safe: any failure falls back to domestic_standard so invoicing never breaks.
+    const regimeLines = (orderItems || []).map((it: { id?: string; product_id?: string | null }) => ({
+      product_id: it.product_id || undefined,
+      line_type: 'product' as const,
+      amount: Number((it as { total_price?: number }).total_price) || 0,
+    }));
+    if (shippingCost > 0) {
+      regimeLines.push({ product_id: undefined, line_type: 'shipping' as unknown as 'product', amount: shippingCost });
+    }
+    const salesChannel: SalesChannel | undefined =
+      (order as { sales_channel?: string }).sales_channel === 'pos' ? 'pos'
+      : (order as { sales_channel?: string }).sales_channel === 'marketplace_bolcom' ? 'marketplace_bolcom'
+      : (order as { sales_channel?: string }).sales_channel === 'b2b_direct' ? 'b2b_direct'
+      : 'webshop';
+
+    let resolvedRegime: { vat_regime: string; reporting_country: string; vat_number_validated_at?: string; vat_number_validated_value?: string } = {
+      vat_regime: 'domestic_standard',
+      reporting_country: customerCountry,
+    };
+    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string }> = [];
+    if (order.customer_id) {
+      const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
+        tenant_id: order.tenant_id,
+        customer_id: order.customer_id,
+        invoice_lines: regimeLines,
+        sales_channel: salesChannel,
+        override_regime: override_regime,
+      });
+      if (resolution) {
+        resolvedRegime = {
+          vat_regime: resolution.invoice_level.vat_regime,
+          reporting_country: resolution.invoice_level.reporting_country,
+          vat_number_validated_at: resolution.invoice_level.vat_number_validated_at,
+          vat_number_validated_value: resolution.invoice_level.vat_number_validated_value,
+        };
+        perLineRegime = resolution.per_line;
+        logStep("VAT regime resolved", { regime: resolvedRegime.vat_regime, country: resolvedRegime.reporting_country, warnings: resolution.warnings });
+      } else {
+        logStep("VAT regime resolution failed — using fallback", { error: regimeErr });
+      }
+    } else {
+      logStep("VAT regime skipped — guest order, using fallback");
+    }
+
     // Create invoice record - use recalculated values
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -1461,6 +1507,11 @@ serve(async (req) => {
         paid_at: new Date().toISOString(),
         is_b2b: isB2B,
         peppol_status: peppolStatus,
+        vat_regime: resolvedRegime.vat_regime,
+        reporting_country: resolvedRegime.reporting_country,
+        ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
+        ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
+        ...(override_regime ? { metadata: { vat_regime_override: { regime: override_regime, applied_by: auth.user_id, applied_at: new Date().toISOString() } } } : {}),
       })
       .select()
       .single();
@@ -1483,7 +1534,7 @@ serve(async (req) => {
         const netUnitPrice = originalUnitPrice / vatDivisor;
         const netLineTotal = originalLineTotal / vatDivisor;
         const lineVatAmount = originalLineTotal - netLineTotal;
-        
+        const lineRegime = perLineRegime[index];
         return {
           invoice_id: invoice.id,
           description: item.product_name,
@@ -1496,6 +1547,8 @@ serve(async (req) => {
           line_type: 'product',
           product_id: item.product_id,
           sort_order: index,
+          ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
+          ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
         };
       });
 
@@ -1503,7 +1556,7 @@ serve(async (req) => {
       if (shippingCost > 0) {
         const netShippingCost = shippingCost / vatDivisor;
         const shippingVatAmount = shippingCost - netShippingCost;
-        
+        const shipRegime = perLineRegime[orderItems.length];
         invoiceLines.push({
           invoice_id: invoice.id,
           description: 'Verzendkosten',
@@ -1516,6 +1569,8 @@ serve(async (req) => {
           line_type: 'shipping',
           product_id: null,
           sort_order: orderItems.length,
+          ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
+          ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
         });
       }
 
