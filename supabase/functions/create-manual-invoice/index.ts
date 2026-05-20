@@ -597,7 +597,7 @@ serve(async (req) => {
     // Determine customer country
     const customerCountry = customer?.billing_country || tenant.country || 'NL';
 
-    // Calculate VAT based on customer type and location
+    // Calculate VAT based on customer type and location (used for invoice texts/category codes).
     const vatCalculation = calculateVat({
       subtotal,
       tenant,
@@ -605,9 +605,63 @@ serve(async (req) => {
       customerCountry,
     });
 
-    logStep("VAT calculated", vatCalculation);
+    logStep("VAT calculated (legacy)", vatCalculation);
 
-    const total = subtotal + vatCalculation.vatAmount;
+    // ---- Canonical regime resolution: this dictates the authoritative VAT rate ----
+    let resolvedRegime: { vat_regime: string; reporting_country: string; vat_number_validated_at?: string; vat_number_validated_value?: string } = {
+      vat_regime: 'domestic_standard',
+      reporting_country: customerCountry,
+    };
+    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string; vat_rate: number; invoice_text_required?: string }> = [];
+    const invoiceMetadata: Record<string, unknown> = {};
+    if (customer_id) {
+      const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
+        tenant_id,
+        customer_id,
+        invoice_lines: (items as InvoiceItem[]).map((it) => ({
+          line_type: 'product' as const,
+          amount: Number(it.total_price) || 0,
+        })),
+        sales_channel: 'b2b_direct',
+        override_regime: override_regime as VatRegimeCode | undefined,
+      });
+      if (resolution) {
+        resolvedRegime = {
+          vat_regime: resolution.invoice_level.vat_regime,
+          reporting_country: resolution.invoice_level.reporting_country,
+          vat_number_validated_at: resolution.invoice_level.vat_number_validated_at,
+          vat_number_validated_value: resolution.invoice_level.vat_number_validated_value,
+        };
+        perLineRegime = resolution.per_line;
+        logStep("VAT regime resolved", { regime: resolvedRegime.vat_regime, warnings: resolution.warnings });
+      } else {
+        logStep("VAT regime resolution failed — fallback", { error: regimeErr });
+      }
+    }
+    if (override_regime) {
+      invoiceMetadata.vat_regime_override = {
+        regime: override_regime,
+        applied_by: auth.user_id,
+        applied_at: new Date().toISOString(),
+      };
+    }
+
+    // Authoritative tax computation: resolver per-line rate × line amount.
+    // Falls back to the legacy calculation only if the resolver produced no lines.
+    const calculatedTaxAmount = perLineRegime.length > 0
+      ? (items as InvoiceItem[]).reduce((sum, it, idx) => {
+          const rate = perLineRegime[idx]?.vat_rate ?? 0;
+          return sum + (Number(it.total_price) || 0) * (rate / 100);
+        }, 0)
+      : vatCalculation.vatAmount;
+
+    // Keep downstream PDF/UBL rate consistent with the resolver outcome.
+    if (perLineRegime.length > 0) {
+      vatCalculation.vatRate = perLineRegime[0].vat_rate;
+      vatCalculation.vatAmount = calculatedTaxAmount;
+    }
+
+    const total = subtotal + calculatedTaxAmount;
 
     const invoiceData = {
       invoiceNumber,
@@ -675,43 +729,6 @@ serve(async (req) => {
 
     logStep("Creating invoice record");
 
-    // ---- VAT-regime resolution (canonical engine) ----
-    let resolvedRegime: { vat_regime: string; reporting_country: string; vat_number_validated_at?: string; vat_number_validated_value?: string } = {
-      vat_regime: 'domestic_standard',
-      reporting_country: customerCountry,
-    };
-    const invoiceMetadata: Record<string, unknown> = {};
-    if (customer_id) {
-      const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
-        tenant_id,
-        customer_id,
-        invoice_lines: (items as InvoiceItem[]).map((it) => ({
-          line_type: 'product' as const,
-          amount: Number(it.total_price) || 0,
-        })),
-        sales_channel: 'b2b_direct',
-        override_regime: override_regime as VatRegimeCode | undefined,
-      });
-      if (resolution) {
-        resolvedRegime = {
-          vat_regime: resolution.invoice_level.vat_regime,
-          reporting_country: resolution.invoice_level.reporting_country,
-          vat_number_validated_at: resolution.invoice_level.vat_number_validated_at,
-          vat_number_validated_value: resolution.invoice_level.vat_number_validated_value,
-        };
-        logStep("VAT regime resolved", { regime: resolvedRegime.vat_regime, warnings: resolution.warnings });
-      } else {
-        logStep("VAT regime resolution failed — fallback", { error: regimeErr });
-      }
-    }
-    if (override_regime) {
-      invoiceMetadata.vat_regime_override = {
-        regime: override_regime,
-        applied_by: auth.user_id,
-        applied_at: new Date().toISOString(),
-      };
-    }
-
     // Create invoice record
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -722,7 +739,7 @@ serve(async (req) => {
         invoice_number: invoiceNumber,
         status: 'draft',
         subtotal: subtotal,
-        tax_amount: vatCalculation.vatAmount,
+        tax_amount: calculatedTaxAmount,
         total: total,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
