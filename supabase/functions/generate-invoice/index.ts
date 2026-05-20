@@ -1471,6 +1471,7 @@ serve(async (req) => {
         customer_id: order.customer_id,
         invoice_lines: regimeLines,
         sales_channel: salesChannel,
+        override_regime: override_regime,
       });
       if (resolution) {
         resolvedRegime = {
