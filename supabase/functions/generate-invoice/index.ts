@@ -1160,7 +1160,7 @@ serve(async (req) => {
   try {
     logStep("Starting invoice generation");
 
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
