@@ -1444,6 +1444,50 @@ serve(async (req) => {
     // Determine Peppol status
     const peppolStatus = peppolRequired ? 'pending' : null;
 
+    // ---- VAT-regime resolution (canonical engine) ----
+    // Safe: any failure falls back to domestic_standard so invoicing never breaks.
+    const regimeLines = (orderItems || []).map((it: { id?: string; product_id?: string | null }) => ({
+      product_id: it.product_id || undefined,
+      line_type: 'product' as const,
+      amount: Number((it as { total_price?: number }).total_price) || 0,
+    }));
+    if (shippingCost > 0) {
+      regimeLines.push({ product_id: undefined, line_type: 'shipping' as unknown as 'product', amount: shippingCost });
+    }
+    const salesChannel: SalesChannel | undefined =
+      (order as { sales_channel?: string }).sales_channel === 'pos' ? 'pos'
+      : (order as { sales_channel?: string }).sales_channel === 'marketplace_bolcom' ? 'marketplace_bolcom'
+      : (order as { sales_channel?: string }).sales_channel === 'b2b_direct' ? 'b2b_direct'
+      : 'webshop';
+
+    let resolvedRegime: { vat_regime: string; reporting_country: string; vat_number_validated_at?: string; vat_number_validated_value?: string } = {
+      vat_regime: 'domestic_standard',
+      reporting_country: customerCountry,
+    };
+    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string }> = [];
+    if (order.customer_id) {
+      const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
+        tenant_id: order.tenant_id,
+        customer_id: order.customer_id,
+        invoice_lines: regimeLines,
+        sales_channel: salesChannel,
+      });
+      if (resolution) {
+        resolvedRegime = {
+          vat_regime: resolution.invoice_level.vat_regime,
+          reporting_country: resolution.invoice_level.reporting_country,
+          vat_number_validated_at: resolution.invoice_level.vat_number_validated_at,
+          vat_number_validated_value: resolution.invoice_level.vat_number_validated_value,
+        };
+        perLineRegime = resolution.per_line;
+        logStep("VAT regime resolved", { regime: resolvedRegime.vat_regime, country: resolvedRegime.reporting_country, warnings: resolution.warnings });
+      } else {
+        logStep("VAT regime resolution failed — using fallback", { error: regimeErr });
+      }
+    } else {
+      logStep("VAT regime skipped — guest order, using fallback");
+    }
+
     // Create invoice record - use recalculated values
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from("invoices")
@@ -1462,6 +1506,10 @@ serve(async (req) => {
         paid_at: new Date().toISOString(),
         is_b2b: isB2B,
         peppol_status: peppolStatus,
+        vat_regime: resolvedRegime.vat_regime,
+        reporting_country: resolvedRegime.reporting_country,
+        ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
+        ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
       })
       .select()
       .single();
