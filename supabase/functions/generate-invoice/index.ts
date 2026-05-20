@@ -1464,7 +1464,7 @@ serve(async (req) => {
       vat_regime: 'domestic_standard',
       reporting_country: customerCountry,
     };
-    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string }> = [];
+    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string; vat_rate: number }> = [];
     if (order.customer_id) {
       const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
         tenant_id: order.tenant_id,
@@ -1487,6 +1487,37 @@ serve(async (req) => {
       }
     } else {
       logStep("VAT regime skipped — guest order, using fallback");
+    }
+
+    // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
+    // The resolver is the source of truth for VAT rates (handles overrides, IC, export).
+    // We recompute totals here so they match what the resolver decided.
+    if (perLineRegime.length > 0) {
+      const resolverRate = perLineRegime[0].vat_rate;
+      vatCalculation.vatRate = resolverRate;
+      if (vatHandling === 'inclusive') {
+        finalTotal = orderSubtotal + shippingCost - discountAmount;
+        if (resolverRate === 0) {
+          subtotalExcl = finalTotal;
+          calculatedTaxAmount = 0;
+        } else {
+          subtotalExcl = finalTotal / (1 + resolverRate / 100);
+          calculatedTaxAmount = finalTotal - subtotalExcl;
+        }
+      } else {
+        subtotalExcl = orderSubtotal + shippingCost - discountAmount;
+        calculatedTaxAmount = resolverRate === 0 ? 0 : subtotalExcl * (resolverRate / 100);
+        finalTotal = subtotalExcl + calculatedTaxAmount;
+      }
+      // Keep PDF/UBL display consistent with resolver outcome.
+      vatCalculation.vatAmount = calculatedTaxAmount;
+      invoiceData.subtotal = vatHandling === 'inclusive' && resolverRate > 0
+        ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
+        : orderSubtotal;
+      invoiceData.taxAmount = calculatedTaxAmount;
+      invoiceData.total = finalTotal;
+      invoiceData.vatCalculation = { ...invoiceData.vatCalculation, vatRate: resolverRate, vatAmount: calculatedTaxAmount };
+      logStep("Totals re-derived from resolver", { resolverRate, subtotalExcl, calculatedTaxAmount, finalTotal });
     }
 
     // Create invoice record - use recalculated values
