@@ -4,6 +4,9 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { VatRegimeIndicator } from '@/components/admin/invoices/VatRegimeIndicator';
+import { useVatRegimePreview } from '@/hooks/useVatRegimePreview';
+import type { VatRegimeCode } from '@/types/accounting';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,9 +57,18 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
   const [customerId, setCustomerId] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [sendEmail, setSendEmail] = useState(false);
+  const [overrideRegime, setOverrideRegime] = useState<VatRegimeCode | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: '', quantity: 1, unit_price: 0, total_price: 0 }
   ]);
+
+  const preview = useVatRegimePreview({
+    tenantId: currentTenant?.id,
+    customerId: customerId || null,
+    lines: items.map((i) => ({ amount: i.total_price })),
+    overrideRegime,
+    enabled: open,
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -107,6 +119,7 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
     setCustomerId('');
     setNotes('');
     setSendEmail(false);
+    setOverrideRegime(null);
     setItems([{ description: '', quantity: 1, unit_price: 0, total_price: 0 }]);
   };
 
@@ -132,6 +145,7 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
           items: validItems,
           notes: notes || null,
           send_email: sendEmail,
+          ...(overrideRegime ? { override_regime: overrideRegime } : {}),
         },
       });
 
