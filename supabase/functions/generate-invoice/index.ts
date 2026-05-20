@@ -1464,7 +1464,7 @@ serve(async (req) => {
       vat_regime: 'domestic_standard',
       reporting_country: customerCountry,
     };
-    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string }> = [];
+    let perLineRegime: Array<{ line_index: number; vat_box_code: string; gl_account_code: string; vat_regime: string; vat_rate: number }> = [];
     if (order.customer_id) {
       const { resolution, error: regimeErr } = await resolveVatRegimeSafe({
         tenant_id: order.tenant_id,
@@ -1487,6 +1487,37 @@ serve(async (req) => {
       }
     } else {
       logStep("VAT regime skipped — guest order, using fallback");
+    }
+
+    // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
+    // The resolver is the source of truth for VAT rates (handles overrides, IC, export).
+    // We recompute totals here so they match what the resolver decided.
+    if (perLineRegime.length > 0) {
+      const resolverRate = perLineRegime[0].vat_rate;
+      vatCalculation.vatRate = resolverRate;
+      if (vatHandling === 'inclusive') {
+        finalTotal = orderSubtotal + shippingCost - discountAmount;
+        if (resolverRate === 0) {
+          subtotalExcl = finalTotal;
+          calculatedTaxAmount = 0;
+        } else {
+          subtotalExcl = finalTotal / (1 + resolverRate / 100);
+          calculatedTaxAmount = finalTotal - subtotalExcl;
+        }
+      } else {
+        subtotalExcl = orderSubtotal + shippingCost - discountAmount;
+        calculatedTaxAmount = resolverRate === 0 ? 0 : subtotalExcl * (resolverRate / 100);
+        finalTotal = subtotalExcl + calculatedTaxAmount;
+      }
+      // Keep PDF/UBL display consistent with resolver outcome.
+      vatCalculation.vatAmount = calculatedTaxAmount;
+      invoiceData.subtotal = vatHandling === 'inclusive' && resolverRate > 0
+        ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
+        : orderSubtotal;
+      invoiceData.taxAmount = calculatedTaxAmount;
+      invoiceData.total = finalTotal;
+      invoiceData.vatCalculation = { ...invoiceData.vatCalculation, vatRate: resolverRate, vatAmount: calculatedTaxAmount };
+      logStep("Totals re-derived from resolver", { resolverRate, subtotalExcl, calculatedTaxAmount, finalTotal });
     }
 
     // Create invoice record - use recalculated values
@@ -1522,26 +1553,26 @@ serve(async (req) => {
 
     // Create invoice lines for tracking - use net prices for inclusive VAT
     if (orderItems && orderItems.length > 0) {
-      const vatDivisor = vatHandling === 'inclusive' && vatCalculation.vatRate > 0 
-        ? (1 + vatCalculation.vatRate / 100) 
-        : 1;
-      
       const invoiceLines = orderItems.map((item, index) => {
         const originalUnitPrice = Number(item.unit_price);
         const originalLineTotal = Number(item.total_price);
-        
-        // For inclusive VAT, convert to net prices
-        const netUnitPrice = originalUnitPrice / vatDivisor;
-        const netLineTotal = originalLineTotal / vatDivisor;
-        const lineVatAmount = originalLineTotal - netLineTotal;
+
         const lineRegime = perLineRegime[index];
+        // Resolver rate is authoritative; legacy vatCalculation only used as fallback.
+        const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
+        const lineDivisor = vatHandling === 'inclusive' && lineRate > 0 ? (1 + lineRate / 100) : 1;
+        const netUnitPrice = originalUnitPrice / lineDivisor;
+        const netLineTotal = originalLineTotal / lineDivisor;
+        const lineVatAmount = vatHandling === 'inclusive'
+          ? originalLineTotal - netLineTotal
+          : netLineTotal * (lineRate / 100);
         return {
           invoice_id: invoice.id,
           description: item.product_name,
           quantity: item.quantity,
           unit_price: netUnitPrice,
           line_total: netLineTotal,
-          vat_rate: vatCalculation.vatRate,
+          vat_rate: lineRate,
           vat_category: vatCalculation.taxCategoryCode,
           vat_amount: lineVatAmount,
           line_type: 'product',
@@ -1554,16 +1585,20 @@ serve(async (req) => {
 
       // Add shipping line if applicable - also convert for inclusive VAT
       if (shippingCost > 0) {
-        const netShippingCost = shippingCost / vatDivisor;
-        const shippingVatAmount = shippingCost - netShippingCost;
         const shipRegime = perLineRegime[orderItems.length];
+        const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
+        const shipDivisor = vatHandling === 'inclusive' && shipRate > 0 ? (1 + shipRate / 100) : 1;
+        const netShippingCost = shippingCost / shipDivisor;
+        const shippingVatAmount = vatHandling === 'inclusive'
+          ? shippingCost - netShippingCost
+          : netShippingCost * (shipRate / 100);
         invoiceLines.push({
           invoice_id: invoice.id,
           description: 'Verzendkosten',
           quantity: 1,
           unit_price: netShippingCost,
           line_total: netShippingCost,
-          vat_rate: vatCalculation.vatRate,
+          vat_rate: shipRate,
           vat_category: vatCalculation.taxCategoryCode,
           vat_amount: shippingVatAmount,
           line_type: 'shipping',

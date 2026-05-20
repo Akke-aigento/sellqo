@@ -106,14 +106,14 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
     return items.reduce((sum, item) => sum + item.total_price, 0);
   };
 
-  const calculateTax = () => {
-    const taxPercent = currentTenant?.tax_percentage || 21;
-    return calculateSubtotal() * (taxPercent / 100);
-  };
+  // Effective VAT rate is the resolver's per-line rate (single rate in manual flow),
+  // falling back to tenant default only while the resolver is still loading.
+  const resolvedRate: number | null = preview.resolution?.per_line[0]?.vat_rate ?? null;
+  const fallbackRate = currentTenant?.tax_percentage ?? 21;
+  const effectiveRate = resolvedRate ?? fallbackRate;
 
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
+  const calculateTax = () => calculateSubtotal() * (effectiveRate / 100);
+  const calculateTotal = () => calculateSubtotal() + calculateTax();
 
   const resetForm = () => {
     setCustomerId('');
@@ -278,7 +278,13 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
               <span>{formatCurrency(calculateSubtotal())}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>BTW ({currentTenant?.tax_percentage || 21}%)</span>
+              <span>
+                BTW ({effectiveRate}%)
+                {resolvedRate === null && !preview.loading && (
+                  <span className="text-muted-foreground"> · standaard</span>
+                )}
+                {preview.loading && <span className="text-muted-foreground"> · bepalen…</span>}
+              </span>
               <span>{formatCurrency(calculateTax())}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-2">
