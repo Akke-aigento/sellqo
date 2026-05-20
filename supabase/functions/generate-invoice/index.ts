@@ -1532,7 +1532,7 @@ serve(async (req) => {
         const netUnitPrice = originalUnitPrice / vatDivisor;
         const netLineTotal = originalLineTotal / vatDivisor;
         const lineVatAmount = originalLineTotal - netLineTotal;
-        
+        const lineRegime = perLineRegime[index];
         return {
           invoice_id: invoice.id,
           description: item.product_name,
@@ -1545,6 +1545,8 @@ serve(async (req) => {
           line_type: 'product',
           product_id: item.product_id,
           sort_order: index,
+          ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
+          ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
         };
       });
 
@@ -1552,7 +1554,7 @@ serve(async (req) => {
       if (shippingCost > 0) {
         const netShippingCost = shippingCost / vatDivisor;
         const shippingVatAmount = shippingCost - netShippingCost;
-        
+        const shipRegime = perLineRegime[orderItems.length];
         invoiceLines.push({
           invoice_id: invoice.id,
           description: 'Verzendkosten',
@@ -1565,6 +1567,8 @@ serve(async (req) => {
           line_type: 'shipping',
           product_id: null,
           sort_order: orderItems.length,
+          ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
+          ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
         });
       }
 
