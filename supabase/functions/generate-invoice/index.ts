@@ -1560,19 +1560,23 @@ serve(async (req) => {
       const invoiceLines = orderItems.map((item, index) => {
         const originalUnitPrice = Number(item.unit_price);
         const originalLineTotal = Number(item.total_price);
-        
-        // For inclusive VAT, convert to net prices
-        const netUnitPrice = originalUnitPrice / vatDivisor;
-        const netLineTotal = originalLineTotal / vatDivisor;
-        const lineVatAmount = originalLineTotal - netLineTotal;
+
         const lineRegime = perLineRegime[index];
+        // Resolver rate is authoritative; legacy vatCalculation only used as fallback.
+        const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
+        const lineDivisor = vatHandling === 'inclusive' && lineRate > 0 ? (1 + lineRate / 100) : 1;
+        const netUnitPrice = originalUnitPrice / lineDivisor;
+        const netLineTotal = originalLineTotal / lineDivisor;
+        const lineVatAmount = vatHandling === 'inclusive'
+          ? originalLineTotal - netLineTotal
+          : netLineTotal * (lineRate / 100);
         return {
           invoice_id: invoice.id,
           description: item.product_name,
           quantity: item.quantity,
           unit_price: netUnitPrice,
           line_total: netLineTotal,
-          vat_rate: vatCalculation.vatRate,
+          vat_rate: lineRate,
           vat_category: vatCalculation.taxCategoryCode,
           vat_amount: lineVatAmount,
           line_type: 'product',
@@ -1585,16 +1589,20 @@ serve(async (req) => {
 
       // Add shipping line if applicable - also convert for inclusive VAT
       if (shippingCost > 0) {
-        const netShippingCost = shippingCost / vatDivisor;
-        const shippingVatAmount = shippingCost - netShippingCost;
         const shipRegime = perLineRegime[orderItems.length];
+        const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
+        const shipDivisor = vatHandling === 'inclusive' && shipRate > 0 ? (1 + shipRate / 100) : 1;
+        const netShippingCost = shippingCost / shipDivisor;
+        const shippingVatAmount = vatHandling === 'inclusive'
+          ? shippingCost - netShippingCost
+          : netShippingCost * (shipRate / 100);
         invoiceLines.push({
           invoice_id: invoice.id,
           description: 'Verzendkosten',
           quantity: 1,
           unit_price: netShippingCost,
           line_total: netShippingCost,
-          vat_rate: vatCalculation.vatRate,
+          vat_rate: shipRate,
           vat_category: vatCalculation.taxCategoryCode,
           vat_amount: shippingVatAmount,
           line_type: 'shipping',
