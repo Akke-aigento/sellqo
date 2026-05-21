@@ -109,6 +109,31 @@ function periodCode(start: string, end: string, type: PeriodType): string {
   return `${start}_to_${end}`;
 }
 
+const MONTH_NL = [
+  'januari','februari','maart','april','mei','juni',
+  'juli','augustus','september','oktober','november','december',
+];
+
+function formatDdMmYyyy(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function periodLabel(start: string, end: string, type: PeriodType): string {
+  const y = start.slice(0, 4);
+  if (type === 'annual') return `BTW-aangifte ${y}`;
+  if (type === 'monthly') {
+    const m = parseInt(start.slice(5, 7), 10);
+    const name = MONTH_NL[m - 1] ?? '';
+    return `BTW-aangifte ${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`;
+  }
+  if (type === 'quarterly') {
+    const m = parseInt(start.slice(5, 7), 10);
+    return `BTW-aangifte Q${Math.floor((m - 1) / 3) + 1} ${y}`;
+  }
+  return `BTW-aangifte ${formatDdMmYyyy(start)} t/m ${formatDdMmYyyy(end)}`;
+}
+
 function fmtEur(n: number): string {
   if (!n) return '—';
   return n.toLocaleString('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
