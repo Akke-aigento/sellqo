@@ -512,7 +512,7 @@ serve(async (req) => {
         period_end: body.period_end,
         period_type: body.period_type,
         include_audit_trail: true,
-        force_recompute: false,
+        force_recompute: true,
       }),
     });
     if (!engResp.ok) {
