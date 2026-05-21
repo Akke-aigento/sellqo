@@ -71,8 +71,7 @@ export function aggregate(input: AggregateInput): VatReportPayload {
   warnings.push(...enforced.warnings);
   const invoices = enforced.invoices;
 
-  // 2) Allocate per-rate base buckets so vak 54 is computed via per-rate rounding.
-  const ratesBase = { 6: 0, 12: 0, 21: 0 } as Record<number, number>;
+  // 2) Setup box accumulators (header-driven: subtotal => base box, tax_amount => vat box).
   const boxes = emptyBoxes();
   const boxInvoiceIds: Record<DeclarationBoxCode, Set<string>> = {} as Record<DeclarationBoxCode, Set<string>>;
   for (const k of Object.keys(boxes) as DeclarationBoxCode[]) boxInvoiceIds[k] = new Set();
@@ -80,91 +79,99 @@ export function aggregate(input: AggregateInput): VatReportPayload {
   const byRateMap = new Map<string, ByRateEntry & { invoiceIds: Set<string> }>();
   const byCountryMap = new Map<string, ByCountryEntry & { invoiceIds: Set<string> }>();
 
-  // 3) Walk invoice lines (excluding OSS — handled separately).
+  // 3) Walk INVOICE HEADERS — primary source for base + vat amounts.
+  //    by_rate breakdown still aggregates from lines, but with per-invoice
+  //    sanity-check fallback to header when lines don't reconcile.
+  let unknownCountryCount = 0;
   for (const inv of invoices) {
     const regime = inv.vat_regime || 'domestic_standard';
-    const country = (inv.customers?.billing_country || inv.reporting_country || '').toUpperCase() || '??';
+    const rawCountry = (inv.customers?.billing_country || inv.reporting_country || '').toUpperCase();
+    const country = rawCountry || '__UNKNOWN__';
+    if (!rawCountry) unknownCountryCount += 1;
+
+    const headerBase = Number(inv.subtotal || 0);
+    const headerVat = Number(inv.tax_amount || 0);
+
+    // Pick representative VAT rate for box mapping (regime drives box; rate only
+    // matters for unknown-regime fallback in mapRegimeToBoxes).
     const lines = input.linesByInvoice.get(inv.id) || [];
+    const repRate = lines.find((l) => Number(l.vat_rate) > 0)?.vat_rate
+      ?? (headerBase > 0 ? Math.round((headerVat / headerBase) * 100) : 0);
 
-    for (const line of lines) {
-      const rate = Number(line.vat_rate || 0);
-      const base = Number(line.line_total || 0) - Number(line.vat_amount || 0);
-      const vat = Number(line.vat_amount || 0);
+    const mapping = mapRegimeToBoxes(regime, Number(repRate));
+    if (mapping.base_box) {
+      boxes[mapping.base_box].amount += headerBase;
+      boxes[mapping.base_box].source_line_count += lines.length;
+      boxInvoiceIds[mapping.base_box].add(inv.id);
+    }
+    if (mapping.vat_box) {
+      boxes[mapping.vat_box].vat += headerVat;
+      boxInvoiceIds[mapping.vat_box].add(inv.id);
+    }
 
-      // by_rate + by_country regardless of regime (incl. OSS — useful for cross-check)
+    // by_country (header-driven)
+    const bcKey = `${country}::${regime}`;
+    const bc = byCountryMap.get(bcKey) || { country_code: country, regime, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
+    bc.base_amount += headerBase;
+    bc.vat_amount += headerVat;
+    bc.invoiceIds.add(inv.id);
+    byCountryMap.set(bcKey, bc);
+
+    // by_rate breakdown — aggregate per-rate from lines, with sanity check.
+    const lineVatSum = lines.reduce((s, l) => s + Number(l.vat_amount || 0), 0);
+    const useHeaderFallback = Math.abs(lineVatSum - headerVat) > 1;
+    if (useHeaderFallback) {
+      warnings.push(
+        `Invoice ${inv.invoice_number}: line VAT (€${round2(lineVatSum)}) doesn't match header VAT (€${round2(headerVat)}), using header`,
+      );
+      // Bucket whole invoice under representative rate as a single by_rate entry.
+      const rate = Number(repRate) || 0;
       const brKey = `${rate}::${regime}`;
       const br = byRateMap.get(brKey) || { rate, regime, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
-      br.base_amount += base; br.vat_amount += vat; br.invoiceIds.add(inv.id);
+      br.base_amount += headerBase;
+      br.vat_amount += headerVat;
+      br.invoiceIds.add(inv.id);
       byRateMap.set(brKey, br);
-
-      const bcKey = `${country}::${regime}`;
-      const bc = byCountryMap.get(bcKey) || { country_code: country, regime, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
-      bc.base_amount += base; bc.vat_amount += vat; bc.invoiceIds.add(inv.id);
-      byCountryMap.set(bcKey, bc);
-
-      // Box mapping (skip OSS / exempt)
-      const mapping = mapRegimeToBoxes(regime, rate);
-      if (mapping.base_box) {
-        boxes[mapping.base_box].amount += base;
-        boxes[mapping.base_box].source_line_count += 1;
-        boxInvoiceIds[mapping.base_box].add(inv.id);
+    } else {
+      for (const line of lines) {
+        const rate = Number(line.vat_rate || 0);
+        const base = Number(line.line_total || 0) - Number(line.vat_amount || 0);
+        const vat = Number(line.vat_amount || 0);
+        const brKey = `${rate}::${regime}`;
+        const br = byRateMap.get(brKey) || { rate, regime, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
+        br.base_amount += base; br.vat_amount += vat; br.invoiceIds.add(inv.id);
+        byRateMap.set(brKey, br);
       }
-      // For domestic regimes we accumulate base per rate (to compute vak 54 cleanly).
-      if (regime === 'domestic_standard') ratesBase[21] = (ratesBase[21] || 0) + base;
-      else if (regime === 'domestic_reduced_6') ratesBase[6] = (ratesBase[6] || 0) + base;
-      else if (regime === 'domestic_reduced_12') ratesBase[12] = (ratesBase[12] || 0) + base;
     }
   }
 
-  // 4) Walk credit notes — negative compensation in vak 48/49 (+ 64 for VAT).
-  const creditRatesBase = { 6: 0, 12: 0, 21: 0 } as Record<number, number>;
+  if (unknownCountryCount > 0) {
+    warnings.push(`${unknownCountryCount} invoice(s) zonder land-code — gegroepeerd onder "__UNKNOWN__"`);
+  }
+
+  // 4) Walk credit notes (header-driven, negative compensation in 48/49 + 64).
   for (const cn of input.creditNotes) {
-    // Recover the regime of the underlying invoice (look up by original_invoice_id).
     const orig = invoices.find((i) => i.id === cn.original_invoice_id);
     const regime = orig?.vat_regime || 'domestic_standard';
-    const country = (cn.customers?.billing_country || '').toUpperCase() || '??';
+    const headerBase = Number(cn.subtotal || 0);
+    const headerVat = Number(cn.tax_amount || 0);
     const lines = input.cnLinesByNote.get(cn.id) || [];
-    for (const line of lines) {
-      const rate = Number(line.vat_rate || 0);
-      const base = Number(line.line_total || 0) - Number(line.vat_amount || 0);
-      const vat = Number(line.vat_amount || 0);
-      const mapping = mapRegimeToBoxes(regime, rate);
-      if (mapping.credit_base_box) {
-        boxes[mapping.credit_base_box].amount += base;
-        boxes[mapping.credit_base_box].source_line_count += 1;
-        boxInvoiceIds[mapping.credit_base_box].add(cn.id);
-      }
-      if (mapping.credit_vat_box) {
-        if (rate === 6) creditRatesBase[6] = (creditRatesBase[6] || 0) + base;
-        else if (rate === 12) creditRatesBase[12] = (creditRatesBase[12] || 0) + base;
-        else if (rate === 21) creditRatesBase[21] = (creditRatesBase[21] || 0) + base;
-        // count credit-note presence on vak 64 below
-        boxInvoiceIds['64'].add(cn.id);
-      }
-      // by_rate / by_country also track credit notes (negative)
-      const brKey = `${rate}::cn:${regime}`;
-      const br = byRateMap.get(brKey) || { rate, regime: `${regime} (credit)`, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
-      br.base_amount -= base; br.vat_amount -= vat; br.invoiceIds.add(cn.id);
-      byRateMap.set(brKey, br);
+    const repRate = lines.find((l) => Number(l.vat_rate) > 0)?.vat_rate
+      ?? (headerBase > 0 ? Math.round((headerVat / headerBase) * 100) : 0);
+    const mapping = mapRegimeToBoxes(regime, Number(repRate));
+    if (mapping.credit_base_box) {
+      boxes[mapping.credit_base_box].amount += headerBase;
+      boxes[mapping.credit_base_box].source_line_count += lines.length;
+      boxInvoiceIds[mapping.credit_base_box].add(cn.id);
+    }
+    if (mapping.credit_vat_box) {
+      boxes[mapping.credit_vat_box].vat += headerVat;
+      boxInvoiceIds[mapping.credit_vat_box].add(cn.id);
     }
   }
 
-  // 5) Per-rate VAT for vak 54 (output side) — applied to net per-rate sums.
-  const vat54 = round2((ratesBase[6] || 0) * 0.06 + (ratesBase[12] || 0) * 0.12 + (ratesBase[21] || 0) * 0.21);
-  boxes['54'].amount = vat54;
-  boxes['54'].vat = vat54;
-  // Track invoice-count contributors to 54 = union of 01/02/03 contributors
-  for (const c of boxInvoiceIds['01']) boxInvoiceIds['54'].add(c);
-  for (const c of boxInvoiceIds['02']) boxInvoiceIds['54'].add(c);
-  for (const c of boxInvoiceIds['03']) boxInvoiceIds['54'].add(c);
-
-  // Vak 64 (correction VAT on credit notes) — per-rate.
-  const vat64 = round2((creditRatesBase[6] || 0) * 0.06 + (creditRatesBase[12] || 0) * 0.12 + (creditRatesBase[21] || 0) * 0.21);
-  boxes['64'].amount = vat64;
-  boxes['64'].vat = vat64;
-
-  // 6) Purchase-side vakken (55/56/57/59/61/62/81-88) — placeholders (Fase 3).
-  // 7) Vak 63 = 54 + 55 + 56 + 57 - 59 + 61 - 62 - 64
+  // 5) Purchase-side vakken (55/56/57/59/61/62/81-88) — placeholders (Fase 3).
+  // 6) Vak 63 = 54 + 55 + 56 + 57 - 59 + 61 - 62 - 64 (all header-derived)
   const v63 =
     boxes['54'].vat + boxes['55'].vat + boxes['56'].vat + boxes['57'].vat -
     boxes['59'].vat + boxes['61'].vat - boxes['62'].vat - boxes['64'].vat;
