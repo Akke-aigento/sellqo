@@ -1021,7 +1021,50 @@ export const useVatExport = () => {
     }
   };
 
-  return { exportVatReport, exportIcListing, isExporting };
+  const exportQBundle = async (
+    dateRange: DateRange & { type?: 'monthly' | 'quarterly' | 'annual' | 'custom' },
+  ) => {
+    if (!currentTenant) return;
+    setIsBundling(true);
+    const toastId = toast.loading('Q-Pakket wordt samengesteld… (kan 5-15 sec duren)');
+    try {
+      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const periodType = dateRange.type ?? 'quarterly';
+      const slug = (currentTenant.name || 'tenant')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const y = dateRange.from.getFullYear();
+      let pCode = `${toIso(dateRange.from)}_to_${toIso(dateRange.to)}`;
+      if (periodType === 'quarterly') {
+        const q = Math.floor(dateRange.from.getMonth() / 3) + 1;
+        pCode = `${y}-Q${q}`;
+      } else if (periodType === 'monthly') {
+        pCode = `${y}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+      } else if (periodType === 'annual') {
+        pCode = `${y}`;
+      }
+      await binaryDownload(
+        'export-q-bundle',
+        {
+          tenant_id: currentTenant.id,
+          period_start: toIso(dateRange.from),
+          period_end: toIso(dateRange.to),
+          period_type: periodType,
+        },
+        `SellQo_Q-Pakket_${slug}_${pCode}.zip`,
+        'application/zip',
+      );
+      toast.success('Q-Pakket gedownload', { id: toastId });
+    } catch (err) {
+      console.error('Q-Bundle error:', err);
+      toast.error('Q-Pakket samenstellen mislukt', { id: toastId });
+    } finally {
+      setIsBundling(false);
+    }
+  };
+
+  return { exportVatReport, exportIcListing, exportQBundle, isExporting, isBundling };
 };
 
 // Hook for revenue report
