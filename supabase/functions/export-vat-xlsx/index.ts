@@ -603,7 +603,7 @@ serve(async (req) => {
     // Build workbook
     const wb = XLSX.utils.book_new();
     const tabs: [string, XLSX.WorkSheet][] = [
-      ['Aangifte-formulier', buildTab1Declaration(payload)],
+      ['Aangifte-formulier', buildTab1Declaration(payload, body.period_type)],
       ['Audit per vak', buildTab2Audit(payload)],
       ['BTW per tarief', buildTab3ByRate(payload)],
       ['Verkopen per land', buildTab4ByCountry(payload)],
