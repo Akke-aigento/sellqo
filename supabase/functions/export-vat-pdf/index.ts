@@ -80,6 +80,37 @@ const VAT_DUE_BOXES = ['54','55','56','57','59','61','62','63','64','71','72'];
 const PURCHASE_BOXES = ['81','82','83','84','85','86','87','88'];
 const HIGHLIGHTED = new Set(['71', '72']);
 
+// Regime → standard VAT rate (BE) and box-based fallback. Used by pageByRate
+// to aggregate header-driven from audit_trail (consistent with XLSX Tab 3).
+const REGIME_STANDARD_RATE: Record<string, number> = {
+  domestic_standard: 21,
+  domestic_reduced_12: 12,
+  domestic_reduced_6: 6,
+  domestic_reduced: 6,
+  domestic_zero: 0,
+  domestic_exempt: 0,
+  ic_supply_b2b: 0,
+  ic_services_b2b: 0,
+  ic_triangulation: 0,
+  export_non_eu: 0,
+  reverse_charge_b2b: 0,
+  oss_b2c_eu: 0,
+};
+const BOX_STANDARD_RATE: Record<string, number> = {
+  '00': 0, '01': 6, '02': 12, '03': 21,
+  '44': 0, '45': 0, '46': 0, '47': 0, '48': 0, '49': 0,
+};
+const COUNTRY_NAMES: Record<string, string> = {
+  BE: 'Belgie', NL: 'Nederland', DE: 'Duitsland', FR: 'Frankrijk',
+  LU: 'Luxemburg', IT: 'Italie', ES: 'Spanje', PT: 'Portugal',
+  AT: 'Oostenrijk', IE: 'Ierland', DK: 'Denemarken', SE: 'Zweden',
+  FI: 'Finland', PL: 'Polen', CZ: 'Tsjechie', SK: 'Slowakije',
+  HU: 'Hongarije', RO: 'Roemenie', BG: 'Bulgarije', GR: 'Griekenland',
+  HR: 'Kroatie', SI: 'Slovenie', EE: 'Estland', LV: 'Letland',
+  LT: 'Litouwen', CY: 'Cyprus', MT: 'Malta', GB: 'Verenigd Koninkrijk',
+  US: 'Verenigde Staten', CH: 'Zwitserland', NO: 'Noorwegen',
+};
+
 const MONTH_NL = [
   'januari','februari','maart','april','mei','juni',
   'juli','augustus','september','oktober','november','december',
