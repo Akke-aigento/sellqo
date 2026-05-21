@@ -300,11 +300,12 @@ export function aggregate(input: AggregateInput): VatReportPayload {
     for (const inv of invoices) {
       const regime = inv.vat_regime || 'domestic_standard';
       const mapping = mapRegimeToBoxes(regime, 0);
+      const invOrder = (inv as unknown as { orders?: { customer_name?: string | null; customer_email?: string | null } | null }).orders;
       audit_trail.push({
         invoice_id: inv.id,
         invoice_number: inv.invoice_number,
         issue_date: inv.issue_date,
-        customer: customerName(inv.customers),
+        customer: auditCustomer(inv.customers, invOrder),
         vat_regime: regime,
         declaration_box: mapping.base_box || (regime === 'oss_b2c_eu' ? 'OSS' : '—'),
         base_amount: round2(Number(inv.subtotal || 0)),
@@ -316,11 +317,12 @@ export function aggregate(input: AggregateInput): VatReportPayload {
       const orig = invoices.find((i) => i.id === cn.original_invoice_id);
       const regime = orig?.vat_regime || 'domestic_standard';
       const mapping = mapRegimeToBoxes(regime, 0);
+      const origOrder = orig ? (orig as unknown as { orders?: { customer_name?: string | null; customer_email?: string | null } | null }).orders : null;
       audit_trail.push({
         invoice_id: cn.id,
         invoice_number: cn.credit_note_number,
         issue_date: cn.issue_date,
-        customer: customerName(cn.customers),
+        customer: auditCustomer(cn.customers, origOrder),
         vat_regime: regime,
         declaration_box: mapping.credit_base_box || '—',
         base_amount: -round2(Number(cn.subtotal || 0)),
