@@ -726,6 +726,67 @@ export const useVatExport = () => {
         return;
       }
 
+      // PDF → delegate to export-vat-pdf edge function. Binary fetch to
+      // preserve PDF integrity (supabase.functions.invoke corrupts binary).
+      if (format === 'pdf') {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/export-vat-pdf`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenant_id: currentTenant.id,
+            period_start: toIso(dateRange.from),
+            period_end: toIso(dateRange.to),
+            period_type: periodType,
+          }),
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`PDF export failed: ${response.status} ${errText}`);
+        }
+        const buffer = await response.arrayBuffer();
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+
+        const slug = (currentTenant.name || 'tenant')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        const y = dateRange.from.getFullYear();
+        let pCode = `${toIso(dateRange.from)}_to_${toIso(dateRange.to)}`;
+        if (periodType === 'quarterly') {
+          const q = Math.floor(dateRange.from.getMonth() / 3) + 1;
+          pCode = `${y}-Q${q}`;
+        } else if (periodType === 'monthly') {
+          pCode = `${y}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+        } else if (periodType === 'annual') {
+          pCode = `${y}`;
+        }
+        const fallbackName = `SellQo_BTW-aangifte_${slug}_${pCode}.pdf`;
+        const cd = response.headers.get('content-disposition') ?? '';
+        const m = cd.match(/filename="?([^"]+)"?/);
+        const filename = m?.[1] ?? fallbackName;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success('BTW-aangifte PDF gedownload');
+        return;
+      }
+
       // CSV (and any other non-xlsx text format) → use engine payload directly
       const { data, error } = await supabase.functions.invoke('vat-report-engine', {
         body: {
