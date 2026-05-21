@@ -117,11 +117,20 @@ export function fmtDecimal(n: number): string {
 
 /** Stable, unique DeclarantReference. Max length per XSD = 20 chars. */
 export function declarantReference(prefix: string, tenantId: string, code: string): string {
-  const ts = Date.now().toString(36).toUpperCase();
-  const short = tenantId.replace(/-/g, "").slice(0, 6).toUpperCase();
+  // Compact, INTERVAT-safe (≤ 20 chars, [A-Z0-9-]) and ends without hyphen.
+  // Period encoded as "YYQn" / "YYMmm": e.g. 2026-Q1 → 26Q1, 2026-04 → 26M04.
   const slim = code.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-  // e.g. SQ-V-A1B2C3-2026Q1-LX (kept ≤ 20)
-  return `${prefix}-${short}-${slim}-${ts}`.slice(0, 20);
+  let period = slim;
+  const qMatch = code.match(/^(\d{4})-Q([1-4])$/);
+  const mMatch = code.match(/^(\d{4})-(\d{2})$/);
+  if (qMatch) period = `${qMatch[1].slice(2)}Q${qMatch[2]}`;
+  else if (mMatch) period = `${mMatch[1].slice(2)}M${mMatch[2]}`;
+  const short = tenantId.replace(/-/g, "").slice(0, 6).toUpperCase();
+  const ts = Date.now().toString(36).toUpperCase().slice(-4);
+  const p = prefix.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  // p(≤4) + period(≤5) + short(6) + ts(4) + 3 separators = ≤ 22; trim if needed
+  const ref = `${p}-${period}-${short}-${ts}`.slice(0, 20).replace(/-+$/, "");
+  return ref;
 }
 
 /** Validate a Belgian VAT number (10 digits). */
