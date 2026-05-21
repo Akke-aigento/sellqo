@@ -854,14 +854,18 @@ export const useRevenueExport = () => {
     setIsExporting(true);
 
     try {
+      // Use issue_date (accounting date), not created_at; include both sent and paid
+      // invoices so revenue is recognised on issue. End-date is end-of-day inclusive.
+      const endInclusive = new Date(dateRange.to);
+      endInclusive.setHours(23, 59, 59, 999);
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('created_at, subtotal, tax_amount, total, status')
+        .select('issue_date, subtotal, tax_amount, total, status')
         .eq('tenant_id', currentTenant.id)
-        .eq('status', 'paid')
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at');
+        .in('status', ['sent', 'paid'])
+        .gte('issue_date', dateRange.from.toISOString().slice(0, 10))
+        .lte('issue_date', endInclusive.toISOString().slice(0, 10))
+        .order('issue_date');
 
       if (error) throw error;
 
@@ -869,7 +873,7 @@ export const useRevenueExport = () => {
       const periodTotals = new Map<string, { revenue: number; vat: number; count: number }>();
       
       invoices.forEach(inv => {
-        const date = new Date(inv.created_at);
+        const date = new Date(inv.issue_date);
         let periodKey: string;
         
         if (granularity === 'day') {
