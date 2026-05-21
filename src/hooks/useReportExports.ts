@@ -938,6 +938,31 @@ export const useVatExport = () => {
 
     try {
       const toIso = (d: Date) => d.toISOString().split('T')[0];
+
+      if (format === 'intervat-xml') {
+        try {
+          const slug = (currentTenant.name || 'tenant')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+          await binaryDownload(
+            'export-ic-listing-xml',
+            {
+              tenant_id: currentTenant.id,
+              period_start: toIso(dateRange.from),
+              period_end: toIso(dateRange.to),
+              period_type: 'custom',
+            },
+            `SellQo_INTERVAT_IC-Listing_${slug}.xml`,
+            'application/xml',
+          );
+          toast.success('IC-Listing INTERVAT XML gedownload');
+        } finally {
+          setIsExporting(false);
+        }
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('vat-report-engine', {
         body: {
           tenant_id: currentTenant.id,
