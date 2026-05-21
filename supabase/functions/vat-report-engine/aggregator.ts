@@ -42,7 +42,6 @@ function customerName(c: DbInvoice['customers'] | undefined | null): string {
  */
 export function applyViesEnforcement(invoices: DbInvoice[]): { invoices: DbInvoice[]; warnings: string[] } {
   const warnings: string[] = [];
-  const data_quality_issues: { invoice_number: string; line_vat: number; header_vat: number; delta: number }[] = [];
   const out = invoices.map((inv) => {
     if (inv.vat_regime && IC_REGIMES.has(inv.vat_regime) && !inv.vat_number_validated_at) {
       warnings.push(`Invoice ${inv.invoice_number} mist VIES-snapshot — gerapporteerd als binnenland`);
@@ -66,6 +65,7 @@ export interface AggregateInput {
 
 export function aggregate(input: AggregateInput): VatReportPayload {
   const warnings: string[] = [];
+  const data_quality_issues: { invoice_number: string; line_vat: number; header_vat: number; delta: number }[] = [];
 
   // 1) VIES enforcement
   const enforced = applyViesEnforcement(input.invoices);
