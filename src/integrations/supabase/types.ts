@@ -13227,6 +13227,30 @@ export type Database = {
           },
         ]
       }
+      shopify_dates_staging: {
+        Row: {
+          financial_status: string | null
+          order_name: string
+          shop_cancelled_at: string | null
+          shop_created_at: string
+          shop_paid_at: string | null
+        }
+        Insert: {
+          financial_status?: string | null
+          order_name: string
+          shop_cancelled_at?: string | null
+          shop_created_at: string
+          shop_paid_at?: string | null
+        }
+        Update: {
+          financial_status?: string | null
+          order_name?: string
+          shop_cancelled_at?: string | null
+          shop_created_at?: string
+          shop_paid_at?: string | null
+        }
+        Relationships: []
+      }
       sidebar_preferences: {
         Row: {
           created_at: string | null
