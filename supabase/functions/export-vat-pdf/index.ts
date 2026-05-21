@@ -149,7 +149,9 @@ function periodLabel(start: string, end: string, type: PeriodType): string {
   return `${formatDdMmYyyy(start)} t/m ${formatDdMmYyyy(end)}`;
 }
 function fmtEur(n: number): string {
-  const v = Math.round((n || 0) * 100) / 100;
+  // EPSILON-safe rounding so PDF & XLSX present identical 2dp values
+  // for the same raw float (e.g. 178.185 → 178.19 in both).
+  const v = Math.round(((n || 0) + Number.EPSILON) * 100) / 100;
   return v.toLocaleString('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR';
 }
 
