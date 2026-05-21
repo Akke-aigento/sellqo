@@ -5,6 +5,7 @@ import { useTenant } from './useTenant';
 import { 
   generateCSV, 
   generateExcel, 
+  generateExcelWithEmptyState,
   downloadAsZip,
   generateFilename,
   commonColumns,
@@ -829,7 +830,14 @@ export const useVatExport = () => {
       if (format === 'csv') {
         generateCSV(icRows, columns, filename);
       } else if (format === 'xlsx') {
-        generateExcel(icRows, columns, filename, 'IC-Listing');
+        generateExcelWithEmptyState(
+          icRows,
+          columns,
+          filename,
+          'IC-Listing',
+          'Geen IC-leveringen in deze periode',
+          'Note: zodra IC-leveringen worden geregistreerd, verschijnen ze hier én in INTERVAT XML',
+        );
       }
 
       toast.success(`IC-Listing met ${icRows.length} klanten geëxporteerd`);
