@@ -580,7 +580,9 @@ export const useAgingExport = () => {
         return {
           invoice_number: inv.invoice_number,
           issue_date: inv.issue_date || inv.created_at,
-          due_date: hasDue ? inv.due_date : EM,
+          due_date: hasDue
+            ? new Date(inv.due_date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : EM,
           customer_name: customerName,
           customer_email: inv.customers?.email || inv.orders?.customer_email || '',
           customer_phone: inv.customers?.phone || '',
@@ -608,7 +610,7 @@ export const useAgingExport = () => {
       const columns = [
         { key: 'invoice_number', header: 'Factuurnummer' },
         { key: 'issue_date', header: 'Factuurdatum', format: 'date' as const },
-        { key: 'due_date', header: 'Vervaldatum', format: 'date' as const },
+        { key: 'due_date', header: 'Vervaldatum' },
         { key: 'customer_name', header: 'Klant' },
         ...(anyEmail ? [{ key: 'customer_email', header: 'Email' }] : []),
         ...(anyPhone ? [{ key: 'customer_phone', header: 'Telefoon' }] : []),
