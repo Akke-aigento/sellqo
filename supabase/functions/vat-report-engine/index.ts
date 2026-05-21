@@ -100,7 +100,7 @@ serve(async (req) => {
     // 2) Tenant metadata
     const { data: tenant, error: tenantErr } = await supabase
       .from('tenants')
-      .select('id, name, btw_number, stripe_account_id')
+      .select('id, name, btw_number, kvk_number, stripe_account_id')
       .eq('id', body.tenant_id)
       .maybeSingle();
     if (tenantErr || !tenant) {
@@ -198,7 +198,7 @@ serve(async (req) => {
         id: tenant.id as string,
         name: (tenant as Record<string, unknown>).name as string ?? null,
         vat_number: (tenant as Record<string, unknown>).btw_number as string ?? null,
-        kbo: null,
+        kbo: ((tenant as Record<string, unknown>).kvk_number as string) ?? null,
       },
       period: { start: body.period_start, end: body.period_end, type: body.period_type },
       invoices,
