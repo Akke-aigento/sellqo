@@ -169,9 +169,13 @@ function styleHeader(ws: XLSX.WorkSheet, headerCells: string[]) {
 
 function applyEurFormat(ws: XLSX.WorkSheet, addrs: string[]) {
   for (const addr of addrs) {
-    const c = ws[addr] as { t?: string; z?: string; s?: Record<string, unknown> } | undefined;
+    const c = ws[addr] as { t?: string; v?: unknown; z?: string; s?: Record<string, unknown> } | undefined;
     if (c) {
-      c.z = '#,##0.00';
+      // Force numeric type and round to 2dp to avoid float artifacts like
+      // 178.19000000000003 leaking through when Excel ignores the format.
+      if (typeof c.v === 'number') c.v = Math.round(c.v * 100) / 100;
+      c.t = 'n';
+      c.z = '€ #,##0.00';
       c.s = { ...(c.s || {}), font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'right' } };
     }
   }
