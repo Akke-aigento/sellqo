@@ -434,45 +434,89 @@ function pageSummary(doc: Doc, payload: any) {
 function pageByRate(doc: Doc, payload: any) {
   doc.newPage();
   doc.heading('BTW per tarief');
-  const arr = (payload.by_rate ?? []) as Array<{ rate: number; regime: string; base_amount: number; vat_amount: number; invoice_count: number }>;
-  if (!arr.length) {
+  // Header-driven aggregation from audit_trail (matches XLSX Tab 3 and
+  // Tab 1 declaration_boxes). Engine's payload.by_rate is line-driven and
+  // can drift from header totals when Shopify imports have line/header VAT
+  // mismatches — never use it for declaration totals.
+  const trail = (payload.audit_trail ?? []) as Array<Record<string, unknown>>;
+  const salesEntries = trail.filter((e) =>
+    SALES_BOXES.includes(String((e as any).declaration_box ?? '')),
+  );
+  type Bucket = { rate: number; regime: string; base: number; vat: number; invs: Set<string> };
+  const buckets = new Map<string, Bucket>();
+  for (const e of salesEntries) {
+    const base = Number((e as any).base_amount ?? 0);
+    const vat = Number((e as any).vat_amount ?? 0);
+    const regime = String((e as any).vat_regime ?? '');
+    const box = String((e as any).declaration_box ?? '');
+    const rate = REGIME_STANDARD_RATE[regime] ?? BOX_STANDARD_RATE[box] ?? 0;
+    const key = `${rate}|${regime}`;
+    let b = buckets.get(key);
+    if (!b) { b = { rate, regime, base: 0, vat: 0, invs: new Set() }; buckets.set(key, b); }
+    b.base += base; b.vat += vat;
+    const inv = String((e as any).invoice_number ?? '');
+    if (inv) b.invs.add(inv);
+  }
+  if (buckets.size === 0) {
     doc.text('Geen BTW-omzet in deze periode.', { ital: true, color: TEXT_GRAY });
     return;
   }
-  // Pivot per rate
-  const pivot = new Map<number, { base: number; vat: number; invoices: number }>();
-  for (const r of arr) {
-    const k = Number(r.rate || 0);
-    const cur = pivot.get(k) ?? { base: 0, vat: 0, invoices: 0 };
-    cur.base += Number(r.base_amount || 0);
-    cur.vat += Number(r.vat_amount || 0);
-    cur.invoices += Number(r.invoice_count || 0);
-    pivot.set(k, cur);
-  }
-  const order = [0, 6, 12, 21];
+  const sorted = [...buckets.values()].sort((a, b) =>
+    a.rate !== b.rate ? b.rate - a.rate : a.regime.localeCompare(b.regime),
+  );
   const rows: string[][] = [];
-  let tBase = 0, tVat = 0, tInv = 0;
-  for (const rate of order) {
-    const v = pivot.get(rate);
-    if (!v) continue;
-    rows.push([`${rate}%`, fmtEur(v.base), fmtEur(v.vat), String(v.invoices)]);
-    tBase += v.base; tVat += v.vat; tInv += v.invoices;
+  let tBase = 0, tVat = 0;
+  const allInvs = new Set<string>();
+  for (const b of sorted) {
+    rows.push([`${b.rate}%`, b.regime, fmtEur(b.base), fmtEur(b.vat), String(b.invs.size)]);
+    tBase += b.base; tVat += b.vat;
+    for (const i of b.invs) allInvs.add(i);
   }
-  // any other rates not in standard set
-  for (const [rate, v] of pivot) {
-    if (order.includes(rate)) continue;
-    rows.push([`${rate}%`, fmtEur(v.base), fmtEur(v.vat), String(v.invoices)]);
-    tBase += v.base; tVat += v.vat; tInv += v.invoices;
-  }
-  rows.push(['Totaal', fmtEur(tBase), fmtEur(tVat), String(tInv)]);
+  rows.push(['Totaal', '', fmtEur(tBase), fmtEur(tVat), String(allInvs.size)]);
 
   doc.table({
-    cols: [120, 140, 140, CONTENT_W - 400],
-    align: ['l', 'r', 'r', 'r'],
-    headers: ['Tarief', 'Basis', 'BTW', '# Facturen'],
+    cols: [70, 150, 110, 110, CONTENT_W - 70 - 150 - 110 - 110],
+    align: ['l', 'l', 'r', 'r', 'r'],
+    headers: ['Tarief', 'Regime', 'Basis', 'BTW', '# Facturen'],
     rows,
     highlightRow: (i) => i === rows.length - 1,
   });
+}
+
+function pageByCountry(doc: Doc, payload: any): boolean {
+  const list = (payload.by_country ?? []) as Array<Record<string, unknown>>;
+  if (!list.length) return false;
+  doc.newPage();
+  doc.heading('Verkopen per land');
+  const sorted = [...list].sort((a, b) =>
+    String(a.country_code ?? '').localeCompare(String(b.country_code ?? '')),
+  );
+  const rows: string[][] = [];
+  let tBase = 0, tVat = 0, tInv = 0;
+  for (const e of sorted) {
+    const cc = String(e.country_code ?? '');
+    const base = Number(e.base_amount ?? 0);
+    const vat = Number(e.vat_amount ?? 0);
+    const inv = Number(e.invoice_count ?? 0);
+    rows.push([
+      cc,
+      COUNTRY_NAMES[cc] ?? cc,
+      String(e.regime ?? ''),
+      fmtEur(base),
+      fmtEur(vat),
+      String(inv),
+    ]);
+    tBase += base; tVat += vat; tInv += inv;
+  }
+  rows.push(['', 'Totaal', '', fmtEur(tBase), fmtEur(tVat), String(tInv)]);
+  doc.table({
+    cols: [50, 130, 120, 100, 100, CONTENT_W - 50 - 130 - 120 - 100 - 100],
+    align: ['l', 'l', 'l', 'r', 'r', 'r'],
+    headers: ['ISO', 'Land', 'Regime', 'Basis', 'BTW', '# Facturen'],
+    rows,
+    highlightRow: (i) => i === rows.length - 1,
+  });
+  return true;
 }
 
 function pageIcListing(doc: Doc, payload: any): boolean {
