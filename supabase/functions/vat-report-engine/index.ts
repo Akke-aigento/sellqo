@@ -116,12 +116,13 @@ serve(async (req) => {
       .from('invoices')
       .select(`
         id, tenant_id, invoice_number, status, subtotal, tax_amount, total, issue_date,
-        customer_id, vat_regime, reporting_country,
+        customer_id, order_id, vat_regime, reporting_country,
         vat_number_validated_at, vat_number_validated_value,
         customers:customer_id (
           id, email, first_name, last_name, company_name,
           customer_type, vat_number, billing_country
-        )
+        ),
+        orders:order_id ( customer_name, customer_email )
       `)
       .eq('tenant_id', body.tenant_id)
       .gte('issue_date', body.period_start)
