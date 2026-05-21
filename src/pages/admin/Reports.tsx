@@ -296,6 +296,7 @@ const Reports = () => {
               title="Omzetrapport"
               description="Totale omzet per periode met BTW en netto"
               icon={<TrendingUp className="h-5 w-5" />}
+              formats={['csv', 'xlsx', 'pdf']}
               onExport={(format) => exportRevenueReport(dateRange, format, 'month')}
               isLoading={isExportingRevenue}
             />
@@ -303,6 +304,7 @@ const Reports = () => {
               title="BTW-aangifte"
               description="Binnenlandse verkopen per tarief, IC en export"
               icon={<CreditCard className="h-5 w-5" />}
+              formats={['csv', 'xlsx', 'pdf']}
               onExport={(format) => exportVatReport(dateRange, format)}
               isLoading={isExportingVat}
             />
@@ -310,6 +312,7 @@ const Reports = () => {
               title="IC-Listing"
               description="Intracommunautaire leveringen per klant"
               icon={<Building2 className="h-5 w-5" />}
+              formats={['csv', 'xlsx', 'pdf']}
               onExport={(format) => exportIcListing(dateRange, format)}
               isLoading={isExportingVat}
             />
@@ -318,6 +321,7 @@ const Reports = () => {
               description="Debiteurenoverzicht per verouderingsbucket"
               icon={<AlertTriangle className="h-5 w-5" />}
               recordCount={counts?.openInvoices}
+              formats={['csv', 'xlsx', 'pdf']}
               onExport={(format) => exportAgingReport(format)}
               isLoading={isExportingAging}
             />
