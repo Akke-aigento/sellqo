@@ -23,7 +23,11 @@ import {
   Receipt,
   Banknote,
   Calendar,
+  Package2,
+  Loader2,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -71,7 +75,7 @@ const Reports = () => {
   const { exportCreditNotes, isExporting: isExportingCreditNotes } = useCreditNoteExport();
   const { exportSubscriptions, isExporting: isExportingSubscriptions } = useSubscriptionExport();
   const { exportAgingReport, isExporting: isExportingAging } = useAgingExport();
-  const { exportVatReport, exportIcListing, isExporting: isExportingVat } = useVatExport();
+  const { exportVatReport, exportIcListing, exportQBundle, isExporting: isExportingVat, isBundling } = useVatExport();
   const { exportRevenueReport, isExporting: isExportingRevenue } = useRevenueExport();
   
   // Purchasing export hooks
@@ -304,7 +308,7 @@ const Reports = () => {
               title="BTW-aangifte"
               description="Binnenlandse verkopen per tarief, IC en export"
               icon={<CreditCard className="h-5 w-5" />}
-              formats={['csv', 'xlsx', 'pdf']}
+              formats={['csv', 'xlsx', 'pdf', 'intervat-xml', 'odoo-csv']}
               onExport={(format) => exportVatReport(dateRange, format)}
               isLoading={isExportingVat}
             />
@@ -312,7 +316,7 @@ const Reports = () => {
               title="IC-Listing"
               description="Intracommunautaire leveringen per klant"
               icon={<Building2 className="h-5 w-5" />}
-              formats={['csv', 'xlsx', 'pdf']}
+              formats={['csv', 'xlsx', 'intervat-xml']}
               onExport={(format) => exportIcListing(dateRange, format)}
               isLoading={isExportingVat}
             />
