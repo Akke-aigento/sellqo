@@ -300,5 +300,11 @@ verify_jwt = false
 [functions.ai-product-field-assistant]
 verify_jwt = false
 
+[functions.warmup-vat-cache]
+verify_jwt = false
+
+[functions.regression-test-vat]
+verify_jwt = false
+
 [functions.cleanup-connected-accounts]
 verify_jwt = false
