@@ -144,7 +144,7 @@ function buildReadme(opts: {
   }
   lines.push("VRAGEN");
   lines.push("------");
-  lines.push("Mail support@sellqo.com met als onderwerp 'Q-Pakket ${'${opts.periodCode}'}'.");
+  lines.push(`Mail support@sellqo.com met als onderwerp 'Q-Pakket ${opts.periodCode}'.`);
   lines.push("");
   lines.push("— SellQo, geautomatiseerde accounting export");
   return new TextEncoder().encode(lines.join("\r\n") + "\r\n");
