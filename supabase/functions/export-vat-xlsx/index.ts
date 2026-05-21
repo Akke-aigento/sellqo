@@ -109,6 +109,31 @@ function periodCode(start: string, end: string, type: PeriodType): string {
   return `${start}_to_${end}`;
 }
 
+const MONTH_NL = [
+  'januari','februari','maart','april','mei','juni',
+  'juli','augustus','september','oktober','november','december',
+];
+
+function formatDdMmYyyy(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function periodLabel(start: string, end: string, type: PeriodType): string {
+  const y = start.slice(0, 4);
+  if (type === 'annual') return `BTW-aangifte ${y}`;
+  if (type === 'monthly') {
+    const m = parseInt(start.slice(5, 7), 10);
+    const name = MONTH_NL[m - 1] ?? '';
+    return `BTW-aangifte ${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`;
+  }
+  if (type === 'quarterly') {
+    const m = parseInt(start.slice(5, 7), 10);
+    return `BTW-aangifte Q${Math.floor((m - 1) / 3) + 1} ${y}`;
+  }
+  return `BTW-aangifte ${formatDdMmYyyy(start)} t/m ${formatDdMmYyyy(end)}`;
+}
+
 function fmtEur(n: number): string {
   if (!n) return '—';
   return n.toLocaleString('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -144,9 +169,13 @@ function styleHeader(ws: XLSX.WorkSheet, headerCells: string[]) {
 
 function applyEurFormat(ws: XLSX.WorkSheet, addrs: string[]) {
   for (const addr of addrs) {
-    const c = ws[addr] as { t?: string; z?: string; s?: Record<string, unknown> } | undefined;
+    const c = ws[addr] as { t?: string; v?: unknown; z?: string; s?: Record<string, unknown> } | undefined;
     if (c) {
-      c.z = '#,##0.00';
+      // Force numeric type and round to 2dp to avoid float artifacts like
+      // 178.19000000000003 leaking through when Excel ignores the format.
+      if (typeof c.v === 'number') c.v = Math.round(c.v * 100) / 100;
+      c.t = 'n';
+      c.z = '€ #,##0.00';
       c.s = { ...(c.s || {}), font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'right' } };
     }
   }
@@ -154,14 +183,15 @@ function applyEurFormat(ws: XLSX.WorkSheet, addrs: string[]) {
 
 // ---- Tab builders ----
 
-function buildTab1Declaration(payload: Record<string, unknown>): XLSX.WorkSheet {
+function buildTab1Declaration(payload: Record<string, unknown>, periodType: PeriodType): XLSX.WorkSheet {
   const meta = payload.metadata as Record<string, unknown>;
   const tenant = meta.tenant as Record<string, unknown>;
   const period = meta.period as Record<string, unknown>;
   const boxes = payload.declaration_boxes as Record<string, { amount: number; vat: number }>;
 
   const aoa: (string | number | null)[][] = [];
-  aoa.push([`${tenant.name ?? 'Tenant'} — BTW-aangifte ${period.start} → ${period.end}`]);
+  const label = periodLabel(String(period.start), String(period.end), periodType);
+  aoa.push([`${tenant.name ?? 'Tenant'} — ${label}`]);
   aoa.push([
     `BTW: ${tenant.vat_number ?? '—'}`,
     `KBO/KvK: ${tenant.kbo ?? '—'}`,
@@ -577,7 +607,7 @@ serve(async (req) => {
     // Build workbook
     const wb = XLSX.utils.book_new();
     const tabs: [string, XLSX.WorkSheet][] = [
-      ['Aangifte-formulier', buildTab1Declaration(payload)],
+      ['Aangifte-formulier', buildTab1Declaration(payload, body.period_type)],
       ['Audit per vak', buildTab2Audit(payload)],
       ['BTW per tarief', buildTab3ByRate(payload)],
       ['Verkopen per land', buildTab4ByCountry(payload)],

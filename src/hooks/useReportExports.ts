@@ -538,48 +538,84 @@ export const useAgingExport = () => {
         .from('invoices')
         .select(`
           *,
-          customers(first_name, last_name, company_name, email, phone)
+          customers(first_name, last_name, company_name, email, phone),
+          orders(customer_name, customer_email)
         `)
         .eq('tenant_id', currentTenant.id)
-        .eq('status', 'sent')
-        .order('due_date', { ascending: true });
+        .in('status', ['sent']);
 
       if (error) throw error;
 
       const now = new Date();
-      const agingData = data.map(inv => {
-        const dueDate = new Date(inv.due_date);
-        const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        let agingBucket = '0-30 dagen';
-        if (daysOverdue > 90) agingBucket = '90+ dagen';
-        else if (daysOverdue > 60) agingBucket = '61-90 dagen';
-        else if (daysOverdue > 30) agingBucket = '31-60 dagen';
-        else if (daysOverdue < 0) agingBucket = 'Nog niet vervallen';
+      const EM = '—';
+      const agingData = (data || []).map(inv => {
+        const hasDue = !!inv.due_date;
+        const daysOverdue = hasDue
+          ? Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+
+        let agingBucket: string;
+        if (!hasDue) {
+          agingBucket = 'Geen vervaldatum';
+        } else if (daysOverdue! < 0) {
+          agingBucket = 'Nog niet vervallen';
+        } else if (daysOverdue! > 90) {
+          agingBucket = '90+ dagen';
+        } else if (daysOverdue! > 60) {
+          agingBucket = '61-90 dagen';
+        } else if (daysOverdue! > 30) {
+          agingBucket = '31-60 dagen';
+        } else {
+          agingBucket = '0-30 dagen';
+        }
+
+        const customerName =
+          inv.customers?.company_name
+          || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim()
+          || inv.orders?.customer_name
+          || inv.customers?.email
+          || inv.orders?.customer_email
+          || '—';
 
         return {
           invoice_number: inv.invoice_number,
-          issue_date: inv.created_at,
-          due_date: inv.due_date,
-          customer_name: inv.customers?.company_name || `${inv.customers?.first_name || ''} ${inv.customers?.last_name || ''}`.trim(),
-          customer_email: inv.customers?.email || '',
+          issue_date: inv.issue_date || inv.created_at,
+          due_date: hasDue
+            ? new Date(inv.due_date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : EM,
+          customer_name: customerName,
+          customer_email: inv.customers?.email || inv.orders?.customer_email || '',
           customer_phone: inv.customers?.phone || '',
           total: inv.total,
-          days_overdue: Math.max(0, daysOverdue),
+          days_overdue: hasDue ? Math.max(0, daysOverdue!) : EM,
           aging_bucket: agingBucket,
           status: inv.status,
         };
       });
 
+      // Sort: with due_date first (DESC by days overdue), then without due_date at bottom
+      agingData.sort((a, b) => {
+        const aHas = a.days_overdue !== EM;
+        const bHas = b.days_overdue !== EM;
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        if (!aHas && !bHas) return 0;
+        return Number(b.days_overdue) - Number(a.days_overdue);
+      });
+
+      // Hide Email + Telefoon columns if both are empty for all rows
+      const anyEmail = agingData.some(r => r.customer_email);
+      const anyPhone = agingData.some(r => r.customer_phone);
+
       const columns = [
         { key: 'invoice_number', header: 'Factuurnummer' },
         { key: 'issue_date', header: 'Factuurdatum', format: 'date' as const },
-        { key: 'due_date', header: 'Vervaldatum', format: 'date' as const },
+        { key: 'due_date', header: 'Vervaldatum' },
         { key: 'customer_name', header: 'Klant' },
-        { key: 'customer_email', header: 'Email' },
-        { key: 'customer_phone', header: 'Telefoon' },
+        ...(anyEmail ? [{ key: 'customer_email', header: 'Email' }] : []),
+        ...(anyPhone ? [{ key: 'customer_phone', header: 'Telefoon' }] : []),
         { key: 'total', header: 'Bedrag', format: 'currency' as const },
-        { key: 'days_overdue', header: 'Dagen over tijd', format: 'number' as const },
+        { key: 'days_overdue', header: 'Dagen over tijd' }, // no format → mixed number/em-dash
         { key: 'aging_bucket', header: 'Categorie' },
         { key: 'status', header: 'Status' },
       ];
@@ -818,14 +854,18 @@ export const useRevenueExport = () => {
     setIsExporting(true);
 
     try {
+      // Use issue_date (accounting date), not created_at; include both sent and paid
+      // invoices so revenue is recognised on issue. End-date is end-of-day inclusive.
+      const endInclusive = new Date(dateRange.to);
+      endInclusive.setHours(23, 59, 59, 999);
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('created_at, subtotal, tax_amount, total, status')
+        .select('issue_date, subtotal, tax_amount, total, status')
         .eq('tenant_id', currentTenant.id)
-        .eq('status', 'paid')
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at');
+        .in('status', ['sent', 'paid'])
+        .gte('issue_date', dateRange.from.toISOString().slice(0, 10))
+        .lte('issue_date', endInclusive.toISOString().slice(0, 10))
+        .order('issue_date');
 
       if (error) throw error;
 
@@ -833,7 +873,7 @@ export const useRevenueExport = () => {
       const periodTotals = new Map<string, { revenue: number; vat: number; count: number }>();
       
       invoices.forEach(inv => {
-        const date = new Date(inv.created_at);
+        const date = new Date(inv.issue_date);
         let periodKey: string;
         
         if (granularity === 'day') {
