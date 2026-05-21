@@ -609,149 +609,124 @@ export const useVatExport = () => {
   const { currentTenant } = useTenant();
   const [isExporting, setIsExporting] = useState(false);
 
+  // Facade — delegates to canonical vat-report-engine edge function.
   const exportVatReport = async (dateRange: DateRange, format: ExportFormat) => {
     if (!currentTenant) return;
     setIsExporting(true);
 
     try {
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          customers(customer_type, vat_number, billing_country)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('status', 'paid')
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString());
-
+      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const { data, error } = await supabase.functions.invoke('vat-report-engine', {
+        body: {
+          tenant_id: currentTenant.id,
+          period_start: toIso(dateRange.from),
+          period_end: toIso(dateRange.to),
+          period_type: 'custom',
+          include_drafts: false,
+          include_audit_trail: false,
+          force_recompute: false,
+        },
+      });
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'vat-report-engine failed');
 
-      // Group by VAT category
-      const vatData = {
-        domestic_21: { base: 0, vat: 0 },
-        domestic_12: { base: 0, vat: 0 },
-        domestic_6: { base: 0, vat: 0 },
-        domestic_0: { base: 0, vat: 0 },
-        eu_b2b: { base: 0, vat: 0 },
-        export: { base: 0, vat: 0 },
+      const payload = data.payload as {
+        declaration_boxes: Record<string, { amount: number; vat: number; source_invoice_count: number; source_line_count: number }>;
+        metadata: { invoice_count: number; credit_note_count: number };
+        warnings: string[];
       };
 
-      invoices.forEach(inv => {
-        const isB2B = inv.customers?.customer_type === 'business';
-        const hasVat = !!inv.customers?.vat_number;
-        const country = inv.customers?.billing_country?.toUpperCase();
-        const isEU = ['BE', 'NL', 'DE', 'FR', 'LU', 'AT', 'IT', 'ES', 'PT', 'IE', 'FI', 'SE', 'DK', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'HR', 'SI', 'EE', 'LV', 'LT', 'CY', 'MT', 'GR'].includes(country);
-        
-        if (isB2B && hasVat && isEU && country !== 'BE') {
-          vatData.eu_b2b.base += inv.subtotal || 0;
-        } else if (!isEU && country !== 'BE') {
-          vatData.export.base += inv.subtotal || 0;
-        } else {
-          // Default to 21% domestic
-          vatData.domestic_21.base += inv.subtotal || 0;
-          vatData.domestic_21.vat += inv.tax_amount || 0;
-        }
-      });
-
-      const exportData = [
-        { category: 'Binnenland 21%', base_amount: vatData.domestic_21.base, vat_amount: vatData.domestic_21.vat },
-        { category: 'Binnenland 12%', base_amount: vatData.domestic_12.base, vat_amount: vatData.domestic_12.vat },
-        { category: 'Binnenland 6%', base_amount: vatData.domestic_6.base, vat_amount: vatData.domestic_6.vat },
-        { category: 'Binnenland 0%', base_amount: vatData.domestic_0.base, vat_amount: vatData.domestic_0.vat },
-        { category: 'IC-Leveringen (EU B2B)', base_amount: vatData.eu_b2b.base, vat_amount: 0 },
-        { category: 'Export (buiten EU)', base_amount: vatData.export.base, vat_amount: 0 },
-      ];
+      const boxes = payload.declaration_boxes || {};
+      const exportRows = Object.keys(boxes)
+        .sort()
+        .map(code => ({
+          box: code,
+          base_amount: boxes[code].amount,
+          vat_amount: boxes[code].vat,
+          invoice_count: boxes[code].source_invoice_count,
+          line_count: boxes[code].source_line_count,
+        }));
 
       const columns = [
-        { key: 'category', header: 'Categorie' },
+        { key: 'box', header: 'Vak' },
         { key: 'base_amount', header: 'Maatstaf', format: 'currency' as const },
         { key: 'vat_amount', header: 'BTW', format: 'currency' as const },
+        { key: 'invoice_count', header: '# Facturen', format: 'number' as const },
+        { key: 'line_count', header: '# Lijnen', format: 'number' as const },
       ];
 
       const filename = generateFilename('btw_aangifte', dateRange.from, dateRange.to);
 
       if (format === 'csv') {
-        generateCSV(exportData, columns, filename);
+        generateCSV(exportRows, columns, filename);
       } else if (format === 'xlsx') {
-        generateExcel(exportData, columns, filename, 'BTW Aangifte');
+        generateExcel(exportRows, columns, filename, 'BTW Aangifte');
       }
 
-      toast.success('BTW-aangifte geëxporteerd');
-    } catch (error) {
-      console.error('Export error:', error);
+      if (payload.warnings?.length) {
+        console.warn('[vat-report-engine] warnings:', payload.warnings);
+      }
+      toast.success(`BTW-aangifte geëxporteerd (${payload.metadata.invoice_count} facturen)`);
+    } catch (err) {
+      console.error('Export error:', err);
       toast.error('Export mislukt');
     } finally {
       setIsExporting(false);
     }
   };
 
+  // Facade — delegates to canonical vat-report-engine edge function.
   const exportIcListing = async (dateRange: DateRange, format: ExportFormat) => {
     if (!currentTenant) return;
     setIsExporting(true);
 
     try {
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          customers(company_name, vat_number, billing_country)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('status', 'paid')
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString());
-
-      if (error) throw error;
-
-      // Filter EU B2B invoices and group by customer
-      const euCountries = ['NL', 'DE', 'FR', 'LU', 'AT', 'IT', 'ES', 'PT', 'IE', 'FI', 'SE', 'DK', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'HR', 'SI', 'EE', 'LV', 'LT', 'CY', 'MT', 'GR'];
-      
-      const customerTotals = new Map<string, { customer: any; total: number }>();
-      
-      invoices.forEach(inv => {
-        const country = inv.customers?.billing_country?.toUpperCase();
-        const vatNumber = inv.customers?.vat_number;
-        
-        if (vatNumber && euCountries.includes(country)) {
-          const key = vatNumber;
-          const existing = customerTotals.get(key);
-          if (existing) {
-            existing.total += inv.subtotal || 0;
-          } else {
-            customerTotals.set(key, {
-              customer: inv.customers,
-              total: inv.subtotal || 0,
-            });
-          }
-        }
+      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const { data, error } = await supabase.functions.invoke('vat-report-engine', {
+        body: {
+          tenant_id: currentTenant.id,
+          period_start: toIso(dateRange.from),
+          period_end: toIso(dateRange.to),
+          period_type: 'custom',
+          include_drafts: false,
+          include_audit_trail: false,
+          force_recompute: false,
+        },
       });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'vat-report-engine failed');
 
-      const icData = Array.from(customerTotals.values()).map(item => ({
-        vat_number: item.customer.vat_number,
-        company_name: item.customer.company_name,
-        country: item.customer.billing_country?.toUpperCase(),
-        total_amount: item.total,
+      const payload = data.payload as {
+        ic_listing: Array<{ vat_number: string; country_code: string; company_name: string; amount: number; type_code: 'L' | 'T' | 'S' }>;
+      };
+
+      const icRows = (payload.ic_listing || []).map(entry => ({
+        country: entry.country_code,
+        vat_number: entry.vat_number,
+        company_name: entry.company_name,
+        type_code: entry.type_code,
+        amount: entry.amount,
       }));
 
       const columns = [
+        { key: 'country', header: 'Landcode' },
         { key: 'vat_number', header: 'BTW-nummer' },
         { key: 'company_name', header: 'Bedrijfsnaam' },
-        { key: 'country', header: 'Land' },
-        { key: 'total_amount', header: 'Bedrag', format: 'currency' as const },
+        { key: 'type_code', header: 'Type (L/T/S)' },
+        { key: 'amount', header: 'Bedrag', format: 'currency' as const },
       ];
 
       const filename = generateFilename('ic_listing', dateRange.from, dateRange.to);
 
       if (format === 'csv') {
-        generateCSV(icData, columns, filename);
+        generateCSV(icRows, columns, filename);
       } else if (format === 'xlsx') {
-        generateExcel(icData, columns, filename, 'IC-Listing');
+        generateExcel(icRows, columns, filename, 'IC-Listing');
       }
 
-      toast.success(`IC-Listing met ${icData.length} klanten geëxporteerd`);
-    } catch (error) {
-      console.error('Export error:', error);
+      toast.success(`IC-Listing met ${icRows.length} klanten geëxporteerd`);
+    } catch (err) {
+      console.error('Export error:', err);
       toast.error('Export mislukt');
     } finally {
       setIsExporting(false);
