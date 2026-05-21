@@ -93,99 +93,63 @@ export function useVatReturns(year?: number) {
   });
 }
 
+/**
+ * @deprecated Use `useVatReport` from '@/hooks/useVatReport' instead.
+ * This hook is now a thin facade over the canonical vat-report-engine edge function.
+ * Kept for backwards compatibility with legacy callers.
+ */
 export function useCalculateVatReturn() {
   const { currentTenant } = useTenant();
 
   return useMutation({
-    mutationFn: async ({ 
-      periodType, 
-      year, 
-      period 
-    }: { 
-      periodType: VatReturnPeriodType; 
-      year: number; 
+    mutationFn: async ({
+      periodType,
+      year,
+      period,
+    }: {
+      periodType: VatReturnPeriodType;
+      year: number;
       period: number;
     }): Promise<VatReturnCalculation> => {
       if (!currentTenant?.id) throw new Error('No tenant selected');
 
       const { startDate, endDate } = getPeriodDates(periodType, year, period);
 
-      // Get invoices
-      const { data: invoices, error: invoicesError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          lines:invoice_lines(*),
-          customer:customers(billing_country, vat_number)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate)
-        .lte('created_at', endDate + 'T23:59:59')
-        .in('status', ['sent', 'paid']);
+      const { data, error } = await supabase.functions.invoke('vat-report-engine', {
+        body: {
+          tenant_id: currentTenant.id,
+          period_start: startDate,
+          period_end: endDate,
+          period_type: periodType,
+          include_drafts: false,
+          include_audit_trail: false,
+          force_recompute: false,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'vat-report-engine failed');
 
-      if (invoicesError) throw invoicesError;
+      const payload = data.payload as {
+        metadata: { invoice_count: number; credit_note_count: number };
+        declaration_boxes: Record<string, { amount: number; vat: number }>;
+        by_rate: Array<{ rate: number; base_amount: number; vat_amount: number }>;
+      };
 
-      // Get credit notes
-      const { data: creditNotes, error: cnError } = await supabase
-        .from('credit_notes')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .gte('issue_date', startDate)
-        .lte('issue_date', endDate)
-        .in('status', ['sent', 'processed']);
+      const boxes = payload.declaration_boxes || {};
+      const get = (code: string) => boxes[code] || { amount: 0, vat: 0 };
 
-      if (cnError) throw cnError;
-
-      // Calculate totals
-      const vatByRate = new Map<number, { taxableAmount: number; vatAmount: number }>();
-      let intraCommunitySupplies = 0;
-      let exports = 0;
-
-      const tenantCountry = currentTenant.country || 'BE';
-      const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'];
-
-      for (const invoice of invoices || []) {
-        const customerCountry = invoice.customer?.billing_country;
-        const hasVatNumber = !!invoice.customer?.vat_number;
-
-        // Check if IC or export
-        if (customerCountry && customerCountry !== tenantCountry) {
-          if (euCountries.includes(customerCountry) && hasVatNumber) {
-            intraCommunitySupplies += invoice.subtotal;
-            continue;
-          } else if (!euCountries.includes(customerCountry)) {
-            exports += invoice.subtotal;
-            continue;
-          }
-        }
-
-        // Domestic sales - group by VAT rate
-        for (const line of invoice.lines || []) {
-          const rate = Number(line.vat_rate) || 0;
-          const existing = vatByRate.get(rate) || { taxableAmount: 0, vatAmount: 0 };
-          existing.taxableAmount += Number(line.line_total) - Number(line.vat_amount);
-          existing.vatAmount += Number(line.vat_amount);
-          vatByRate.set(rate, existing);
-        }
-      }
-
-      // Subtract credit notes
-      for (const cn of creditNotes || []) {
-        // Simplified: subtract from domestic for now
-        const rate21 = vatByRate.get(21) || { taxableAmount: 0, vatAmount: 0 };
-        rate21.taxableAmount -= Number(cn.subtotal);
-        rate21.vatAmount -= Number(cn.tax_amount);
-        vatByRate.set(21, rate21);
-      }
-
-      const byRate = Array.from(vatByRate.entries()).map(([rate, data]) => ({
-        rate,
-        taxableAmount: data.taxableAmount,
-        vatAmount: data.vatAmount,
+      // Domestic sales by rate — pulled from engine's by_rate breakdown.
+      const byRate = (payload.by_rate || []).map(r => ({
+        rate: r.rate,
+        taxableAmount: r.base_amount,
+        vatAmount: r.vat_amount,
       }));
 
-      const domesticTaxable = byRate.reduce((sum, r) => sum + r.taxableAmount, 0);
-      const domesticVat = byRate.reduce((sum, r) => sum + r.vatAmount, 0);
+      const domesticTaxable = get('03').amount + get('01').amount + get('02').amount;
+      const domesticVat = get('54').vat;
+      const intraCommunitySupplies = get('46').amount;
+      const exportsAmount = get('47').amount;
+      const vatDue = get('71').vat || domesticVat;
 
       return {
         domesticSales: {
@@ -194,15 +158,19 @@ export function useCalculateVatReturn() {
           byRate,
         },
         intraCommunitySupplies,
-        exports,
-        vatDue: domesticVat,
-        invoiceCount: invoices?.length || 0,
-        creditNoteCount: creditNotes?.length || 0,
+        exports: exportsAmount,
+        vatDue,
+        invoiceCount: payload.metadata.invoice_count,
+        creditNoteCount: payload.metadata.credit_note_count,
       };
     },
   });
 }
 
+/**
+ * @deprecated Use `useVatReport` and read `payload.ic_listing` instead.
+ * Thin facade over the canonical vat-report-engine edge function.
+ */
 export function useGenerateICListing() {
   const { currentTenant } = useTenant();
 
@@ -212,39 +180,30 @@ export function useGenerateICListing() {
 
       const { startDate, endDate } = getPeriodDates('quarterly', year, quarter);
 
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select(`
-          subtotal,
-          customer:customers(vat_number, billing_country)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate)
-        .lte('created_at', endDate + 'T23:59:59')
-        .in('status', ['sent', 'paid'])
-        .eq('is_b2b', true);
-
+      const { data, error } = await supabase.functions.invoke('vat-report-engine', {
+        body: {
+          tenant_id: currentTenant.id,
+          period_start: startDate,
+          period_end: endDate,
+          period_type: 'quarterly',
+          include_drafts: false,
+          include_audit_trail: false,
+          force_recompute: false,
+        },
+      });
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'vat-report-engine failed');
 
-      const tenantCountry = currentTenant.country || 'BE';
-      const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'];
+      const payload = data.payload as {
+        ic_listing: Array<{ vat_number: string; country_code: string; amount: number }>;
+      };
 
-      const grouped = new Map<string, number>();
-
-      for (const invoice of invoices || []) {
-        const vatNumber = invoice.customer?.vat_number;
-        const country = invoice.customer?.billing_country;
-
-        if (vatNumber && country && country !== tenantCountry && euCountries.includes(country)) {
-          const current = grouped.get(vatNumber) || 0;
-          grouped.set(vatNumber, current + Number(invoice.subtotal));
-        }
-      }
-
-      return Array.from(grouped.entries()).map(([vatNumber, amount]) => ({
-        customerVatNumber: vatNumber.slice(2),
-        countryCode: vatNumber.slice(0, 2),
-        amount,
+      return (payload.ic_listing || []).map(entry => ({
+        customerVatNumber: entry.vat_number.startsWith(entry.country_code)
+          ? entry.vat_number.slice(2)
+          : entry.vat_number,
+        countryCode: entry.country_code,
+        amount: entry.amount,
       }));
     },
   });
