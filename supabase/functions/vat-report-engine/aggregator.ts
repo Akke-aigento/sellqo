@@ -65,6 +65,7 @@ export interface AggregateInput {
 
 export function aggregate(input: AggregateInput): VatReportPayload {
   const warnings: string[] = [];
+  const data_quality_issues: { invoice_number: string; line_vat: number; header_vat: number; delta: number }[] = [];
 
   // 1) VIES enforcement
   const enforced = applyViesEnforcement(input.invoices);
@@ -121,9 +122,12 @@ export function aggregate(input: AggregateInput): VatReportPayload {
     const lineVatSum = lines.reduce((s, l) => s + Number(l.vat_amount || 0), 0);
     const useHeaderFallback = Math.abs(lineVatSum - headerVat) > 1;
     if (useHeaderFallback) {
-      warnings.push(
-        `Invoice ${inv.invoice_number}: line VAT (€${round2(lineVatSum)}) doesn't match header VAT (€${round2(headerVat)}), using header`,
-      );
+      data_quality_issues.push({
+        invoice_number: inv.invoice_number,
+        line_vat: round2(lineVatSum),
+        header_vat: round2(headerVat),
+        delta: round2(lineVatSum - headerVat),
+      });
       // Bucket whole invoice under representative rate as a single by_rate entry.
       const rate = Number(repRate) || 0;
       const brKey = `${rate}::${regime}`;
@@ -147,6 +151,12 @@ export function aggregate(input: AggregateInput): VatReportPayload {
 
   if (unknownCountryCount > 0) {
     warnings.push(`${unknownCountryCount} invoice(s) zonder land-code — gegroepeerd onder "__UNKNOWN__"`);
+  }
+
+  if (data_quality_issues.length > 0) {
+    warnings.push(
+      `${data_quality_issues.length} invoices hebben line/header VAT-mismatch — bron is Shopify-import, header gebruikt voor totals. Zie data_quality_issues array voor details.`,
+    );
   }
 
   // 4) Walk credit notes (header-driven, negative compensation in 48/49 + 64).
@@ -333,6 +343,7 @@ export function aggregate(input: AggregateInput): VatReportPayload {
     stripe_reconciliation,
     audit_trail,
     warnings,
+    data_quality_issues,
   };
 
   return payload;

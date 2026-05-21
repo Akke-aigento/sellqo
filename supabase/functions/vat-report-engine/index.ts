@@ -75,7 +75,7 @@ serve(async (req) => {
   );
 
   try {
-    // 1) Cache lookup
+    // 1) Cache lookup (cached payload omits audit_trail to keep response small/fast)
     if (!body.force_recompute) {
       const { data: cached } = await supabase
         .from('vat_report_cache')
@@ -91,8 +91,9 @@ serve(async (req) => {
         const payload = cached.payload as VatReportPayload;
         payload.metadata.from_cache = true;
         payload.metadata.duration_ms = Date.now() - startedAt;
+        if (!Array.isArray(payload.audit_trail)) payload.audit_trail = [];
         return new Response(JSON.stringify({ success: true, payload }), {
-          headers: { ...cors, 'Content-Type': 'application/json' },
+          headers: { ...cors, 'Content-Type': 'application/json', 'X-Cache': 'HIT' },
         });
       }
     }
@@ -212,24 +213,28 @@ serve(async (req) => {
     payload.metadata.from_cache = false;
     payload.metadata.duration_ms = Date.now() - startedAt;
 
-    // 8) Cache upsert
-    const { error: cacheErr } = await supabase
+    // 8) Cache upsert — fire-and-forget; strip audit_trail to keep cached payload lean.
+    const slim: VatReportPayload = { ...payload, audit_trail: [] };
+    const cachePromise = supabase
       .from('vat_report_cache')
       .upsert({
         tenant_id: body.tenant_id,
         period_start: body.period_start,
         period_end: body.period_end,
         period_type: body.period_type,
-        payload,
+        payload: slim,
         computed_at: new Date().toISOString(),
         invalidated_at: null,
-      }, { onConflict: 'tenant_id,period_start,period_end,period_type' });
-    if (cacheErr) {
-      console.warn('[vat-report-engine] cache upsert failed:', cacheErr.message);
+      }, { onConflict: 'tenant_id,period_start,period_end,period_type' })
+      .then(({ error }) => { if (error) console.warn('[vat-report-engine] cache upsert failed:', error.message); });
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge runtime
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(cachePromise);
     }
 
     return new Response(JSON.stringify({ success: true, payload }), {
-      headers: { ...cors, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json', 'X-Cache': 'MISS' },
     });
   } catch (err) {
     console.error('[vat-report-engine] error:', err);
