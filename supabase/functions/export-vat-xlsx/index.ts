@@ -604,6 +604,7 @@ serve(async (req) => {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-store',
+        'Access-Control-Expose-Headers': 'Content-Disposition',
       },
     });
   } catch (e) {
