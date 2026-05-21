@@ -231,19 +231,47 @@ function buildTab2Audit(payload: Record<string, unknown>): XLSX.WorkSheet {
 }
 
 function buildTab3ByRate(payload: Record<string, unknown>): XLSX.WorkSheet {
-  const list = (payload.by_rate as Array<Record<string, unknown>>) ?? [];
+  // Header-driven aggregation from audit_trail (consistent with Tab 1 & Tab 4).
+  // Engine's by_rate aggregates from invoice_lines which can drift when Shopify
+  // imports have line/header VAT mismatches. Tab 1 (declaration_boxes) and
+  // Tab 4 (by_country) are header-driven; Tab 3 must match.
+  const trail = (payload.audit_trail as Array<Record<string, unknown>>) ?? [];
+  // Only count sales-side entries (skip purchase / vat-due / corrective boxes).
+  const salesEntries = trail.filter((e) =>
+    SALES_BOXES.includes(String(e.declaration_box ?? '')),
+  );
+  // Group by (rate, regime). Dedupe invoices per group via invoice_number.
+  type Bucket = { rate: number; regime: string; base: number; vat: number; invs: Set<string> };
+  const buckets = new Map<string, Bucket>();
+  for (const e of salesEntries) {
+    const base = Number(e.base_amount ?? 0);
+    const vat = Number(e.vat_amount ?? 0);
+    const regime = String(e.vat_regime ?? '');
+    // Effective rate from header totals; 0 for IC/export/CN-on-zero.
+    const rate = base > 0 ? Math.round((vat / base) * 100) : 0;
+    const key = `${rate}|${regime}`;
+    let b = buckets.get(key);
+    if (!b) { b = { rate, regime, base: 0, vat: 0, invs: new Set() }; buckets.set(key, b); }
+    b.base += base;
+    b.vat += vat;
+    const inv = String(e.invoice_number ?? '');
+    if (inv) b.invs.add(inv);
+  }
+  const sorted = [...buckets.values()].sort((a, b) =>
+    a.rate !== b.rate ? b.rate - a.rate : a.regime.localeCompare(b.regime),
+  );
   const rows: (string | number)[][] = [
     ['Tarief (%)', 'Regime', 'Basis (EUR)', 'BTW (EUR)', 'Aantal Facturen'],
   ];
-  let tBase = 0, tVat = 0, tCount = 0;
-  for (const e of list) {
-    const base = Number(e.base_amount ?? 0);
-    const vat = Number(e.vat_amount ?? 0);
-    const cnt = Number(e.invoice_count ?? 0);
-    rows.push([Number(e.rate ?? 0), String(e.regime ?? ''), base, vat, cnt]);
-    tBase += base; tVat += vat; tCount += cnt;
+  let tBase = 0, tVat = 0;
+  const allInvs = new Set<string>();
+  for (const b of sorted) {
+    rows.push([b.rate, b.regime, b.base, b.vat, b.invs.size]);
+    tBase += b.base; tVat += b.vat;
+    for (const i of b.invs) allInvs.add(i);
   }
-  rows.push(['Totaal', '', tBase, tVat, tCount]);
+  if (sorted.length === 0) rows.push(['—', 'Geen sales-data in audit_trail', 0, 0, 0]);
+  rows.push(['Totaal', '', tBase, tVat, allInvs.size]);
   const ws = XLSX.utils.aoa_to_sheet(rows);
   setColWidths(ws, [10, 24, 16, 16, 16]);
   styleHeader(ws, ['A1','B1','C1','D1','E1']);
