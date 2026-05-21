@@ -542,7 +542,7 @@ export const useAgingExport = () => {
           orders(customer_name, customer_email)
         `)
         .eq('tenant_id', currentTenant.id)
-        .in('status', ['sent', 'overdue']);
+        .in('status', ['sent']);
 
       if (error) throw error;
 
