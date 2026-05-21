@@ -610,18 +610,73 @@ export const useVatExport = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   // Facade — delegates to canonical vat-report-engine edge function.
-  const exportVatReport = async (dateRange: DateRange, format: ExportFormat) => {
+  const exportVatReport = async (
+    dateRange: DateRange & { type?: 'monthly' | 'quarterly' | 'annual' | 'custom' },
+    format: ExportFormat
+  ) => {
     if (!currentTenant) return;
     setIsExporting(true);
 
     try {
       const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const periodType = dateRange.type ?? 'quarterly';
+
+      // XLSX → delegate to canonical 9-tab export-vat-xlsx edge function
+      if (format === 'xlsx') {
+        const { data, error } = await supabase.functions.invoke('export-vat-xlsx', {
+          body: {
+            tenant_id: currentTenant.id,
+            period_start: toIso(dateRange.from),
+            period_end: toIso(dateRange.to),
+            period_type: periodType,
+          },
+        });
+        if (error) throw error;
+
+        // supabase-js returns Blob for binary responses
+        const blob = data instanceof Blob
+          ? data
+          : new Blob([data as ArrayBuffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+
+        // Build fallback filename matching edge fn convention
+        const slug = (currentTenant.name || 'tenant')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        const y = dateRange.from.getFullYear();
+        let periodCode = `${toIso(dateRange.from)}_to_${toIso(dateRange.to)}`;
+        if (periodType === 'quarterly') {
+          const q = Math.floor(dateRange.from.getMonth() / 3) + 1;
+          periodCode = `${y}-Q${q}`;
+        } else if (periodType === 'monthly') {
+          periodCode = `${y}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+        } else if (periodType === 'annual') {
+          periodCode = `${y}`;
+        }
+        const filename = `SellQo_BTW-aangifte_${slug}_${periodCode}.xlsx`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        toast.success('BTW-aangifte (9 tabs) geëxporteerd');
+        return;
+      }
+
+      // CSV (and any other non-xlsx text format) → use engine payload directly
       const { data, error } = await supabase.functions.invoke('vat-report-engine', {
         body: {
           tenant_id: currentTenant.id,
           period_start: toIso(dateRange.from),
           period_end: toIso(dateRange.to),
-          period_type: 'custom',
+          period_type: periodType,
           include_drafts: false,
           include_audit_trail: false,
           force_recompute: false,
@@ -659,8 +714,6 @@ export const useVatExport = () => {
 
       if (format === 'csv') {
         generateCSV(exportRows, columns, filename);
-      } else if (format === 'xlsx') {
-        generateExcel(exportRows, columns, filename, 'BTW Aangifte');
       }
 
       if (payload.warnings?.length) {
