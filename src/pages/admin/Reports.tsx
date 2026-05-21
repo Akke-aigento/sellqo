@@ -589,50 +589,82 @@ const Reports = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                exportInvoices(dateRange, 'xlsx');
-                exportCreditNotes(dateRange, 'xlsx');
-                exportVatReport(dateRange, 'xlsx');
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Fiscaal Pakket
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                exportCustomers('xlsx', 'all');
-                exportProducts('xlsx');
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Stamgegevens
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                exportSupplierDocuments(dateRange, 'xlsx');
-                exportCreditorAging('xlsx');
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Crediteuren Pakket
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                exportTransactions(dateRange, 'xlsx');
-                exportDailySummary(dateRange, 'xlsx');
-                exportSessions(dateRange, 'xlsx');
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Kassa Pakket
-            </Button>
-          </div>
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                disabled={isBundling}
+                onClick={() => {
+                  if (!dateRange?.from || !dateRange?.to) {
+                    toast.error('Selecteer eerst een periode bovenaan');
+                    return;
+                  }
+                  exportQBundle(dateRange);
+                }}
+              >
+                {isBundling ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Package2 className="h-4 w-4 mr-2" />
+                )}
+                {isBundling ? 'Pakket samenstellen…' : 'Download Fiscaal Pakket'}
+              </Button>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="opacity-50 cursor-not-allowed pointer-events-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Stamgegevens
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Komt binnenkort — exporteert klanten, producten en categorieën
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="opacity-50 cursor-not-allowed pointer-events-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Crediteuren Pakket
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Komt binnenkort — openstaande facturen + aging + Stripe payouts
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="opacity-50 cursor-not-allowed pointer-events-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Kassa Pakket
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Komt binnenkort — POS-transacties + kasstaten
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </CardContent>
       </Card>
     </div>
