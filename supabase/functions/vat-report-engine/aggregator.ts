@@ -36,6 +36,25 @@ function customerName(c: DbInvoice['customers'] | undefined | null): string {
 }
 
 /**
+ * Resolve a display name for the audit trail. Many imported (e.g. bol.com)
+ * invoices have no linked customer row — the actual buyer name lives on the
+ * order. Falls back through: company → first+last → orders.customer_name →
+ * email → orders.customer_email → '—'.
+ */
+function auditCustomer(
+  c: DbInvoice['customers'] | undefined | null,
+  order?: { customer_name?: string | null; customer_email?: string | null } | null,
+): string {
+  const fromCustomer = customerName(c);
+  if (fromCustomer) return fromCustomer;
+  const orderName = (order?.customer_name || '').trim();
+  if (orderName) return orderName;
+  const orderEmail = (order?.customer_email || '').trim();
+  if (orderEmail) return orderEmail;
+  return '—';
+}
+
+/**
  * Apply VIES enforcement: invoices marked as ic_* without a validated VAT
  * snapshot get reclassified to domestic_standard for reporting purposes.
  * Mutates inv.vat_regime in-place on a shallow-cloned array.
