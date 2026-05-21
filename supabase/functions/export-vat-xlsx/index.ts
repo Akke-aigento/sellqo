@@ -179,14 +179,15 @@ function applyEurFormat(ws: XLSX.WorkSheet, addrs: string[]) {
 
 // ---- Tab builders ----
 
-function buildTab1Declaration(payload: Record<string, unknown>): XLSX.WorkSheet {
+function buildTab1Declaration(payload: Record<string, unknown>, periodType: PeriodType): XLSX.WorkSheet {
   const meta = payload.metadata as Record<string, unknown>;
   const tenant = meta.tenant as Record<string, unknown>;
   const period = meta.period as Record<string, unknown>;
   const boxes = payload.declaration_boxes as Record<string, { amount: number; vat: number }>;
 
   const aoa: (string | number | null)[][] = [];
-  aoa.push([`${tenant.name ?? 'Tenant'} — BTW-aangifte ${period.start} → ${period.end}`]);
+  const label = periodLabel(String(period.start), String(period.end), periodType);
+  aoa.push([`${tenant.name ?? 'Tenant'} — ${label}`]);
   aoa.push([
     `BTW: ${tenant.vat_number ?? '—'}`,
     `KBO/KvK: ${tenant.kbo ?? '—'}`,
