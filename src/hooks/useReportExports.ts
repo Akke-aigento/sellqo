@@ -645,6 +645,48 @@ export const useAgingExport = () => {
 export const useVatExport = () => {
   const { currentTenant } = useTenant();
   const [isExporting, setIsExporting] = useState(false);
+  const [isBundling, setIsBundling] = useState(false);
+
+  // Shared binary download via direct fetch (supabase.functions.invoke corrupts binaries).
+  const binaryDownload = async (
+    fnName: string,
+    body: Record<string, unknown>,
+    fallbackName: string,
+    mimeType: string,
+  ) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`${fnName} failed: ${response.status} ${errText}`);
+    }
+    const buffer = await response.arrayBuffer();
+    const blob = new Blob([buffer], { type: mimeType });
+    const cd = response.headers.get('content-disposition') ?? '';
+    const m = cd.match(/filename="?([^"]+)"?/);
+    const filename = m?.[1] ?? fallbackName;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Facade — delegates to canonical vat-report-engine edge function.
   const exportVatReport = async (
@@ -657,6 +699,50 @@ export const useVatExport = () => {
     try {
       const toIso = (d: Date) => d.toISOString().split('T')[0];
       const periodType = dateRange.type ?? 'quarterly';
+
+      const slug = (currentTenant.name || 'tenant')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const y = dateRange.from.getFullYear();
+      let pCode = `${toIso(dateRange.from)}_to_${toIso(dateRange.to)}`;
+      if (periodType === 'quarterly') {
+        const q = Math.floor(dateRange.from.getMonth() / 3) + 1;
+        pCode = `${y}-Q${q}`;
+      } else if (periodType === 'monthly') {
+        pCode = `${y}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+      } else if (periodType === 'annual') {
+        pCode = `${y}`;
+      }
+
+      const baseBody = {
+        tenant_id: currentTenant.id,
+        period_start: toIso(dateRange.from),
+        period_end: toIso(dateRange.to),
+        period_type: periodType,
+      };
+
+      if (format === 'intervat-xml') {
+        await binaryDownload(
+          'export-vat-xml',
+          baseBody,
+          `SellQo_INTERVAT_BTW-aangifte_${slug}_${pCode}.xml`,
+          'application/xml',
+        );
+        toast.success('INTERVAT XML gedownload');
+        return;
+      }
+
+      if (format === 'odoo-csv') {
+        await binaryDownload(
+          'export-odoo-csv',
+          baseBody,
+          `SellQo_Odoo_${slug}_${pCode}.zip`,
+          'application/zip',
+        );
+        toast.success('Odoo CSV-pakket gedownload');
+        return;
+      }
 
       // XLSX → delegate to canonical 9-tab export-vat-xlsx edge function.
       // Use direct fetch + arrayBuffer to preserve binary integrity
