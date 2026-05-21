@@ -128,6 +128,7 @@ export interface VatReportPayload {
   stripe_reconciliation: StripeReconciliation | null;
   audit_trail: AuditTrailEntry[];
   warnings: string[];
+  data_quality_issues?: { invoice_number: string; line_vat: number; header_vat: number; delta: number }[];
 }
 
 // DB shapes (loose — we use service role client without generated types).
