@@ -122,13 +122,23 @@ export const generateExcel = <T extends Record<string, any>>(
       
       const col = columns[C];
       if (col.format === 'currency') {
+        // Force numeric cell, round to 2 decimals to avoid float artifacts
+        // (e.g. 101.85000000000001) and apply EUR format.
+        cell.t = 'n';
+        if (typeof cell.v === 'number') {
+          cell.v = Math.round(cell.v * 100) / 100;
+        }
         cell.z = '€ #,##0.00';
+        delete cell.w;
       } else if (col.format === 'percentage') {
         cell.z = '0.00%';
+        delete cell.w;
       } else if (col.format === 'date') {
         cell.z = 'dd-mm-yyyy';
+        delete cell.w;
       } else if (col.format === 'datetime') {
         cell.z = 'dd-mm-yyyy hh:mm';
+        delete cell.w;
       }
     }
   }
