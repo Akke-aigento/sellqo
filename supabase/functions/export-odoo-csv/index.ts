@@ -95,7 +95,7 @@ export async function buildOdooZip(
     .from("invoices")
     .select(`
       id, invoice_number, issue_date, due_date, customer_id, vat_regime,
-      ogm_reference, subtotal, tax_amount, total
+      ogm_reference, subtotal, tax_amount, total, order_id
     `)
     .eq("tenant_id", tenantId)
     .gte("issue_date", periodStart)
@@ -106,6 +106,32 @@ export async function buildOdooZip(
 
   const invoiceList = (invoices ?? []) as Array<Record<string, any>>;
   const invoiceIds = invoiceList.map((i) => i.id);
+
+  // Fallback: marketplace/guest invoices have NULL customer_id but the
+  // linked order carries customer_email — use a stable email-derived ref.
+  const orderIds = Array.from(
+    new Set(invoiceList.filter((i) => !i.customer_id && i.order_id).map((i) => i.order_id)),
+  );
+  const orderEmailById = new Map<string, string>();
+  if (orderIds.length > 0) {
+    const { data: orders, error: ordErr } = await sb
+      .from("orders")
+      .select("id, customer_email")
+      .in("id", orderIds);
+    if (ordErr) throw new Error(`orders query failed: ${ordErr.message}`);
+    for (const o of (orders ?? []) as Array<Record<string, any>>) {
+      if (o.customer_email) orderEmailById.set(o.id, String(o.customer_email).toLowerCase());
+    }
+  }
+  const customerRef = (inv: Record<string, any>): string => {
+    if (inv.customer_id) return `sellqo_customer_${inv.customer_id}`;
+    const email = inv.order_id ? orderEmailById.get(inv.order_id) : undefined;
+    if (email) {
+      const sanitized = email.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      if (sanitized) return `sellqo_customer_email_${sanitized}`;
+    }
+    return "";
+  };
 
   const linesById = new Map<string, Array<Record<string, any>>>();
   if (invoiceIds.length > 0) {
@@ -132,7 +158,7 @@ export async function buildOdooZip(
   ];
   const invRows = invoiceList.map((inv) => [
     `sellqo_invoice_${inv.id}`,
-    inv.customer_id ? `sellqo_customer_${inv.customer_id}` : "",
+    customerRef(inv),
     String(inv.issue_date ?? "").slice(0, 10),
     inv.due_date ? String(inv.due_date).slice(0, 10) : "",
     "EUR",
