@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, FileCode, FileArchive, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -46,6 +46,8 @@ export const ReportCard = ({
     csv: { label: 'CSV', icon: <FileText className="h-4 w-4" /> },
     xlsx: { label: 'Excel', icon: <FileSpreadsheet className="h-4 w-4" /> },
     pdf: { label: 'PDF', icon: <FileText className="h-4 w-4" /> },
+    'intervat-xml': { label: 'INTERVAT XML', icon: <FileCode className="h-4 w-4" /> },
+    'odoo-csv': { label: 'Odoo CSV', icon: <FileArchive className="h-4 w-4" /> },
   };
 
   const isExporting = isLoading || exportingFormat !== null;
