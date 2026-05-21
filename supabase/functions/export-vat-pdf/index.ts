@@ -754,6 +754,7 @@ serve(async (req) => {
     await pageCover(doc, payload, body.period_type, logoUrl);
     pageSummary(doc, payload);
     pageByRate(doc, payload);
+    pageByCountry(doc, payload);
     pageIcListing(doc, payload);
     pageOss(doc, payload);
     pageCreditNotes(doc, payload);
