@@ -173,7 +173,9 @@ function applyEurFormat(ws: XLSX.WorkSheet, addrs: string[]) {
     if (c) {
       // Force numeric type and round to 2dp to avoid float artifacts like
       // 178.19000000000003 leaking through when Excel ignores the format.
-      if (typeof c.v === 'number') c.v = Math.round(c.v * 100) / 100;
+      // EPSILON-safe rounding so XLSX & PDF present identical 2dp values
+      // for the same raw float (e.g. 178.185 → 178.19 in both).
+      if (typeof c.v === 'number') c.v = Math.round((c.v + Number.EPSILON) * 100) / 100;
       c.t = 'n';
       c.z = '€ #,##0.00';
       c.s = { ...(c.s || {}), font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'right' } };
