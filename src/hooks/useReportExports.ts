@@ -621,26 +621,41 @@ export const useVatExport = () => {
       const toIso = (d: Date) => d.toISOString().split('T')[0];
       const periodType = dateRange.type ?? 'quarterly';
 
-      // XLSX → delegate to canonical 9-tab export-vat-xlsx edge function
+      // XLSX → delegate to canonical 9-tab export-vat-xlsx edge function.
+      // Use direct fetch + arrayBuffer to preserve binary integrity
+      // (supabase.functions.invoke corrupts XLSX by attempting JSON/text decode).
       if (format === 'xlsx') {
-        const { data, error } = await supabase.functions.invoke('export-vat-xlsx', {
-          body: {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/export-vat-xlsx`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             tenant_id: currentTenant.id,
             period_start: toIso(dateRange.from),
             period_end: toIso(dateRange.to),
             period_type: periodType,
-          },
+          }),
         });
-        if (error) throw error;
 
-        // supabase-js returns Blob for binary responses
-        const blob = data instanceof Blob
-          ? data
-          : new Blob([data as ArrayBuffer], {
-              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            });
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Export failed: ${response.status} ${errText}`);
+        }
 
-        // Build fallback filename matching edge fn convention
+        const buffer = await response.arrayBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+
+        // Fallback filename matching edge fn convention
         const slug = (currentTenant.name || 'tenant')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
@@ -655,7 +670,11 @@ export const useVatExport = () => {
         } else if (periodType === 'annual') {
           periodCode = `${y}`;
         }
-        const filename = `SellQo_BTW-aangifte_${slug}_${periodCode}.xlsx`;
+        const fallbackName = `SellQo_BTW-aangifte_${slug}_${periodCode}.xlsx`;
+
+        const contentDisposition = response.headers.get('content-disposition') ?? '';
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        const filename = filenameMatch?.[1] ?? fallbackName;
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -663,7 +682,7 @@ export const useVatExport = () => {
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        a.remove();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         toast.success('BTW-aangifte (9 tabs) geëxporteerd');
