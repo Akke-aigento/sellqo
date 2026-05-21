@@ -52,6 +52,29 @@ const SALES_BOXES = ['00','01','02','03','44','45','46','47','48','49'];
 const VAT_DUE_BOXES = ['54','55','56','57','59','61','62','63','64','71','72'];
 const PURCHASE_BOXES = ['81','82','83','84','85','86','87','88'];
 
+// Regime → standard VAT rate mapping (BE-context). Used by Tab 3 to group
+// header-driven sales-entries by rate consistently with declaration_boxes,
+// rather than deriving rate per-invoice (which fragments €0-VAT roundings).
+const REGIME_STANDARD_RATE: Record<string, number> = {
+  domestic_standard: 21,
+  domestic_reduced_12: 12,
+  domestic_reduced_6: 6,
+  domestic_reduced: 6,
+  domestic_zero: 0,
+  domestic_exempt: 0,
+  ic_supply_b2b: 0,
+  ic_services_b2b: 0,
+  ic_triangulation: 0,
+  export_non_eu: 0,
+  reverse_charge_b2b: 0,
+  oss_b2c_eu: 0, // OSS not in box 03 anyway; defensive
+};
+// Sales boxes → fallback rate when regime is unknown/missing.
+const BOX_STANDARD_RATE: Record<string, number> = {
+  '00': 0, '01': 6, '02': 12, '03': 21,
+  '44': 0, '45': 0, '46': 0, '47': 0, '48': 0, '49': 0,
+};
+
 const BOX_FORMULA_NOTES: Record<string, string> = {
   '54': 'Verschuldigde output-BTW op vakken 01+02+03',
   '63': 'Berekend: 54+55+56+57-59+61-62-64',
@@ -236,19 +259,19 @@ function buildTab3ByRate(payload: Record<string, unknown>): XLSX.WorkSheet {
   // imports have line/header VAT mismatches. Tab 1 (declaration_boxes) and
   // Tab 4 (by_country) are header-driven; Tab 3 must match.
   const trail = (payload.audit_trail as Array<Record<string, unknown>>) ?? [];
-  // Only count sales-side entries (skip purchase / vat-due / corrective boxes).
   const salesEntries = trail.filter((e) =>
     SALES_BOXES.includes(String(e.declaration_box ?? '')),
   );
-  // Group by (rate, regime). Dedupe invoices per group via invoice_number.
+  // Group by (rate, regime). Rate comes from regime→standard mapping, with
+  // box-based fallback. Dedupe invoices per group via invoice_number.
   type Bucket = { rate: number; regime: string; base: number; vat: number; invs: Set<string> };
   const buckets = new Map<string, Bucket>();
   for (const e of salesEntries) {
     const base = Number(e.base_amount ?? 0);
     const vat = Number(e.vat_amount ?? 0);
     const regime = String(e.vat_regime ?? '');
-    // Effective rate from header totals; 0 for IC/export/CN-on-zero.
-    const rate = base > 0 ? Math.round((vat / base) * 100) : 0;
+    const box = String(e.declaration_box ?? '');
+    const rate = REGIME_STANDARD_RATE[regime] ?? BOX_STANDARD_RATE[box] ?? 0;
     const key = `${rate}|${regime}`;
     let b = buckets.get(key);
     if (!b) { b = { rate, regime, base: 0, vat: 0, invs: new Set() }; buckets.set(key, b); }
