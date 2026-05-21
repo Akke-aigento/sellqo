@@ -184,6 +184,58 @@ export const generateExcelMultiSheet = (
   XLSX.writeFile(workbook, `${filename}.xlsx`);
 };
 
+// Generate Excel with an empty-state placeholder row (italic grey, merged
+// across all columns) and an optional informational footer note.
+export const generateExcelWithEmptyState = <T extends Record<string, any>>(
+  data: T[],
+  columns: ExportColumn[],
+  filename: string,
+  sheetName: string,
+  emptyMessage: string,
+  footerNote?: string,
+): void => {
+  if (data.length > 0) {
+    generateExcel(data, columns, filename, sheetName);
+    return;
+  }
+
+  const headers = columns.map(col => col.header);
+  const aoa: any[][] = [headers, [emptyMessage]];
+  if (footerNote) {
+    aoa.push([]);
+    aoa.push([footerNote]);
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+  worksheet['!cols'] = columns.map(col => ({ wch: Math.max(col.header.length, 18) }));
+
+  const lastCol = columns.length - 1;
+  const merges: XLSX.Range[] = [{ s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } }];
+  if (footerNote) merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: lastCol } });
+  worksheet['!merges'] = merges;
+
+  const placeholderCell = worksheet['A2'];
+  if (placeholderCell) {
+    placeholderCell.s = {
+      font: { italic: true, color: { rgb: '808080' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    };
+  }
+  if (footerNote) {
+    const footerCell = worksheet['A4'];
+    if (footerCell) {
+      footerCell.s = {
+        font: { italic: true, color: { rgb: '808080' }, sz: 10 },
+        alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+      };
+    }
+  }
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 31));
+  XLSX.writeFile(workbook, `${filename}.xlsx`);
+};
+
 // Download files as ZIP
 export const downloadAsZip = async (
   files: Array<{ name: string; url: string }>,
