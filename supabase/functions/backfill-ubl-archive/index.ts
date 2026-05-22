@@ -38,12 +38,13 @@ Deno.serve(async (req) => {
       { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  let body: { tenant_id?: string; since_date?: string; dry_run?: boolean } = {};
+  let body: { tenant_id?: string; since_date?: string; dry_run?: boolean; pending_only?: boolean } = {};
   try { body = await req.json(); } catch { /* allow empty */ }
 
   const tenantId = body.tenant_id?.trim() || null;
   const sinceDate = (body.since_date || "2026-01-01").trim();
   const dryRun = Boolean(body.dry_run);
+  const pendingOnly = body.pending_only !== false; // default true: process all NULL/pending peppol_status
 
   // Auth: must be admin of the targeted tenant, or platform admin.
   let auth;
@@ -64,11 +65,12 @@ Deno.serve(async (req) => {
   let q = sb.from("invoices")
     .select("id, tenant_id, invoice_number, vat_regime, ubl_url, peppol_status, status, issue_date")
     .gte("issue_date", sinceDate)
-    .in("vat_regime", PEPPOL_REGIMES)
-    .in("status", ["sent", "paid"])
     .order("issue_date", { ascending: true });
 
   if (tenantId) q = q.eq("tenant_id", tenantId);
+  if (pendingOnly) {
+    q = q.or("peppol_status.is.null,peppol_status.eq.pending");
+  }
 
   const { data: rows, error: qErr } = await q;
   if (qErr) {
@@ -76,10 +78,8 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  // Filter: missing UBL or non-BIS3 URL, AND not already marked not_applicable/archive_only.
+  // Filter out anything already finalized.
   const candidates = (rows ?? []).filter((r: any) => {
-    const u = String(r.ubl_url ?? "").toLowerCase();
-    if (u.includes("peppol-archive")) return false;
     if (r.peppol_status === "not_applicable") return false;
     if (r.peppol_status === "archive_only") return false;
     return true;
