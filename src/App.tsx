@@ -32,6 +32,7 @@ import BillingPage from "./pages/admin/Billing";
 import PricingPage from "./pages/Pricing";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
+import PeppolSetupPage from "./pages/admin/settings/PeppolSetup";
 import ImportPage from "./pages/admin/Import";
 import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
