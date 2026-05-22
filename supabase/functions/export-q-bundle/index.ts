@@ -104,6 +104,7 @@ function buildReadme(opts: {
   generatedAt: string;
   invoicePdfCount: number;
   failures: Array<{ doc: string; error: string }>;
+  notes: string[];
 }): Uint8Array {
   const lines: string[] = [];
   lines.push(`SellQo Q-Pakket — ${opts.tenantName}`);
@@ -140,6 +141,12 @@ function buildReadme(opts: {
     lines.push("WAARSCHUWINGEN");
     lines.push("--------------");
     for (const f of opts.failures) lines.push(`- ${f.doc}: ${f.error}`);
+    lines.push("");
+  }
+  if (opts.notes.length) {
+    lines.push("OPMERKINGEN");
+    lines.push("-----------");
+    for (const n of opts.notes) lines.push(`- ${n}`);
     lines.push("");
   }
   lines.push("VRAGEN");
