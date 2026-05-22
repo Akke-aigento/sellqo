@@ -158,6 +158,21 @@ export interface DbInvoice {
   vat_number_validated_at: string | null;
   vat_number_validated_value: string | null;
   customers?: DbCustomer | null;
+  orders?: DbOrderDenorm | null;
+}
+
+/**
+ * Denormalized customer fields stored on the order row. Filled for guest /
+ * marketplace (bol.com) flows where no `customers` row exists. Engine joins
+ * this so the audit-trail / IC-listing / Odoo-export can cascade.
+ */
+export interface DbOrderDenorm {
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_company_name: string | null;
+  customer_type: string | null;
+  customer_vat_number: string | null;
 }
 
 export interface DbInvoiceLine {
