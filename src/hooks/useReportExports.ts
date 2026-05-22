@@ -1091,7 +1091,94 @@ export const useVatExport = () => {
     }
   };
 
-  return { exportVatReport, exportIcListing, exportQBundle, isExporting, isBundling };
+  // INTERVAT Upload-pakket: ZIP met enkel BTW-XML + IC-Listing-XML.
+  const exportIntervatBundle = async (
+    dateRange: DateRange & { type?: 'monthly' | 'quarterly' | 'annual' | 'custom' },
+  ) => {
+    if (!currentTenant) return;
+    setIsBundling(true);
+    const toastId = toast.loading('INTERVAT-pakket wordt samengesteld…');
+    try {
+      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const periodType = dateRange.type ?? 'quarterly';
+      const slug = (currentTenant.name || 'tenant')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const y = dateRange.from.getFullYear();
+      let pCode = `${toIso(dateRange.from)}_to_${toIso(dateRange.to)}`;
+      if (periodType === 'quarterly') {
+        const q = Math.floor(dateRange.from.getMonth() / 3) + 1;
+        pCode = `${y}-Q${q}`;
+      } else if (periodType === 'monthly') {
+        pCode = `${y}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+      } else if (periodType === 'annual') {
+        pCode = `${y}`;
+      }
+
+      const baseBody = {
+        tenant_id: currentTenant.id,
+        period_start: toIso(dateRange.from),
+        period_end: toIso(dateRange.to),
+        period_type: periodType,
+      };
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const fetchXml = async (fnName: string): Promise<string> => {
+        const res = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...baseBody, period_type: fnName === 'export-ic-listing-xml' ? 'custom' : periodType }),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(`${fnName} failed: ${res.status} ${t}`);
+        }
+        return await res.text();
+      };
+
+      const [vatXml, icXml] = await Promise.all([
+        fetchXml('export-vat-xml'),
+        fetchXml('export-ic-listing-xml').catch((e) => {
+          console.warn('[intervat-bundle] IC-listing fetch failed (likely no IC entries):', e);
+          return '';
+        }),
+      ]);
+
+      const zip = new JSZip();
+      zip.file(`SellQo_INTERVAT_BTW-aangifte_${slug}_${pCode}.xml`, vatXml);
+      if (icXml) {
+        zip.file(`SellQo_INTERVAT_IC-Listing_${slug}_${pCode}.xml`, icXml);
+      }
+      zip.file(
+        'README.txt',
+        `INTERVAT Upload-pakket — ${currentTenant.name}\n` +
+        `Periode: ${toIso(dateRange.from)} t/m ${toIso(dateRange.to)}\n\n` +
+        `Bestanden:\n` +
+        ` - SellQo_INTERVAT_BTW-aangifte_*.xml   → upload via INTERVAT (formulier 625)\n` +
+        (icXml ? ` - SellQo_INTERVAT_IC-Listing_*.xml      → upload via INTERVAT (formulier 723)\n` : ` - (geen IC-leveringen in deze periode)\n`),
+      );
+
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      saveAs(blob, `SellQo_INTERVAT_${slug}_${pCode}.zip`);
+      toast.success('INTERVAT-pakket gedownload', { id: toastId });
+    } catch (err) {
+      console.error('INTERVAT bundle error:', err);
+      toast.error('INTERVAT-pakket samenstellen mislukt', { id: toastId });
+    } finally {
+      setIsBundling(false);
+    }
+  };
+
+  return { exportVatReport, exportIcListing, exportQBundle, exportIntervatBundle, isExporting, isBundling };
 };
 
 // Hook for revenue report
