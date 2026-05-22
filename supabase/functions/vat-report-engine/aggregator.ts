@@ -43,10 +43,16 @@ function customerName(c: DbInvoice['customers'] | undefined | null): string {
  */
 function auditCustomer(
   c: DbInvoice['customers'] | undefined | null,
-  order?: { customer_name?: string | null; customer_email?: string | null } | null,
+  order?: {
+    customer_company_name?: string | null;
+    customer_name?: string | null;
+    customer_email?: string | null;
+  } | null,
 ): string {
   const fromCustomer = customerName(c);
   if (fromCustomer) return fromCustomer;
+  const orderCompany = (order?.customer_company_name || '').trim();
+  if (orderCompany) return orderCompany;
   const orderName = (order?.customer_name || '').trim();
   if (orderName) return orderName;
   const orderEmail = (order?.customer_email || '').trim();
@@ -300,7 +306,7 @@ export function aggregate(input: AggregateInput): VatReportPayload {
     for (const inv of invoices) {
       const regime = inv.vat_regime || 'domestic_standard';
       const mapping = mapRegimeToBoxes(regime, 0);
-      const invOrder = (inv as unknown as { orders?: { customer_name?: string | null; customer_email?: string | null } | null }).orders;
+      const invOrder = inv.orders;
       audit_trail.push({
         invoice_id: inv.id,
         invoice_number: inv.invoice_number,
@@ -317,7 +323,7 @@ export function aggregate(input: AggregateInput): VatReportPayload {
       const orig = invoices.find((i) => i.id === cn.original_invoice_id);
       const regime = orig?.vat_regime || 'domestic_standard';
       const mapping = mapRegimeToBoxes(regime, 0);
-      const origOrder = orig ? (orig as unknown as { orders?: { customer_name?: string | null; customer_email?: string | null } | null }).orders : null;
+      const origOrder = orig?.orders ?? null;
       audit_trail.push({
         invoice_id: cn.id,
         invoice_number: cn.credit_note_number,
