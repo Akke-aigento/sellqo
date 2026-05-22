@@ -100,8 +100,10 @@ Deno.serve(async (req) => {
   // has no payment_reference column in current schema).
   let paymentReference: string | null = null;
   if (invoice.order_id) {
-    const { data: ord } = await sb.from("orders").select("payment_reference").eq("id", invoice.order_id).maybeSingle();
-    paymentReference = ord?.payment_reference ?? null;
+    const { data: ord } = await sb.from("orders")
+      .select("ogm_reference, external_reference")
+      .eq("id", invoice.order_id).maybeSingle();
+    paymentReference = ord?.ogm_reference ?? ord?.external_reference ?? null;
   }
 
   // Resolve detect/early-skip non-Peppol regimes.
