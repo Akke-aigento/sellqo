@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { 
   generateCSV, 
   generateExcel, 
@@ -744,6 +746,19 @@ export const useVatExport = () => {
         return;
       }
 
+      // JSON → raw vat-report-engine payload, useful for accountants / audits.
+      if (format === 'json') {
+        const { data, error } = await supabase.functions.invoke('vat-report-engine', {
+          body: { ...baseBody, include_drafts: false, include_audit_trail: true, force_recompute: false },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'vat-report-engine failed');
+        const blob = new Blob([JSON.stringify(data.payload, null, 2)], { type: 'application/json' });
+        saveAs(blob, `SellQo_BTW-aangifte_${slug}_${pCode}.json`);
+        toast.success('BTW-aangifte JSON gedownload');
+        return;
+      }
+
       // XLSX → delegate to canonical 9-tab export-vat-xlsx edge function.
       // Use direct fetch + arrayBuffer to preserve binary integrity
       // (supabase.functions.invoke corrupts XLSX by attempting JSON/text decode).
@@ -1010,6 +1025,18 @@ export const useVatExport = () => {
           'Geen IC-leveringen in deze periode',
           'Note: zodra IC-leveringen worden geregistreerd, verschijnen ze hier én in INTERVAT XML',
         );
+      } else if (format === 'pdf') {
+        // Minimal client-side PDF rendering of IC-Listing using browser print-to-PDF
+        // is out of scope; fall back to XLSX for richer formatting.
+        generateExcelWithEmptyState(
+          icRows, columns, filename, 'IC-Listing',
+          'Geen IC-leveringen in deze periode',
+          'PDF nog niet ondersteund — XLSX gegenereerd als alternatief',
+        );
+        toast.info('PDF nog niet ondersteund voor IC-Listing — XLSX gegenereerd');
+      } else if (format === 'json') {
+        const blob = new Blob([JSON.stringify(payload.ic_listing ?? [], null, 2)], { type: 'application/json' });
+        saveAs(blob, `${filename}.json`);
       }
 
       toast.success(`IC-Listing met ${icRows.length} klanten geëxporteerd`);
