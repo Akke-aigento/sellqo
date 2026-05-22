@@ -16127,7 +16127,10 @@ export type Database = {
           pass_transaction_fee_to_customer: boolean | null
           payment_methods_enabled: Json | null
           payment_section_order: Json | null
+          peppol_auto_send: boolean
+          peppol_auto_send_regimes: string[] | null
           peppol_id: string | null
+          peppol_legal_entity_id: string | null
           phone: string | null
           postal_code: string | null
           primary_color: string | null
@@ -16230,7 +16233,10 @@ export type Database = {
           pass_transaction_fee_to_customer?: boolean | null
           payment_methods_enabled?: Json | null
           payment_section_order?: Json | null
+          peppol_auto_send?: boolean
+          peppol_auto_send_regimes?: string[] | null
           peppol_id?: string | null
+          peppol_legal_entity_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
@@ -16333,7 +16339,10 @@ export type Database = {
           pass_transaction_fee_to_customer?: boolean | null
           payment_methods_enabled?: Json | null
           payment_section_order?: Json | null
+          peppol_auto_send?: boolean
+          peppol_auto_send_regimes?: string[] | null
           peppol_id?: string | null
+          peppol_legal_entity_id?: string | null
           phone?: string | null
           postal_code?: string | null
           primary_color?: string | null
