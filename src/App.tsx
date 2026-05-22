@@ -195,6 +195,7 @@ const App = () => (
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/peppol-setup" element={<PeppolSetupPage />} />
               <Route path="connect" element={<MarketplacesPage />} />
               <Route path="connect/conflicts" element={<SyncConflictsPage />} />
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
