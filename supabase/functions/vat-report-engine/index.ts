@@ -122,7 +122,10 @@ serve(async (req) => {
           id, email, first_name, last_name, company_name,
           customer_type, vat_number, billing_country
         ),
-        orders:order_id ( customer_name, customer_email )
+        orders:order_id (
+          customer_id, customer_name, customer_email,
+          customer_company_name, customer_type, customer_vat_number
+        )
       `)
       .eq('tenant_id', body.tenant_id)
       .gte('issue_date', body.period_start)
