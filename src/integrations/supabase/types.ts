@@ -7066,6 +7066,7 @@ export type Database = {
           tax_amount: number | null
           tenant_id: string
           total: number
+          ubl_generated_at: string | null
           ubl_url: string | null
           updated_at: string
           vat_number_validated_at: string | null
@@ -7104,6 +7105,7 @@ export type Database = {
           tax_amount?: number | null
           tenant_id: string
           total?: number
+          ubl_generated_at?: string | null
           ubl_url?: string | null
           updated_at?: string
           vat_number_validated_at?: string | null
@@ -7142,6 +7144,7 @@ export type Database = {
           tax_amount?: number | null
           tenant_id?: string
           total?: number
+          ubl_generated_at?: string | null
           ubl_url?: string | null
           updated_at?: string
           vat_number_validated_at?: string | null
