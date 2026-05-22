@@ -203,7 +203,7 @@ const Reports = () => {
               title="IC-Listing"
               description="Intracommunautaire leveringen per klant (formulier 723)"
               icon={<Building2 className="h-5 w-5" />}
-              formats={['xlsx', 'pdf', 'intervat-xml', 'json']}
+              formats={['xlsx', 'csv', 'intervat-xml', 'json']}
               onExport={(format) => exportIcListing(dateRange, format)}
               isLoading={isExportingVat}
             />
@@ -216,7 +216,7 @@ const Reports = () => {
               title="Omzetrapport"
               description="Totale omzet per periode met BTW en netto"
               icon={<TrendingUp className="h-5 w-5" />}
-              formats={['xlsx', 'pdf', 'csv']}
+              formats={['xlsx', 'csv']}
               onExport={(format) => exportRevenueReport(dateRange, format, 'month')}
               isLoading={isExportingRevenue}
             />

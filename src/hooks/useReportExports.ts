@@ -1025,15 +1025,6 @@ export const useVatExport = () => {
           'Geen IC-leveringen in deze periode',
           'Note: zodra IC-leveringen worden geregistreerd, verschijnen ze hier én in INTERVAT XML',
         );
-      } else if (format === 'pdf') {
-        // Minimal client-side PDF rendering of IC-Listing using browser print-to-PDF
-        // is out of scope; fall back to XLSX for richer formatting.
-        generateExcelWithEmptyState(
-          icRows, columns, filename, 'IC-Listing',
-          'Geen IC-leveringen in deze periode',
-          'PDF nog niet ondersteund — XLSX gegenereerd als alternatief',
-        );
-        toast.info('PDF nog niet ondersteund voor IC-Listing — XLSX gegenereerd');
       } else if (format === 'json') {
         const blob = new Blob([JSON.stringify(payload.ic_listing ?? [], null, 2)], { type: 'application/json' });
         saveAs(blob, `${filename}.json`);
