@@ -104,6 +104,7 @@ function buildReadme(opts: {
   generatedAt: string;
   invoicePdfCount: number;
   failures: Array<{ doc: string; error: string }>;
+  notes: string[];
 }): Uint8Array {
   const lines: string[] = [];
   lines.push(`SellQo Q-Pakket — ${opts.tenantName}`);
@@ -140,6 +141,12 @@ function buildReadme(opts: {
     lines.push("WAARSCHUWINGEN");
     lines.push("--------------");
     for (const f of opts.failures) lines.push(`- ${f.doc}: ${f.error}`);
+    lines.push("");
+  }
+  if (opts.notes.length) {
+    lines.push("OPMERKINGEN");
+    lines.push("-----------");
+    for (const n of opts.notes) lines.push(`- ${n}`);
     lines.push("");
   }
   lines.push("VRAGEN");
@@ -287,6 +294,7 @@ serve(async (req) => {
     ]);
 
     const failures: Array<{ doc: string; error: string }> = [];
+    const notes: string[] = [];
     const zip = new JSZip();
 
     if (xlsxR.ok) zip.file("01_BTW-aangifte_overzicht.xlsx", xlsxR.bytes);
@@ -295,11 +303,28 @@ serve(async (req) => {
     if (pdfR.ok) zip.file("02_BTW-aangifte_rapport.pdf", pdfR.bytes);
     else failures.push({ doc: "02_BTW-aangifte_rapport.pdf", error: pdfR.error });
 
-    if (vatXmlR.ok) zip.file("03_INTERVAT_BTW-aangifte.xml", vatXmlR.bytes);
-    else failures.push({ doc: "03_INTERVAT_BTW-aangifte.xml", error: vatXmlR.error });
+    if (vatXmlR.ok) {
+      if (vatXmlR.bytes.byteLength > 0) {
+        zip.file("03_INTERVAT_BTW-aangifte.xml", vatXmlR.bytes);
+      } else {
+        failures.push({ doc: "03_INTERVAT_BTW-aangifte.xml", error: "lege response van export-vat-xml" });
+      }
+    } else {
+      failures.push({ doc: "03_INTERVAT_BTW-aangifte.xml", error: vatXmlR.error });
+    }
 
-    if (icXmlR.ok) zip.file("04_INTERVAT_IC-Listing.xml", icXmlR.bytes);
-    else failures.push({ doc: "04_INTERVAT_IC-Listing.xml", error: icXmlR.error });
+    if (icXmlR.ok) {
+      const icText = new TextDecoder().decode(icXmlR.bytes);
+      if (/ClientsNbr="0"/.test(icText)) {
+        notes.push("04_INTERVAT_IC-Listing.xml ontbreekt omdat er geen IC-leveringen waren in deze periode (formulier 723 niet vereist).");
+      } else if (icXmlR.bytes.byteLength > 0) {
+        zip.file("04_INTERVAT_IC-Listing.xml", icXmlR.bytes);
+      } else {
+        failures.push({ doc: "04_INTERVAT_IC-Listing.xml", error: "lege response van export-ic-listing-xml" });
+      }
+    } else {
+      failures.push({ doc: "04_INTERVAT_IC-Listing.xml", error: icXmlR.error });
+    }
 
     // Odoo export returns its own ZIP — unpack and place under 05_Odoo_import/
     if (odooR.ok) {
@@ -335,6 +360,7 @@ serve(async (req) => {
       generatedAt: new Date().toISOString(),
       invoicePdfCount: invoicePdfs.length,
       failures,
+      notes,
     }));
 
     const buffer = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
