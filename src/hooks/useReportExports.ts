@@ -699,7 +699,7 @@ export const useVatExport = () => {
     setIsExporting(true);
 
     try {
-      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const toIso = (d: Date) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
       const periodType = dateRange.type ?? 'quarterly';
 
       const slug = (currentTenant.name || 'tenant')
@@ -952,7 +952,7 @@ export const useVatExport = () => {
     setIsExporting(true);
 
     try {
-      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const toIso = (d: Date) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
 
       if (format === 'intervat-xml') {
         try {
@@ -1046,7 +1046,7 @@ export const useVatExport = () => {
     setIsBundling(true);
     const toastId = toast.loading('Q-Pakket wordt samengesteld… (kan 5-15 sec duren)');
     try {
-      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const toIso = (d: Date) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
       const periodType = dateRange.type ?? 'quarterly';
       const slug = (currentTenant.name || 'tenant')
         .toLowerCase()
@@ -1090,7 +1090,7 @@ export const useVatExport = () => {
     setIsBundling(true);
     const toastId = toast.loading('INTERVAT-pakket wordt samengesteld…');
     try {
-      const toIso = (d: Date) => d.toISOString().split('T')[0];
+      const toIso = (d: Date) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
       const periodType = dateRange.type ?? 'quarterly';
       const slug = (currentTenant.name || 'tenant')
         .toLowerCase()
