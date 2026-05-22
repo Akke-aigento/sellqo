@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
   // Load invoice first to know its tenant_id for auth.
   const { data: invoice, error: invErr } = await sb
     .from("invoices")
-    .select("id, tenant_id, customer_id, order_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, status, vat_regime, peppol_status, payment_reference, currency, vat_number_validated_value")
+    .select("id, tenant_id, customer_id, order_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, status, vat_regime, peppol_status, vat_number_validated_value")
     .eq("id", invoiceId)
     .maybeSingle();
   if (invErr || !invoice) {
@@ -94,6 +94,14 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof AuthError) return authErrorResponse(e, cors);
     throw e;
+  }
+
+  // Try to fetch OGM / payment reference from the linked order (invoices table
+  // has no payment_reference column in current schema).
+  let paymentReference: string | null = null;
+  if (invoice.order_id) {
+    const { data: ord } = await sb.from("orders").select("payment_reference").eq("id", invoice.order_id).maybeSingle();
+    paymentReference = ord?.payment_reference ?? null;
   }
 
   // Resolve detect/early-skip non-Peppol regimes.
@@ -233,9 +241,9 @@ Deno.serve(async (req) => {
     documentNumber: invoice.invoice_number,
     issueDate: ymd(invoice.issue_date) ?? new Date().toISOString().slice(0, 10),
     dueDate: ymd(invoice.due_date),
-    currency: (invoice.currency ?? "EUR").toUpperCase(),
-    buyerReference: invoice.payment_reference ?? null,
-    paymentReference: invoice.payment_reference ?? null,
+    currency: "EUR",
+    buyerReference: paymentReference,
+    paymentReference: paymentReference,
     supplier,
     customer,
     vatRegime: regime,
