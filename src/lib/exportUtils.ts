@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
-export type ExportFormat = 'csv' | 'xlsx' | 'pdf' | 'intervat-xml' | 'odoo-csv';
+export type ExportFormat = 'csv' | 'xlsx' | 'pdf' | 'intervat-xml' | 'odoo-csv' | 'json';
 
 interface ExportColumn {
   key: string;
