@@ -29,7 +29,13 @@ export function buildIcListing(invoices: DbInvoice[]): IcListingResult {
   for (const inv of invoices) {
     if (!inv.vat_regime || !IC_REGIMES.has(inv.vat_regime)) continue;
     const cust = inv.customers;
-    const vatNr = (inv.vat_number_validated_value || cust?.vat_number || '').trim().toUpperCase();
+    const ord = inv.orders;
+    const vatNr = (
+      inv.vat_number_validated_value
+      || cust?.vat_number
+      || ord?.customer_vat_number
+      || ''
+    ).trim().toUpperCase();
     if (!inv.vat_number_validated_at || !vatNr) {
       excluded.push(inv.invoice_number);
       continue;
@@ -42,10 +48,17 @@ export function buildIcListing(invoices: DbInvoice[]): IcListingResult {
       existing.amount += base;
       existing.invoice_ids.push(inv.id);
     } else {
+      const company =
+        cust?.company_name
+        || ord?.customer_company_name
+        || customerDisplayName(cust)
+        || ord?.customer_name
+        || ord?.customer_email
+        || '';
       groups.set(key, {
         vat_number: vatNr,
         country_code: country,
-        company_name: cust?.company_name || customerDisplayName(cust),
+        company_name: company,
         amount: base,
         type_code: typeCode(inv.vat_regime),
         invoice_ids: [inv.id],
