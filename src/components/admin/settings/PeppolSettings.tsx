@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Network, Save, Info, ExternalLink } from 'lucide-react';
+import { Network, Save, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -113,15 +112,6 @@ export function PeppolSettings() {
             <div>• Duitsland: 0204</div>
             <div>• Frankrijk (SIRET): 0009</div>
           </div>
-        </div>
-
-        <div className="pt-4 border-t">
-          <Button asChild variant="outline">
-            <Link to="/admin/settings/peppol-setup">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Peppol Setup (Storecove registratie)
-            </Link>
-          </Button>
         </div>
 
       </CardContent>

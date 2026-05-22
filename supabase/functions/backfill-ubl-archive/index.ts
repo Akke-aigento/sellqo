@@ -38,12 +38,14 @@ Deno.serve(async (req) => {
       { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  let body: { tenant_id?: string; since_date?: string; dry_run?: boolean } = {};
+  let body: { tenant_id?: string; since_date?: string; dry_run?: boolean; pending_only?: boolean; limit?: number } = {};
   try { body = await req.json(); } catch { /* allow empty */ }
 
   const tenantId = body.tenant_id?.trim() || null;
   const sinceDate = (body.since_date || "2026-01-01").trim();
   const dryRun = Boolean(body.dry_run);
+  const pendingOnly = body.pending_only !== false;
+  const limit = Math.min(Math.max(Number(body.limit ?? 25), 1), 100);
 
   // Auth: must be admin of the targeted tenant, or platform admin.
   let auth;
@@ -64,11 +66,12 @@ Deno.serve(async (req) => {
   let q = sb.from("invoices")
     .select("id, tenant_id, invoice_number, vat_regime, ubl_url, peppol_status, status, issue_date")
     .gte("issue_date", sinceDate)
-    .in("vat_regime", PEPPOL_REGIMES)
-    .in("status", ["sent", "paid"])
     .order("issue_date", { ascending: true });
 
   if (tenantId) q = q.eq("tenant_id", tenantId);
+  if (pendingOnly) {
+    q = q.or("peppol_status.is.null,peppol_status.eq.pending");
+  }
 
   const { data: rows, error: qErr } = await q;
   if (qErr) {
@@ -76,14 +79,13 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  // Filter: missing UBL or non-BIS3 URL, AND not already marked not_applicable/archive_only.
-  const candidates = (rows ?? []).filter((r: any) => {
-    const u = String(r.ubl_url ?? "").toLowerCase();
-    if (u.includes("peppol-archive")) return false;
+  // Filter out anything already finalized.
+  const allCandidates = (rows ?? []).filter((r: any) => {
     if (r.peppol_status === "not_applicable") return false;
     if (r.peppol_status === "archive_only") return false;
     return true;
   });
+  const candidates = allCandidates.slice(0, limit);
 
   const result = {
     success: true,
@@ -91,6 +93,7 @@ Deno.serve(async (req) => {
     since_date: sinceDate,
     tenant_id: tenantId,
     total_invoices: candidates.length,
+    remaining_after_batch: Math.max(allCandidates.length - candidates.length, 0),
     generated: 0,
     skipped: 0,
     errors: [] as Array<{ invoice_id: string; invoice_number?: string; error: string }>,

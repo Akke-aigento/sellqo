@@ -32,7 +32,6 @@ import BillingPage from "./pages/admin/Billing";
 import PricingPage from "./pages/Pricing";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
-import PeppolSetupPage from "./pages/admin/settings/PeppolSetup";
 import ImportPage from "./pages/admin/Import";
 import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
@@ -196,7 +195,6 @@ const App = () => (
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="settings/peppol-setup" element={<PeppolSetupPage />} />
               <Route path="connect" element={<MarketplacesPage />} />
               <Route path="connect/conflicts" element={<SyncConflictsPage />} />
               <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
