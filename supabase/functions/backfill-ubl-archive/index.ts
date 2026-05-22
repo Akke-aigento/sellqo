@@ -108,26 +108,43 @@ Deno.serve(async (req) => {
 
   // Real run — call generate-peppol-ubl per invoice using service role auth.
   const generateUrl = `${SUPABASE_URL}/functions/v1/generate-peppol-ubl`;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  async function callOnce(invoiceId: string): Promise<{ status: number; json: any }> {
+    const resp = await fetch(generateUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ invoice_id: invoiceId }),
+    });
+    const json = await resp.json().catch(() => ({}));
+    return { status: resp.status, json };
+  }
+
+  let i = 0;
   for (const inv of candidates) {
+    i += 1;
     try {
-      const resp = await fetch(generateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SERVICE_KEY}`,
-        },
-        body: JSON.stringify({ invoice_id: inv.id }),
-      });
-      const json = await resp.json().catch(() => ({}));
-      if (!resp.ok || json?.success === false) {
+      let { status, json } = await callOnce(inv.id);
+
+      // Retry once on rate-limit / 429 with the suggested back-off.
+      if (status === 429 || /rate limit/i.test(json?.error ?? "")) {
+        const match = /retry after (\d+)ms/i.exec(String(json?.error ?? ""));
+        const wait = match ? Math.min(Number(match[1]) + 500, 60_000) : 5_000;
+        console.log(`[backfill] rate-limited on ${inv.invoice_number}, sleeping ${wait}ms`);
+        await sleep(wait);
+        ({ status, json } = await callOnce(inv.id));
+      }
+
+      if (status >= 400 || json?.success === false) {
         result.errors.push({
           invoice_id: inv.id,
           invoice_number: inv.invoice_number,
-          error: json?.error || `HTTP ${resp.status}`,
+          error: json?.error || `HTTP ${status}`,
         });
-        continue;
-      }
-      if (json?.skipped) {
+      } else if (json?.skipped) {
         result.skipped += 1;
       } else {
         result.generated += 1;
@@ -140,6 +157,9 @@ Deno.serve(async (req) => {
         error: msg,
       });
     }
+
+    // Soft throttle: pause briefly every 10 calls to avoid burst limits.
+    if (i % 10 === 0) await sleep(1500);
   }
 
   return new Response(JSON.stringify(result),
