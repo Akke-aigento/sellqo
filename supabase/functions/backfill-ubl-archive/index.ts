@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
   // Fetch candidate invoices.
   let q = sb.from("invoices")
-    .select("id, tenant_id, invoice_number, vat_regime, ubl_url, status, issue_date")
+    .select("id, tenant_id, invoice_number, vat_regime, ubl_url, peppol_status, status, issue_date")
     .gte("issue_date", sinceDate)
     .in("vat_regime", PEPPOL_REGIMES)
     .in("status", ["sent", "paid"])
@@ -76,10 +76,13 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  // Filter: only those missing UBL or non-BIS3 URL.
-  const candidates = (rows ?? []).filter((r) => {
-    const u = (r.ubl_url ?? "").toLowerCase();
-    return !u || !u.includes("peppol-archive");
+  // Filter: missing UBL or non-BIS3 URL, AND not already marked not_applicable/archive_only.
+  const candidates = (rows ?? []).filter((r: any) => {
+    const u = String(r.ubl_url ?? "").toLowerCase();
+    if (u.includes("peppol-archive")) return false;
+    if (r.peppol_status === "not_applicable") return false;
+    if (r.peppol_status === "archive_only") return false;
+    return true;
   });
 
   const result = {
