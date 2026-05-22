@@ -107,30 +107,55 @@ export async function buildOdooZip(
   const invoiceList = (invoices ?? []) as Array<Record<string, any>>;
   const invoiceIds = invoiceList.map((i) => i.id);
 
-  // Fallback: marketplace/guest invoices have NULL customer_id but the
-  // linked order carries customer_email — use a stable email-derived ref.
+  // Fallback chain for marketplace/guest invoices (bol.com etc.) where
+  // invoices.customer_id is NULL. Orders carry denormalized customer fields.
   const orderIds = Array.from(
-    new Set(invoiceList.filter((i) => !i.customer_id && i.order_id).map((i) => i.order_id)),
+    new Set(invoiceList.filter((i) => i.order_id).map((i) => i.order_id)),
   );
-  const orderEmailById = new Map<string, string>();
+  const orderById = new Map<string, Record<string, any>>();
   if (orderIds.length > 0) {
     const { data: orders, error: ordErr } = await sb
       .from("orders")
-      .select("id, customer_email")
+      .select("id, customer_id, customer_email, customer_name, customer_company_name")
       .in("id", orderIds);
     if (ordErr) throw new Error(`orders query failed: ${ordErr.message}`);
     for (const o of (orders ?? []) as Array<Record<string, any>>) {
-      if (o.customer_email) orderEmailById.set(o.id, String(o.customer_email).toLowerCase());
+      orderById.set(String(o.id), o);
     }
   }
+
+  const sanitizeEmail = (email: string): string => {
+    return email
+      .toLowerCase()
+      .replace(/@/g, "_at_")
+      .replace(/[^a-z0-9_]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  };
+
   const customerRef = (inv: Record<string, any>): string => {
-    if (inv.customer_id) return `sellqo_customer_${inv.customer_id}`;
-    const email = inv.order_id ? orderEmailById.get(inv.order_id) : undefined;
+    const ord = inv.order_id ? orderById.get(String(inv.order_id)) : undefined;
+    // 1) Real customer record (invoice or order)
+    const cid = inv.customer_id || ord?.customer_id;
+    if (cid) return `sellqo_customer_${cid}`;
+    // 2) Email-keyed pseudo-partner
+    const email = ord?.customer_email ? String(ord.customer_email) : "";
     if (email) {
-      const sanitized = email.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      const sanitized = sanitizeEmail(email);
       if (sanitized) return `sellqo_customer_email_${sanitized}`;
     }
-    return "";
+    // 3) Last resort: per-invoice partner so Odoo import never fails
+    return `sellqo_customer_invoice_${inv.id}`;
+  };
+
+  const customerName = (inv: Record<string, any>): string => {
+    const ord = inv.order_id ? orderById.get(String(inv.order_id)) : undefined;
+    return (
+      ord?.customer_company_name
+      || ord?.customer_name
+      || ord?.customer_email
+      || ""
+    );
   };
 
   const linesById = new Map<string, Array<Record<string, any>>>();
@@ -153,12 +178,13 @@ export async function buildOdooZip(
 
   // CSV 1: invoices.csv
   const invHeaders = [
-    "External ID", "Customer", "Invoice Date", "Due Date", "Currency",
+    "External ID", "Customer", "Customer Name", "Invoice Date", "Due Date", "Currency",
     "Journal", "Communication", "Salesperson", "Source Document",
   ];
   const invRows = invoiceList.map((inv) => [
     `sellqo_invoice_${inv.id}`,
     customerRef(inv),
+    customerName(inv),
     String(inv.issue_date ?? "").slice(0, 10),
     inv.due_date ? String(inv.due_date).slice(0, 10) : "",
     "EUR",
