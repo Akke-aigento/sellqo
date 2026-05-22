@@ -107,9 +107,21 @@ export const generateExcel = <T extends Record<string, any>>(
   );
   
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  
-  // Set column widths
-  const colWidths = columns.map(col => ({ wch: Math.max(col.header.length, 15) }));
+
+  // Set column widths — auto-size based on the longest value in each column
+  // (with sane bounds), so long strings like proxy emails are not visually
+  // truncated to their first segment.
+  const colWidths = columns.map((col, idx) => {
+    let maxLen = col.header.length;
+    for (const row of rows) {
+      const v = row[idx];
+      if (v == null) continue;
+      const s = v instanceof Date ? 10 : String(v).length;
+      if (s > maxLen) maxLen = s;
+    }
+    // Min 12, max 60 to keep sheets readable.
+    return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
+  });
   worksheet['!cols'] = colWidths;
   
   // Apply number formats
