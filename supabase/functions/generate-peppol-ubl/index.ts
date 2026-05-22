@@ -22,7 +22,7 @@ import {
   type UblInvoiceInput,
   type UblLine,
   type UblParty,
-} from "../../../src/lib/peppol/ubl-builder.ts";
+} from "../_shared/peppol/ubl-builder.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
