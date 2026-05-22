@@ -1,32 +1,19 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { startOfMonth, endOfMonth } from 'date-fns';
-import { 
-  FileText, 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  TrendingUp, 
+import { startOfQuarter, endOfQuarter, startOfYear, endOfYear, subQuarters, subYears } from 'date-fns';
+import {
+  TrendingUp,
   CreditCard,
-  FileSpreadsheet,
-  Download,
   Clock,
   Building2,
-  User,
   AlertTriangle,
-  RefreshCw,
   Zap,
-  Factory,
-  ClipboardList,
-  FileBox,
-  Monitor,
-  Receipt,
-  Banknote,
-  Calendar,
-  Package2,
+  Package as PackageIcon,
   Loader2,
+  FileCode,
+  FileCheck,
+  Calculator,
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -34,192 +21,71 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { GlobalDateRangePicker, DateRange } from '@/components/admin/reports/GlobalDateRangePicker';
 import { ReportCard } from '@/components/admin/reports/ReportCard';
-import { BulkDownloadCard } from '@/components/admin/reports/BulkDownloadCard';
 import {
-  useInvoiceExport,
-  useBulkPdfDownload,
-  useOrderExport,
-  useCustomerExport,
-  useProductExport,
-  useCreditNoteExport,
-  useSubscriptionExport,
   useAgingExport,
   useVatExport,
   useRevenueExport,
-  useSupplierExport,
-  usePurchaseOrderExport,
-  useSupplierDocumentExport,
-  useTopSuppliersExport,
-  useBulkSupplierDocumentDownload,
-  usePOSSessionExport,
-  usePOSTransactionExport,
-  usePOSCashMovementExport,
 } from '@/hooks/useReportExports';
+
+type QuickPreset = { label: string; getRange: () => DateRange };
+
+const quickPresets: QuickPreset[] = [
+  { label: 'Dit kwartaal', getRange: () => ({ from: startOfQuarter(new Date()), to: endOfQuarter(new Date()) }) },
+  { label: 'Vorig kwartaal', getRange: () => ({ from: startOfQuarter(subQuarters(new Date(), 1)), to: endOfQuarter(subQuarters(new Date(), 1)) }) },
+  { label: 'Dit jaar', getRange: () => ({ from: startOfYear(new Date()), to: endOfYear(new Date()) }) },
+  { label: 'Vorig jaar', getRange: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) }) },
+];
 
 const Reports = () => {
   const { currentTenant } = useTenant();
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(() => quickPresets[0].getRange());
 
-  // Export hooks
-  const { exportInvoices, isExporting: isExportingInvoices } = useInvoiceExport();
-  const { downloadInvoicePdfs, downloadInvoiceUbls, isDownloading, progress } = useBulkPdfDownload();
-  const { exportOrders, isExporting: isExportingOrders } = useOrderExport();
-  const { exportCustomers, exportTopCustomers, isExporting: isExportingCustomers } = useCustomerExport();
-  const { exportProducts, exportLowStock, isExporting: isExportingProducts } = useProductExport();
-  const { exportCreditNotes, isExporting: isExportingCreditNotes } = useCreditNoteExport();
-  const { exportSubscriptions, isExporting: isExportingSubscriptions } = useSubscriptionExport();
   const { exportAgingReport, isExporting: isExportingAging } = useAgingExport();
-  const { exportVatReport, exportIcListing, exportQBundle, isExporting: isExportingVat, isBundling } = useVatExport();
+  const { exportVatReport, exportIcListing, exportQBundle, exportIntervatBundle, isExporting: isExportingVat, isBundling } = useVatExport();
   const { exportRevenueReport, isExporting: isExportingRevenue } = useRevenueExport();
-  
-  // Purchasing export hooks
-  const { exportSuppliers, isExporting: isExportingSuppliers } = useSupplierExport();
-  const { exportPurchaseOrders, isExporting: isExportingPurchaseOrders } = usePurchaseOrderExport();
-  const { exportSupplierDocuments, exportCreditorAging, isExporting: isExportingSupplierDocs } = useSupplierDocumentExport();
-  const { exportTopSuppliers, isExporting: isExportingTopSuppliers } = useTopSuppliersExport();
-  const { downloadSupplierDocuments, isDownloading: isDownloadingSupplierDocs, progress: supplierDocsProgress } = useBulkSupplierDocumentDownload();
 
-  // POS export hooks
-  const { exportSessions, isExporting: isExportingSessions } = usePOSSessionExport();
-  const { exportTransactions, exportDailySummary, isExporting: isExportingTransactions } = usePOSTransactionExport();
-  const { exportCashMovements, isExporting: isExportingCashMovements } = usePOSCashMovementExport();
-
-  // Fetch counts for display
   const { data: counts } = useQuery({
     queryKey: ['report-counts', currentTenant?.id, dateRange],
     queryFn: async () => {
       if (!currentTenant) return null;
-
-      const [
-        invoices, 
-        orders, 
-        customers, 
-        products, 
-        creditNotes, 
-        subscriptions, 
-        openInvoices, 
-        invoicesWithPdf,
-        suppliers,
-        purchaseOrders,
-        supplierDocuments,
-        openSupplierInvoices,
-        posSessions,
-        posTransactions,
-        posCashMovements
-      ] = await Promise.all([
+      const [invoices, openInvoices] = await Promise.all([
         supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', currentTenant.id)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
-        supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
-        supabase
-          .from('customers')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id),
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id),
-        supabase
-          .from('credit_notes')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
-        supabase
-          .from('subscriptions')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .eq('status', 'active'),
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString()),
         supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', currentTenant.id)
           .eq('status', 'sent'),
-        supabase
-          .from('invoices')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .not('pdf_url', 'is', null)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
-        // Purchasing counts
-        supabase
-          .from('suppliers')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id),
-        supabase
-          .from('purchase_orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('order_date', dateRange.from.toISOString())
-          .lte('order_date', dateRange.to.toISOString()),
-        supabase
-          .from('supplier_documents')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('document_date', dateRange.from.toISOString())
-          .lte('document_date', dateRange.to.toISOString()),
-        supabase
-          .from('supplier_documents')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .eq('document_type', 'invoice')
-          .eq('payment_status', 'pending'),
-        // POS counts
-        supabase
-          .from('pos_sessions')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('opened_at', dateRange.from.toISOString())
-          .lte('opened_at', dateRange.to.toISOString()),
-        supabase
-          .from('pos_transactions')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
-        supabase
-          .from('pos_cash_movements')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', dateRange.from.toISOString())
-          .lte('created_at', dateRange.to.toISOString()),
       ]);
-
       return {
         invoices: invoices.count || 0,
-        orders: orders.count || 0,
-        customers: customers.count || 0,
-        products: products.count || 0,
-        creditNotes: creditNotes.count || 0,
-        subscriptions: subscriptions.count || 0,
         openInvoices: openInvoices.count || 0,
-        invoicesWithPdf: invoicesWithPdf.count || 0,
-        suppliers: suppliers.count || 0,
-        purchaseOrders: purchaseOrders.count || 0,
-        supplierDocuments: supplierDocuments.count || 0,
-        openSupplierInvoices: openSupplierInvoices.count || 0,
-        posSessions: posSessions.count || 0,
-        posTransactions: posTransactions.count || 0,
-        posCashMovements: posCashMovements.count || 0,
       };
     },
     enabled: !!currentTenant,
   });
+
+  const triggerQBundle = () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error('Selecteer eerst een periode');
+      return;
+    }
+    exportQBundle(dateRange);
+  };
+
+  const triggerIntervat = () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error('Selecteer eerst een periode');
+      return;
+    }
+    exportIntervatBundle(dateRange);
+  };
 
   return (
     <div className="space-y-6">
@@ -228,7 +94,7 @@ const Reports = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Rapporten</h1>
           <p className="text-muted-foreground">
-            Exporteer alle data voor uw boekhouding in CSV of Excel formaat
+            Genereer en download fiscale rapporten en aangiftes voor uw boekhouder
           </p>
         </div>
         <Badge variant="outline" className="w-fit gap-2">
@@ -236,6 +102,48 @@ const Reports = () => {
           Rapportage Hub
         </Badge>
       </div>
+
+      {/* Quick Actions Bar */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            Snelle Acties
+          </CardTitle>
+          <CardDescription>
+            Eén klik voor uw boekhouder of voor INTERVAT upload
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              size="lg"
+              disabled={isBundling}
+              onClick={triggerQBundle}
+            >
+              {isBundling ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <PackageIcon className="h-4 w-4 mr-2" />
+              )}
+              {isBundling ? 'Pakket samenstellen…' : 'Fiscaal Pakket Downloaden'}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              disabled={isBundling}
+              onClick={triggerIntervat}
+            >
+              {isBundling ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileCode className="h-4 w-4 mr-2" />
+              )}
+              INTERVAT Upload-pakket
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Global Date Range Picker */}
       <Card>
@@ -245,428 +153,85 @@ const Reports = () => {
             Rapportage Periode
           </CardTitle>
           <CardDescription>
-            Selecteer de periode voor datumafhankelijke rapporten
+            Selecteer de periode voor alle rapporten op deze pagina
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <GlobalDateRangePicker 
-            dateRange={dateRange} 
-            onDateRangeChange={setDateRange} 
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {quickPresets.map((p) => (
+              <Button
+                key={p.label}
+                size="sm"
+                variant="secondary"
+                onClick={() => setDateRange(p.getRange())}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          <GlobalDateRangePicker
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
           />
         </CardContent>
       </Card>
 
       {/* Report Categories */}
-      <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="financial" className="gap-2">
-            <TrendingUp className="h-4 w-4 hidden sm:block" />
-            Financieel
+      <Tabs defaultValue="aangiftes" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="aangiftes" className="gap-2">
+            <FileCheck className="h-4 w-4" />
+            Aangiftes
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-2">
-            <FileText className="h-4 w-4 hidden sm:block" />
-            Facturen
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="gap-2">
-            <ShoppingCart className="h-4 w-4 hidden sm:block" />
-            Orders
-          </TabsTrigger>
-          <TabsTrigger value="customers" className="gap-2">
-            <Users className="h-4 w-4 hidden sm:block" />
-            Klanten
-          </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2">
-            <Package className="h-4 w-4 hidden sm:block" />
-            Producten
-          </TabsTrigger>
-          <TabsTrigger value="subscriptions" className="gap-2">
-            <RefreshCw className="h-4 w-4 hidden sm:block" />
-            Abonnementen
-          </TabsTrigger>
-          <TabsTrigger value="purchasing" className="gap-2">
-            <Factory className="h-4 w-4 hidden sm:block" />
-            Inkoop
-          </TabsTrigger>
-          <TabsTrigger value="pos" className="gap-2">
-            <Monitor className="h-4 w-4 hidden sm:block" />
-            Kassa
+          <TabsTrigger value="boekhouding" className="gap-2">
+            <Calculator className="h-4 w-4" />
+            Boekhouding
           </TabsTrigger>
         </TabsList>
 
-        {/* Financial Reports */}
-        <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Omzetrapport"
-              description="Totale omzet per periode met BTW en netto"
-              icon={<TrendingUp className="h-5 w-5" />}
-              formats={['csv', 'xlsx', 'pdf']}
-              onExport={(format) => exportRevenueReport(dateRange, format, 'month')}
-              isLoading={isExportingRevenue}
-            />
+        <TabsContent value="aangiftes" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <ReportCard
               title="BTW-aangifte"
-              description="Binnenlandse verkopen per tarief, IC en export"
+              description="Volledige periodieke aangifte (vakken 00-88, IC, export)"
               icon={<CreditCard className="h-5 w-5" />}
-              formats={['csv', 'xlsx', 'pdf', 'intervat-xml', 'odoo-csv']}
+              formats={['xlsx', 'pdf', 'csv', 'intervat-xml', 'json']}
               onExport={(format) => exportVatReport(dateRange, format)}
               isLoading={isExportingVat}
             />
             <ReportCard
               title="IC-Listing"
-              description="Intracommunautaire leveringen per klant"
+              description="Intracommunautaire leveringen per klant (formulier 723)"
               icon={<Building2 className="h-5 w-5" />}
-              formats={['csv', 'xlsx', 'intervat-xml']}
+              formats={['xlsx', 'pdf', 'intervat-xml', 'json']}
               onExport={(format) => exportIcListing(dateRange, format)}
               isLoading={isExportingVat}
             />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="boekhouding" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <ReportCard
-              title="Openstaande Facturen (Aging)"
+              title="Omzetrapport"
+              description="Totale omzet per periode met BTW en netto"
+              icon={<TrendingUp className="h-5 w-5" />}
+              formats={['xlsx', 'pdf', 'csv']}
+              onExport={(format) => exportRevenueReport(dateRange, format, 'month')}
+              isLoading={isExportingRevenue}
+            />
+            <ReportCard
+              title="Openstaande Facturen Aging"
               description="Debiteurenoverzicht per verouderingsbucket"
               icon={<AlertTriangle className="h-5 w-5" />}
               recordCount={counts?.openInvoices}
-              formats={['csv', 'xlsx', 'pdf']}
+              formats={['xlsx', 'csv']}
               onExport={(format) => exportAgingReport(format)}
               isLoading={isExportingAging}
             />
           </div>
         </TabsContent>
-
-        {/* Invoice Reports */}
-        <TabsContent value="invoices" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Factuuroverzicht"
-              description="Alle facturen in de geselecteerde periode"
-              icon={<FileText className="h-5 w-5" />}
-              recordCount={counts?.invoices}
-              onExport={(format) => exportInvoices(dateRange, format)}
-              isLoading={isExportingInvoices}
-            />
-            <ReportCard
-              title="Creditnota Overzicht"
-              description="Alle creditnota's met originele factuur"
-              icon={<FileText className="h-5 w-5" />}
-              recordCount={counts?.creditNotes}
-              onExport={(format) => exportCreditNotes(dateRange, format)}
-              isLoading={isExportingCreditNotes}
-            />
-          </div>
-
-          <Separator />
-
-          <h3 className="text-lg font-medium">Bulk Downloads</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <BulkDownloadCard
-              title="Factuur PDF's Downloaden"
-              description="Download alle factuur-PDF's als ZIP bestand"
-              icon={<Download className="h-5 w-5" />}
-              count={counts?.invoicesWithPdf}
-              estimatedSize={`~${Math.round((counts?.invoicesWithPdf || 0) * 0.15)} MB`}
-              onDownload={() => downloadInvoicePdfs(dateRange)}
-              isDownloading={isDownloading}
-              progress={progress}
-            />
-            <BulkDownloadCard
-              title="UBL/XML Bestanden"
-              description="Download alle UBL bestanden voor Peppol"
-              icon={<FileSpreadsheet className="h-5 w-5" />}
-              count={counts?.invoicesWithPdf}
-              estimatedSize={`~${Math.round((counts?.invoicesWithPdf || 0) * 0.02)} MB`}
-              onDownload={() => downloadInvoiceUbls(dateRange)}
-              isDownloading={isDownloading}
-              progress={progress}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Order Reports */}
-        <TabsContent value="orders" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Bestellingen Overzicht"
-              description="Alle bestellingen met status en bedragen"
-              icon={<ShoppingCart className="h-5 w-5" />}
-              recordCount={counts?.orders}
-              onExport={(format) => exportOrders(dateRange, format)}
-              isLoading={isExportingOrders}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Customer Reports */}
-        <TabsContent value="customers" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Volledig Klantenbestand"
-              description="Alle klanten met contactgegevens en statistieken"
-              icon={<Users className="h-5 w-5" />}
-              recordCount={counts?.customers}
-              onExport={(format) => exportCustomers(format, 'all')}
-              isLoading={isExportingCustomers}
-            />
-            <ReportCard
-              title="B2B Klanten"
-              description="Alleen zakelijke klanten met BTW-nummers"
-              icon={<Building2 className="h-5 w-5" />}
-              onExport={(format) => exportCustomers(format, 'b2b')}
-              isLoading={isExportingCustomers}
-            />
-            <ReportCard
-              title="B2C Klanten"
-              description="Particuliere klanten"
-              icon={<User className="h-5 w-5" />}
-              onExport={(format) => exportCustomers(format, 'b2c')}
-              isLoading={isExportingCustomers}
-            />
-            <ReportCard
-              title="Top Klanten"
-              description="Gerangschikt op omzet met percentage van totaal"
-              icon={<TrendingUp className="h-5 w-5" />}
-              onExport={(format) => exportTopCustomers(dateRange, format)}
-              isLoading={isExportingCustomers}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Product Reports */}
-        <TabsContent value="products" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Productcatalogus"
-              description="Alle producten met SKU, prijs en voorraad"
-              icon={<Package className="h-5 w-5" />}
-              recordCount={counts?.products}
-              onExport={(format) => exportProducts(format)}
-              isLoading={isExportingProducts}
-            />
-            <ReportCard
-              title="Lage Voorraad"
-              description="Producten onder minimum voorraadniveau"
-              icon={<AlertTriangle className="h-5 w-5" />}
-              onExport={(format) => exportLowStock(format)}
-              isLoading={isExportingProducts}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Subscription Reports */}
-        <TabsContent value="subscriptions" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Actieve Abonnementen"
-              description="Alle lopende subscriptions met MRR"
-              icon={<RefreshCw className="h-5 w-5" />}
-              recordCount={counts?.subscriptions}
-              onExport={(format) => exportSubscriptions(format, 'active')}
-              isLoading={isExportingSubscriptions}
-            />
-            <ReportCard
-              title="Alle Abonnementen"
-              description="Inclusief beëindigde en gepauzeerde"
-              icon={<RefreshCw className="h-5 w-5" />}
-              onExport={(format) => exportSubscriptions(format)}
-              isLoading={isExportingSubscriptions}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Purchasing Reports */}
-        <TabsContent value="purchasing" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Leveranciersbestand"
-              description="Alle leveranciers met contactgegevens en financiële info"
-              icon={<Factory className="h-5 w-5" />}
-              recordCount={counts?.suppliers}
-              onExport={(format) => exportSuppliers(format)}
-              isLoading={isExportingSuppliers}
-            />
-            <ReportCard
-              title="Inkooporders"
-              description="Alle inkooporders in de geselecteerde periode"
-              icon={<ClipboardList className="h-5 w-5" />}
-              recordCount={counts?.purchaseOrders}
-              onExport={(format) => exportPurchaseOrders(dateRange, format)}
-              isLoading={isExportingPurchaseOrders}
-            />
-            <ReportCard
-              title="Openstaande Crediteuren"
-              description="Leveranciersfacturen per verouderingsbucket"
-              icon={<AlertTriangle className="h-5 w-5" />}
-              recordCount={counts?.openSupplierInvoices}
-              onExport={(format) => exportCreditorAging(format)}
-              isLoading={isExportingSupplierDocs}
-            />
-            <ReportCard
-              title="Top Leveranciers"
-              description="Gerangschikt op inkoopvolume met percentage"
-              icon={<TrendingUp className="h-5 w-5" />}
-              onExport={(format) => exportTopSuppliers(dateRange, format)}
-              isLoading={isExportingTopSuppliers}
-            />
-            <ReportCard
-              title="Leveranciersfacturen"
-              description="Alle inkoopfacturen in de periode"
-              icon={<FileText className="h-5 w-5" />}
-              onExport={(format) => exportSupplierDocuments(dateRange, format)}
-              isLoading={isExportingSupplierDocs}
-            />
-            <ReportCard
-              title="Alle Inkoopdocumenten"
-              description="Facturen, offertes, pakbonnen en meer"
-              icon={<FileBox className="h-5 w-5" />}
-              recordCount={counts?.supplierDocuments}
-              onExport={(format) => exportSupplierDocuments(dateRange, format)}
-              isLoading={isExportingSupplierDocs}
-            />
-          </div>
-
-          <Separator />
-
-          <h3 className="text-lg font-medium">Bulk Downloads</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <BulkDownloadCard
-              title="Leveranciersdocumenten Downloaden"
-              description="Download alle inkoopdocumenten als ZIP"
-              icon={<Download className="h-5 w-5" />}
-              count={counts?.supplierDocuments}
-              estimatedSize={`~${Math.round((counts?.supplierDocuments || 0) * 0.15)} MB`}
-              onDownload={() => downloadSupplierDocuments(dateRange)}
-              isDownloading={isDownloadingSupplierDocs}
-              progress={supplierDocsProgress}
-            />
-          </div>
-        </TabsContent>
-
-        {/* POS Reports */}
-        <TabsContent value="pos" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReportCard
-              title="Kassa Transacties"
-              description="Alle kassaverkopen met betalingsdetails"
-              icon={<Receipt className="h-5 w-5" />}
-              recordCount={counts?.posTransactions}
-              onExport={(format) => exportTransactions(dateRange, format)}
-              isLoading={isExportingTransactions}
-            />
-            <ReportCard
-              title="Dagoverzicht"
-              description="Omzet per dag met contant/PIN opsplitsing"
-              icon={<Calendar className="h-5 w-5" />}
-              onExport={(format) => exportDailySummary(dateRange, format)}
-              isLoading={isExportingTransactions}
-            />
-            <ReportCard
-              title="Kassasessies"
-              description="Alle dagafsluitingen met kascontrole"
-              icon={<Monitor className="h-5 w-5" />}
-              recordCount={counts?.posSessions}
-              onExport={(format) => exportSessions(dateRange, format)}
-              isLoading={isExportingSessions}
-            />
-            <ReportCard
-              title="Kasmutaties"
-              description="Stortingen en opnames uit de kassa"
-              icon={<Banknote className="h-5 w-5" />}
-              recordCount={counts?.posCashMovements}
-              onExport={(format) => exportCashMovements(dateRange, format)}
-              isLoading={isExportingCashMovements}
-            />
-          </div>
-        </TabsContent>
       </Tabs>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Snelle Acties
-          </CardTitle>
-          <CardDescription>
-            Download complete pakketten voor uw boekhouder
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TooltipProvider>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                disabled={isBundling}
-                onClick={() => {
-                  if (!dateRange?.from || !dateRange?.to) {
-                    toast.error('Selecteer eerst een periode bovenaan');
-                    return;
-                  }
-                  exportQBundle(dateRange);
-                }}
-              >
-                {isBundling ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Package2 className="h-4 w-4 mr-2" />
-                )}
-                {isBundling ? 'Pakket samenstellen…' : 'Download Fiscaal Pakket'}
-              </Button>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={0}>
-                    <Button
-                      variant="outline"
-                      disabled
-                      className="opacity-50 cursor-not-allowed pointer-events-none"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Stamgegevens
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Komt binnenkort — exporteert klanten, producten en categorieën
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={0}>
-                    <Button
-                      variant="outline"
-                      disabled
-                      className="opacity-50 cursor-not-allowed pointer-events-none"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Crediteuren Pakket
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Komt binnenkort — openstaande facturen + aging + Stripe payouts
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={0}>
-                    <Button
-                      variant="outline"
-                      disabled
-                      className="opacity-50 cursor-not-allowed pointer-events-none"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Kassa Pakket
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Komt binnenkort — POS-transacties + kasstaten
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
-        </CardContent>
-      </Card>
     </div>
   );
 };
