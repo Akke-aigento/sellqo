@@ -11,8 +11,8 @@
  * Full XSD + Schematron validation is intentionally deferred to Fase 4.7.
  */
 
-import { resolveEndpointId, stripVatCountry, vatCountryCode, type PartyIdentity } from './identifiers';
-import { taxCategoryFor, type TaxCategoryMapping } from './tax-categories';
+import { resolveEndpointId, stripVatCountry, vatCountryCode, type PartyIdentity } from './identifiers.ts';
+import { taxCategoryFor, type TaxCategoryMapping } from './tax-categories.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types
