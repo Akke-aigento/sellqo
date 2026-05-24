@@ -29,6 +29,8 @@ export interface RegimeInput {
   invoice_lines: RegimeInputLine[];
   sales_channel?: SalesChannel;
   override_regime?: VatRegimeCode;
+  /** ISO date (yyyy-mm-dd) of the order/invoice — used to gate OSS by activation date. Defaults to today. */
+  order_date?: string;
 }
 
 export interface RegimeInvoiceLevel {
@@ -150,10 +152,16 @@ export async function resolveVatRegime(
   if (!customer) throw new Error('Customer not found');
 
   const { data: tenant } = await supabase
-    .from('tenants').select('id, country, oss_enabled, simplified_vat_mode').eq('id', input.tenant_id).maybeSingle();
+    .from('tenants')
+    .select('id, country, oss_enabled, simplified_vat_mode, oss_activation_date')
+    .eq('id', input.tenant_id)
+    .maybeSingle();
   const tenantCountry = ((tenant?.country as string | null) || 'BE').toUpperCase();
   const ossEnabled = (tenant as { oss_enabled?: boolean } | null)?.oss_enabled === true;
   const simplifiedVat = (tenant as { simplified_vat_mode?: boolean } | null)?.simplified_vat_mode === true;
+  const ossActivationDate = (tenant as { oss_activation_date?: string | null } | null)?.oss_activation_date || null;
+  const orderDate = (input.order_date || new Date().toISOString().slice(0, 10));
+  const ossActive = ossEnabled && (!ossActivationDate || orderDate >= ossActivationDate);
   const customerCountry = ((customer.billing_country as string | null) || tenantCountry).toUpperCase();
   const isB2B = ((customer.customer_type as string | null) || '').toLowerCase() === 'b2b';
 
@@ -198,14 +206,16 @@ export async function resolveVatRegime(
       } else if (!isB2B && simplifiedVat) {
         // PRIORITY 1: simplified VAT mode overrides cross-border complexity
         invoiceLevel.vat_regime = 'domestic_standard';
-      } else if (!isB2B && ossEnabled) {
-        // PRIORITY 2: OSS B2C EU
+      } else if (!isB2B && ossActive) {
+        // PRIORITY 2: OSS B2C EU (only on/after activation date)
         invoiceLevel.vat_regime = 'oss_b2c_eu';
       } else {
         // PRIORITY 3: fallback domestic_standard (tenant home country rate)
         invoiceLevel.vat_regime = 'domestic_standard';
         if (isB2B) {
           warnings.push('EU B2B customer without valid VIES — treated as B2C (domestic_standard)');
+        } else if (ossEnabled && ossActivationDate && orderDate < ossActivationDate) {
+          warnings.push(`Cross-border EU B2C vóór OSS-activatiedatum ${ossActivationDate} — geclassificeerd als domestic_standard`);
         } else {
           warnings.push('Cross-border EU B2C zonder OSS — controleer of jaaromzet onder €10k drempel blijft');
         }

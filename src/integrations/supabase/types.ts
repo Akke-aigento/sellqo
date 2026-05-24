@@ -16116,6 +16116,7 @@ export type Database = {
           logo_url: string | null
           name: string
           notification_email: string | null
+          oss_activation_date: string | null
           oss_enabled: boolean | null
           oss_identification_number: string | null
           oss_registration_date: string | null
@@ -16222,6 +16223,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           notification_email?: string | null
+          oss_activation_date?: string | null
           oss_enabled?: boolean | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
@@ -16328,6 +16330,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           notification_email?: string | null
+          oss_activation_date?: string | null
           oss_enabled?: boolean | null
           oss_identification_number?: string | null
           oss_registration_date?: string | null
