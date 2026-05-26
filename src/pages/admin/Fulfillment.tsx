@@ -8,8 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -17,14 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -41,10 +31,10 @@ import {
   Truck, 
   Package,
   ExternalLink,
-  Printer,
   CheckCircle2,
   Upload,
-  Eye
+  Eye,
+  Pencil
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -52,6 +42,9 @@ import { CARRIER_PATTERNS, generateTrackingUrl } from '@/lib/carrierPatterns';
 import { useNavigate } from 'react-router-dom';
 import { TrackingImportDialog } from '@/components/admin/fulfillment/TrackingImportDialog';
 import { FulfillmentBulkActions } from '@/components/admin/FulfillmentBulkActions';
+import { PageHeader } from '@/components/ui/page-header';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 
 type FulfillmentStatus = 'unfulfilled' | 'partial' | 'shipped' | 'delivered';
 
@@ -265,30 +258,112 @@ export default function Fulfillment() {
     return parts.join(', ') || 'Geen adres';
   };
 
+  const buildActions = (order: FulfillmentOrder): ActionItem[] => {
+    const items: ActionItem[] = [
+      {
+        label: order.tracking_number ? 'Tracking bewerken' : 'Tracking toevoegen',
+        icon: order.tracking_number ? <Pencil className="h-4 w-4" /> : <Truck className="h-4 w-4" />,
+        onClick: () => openTrackingDialog(order),
+      },
+    ];
+    if (!isWarehouse) {
+      items.push({
+        label: 'Order details',
+        icon: <Eye className="h-4 w-4" />,
+        onClick: () => navigate(`/admin/orders/${order.id}`),
+      });
+    }
+    return items;
+  };
+
+  const columns: ColumnDef<FulfillmentOrder>[] = [
+    {
+      id: 'order',
+      header: 'Order',
+      render: (order) => (
+        <div>
+          <div className="font-medium">{order.order_number}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
+            {getMarketplaceBadge(order.marketplace_source)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'customer',
+      header: 'Klant',
+      render: (order) => (
+        <div>
+          <div>{order.customer_name || 'Onbekend'}</div>
+          <div className="text-xs text-muted-foreground max-w-[200px] truncate">
+            {parseAddress(order.shipping_address)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'items',
+      header: 'Items',
+      priority: 'lg',
+      render: (order) => <Badge variant="secondary">{order.item_count} items</Badge>,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      render: (order) => getStatusBadge(order.fulfillment_status),
+    },
+    {
+      id: 'tracking',
+      header: 'Tracking',
+      priority: 'xl',
+      render: (order) => order.tracking_number ? (
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-sm font-mono">{order.tracking_number}</span>
+          {order.tracking_url && (
+            <a
+              href={order.tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      ) : (
+        <span className="text-muted-foreground text-sm">-</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      align: 'right',
+      width: '50px',
+      render: (order) => <ActionsMenu items={buildActions(order)} />,
+    },
+  ];
+
   return (
     <div className={`space-y-6 ${selectedOrders.size > 0 ? 'pb-20' : ''}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2">
-            <PackageCheck className="h-6 w-6 sm:h-8 sm:w-8" />
-            Fulfillment Queue
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Beheer verzendingen en tracking
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">CSV Import</span>
-            <span className="sm:hidden">Import</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Vernieuwen</span>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Fulfillment Queue"
+        description="Beheer verzendingen en tracking"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">CSV Import</span>
+              <span className="sm:hidden">Import</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Vernieuwen</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card>
@@ -339,125 +414,51 @@ export default function Fulfillment() {
             {orders?.length || 0} orders gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-0 sm:px-6">
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : !orders || orders.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <PackageCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Geen orders gevonden</p>
-            </div>
-          ) : (
-            <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedOrders.size === orders.length}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden sm:table-cell">Items</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Tracking</TableHead>
-                  <TableHead className="text-right">Acties</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedOrders.has(order.id)}
-                        onCheckedChange={() => handleSelectOrder(order.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{order.order_number}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-2">
-                        {formatDistanceToNow(new Date(order.created_at), {
-                          addSuffix: true,
-                          locale: nl,
-                        })}
-                        {getMarketplaceBadge(order.marketplace_source)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>{order.customer_name || 'Onbekend'}</div>
-                      <div className="text-xs text-muted-foreground max-w-[200px] truncate">
-                        {parseAddress(order.shipping_address)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="secondary">{order.item_count} items</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(order.fulfillment_status)}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {order.tracking_number ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono">{order.tracking_number}</span>
-                          {order.tracking_url && (
-                            <a
-                              href={order.tracking_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 sm:gap-2">
-                        {!order.tracking_number ? (
-                          <Button
-                            size="sm"
-                            onClick={() => openTrackingDialog(order)}
-                          >
-                            <Truck className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Tracking</span>
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openTrackingDialog(order)}
-                          >
-                            <span className="hidden sm:inline">Bewerken</span>
-                            <span className="sm:hidden">Edit</span>
-                          </Button>
-                        )}
-                        {!isWarehouse && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
-                          >
-                            <span className="hidden sm:inline">Details</span>
-                            <Eye className="h-4 w-4 sm:hidden" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
-          )}
+        <CardContent>
+          <ResponsiveDataTable
+            columns={columns}
+            rows={orders || []}
+            getRowKey={(o) => o.id}
+            isLoading={isLoading}
+            cardModeBreakpoint="compact"
+            selectedIds={Array.from(selectedOrders)}
+            onSelectionChange={(ids) => setSelectedOrders(new Set(ids))}
+            emptyState={
+              <div className="flex flex-col items-center py-6 text-muted-foreground">
+                <PackageCheck className="h-12 w-12 mb-4 opacity-50" />
+                <p>Geen orders gevonden</p>
+              </div>
+            }
+            mobileCardRender={(order) => (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{order.order_number}</div>
+                    <div className="text-xs text-muted-foreground truncate">{order.customer_name || 'Onbekend'}</div>
+                  </div>
+                  <ActionsMenu items={buildActions(order)} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {getStatusBadge(order.fulfillment_status)}
+                  {getMarketplaceBadge(order.marketplace_source)}
+                  <Badge variant="secondary">{order.item_count} items</Badge>
+                </div>
+                {order.tracking_number && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-mono">{order.tracking_number}</span>
+                    {order.tracking_url && (
+                      <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className="text-primary" onClick={(e) => e.stopPropagation()}>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: nl })}
+                </div>
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
 
