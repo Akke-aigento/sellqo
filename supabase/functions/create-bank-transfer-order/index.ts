@@ -195,7 +195,8 @@ serve(async (req) => {
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
         enable_b2b_checkout, simplified_vat_mode,
-        default_vat_handling
+        default_vat_handling,
+        require_vies_validation, block_invalid_vat_orders
       `)
       .eq("id", tenant_id)
       .single();
@@ -211,6 +212,32 @@ serve(async (req) => {
       tenantName: tenant.name, 
       iban: tenant.iban ? `${tenant.iban.slice(0, 8)}...` : null,
     });
+
+    // Enforce tenant policy: block B2B bank-transfer order when VIES validation
+    // is required and the supplied VAT number cannot be validated.
+    {
+      const requireVies = (tenant as any).require_vies_validation !== false;
+      const blockOnInvalid = (tenant as any).block_invalid_vat_orders === true;
+      const billingCountry = (billing_address?.country || shipping_address?.country || tenant.country || '').toUpperCase();
+      if (
+        requireVies && blockOnInvalid &&
+        customer_type === 'b2b' && vat_number &&
+        billingCountry && billingCountry !== (tenant.country || '').toUpperCase()
+      ) {
+        const normalizedVat = `${billingCountry}${String(vat_number).replace(/^[A-Z]{2}/i, '')}`;
+        const viesResult = await supabaseClient.functions.invoke('validate-vat', {
+          body: { vat_number: normalizedVat },
+        });
+        if (!viesResult.data?.valid) {
+          logStep('VIES blocked bank-transfer order', { normalizedVat, viesResult: viesResult.data });
+          return new Response(JSON.stringify({
+            error: 'invalid_vat_number',
+            message: 'BTW-nummer kon niet worden gevalideerd via VIES. Bestelling geblokkeerd per tenant-instelling.',
+            code: 'VIES_INVALID_BLOCKED',
+          }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+    }
 
     // Determine customer country
     let customerCountry = tenant.country || 'BE';
