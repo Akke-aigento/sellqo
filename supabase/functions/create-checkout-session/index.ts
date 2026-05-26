@@ -376,7 +376,8 @@ serve(async (req) => {
         oss_enabled, oss_threshold_reached,
         reverse_charge_text, export_text,
         enable_b2b_checkout, simplified_vat_mode,
-        default_vat_handling, stripe_payment_methods
+        default_vat_handling, stripe_payment_methods,
+        require_vies_validation, block_invalid_vat_orders
       `)
       .eq("id", tenant_id)
       .single();
@@ -410,6 +411,32 @@ serve(async (req) => {
     const effectiveVatNumber = tenant.enable_b2b_checkout === false
       ? undefined
       : vat_number;
+
+    // Enforce tenant policy: block B2B checkout when VIES validation is required
+    // and the supplied VAT number cannot be validated.
+    {
+      const requireVies = (tenant as any).require_vies_validation !== false;
+      const blockOnInvalid = (tenant as any).block_invalid_vat_orders === true;
+      const billingCountry = (billing_address?.country || shipping_address?.country || tenant.country || '').toUpperCase();
+      if (
+        requireVies && blockOnInvalid &&
+        effectiveCustomerType === 'b2b' && effectiveVatNumber &&
+        billingCountry && billingCountry !== (tenant.country || '').toUpperCase()
+      ) {
+        const normalizedVat = `${billingCountry}${String(effectiveVatNumber).replace(/^[A-Z]{2}/i, '')}`;
+        const viesResult = await supabaseClient.functions.invoke('validate-vat', {
+          body: { vat_number: normalizedVat },
+        });
+        if (!viesResult.data?.valid) {
+          logStep('VIES blocked checkout', { normalizedVat, viesResult: viesResult.data });
+          return new Response(JSON.stringify({
+            error: 'invalid_vat_number',
+            message: 'BTW-nummer kon niet worden gevalideerd via VIES. Bestelling geblokkeerd per tenant-instelling.',
+            code: 'VIES_INVALID_BLOCKED',
+          }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
