@@ -1,0 +1,1 @@
+ALTER FUNCTION public.sync_oss_tenant_columns() SET search_path = public;
