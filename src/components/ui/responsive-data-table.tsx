@@ -2,7 +2,7 @@ import * as React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useViewMode } from "@/hooks/use-breakpoint";
 import { cn } from "@/lib/utils";
 
 export type ColumnPriority = "always" | "md" | "lg" | "xl";
@@ -26,6 +26,12 @@ export interface ResponsiveDataTableProps<T> {
   isLoading?: boolean;
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  /**
+   * At which breakpoint the table collapses into mobile card view.
+   * - 'mobile' (default): cards below md (<768px)
+   * - 'compact': cards below lg (<1024px) — use for tables with many columns or row actions
+   */
+  cardModeBreakpoint?: "mobile" | "compact";
 }
 
 const PRIORITY_HIDE_CLASS: Record<ColumnPriority, string> = {
@@ -51,8 +57,13 @@ export function ResponsiveDataTable<T>({
   isLoading,
   selectedIds,
   onSelectionChange,
+  cardModeBreakpoint = "mobile",
 }: ResponsiveDataTableProps<T>) {
-  const isMobile = useIsMobile();
+  const viewMode = useViewMode();
+  const useCards =
+    cardModeBreakpoint === "compact"
+      ? viewMode === "mobile" || viewMode === "compact"
+      : viewMode === "mobile";
   const selectable = !!onSelectionChange;
   const selectedSet = React.useMemo(() => new Set(selectedIds ?? []), [selectedIds]);
 
@@ -87,7 +98,7 @@ export function ResponsiveDataTable<T>({
     );
   }
 
-  if (isMobile) {
+  if (useCards) {
     return (
       <div className="space-y-3">
         {rows.map((row) => {
