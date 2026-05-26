@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Eye, Copy, Send, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Copy, Send, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,21 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +22,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { QuoteStatusBadge } from '@/components/admin/QuoteStatusBadge';
+import { PageHeader } from '@/components/ui/page-header';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { useQuotes } from '@/hooks/useQuotes';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -70,20 +58,46 @@ export default function QuotesPage() {
     return name || quote.customer.email;
   };
 
+  const buildActions = (quote: Quote): ActionItem[] => {
+    const items: ActionItem[] = [
+      { label: 'Bekijken', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/admin/orders/quotes/${quote.id}`) },
+      { label: 'Kopiëren', icon: <Copy className="h-4 w-4" />, onClick: () => { /* TODO */ } },
+    ];
+    if (quote.status === 'draft') {
+      items.push({ label: 'Versturen', icon: <Send className="h-4 w-4" />, onClick: () => handleSend(quote) });
+    }
+    items.push({
+      label: 'Verwijderen',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      separator: true,
+      onClick: () => setDeleteQuote(quote),
+    });
+    return items;
+  };
+
+  const columns: ColumnDef<Quote>[] = [
+    { id: 'number', header: 'Nummer', render: (q) => <span className="font-medium">{q.quote_number}</span> },
+    { id: 'customer', header: 'Klant', render: (q) => <span className="block max-w-[180px] truncate">{getCustomerName(q)}</span> },
+    { id: 'status', header: 'Status', render: (q) => <QuoteStatusBadge status={q.status} /> },
+    { id: 'valid_until', header: 'Geldig tot', priority: 'md', render: (q) => q.valid_until ? format(new Date(q.valid_until), 'd MMM yyyy', { locale: nl }) : '-' },
+    { id: 'total', header: 'Totaal', align: 'right', render: (q) => <span className="font-medium">€{Number(q.total).toFixed(2)}</span> },
+    { id: 'created_at', header: 'Datum', align: 'right', priority: 'md', render: (q) => <span className="text-muted-foreground">{format(new Date(q.created_at), 'd MMM yyyy', { locale: nl })}</span> },
+    { id: 'actions', header: '', align: 'right', width: '50px', render: (q) => <ActionsMenu items={buildActions(q)} /> },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Offertes</h1>
-          <p className="text-muted-foreground">
-            Maak en beheer offertes voor je klanten
-          </p>
-        </div>
-        <Button onClick={() => navigate('/admin/orders/quotes/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nieuwe offerte
-        </Button>
-      </div>
+      <PageHeader
+        title="Offertes"
+        description="Maak en beheer offertes voor je klanten"
+        actions={
+          <Button onClick={() => navigate('/admin/orders/quotes/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nieuwe offerte
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader className="pb-3">
@@ -122,112 +136,43 @@ export default function QuotesPage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Offertes laden...</p>
             </div>
-          ) : quotes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mb-4" />
-              <p className="text-lg font-medium">Geen offertes gevonden</p>
-              <p className="text-sm">
-                {search || statusFilter !== 'all' 
-                  ? 'Probeer andere filters' 
-                  : 'Maak je eerste offerte aan'}
-              </p>
-              {!search && statusFilter === 'all' && (
-                <Button 
-                  className="mt-4" 
-                  onClick={() => navigate('/admin/orders/quotes/new')}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nieuwe offerte
-                </Button>
-              )}
-            </div>
           ) : (
-            <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nummer</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">Geldig tot</TableHead>
-                  <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="hidden sm:table-cell text-right">Datum</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {quotes.map((quote) => (
-                  <TableRow 
-                    key={quote.id} 
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/admin/orders/quotes/${quote.id}`)}
-                  >
-                    <TableCell className="font-medium">{quote.quote_number}</TableCell>
-                    <TableCell className="max-w-[180px] truncate">{getCustomerName(quote)}</TableCell>
-                    <TableCell>
-                      <QuoteStatusBadge status={quote.status} />
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {quote.valid_until 
-                        ? format(new Date(quote.valid_until), 'd MMM yyyy', { locale: nl })
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      €{Number(quote.total).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-right text-muted-foreground">
-                      {format(new Date(quote.created_at), 'd MMM yyyy', { locale: nl })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/admin/orders/quotes/${quote.id}`);
-                          }}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Bekijken
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            // TODO: Implement copy
-                          }}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Kopiëren
-                          </DropdownMenuItem>
-                          {quote.status === 'draft' && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleSend(quote);
-                            }}>
-                              <Send className="mr-2 h-4 w-4" />
-                              Versturen
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteQuote(quote);
-                            }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Verwijderen
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
+            <ResponsiveDataTable
+              columns={columns}
+              rows={quotes}
+              getRowKey={(q) => q.id}
+              onRowClick={(q) => navigate(`/admin/orders/quotes/${q.id}`)}
+              cardModeBreakpoint="compact"
+              emptyState={
+                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                  <FileText className="h-12 w-12 mb-4" />
+                  <p className="text-lg font-medium">Geen offertes gevonden</p>
+                  <p className="text-sm">
+                    {search || statusFilter !== 'all'
+                      ? 'Probeer andere filters'
+                      : 'Maak je eerste offerte aan'}
+                  </p>
+                </div>
+              }
+              mobileCardRender={(quote) => (
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium">{quote.quote_number}</div>
+                      <div className="text-sm text-muted-foreground truncate">{getCustomerName(quote)}</div>
+                    </div>
+                    <ActionsMenu items={buildActions(quote)} />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <QuoteStatusBadge status={quote.status} />
+                    <span className="font-medium">€{Number(quote.total).toFixed(2)}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {quote.valid_until ? `Geldig tot ${format(new Date(quote.valid_until), 'd MMM yyyy', { locale: nl })}` : format(new Date(quote.created_at), 'd MMM yyyy', { locale: nl })}
+                  </div>
+                </div>
+              )}
+            />
           )}
         </CardContent>
       </Card>

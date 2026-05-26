@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, MoreHorizontal, Eye, XCircle, Plus } from 'lucide-react';
+import { RotateCcw, Eye, XCircle, Plus } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { useReturns, useReturnMutations, type ReturnFilters as ReturnFiltersType } from '@/hooks/useReturns';
 import { useTenant } from '@/hooks/useTenant';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ReturnStatusBadge, RefundStatusBadge, ReturnSourceBadge } from '@/components/admin/ReturnStatusBadge';
 import { ReturnFilters } from '@/components/admin/ReturnFilters';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { NewReturnFromScratchDialog } from '@/components/admin/NewReturnFromScratchDialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 
 export default function ReturnsPage() {
   const navigate = useNavigate();
@@ -52,20 +50,59 @@ export default function ReturnsPage() {
     );
   }
 
+  type ReturnRow = (typeof returns)[number];
+
+  const buildActions = (ret: ReturnRow): ActionItem[] => {
+    const items: ActionItem[] = [
+      { label: 'Bekijken', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/admin/returns/${ret.id}`) },
+    ];
+    if (ret.status !== 'cancelled' && ret.status !== 'closed' && ret.status !== 'completed') {
+      items.push({
+        label: 'Annuleren',
+        icon: <XCircle className="h-4 w-4" />,
+        variant: 'destructive',
+        separator: true,
+        onClick: () => updateReturnStatus.mutate({ returnId: ret.id, status: 'cancelled' }),
+      });
+    }
+    return items;
+  };
+
+  const columns: ColumnDef<ReturnRow>[] = [
+    { id: 'rma', header: 'RMA', render: (r) => <span className="font-mono text-sm font-medium">{r.rma_number || '-'}</span> },
+    { id: 'order', header: 'Order', render: (r) => <span className="font-mono text-sm">{r.orders?.order_number || r.marketplace_order_id || '-'}</span> },
+    { id: 'customer', header: 'Klant', priority: 'md', render: (r) => r.customer_name || '-' },
+    { id: 'items', header: 'Items', align: 'center', priority: 'lg', render: (r) => <span className="text-sm">{((r.items as any[]) || []).length}</span> },
+    { id: 'source', header: 'Bron', priority: 'lg', render: (r) => <ReturnSourceBadge source={r.source} /> },
+    { id: 'logistics', header: 'Logistiek', render: (r) => <ReturnStatusBadge status={r.status} /> },
+    { id: 'refund', header: 'Refund', priority: 'md', render: (r) => <RefundStatusBadge status={r.refund_status} /> },
+    { id: 'amount', header: 'Bedrag', align: 'right', render: (r) => r.refund_amount ? formatCurrency(r.refund_amount) : '-' },
+    {
+      id: 'date', header: 'Datum', priority: 'lg', render: (r) => (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: nl })}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{format(new Date(r.created_at), 'd MMM yyyy HH:mm', { locale: nl })}</TooltipContent>
+        </Tooltip>
+      ),
+    },
+    { id: 'actions', header: '', align: 'right', width: '50px', render: (r) => <ActionsMenu items={buildActions(r)} /> },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <RotateCcw className="h-6 w-6" />
-            Retouren
-          </h1>
-          <p className="text-muted-foreground">Beheer alle retouren van alle kanalen.</p>
-        </div>
-        <Button onClick={() => setShowNewReturn(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Nieuwe retour
-        </Button>
-      </div>
+      <PageHeader
+        title="Retouren"
+        description="Beheer alle retouren van alle kanalen."
+        actions={
+          <Button onClick={() => setShowNewReturn(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nieuwe retour
+          </Button>
+        }
+      />
 
       <ReturnFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -75,113 +112,50 @@ export default function ReturnsPage() {
           <CardDescription>{returns.length} retouren gevonden</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : returns.length === 0 ? (
-            <div className="text-center py-12">
-              <RotateCcw className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Nog geen retouren.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Retours kunnen worden aangemaakt vanaf de order detail pagina of via "+ Nieuwe retour".
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <TooltipProvider>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>RMA</TableHead>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Klant</TableHead>
-                      <TableHead className="text-center">Items</TableHead>
-                      <TableHead>Bron</TableHead>
-                      <TableHead>Logistiek</TableHead>
-                      <TableHead>Refund</TableHead>
-                      <TableHead className="text-right">Bedrag</TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {returns.map((ret) => {
-                      const items = (ret.items as any[]) || [];
-                      return (
-                        <TableRow
-                          key={ret.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/admin/returns/${ret.id}`)}
-                        >
-                          <TableCell className="font-mono text-sm font-medium">
-                            {ret.rma_number || '-'}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {ret.orders?.order_number || ret.marketplace_order_id || '-'}
-                          </TableCell>
-                          <TableCell>{ret.customer_name || '-'}</TableCell>
-                          <TableCell className="text-center">
-                            <span className="text-sm">{items.length}</span>
-                          </TableCell>
-                          <TableCell>
-                            <ReturnSourceBadge source={ret.source} />
-                          </TableCell>
-                          <TableCell>
-                            <ReturnStatusBadge status={ret.status} />
-                          </TableCell>
-                          <TableCell>
-                            <RefundStatusBadge status={ret.refund_status} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {ret.refund_amount ? formatCurrency(ret.refund_amount) : '-'}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-sm text-muted-foreground">
-                                  {formatDistanceToNow(new Date(ret.created_at), { addSuffix: true, locale: nl })}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {format(new Date(ret.created_at), 'd MMM yyyy HH:mm', { locale: nl })}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem onClick={() => navigate(`/admin/returns/${ret.id}`)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Bekijken
-                                </DropdownMenuItem>
-                                {ret.status !== 'cancelled' && ret.status !== 'closed' && ret.status !== 'completed' && (
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => updateReturnStatus.mutate({ returnId: ret.id, status: 'cancelled' })}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Annuleren
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TooltipProvider>
-            </div>
-          )}
+          <TooltipProvider>
+            <ResponsiveDataTable
+              columns={columns}
+              rows={returns}
+              getRowKey={(r) => r.id}
+              onRowClick={(r) => navigate(`/admin/returns/${r.id}`)}
+              isLoading={isLoading}
+              cardModeBreakpoint="compact"
+              emptyState={
+                <div className="flex flex-col items-center py-6">
+                  <RotateCcw className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Nog geen retouren.</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Retours kunnen worden aangemaakt vanaf de order detail pagina of via "+ Nieuwe retour".
+                  </p>
+                </div>
+              }
+              mobileCardRender={(ret) => {
+                const items = (ret.items as any[]) || [];
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-sm font-medium">{ret.rma_number || '-'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Order {ret.orders?.order_number || ret.marketplace_order_id || '-'} · {ret.customer_name || '-'}
+                        </div>
+                      </div>
+                      <ActionsMenu items={buildActions(ret)} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ReturnSourceBadge source={ret.source} />
+                      <ReturnStatusBadge status={ret.status} />
+                      <RefundStatusBadge status={ret.refund_status} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{items.length} items · {formatDistanceToNow(new Date(ret.created_at), { addSuffix: true, locale: nl })}</span>
+                      <span className="font-medium">{ret.refund_amount ? formatCurrency(ret.refund_amount) : '-'}</span>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+          </TooltipProvider>
         </CardContent>
       </Card>
 
