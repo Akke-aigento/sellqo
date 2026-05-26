@@ -70,7 +70,9 @@ export default function Fulfillment() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('unfulfilled');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    hasFinancialAccess && !isWarehouse ? 'all' : 'unfulfilled'
+  );
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
