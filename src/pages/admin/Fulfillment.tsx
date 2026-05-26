@@ -184,25 +184,6 @@ export default function Fulfillment() {
     },
   });
 
-  const handleSelectAll = () => {
-    if (!orders) return;
-    if (selectedOrders.size === orders.length) {
-      setSelectedOrders(new Set());
-    } else {
-      setSelectedOrders(new Set(orders.map(o => o.id)));
-    }
-  };
-
-  const handleSelectOrder = (orderId: string) => {
-    const newSelected = new Set(selectedOrders);
-    if (newSelected.has(orderId)) {
-      newSelected.delete(orderId);
-    } else {
-      newSelected.add(orderId);
-    }
-    setSelectedOrders(newSelected);
-  };
-
   const openTrackingDialog = (order: FulfillmentOrder) => {
     setSelectedOrder(order);
     setTrackingCarrier(order.carrier || '');
