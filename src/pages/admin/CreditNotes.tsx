@@ -9,12 +9,12 @@ import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CreditNoteStatus } from '@/types/creditNote';
+import { PageHeader } from '@/components/ui/page-header';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 
 export default function CreditNotesPage() {
   const { t } = useTranslation();
@@ -62,14 +62,44 @@ export default function CreditNotesPage() {
     return '-';
   };
 
+  type CN = (typeof creditNotes)[number];
+
+  const buildActions = (cn: CN): ActionItem[] => {
+    const items: ActionItem[] = [];
+    if (cn.pdf_url) {
+      items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(cn.pdf_url!, '_blank') });
+    }
+    if (cn.ubl_url) {
+      items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(cn.ubl_url!, '_blank') });
+    }
+    if (cn.original_invoice) {
+      items.push({ label: 'Originele factuur', icon: <ExternalLink className="h-4 w-4" />, onClick: () => navigate('/admin/orders/invoices') });
+    }
+    return items;
+  };
+
+  const columns: ColumnDef<CN>[] = [
+    { id: 'number', header: 'Nummer', render: (cn) => <span className="font-medium">{cn.credit_note_number}</span> },
+    { id: 'customer', header: 'Klant', render: (cn) => <span className="block max-w-[180px] truncate">{getCustomerName(cn)}</span> },
+    { id: 'original', header: 'Originele factuur', priority: 'lg', render: (cn) => cn.original_invoice ? (
+      <Button variant="link" className="p-0 h-auto font-normal" onClick={(e) => { e.stopPropagation(); navigate('/admin/orders/invoices'); }}>
+        {cn.original_invoice.invoice_number}
+        <ExternalLink className="h-3 w-3 ml-1" />
+      </Button>
+    ) : '-' },
+    { id: 'type', header: 'Type', priority: 'md', render: (cn) => getTypeBadge(cn.type) },
+    { id: 'date', header: 'Datum', priority: 'md', render: (cn) => format(new Date(cn.issue_date), 'd MMM yyyy', { locale: nl }) },
+    { id: 'amount', header: 'Bedrag', align: 'right', render: (cn) => <span className="font-medium text-destructive">-{formatCurrency(cn.total)}</span> },
+    { id: 'status', header: 'Status', render: (cn) => getStatusBadge(cn.status) },
+    { id: 'actions', header: '', align: 'right', width: '50px', render: (cn) => <ActionsMenu items={buildActions(cn)} /> },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('creditnote.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('creditnote.description', 'Beheer en bekijk alle creditnota\'s')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('creditnote.title')}
+        description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
+      />
 
       {/* Filters */}
       <Card>
@@ -113,107 +143,46 @@ export default function CreditNotesPage() {
             {creditNotes.length} creditnota's gevonden
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-0 sm:px-6">
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : creditNotes.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Geen creditnota's gevonden</h3>
-              <p className="text-muted-foreground mt-1">
-                {search || statusFilter !== 'all'
-                  ? 'Probeer andere zoekfilters'
-                  : 'Creditnota\'s worden aangemaakt via de factuurpagina'}
-              </p>
-            </div>
-          ) : (
-            <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nummer</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden md:table-cell">Originele factuur</TableHead>
-                  <TableHead className="hidden sm:table-cell">Type</TableHead>
-                  <TableHead className="hidden sm:table-cell">Datum</TableHead>
-                  <TableHead className="text-right">Bedrag</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Acties</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {creditNotes.map((creditNote) => (
-                  <TableRow key={creditNote.id}>
-                    <TableCell className="font-medium">
-                      {creditNote.credit_note_number}
-                    </TableCell>
-                    <TableCell className="max-w-[180px] truncate">{getCustomerName(creditNote)}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {creditNote.original_invoice ? (
-                        <Button
-                          variant="link"
-                          className="p-0 h-auto font-normal"
-                          onClick={() => navigate(`/admin/orders/invoices`)}
-                        >
-                          {creditNote.original_invoice.invoice_number}
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </Button>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{getTypeBadge(creditNote.type)}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {format(new Date(creditNote.issue_date), 'd MMM yyyy', { locale: nl })}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-destructive">
-                      -{formatCurrency(creditNote.total)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(creditNote.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {creditNote.pdf_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => window.open(creditNote.pdf_url!, '_blank')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Download PDF</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {creditNote.ubl_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => window.open(creditNote.ubl_url!, '_blank')}
-                              >
-                                <FileCode className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Download UBL/XML</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
-          )}
+        <CardContent>
+          <ResponsiveDataTable
+            columns={columns}
+            rows={creditNotes}
+            getRowKey={(cn) => cn.id}
+            isLoading={isLoading}
+            cardModeBreakpoint="compact"
+            emptyState={
+              <div className="flex flex-col items-center py-6">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Geen creditnota's gevonden</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {search || statusFilter !== 'all'
+                    ? 'Probeer andere zoekfilters'
+                    : "Creditnota's worden aangemaakt via de factuurpagina"}
+                </p>
+              </div>
+            }
+            mobileCardRender={(cn) => (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{cn.credit_note_number}</div>
+                    <div className="text-sm text-muted-foreground truncate">{getCustomerName(cn)}</div>
+                  </div>
+                  <ActionsMenu items={buildActions(cn)} />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    {getTypeBadge(cn.type)}
+                    {getStatusBadge(cn.status)}
+                  </div>
+                  <span className="font-medium text-destructive">-{formatCurrency(cn.total)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {format(new Date(cn.issue_date), 'd MMM yyyy', { locale: nl })}
+                </div>
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
     </div>
