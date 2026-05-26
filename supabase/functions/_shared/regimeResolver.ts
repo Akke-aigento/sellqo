@@ -153,13 +153,21 @@ export async function resolveVatRegime(
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, country, oss_enabled, simplified_vat_mode, oss_activation_date')
+    .select('id, country, oss_enabled, apply_oss_rules, simplified_vat_mode, oss_activation_date, oss_registration_date')
     .eq('id', input.tenant_id)
     .maybeSingle();
   const tenantCountry = ((tenant?.country as string | null) || 'BE').toUpperCase();
-  const ossEnabled = (tenant as { oss_enabled?: boolean } | null)?.oss_enabled === true;
+  // Defensive read: accept either naming convention (apply_oss_rules/oss_enabled,
+  // oss_registration_date/oss_activation_date) — DB trigger keeps them in sync,
+  // but this fallback guards against any out-of-band updates.
+  const ossEnabled =
+    (tenant as any)?.oss_enabled === true ||
+    (tenant as any)?.apply_oss_rules === true;
   const simplifiedVat = (tenant as { simplified_vat_mode?: boolean } | null)?.simplified_vat_mode === true;
-  const ossActivationDate = (tenant as { oss_activation_date?: string | null } | null)?.oss_activation_date || null;
+  const ossActivationDate =
+    (tenant as any)?.oss_activation_date ||
+    (tenant as any)?.oss_registration_date ||
+    null;
   const orderDate = (input.order_date || new Date().toISOString().slice(0, 10));
   const ossActive = ossEnabled && (!ossActivationDate || orderDate >= ossActivationDate);
   const customerCountry = ((customer.billing_country as string | null) || tenantCountry).toUpperCase();
