@@ -31,8 +31,10 @@ function AdminLayoutContent() {
           <SandboxBanner isDemo={currentTenant?.is_demo === true} />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
-          <main className="flex-1 p-4 lg:p-6 min-w-0 overflow-y-auto overflow-x-hidden pb-20 md:pb-6">
-            <Outlet />
+          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-20 md:pb-6">
+            <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0">
+              <Outlet />
+            </div>
           </main>
         </SidebarInset>
       </div>
