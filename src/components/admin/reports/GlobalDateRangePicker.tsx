@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 export interface DateRange {
   from: Date;
   to: Date;
+  type?: 'monthly' | 'quarterly' | 'annual' | 'custom';
 }
 
 interface GlobalDateRangePickerProps {
@@ -37,6 +38,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfMonth(new Date()),
       to: endOfMonth(new Date()),
+      type: 'monthly',
     }),
   },
   {
@@ -45,6 +47,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfMonth(subMonths(new Date(), 1)),
       to: endOfMonth(subMonths(new Date(), 1)),
+      type: 'monthly',
     }),
   },
   {
@@ -53,6 +56,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfQuarter(new Date()),
       to: endOfQuarter(new Date()),
+      type: 'quarterly',
     }),
   },
   {
@@ -61,6 +65,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfQuarter(subQuarters(new Date(), 1)),
       to: endOfQuarter(subQuarters(new Date(), 1)),
+      type: 'quarterly',
     }),
   },
   {
@@ -69,6 +74,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfYear(new Date()),
       to: endOfYear(new Date()),
+      type: 'annual',
     }),
   },
   {
@@ -77,6 +83,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
     getRange: () => ({
       from: startOfYear(subYears(new Date(), 1)),
       to: endOfYear(subYears(new Date(), 1)),
+      type: 'annual',
     }),
   },
 ];
@@ -93,7 +100,7 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
   const handleCustomDateChange = (range: { from?: Date; to?: Date } | undefined) => {
     if (range?.from && range?.to) {
       setSelectedPreset('custom');
-      onDateRangeChange({ from: range.from, to: range.to });
+      onDateRangeChange({ from: range.from, to: range.to, type: 'custom' });
       setIsCalendarOpen(false);
     }
   };
