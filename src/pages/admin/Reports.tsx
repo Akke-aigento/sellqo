@@ -32,10 +32,10 @@ import {
 type QuickPreset = { label: string; getRange: () => DateRange };
 
 const quickPresets: QuickPreset[] = [
-  { label: 'Dit kwartaal', getRange: () => ({ from: startOfQuarter(new Date()), to: endOfQuarter(new Date()) }) },
-  { label: 'Vorig kwartaal', getRange: () => ({ from: startOfQuarter(subQuarters(new Date(), 1)), to: endOfQuarter(subQuarters(new Date(), 1)) }) },
-  { label: 'Dit jaar', getRange: () => ({ from: startOfYear(new Date()), to: endOfYear(new Date()) }) },
-  { label: 'Vorig jaar', getRange: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) }) },
+  { label: 'Dit kwartaal', getRange: () => ({ from: startOfQuarter(new Date()), to: endOfQuarter(new Date()), type: 'quarterly' }) },
+  { label: 'Vorig kwartaal', getRange: () => ({ from: startOfQuarter(subQuarters(new Date(), 1)), to: endOfQuarter(subQuarters(new Date(), 1)), type: 'quarterly' }) },
+  { label: 'Dit jaar', getRange: () => ({ from: startOfYear(new Date()), to: endOfYear(new Date()), type: 'annual' }) },
+  { label: 'Vorig jaar', getRange: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)), type: 'annual' }) },
 ];
 
 const Reports = () => {
