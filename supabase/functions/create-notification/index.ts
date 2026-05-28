@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,10 +108,8 @@ serve(async (req: Request): Promise<Response> => {
           recipients.push(...settings.email_recipients);
         }
 
-        const emailSubject = `${prioritySubjects[priority]}${notification.title}`;
-        const primaryColor = tenant?.primary_color || '#18181b';
-        const tenantName = tenant?.name || 'Sellqo';
-        const logoUrl = tenant?.logo_url;
+        const tenantName = tenant?.name || 'SellQo';
+        const emailSubject = `${prioritySubjects[priority]}${notification.title} — ${tenantName}`;
 
         // Convert relative action_url (e.g. "/admin/orders/abc") to absolute URL for email links.
         // In-app navigation uses relative paths, but email clients need absolute URLs.
@@ -122,65 +121,36 @@ serve(async (req: Request): Promise<Response> => {
               : `${ADMIN_BASE_URL}${rawActionUrl.startsWith('/') ? '' : '/'}${rawActionUrl}`)
           : null;
 
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 20px;">
-              <tr>
-                <td>
-                  <!-- Header with logo/branding -->
-                  <div style="background-color: ${primaryColor}; border-radius: 8px 8px 0 0; padding: 24px; text-align: center;">
-                    ${logoUrl 
-                      ? `<img src="${logoUrl}" alt="${tenantName}" style="max-height: 48px; max-width: 200px;">`
-                      : `<span style="color: white; font-size: 24px; font-weight: 600;">${tenantName}</span>`
-                    }
-                  </div>
-                  
-                  <div style="background-color: white; border-radius: 0 0 8px 8px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    ${priority === 'urgent' ? '<div style="background-color: #fee2e2; color: #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-weight: 500;">⚠️ Dit is een urgente melding die directe aandacht vereist</div>' : ''}
-                    ${priority === 'high' ? '<div style="background-color: #ffedd5; color: #ea580c; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-weight: 500;">Deze melding heeft hoge prioriteit</div>' : ''}
-                    
-                    <h1 style="color: #18181b; font-size: 24px; font-weight: 600; margin: 0 0 16px 0;">
-                      ${notification.title}
-                    </h1>
-                    
-                    <p style="color: #52525b; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                      ${notification.message}
-                    </p>
-                    
-                    ${fullActionUrl ? `
-                      <a href="${fullActionUrl}" style="display: inline-block; background-color: ${primaryColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
-                        Bekijk details →
-                      </a>
-                    ` : ''}
-                    
-                    <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 32px 0 24px 0;">
-                    
-                    <p style="color: #a1a1aa; font-size: 12px; margin: 0;">
-                      Je ontvangt deze email omdat je notificaties hebt ingeschakeld voor ${notification.category}.
-                      <br>
-                      Met vriendelijke groet,<br>
-                      <strong>${tenantName}</strong>
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </body>
-          </html>
+        const priorityBanner =
+          priority === 'urgent'
+            ? `<div style="background-color:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">⚠️ Urgente melding — directe aandacht vereist</div>`
+            : priority === 'high'
+              ? `<div style="background-color:#ffedd5;color:#ea580c;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">Hoge prioriteit</div>`
+              : '';
+
+        const introHtml = `
+          ${priorityBanner}
+          <p style="margin:0 0 12px;font-size:13px;color:#5b6b7d;">Melding voor <strong>${tenantName}</strong></p>
+          <p style="margin:0;">${notification.message}</p>
         `;
+
+        const htmlContent = renderSellqoEmail({
+          preheader: `${notification.title} — ${tenantName}`,
+          heading: notification.title,
+          intro: introHtml,
+          cta: fullActionUrl ? { label: 'Bekijk details', url: fullActionUrl } : undefined,
+          footerNote: `Je ontvangt deze e-mail omdat e-mailnotificaties voor ${notification.category} aanstaan.`,
+        });
+        const textContent = htmlToPlainText(htmlContent);
 
         try {
           const emailResponse = await resend.emails.send({
-            from: `${tenant.name || 'Sellqo'} <noreply@sellqo.app>`,
+            from: "SellQo <noreply@sellqo.app>",
+            reply_to: "support@sellqo.app",
             to: recipients,
             subject: emailSubject,
             html: htmlContent,
+            text: textContent,
           });
 
           console.log('Email sent:', emailResponse);
