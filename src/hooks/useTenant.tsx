@@ -198,14 +198,30 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const savedTenant = savedTenantId 
       ? enrichedTenants.find(t => t.id === savedTenantId) 
       : null;
-    
-    if (savedTenant) {
-      setCurrentTenantState(savedTenant);
-    } else if (enrichedTenants.length > 0) {
-      // Always select first tenant if none is selected
-      // This ensures new tenants are auto-selected after onboarding
-      setCurrentTenant(enrichedTenants[0]);
-    }
+
+    // Resolve which tenant should be active now.
+    setCurrentTenantState((prev) => {
+      // If the previously-active tenant disappeared (e.g. user was removed
+      // from that team), fall back to a still-accessible one.
+      const stillAccessible = prev
+        ? enrichedTenants.find((t) => t.id === prev.id) ?? null
+        : null;
+
+      if (stillAccessible) return stillAccessible;
+
+      if (savedTenant) {
+        localStorage.setItem(TENANT_STORAGE_KEY, savedTenant.id);
+        return savedTenant;
+      }
+
+      if (enrichedTenants.length > 0) {
+        localStorage.setItem(TENANT_STORAGE_KEY, enrichedTenants[0].id);
+        return enrichedTenants[0];
+      }
+
+      localStorage.removeItem(TENANT_STORAGE_KEY);
+      return null;
+    });
 
     setLoading(false);
   };
