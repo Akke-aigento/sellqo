@@ -1,24 +1,45 @@
-## Probleem
+# Plan: herstel teamuitnodiging-flow
 
-Wanneer "Voorraad bijhouden" uit staat op een product, toont de **admin productenlijst** alsnog een rode **"Uitverkocht"** badge zodra de stock 0 is (of, bij varianten, zodra alle varianten 0 zijn). De storefront werkt correct — daar wordt `track_inventory` wél in de check meegenomen — dus dit is puur een UI-bug in de admin.
+## Doel
+De uitnodigingsflow moet correct werken voor drie scenario’s:
+- gebruiker is al ingelogd met het juiste e-mailadres
+- gebruiker is ingelogd met een ander e-mailadres
+- gebruiker heeft al een account maar is nog niet ingelogd
 
-Locatie: `src/pages/admin/Products.tsx`
-- `getStockBadge()` (rond regel 330) kijkt enkel naar `effectiveStock` zonder `track_inventory` te checken.
-- Het stock-filter (regel 160-167) doet hetzelfde, waardoor niet-getrackte producten verkeerd uit "Op voorraad" filteren.
+## Wat ik ga aanpassen
 
-## Wat ga ik aanpassen
+1. **Invite-pagina corrigeren voor bestaande sessies**
+- Op `AcceptInvitation.tsx` controle toevoegen op e-mailmatch tussen actieve sessie en uitnodiging.
+- Als het actieve account **niet** overeenkomt met de uitnodiging, niet langer alleen een dode accept-knop tonen.
+- In plaats daarvan duidelijke keuze tonen: uitloggen en doorgaan met het juiste account, of inloggen met bestaand account.
 
-**Enkel `src/pages/admin/Products.tsx`** — geen backend, geen storefront-wijzigingen.
+2. **Fallback voor bestaand account tijdens registratie**
+- In de registratie-flow op `AcceptInvitation.tsx` de fout `User already registered` opvangen.
+- Dan automatisch of expliciet overschakelen naar de login-variant, met het uitnodigingse-mailadres al ingevuld.
+- De flow blijft dus niet hangen op “registreren”, maar stuurt de gebruiker naar de juiste vervolgstap.
 
-1. **`getStockBadge()`** — als `track_inventory === false` (én er zijn geen actieve varianten die wél tracking hebben), toon een neutrale grijze badge **"Niet bijgehouden"** in plaats van Uitverkocht / aantallen.
+3. **Auto-accept alleen in veilige cases**
+- De huidige auto-accept na auth-state-change beperken tot situaties waarin het ingelogde e-mailadres exact overeenkomt met het uitnodigingse-mailadres.
+- Onbedoelde accept-calls met een verkeerd account voorkomen.
 
-2. **Stock-filter** — niet-getrackte producten beschouwen als "Op voorraad" zodat ze niet onterecht in de Uitverkocht-filter verschijnen en niet wegvallen uit de Op voorraad-filter.
+4. **Betere foutafhandeling op invite-pagina**
+- Zwak wachtwoord netjes als validatiefout tonen bij het wachtwoordveld of als duidelijke gebruikersmelding.
+- Backend-fouten uit `accept-team-invitation` vertalen naar bruikbare teksten op de invite-pagina.
+- De generieke melding “Edge Function returned a non-2xx status code” niet meer aan de gebruiker tonen als eindresultaat.
 
-3. **Effectieve stock voor variant-producten** — als de parent én alle actieve varianten tracking uit hebben staan, ook "Niet bijgehouden" tonen. Als sommige varianten wel tracken: huidige som-logica behouden.
+5. **Controle van de accept-flow zelf**
+- Verifiëren dat `accept-team-invitation` inhoudelijk correct blijft voor e-mailmatch, bestaand lidmaatschap en acceptatie.
+- Alleen frontend-flow aanpassen als backendlogica al correct is; geen onnodige business logic wijzigen.
 
-## Verificatie
+## Technische details
+- Betrokken bestanden:
+  - `src/pages/AcceptInvitation.tsx`
+  - mogelijk `src/hooks/useAuth.tsx` alleen als een kleine auth-helper nodig blijkt
+- Geen routering wijzigen
+- Geen invite-datamodel wijzigen
+- Geen API-contract wijzigen tenzij strikt nodig voor foutboodschappen
 
-- Product "Loveke Cadeaukaart" (track_inventory=false, stock=0) → toont nu **"Niet bijgehouden"**, niet meer "Uitverkocht".
-- Bundles van VanXcel (track_inventory=false, stock=1000) → tonen ook **"Niet bijgehouden"** (consistent).
-- Normaal fysiek product met tracking aan en stock=0 → blijft "Uitverkocht".
-- Filter "Op voorraad" toont nu ook niet-getrackte producten; "Uitverkocht" verbergt ze.
+## Verwachte uitkomst
+- Doorlinken in een normale browser met een verkeerde actieve sessie geeft een bruikbare volgende stap in plaats van een vastgelopen scherm.
+- Incognito registratie met bestaand e-mailadres schakelt netjes naar login in plaats van te blijven falen.
+- Acceptatie van uitnodigingen wordt voorspelbaar en foutmeldingen worden begrijpelijk.

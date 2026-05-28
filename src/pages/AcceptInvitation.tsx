@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle, XCircle, Mail, Lock, User } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Mail, Lock, User, AlertTriangle } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,7 +30,7 @@ const roleLabels: Record<string, string> = {
 export default function AcceptInvitation() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
 
   const [status, setStatus] = useState<InvitationStatus>('loading');
@@ -44,6 +44,7 @@ export default function AcceptInvitation() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const acceptAttemptedRef = useRef(false);
 
   useEffect(() => {
     const fetchInvitation = async () => {
@@ -105,8 +106,9 @@ export default function AcceptInvitation() {
         body: { token },
       });
 
-      if (response.error || response.data?.error) {
-        throw new Error(response.data?.error || response.error?.message);
+      const apiError = response.data?.error;
+      if (apiError || response.error) {
+        throw new Error(apiError || response.error?.message || 'Onbekende fout');
       }
 
       toast({
@@ -118,7 +120,7 @@ export default function AcceptInvitation() {
     } catch (error: any) {
       toast({
         title: 'Fout bij accepteren',
-        description: error.message,
+        description: error.message || 'Er ging iets mis. Probeer opnieuw.',
         variant: 'destructive',
       });
     } finally {
@@ -141,7 +143,25 @@ export default function AcceptInvitation() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        // Account bestaat al → schakel naar login-flow met dit e-mailadres
+        if (
+          msg.includes('already registered') ||
+          msg.includes('user already') ||
+          msg.includes('already exists')
+        ) {
+          setEmail(invitation.email);
+          setPassword('');
+          setShowRegister(false);
+          toast({
+            title: 'Account bestaat al',
+            description: 'Log in met je bestaande wachtwoord om de uitnodiging te accepteren.',
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Try auto sign-in (works if email confirmation is disabled)
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -188,14 +208,27 @@ export default function AcceptInvitation() {
     }
   };
 
-  // Auto-accept when user logs in
+  // Auto-accept when logged-in user matches invitation email (one-shot)
   useEffect(() => {
-    if (user && status === 'valid' && invitation) {
-      if (user.email?.toLowerCase() === invitation.email.toLowerCase()) {
-        handleAccept();
-      }
+    if (
+      user &&
+      status === 'valid' &&
+      invitation &&
+      !acceptAttemptedRef.current &&
+      user.email?.toLowerCase() === invitation.email.toLowerCase()
+    ) {
+      acceptAttemptedRef.current = true;
+      handleAccept();
     }
   }, [user, status, invitation]);
+
+  const handleSwitchAccount = async () => {
+    await signOut();
+    acceptAttemptedRef.current = false;
+    setShowRegister(false);
+    setEmail(invitation?.email || '');
+    setPassword('');
+  };
 
   if (authLoading || status === 'loading') {
     return (
@@ -324,25 +357,51 @@ export default function AcceptInvitation() {
             </div>
 
             {user ? (
-              <div className="space-y-4">
-                <p className="text-sm text-center text-muted-foreground">
-                  Ingelogd als <strong>{user.email}</strong>
-                </p>
-                <Button
-                  className="w-full"
-                  onClick={handleAccept}
-                  disabled={isAccepting}
-                >
-                  {isAccepting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Accepteren...
-                    </>
-                  ) : (
-                    'Uitnodiging accepteren'
-                  )}
-                </Button>
-              </div>
+              user.email?.toLowerCase() === invitation?.email.toLowerCase() ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-center text-muted-foreground">
+                    Ingelogd als <strong>{user.email}</strong>
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={handleAccept}
+                    disabled={isAccepting}
+                  >
+                    {isAccepting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Accepteren...
+                      </>
+                    ) : (
+                      'Uitnodiging accepteren'
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="font-medium">Verkeerd account</p>
+                        <p className="text-muted-foreground">
+                          Je bent ingelogd als <strong>{user.email}</strong>, maar deze uitnodiging is voor <strong>{invitation?.email}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button className="w-full" onClick={handleSwitchAccount}>
+                    Uitloggen en doorgaan als {invitation?.email}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/admin')}
+                  >
+                    Naar mijn dashboard
+                  </Button>
+                </div>
+              )
             ) : showRegister ? (
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
