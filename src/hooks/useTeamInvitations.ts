@@ -52,6 +52,30 @@ export function useTeamInvitations() {
     fetchInvitations();
   }, [fetchInvitations]);
 
+  // Realtime: auto-refresh when invitations change for this tenant
+  useEffect(() => {
+    if (!currentTenant?.id) return;
+    const channel = supabase
+      .channel(`team-invitations-${currentTenant.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'team_invitations',
+          filter: `tenant_id=eq.${currentTenant.id}`,
+        },
+        () => {
+          fetchInvitations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentTenant?.id, fetchInvitations]);
+
   const sendInvitation = async (email: string, role: InvitationRole) => {
     if (!currentTenant?.id) {
       toast({
