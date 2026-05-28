@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -135,43 +136,50 @@ serve(async (req) => {
       year: 'numeric',
     });
 
-    const emailResponse = await resend.emails.send({
-      from: `${tenant.name || 'Sellqo'} <noreply@sellqo.app>`,
-      to: [email],
-      subject: `Je bent uitgenodigd voor ${tenant.name}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #16a34a; margin-bottom: 5px;">Sellqo</h1>
-          </div>
-          
-          <div style="background: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 20px;">
-            <h2 style="margin-top: 0;">Je bent uitgenodigd!</h2>
-            <p>Je bent uitgenodigd om deel te nemen aan het team van <strong>${tenant.name}</strong> op Sellqo.</p>
-            
-            <div style="background: white; border-radius: 8px; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; font-weight: 600;">Je rol: ${roleInfo.nl}</p>
-              <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">${roleInfo.description}</p>
-            </div>
-            
-            <a href="${inviteUrl}" style="display: inline-block; background: #16a34a; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 10px;">
-              Uitnodiging accepteren
-            </a>
-          </div>
-          
-          <p style="color: #666; font-size: 14px; text-align: center;">
-            Deze uitnodiging is geldig tot ${expiresDate}.<br>
-            Als je deze uitnodiging niet verwachtte, kun je deze e-mail negeren.
-          </p>
-        </body>
-        </html>
+    const tenantName = tenant.name || 'een team';
+    const html = renderSellqoEmail({
+      preheader: `Je bent uitgenodigd om deel te nemen aan ${tenantName} op SellQo.`,
+      heading: `Je bent uitgenodigd voor ${tenantName}`,
+      intro: `
+        <p style="margin:0 0 12px;">Hallo,</p>
+        <p style="margin:0;">Je werd uitgenodigd om als <strong>${roleInfo.nl.toLowerCase()}</strong> deel te nemen aan het team van <strong>${tenantName}</strong> op SellQo. Klik op de knop hieronder om de uitnodiging te accepteren en aan de slag te gaan.</p>
       `,
+      infoBox: {
+        title: `Jouw rol: ${roleInfo.nl}`,
+        subtitle: roleInfo.description,
+      },
+      cta: { label: 'Uitnodiging accepteren', url: inviteUrl },
+      ctaNote: `Deze uitnodiging is geldig tot <strong>${expiresDate}</strong>.<br/>Werkt de knop niet? Kopieer en plak deze link in je browser:<br/><a href="${inviteUrl}" style="color:#1d3a5f;word-break:break-all;">${inviteUrl}</a>`,
+      footerNote: 'Heb je deze uitnodiging niet verwacht? Je mag deze e-mail veilig negeren — er gebeurt niets met je gegevens.',
+    });
+
+    const text = [
+      `Je bent uitgenodigd voor ${tenantName}`,
+      ``,
+      `Hallo,`,
+      ``,
+      `Je werd uitgenodigd om als ${roleInfo.nl.toLowerCase()} deel te nemen aan het team van ${tenantName} op SellQo.`,
+      ``,
+      `Jouw rol: ${roleInfo.nl}`,
+      roleInfo.description ? `(${roleInfo.description})` : '',
+      ``,
+      `Accepteer de uitnodiging:`,
+      inviteUrl,
+      ``,
+      `Deze uitnodiging is geldig tot ${expiresDate}.`,
+      ``,
+      `Heb je deze uitnodiging niet verwacht? Dan mag je deze e-mail negeren.`,
+      ``,
+      `— SellQo · https://sellqo.app`,
+    ].filter(Boolean).join('\n');
+
+    const emailResponse = await resend.emails.send({
+      from: `SellQo <noreply@sellqo.app>`,
+      reply_to: 'support@sellqo.app',
+      to: [email],
+      subject: `Je bent uitgenodigd voor ${tenantName}`,
+      html,
+      text: htmlToPlainText(text),
     });
 
     console.log("Invitation email sent:", emailResponse);
