@@ -332,6 +332,27 @@ export default function AcceptInvitation() {
     );
   }
 
+  if (status === 'already_member') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <CardTitle>Je bent al lid</CardTitle>
+            <CardDescription>
+              Je hebt al toegang tot <strong>{invitation?.tenantName}</strong>. Log in om verder te gaan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button asChild>
+              <Link to="/admin">Naar dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Email confirmation sent — show waiting screen
   if (emailConfirmationSent) {
     return (
@@ -541,6 +562,16 @@ export default function AcceptInvitation() {
                   ) : (
                     'Inloggen en accepteren'
                   )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full h-auto p-0 text-xs"
+                  onClick={handleForgotPassword}
+                  disabled={isSendingReset}
+                >
+                  {isSendingReset ? 'Reset-mail versturen...' : 'Wachtwoord vergeten?'}
                 </Button>
 
                 <Button
