@@ -1,65 +1,32 @@
-## Migratie `create-notification` naar SellQo systeemmail-layout
+# Plan: fix pending team invitations that still don’t show up
 
-### Scope
-Alleen email-HTML + sender in `supabase/functions/create-notification/index.ts`. In-app insert, settings-check, recipients, `email_sent_at`-update en catch blijven exact zoals ze zijn.
+## What I’ll change
+1. Add a small backend helper function that reads the signed-in user’s email safely from `public.profiles` instead of querying the protected auth table inside RLS.
+2. Replace the broken `team_invitations` read policy that currently references `auth.users`, which is causing the 403 and blocking the pending-invitations list.
+3. Keep the existing admin invitation policy intact so tenant admins can still manage invitations for their own shop.
+4. Re-test the invitation flow so the pending invite list can load immediately after sending.
 
-### Wijzigingen
+## Expected result
+- Sending an invitation still works.
+- The pending invitation appears in the team/invitations list.
+- The repeated 403 `permission denied for table users` error disappears.
 
-**1. Import bovenaan**
-```ts
-import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
-```
+## Technical details
+- Current root cause: active policy `Users can view their own invitations` on `public.team_invitations` contains:
+  ```sql
+  SELECT users.email FROM auth.users WHERE users.id = auth.uid()
+  ```
+  That lookup is not allowed for normal client requests, so the whole `team_invitations` read fails with a 42501/403.
+- Safer replacement:
+  - create a `SECURITY DEFINER` helper in `public` that returns the current user email from `public.profiles`
+  - update the invitation policy to compare against that helper instead of `auth.users`
+- No frontend redesign needed unless a second issue appears after the policy fix.
 
-**2. Branding-velden niet meer gebruiken in mail**
-- `primary_color` en `logo_url` worden niet meer ingelezen voor de HTML (de `select(...)` blijft staan om de query niet te wijzigen, maar de variabelen worden verwijderd).
-- `tenantName` blijft behouden voor copy + onderwerp.
+## Files / areas involved
+- New database migration for the `team_invitations` policy fix
+- Then validation against the existing hook `src/hooks/useTeamInvitations.ts`
 
-**3. `fullActionUrl`-berekening blijft ongewijzigd.**
-
-**4. Vervang inline `htmlContent` door `renderSellqoEmail({...})`**
-```ts
-const priorityBanner =
-  priority === 'urgent'
-    ? `<div style="background-color:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">⚠️ Urgente melding — directe aandacht vereist</div>`
-    : priority === 'high'
-      ? `<div style="background-color:#ffedd5;color:#ea580c;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">Hoge prioriteit</div>`
-      : '';
-
-const introHtml = `
-  ${priorityBanner}
-  <p style="margin:0 0 12px;font-size:13px;color:#5b6b7d;">Melding voor <strong>${tenantName}</strong></p>
-  <p style="margin:0;">${notification.message}</p>
-`;
-
-const htmlContent = renderSellqoEmail({
-  preheader: `${notification.title} — ${tenantName}`,
-  heading: notification.title,
-  intro: introHtml,
-  cta: fullActionUrl ? { label: 'Bekijk details', url: fullActionUrl } : undefined,
-  footerNote: `Je ontvangt deze e-mail omdat e-mailnotificaties voor ${notification.category} aanstaan.`,
-});
-const textContent = htmlToPlainText(htmlContent);
-```
-
-**5. Onderwerp**
-```ts
-const emailSubject = `${prioritySubjects[priority]}${notification.title} — ${tenantName}`;
-```
-
-**6. Resend-call**
-```ts
-await resend.emails.send({
-  from: "SellQo <noreply@sellqo.app>",
-  reply_to: "support@sellqo.app",
-  to: recipients,
-  subject: emailSubject,
-  html: htmlContent,
-  text: textContent,
-});
-```
-
-### Niet aanraken
-In-app `notifications`-insert, `tenant_notification_settings`-check, `recipients`-logica, `email_sent_at`-update, try/catch, auth, CORS, response.
-
-### Deploy
-`supabase--deploy_edge_functions` voor `create-notification` na de edit.
+## Validation
+- Check active policies after migration
+- Verify the pending invite row is readable again for the signed-in admin
+- Confirm no new auth or RLS regressions in the invitation flow
