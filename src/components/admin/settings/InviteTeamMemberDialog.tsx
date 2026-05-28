@@ -64,9 +64,10 @@ const roleOptions: RoleOption[] = [
 
 interface InviteTeamMemberDialogProps {
   trigger?: React.ReactNode;
+  onInvited?: () => void;
 }
 
-export function InviteTeamMemberDialog({ trigger }: InviteTeamMemberDialogProps) {
+export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberDialogProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InvitationRole>('staff');
@@ -90,6 +91,7 @@ export function InviteTeamMemberDialog({ trigger }: InviteTeamMemberDialogProps)
       setEmail('');
       setRole('staff');
       setOpen(false);
+      onInvited?.();
     }
   };
 

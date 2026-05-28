@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, Clock, RefreshCw, X, Calculator, Warehouse, Eye } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, RefreshCw, X, Calculator, Warehouse, Eye, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
-import { useTeamInvitations } from '@/hooks/useTeamInvitations';
+import { useTeamInvitations, TeamInvitation } from '@/hooks/useTeamInvitations';
 import { useAuth } from '@/hooks/useAuth';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
 import { format, isPast } from 'date-fns';
@@ -58,7 +58,7 @@ const getInitials = (name: string | null, email: string | null) => {
 
 export function TeamSettings() {
   const { members, isLoading, updateMemberRole, removeMember } = useTeamMembers();
-  const { invitations, isLoading: invitationsLoading, cancelInvitation, resendInvitation } = useTeamInvitations();
+  const { invitations, isLoading: invitationsLoading, cancelInvitation, resendInvitation, refetch: refetchInvitations } = useTeamInvitations();
   const { user } = useAuth();
   
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
@@ -77,6 +77,8 @@ export function TeamSettings() {
   };
 
   const pendingInvitations = invitations.filter(i => !i.accepted_at);
+  const loading = isLoading || invitationsLoading;
+  const isEmpty = !loading && members.length === 0 && pendingInvitations.length === 0;
 
   return (
     <div className="space-y-6">
@@ -94,11 +96,11 @@ export function TeamSettings() {
                 </CardDescription>
               </div>
             </div>
-            <InviteTeamMemberDialog />
+            <InviteTeamMemberDialog onInvited={refetchInvitations} />
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="flex items-center gap-4">
@@ -111,7 +113,7 @@ export function TeamSettings() {
                 </div>
               ))}
             </div>
-          ) : members.length === 0 ? (
+          ) : isEmpty ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Geen teamleden</h3>
@@ -119,6 +121,7 @@ export function TeamSettings() {
                 Voeg teamleden toe om samen te werken aan je winkel.
               </p>
               <InviteTeamMemberDialog
+                onInvited={refetchInvitations}
                 trigger={
                   <Button>
                     Eerste teamlid uitnodigen
@@ -227,85 +230,75 @@ export function TeamSettings() {
                     </TableRow>
                   );
                 })}
+                {pendingInvitations.map((invitation: TeamInvitation) => {
+                  const expired = isPast(new Date(invitation.expires_at));
+                  return (
+                    <TableRow key={`inv-${invitation.id}`} className="bg-muted/20">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 opacity-70">
+                            <AvatarFallback>
+                              {invitation.email.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{invitation.email}</p>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  expired
+                                    ? 'border-destructive/40 text-destructive'
+                                    : 'border-yellow-500/40 text-yellow-700 bg-yellow-500/10'
+                                }
+                              >
+                                <Mail className="h-3 w-3 mr-1" />
+                                {expired ? 'Verlopen' : 'In afwachting'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {expired
+                                ? 'Uitnodiging verlopen'
+                                : `Verloopt ${format(new Date(invitation.expires_at), 'd MMM yyyy', { locale: nl })}`}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getRoleBadge(invitation.role)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        Uitgenodigd {format(new Date(invitation.created_at), 'd MMM yyyy', { locale: nl })}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => resendInvitation(invitation.id)}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Opnieuw versturen
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => cancelInvitation(invitation.id)}
+                              className="text-destructive"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Uitnodiging annuleren
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-
-      {/* Pending Invitations */}
-      {pendingInvitations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/10 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Openstaande uitnodigingen</CardTitle>
-                <CardDescription>
-                  {pendingInvitations.length} uitnodiging{pendingInvitations.length !== 1 ? 'en' : ''} wachten op acceptatie
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendingInvitations.map((invitation) => {
-                const isExpired = isPast(new Date(invitation.expires_at));
-                
-                return (
-                  <div 
-                    key={invitation.id} 
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      isExpired ? 'bg-muted/50 opacity-60' : 'bg-muted/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-xs">
-                          {invitation.email.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{invitation.email}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {getRoleBadge(invitation.role)}
-                          <span>•</span>
-                          <span>
-                            {isExpired 
-                              ? 'Verlopen' 
-                              : `Verloopt ${format(new Date(invitation.expires_at), 'd MMM', { locale: nl })}`
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => resendInvitation(invitation.id)}
-                        title="Opnieuw versturen"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => cancelInvitation(invitation.id)}
-                        title="Annuleren"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Role explanations */}
       <Card>
