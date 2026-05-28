@@ -5,6 +5,7 @@
 const BRAND = {
   primary: "#1d3a5f", // hsl(212, 52%, 24%)
   primaryDark: "#142a45",
+  accent: "#ff7733", // hsl(16, 100%, 60%)
   text: "#1a2332",
   muted: "#5b6b7d",
   border: "#e4e8ee",
@@ -12,6 +13,8 @@ const BRAND = {
   card: "#ffffff",
   footerText: "#8a96a4",
 };
+
+const LOGO_URL = "https://sellqo.lovable.app/email-logo.png";
 
 export interface SellqoEmailOptions {
   /** Pre-header / inbox preview text (hidden in body). */
@@ -71,7 +74,7 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     ? `
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;">
       <tr>
-        <td style="background-color:#f7f9fc;border:1px solid ${BRAND.border};border-radius:8px;padding:16px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <td style="background-color:#f7f9fc;border:1px solid ${BRAND.border};border-left:3px solid ${BRAND.accent};border-radius:8px;padding:16px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           <p style="margin:0;font-size:15px;font-weight:600;color:${BRAND.text};">${infoBox.title}</p>
           ${infoBox.subtitle ? `<p style="margin:4px 0 0;font-size:13px;color:${BRAND.muted};line-height:1.5;">${infoBox.subtitle}</p>` : ""}
         </td>
@@ -112,7 +115,7 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
           <tr>
             <td align="center" style="padding:0 0 24px;">
               <a href="https://sellqo.app" target="_blank" style="text-decoration:none;color:${BRAND.primary};">
-                <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.5px;color:${BRAND.primary};">SellQo</span>
+                <img src="${LOGO_URL}" alt="SellQo" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
               </a>
             </td>
           </tr>
