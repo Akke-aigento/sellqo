@@ -1,63 +1,65 @@
-## Migratie `send-trial-expiry-warning` naar SellQo systeemmail-layout
+## Migratie `create-notification` naar SellQo systeemmail-layout
 
 ### Scope
-Alleen de e-mail HTML/sender in `supabase/functions/send-trial-expiry-warning/index.ts`. Trial-ophaling, in-app notificatie en `trial_warning_sent_at` blijven ongewijzigd.
+Alleen email-HTML + sender in `supabase/functions/create-notification/index.ts`. In-app insert, settings-check, recipients, `email_sent_at`-update en catch blijven exact zoals ze zijn.
 
 ### Wijzigingen
 
-**1. Import toevoegen (bovenaan)**
+**1. Import bovenaan**
 ```ts
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 ```
 
-**2. Tenant-branding verwijderen uit e-mail**
-- `primary_color` en `logo_url` worden niet meer gebruikt in de mail-render. Ze blijven in de `select(...)` staan (raken we niet aan om query niet te wijzigen) maar worden gewoon niet gelezen voor de HTML.
-- `tenantName` blijft in gebruik — puur als context in de copy ("voor <strong>${tenantName}</strong>").
+**2. Branding-velden niet meer gebruiken in mail**
+- `primary_color` en `logo_url` worden niet meer ingelezen voor de HTML (de `select(...)` blijft staan om de query niet te wijzigen, maar de variabelen worden verwijderd).
+- `tenantName` blijft behouden voor copy + onderwerp.
 
-**3. HTML vervangen door `renderSellqoEmail(...)`**
+**3. `fullActionUrl`-berekening blijft ongewijzigd.**
+
+**4. Vervang inline `htmlContent` door `renderSellqoEmail({...})`**
 ```ts
-const billingUrl = "https://sellqo.lovable.app/admin/settings/billing";
+const priorityBanner =
+  priority === 'urgent'
+    ? `<div style="background-color:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">⚠️ Urgente melding — directe aandacht vereist</div>`
+    : priority === 'high'
+      ? `<div style="background-color:#ffedd5;color:#ea580c;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">Hoge prioriteit</div>`
+      : '';
 
 const introHtml = `
-  <p style="margin:0 0 12px;">Hoi,</p>
-  <p style="margin:0 0 12px;">
-    Je proefperiode van het ${planName}-plan voor <strong>${tenantName}</strong>
-    eindigt op <strong>${formattedDate}</strong>.
-  </p>
-  <p style="margin:0;">
-    Daarna gaat je account automatisch over naar het gratis plan en zijn
-    sommige features tijdelijk niet meer beschikbaar tot je upgrade.
-  </p>
+  ${priorityBanner}
+  <p style="margin:0 0 12px;font-size:13px;color:#5b6b7d;">Melding voor <strong>${tenantName}</strong></p>
+  <p style="margin:0;">${notification.message}</p>
 `;
 
 const htmlContent = renderSellqoEmail({
-  preheader: `Je ${planName}-proefperiode voor ${tenantName} eindigt morgen.`,
-  heading: `Je ${planName}-proefperiode eindigt morgen`,
+  preheader: `${notification.title} — ${tenantName}`,
+  heading: notification.title,
   intro: introHtml,
-  infoBox: {
-    title: "✅ Je data blijft bewaard",
-    subtitle: "Al je producten, bestellingen, klanten en instellingen blijven behouden. Bij een latere upgrade heb je meteen weer toegang tot alles.",
-  },
-  cta: { label: `Upgrade naar ${planName}`, url: billingUrl },
-  ctaNote: "Je ontvangt deze e-mail omdat je een actieve proefperiode hebt.",
+  cta: fullActionUrl ? { label: 'Bekijk details', url: fullActionUrl } : undefined,
+  footerNote: `Je ontvangt deze e-mail omdat e-mailnotificaties voor ${notification.category} aanstaan.`,
 });
 const textContent = htmlToPlainText(htmlContent);
 ```
 
-**4. Resend-call aanpassen**
+**5. Onderwerp**
+```ts
+const emailSubject = `${prioritySubjects[priority]}${notification.title} — ${tenantName}`;
+```
+
+**6. Resend-call**
 ```ts
 await resend.emails.send({
   from: "SellQo <noreply@sellqo.app>",
   reply_to: "support@sellqo.app",
-  to: [tenant.owner_email],
-  subject: `Je proefperiode voor ${tenantName} eindigt morgen`,
+  to: recipients,
+  subject: emailSubject,
   html: htmlContent,
   text: textContent,
 });
 ```
 
 ### Niet aanraken
-- Trial-fetch query, loop, in-app notificatie-insert, `trial_warning_sent_at`-update, logging, error handling, CORS.
+In-app `notifications`-insert, `tenant_notification_settings`-check, `recipients`-logica, `email_sent_at`-update, try/catch, auth, CORS, response.
 
 ### Deploy
-Na de edit: `supabase--deploy_edge_functions` voor `send-trial-expiry-warning`.
+`supabase--deploy_edge_functions` voor `create-notification` na de edit.
