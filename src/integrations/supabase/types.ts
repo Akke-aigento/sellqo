@@ -17832,6 +17832,7 @@ export type Database = {
         Args: { _order_item_id: string }
         Returns: number
       }
+      get_current_user_email: { Args: never; Returns: string }
       get_order_return_tag: { Args: { _order_id: string }; Returns: string }
       get_order_returnable_items: {
         Args: { _order_id: string }
