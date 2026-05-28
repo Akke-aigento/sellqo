@@ -10,13 +10,15 @@ import { Loader2, CheckCircle, XCircle, Mail, Lock, User, AlertTriangle } from '
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { useToast } from '@/hooks/use-toast';
 
-type InvitationStatus = 'loading' | 'valid' | 'expired' | 'accepted' | 'not_found' | 'error';
+type InvitationStatus = 'loading' | 'valid' | 'expired' | 'accepted' | 'not_found' | 'error' | 'already_member';
 
 interface InvitationData {
   email: string;
   role: string;
   tenantName: string;
   expiresAt: string;
+  accountExists: boolean;
+  alreadyMember: boolean;
 }
 
 const roleLabels: Record<string, string> = {
@@ -38,12 +40,13 @@ export default function AcceptInvitation() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
 
-  // Registration form state — default to register for new users
+  // Registration form state — default flipped later based on accountExists
   const [showRegister, setShowRegister] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const acceptAttemptedRef = useRef(false);
 
   useEffect(() => {
@@ -80,14 +83,27 @@ export default function AcceptInvitation() {
           return;
         }
 
+        const accountExists = !!data.accountExists;
+        const alreadyMember = !!data.alreadyMember;
+
         setInvitation({
           email: data.email,
           role: data.role,
           tenantName: data.tenantName,
           expiresAt: data.expiresAt,
+          accountExists,
+          alreadyMember,
         });
         setEmail(data.email);
-        setStatus('valid');
+        // If the account already exists, surface the login form first.
+        // Otherwise default to the create-account form.
+        setShowRegister(!accountExists);
+
+        if (alreadyMember) {
+          setStatus('already_member');
+        } else {
+          setStatus('valid');
+        }
       } catch (error) {
         console.error('Error fetching invitation:', error);
         setStatus('error');
@@ -208,19 +224,8 @@ export default function AcceptInvitation() {
     }
   };
 
-  // Auto-accept when logged-in user matches invitation email (one-shot)
-  useEffect(() => {
-    if (
-      user &&
-      status === 'valid' &&
-      invitation &&
-      !acceptAttemptedRef.current &&
-      user.email?.toLowerCase() === invitation.email.toLowerCase()
-    ) {
-      acceptAttemptedRef.current = true;
-      handleAccept();
-    }
-  }, [user, status, invitation]);
+  // NOTE: no silent auto-accept on mount. Re-joining a team (after being
+  // removed earlier) must be an explicit, conscious action by the user.
 
   const handleSwitchAccount = async () => {
     await signOut();
@@ -228,6 +233,29 @@ export default function AcceptInvitation() {
     setShowRegister(false);
     setEmail(invitation?.email || '');
     setPassword('');
+  };
+
+  const handleForgotPassword = async () => {
+    if (!invitation?.email) return;
+    setIsSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(invitation.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: 'Reset-mail verzonden',
+        description: `We hebben een wachtwoord-reset link gestuurd naar ${invitation.email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Kon reset-mail niet versturen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingReset(false);
+    }
   };
 
   if (authLoading || status === 'loading') {
@@ -292,6 +320,27 @@ export default function AcceptInvitation() {
             <CardTitle>Al geaccepteerd</CardTitle>
             <CardDescription>
               Deze uitnodiging is al geaccepteerd.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button asChild>
+              <Link to="/admin">Naar dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (status === 'already_member') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <CardTitle>Je bent al lid</CardTitle>
+            <CardDescription>
+              Je hebt al toegang tot <strong>{invitation?.tenantName}</strong>. Log in om verder te gaan.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -513,6 +562,16 @@ export default function AcceptInvitation() {
                   ) : (
                     'Inloggen en accepteren'
                   )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full h-auto p-0 text-xs"
+                  onClick={handleForgotPassword}
+                  disabled={isSendingReset}
+                >
+                  {isSendingReset ? 'Reset-mail versturen...' : 'Wachtwoord vergeten?'}
                 </Button>
 
                 <Button

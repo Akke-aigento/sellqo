@@ -113,12 +113,16 @@ export function useTeamMembers() {
 
   const removeMember = async (memberId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('id', memberId);
+      if (!currentTenant?.id) throw new Error('Geen actieve winkel geselecteerd');
 
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('remove-team-member', {
+        body: { memberId, tenantId: currentTenant.id },
+      });
+
+      const apiError = (data as any)?.error;
+      if (error || apiError) {
+        throw new Error(apiError || error?.message || 'Verwijderen mislukt');
+      }
 
       await fetchMembers();
       
