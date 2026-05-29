@@ -236,3 +236,80 @@ Conclusie: 8/9 zijn cosmetische service_role-policies die de impliciete bypass d
 - **(c) Platform-admin only, voorlopig** — strikst en simpelst nu er nul publieke keys zijn. Migreer naar (a) of (b) bij eerste publieke usecase.
 
 Aanbeveling: **(c)** nu (laagste risico, geen schema-mutatie), **(b)** zodra een publieke key opduikt.
+
+---
+
+## Fase 2 patroon — catalog/orders/customers tenant-scoped policies
+
+Vastgelegd tijdens Batch 1C (`product_variant_options`), eerste Fase 2-style policy die in Fase 1 is geland. Door te trekken naar de rest van catalog/orders/customers in Fase 2.
+
+**Functie-signatuur (geverifieerd):**
+- `public.get_user_tenant_ids(uuid)` → `SETOF uuid` (rowset, geen array)
+- Correcte syntax: `tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))`
+- ❌ Niet gebruiken: `tenant_id = ANY(public.get_user_tenant_ids(auth.uid()))` (alleen geldig bij array-return)
+
+**Drie-policy template per tenant-scoped tabel met publieke storefront-leesvlak:**
+
+```sql
+-- 1. Anon SELECT — bounded op parent-zichtbaarheid (active + niet hidden)
+CREATE POLICY "Anon can view <x> of active products"
+ON public.<table>
+FOR SELECT TO anon
+USING (
+  EXISTS (
+    SELECT 1 FROM public.products p
+    WHERE p.id = <table>.product_id
+      AND p.is_active = true
+      AND p.hide_from_storefront = false
+  )
+);
+
+-- 2. Authenticated SELECT — tenant-scoped, alle rollen
+CREATE POLICY "Authenticated can view <x> of their tenant"
+ON public.<table>
+FOR SELECT TO authenticated
+USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid())));
+
+-- 3. Manage (ALL) — tenant_admin + staff + platform_admin
+CREATE POLICY "Tenant staff can manage <x>"
+ON public.<table>
+FOR ALL TO authenticated
+USING (
+  tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+  AND (
+    public.has_role(auth.uid(), 'tenant_admin')
+    OR public.has_role(auth.uid(), 'staff')
+    OR public.is_platform_admin(auth.uid())
+  )
+)
+WITH CHECK (
+  tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+  AND (
+    public.has_role(auth.uid(), 'tenant_admin')
+    OR public.has_role(auth.uid(), 'staff')
+    OR public.is_platform_admin(auth.uid())
+  )
+);
+```
+
+**Rol-set per actie (Fase 2 default):**
+- **SELECT (authenticated):** alle tenant-rollen (admin/staff/accountant/warehouse/viewer) via tenant-membership-check. Per tabel kan dit verder worden ingeperkt (bv. `customers` enkel admin/staff/accountant, niet warehouse).
+- **Manage (INSERT/UPDATE/DELETE):** `tenant_admin` + `staff`. `accountant`/`warehouse`/`viewer` zijn write-blocked tenzij tabel expliciet anders vereist (bv. warehouse mag fulfillment-status updaten via aparte policy).
+- **`service_role`:** nooit expliciete policy — bypassed RLS automatisch. Een policy genaamd `"Service role …"` met `roles = {public}` is een **code smell** (zie checklist hieronder).
+
+**Vermijden:** `WITH CHECK (true)` of `USING (true)` op tenant-scoped tabellen. Altijd minimaal tenant-membership-check.
+
+---
+
+## Post-pentest checklist — code smells geparkeerd
+
+1. **Security-definer views** (3 ERROR-level linter findings) — search_path-hijacking vector.
+2. **Function search_path mutable** (meerdere WARN-level) — idem.
+3. **"Service role …" policies die `TO public` of `TO authenticated` targeten** — service_role bypasses RLS automatisch, dus zo'n policy is óf overbodig óf misgeconfigureerd (zie #15: `product_variant_options` had hierdoor anon full write tot Batch 1C). 13 policies bevestigd via:
+   ```sql
+   SELECT schemaname, tablename, policyname, roles, cmd
+   FROM pg_policies
+   WHERE policyname ILIKE '%service%'
+     AND NOT (roles @> '{service_role}' AND array_length(roles,1) = 1);
+   ```
+   Run deze query opnieuw in Fase 2 — als er nog steeds 13 zijn, één voor één classificeren (drop vs. herschrijven).
