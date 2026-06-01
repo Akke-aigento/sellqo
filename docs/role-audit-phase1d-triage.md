@@ -94,3 +94,28 @@ Geen 🔴, dus geen sub-batches binnen Fase 1D nodig — Fase 1D wordt overgesla
 1. Akkoord met de "geen 🔴, geen Fase 1D" conclusie? Of wil je dat ik #3 (élke tenant-member kan AI-knowledge schrijven, geen role-filter) als 🔴 herklassificeer op grond van *over*-permissive write binnen tenant?
 2. Voor #5/#6/#7/#11: mag ik nu een read-only `pg_policies`-verificatie draaien om back-up admin-write-policies te bevestigen vóór Fase 2A-planning? (Geen migratie.)
 3. Mag #8 (`oauth_states`) écht zonder vervangende policy? Bevestigen dat geen enkele code-path met anon/auth-rol naar `oauth_states` schrijft.
+
+---
+
+## Approval log (Fase 2A scope-lock)
+
+**Datum:** 2026-06-01
+
+- Pre-flight #5/#6/#7/#11 voltooid (zie [memory: AI Tables Read-Only UI](mem://architecture/ai-tables-read-only-ui-pattern)).
+- #5 `ai_reply_suggestions`: volledige tenant-scoped CRUD-policies aanwezig → drop-only.
+- #6 `ai_user_behavior_log` + #7 `ai_user_learning_patterns`: alleen SELECT-policies aanwezig. **Bewust ontwerp bevestigd**: writes exclusief via edge functions (service_role). UI mag deze tabellen niet direct muteren. Patroon vastgelegd in memory voor toekomstige AI-tabellen.
+- #11 `tenant_addons`: edge-function-only model bevestigd. Stripe = source of truth, DB = derived state. Geen tenant_admin manage-policy nodig. Toekomstige handmatige platform_admin overrides via aparte audited edge function, niet via directe DB-write-policy.
+- #8 `oauth_states`: grep schoon — alle 4 OAuth-edge-functies gebruiken `SUPABASE_SERVICE_ROLE_KEY`. Geen anon/auth code-path. Drop-only safe.
+
+**Fase 2A definitieve DROP-batch (uit te voeren post-pentest):**
+```sql
+DROP POLICY "Service role can manage config"          ON public.ai_assistant_config;
+DROP POLICY "Service role can manage knowledge"       ON public.ai_knowledge_index;
+DROP POLICY "Service role can manage all suggestions" ON public.ai_reply_suggestions;
+DROP POLICY "Service role can manage behavior"        ON public.ai_user_behavior_log;
+DROP POLICY "Service role can manage patterns"        ON public.ai_user_learning_patterns;
+DROP POLICY "Service role can manage all addons"      ON public.tenant_addons;
+DROP POLICY "Service role only"                       ON public.oauth_states;
+```
+
+**Status:** Pre-pentest hardening scope-compleet. Geen verdere migraties tot pentest-debrief. Fase 2B-planning (rename-batch #3, #4, #9, #10, #12, #13) kan parallel doorlopen.

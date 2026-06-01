@@ -1,0 +1,14 @@
+---
+name: AI tables read-only for UI
+description: AI behavior/learning/pattern tables are writable only by edge functions (service_role); UI gets SELECT-only RLS, no INSERT/UPDATE/DELETE policies for authenticated.
+type: architecture
+---
+AI-engine tables (`ai_user_behavior_log`, `ai_user_learning_patterns`, and equivalent future tables) follow a strict read-only-for-UI RLS pattern:
+
+- Writes: exclusively via edge functions using `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS). No `authenticated` INSERT/UPDATE/DELETE policies.
+- Reads: scoped SELECT policies only (own rows via `auth.uid() = user_id`; tenant-admin view via `user_roles` + tenant scope).
+- Do not add redundant `service_role`-JWT policies — service_role bypasses RLS automatically; such policies are code smell.
+
+Why: AI engine is the single writer; UI must never mutate behavior/learning data directly (data integrity + audit trail). Same reasoning as `tenant_addons` (Stripe is SoT, DB is derived state).
+
+How to apply: when adding a new AI-derived table, define only SELECT policies for authenticated users and document which edge function writes it. Do not add a "Service role can manage X" policy.
