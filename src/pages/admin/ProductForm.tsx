@@ -843,18 +843,27 @@ export default function ProductForm() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-6 md:grid-cols-3">
-                        <FormField control={form.control} name="price" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Verkoopprijs *</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-                                <Input {...field} type="number" step="0.01" min="0" className="pl-7" />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
+                        {id && product?.product_variants && product.product_variants.filter(v => v.is_active).length > 0 ? (
+                          <div className="md:col-span-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                            <p className="font-medium text-foreground mb-1">Verkoopprijs wordt per variant beheerd</p>
+                            <p>
+                              {product.product_variants.filter(v => v.is_active).length} actieve varianten — pas de verkoopprijs aan in het tabblad "Varianten".
+                            </p>
+                          </div>
+                        ) : (
+                          <FormField control={form.control} name="price" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Verkoopprijs *</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                  <Input {...field} type="number" step="0.01" min="0" className="pl-7" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        )}
                         <FormField control={form.control} name="compare_at_price" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vergelijkingsprijs</FormLabel>
@@ -1490,7 +1499,7 @@ export default function ProductForm() {
                         <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} />
+                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} defaultPrice={form.watch('price')} />
                       </CardContent>
                     </Card>
                   ) : (
