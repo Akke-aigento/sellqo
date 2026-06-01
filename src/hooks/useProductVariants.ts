@@ -106,6 +106,7 @@ export function useProductVariants(productId: string | undefined, defaultPrice?:
       const { data: variant, error } = await supabase
         .from('product_variants')
         .insert({
+          price: defaultPrice ?? null,
           ...data,
           attribute_values: (data.attribute_values || {}) as unknown as Json,
           product_id: productId,
