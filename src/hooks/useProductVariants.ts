@@ -60,7 +60,7 @@ export interface VariantOptionFormData {
   position?: number;
 }
 
-export function useProductVariants(productId: string | undefined) {
+export function useProductVariants(productId: string | undefined, defaultPrice?: number | null) {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -106,6 +106,7 @@ export function useProductVariants(productId: string | undefined) {
       const { data: variant, error } = await supabase
         .from('product_variants')
         .insert({
+          price: defaultPrice ?? null,
           ...data,
           attribute_values: (data.attribute_values || {}) as unknown as Json,
           product_id: productId,
@@ -291,6 +292,7 @@ export function useProductVariants(productId: string | undefined) {
           title: Object.values(combo).join(' / '),
           attribute_values: combo as unknown as Json,
           position: kept.length + idx,
+          price: defaultPrice ?? null,
         }));
         const { error } = await supabase
           .from('product_variants')
@@ -354,6 +356,7 @@ export function useProductVariants(productId: string | undefined) {
         title: Object.values(combo).join(' / '),
         attribute_values: combo as unknown as Json,
         position: existing.length + idx,
+        price: defaultPrice ?? null,
       }));
 
       const { error } = await supabase

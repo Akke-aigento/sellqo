@@ -76,15 +76,16 @@ interface ProductVariantsTabProps {
   productId: string;
   productImages?: string[];
   trackInventory?: boolean;
+  defaultPrice?: number | null;
 }
 
-export function ProductVariantsTab({ productId, productImages = [], trackInventory = true }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, productImages = [], trackInventory = true, defaultPrice = null }: ProductVariantsTabProps) {
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
     createOption, updateOption, deleteOption,
     generateVariants, syncVariants,
-  } = useProductVariants(productId);
+  } = useProductVariants(productId, defaultPrice);
   const { products } = useProducts();
 
   // Container-width detection for existing variants section
