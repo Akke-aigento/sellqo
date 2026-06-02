@@ -2860,6 +2860,7 @@ serve(async (req) => {
       case 'get_seo': result = await getSeo(supabase, tenant_id, params); cacheControl = 'public, max-age=600'; break;
       case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
       case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
+      case 'submit_contact_form': result = await submitContactForm(supabase, tenant_id, params); break;
       // Cart actions
       case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
       case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;
