@@ -2631,6 +2631,84 @@ async function getOrderConfirmation(supabase: any, tenantId: string, params: Rec
 
 async function newsletterSubscribe(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const email = (params.email as string || '').trim().toLowerCase();
+  return _newsletterSubscribeImpl(supabase, tenantId, params, email);
+}
+
+// ============== CONTACT FORM ==============
+
+async function submitContactForm(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const name = ((params.name as string) || '').trim();
+  const email = ((params.email as string) || '').trim().toLowerCase();
+  const subject = ((params.subject as string) || '').trim();
+  const message = ((params.message as string) || '').trim();
+  const orderNumber = ((params.orderNumber as string) || (params.order_number as string) || '').trim();
+
+  if (!name || name.length > 200) return { success: false, error: 'Name is required (max 200 chars)' };
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email) || email.length > 320) return { success: false, error: 'Valid email is required' };
+  if (!subject || subject.length > 300) return { success: false, error: 'Subject is required (max 300 chars)' };
+  if (!message || message.length > 5000) return { success: false, error: 'Message is required (max 5000 chars)' };
+  if (orderNumber && orderNumber.length > 50) return { success: false, error: 'Order number too long (max 50 chars)' };
+
+  // Resolve tenant inbox recipient
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('notification_email, owner_email, name')
+    .eq('id', tenantId)
+    .maybeSingle();
+  const toEmail = tenant?.notification_email || tenant?.owner_email || 'inbox@sellqo.app';
+
+  // Try to link to an existing customer (optional)
+  const { data: existingCustomer } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('email', email)
+    .maybeSingle();
+
+  const escapeHtml = (s: string) => s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const bodyHtml = `<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>`
+    + (orderNumber ? `<p><strong>Order:</strong> ${escapeHtml(orderNumber)}</p>` : '')
+    + `<p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`;
+
+  const insertRow: Record<string, unknown> = {
+    tenant_id: tenantId,
+    customer_id: existingCustomer?.id || null,
+    direction: 'inbound',
+    channel: 'web',
+    subject: subject.slice(0, 300),
+    body_html: bodyHtml,
+    body_text: message,
+    from_email: email,
+    to_email: toEmail,
+    reply_to_email: email,
+    delivery_status: 'received',
+    message_status: 'active',
+    context_type: 'contact_form',
+    context_data: {
+      source: 'contact_form',
+      name,
+      order_number: orderNumber || null,
+    },
+  };
+
+  const { data: inserted, error } = await supabase
+    .from('customer_messages')
+    .insert(insertRow)
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('[submit_contact_form] insert failed:', error);
+    return { success: false, error: 'Could not submit contact form' };
+  }
+
+  return { success: true, message_id: inserted.id };
+}
+
+async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
   const firstName = (params.first_name as string) || undefined;
   const source = (params.source as string) || 'storefront_api';
 
