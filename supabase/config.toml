@@ -308,3 +308,6 @@ verify_jwt = false
 
 [functions.cleanup-connected-accounts]
 verify_jwt = false
+
+[functions.update-order-fulfillment-status]
+verify_jwt = false
