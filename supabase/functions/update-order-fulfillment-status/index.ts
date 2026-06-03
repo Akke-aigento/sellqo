@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import {
   AuthError,
   authenticateRequest,
@@ -42,27 +42,29 @@ const TRANSITIONS: Record<string, OrderStatus[]> = {
 // transitions that require tenant_admin or staff (not warehouse)
 const ADMIN_OR_STAFF_ONLY_TARGETS: OrderStatus[] = ["cancelled"];
 
-function json(body: unknown, status: number) {
+function json(req: Request, body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
 
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method !== "POST") {
-    return json({ success: false, error: "Method not allowed" }, 405);
+    return json(req, { success: false, error: "Method not allowed" }, 405);
   }
 
   let body: RequestBody;
   try {
     body = await req.json();
   } catch {
-    return json({ success: false, error: "Invalid JSON" }, 400);
+    return json(req, { success: false, error: "Invalid JSON" }, 400);
   }
 
   const {
@@ -77,13 +79,14 @@ Deno.serve(async (req) => {
 
   if (!tenant_id || !order_id || !new_status) {
     return json(
+      req,
       { success: false, error: "tenant_id, order_id and new_status are required" },
       400,
     );
   }
 
   if (!(new_status in TRANSITIONS)) {
-    return json({ success: false, error: `Unknown status: ${new_status}` }, 400);
+    return json(req, { success: false, error: `Unknown status: ${new_status}` }, 400);
   }
 
   let auth;
@@ -124,13 +127,13 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (loadError) {
-    return json({ success: false, error: loadError.message }, 500);
+    return json(req, { success: false, error: loadError.message }, 500);
   }
   if (!currentOrder) {
-    return json({ success: false, error: "Order not found" }, 404);
+    return json(req, { success: false, error: "Order not found" }, 404);
   }
   if (currentOrder.tenant_id !== tenant_id) {
-    return json({ success: false, error: "Order does not belong to tenant" }, 403);
+    return json(req, { success: false, error: "Order does not belong to tenant" }, 403);
   }
 
   const fromStatus = currentOrder.status as OrderStatus;
@@ -140,6 +143,7 @@ Deno.serve(async (req) => {
     const allowed = TRANSITIONS[fromStatus] ?? [];
     if (!allowed.includes(new_status)) {
       return json(
+        req,
         {
           success: false,
           error: `Invalid status transition: ${fromStatus} → ${new_status}`,
@@ -196,7 +200,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (updateError) {
-    return json({ success: false, error: updateError.message }, 500);
+    return json(req, { success: false, error: updateError.message }, 500);
   }
 
   // Audit trail — best-effort, do not fail the request on log errors.
@@ -215,5 +219,5 @@ Deno.serve(async (req) => {
     console.error("[update-order-fulfillment-status] audit log failed:", auditError);
   }
 
-  return json({ success: true, order: updatedOrder }, 200);
+  return json(req, { success: true, order: updatedOrder }, 200);
 });
