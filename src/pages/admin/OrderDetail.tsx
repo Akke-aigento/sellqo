@@ -648,6 +648,16 @@ export default function OrderDetailPage() {
           (order as any).stripe_payment_intent_id ? 'stripe' : 'manual'
         }
       />
+
+      {canCorrectStatus && (
+        <OrderStatusCorrectionDialog
+          open={showCorrectionDialog}
+          onOpenChange={setShowCorrectionDialog}
+          orderId={order.id}
+          orderNumber={order.order_number}
+          currentStatus={order.status}
+        />
+      )}
     </div>
   );
 }
