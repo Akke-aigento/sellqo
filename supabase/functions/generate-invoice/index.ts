@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { resolveVatRegimeSafe, type SalesChannel } from "../_shared/regimeResolver.ts";
 
 const corsHeaders = {
@@ -1184,6 +1184,9 @@ serve(async (req) => {
     if (orderError || !order) {
       throw new Error(`Order not found: ${orderError?.message}`);
     }
+
+    // Batch 2A1: role gate — admin/staff/accountant may generate invoices.
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "accountant"]);
 
     const { data: existingInvoice } = await supabaseClient
       .from("invoices")
