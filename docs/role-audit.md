@@ -63,3 +63,28 @@ confirms 40 captured tables and 0 remaining missing tables in the
 target set.
 
 **Status.** Pre-Fase 2 schema-sync ✅ completed. Ready for Fase 2A.
+
+---
+
+## Fase 2 beslispunten vastgeklikt
+
+**Datum.** 2026-06-03
+**Status.** Vastgeklikt voor Fase 2-uitrol — niet meer heropenen tijdens
+implementatie zonder expliciete herbeoordeling.
+
+1. **Staff mag orders annuleren: JA**, mits elke annulering een entry
+   schrijft in `admin_actions_log`
+   (`action_type = 'order_cancelled'`, met `target_tenant_id`,
+   `actor user_id`, en order-context in `action_details`). Geen extra
+   approval-flow; de audit-log is de control.
+2. **Staff mag ad-budgetten wijzigen (ads_meta / ads_google /
+   ads_amazon / ads_bolcom): NEE.** Alleen `tenant_admin` (en
+   `platform_admin` via bypass) mag budget-velden muteren. Staff houdt
+   read-only zicht voor operationele monitoring; UI moet de
+   budget-controls disablen voor non-admins.
+3. **Customer-data voor accountant: OPTIE A — aparte view
+   `customers_invoice_view`** die alleen factuur-relevante kolommen
+   exposeert: `id`, `tenant_id`, `email`, `first_name`, `last_name`,
+   `default_billing_address`, `btw_number`, `total_spent`. Accountant
+   krijgt GEEN directe SELECT op `customers`; alle accountant-facing
+   queries (rapporten, exports, facturen) routeren via deze view.
