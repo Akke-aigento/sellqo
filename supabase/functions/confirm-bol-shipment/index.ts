@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // Extended CORS headers (compatible with all Supabase client variants)
 const corsHeaders = {
@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
     const { order_id, tracking_number, carrier, tracking_url, shipping_label_id }: ConfirmShipmentRequest =
       await req.json();
 
@@ -129,6 +129,9 @@ const handler = async (req: Request): Promise<Response> => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Batch 2A1: role gate — admin/staff/warehouse may confirm shipments.
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "warehouse"]);
 
     if (order.marketplace_source !== "bol_com" || !order.marketplace_connection_id) {
       return new Response(JSON.stringify({ error: "This is not a Bol.com order" }), {
