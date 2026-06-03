@@ -88,3 +88,95 @@ implementatie zonder expliciete herbeoordeling.
    `default_billing_address`, `btw_number`, `total_spent`. Accountant
    krijgt GEEN directe SELECT op `customers`; alle accountant-facing
    queries (rapporten, exports, facturen) routeren via deze view.
+
+---
+
+## Fase 2 Foundation completed
+
+**Datum.** 2026-06-03
+**Status.** ✅ Foundation gelegd — backwards-compatible, geen bestaande
+code aangeraakt buiten de uitbreidingen hieronder.
+
+### 1. Database — `has_tenant_role` helper
+
+```sql
+CREATE OR REPLACE FUNCTION public.has_tenant_role(
+  _tenant_id uuid,
+  _allowed_roles public.app_role[]
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    WHERE ur.user_id = auth.uid()
+      AND (ur.tenant_id = _tenant_id OR ur.role = 'platform_admin'::public.app_role)
+      AND ur.role = ANY(_allowed_roles)
+  ) OR EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    WHERE ur.user_id = auth.uid()
+      AND ur.role = 'platform_admin'::public.app_role
+  );
+$$;
+```
+
+- `SECURITY DEFINER`, `STABLE`, `SET search_path = ''` — geen
+  schema-resolutie-spoofing mogelijk.
+- `EXECUTE` toegekend aan `authenticated` en `service_role`; ingetrokken
+  van `PUBLIC`.
+- Platform-admin bypass zit ingebakken in de tweede `EXISTS`-tak, zodat
+  RLS-policies geen aparte `is_platform_admin()`-clausule meer hoeven.
+
+Daarnaast `public.test_has_tenant_role()` (SECURITY DEFINER, alleen
+`service_role` mag `EXECUTE`) — voert de 5 Foundation-scenario's uit en
+retourneert een tabel `(scenario, expected, actual, passed)`:
+
+1. user zonder rol → `false`
+2. user met juiste rol → `true`
+3. user met andere rol → `false`
+4. platform_admin ongeacht `_allowed_roles` → `true`
+5. verkeerd `tenant_id` voor user → `false`
+
+### 2. Edge-function-laag — `supabase/functions/_shared/auth.ts`
+
+- `AuthResult` uitgebreid met optioneel
+  `roles_by_tenant?: Record<string, AppRole[]>` (backwards-compatible —
+  bestaande functies dereferencen alleen `user_id`/`email`/`tenant_ids`/`is_platform_admin`).
+- `authenticateRequest` bouwt deze map uit dezelfde `user_roles`-query
+  die al gedaan werd; nul extra round-trips. Service-role bypass
+  returnt een lege map.
+- Nieuwe export `requireRole(auth, tenantId, allowed: AppRole[])`:
+  - Bypass voor `auth.user_id === "service_role"` (server-to-server).
+  - Bypass voor `auth.is_platform_admin === true`.
+  - Gooit `AuthError(403, "Insufficient role for this action")` bij
+    mismatch.
+- Nieuwe export `type AppRole` zodat batch-implementatieprompts
+  consistent kunnen typen.
+
+### 3. Frontend bouwstenen
+
+- `src/hooks/useCan.ts` — `useCan(action, resource)` plus de exporteerbare
+  `PERMISSION_MATRIX` (gespiegeld aan Hoofdstuk 2 van het masterplan) en
+  pure helper `canWithRoles(roles, action, resource)` voor tests.
+  `platform_admin` voldoet altijd via bypass.
+- `src/components/PermissionGate.tsx` — declaratieve wrapper voor inline
+  UI-gating (`<PermissionGate action="write" resource="orders">…`).
+- `src/components/ProtectedRoute.tsx` — uitgebreid met optionele
+  `requires?: AppRole[]`; bestaande `requirePlatformAdmin` blijft werken.
+  Mismatch redirect naar `/no-access`.
+- `src/pages/NoAccess.tsx` + route `/no-access` in `src/App.tsx`.
+- `src/hooks/useCan.test.ts` — 8 vitest-scenario's (alle 6 rollen +
+  empty-roles + combined-roles), allemaal groen.
+
+### 4. Bewust niet aangeraakt
+
+- `useAuth.tsx` ad-hoc booleans `isAccountant`, `isWarehouse`,
+  `hasFinancialAccess` blijven bestaan. Migratie naar `useCan` is tech
+  debt voor Fase 3 cleanup (zie masterplan §5.2).
+- Bestaande edge functions: geen `requireRole`-call toegevoegd; dat
+  gebeurt batch-per-batch (2A1 → 2F).
+- Bestaande RLS-policies: ongewijzigd. `has_tenant_role` wordt ingezet
+  vanaf Batch 2A1.
