@@ -136,26 +136,28 @@ export default function OrderDetailPage() {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowReturnDialog(true)}
-          disabled={totalReturnable === 0}
-          title={totalReturnable === 0 ? 'Alle items uit deze bestelling zijn al geretourneerd' : undefined}
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Retour aanmaken
-        </Button>
-        {canCorrectStatus && (
-          <ActionsMenu
-            items={[
-              {
-                label: 'Status corrigeren…',
-                icon: <AlertTriangle className="h-4 w-4" />,
-                onClick: () => setShowCorrectionDialog(true),
-              },
-            ]}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowReturnDialog(true)}
+            disabled={totalReturnable === 0}
+            title={totalReturnable === 0 ? 'Alle items uit deze bestelling zijn al geretourneerd' : undefined}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Retour aanmaken
+          </Button>
+          {canCorrectStatus && (
+            <ActionsMenu
+              items={[
+                {
+                  label: 'Status corrigeren…',
+                  icon: <AlertTriangle className="h-4 w-4" />,
+                  onClick: () => setShowCorrectionDialog(true),
+                },
+              ]}
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
