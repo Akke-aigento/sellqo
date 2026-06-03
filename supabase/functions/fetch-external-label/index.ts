@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +43,6 @@ serve(async (req) => {
     }
 
     const { order_id, provider, search_type, search_value }: FetchLabelRequest = await req.json();
-    await authenticateRequest(req, tenant_id);
 
     if (!order_id || !provider || !search_type || !search_value) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -65,6 +64,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Batch 2A1: auth + role gate — admin/staff/warehouse may fetch external labels.
+    const auth = await authenticateRequest(req, order.tenant_id);
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "warehouse"]);
 
     // Get shipping integration for this provider
     const { data: integration, error: integrationError } = await supabase
