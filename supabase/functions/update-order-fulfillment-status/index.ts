@@ -24,6 +24,8 @@ interface RequestBody {
   tracking_url?: string | null;
   shipped_at?: string | null;
   delivered_at?: string | null;
+  is_correction?: boolean;
+  reason?: string;
 }
 
 // status transition matrix
@@ -75,6 +77,8 @@ Deno.serve(async (req) => {
     tracking_url,
     shipped_at,
     delivered_at,
+    is_correction,
+    reason,
   } = body ?? {};
 
   if (!tenant_id || !order_id || !new_status) {
@@ -89,6 +93,17 @@ Deno.serve(async (req) => {
     return json(req, { success: false, error: `Unknown status: ${new_status}` }, 400);
   }
 
+  const correction = is_correction === true;
+  if (correction) {
+    if (!reason || typeof reason !== "string" || reason.trim().length < 3) {
+      return json(
+        req,
+        { success: false, error: "reason is required for corrections (min 3 chars)" },
+        400,
+      );
+    }
+  }
+
   let auth;
   try {
     auth = await authenticateRequest(req, tenant_id);
@@ -98,14 +113,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    requireRole(auth, tenant_id, ["tenant_admin", "staff", "warehouse"]);
+    if (correction) {
+      // Corrections are admin-only and bypass the transition matrix.
+      requireRole(auth, tenant_id, ["tenant_admin"]);
+    } else {
+      requireRole(auth, tenant_id, ["tenant_admin", "staff", "warehouse"]);
+    }
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     throw err;
   }
 
   // Warehouse may not trigger admin-only transitions (e.g. cancelled).
-  if (ADMIN_OR_STAFF_ONLY_TARGETS.includes(new_status)) {
+  if (!correction && ADMIN_OR_STAFF_ONLY_TARGETS.includes(new_status)) {
     try {
       requireRole(auth, tenant_id, ["tenant_admin", "staff"]);
     } catch (err) {
@@ -138,8 +158,9 @@ Deno.serve(async (req) => {
 
   const fromStatus = currentOrder.status as OrderStatus;
 
+  // Corrections bypass the transition matrix entirely.
   // Allow no-op (same status) so bulk actions are idempotent.
-  if (fromStatus !== new_status) {
+  if (!correction && fromStatus !== new_status) {
     const allowed = TRANSITIONS[fromStatus] ?? [];
     if (!allowed.includes(new_status)) {
       return json(
@@ -207,12 +228,13 @@ Deno.serve(async (req) => {
   const { error: auditError } = await admin.from("admin_actions_log").insert({
     admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
     target_tenant_id: tenant_id,
-    action_type: "order_fulfillment_status_update",
+    action_type: correction ? "order_status_correction" : "order_fulfillment_status_update",
     action_details: {
       order_id,
       from_status: fromStatus,
       to_status: new_status,
       fields_updated: Array.from(new Set(fieldsUpdated)),
+      ...(correction ? { is_correction: true, reason: reason!.trim() } : {}),
     },
   });
   if (auditError) {
