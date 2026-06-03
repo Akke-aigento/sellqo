@@ -13230,30 +13230,6 @@ export type Database = {
           },
         ]
       }
-      shopify_dates_staging: {
-        Row: {
-          financial_status: string | null
-          order_name: string
-          shop_cancelled_at: string | null
-          shop_created_at: string
-          shop_paid_at: string | null
-        }
-        Insert: {
-          financial_status?: string | null
-          order_name: string
-          shop_cancelled_at?: string | null
-          shop_created_at: string
-          shop_paid_at?: string | null
-        }
-        Update: {
-          financial_status?: string | null
-          order_name?: string
-          shop_cancelled_at?: string | null
-          shop_created_at?: string
-          shop_paid_at?: string | null
-        }
-        Relationships: []
-      }
       sidebar_preferences: {
         Row: {
           created_at: string | null
@@ -13532,72 +13508,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      stock_snapshot_pre_reconcile_20260430: {
-        Row: {
-          bol_ean: string | null
-          name: string | null
-          product_id: string | null
-          sku: string | null
-          snapshot_at: string | null
-          stock_before: number | null
-          tenant_id: string | null
-          track_inventory: boolean | null
-        }
-        Insert: {
-          bol_ean?: string | null
-          name?: string | null
-          product_id?: string | null
-          sku?: string | null
-          snapshot_at?: string | null
-          stock_before?: number | null
-          tenant_id?: string | null
-          track_inventory?: boolean | null
-        }
-        Update: {
-          bol_ean?: string | null
-          name?: string | null
-          product_id?: string | null
-          sku?: string | null
-          snapshot_at?: string | null
-          stock_before?: number | null
-          tenant_id?: string | null
-          track_inventory?: boolean | null
-        }
-        Relationships: []
-      }
-      stock_snapshot_pre_reconcile_final: {
-        Row: {
-          bol_ean_before: string | null
-          name: string | null
-          product_id: string | null
-          sku: string | null
-          snapshot_at: string | null
-          stock_before: number | null
-          tenant_id: string | null
-          track_inventory: boolean | null
-        }
-        Insert: {
-          bol_ean_before?: string | null
-          name?: string | null
-          product_id?: string | null
-          sku?: string | null
-          snapshot_at?: string | null
-          stock_before?: number | null
-          tenant_id?: string | null
-          track_inventory?: boolean | null
-        }
-        Update: {
-          bol_ean_before?: string | null
-          name?: string | null
-          product_id?: string | null
-          sku?: string | null
-          snapshot_at?: string | null
-          stock_before?: number | null
-          tenant_id?: string | null
-          track_inventory?: boolean | null
-        }
-        Relationships: []
       }
       storefront_api_keys: {
         Row: {
