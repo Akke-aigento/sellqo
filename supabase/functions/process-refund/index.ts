@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +20,7 @@ serve(async (req) => {
   );
 
   try {
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const { return_id } = await req.json();
     if (!return_id) {
@@ -42,6 +42,13 @@ serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Batch 2A1: role gate — only admin/staff may process refunds (geen warehouse).
+    {
+      const orderForRole = returnRecord.orders as any;
+      const refundTenantId = orderForRole?.tenant_id || returnRecord.tenant_id;
+      requireRole(auth, refundTenantId, ["tenant_admin", "staff"]);
     }
 
     // ── Idempotency guard ──
