@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.test_has_tenant_role(uuid, uuid, uuid) TO authenticated, postgres;
