@@ -17779,6 +17779,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_tenant_role: {
+        Args: {
+          _allowed_roles: Database["public"]["Enums"]["app_role"][]
+          _tenant_id: string
+        }
+        Returns: boolean
+      }
       hash_cashier_pin: { Args: { p_pin: string }; Returns: string }
       increment_campaign_bounced: {
         Args: { p_campaign_id: string }
@@ -17879,6 +17886,15 @@ export type Database = {
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
+      }
+      test_has_tenant_role: {
+        Args: never
+        Returns: {
+          actual: boolean
+          expected: boolean
+          passed: boolean
+          scenario: string
+        }[]
       }
       track_user_behavior: {
         Args: {
