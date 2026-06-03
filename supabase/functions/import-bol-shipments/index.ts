@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -189,7 +189,6 @@ Deno.serve(async (req) => {
     )
 
     const body = await req.json().catch(() => ({}))
-    await authenticateRequest(req, tenant_id);
     const { connectionId } = body
 
     if (!connectionId) {
@@ -208,6 +207,10 @@ Deno.serve(async (req) => {
     if (connError || !connection) {
       throw new Error(`Connection not found: ${connError?.message}`)
     }
+
+    // Batch 2A1: auth + role gate — admin/staff/warehouse may import shipments.
+    const auth = await authenticateRequest(req, connection.tenant_id);
+    requireRole(auth, connection.tenant_id, ["tenant_admin", "staff", "warehouse"]);
 
     console.log(`Importing shipments for connection: ${connection.id}`)
 
