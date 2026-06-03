@@ -17888,7 +17888,7 @@ export type Database = {
         Returns: undefined
       }
       test_has_tenant_role: {
-        Args: never
+        Args: { _user_a: string; _user_admin: string; _user_b: string }
         Returns: {
           actual: boolean
           expected: boolean
