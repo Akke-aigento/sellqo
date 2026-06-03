@@ -104,40 +104,59 @@ export function TrackingImportDialog({ open, onOpenChange, onImportComplete }: T
 
     for (const row of matchedRows) {
       try {
-        const updateData: Record<string, unknown> = {
-          carrier: normalizeCarrier(row.carrier || 'other'),
-          tracking_number: row.tracking_number,
-          tracking_status: 'shipped',
-          last_tracking_check: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        if (row.tracking_url) {
-          updateData.tracking_url = row.tracking_url;
-        }
-
-        if (row.shipped_at) {
-          updateData.shipped_at = row.shipped_at;
-        } else {
-          updateData.shipped_at = new Date().toISOString();
-        }
-
-        // Get current order status
+        // Get current order status to decide of we via edge fn naar 'shipped' transitionen.
         const { data: currentOrder } = await supabase
           .from('orders')
           .select('status')
           .eq('id', row.orderId!)
           .single();
 
-        if (currentOrder && ['pending', 'processing'].includes(currentOrder.status)) {
-          updateData.status = 'shipped';
+        const shouldPromoteStatus =
+          currentOrder && ['pending', 'processing'].includes(currentOrder.status);
+        const shippedAt = row.shipped_at || new Date().toISOString();
+
+        let invokeError: { message: string } | null = null;
+
+        if (shouldPromoteStatus) {
+          const { data: fnData, error: fnError } = await supabase.functions.invoke(
+            'update-order-fulfillment-status',
+            {
+              body: {
+                tenant_id: tenantId,
+                order_id: row.orderId!,
+                new_status: 'shipped',
+                tracking_number: row.tracking_number,
+                tracking_url: row.tracking_url || undefined,
+                shipped_at: shippedAt,
+              },
+            },
+          );
+          if (fnError) invokeError = { message: fnError.message };
+          else if (fnData && (fnData as { success?: boolean }).success === false) {
+            invokeError = { message: (fnData as { error?: string }).error || 'Edge fn faalde' };
+          }
         }
 
-        const { error } = await supabase
+        // Velden die niet onder de edge-function whitelist vallen (carrier, tracking_status,
+        // last_tracking_check) of wanneer status niet gepromoot wordt: directe update.
+        const directUpdate: Record<string, unknown> = {
+          carrier: normalizeCarrier(row.carrier || 'other'),
+          tracking_status: 'shipped',
+          last_tracking_check: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        if (!shouldPromoteStatus) {
+          directUpdate.tracking_number = row.tracking_number;
+          if (row.tracking_url) directUpdate.tracking_url = row.tracking_url;
+          directUpdate.shipped_at = shippedAt;
+        }
+
+        const { error: directError } = await supabase
           .from('orders')
-          .update(updateData)
+          .update(directUpdate)
           .eq('id', row.orderId!);
 
+        const error = invokeError || directError;
         if (error) {
           results.push({
             order_reference: row.order_reference,

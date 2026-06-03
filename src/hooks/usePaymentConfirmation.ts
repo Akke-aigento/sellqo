@@ -23,19 +23,40 @@ export function usePaymentConfirmation() {
         throw new Error('Niet ingelogd');
       }
 
-      // Start a transaction-like operation:
-      // 1. Update order payment status
-      const { error: orderError } = await supabase
+      // 1a. Payment status direct bijwerken (alleen indien nog pending).
+      const { data: paidRows, error: orderError } = await supabase
         .from('orders')
-        .update({ 
-          payment_status: 'paid',
-          status: 'processing', // Also update order status if it was pending
-        })
+        .update({ payment_status: 'paid' })
         .eq('id', orderId)
-        .eq('payment_status', 'pending'); // Only update if still pending
+        .eq('payment_status', 'pending')
+        .select('id, status');
 
       if (orderError) {
         throw new Error(`Fout bij bijwerken order: ${orderError.message}`);
+      }
+
+      // 1b. Indien betaling effectief gemarkeerd én order nog pending: status →
+      //     processing via gevalideerde edge function (RBAC + transitiematrix).
+      const justPaid = paidRows && paidRows.length > 0 && paidRows[0].status === 'pending';
+      if (justPaid) {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          'update-order-fulfillment-status',
+          {
+            body: {
+              tenant_id: tenantId,
+              order_id: orderId,
+              new_status: 'processing',
+            },
+          },
+        );
+        if (fnError) {
+          throw new Error(`Fout bij statusovergang: ${fnError.message}`);
+        }
+        if (fnData && (fnData as { success?: boolean }).success === false) {
+          throw new Error(
+            `Fout bij statusovergang: ${(fnData as { error?: string }).error || 'onbekend'}`,
+          );
+        }
       }
 
       // 2. Create payment confirmation audit record

@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _test_has_tenant_role_results: {
-        Row: {
-          actual: boolean | null
-          expected: boolean | null
-          passed: boolean | null
-          run_at: string
-          scenario: string | null
-        }
-        Insert: {
-          actual?: boolean | null
-          expected?: boolean | null
-          passed?: boolean | null
-          run_at?: string
-          scenario?: string | null
-        }
-        Update: {
-          actual?: boolean | null
-          expected?: boolean | null
-          passed?: boolean | null
-          run_at?: string
-          scenario?: string | null
-        }
-        Relationships: []
-      }
       ab_test_configs: {
         Row: {
           auto_select_winner: boolean | null
@@ -17910,21 +17886,6 @@ export type Database = {
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
-      }
-      test_has_tenant_role: {
-        Args: {
-          _tenant_x: string
-          _tenant_y: string
-          _user_a: string
-          _user_admin: string
-          _user_b: string
-        }
-        Returns: {
-          actual: boolean
-          expected: boolean
-          passed: boolean
-          scenario: string
-        }[]
       }
       track_user_behavior: {
         Args: {

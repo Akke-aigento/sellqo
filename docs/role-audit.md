@@ -180,3 +180,93 @@ retourneert een tabel `(scenario, expected, actual, passed)`:
   gebeurt batch-per-batch (2A1 → 2F).
 - Bestaande RLS-policies: ongewijzigd. `has_tenant_role` wordt ingezet
   vanaf Batch 2A1.
+
+## Batch 2A0 — Warehouse status edge function completed (2026-06-03)
+
+Pre-step voor 2A1 RLS-aanscherping op `public.orders`. Doel: alle
+client-side mutaties op `orders.status` lopen via een gevalideerde edge
+function zodat warehouse-UI niet breekt zodra RLS de directe `UPDATE`
+op de `status`-kolom dichttrekt.
+
+### 1. Edge function — `supabase/functions/update-order-fulfillment-status/index.ts`
+
+- Auth: `authenticateRequest(req, tenant_id)` (JWT + tenant-binding).
+- RBAC: `requireRole(auth, tenant_id, ['tenant_admin', 'staff', 'warehouse'])`.
+- Whitelist body: `{ order_id, new_status, tracking_number?, tracking_url?, shipped_at?, delivered_at? }`.
+- Server-side transitiematrix:
+  - `pending → processing | cancelled`
+  - `processing → shipped | cancelled`
+  - `shipped → delivered`
+  - `delivered`, `cancelled`, `returned`, `partially_returned` → terminaal
+    (returned-flow leeft in returns-module, niet hier).
+- `cancelled` als doel-status vereist extra `requireRole(['tenant_admin','staff'])` —
+  **warehouse mag dus géén orders annuleren**.
+- Whitelist UPDATE-kolommen: `status`, `tracking_number`, `tracking_url`,
+  `shipped_at`, `delivered_at`, `cancelled_at` (auto), `updated_at`.
+  Alles wat niet in deze lijst staat (carrier, fulfillment_status, totalen,
+  customer-data, …) is niet aanpasbaar via deze functie.
+- Auto-stempel `shipped_at` / `delivered_at` / `cancelled_at` als de
+  caller ze niet meegeeft.
+- Idempotent: dezelfde `from_status === new_status` is een no-op (handig
+  voor bulk-acties).
+- Audit-log: insert in `admin_actions_log` met
+  `action_type='order_fulfillment_status_update'` en
+  `action_details: { order_id, from_status, to_status, fields_updated }`.
+- Service-role bypass (cron/webhook) blijft werken via
+  `requireRole`-bypass in `_shared/auth.ts`.
+
+### 2. Frontend-migratie-impact
+
+Alle directe `supabase.from('orders').update({ status: … })`-calls in
+admin/warehouse UI vervangen door
+`supabase.functions.invoke('update-order-fulfillment-status', …)`:
+
+- `src/hooks/useOrders.ts` — `updateOrderStatus` mutation.
+- `src/components/admin/OrderBulkActions.tsx` — `handleBulkStatusUpdate`
+  (loop per order, want edge fn is single-order).
+- `src/components/admin/FulfillmentBulkActions.tsx` —
+  `handleMarkAsShipped` + `handleMarkAsDelivered` (loop). `fulfillment_status`
+  blijft direct geüpdatet als secundair veld (niet in whitelist).
+- `src/hooks/useOrderShipping.ts` — `updateTracking` doet eerst edge fn
+  (status + tracking-velden), daarna directe update voor `carrier` +
+  `fulfillment_status`.
+- `src/components/admin/fulfillment/TrackingImportDialog.tsx` — alleen
+  edge fn aanroepen als huidige status `pending`/`processing` is (dezelfde
+  pre-check als voorheen); rest van velden (`carrier`, `tracking_status`,
+  `last_tracking_check`) blijft directe update.
+- `src/hooks/usePaymentConfirmation.ts` — splitst nu in twee stappen:
+  (a) `payment_status='paid'` directe update met `.select()` om te zien of
+  de order daadwerkelijk nog pending was; (b) als ja én oude `status='pending'`
+  → edge fn voor transitie naar `processing`.
+- `src/components/admin/BankReconciliationUpload.tsx` — idem
+  payment-confirmation patroon; 422 "invalid status transition" wordt
+  in reconciliation-context bewust genegeerd (order kan al `processing` zijn).
+
+Niet gemigreerd (terecht):
+- `src/pages/admin/Fulfillment.tsx` `updateTracking` schrijft alleen
+  `fulfillment_status` + tracking-velden, **niet** `status`.
+- Cron/sync/webhook edge functions die service-role gebruiken
+  (marketplace-sync, bol-com-webhook, …) — bypass blijft.
+
+### 3. Status-transitie-regels (samenvatting voor reviewers)
+
+| Van \ Naar    | processing | shipped | delivered | cancelled |
+|---------------|------------|---------|-----------|-----------|
+| pending       | ✅ alle    | ❌      | ❌        | ✅ admin/staff |
+| processing    | —          | ✅ alle | ❌        | ✅ admin/staff |
+| shipped       | ❌         | —       | ✅ alle   | ❌        |
+| delivered     | ❌         | ❌      | —         | ❌        |
+| cancelled / returned / partially_returned | terminaal — geen transitie |
+
+"alle" = `tenant_admin`, `staff`, `warehouse` (plus `platform_admin`
+bypass). `cancelled` blokkeert `warehouse` expliciet.
+
+`viewer` en `accountant` zitten niet in de allowed-set en krijgen 403
+op elke status-mutatie.
+
+### 4. Geen RLS-wijzigingen in deze batch
+
+`public.orders` RLS staat nog op de oude `has_role`-policies. Aanscherping
+(drie-policy met `has_tenant_role` + warehouse beperkt tot status/tracking
+kolommen via aparte UPDATE-policy) volgt in Batch 2A1, nu deze edge function
+live en backwards-compatible draait.
