@@ -57,23 +57,21 @@ export function useOrders(filters?: OrderFilters) {
 
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const updateData: Partial<Order> = { status };
-      
-      // Set timestamps based on status
-      if (status === 'shipped') {
-        updateData.shipped_at = new Date().toISOString();
-      } else if (status === 'delivered') {
-        updateData.delivered_at = new Date().toISOString();
-      } else if (status === 'cancelled') {
-        updateData.cancelled_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('orders')
-        .update(updateData)
-        .eq('id', orderId);
-
+      if (!currentTenant?.id) throw new Error('Geen tenant context');
+      const { data, error } = await supabase.functions.invoke(
+        'update-order-fulfillment-status',
+        {
+          body: {
+            tenant_id: currentTenant.id,
+            order_id: orderId,
+            new_status: status,
+          },
+        },
+      );
       if (error) throw error;
+      if (data && (data as { success?: boolean }).success === false) {
+        throw new Error((data as { error?: string }).error || 'Status update mislukt');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
