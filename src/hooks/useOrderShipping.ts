@@ -44,20 +44,35 @@ export function useOrderShipping() {
       // Generate tracking URL if not provided
       const finalTrackingUrl = trackingUrl || generateTrackingUrl(carrier, trackingNumber) || '';
 
-      // Update the order with tracking info
-      const { error } = await supabase
+      if (!currentTenant?.id) throw new Error('Geen tenant context');
+
+      // Status + tracking velden via gevalideerde edge function (RBAC + transitiematrix).
+      const { data: fnData, error: fnError } = await supabase.functions.invoke(
+        'update-order-fulfillment-status',
+        {
+          body: {
+            tenant_id: currentTenant.id,
+            order_id: orderId,
+            new_status: 'shipped',
+            tracking_number: trackingNumber,
+            tracking_url: finalTrackingUrl,
+          },
+        },
+      );
+      if (fnError) throw fnError;
+      if (fnData && (fnData as { success?: boolean }).success === false) {
+        throw new Error((fnData as { error?: string }).error || 'Tracking update mislukt');
+      }
+
+      // carrier + fulfillment_status zitten (nog) niet in de whitelist — losse update.
+      const { error: extrasError } = await supabase
         .from('orders')
         .update({
           carrier,
-          tracking_number: trackingNumber,
-          tracking_url: finalTrackingUrl,
-          shipped_at: new Date().toISOString(),
-          status: 'shipped',
           fulfillment_status: 'shipped',
         })
         .eq('id', orderId);
-
-      if (error) throw error;
+      if (extrasError) throw extrasError;
 
       // Send notification if requested
       if (notifyCustomer && customerEmail && currentTenant?.id) {
