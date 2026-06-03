@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
@@ -273,7 +273,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log("Order found:", order.order_number, "marketplace:", order.marketplace_source);
 
-    await authenticateRequest(req, order.tenant_id);
+    const auth = await authenticateRequest(req, order.tenant_id);
+    // Batch 2A1: role gate — admin/staff/warehouse may create VVB labels.
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "warehouse"]);
 
     // Verify this is a Bol.com order
     if (order.marketplace_source !== "bol_com" || !order.marketplace_connection_id) {

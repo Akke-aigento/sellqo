@@ -270,3 +270,119 @@ op elke status-mutatie.
 (drie-policy met `has_tenant_role` + warehouse beperkt tot status/tracking
 kolommen via aparte UPDATE-policy) volgt in Batch 2A1, nu deze edge function
 live en backwards-compatible draait.
+
+---
+
+## Batch 2A1 — Orders RLS-aanscherping completed
+
+Datum: 2026-06-03
+
+Doel: tenant-blind / legacy `has_role`-policies vervangen door rol-aware
+`has_tenant_role(tenant_id, ARRAY[...]::app_role[])`-policies op alle orders /
+shipping / returns / packing / digital-delivery / audit-log-tabellen. Service-
+role en platform-admin bypass-policies blijven ongewijzigd.
+
+### Nieuwe RLS-policies per tabel
+
+**orders** — dropped: `Users can insert orders for their tenant`,
+`Users can update their tenant's orders`, `Tenant admins can delete their tenant's orders`.
+```sql
+CREATE POLICY "Auth users can view tenant orders"
+  ON public.orders FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid())));
+
+CREATE POLICY "Admin/staff can insert tenant orders"
+  ON public.orders FOR INSERT TO authenticated
+  WITH CHECK (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+    AND public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]));
+
+CREATE POLICY "Admin/staff can update tenant orders"
+  ON public.orders FOR UPDATE TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+    AND public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]))
+  WITH CHECK (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+    AND public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]));
+
+CREATE POLICY "Tenant admins can delete tenant orders"
+  ON public.orders FOR DELETE TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+    AND public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+Warehouse muteert orders uitsluitend via de 2A0-edge-function
+`update-order-fulfillment-status` (service-role pad).
+
+**order_items** — idem orders, FK-scope via `order_id → orders.tenant_id`.
+Geen warehouse-write (lijnen worden nooit door warehouse aangepast).
+
+**returns** — dropped: `Tenants can view/insert/update own returns`.
+SELECT tenant-scope, INSERT/UPDATE `has_tenant_role(['tenant_admin','staff','warehouse'])`,
+DELETE `has_tenant_role(['tenant_admin'])`. Geen anon-policy (klant-tracking
+blijft via edge function — buiten 2A1 scope).
+
+**shipping_labels** — dropped alle 5 overlappende policies (`ALL` + losse
+SELECT/INSERT/UPDATE × 2). Drie-policy met
+`has_tenant_role(['tenant_admin','staff','warehouse'])` op INSERT/UPDATE,
+admin-only DELETE.
+
+**shipping_status_updates** — dropped: `Users can manage their tenant shipping status updates`
+(`ALL`-policy). SELECT tenant-scope blijft; INSERT/UPDATE alleen via
+service-role (webhook-pad).
+
+**shipping_methods** — gemigreerd van `has_role` → `has_tenant_role` voor
+consistentie (semantisch identiek, tenant-scoped helper).
+
+**packing_slips & packing_slip_lines** — dropped afwijkende
+`EXISTS(user_roles…)`-policy. Drie-policy `has_tenant_role(['tenant_admin','staff','warehouse'])`
+op WRITE, admin-only DELETE. `packing_slip_lines` heeft géén `tenant_id`-kolom
+→ FK-scope via `packing_slip_id`.
+
+**digital_deliveries** — drie-policy `has_tenant_role(['tenant_admin','staff'])`
+op INSERT/UPDATE (licentiesleutels), admin-only DELETE.
+
+**tracking_import_log** — dropped: `System can insert import logs`. SELECT
+tenant-scope blijft (audit visible); INSERT alleen via service-role.
+
+**inventory_sync_log** — dropped: `Users can insert inventory sync logs for their tenant`.
+SELECT tenant-scope blijft (audit visible); INSERT alleen via service-role.
+
+### Edge function role-checks (requireRole toegevoegd)
+
+| Functie | requireRole-call |
+|---|---|
+| create-shipping-label | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| confirm-bol-shipment | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| create-bol-vvb-label | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| create-amazon-buy-shipping-label | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| fetch-external-label | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| import-bol-shipments | `requireRole(auth, connection.tenant_id, ['tenant_admin','staff','warehouse'])` |
+| send-return-email | `requireRole(auth, tenantId, ['tenant_admin','staff','warehouse'])` |
+| process-refund | `requireRole(auth, refundTenantId, ['tenant_admin','staff'])` *(geen warehouse)* |
+| generate-invoice | `requireRole(auth, order.tenant_id, ['tenant_admin','staff','accountant'])` |
+| run-csv-import | `requireRole(auth, tenant_id, ['tenant_admin'])` |
+
+Webhook / cron / sync / storefront / fulfillment-api-functies blijven ongewijzigd
+(service-role, geen user-context).
+
+Drie functies (`create-amazon-buy-shipping-label`, `fetch-external-label`,
+`import-bol-shipments`) hadden een dangling `tenant_id`-referentie vóór de
+order/connection-fetch; deze is verplaatst naar nà de fetch zodat
+`authenticateRequest(req, tenantId)` + `requireRole(...)` een echte tenant
+meekrijgen.
+
+### Test-resultaten per rol
+
+Aanvullen na productie-validatie:
+
+- [ ] tenant_admin: status-update via `update-order-fulfillment-status` ✅
+- [ ] tenant_admin: nieuwe order via `storefront-api` (service-role) ✅
+- [ ] staff: refund via `process-refund` ✅
+- [ ] viewer: order bewerken → 403 ❌
+- [ ] warehouse: order annuleren → 403 ❌ (al gevalideerd in 2A0)
+- [ ] Bol-sync blijft draaien (service-role) ✅
+- [ ] Stripe-webhook blijft draaien (service-role) ✅
+
+### Rollback-pad
+
+Bij issues: restore via Cloud → Database → Backups (snapshot van 2026-06-03
+02:54 UTC bevat pre-2A1 policies), of revert via chat-history op deze loop
+gevolgd door redeploy van de oude edge functions.

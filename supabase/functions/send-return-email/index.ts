@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -193,7 +193,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) throw new Error('RESEND_API_KEY is not set');
@@ -232,6 +232,9 @@ serve(async (req) => {
 
     const tenant = order.tenants as any;
     const tenantId = order.tenant_id;
+
+    // Batch 2A1: role gate — admin/staff/warehouse may send return emails.
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "warehouse"]);
 
     const { data: settings } = await supabase
       .from('tenant_return_settings')
