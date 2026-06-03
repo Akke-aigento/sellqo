@@ -31,6 +31,10 @@ import { useState, useCallback } from 'react';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import { toast } from 'sonner';
 import { CreateReturnDialog } from '@/components/admin/CreateReturnDialog';
+import { OrderStatusCorrectionDialog } from '@/components/admin/OrderStatusCorrectionDialog';
+import { ActionsMenu } from '@/components/ui/actions-menu';
+import { useCan } from '@/hooks/useCan';
+import { AlertTriangle } from 'lucide-react';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +48,8 @@ export default function OrderDetailPage() {
   const [internalNotes, setInternalNotes] = useState('');
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
+  const canCorrectStatus = useCan('correct', 'order_status');
 
   const totalReturnable = returnableMap
     ? Array.from(returnableMap.values()).reduce((s, v) => s + v.returnable, 0)
@@ -139,6 +145,17 @@ export default function OrderDetailPage() {
           <RotateCcw className="h-4 w-4 mr-2" />
           Retour aanmaken
         </Button>
+        {canCorrectStatus && (
+          <ActionsMenu
+            items={[
+              {
+                label: 'Status corrigeren…',
+                icon: <AlertTriangle className="h-4 w-4" />,
+                onClick: () => setShowCorrectionDialog(true),
+              },
+            ]}
+          />
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
