@@ -171,7 +171,7 @@ export const PERMISSION_MATRIX: Matrix = {
     write: ["platform_admin", "tenant_admin", "staff"],
   },
   pos: {
-    read: ALL_ROLES.filter((r) => r !== "viewer").concat("viewer"),
+    read: ALL_ROLES,
     write: ["platform_admin", "tenant_admin", "staff", "warehouse"],
   },
   loyalty: {
