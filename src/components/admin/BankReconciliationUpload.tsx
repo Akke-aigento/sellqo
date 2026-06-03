@@ -200,22 +200,42 @@ export function BankReconciliationUpload() {
             continue;
           }
           
-          // Update order payment status
+          // 1. Payment status direct bijwerken.
           const { error: updateError } = await supabase
             .from('orders')
-            .update({
-              payment_status: 'paid',
-              status: 'processing',
-            })
+            .update({ payment_status: 'paid' })
             .eq('id', order.id);
-          
-          if (updateError) {
+
+          // 2. Status-transitie (pending → processing) via gevalideerde edge function.
+          let transitionError: { message: string } | null = null;
+          if (!updateError) {
+            const { data: fnData, error: fnError } = await supabase.functions.invoke(
+              'update-order-fulfillment-status',
+              {
+                body: {
+                  tenant_id: currentTenant.id,
+                  order_id: order.id,
+                  new_status: 'processing',
+                },
+              },
+            );
+            if (fnError) transitionError = { message: fnError.message };
+            else if (fnData && (fnData as { success?: boolean }).success === false) {
+              // 422 (al niet meer pending) is ok in reconciliation-context — negeren.
+              const err = (fnData as { error?: string }).error || '';
+              if (!err.toLowerCase().includes('invalid status transition')) {
+                transitionError = { message: err };
+              }
+            }
+          }
+
+          if (updateError || transitionError) {
             reconciliationResults.push({
               transaction: tx,
               status: 'error',
               order_id: order.id,
               order_number: order.order_number,
-              error: updateError.message,
+              error: (updateError || transitionError)!.message,
             });
           } else {
             // Create audit log in payment_confirmations
