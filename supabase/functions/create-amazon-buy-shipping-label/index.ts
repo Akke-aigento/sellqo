@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +69,6 @@ Deno.serve(async (req) => {
     )
 
     const { order_id, connection_id, strategy = 'cheapest' } = await req.json()
-    await authenticateRequest(req, tenant_id);
 
     if (!order_id || !connection_id) {
       throw new Error('order_id and connection_id are required')
@@ -85,6 +84,10 @@ Deno.serve(async (req) => {
     if (orderError || !order) {
       throw new Error(`Order not found: ${orderError?.message}`)
     }
+
+    // Batch 2A1: auth + role gate — admin/staff/warehouse may create Amazon labels.
+    const auth = await authenticateRequest(req, order.tenant_id);
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "warehouse"]);
 
     // Get connection details
     const { data: connection, error: connError } = await supabase
