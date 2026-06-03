@@ -103,6 +103,8 @@ export default function Fulfillment() {
           created_at
         `)
         .eq('tenant_id', currentTenant.id)
+        // Cancelled / returned orders horen niet thuis in de fulfillment-lijst.
+        .not('status', 'in', '(cancelled,returned,partially_returned)')
         .order('created_at', { ascending: false })
         .limit(100);
 
