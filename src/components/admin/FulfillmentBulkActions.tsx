@@ -64,16 +64,34 @@ export function FulfillmentBulkActions({
   const handleMarkAsShipped = async () => {
     setLoadingAction('shipped');
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          fulfillment_status: 'shipped',
-          status: 'shipped',
-          shipped_at: new Date().toISOString(),
-        })
-        .in('id', selectedOrderIds);
-
-      if (error) throw error;
+      if (!currentTenant?.id) throw new Error('Geen tenant context');
+      const shippedAt = new Date().toISOString();
+      const failures: string[] = [];
+      for (const orderId of selectedOrderIds) {
+        const { data, error } = await supabase.functions.invoke(
+          'update-order-fulfillment-status',
+          {
+            body: {
+              tenant_id: currentTenant.id,
+              order_id: orderId,
+              new_status: 'shipped',
+              shipped_at: shippedAt,
+            },
+          },
+        );
+        if (error || (data && (data as { success?: boolean }).success === false)) {
+          failures.push(orderId);
+          continue;
+        }
+        // fulfillment_status is niet in de edge-function whitelist; nog directe update.
+        await supabase
+          .from('orders')
+          .update({ fulfillment_status: 'shipped' })
+          .eq('id', orderId);
+      }
+      if (failures.length > 0) {
+        throw new Error(`${failures.length} order(s) niet bijgewerkt`);
+      }
 
       toast({ title: `${selectedOrderIds.length} order(s) als verzonden gemarkeerd` });
       queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
@@ -89,16 +107,33 @@ export function FulfillmentBulkActions({
   const handleMarkAsDelivered = async () => {
     setLoadingAction('delivered');
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          fulfillment_status: 'delivered',
-          status: 'delivered',
-          delivered_at: new Date().toISOString(),
-        })
-        .in('id', selectedOrderIds);
-
-      if (error) throw error;
+      if (!currentTenant?.id) throw new Error('Geen tenant context');
+      const deliveredAt = new Date().toISOString();
+      const failures: string[] = [];
+      for (const orderId of selectedOrderIds) {
+        const { data, error } = await supabase.functions.invoke(
+          'update-order-fulfillment-status',
+          {
+            body: {
+              tenant_id: currentTenant.id,
+              order_id: orderId,
+              new_status: 'delivered',
+              delivered_at: deliveredAt,
+            },
+          },
+        );
+        if (error || (data && (data as { success?: boolean }).success === false)) {
+          failures.push(orderId);
+          continue;
+        }
+        await supabase
+          .from('orders')
+          .update({ fulfillment_status: 'delivered' })
+          .eq('id', orderId);
+      }
+      if (failures.length > 0) {
+        throw new Error(`${failures.length} order(s) niet bijgewerkt`);
+      }
 
       toast({ title: `${selectedOrderIds.length} order(s) als afgeleverd gemarkeerd` });
       queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
