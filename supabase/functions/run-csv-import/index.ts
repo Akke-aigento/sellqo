@@ -1,6 +1,6 @@
 // CSV Import Edge Function v3 - Fixed customer_type constraint
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,7 +46,9 @@ Deno.serve(async (req) => {
 
     const body: ImportRequest = await req.json();
     const { tenant_id, platform, data_type, records, options } = body;
-    await authenticateRequest(req, tenant_id);
+    const auth = await authenticateRequest(req, tenant_id);
+    // Batch 2A1: role gate — only tenant_admin may run bulk CSV imports.
+    requireRole(auth, tenant_id, ["tenant_admin"]);
 
     if (!tenant_id || !data_type || !records?.length) {
       return new Response(
