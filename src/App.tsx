@@ -65,6 +65,7 @@ import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ShopifyCallback from "./pages/ShopifyCallback";
 import NotFound from "./pages/NotFound";
+import NoAccess from "./pages/NoAccess";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
 import PlatformCouponsPage from "./pages/platform/PlatformCoupons";
@@ -140,6 +141,9 @@ const App = () => (
             
             {/* Shopify OAuth callback route */}
             <Route path="/api/shopify/callback" element={<ShopifyCallback />} />
+
+            {/* Fase 2 Foundation — role-mismatch fallback */}
+            <Route path="/no-access" element={<NoAccess />} />
             
             {/* Public Storefront routes - wrapped in CartProvider */}
             <Route path="/shop/:tenantSlug" element={<CartProvider><WishlistProvider><ShopHome /></WishlistProvider></CartProvider>} />
