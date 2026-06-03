@@ -10,10 +10,11 @@ import { useAuth, type AppRole } from "@/hooks/useAuth";
  * Een lege array betekent "niemand" (behalve platform_admin, die altijd
  * voldoet via de bypass in `useCan`).
  */
-export type PermissionAction = "read" | "write";
+export type PermissionAction = "read" | "write" | "correct";
 
 export type Resource =
   | "orders"
+  | "order_status"
   | "returns"
   | "refunds"
   | "invoices"
@@ -49,7 +50,7 @@ export type Resource =
   | "global_lookups"
   | "sellqo_legal";
 
-type Matrix = Record<Resource, Record<PermissionAction, AppRole[]>>;
+type Matrix = Record<Resource, Partial<Record<PermissionAction, AppRole[]>>>;
 
 const ALL_ROLES: AppRole[] = [
   "platform_admin",
@@ -69,6 +70,11 @@ export const PERMISSION_MATRIX: Matrix = {
   orders: {
     read: ALL_ROLES,
     write: ["platform_admin", "tenant_admin", "staff", "warehouse"],
+  },
+  order_status: {
+    // 'correct' = bypass van de fulfillment status-transition-matrix.
+    // Alleen tenant_admin (en platform_admin via bypass) mag corrigeren.
+    correct: ["platform_admin", "tenant_admin"],
   },
   returns: {
     read: ALL_ROLES,

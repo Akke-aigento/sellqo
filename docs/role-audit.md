@@ -386,3 +386,68 @@ Aanvullen na productie-validatie:
 Bij issues: restore via Cloud → Database → Backups (snapshot van 2026-06-03
 02:54 UTC bevat pre-2A1 policies), of revert via chat-history op deze loop
 gevolgd door redeploy van de oude edge functions.
+---
+
+## Batch 2A0/2A1 — UX-fixes (2026-06-03)
+
+Twee follow-ups op de fulfillment-flow.
+
+### 1. Cancelled orders uit fulfillment-lijst gefilterd
+`src/pages/admin/Fulfillment.tsx` query op `orders` krijgt extra filter:
+
+```ts
+.not('status', 'in', '(cancelled,returned,partially_returned)')
+```
+
+Reden: deze orders verschenen onder het label "Te verzenden" omdat de UI
+alleen op `fulfillment_status` filterde. Ze horen thuis in `/admin/orders`,
+niet in de fulfillment-queue. Bulk-selectie kan ze daardoor ook niet meer
+per ongeluk raken.
+
+### 2. Correctie-pad voor tenant_admin
+Edge function `update-order-fulfillment-status` accepteert nu:
+
+- `is_correction?: boolean` (default `false`)
+- `reason?: string` (verplicht zodra `is_correction === true`, min 3 chars)
+
+Gedrag bij `is_correction === true`:
+
+- `requireRole(auth, tenant_id, ['tenant_admin'])` — geen staff/warehouse
+- TRANSITIONS-matrix wordt **gebypassed**, elke status → elke status mag
+- Audit-log entry: `action_type = 'order_status_correction'` met
+  `action_details.is_correction = true` en `action_details.reason = <trimmed>`
+
+Normale (niet-correctie) flow ongewijzigd: matrix + rol-check zoals 2A0.
+
+### 3. UI
+- `src/components/admin/OrderStatusCorrectionDialog.tsx` — nieuwe dialog met
+  read-only huidige status, dropdown alle statussen, verplichte textarea voor
+  reden, bevestig-knop. Roept `supabase.functions.invoke('update-order-fulfillment-status', { body: { …, is_correction: true, reason } })` aan.
+- `src/pages/admin/OrderDetail.tsx` — ActionsMenu naast de "Retour aanmaken"
+  knop, alleen gerenderd als `useCan('correct', 'order_status')` true is.
+
+### 4. useCan-matrix uitbreiding
+`src/hooks/useCan.ts`:
+
+- `PermissionAction` uitgebreid met `'correct'`
+- `Resource` uitgebreid met `'order_status'`
+- `Matrix` is nu `Record<Resource, Partial<Record<PermissionAction, AppRole[]>>>`
+- Entry:
+  ```ts
+  order_status: {
+    correct: ['platform_admin', 'tenant_admin'],
+  }
+  ```
+- `platform_admin` voldoet sowieso via bestaande bypass in `canWithRoles`.
+
+### Test-checklist
+- [ ] tenant_admin opent order-detail → ActionsMenu zichtbaar, dialog werkt,
+      audit-log bevat `order_status_correction` + reason.
+- [ ] staff/warehouse/accountant/viewer openen order-detail → geen
+      ActionsMenu (knop is niet gerenderd).
+- [ ] staff probeert `is_correction: true` via curl → 403 (rol-check edge fn).
+- [ ] Correctie `cancelled → processing` werkt zonder 422 transition-error.
+- [ ] `/admin/fulfillment` toont geen cancelled / returned orders meer.
+- [ ] Normale bulk-action "Markeer als verzonden" blijft werken
+      (niet-correctie pad ongewijzigd).
+
