@@ -1,42 +1,54 @@
 ## Probleem
 
-Bij ~1185px schermbreedte is het content-gebied (na 256px sidebar) ongeveer 929px. De `ResponsiveDataTable` switcht echter pas naar cards op basis van **window**-breedte (`matchMedia`, lg=1024px), niet container-breedte. Dus:
-
-- **Alle**-tab en **Creditnota's**-tab: tabellen blijven in "full" modus terwijl ze maar ~929px ruimte hebben → Status-kolom + acties lopen uit het kader.
-- **Facturen**-tab: gebruikt nog de legacy hand-gerolde `<Table>` met 8 kolommen (factuurnummer, klant, order, bron, datum, bedrag, status, acties) + `sm:hidden` mobile cards die pas <640px aanslaan → Status klapt af, acties verdwijnen.
+In de "Alle"-tab van `/admin/orders/invoices` (gecombineerd overzicht) ontbreken de rij-acties. De Facturen-tab en de Creditnota's-tab tonen wél een `ActionsMenu` met PDF-download, UBL, Peppol-mark-sent, e-mail opnieuw versturen en (voor facturen) creditnota aanmaken. In de gecombineerde view zie je nu alleen een compacte "creditnota aanmaken"-knop op factuur-rijen en een "open creditnota's tab"-knop op CN-rijen.
 
 ## Oplossing
 
-### 1. `src/components/ui/responsive-data-table.tsx` — container-aware switching
+Alleen `src/pages/admin/Invoices.tsx` aanpassen — geen wijzigingen aan backend, hooks of de twee andere tabs.
 
-Vervang de window-based `useViewMode()` door een lokale `ResizeObserver` op een wrapper-`div`. Drempels gelijk aan huidige breakpoints:
+### 1. `Combined` type uitbreiden
 
-- `cardModeBreakpoint="mobile"` → cards bij container < 640px
-- `cardModeBreakpoint="compact"` → cards bij container < 1024px
+Voeg `pdfUrl?: string | null`, `ublUrl?: string | null`, `peppolStatus?: string | null`, `language?: string | null` toe en vul ze vanuit `invoices` en `creditNotes` in de `useMemo`. Zo heeft de actiekolom alles wat nodig is zonder extra lookup.
 
-Kolom-prio classes (`hidden md:table-cell`, `lg:table-cell`, `xl:table-cell`) blijven werken op window-basis, of we vervangen ze ook door container-based zichtbaarheid (zelfde ResizeObserver state). Voor consistentie: kolommen verbergen op zelfde container-drempels (md=768, lg=1024, xl=1280) i.p.v. window — voorkomt dat kolommen verschijnen die in de smalle container niet passen.
+### 2. Acties-handlers voor credit notes hergebruiken
 
-Geen API-wijziging voor callers; alle bestaande tabellen profiteren automatisch.
+`CreditNotesTable` bevat al lokale `handleDownloadPdf` (lazy genereren als `pdf_url` ontbreekt) en `handleResendEmail` voor CN's. Voor de gecombineerde view extraheren we deze niet — we voegen kleine lokale handlers toe in `Invoices.tsx`:
+- `handleCnDownloadPdf(cnId, existingUrl, language)` → opent direct of roept `generate-credit-note` via `invokeWithErrorBody` aan.
+- `handleCnResend(cnId, language)` → roept `send-credit-note-email` aan.
 
-### 2. `src/pages/admin/Invoices.tsx` — Facturen-tab naar `ResponsiveDataTable`
+Beide met `useToast` voor feedback en `queryClient.invalidateQueries(['credit-notes'])` na succes. Geeft consistente UX met de Creditnota's-tab.
 
-Vervang het hele blok `{isLoading ? … : invoices.length === 0 ? … : <> mobile cards + desktop Table </>}` (regels ~395-…) door één `<ResponsiveDataTable<Invoice>>` met:
+### 3. Acties-kolom in de "Alle"-tab
 
-- Kolommen: `nummer` (always), `klant` (always, truncate), `order` (priority `lg`, met ExternalLink), `bron` (priority `xl`, `OrderMarketplaceBadge`), `datum` (priority `md`, `whitespace-nowrap`), `bedrag` (always, right, `whitespace-nowrap`), `status` (always, `InvoiceStatusBadge` + `getPeppolStatusBadge`), `acties` (always, `ActionsMenu` met PDF/UBL/E-mail/Creditnota aanmaken).
-- `cardModeBreakpoint="compact"` → cards bij <1024px container.
-- `mobileCardRender`: pakt huidige inhoud van de `sm:hidden` cards (al aanwezig).
+Vervang de huidige `actions`-render door een `ActionsMenu` per type:
 
-De bestaande `sm:hidden` / `hidden sm:block` blokken vervallen.
+**Voor `kind === 'invoice'`:**
+- Download PDF (als `pdf_url`)
+- Download UBL/XML (als `ubl_url`)
+- Peppol markeren als verzonden (als `peppol_status === 'pending'`)
+- E-mail opnieuw versturen (`resendInvoice.mutate`)
+- Creditnota aanmaken → opent de bestaande `CreateCreditNoteFromInvoiceButton` (blijft naast het menu staan voor snelle toegang, in compact-modus)
 
-### 3. Geen wijzigingen aan
+**Voor `kind === 'creditnote'`:**
+- Download PDF (lazy genereren indien nodig)
+- Download UBL/XML (als beschikbaar)
+- E-mail opnieuw versturen
+- Open originele factuur (scrollt/navigeert naar Facturen-tab — eenvoudig: `setTab('invoices')` + optioneel search invullen met factuurnummer)
+- "Open in Creditnota's tab" verhuist naar het menu (de losse `ExternalLink`-knop vervalt)
 
-- `CreditNotesTable.tsx` — al op `ResponsiveDataTable` met `cardModeBreakpoint="compact"`; profiteert direct van fix #1.
-- "Alle"-tab — idem.
-- Sidebar, routes, backend, migraties.
+Layout: één `ActionsMenu` rechts; voor invoices ernaast nog de compacte `CreateCreditNoteFromInvoiceButton` (consistent met Facturen-tab). Voor CN's alleen het menu.
+
+### 4. Mobile-card render in dezelfde tab
+
+Identiek bijwerken: vervang de huidige inline knoppen door dezelfde `ActionsMenu` rechtsboven in de card, met dezelfde items per type. CreateCreditNote-knop blijft als compacte secundaire knop onderaan voor invoices.
+
+## Niet in scope
+
+- Geen wijzigingen aan Facturen-tab, Creditnota's-tab, sidebar, of edge functions.
+- Geen nieuwe hooks of refactor van `CreditNotesTable` (zou een grotere wijziging zijn dan nodig).
 
 ## Verificatie
 
-- 1280×800: alle drie tabs in vol tabel-formaat zonder afkappen.
-- 1185×800 (huidige situatie): "Alle", "Facturen" en "Creditnota's" switchen naar card-layout → geen overflow.
-- <768px: cards (al ok).
-- Geen TS-fouten, geen regressies op andere pagina's die `ResponsiveDataTable` gebruiken (productgrid, klanten, fulfillment, etc.) — die kunnen alleen *eerder* naar cards switchen op kleine containers, wat een verbetering is.
+- 1280px: in "Alle"-tab toont elke rij een 3-puntjes menu met alle relevante acties; factuur-rijen hebben ook de compacte "creditnota aanmaken"-knop ernaast.
+- 1185px (huidige viewport): zelfde acties, tabel switcht naar cards (container-aware fix uit vorige iteratie) — acties zichtbaar in card-header.
+- PDF/UBL/e-mail acties werken identiek aan Facturen/Creditnota's-tab.
