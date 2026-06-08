@@ -59,6 +59,7 @@ export function CreditNoteDialog({
   const [type, setType] = useState<CreditNoteType>('full');
   const [reason, setReason] = useState('');
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set());
+  const [autoSend, setAutoSend] = useState(true);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -66,6 +67,7 @@ export function CreditNoteDialog({
       setType('full');
       setReason('');
       setSelectedLines(new Set(invoiceLines.map((l) => l.id)));
+      setAutoSend(true);
     }
   }, [open, invoiceLines]);
 
@@ -125,6 +127,7 @@ export function CreditNoteDialog({
       type,
       reason,
       lines: creditNoteLines,
+      auto_send_email: autoSend,
     });
 
     setOpen(false);
@@ -244,6 +247,21 @@ export function CreditNoteDialog({
             <span className="text-lg font-bold">
               {formatCurrency(getSelectedTotal())}
             </span>
+          </div>
+
+          {/* Auto-send */}
+          <div className="flex items-start gap-3 rounded-md border p-3">
+            <Checkbox
+              id="auto-send-cn"
+              checked={autoSend}
+              onCheckedChange={(v) => setAutoSend(v === true)}
+            />
+            <Label htmlFor="auto-send-cn" className="cursor-pointer text-sm font-normal leading-snug">
+              Direct verzenden naar klant per e-mail
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                De PDF wordt automatisch gemaild naar de klant en in kopie naar boekhouder-CC.
+              </span>
+            </Label>
           </div>
         </div>
 
