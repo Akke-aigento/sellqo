@@ -315,40 +315,24 @@ export default function InvoicesPage() {
                     id: 'actions',
                     header: '',
                     align: 'right',
-                    width: '60px',
-                    render: (r) => r.kind === 'invoice' && r.invoiceId ? (
-                      <CreateCreditNoteFromInvoiceButton
-                        invoiceId={r.invoiceId}
-                        invoiceNumber={r.invoiceNumber!}
-                        onSuccess={() => refetch()}
-                        compact
-                      />
-                    ) : r.kind === 'creditnote' ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setTab('creditnotes')}
-                            aria-label="Open creditnota's tab"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Open in Creditnota's tab</TooltipContent>
-                      </Tooltip>
-                    ) : null,
+                    width: '90px',
+                    render: (r) => (
+                      <div className="flex items-center justify-end gap-1">
+                        <ActionsMenu items={buildCombinedActions(r)} />
+                        {r.kind === 'invoice' && r.invoiceId && (
+                          <CreateCreditNoteFromInvoiceButton
+                            invoiceId={r.invoiceId}
+                            invoiceNumber={r.invoiceNumber!}
+                            onSuccess={() => refetch()}
+                            compact
+                          />
+                        )}
+                      </div>
+                    ),
                   },
                 ] satisfies ColumnDef<Combined>[]}
                 mobileCardRender={(r) => {
-                  const actions: ActionItem[] = [];
-                  if (r.kind === 'invoice' && r.invoiceId) {
-                    actions.push({
-                      label: 'Creditnota aanmaken',
-                      onClick: () => {/* trigger via dedicated button below */},
-                    });
-                  }
+                  const actions = buildCombinedActions(r);
                   return (
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
@@ -361,27 +345,26 @@ export default function InvoicesPage() {
                           </div>
                           <div className="text-sm text-muted-foreground truncate mt-1">{r.customer}</div>
                         </div>
-                        <span className={`whitespace-nowrap font-medium ${r.amount < 0 ? 'text-destructive' : ''}`}>
-                          {formatCurrency(r.amount)}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`whitespace-nowrap font-medium ${r.amount < 0 ? 'text-destructive' : ''}`}>
+                            {formatCurrency(r.amount)}
+                          </span>
+                          <ActionsMenu items={actions} />
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
                           <Badge variant="secondary">{r.status}</Badge>
                         </div>
-                        {r.kind === 'invoice' && r.invoiceId ? (
+                        {r.kind === 'invoice' && r.invoiceId && (
                           <CreateCreditNoteFromInvoiceButton
                             invoiceId={r.invoiceId}
                             invoiceNumber={r.invoiceNumber!}
                             onSuccess={() => refetch()}
                             compact
                           />
-                        ) : r.kind === 'creditnote' ? (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTab('creditnotes')} aria-label="Open creditnota's tab">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   );
