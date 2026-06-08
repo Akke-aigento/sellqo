@@ -1321,3 +1321,81 @@ Migration: `external reviews RLS hardening`.
   `sync-platform-reviews`, marketplace create/update-product functies).
 - 2C1c: anon-INSERT-pad voor `external_reviews` via edge function met rate-limit.
 - 2C1d: column-masking views voor `cost_price` (`products_safe`, `product_variants_safe`).
+
+## Batch 2C1b — Catalog edge-function role-checks
+
+Datum: 2026-06-08
+
+### Sweep-rapport
+
+Grep `supabase/functions/` op `product|catalog|inventory|supplier|purchase|review|category|bundle`.
+Gevonden functies + classificatie:
+
+| Functie | Pad | Actie |
+| --- | --- | --- |
+| `create-shopify-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `update-shopify-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `create-woocommerce-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `update-woocommerce-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `create-odoo-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `update-odoo-product` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `sync-meta-catalog` | Admin (tenant-user JWT) | requireRole toegevoegd (+ bug-fix: `tenant_id` werd uit lege scope gehaald) |
+| `sync-platform-reviews` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `ai-product-promo-kit` | Admin (tenant-user JWT) | requireRole toegevoegd |
+| `ai-product-field-assistant` | Admin (tenant-user JWT, bespoke auth) | Vervangen door `authenticateRequest` + `requireRole` |
+| `sync-shopify-products` | Service-role cron + `trigger-manual-sync` (JWT-gated upstream) | NIET aangeraakt — upstream auth voldoende; service-role pad mag niet breken |
+| `sync-woocommerce-products` | idem | NIET aangeraakt |
+| `sync-bol-inventory` | Service-role cron via `marketplace-sync-scheduler` | NIET aangeraakt (recon §7) |
+| `sync-shopify-inventory` | Service-role cron | NIET aangeraakt (recon §7) |
+| `sync-woocommerce-inventory` | Service-role cron | NIET aangeraakt |
+| `sync-amazon-inventory` | Service-role cron | NIET aangeraakt |
+| `sync-ebay-inventory` | Service-role cron | NIET aangeraakt |
+| `sync-odoo-inventory` | Service-role cron | NIET aangeraakt |
+| `generate-product-feed` | Public XML feed (anon) | NIET aangeraakt |
+| `fetch-meta-catalogs` | Admin (JWT zonder tenant-scope) | NIET aangeraakt — alleen catalog listing op token |
+| `ads-inventory-watch` | Admin/cron, geen schrijfacties op products | NIET aangeraakt |
+| `import-bol-csv` / `run-csv-import` | Order/shipment-import, valt buiten catalog | NIET aangeraakt in deze batch |
+
+Functies uit de opdracht die **niet bestaan** (overgeslagen):
+`sync-bol-products`, `sync-odoo-products`, `import-product-csv`, `upload-product-image`,
+`generate-product-thumbnail`, `bulk-stock-update`, `margin-calculator`, `pricing-calculator`,
+`delete-product`, `archive-product`, `bulk-delete-products`.
+
+### Per gewijzigde functie
+
+Allen volgen het patroon `const auth = await authenticateRequest(req, tenant_id);
+requireRole(auth, tenant_id, [...]);` met `AuthError`-catch in de outer try/catch.
+
+- `create-shopify-product` → `['tenant_admin','staff']`
+- `update-shopify-product` → `['tenant_admin','staff']`
+- `create-woocommerce-product` → `['tenant_admin','staff']`
+- `update-woocommerce-product` → `['tenant_admin','staff']`
+- `create-odoo-product` → `['tenant_admin','staff']`
+- `update-odoo-product` → `['tenant_admin','staff']`
+- `sync-meta-catalog` → `['tenant_admin','staff']` (auth verplaatst tot ná connection-lookup, gebruikt `connection.tenant_id` — bestaande `tenant_id`-referentie was buggy)
+- `sync-platform-reviews` → `['tenant_admin','staff','marketing']`
+- `ai-product-promo-kit` → `['tenant_admin','staff','marketing']`
+- `ai-product-field-assistant` → `['tenant_admin','staff','marketing']` (bespoke auth weggehaald, vervangen door shared helper; `AuthError`-handler toegevoegd)
+
+### config.toml wijzigingen
+
+Toegevoegd (`verify_jwt = false`):
+- `[functions.create-odoo-product]`
+- `[functions.update-odoo-product]`
+
+Bestaand en bevestigd: `ai-product-promo-kit`, `ai-product-field-assistant`,
+`create-shopify-product`, `update-shopify-product`, `create-woocommerce-product`,
+`update-woocommerce-product`, `sync-meta-catalog`, `sync-platform-reviews`.
+
+### Bevestigde beslispunten (recon §8)
+
+- §1 / §2 — `cost_price` masking geparkeerd voor 2C1d.
+- §3 — admin product-management beperkt tot `tenant_admin`+`staff`.
+- §4 — warehouse-rol mag stock muteren via `products`/`product_variants` UPDATE (RLS in 2C1a-i). Inventory-cron functies blijven service-role; user-triggered warehouse-acties lopen via PostgREST.
+- §9 — `marketing`-rol toegevoegd aan AI-content-functies en review-sync (campaign/UGC scope).
+- §7 — service-role/cron-functies (`sync-*-inventory`, `sync-*-products`, `generate-product-feed`) blijven onaangeroerd; upstream `trigger-manual-sync` blijft enige JWT-gated entry-point voor handmatige sync.
+
+### Backlog
+
+- Aparte beslissing of `import-bol-csv` / `run-csv-import` (order/shipment) in batch 2D (orders) een role-check krijgen.
+- `delete-product` / `bulk-delete-products` ontbreken; destructieve product-acties lopen nu direct via PostgREST (RLS-gated). Edge-function laag pas bouwen als bulk-flow nodig is.
