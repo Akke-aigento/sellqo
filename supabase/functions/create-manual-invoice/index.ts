@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { resolveVatRegimeSafe, type VatRegimeCode } from "../_shared/regimeResolver.ts";
 
 const corsHeaders = {
@@ -551,6 +551,9 @@ serve(async (req) => {
     if (!tenant_id) {
       throw new Error("tenant_id is required");
     }
+
+    // Batch 2A2b: admin/staff/accountant mogen handmatig factureren.
+    requireRole(auth, tenant_id, ["tenant_admin", "staff", "accountant"]);
 
     if (!items || items.length === 0) {
       throw new Error("At least one item is required");
