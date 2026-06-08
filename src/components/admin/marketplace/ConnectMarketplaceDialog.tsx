@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTenant } from '@/hooks/useTenant';
 import {
   Dialog,
   DialogContent,
