@@ -10,10 +10,7 @@ import { nl } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { StripeDisconnectDialog } from '@/components/admin/settings/StripeDisconnectDialog';
 
 interface TenantOverviewTabProps {
   tenantId: string;
@@ -180,46 +177,35 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
                 )}
               </div>
               {tenantData?.stripe_account_id && (
-                <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
-                  <AlertDialogTrigger asChild>
+                <StripeDisconnectDialog
+                  open={showDisconnectDialog}
+                  onOpenChange={setShowDisconnectDialog}
+                  tenantName={tenantData?.name || ''}
+                  stripeAccountId={tenantData?.stripe_account_id || ''}
+                  isDisconnecting={isDisconnecting}
+                  trigger={
                     <Button variant="destructive" size="sm" disabled={isDisconnecting}>
                       {isDisconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlink className="h-3 w-3" />}
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Stripe account ontkoppelen?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Weet je zeker dat je het Stripe account wilt ontkoppelen? Dit verwijdert het connected account permanent uit Stripe. De tenant zal opnieuw moeten onboarden.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={async () => {
-                          setIsDisconnecting(true);
-                          try {
-                            const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
-                              body: { tenant_id: tenantId },
-                            });
-                            if (error) throw error;
-                            if (data?.error) throw new Error(data.error);
-                            toast.success('Stripe account ontkoppeld en verwijderd');
-                            queryClient.invalidateQueries({ queryKey: ['tenant-detail', tenantId] });
-                          } catch (err: any) {
-                            toast.error(err.message || 'Ontkoppelen mislukt');
-                          } finally {
-                            setIsDisconnecting(false);
-                            setShowDisconnectDialog(false);
-                          }
-                        }}
-                      >
-                        Ontkoppelen
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  }
+                  onConfirm={async (confirmedTenantName) => {
+                    setIsDisconnecting(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('disconnect-stripe-account', {
+                        body: { tenant_id: tenantId, confirmed_tenant_name: confirmedTenantName },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      toast.success('Stripe account ontkoppeld en verwijderd');
+                      queryClient.invalidateQueries({ queryKey: ['tenant-detail', tenantId] });
+                    } catch (err: any) {
+                      toast.error(err.message || 'Ontkoppelen mislukt');
+                    } finally {
+                      setIsDisconnecting(false);
+                      setShowDisconnectDialog(false);
+                    }
+                  }}
+                />
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate">
