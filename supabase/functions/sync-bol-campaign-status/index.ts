@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +91,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
 
     // Get campaigns with platform_campaign_id
     const { data: campaigns } = await supabase
@@ -271,6 +275,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("sync-bol-campaign-status error:", error);
     const message = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ error: message }), {

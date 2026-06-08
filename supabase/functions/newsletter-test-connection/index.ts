@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,9 @@ serve(async (req) => {
   }
 
   try {
+    // Admin-only utility — gate behind JWT (any logged-in tenant user).
+    await authenticateRequest(req);
+
     const { provider, apiKey, serverPrefix, audienceId, listId }: TestRequest = await req.json();
 
     if (provider === "mailchimp") {
@@ -33,6 +37,7 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Test connection error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(

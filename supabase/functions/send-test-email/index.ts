@@ -1,6 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
 
     const { tenantId, toEmail, subject, htmlContent, previewData }: SendTestEmailRequest = await req.json();
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
 
     if (!tenantId || !toEmail || !subject || !htmlContent) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
