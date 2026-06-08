@@ -1886,3 +1886,46 @@ SEO result tabellen (`seo_audit_results`, `seo_search_console_data`, `seo_web_vi
 
 Splits 2C2a-i (email), 2C2a-ii (merchandising), 2C2a-iii (ads), 2C2a-iv (CMS/SEO/theme/social/A-B/notifications) **afgerond**. Backlog (column-masking budgets, social-table consolidatie, anon tracking_events) blijft voor 2C2b/c/d.
 
+---
+
+## Cart-create idempotency — unique index per (tenant_id, session_id) waar checkout_status='shopping'
+
+**Datum:** 2026-06-08
+
+**Probleem:** `cartCreate` in `supabase/functions/storefront-api/index.ts` deed pre-check op `(tenant_id, session_id)` zonder `checkout_status`-filter en zonder unique-constraint. Bij parallelle calls vanaf hetzelfde tab (bv. dubbele mount, dubbele submit) zagen beide calls "no existing" en deden beide een INSERT → meerdere `shopping`-carts per browser-sessie. Voorbeeld in productie: tenant Mancini had op 2026-06-08 een lege duplicaat-cart (`d4fd6295…`, session `7e608e3c…`) naast de echte cart met items.
+
+**Mitigatie:**
+
+1. **Cleanup van bestaande race-orphans** (window-function, behoudt meest recent geüpdatete shopping-cart per `(tenant_id, session_id)`):
+   ```sql
+   UPDATE public.storefront_carts SET checkout_status = 'abandoned'
+   WHERE checkout_status = 'shopping'
+     AND id IN (
+       SELECT id FROM (
+         SELECT id, ROW_NUMBER() OVER (
+                      PARTITION BY tenant_id, session_id
+                      ORDER BY updated_at DESC NULLS LAST, created_at DESC
+                    ) AS rn
+         FROM public.storefront_carts WHERE checkout_status = 'shopping'
+       ) x WHERE rn > 1
+     );
+   ```
+
+2. **DB-sluitsteen** — partiële unique index garandeert at-most-one active shopping cart per `(tenant_id, session_id)`:
+   ```sql
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_storefront_carts_session_active
+     ON public.storefront_carts (tenant_id, session_id)
+     WHERE checkout_status = 'shopping';
+   ```
+
+3. **Code-fix** in `cartCreate`:
+   - Pre-check filtert nu expliciet op `checkout_status='shopping'`.
+   - INSERT vangt postgres-error `23505` (unique_violation) en re-fetcht de winnaar-cart i.p.v. te throwen → idempotent voor de caller.
+
+**Verificatie:**
+```sql
+SELECT tenant_id, session_id, COUNT(*) FROM storefront_carts
+WHERE checkout_status='shopping' GROUP BY 1,2 HAVING COUNT(*) > 1;
+-- Verwacht: 0 rijen.
+```
+
