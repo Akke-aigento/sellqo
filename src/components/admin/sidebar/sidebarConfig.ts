@@ -74,6 +74,22 @@ export const WAREHOUSE_ALLOWED_ITEMS = [
   'shipping',
 ];
 
+// Items that marketing users are allowed to see. Everything else is hidden
+// from the sidebar for this role (matrix-driven; see useCan.ts).
+export const MARKETING_ALLOWED_ITEMS = [
+  'dashboard',
+  'inbox',
+  'orders', 'orders-all',
+  'products',
+  'customers',
+  'ads', 'ads-overview', 'ads-bolcom', 'ads-products', 'ads-amazon', 'ads-google', 'ads-meta', 'ads-ai',
+  'promotions', 'promo-codes', 'promo-bundles', 'promo-bogo', 'promo-volume', 'promo-auto', 'promo-gifts', 'promo-loyalty', 'promo-groups', 'promo-giftcards',
+  'campaigns', 'ai-tools', 'ai-content', 'ai-actions', 'seo',
+  'translations',
+  'reports', 'reports-overview', 'reports-analytics',
+  'help',
+];
+
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
@@ -85,10 +101,10 @@ const dailyItems: NavItem[] = [
     icon: ShoppingCart,
     children: [
       { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders' },
-      { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment' },
-      { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse'] },
-      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse'] },
-      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse'] },
+      { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'] },
+      { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'] },
+      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'] },
+      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'] },
     ],
   },
   { id: 'products', title: 'Producten', url: '/admin/products', icon: Package },
@@ -97,9 +113,9 @@ const dailyItems: NavItem[] = [
 
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
-  { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos' },
-  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder' },
-  { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote },
+  { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'] },
+  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'] },
+  { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'] },
   {
     id: 'ads',
     title: 'Ads',
@@ -154,13 +170,14 @@ const marketingItems: NavItem[] = [
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
-  { id: 'categories', title: 'Categorieën', url: '/admin/categories', icon: FolderTree },
+  { id: 'categories', title: 'Categorieën', url: '/admin/categories', icon: FolderTree, excludeRoles: ['marketing'] },
   { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe },
   {
     id: 'purchasing',
     title: 'Inkoop',
     url: '/admin/suppliers',
     icon: Factory,
+    excludeRoles: ['marketing'],
     children: [
       { id: 'suppliers', title: 'Leveranciers', url: '/admin/suppliers' },
       { id: 'purchase-orders', title: 'Inkooporders', url: '/admin/purchase-orders' },
@@ -177,25 +194,26 @@ const managementItems: NavItem[] = [
       { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics' },
     ],
   },
-  { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck },
+  { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },
 ];
 
 // SYSTEEM - Instellingen en integraties
 const systemItems: NavItem[] = [
-  { id: 'notifications', title: 'Notificaties', url: '/admin/notifications', icon: BellRing },
+  { id: 'notifications', title: 'Notificaties', url: '/admin/notifications', icon: BellRing, excludeRoles: ['marketing'] },
   {
     id: 'integrations',
     title: 'SellQo Connect',
     url: '/admin/connect',
     icon: Cable,
     featureKey: 'apiAccess',
+    excludeRoles: ['marketing'],
     children: [
       { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect' },
       { id: 'integrations-import', title: 'Importeren', url: '/admin/import' },
     ],
   },
-  { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt },
-  { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings },
+  { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'] },
+  { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'] },
   { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },
 ];
 

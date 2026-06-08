@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
-export type AppRole = 'platform_admin' | 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+export type AppRole = 'platform_admin' | 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
 
 export interface TeamMember {
   id: string;

@@ -27,6 +27,7 @@ export type Resource =
   | "product_costs"
   | "discount_codes"
   | "ads"
+  | "ad_budgets"
   | "marketing"
   | "cms"
   | "seo"
@@ -60,6 +61,7 @@ const ALL_ROLES: AppRole[] = [
   "staff",
   "warehouse",
   "viewer",
+  "marketing",
 ];
 
 /**
@@ -78,7 +80,7 @@ export const PERMISSION_MATRIX: Matrix = {
     correct: ["platform_admin", "tenant_admin"],
   },
   returns: {
-    read: ALL_ROLES,
+    read: ALL_ROLES.filter((r) => r !== "marketing"),
     write: ["platform_admin", "tenant_admin", "staff", "warehouse"],
   },
   refunds: {
@@ -86,13 +88,13 @@ export const PERMISSION_MATRIX: Matrix = {
     write: ["platform_admin", "tenant_admin"],
   },
   invoices: {
-    read: ALL_ROLES.filter((r) => r !== "warehouse"),
+    read: ALL_ROLES.filter((r) => r !== "warehouse" && r !== "marketing"),
     write: ["platform_admin", "tenant_admin", "staff"],
   },
   credit_notes: {
     // Iedereen behalve warehouse mag inkijken (zichtbaarheid voor accountant/viewer);
     // schrijven en e-mailen is voorbehouden aan admin/staff/accountant — matrix Hoofdstuk 2.
-    read: ALL_ROLES.filter((r) => r !== "warehouse"),
+    read: ALL_ROLES.filter((r) => r !== "warehouse" && r !== "marketing"),
     write: ["platform_admin", "tenant_admin", "staff", "accountant"],
   },
   payments: {
@@ -108,8 +110,8 @@ export const PERMISSION_MATRIX: Matrix = {
     write: ["platform_admin", "tenant_admin", "staff"],
   },
   inbox: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin", "staff"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   products: {
     read: ALL_ROLES,
@@ -121,23 +123,28 @@ export const PERMISSION_MATRIX: Matrix = {
   },
   discount_codes: {
     read: ALL_ROLES.filter((r) => r !== "warehouse"),
-    write: ["platform_admin", "tenant_admin"],
+    write: ["platform_admin", "tenant_admin", "marketing"],
   },
   ads: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "marketing"],
+  },
+  ad_budgets: {
+    // Budget-vrijgave blijft expliciet bij tenant_admin (en platform_admin via bypass).
+    read: ["platform_admin", "tenant_admin", "accountant"],
     write: ["platform_admin", "tenant_admin"],
   },
   marketing: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin", "staff"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   cms: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin", "staff"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   seo: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin", "staff"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   themes: {
     read: ["platform_admin", "tenant_admin", "staff", "viewer"],
@@ -196,12 +203,12 @@ export const PERMISSION_MATRIX: Matrix = {
     write: ["platform_admin", "tenant_admin"],
   },
   volume_discounts: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "marketing"],
   },
   social_channels: {
-    read: ["platform_admin", "tenant_admin", "staff", "viewer"],
-    write: ["platform_admin", "tenant_admin", "staff"],
+    read: ["platform_admin", "tenant_admin", "staff", "viewer", "marketing"],
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   suppliers: {
     read: ["platform_admin", "tenant_admin", "accountant", "warehouse"],
