@@ -306,10 +306,14 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[generate-peppol-ubl] builder error:", msg);
-    await sb.from("invoices").update({
-      peppol_status: "error",
-      peppol_error: msg.slice(0, 500),
-    }).eq("id", invoiceId);
+    if (documentType === "credit_note") {
+      await sb.from("credit_notes").update({ peppol_status: "error" }).eq("id", invoiceId);
+    } else {
+      await sb.from("invoices").update({
+        peppol_status: "error",
+        peppol_error: msg.slice(0, 500),
+      }).eq("id", invoiceId);
+    }
     return new Response(JSON.stringify({ success: false, error: msg }),
       { status: 422, headers: { ...cors, "Content-Type": "application/json" } });
   }
