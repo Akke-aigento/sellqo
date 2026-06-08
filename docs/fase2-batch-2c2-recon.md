@@ -289,3 +289,15 @@ Bevestig vóór 2C2a-i wordt gemigreerd.
 13. **`tenant_theme_settings` / `tenant_theme_presets` writes naar `tenant_admin` only**: marketing kan nu nog niet thema's aanpassen. Akkoord of marketing ook toelaten?
 14. **`notifications.INSERT` auth-pad**: trigger gebruikt service-role; auth-INSERT beperken tot `['tenant_admin','staff']`. Bevestig.
 15. **Overlap-policies `seo_keywords` + `seo_scores`**: nu zowel een blanket `ALL`-policy als per-cmd legacy-policies. Voorstel: drop blanket, recreate per-cmd met `has_tenant_role`. Bevestig.
+
+---
+
+## §8. Addendum — beslispunten na afsluiting
+
+**§7-12 — Social-tabellen consolidatie (`social_connections` vs `social_channel_connections`)**
+
+- **Oorspronkelijk voorstel:** Beide tabellen hardenen in 2C2a-iv, consolidatie naar één tabel in 2C2c.
+- **Uitkomst analyse:** AFGESLOTEN als no-op.
+- **Reden:** `social_connections` (OAuth posting accounts, FK vanaf `social_posts`) en `social_channel_connections` (commerce catalog feeds) modelleren twee volledig verschillende domeinen. Samenvoegen zou de `social_posts` FK breken en semantisch onverwante velden in één tabel plaatsen. Beide tabellen zijn leeg in productie; geen runtime-baten.
+- **Paper trail:** Zie `docs/role-audit.md` sectie "Batch 2C2c — Social-tabellen consolidatie" voor volledige rationale.
+- **Beslispunt herzien:** §7-12 → "Geen consolidatie." Eventuele hernoeming naar duidelijkere namen blijft backlog item.

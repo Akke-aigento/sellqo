@@ -2015,3 +2015,35 @@ Bestaande entries (`send-test-email`, `send-campaign-batch`, `ai-product-promo-k
 - Anon-paden (`track-email-open`, `unsubscribe`, `newsletter-subscribe`, `generate-sitemap`, `storefront-api`/validate-discount-code) ongewijzigd
 - Bol-ads-scheduler blijft draaien (service-role bearer-token pad ongewijzigd)
 - Email-pixel-trackers / unsubscribe / sitemap.xml — geen wijziging
+
+---
+
+## Batch 2C2c — Social-tabellen consolidatie
+
+**Status:** AFGESLOTEN als no-op — 2026-06-08
+
+**Reden:** Bij analyse bleek geen overlap-cluster maar twee semantisch verschillende domeinen:
+
+- `social_connections` — OAuth posting accounts (Instagram, Facebook, LinkedIn, Twitter).
+  - Kolommen: `platform`, `access_token`, `refresh_token`, `token_expires_at`, `account_id`, `account_name`, `account_avatar`.
+  - Inbound FK vanaf `social_posts.connection_id`.
+  - Wordt geschreven door `social-oauth-callback` en `MetaShopWizard` (OAuth-gedeelte).
+
+- `social_channel_connections` — Commerce/catalog feed sync (Google Shopping, Facebook Shop, Instagram Shop, TikTok Shop, Pinterest Catalog, WhatsApp Business, Microsoft Shopping).
+  - Kolommen: `feed_url`, `feed_format`, `catalog_id`, `business_id`, `products_synced`, `sync_status`.
+  - Wordt geschreven door `generate-product-feed`, `sync-meta-catalog`, `MetaShopWizard` (catalog-gedeelte), `WhatsAppConnectWizard`.
+
+**Waarom geen merge:**
+1. `social_posts.connection_id` FK zou breken of een polymorfe FK vereisen.
+2. Feed/catalog-velden en OAuth-token-velden hebben niets met elkaar te maken; samenvoegen creëert een breed, leeg tabel met gemengde semantiek.
+3. `MetaShopWizard` schrijft bewust naar beide tabellen voor hetzelfde Meta-account, maar voor verschillende doeleinden (posting vs catalog sync).
+4. Geen runtime-baten: beide tabellen zijn leeg (0 rijen, 0 tenants in productie).
+
+**Bron-bewijs:**
+- `social_connections`: alleen inbound FK van `social_posts.connection_id`.
+- `social_channel_connections`: kolommen `feed_url`, `products_synced`, `catalog_id` bevestigen feed-domein.
+- Rij-telling productie: 0 voor beide tabellen.
+
+**Beslispunt §7-12 herzien:** "Geen consolidatie."
+
+**Backlog:** Eventuele toekomstige hernoeming naar duidelijkere namen (bijv. `social_oauth_accounts` vs `social_catalog_channels`) — vastgehouden als backlog item, niet actief werk.
