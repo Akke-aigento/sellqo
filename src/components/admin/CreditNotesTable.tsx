@@ -1,41 +1,53 @@
-// DEPRECATED — content moved to Invoices.tsx tabs (/admin/orders/invoices?tab=creditnotes).
-// The /admin/orders/creditnotes route now redirects there (see App.tsx).
-// This file is kept as a fallback safety net for any stale deeplinks/imports and will be
-// removed in a follow-up cleanup batch.
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Search, FileCode, ExternalLink, Loader2, Mail, Network, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import {
+  FileText, Download, Search, FileCode, ExternalLink, Loader2, Mail,
+  Network, CheckCircle, Clock, AlertCircle,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
-import { useQueryClient } from '@tanstack/react-query';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { useToast } from '@/hooks/use-toast';
 import { useCan } from '@/hooks/useCan';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import type { CreditNoteStatus } from '@/types/creditNote';
-import { PageHeader } from '@/components/ui/page-header';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { NewCreditNoteDialog } from '@/components/admin/NewCreditNoteDialog';
 
-export default function CreditNotesPage() {
+interface Props {
+  /** When true, omits the top-right "Nieuwe creditnota" button (Invoices page already has its own primary CTA). */
+  hideNewButton?: boolean;
+}
+
+/**
+ * Reusable Credit Notes table (filters + table + actions).
+ * Single source of truth, used both by the legacy /admin/orders/creditnotes page
+ * and by the "Creditnota's" tab inside /admin/orders/invoices.
+ */
+export function CreditNotesTable({ hideNewButton = false }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
-  const canWrite = useCan('write', 'credit_notes');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CreditNoteStatus | 'all'>('all');
+
+  const canWrite = useCan('write', 'credit_notes');
 
   const { creditNotes, isLoading } = useCreditNotes({
     search: search || undefined,
@@ -55,11 +67,7 @@ export default function CreditNotesPage() {
       queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
       if (res?.pdf_url) window.open(res.pdf_url, '_blank');
     } catch (e: any) {
-      toast({
-        title: 'PDF genereren mislukt',
-        description: e?.message || 'Onbekende fout',
-        variant: 'destructive',
-      });
+      toast({ title: 'PDF genereren mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
     } finally {
       setGeneratingId(null);
     }
@@ -80,27 +88,23 @@ export default function CreditNotesPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('nl-NL', {
-      style: 'currency',
-      currency: currentTenant?.currency || 'EUR',
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('nl-NL', { style: 'currency', currency: currentTenant?.currency || 'EUR' }).format(amount);
 
   const getStatusBadge = (status: CreditNoteStatus) => {
     const variants: Record<CreditNoteStatus, { variant: 'default' | 'secondary' | 'outline'; label: string }> = {
-      draft: { variant: 'secondary', label: t('creditnote.status_draft') },
-      sent: { variant: 'default', label: t('creditnote.status_sent') },
-      processed: { variant: 'outline', label: t('creditnote.status_processed') },
+      draft:     { variant: 'secondary', label: t('creditnote.status_draft') },
+      sent:      { variant: 'default',   label: t('creditnote.status_sent') },
+      processed: { variant: 'outline',   label: t('creditnote.status_processed') },
     };
-    const { variant, label } = variants[status];
-    return <Badge variant={variant}>{label}</Badge>;
+    const v = variants[status];
+    return <Badge variant={v.variant}>{v.label}</Badge>;
   };
 
   const getTypeBadge = (type: string) => {
     const labels: Record<string, string> = {
-      full: t('creditnote.type_full'),
-      partial: t('creditnote.type_partial'),
+      full:       t('creditnote.type_full'),
+      partial:    t('creditnote.type_partial'),
       correction: t('creditnote.type_correction'),
     };
     return <Badge variant="outline">{labels[type] || type}</Badge>;
@@ -133,10 +137,10 @@ export default function CreditNotesPage() {
     return <Badge variant="outline"><Network className="h-3 w-3 mr-1" />{s}</Badge>;
   };
 
-  const getCustomerName = (creditNote: typeof creditNotes[0]) => {
-    if (creditNote.customer) {
-      if (creditNote.customer.company_name) return creditNote.customer.company_name;
-      return `${creditNote.customer.first_name || ''} ${creditNote.customer.last_name || ''}`.trim() || creditNote.customer.email;
+  const getCustomerName = (cn: typeof creditNotes[0]) => {
+    if (cn.customer) {
+      if (cn.customer.company_name) return cn.customer.company_name;
+      return `${cn.customer.first_name || ''} ${cn.customer.last_name || ''}`.trim() || cn.customer.email;
     }
     return '-';
   };
@@ -147,9 +151,7 @@ export default function CreditNotesPage() {
     const items: ActionItem[] = [];
     items.push({
       label: cn.pdf_url ? 'Download PDF' : 'PDF genereren',
-      icon: generatingId === cn.id
-        ? <Loader2 className="h-4 w-4 animate-spin" />
-        : <Download className="h-4 w-4" />,
+      icon: generatingId === cn.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />,
       onClick: () => handleDownloadPdf(cn.id, cn.pdf_url, (cn as any).language),
     });
     if (cn.ubl_url) {
@@ -163,22 +165,26 @@ export default function CreditNotesPage() {
       });
     }
     if (cn.original_invoice) {
-      items.push({ label: 'Originele factuur', icon: <ExternalLink className="h-4 w-4" />, onClick: () => navigate('/admin/orders/invoices') });
+      items.push({
+        label: 'Originele factuur',
+        icon: <ExternalLink className="h-4 w-4" />,
+        onClick: () => navigate('/admin/orders/invoices'),
+      });
     }
     return items;
   };
 
   const columns: ColumnDef<CN>[] = [
-    { id: 'number', header: 'Nummer', render: (cn) => <span className="font-medium">{cn.credit_note_number}</span> },
-    { id: 'customer', header: 'Klant', render: (cn) => <span className="block max-w-[180px] truncate">{getCustomerName(cn)}</span> },
+    { id: 'number',   header: 'Nummer', render: (cn) => <span className="font-medium">{cn.credit_note_number}</span> },
+    { id: 'customer', header: 'Klant',  render: (cn) => <span className="block max-w-[180px] truncate">{getCustomerName(cn)}</span> },
     { id: 'original', header: 'Originele factuur', priority: 'lg', render: (cn) => cn.original_invoice ? (
       <Button variant="link" className="p-0 h-auto font-normal" onClick={(e) => { e.stopPropagation(); navigate('/admin/orders/invoices'); }}>
         {cn.original_invoice.invoice_number}
         <ExternalLink className="h-3 w-3 ml-1" />
       </Button>
     ) : '-' },
-    { id: 'type', header: 'Type', priority: 'md', render: (cn) => getTypeBadge(cn.type) },
-    { id: 'date', header: 'Datum', priority: 'md', render: (cn) => format(new Date(cn.issue_date), 'd MMM yyyy', { locale: nl }) },
+    { id: 'type',   header: 'Type',   priority: 'md', render: (cn) => getTypeBadge(cn.type) },
+    { id: 'date',   header: 'Datum',  priority: 'md', render: (cn) => format(new Date(cn.issue_date), 'd MMM yyyy', { locale: nl }) },
     { id: 'amount', header: 'Bedrag', align: 'right', render: (cn) => <span className="font-medium text-destructive">-{formatCurrency(cn.total)}</span> },
     { id: 'status', header: 'Status', render: (cn) => (
       <div className="flex flex-wrap items-center gap-1">
@@ -191,15 +197,12 @@ export default function CreditNotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <PageHeader
-          title={t('creditnote.title')}
-          description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
-        />
-        {canWrite && <NewCreditNoteDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['credit-notes'] })} />}
-      </div>
+      {!hideNewButton && canWrite && (
+        <div className="flex justify-end">
+          <NewCreditNoteDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['credit-notes'] })} />
+        </div>
+      )}
 
-      {/* Filters */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -212,10 +215,7 @@ export default function CreditNotesPage() {
                 className="pl-9"
               />
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as CreditNoteStatus | 'all')}
-            >
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CreditNoteStatus | 'all')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('common.status')} />
               </SelectTrigger>
@@ -230,16 +230,13 @@ export default function CreditNotesPage() {
         </CardContent>
       </Card>
 
-      {/* Credit Notes Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             {t('creditnote.title')}
           </CardTitle>
-          <CardDescription>
-            {creditNotes.length} creditnota's gevonden
-          </CardDescription>
+          <CardDescription>{creditNotes.length} creditnota's gevonden</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveDataTable
