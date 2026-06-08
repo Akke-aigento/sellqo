@@ -847,3 +847,47 @@ in alle boekhoudings-exports.
 ### Open follow-ups
 - Peppol UBL CreditNote-generatie voor B2B-uitsturing.
 - Bulk-export van credit-notes in eigen ZIP (los van Q-bundle).
+
+---
+
+## Feature — Credit-note volledige flow (UX + auto-trigger + PDF parity + Peppol UBL) — 2026-06-08
+
+### Fix A — Gecombineerde view facturen + creditnota's
+- `/admin/orders/invoices` heeft nu tabs **Alle | Facturen | Creditnota's** (default Alle).
+- "Alle" toont gecombineerde lijst met type-badge, klant, datum, bedrag (negatief voor CN) en status.
+- Bestaande zoek + statusfilter + Peppol-toggle blijven op de **Facturen**-tab werken.
+- Nieuwe component `CreateCreditNoteFromInvoiceButton` — laadt `invoice_lines` on-demand en opent `CreditNoteDialog` met preselectie (volledige creditering). Beschikbaar in zowel de combined-view rij-actie als de Facturen-tab acties.
+- Nieuwe component `NewCreditNoteDialog` — invoice-selector op `/admin/orders/creditnotes`. Knop "Nieuwe creditnota" is werkend.
+- `CreditNoteDialog` ondersteunt nu een controlled `open`/`onOpenChange` + `hideTrigger` voor hergebruik vanuit andere triggers.
+- Permission-gate: `useCan('write', 'credit_notes')` → `tenant_admin`, `staff`, `accountant`.
+
+### Fix B — Auto-trigger retour → creditnota
+- DB-functie `public.create_credit_note_from_return(_return_id uuid)` (SECURITY DEFINER):
+  - Zoekt invoice via `returns.order_id`.
+  - Maakt CN met status `'draft'`, reden `Automatisch gegenereerd voor retour {rma_number}`.
+  - Insert samengevatte `credit_note_lines`-regel ter waarde van `refund_amount`, met behoud van BTW-ratio van originele factuur.
+  - **Idempotent**: skipt als CN met "Automatisch ...{rma_number}" al bestaat.
+- Trigger `trg_returns_auto_credit_note` (AFTER UPDATE OF status): vuurt wanneer `status='completed'` AND `status` veranderd AND `refund_amount > 0`.
+- PDF + email afhandeling: bestaande `generate-credit-note(auto_send_email=true)` kan handmatig of via toekomstige scheduler op concept-CN's worden gedraaid.
+- Backfill: niet uitgevoerd (CN-2026-0001 was handmatig opgelost).
+
+### Fix C — PDF + UBL parity met invoices
+- **`generate-credit-note` PDF rewrite**:
+  - Logo embed (PNG/JPG van `tenants.logo_url`) of fallback tenant-naam in header.
+  - Tenant info-blok (links): naam, adres, postcode/stad, land, BTW-nummer, **IBAN**, e-mail, telefoon.
+  - Klant info-blok (rechts): naam (first+last) → `company_name` → "Particuliere klant" (per taal); GEEN dubbele e-mail meer.
+  - Referentie-blok naar originele factuur + reden.
+  - Line-table met positieve bedragen ("Te crediteren"), BTW-rij **per tarief** uit `credit_note_lines.vat_rate`.
+  - VAT-regime artikel-tekst (Art. 138 / 196 / 146 / OSS) — hergebruikt van factuur, mapping inclusief aliassen `ic_supply_*`, `oss_b2c_eu`, `export_outside_eu`.
+  - Refund-status onder totals: "Terugbetaald" of "in behandeling".
+  - Footer: `tenant.invoice_footer_text` + Peppol-label indien `peppol_status` in `accepted`/`archive_only`.
+  - GEEN QR-code (refund context).
+- **`generate-peppol-ubl` extensie**:
+  - Accepteert nu `{ document_type: "invoice" | "credit_note", document_id }` (back-compat: `invoice_id` blijft werken).
+  - Bij `credit_note`: laadt `credit_notes` + `credit_note_lines`, ophaalt `vat_regime` van originele factuur, schrijft naar `credit_notes.ubl_url` + `peppol_status='archive_only'`.
+  - Storage key onderscheidt CN's: `{tenant_id}/credit-notes/{cn_id}.xml`.
+  - `invoice_archive` rij geschreven met `document_type='credit_note'`.
+- **`generate-credit-note`** roept na PDF-persist `generate-peppol-ubl` aan (best-effort). UBL altijd gegenereerd indien regime Peppol-relevant + B2B VAT, ook zonder `peppol_required`.
+- **UI**:
+  - CreditNotes-lijst: Peppol-badge (✓ verzonden / ⏱ pending / ⚠ mislukt) naast status.
+  - UBL-download blijft beschikbaar via ActionsMenu zodra `ubl_url` is ingevuld.
