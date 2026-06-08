@@ -1439,3 +1439,86 @@ Toegepast op alle 3 disconnect-callsites:
 - `src/components/platform/TenantOverviewTab.tsx`
 - `src/components/admin/settings/PaymentSettings.tsx`
 - `supabase/functions/disconnect-stripe-account/index.ts`
+
+---
+
+## Batch 2C2a-i — Email marketing engine RLS-aanscherping
+
+**Datum:** 2026-06-08
+**Migration:** Cluster 1 (recon §1) — één migration met alle email-marketing tabellen.
+**Beslispunten bevestigd:** §7-1 (viewer uitgesloten op sends/clicks), §7-3 (anon-INSERT `campaign_link_clicks` drop → service-role only), §7-4 (email_unsubscribes INSERT service-role only via signed-token edge), §7-5 (`email_automations`+`automation_steps`+`automation_runs` bestaan — geen separate drips/triggers tabellen).
+
+### Aanpak per tabel
+
+Voor elke tabel: bestaande tenant-blind policies gedropt en vervangen door role-aware policies via `public.has_tenant_role(tenant_id, ARRAY[...]::app_role[])`. Service-role behoudt impliciete `BYPASS RLS` (geen expliciete policy nodig).
+
+#### `email_campaigns`, `email_templates`, `email_signatures`, `customer_segments`, `email_automations`, `automation_runs`
+- **Gedropte policies:** `Users can {view,insert,update,delete} {campaigns,templates,…} for their tenant(s)`
+- **Nieuwe policies:**
+  - SELECT (auth): `tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))` — alle rollen.
+  - INSERT/UPDATE/DELETE (auth): tenant-scope + `has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[])`.
+
+#### `email_template_blocks` (geen `tenant_id` kolom)
+- Policies geschreven via EXISTS-subquery op `email_templates.tenant_id`.
+- Zelfde rolverdeling (SELECT alle rollen; writes marketing/staff/admin).
+
+#### `segment_members` (junction)
+- Policies via EXISTS op `customer_segments.tenant_id`.
+- SELECT tenant-scoped, INSERT/DELETE marketing/staff/admin.
+
+#### `automation_steps` (sub-tabel)
+- Policies via EXISTS op `email_automations.tenant_id`.
+- SELECT tenant-scoped, writes marketing/staff/admin.
+
+#### `automation_step_runs`
+- **Ongewijzigd** — bestaande SELECT-policy is al tenant-scoped via `automation_runs`; writes blijven service-role only.
+
+#### `campaign_sends` — **viewer uitgesloten (§7-1)**
+- **Gedropte policies:** `Users can {view,insert,update,delete} campaign sends for their tenants`.
+- **Nieuwe policies:**
+  - SELECT: `has_tenant_role(... ARRAY['tenant_admin','staff','marketing','accountant'])` — viewer geweigerd om performance-snooping te voorkomen.
+  - INSERT: **geen auth-policy** → impliciete deny voor auth-clients. Send-flow loopt via `send-campaign-batch` edge function met service-role.
+  - UPDATE/DELETE: marketing/staff/admin.
+
+#### `campaign_link_clicks` — **KRITIEKE FIX §7-3**
+- **Gedropte policies:**
+  - `Service role can insert link clicks` — had `with_check = true`, liet cross-tenant click-poisoning toe via authenticated users.
+  - `Tenant users can view own link clicks` — tenant-blind SELECT.
+- **Nieuwe policies:**
+  - SELECT (auth): tenant-scope + `has_tenant_role(... ARRAY['tenant_admin','staff','marketing','accountant'])` — viewer uitgesloten.
+  - INSERT: **geen auth-policy** → impliciete deny voor auth/anon. Click-tracker draait via edge function met service-role (BYPASS RLS).
+  - UPDATE/DELETE: marketing/staff/admin.
+- **Verificatie:** `SELECT cmd, COUNT(*) FROM pg_policies WHERE schemaname='public' AND tablename='campaign_link_clicks' GROUP BY cmd;` — geen INSERT-policy met `qual = true` aanwezig.
+
+#### `newsletter_subscribers`
+- **Gedropte policies:** inclusief de anon-policy `Public newsletter signup` (was `with_check = true` voor anon).
+- **Nieuwe policies:**
+  - SELECT (auth): tenant-scope alle rollen.
+  - INSERT/UPDATE/DELETE: marketing/staff/admin. Storefront-subscribe loopt nu uitsluitend via `newsletter-subscribe` edge function (service-role).
+
+#### `email_unsubscribes` — **§7-4**
+- **Gedropte policies:** `Users can {view,insert} unsubscribes for their tenants`.
+- **Nieuwe policies:**
+  - SELECT (auth): tenant-scope + `has_tenant_role(... ARRAY['tenant_admin','staff','marketing','accountant'])`.
+  - INSERT: **geen auth-policy** → service-role only via `/unsubscribe` edge met signed token.
+  - UPDATE/DELETE: `tenant_admin` only (suppressielijst correcties zijn admin-werk).
+
+#### `tenant_newsletter_config`
+- **Gedropte policies:** `Tenant users can {view,insert,update} config`.
+- **Nieuwe policies:**
+  - SELECT (auth): tenant-scope alle rollen.
+  - INSERT/UPDATE/DELETE: `tenant_admin` only (welcome-email branding is store-niveau).
+
+#### `email_preferences`
+- **Ongewijzigd** in deze batch — per-user subscription preferences vallen buiten de marketing-engine. Wordt eventueel meegenomen in 2C2a-iv.
+
+### Anon-INSERT-fixes in deze batch
+1. `campaign_link_clicks` — unbounded `true` INSERT-policy gedropt; click-tracker via edge function (service-role).
+2. `newsletter_subscribers` — anon `Public newsletter signup` gedropt; signup via `newsletter-subscribe` edge function (service-role).
+
+### Frontend-impact
+- `useEmailCampaigns`, `useEmailTemplates`, `useNewsletterConfig` blijven werken voor `tenant_admin`/`staff`/`marketing` rollen. `viewer` verliest toegang tot `campaign_sends` en `campaign_link_clicks` analytics — by design.
+- Storefront newsletter-subscribe flow loopt al via `newsletter-subscribe` edge function (zie `useNewsletterConfig`), dus geen UI-aanpassing nodig.
+
+### Snapshot
+Pre-migration snapshot via Supabase dashboard genomen vóór uitvoering.
