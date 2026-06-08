@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network } from 'lucide-react';
+import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
@@ -20,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
+import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -28,12 +31,58 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [peppolPendingOnly, setPeppolPendingOnly] = useState(false);
+  const [tab, setTab] = useState<'all' | 'invoices' | 'creditnotes'>('all');
 
   const { invoices, isLoading, resendInvoice, markPeppolSent, refetch } = useInvoices({
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
     peppolPending: peppolPendingOnly || undefined,
   });
+  const { creditNotes, isLoading: cnLoading } = useCreditNotes({
+    search: search || undefined,
+  });
+
+  type Combined = {
+    kind: 'invoice' | 'creditnote';
+    id: string;
+    number: string;
+    date: string;
+    amount: number;
+    status: string;
+    customer: string;
+    invoiceId?: string;
+    invoiceNumber?: string;
+  };
+
+  const combined: Combined[] = useMemo(() => {
+    const fromInvoices: Combined[] = invoices.map((i) => ({
+      kind: 'invoice',
+      id: i.id,
+      number: i.invoice_number,
+      date: i.created_at,
+      amount: Number(i.total || 0),
+      status: i.status,
+      customer: i.customers
+        ? `${i.customers.first_name || ''} ${i.customers.last_name || ''}`.trim() || i.customers.email
+        : i.orders?.customer_name || 'Onbekend',
+      invoiceId: i.id,
+      invoiceNumber: i.invoice_number,
+    }));
+    const fromCNs: Combined[] = creditNotes.map((c: any) => ({
+      kind: 'creditnote',
+      id: c.id,
+      number: c.credit_note_number,
+      date: c.issue_date || c.created_at,
+      amount: -Math.abs(Number(c.total || 0)),
+      status: c.status,
+      customer: c.customer
+        ? c.customer.company_name || `${c.customer.first_name || ''} ${c.customer.last_name || ''}`.trim() || c.customer.email
+        : '—',
+      invoiceId: c.original_invoice?.id,
+      invoiceNumber: c.original_invoice?.invoice_number,
+    }));
+    return [...fromInvoices, ...fromCNs].sort((a, b) => +new Date(b.date) - +new Date(a.date));
+  }, [invoices, creditNotes]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
