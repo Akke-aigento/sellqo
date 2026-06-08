@@ -335,3 +335,9 @@ verify_jwt = false
 
 [functions.test-shipping-connection]
 verify_jwt = false
+
+[functions.sync-odoo-customers]
+verify_jwt = false
+
+[functions.send-customer-message]
+verify_jwt = false

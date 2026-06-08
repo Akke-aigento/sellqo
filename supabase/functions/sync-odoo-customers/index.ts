@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -94,6 +95,10 @@ Deno.serve(async (req) => {
       .single()
 
     if (connError || !connection) throw new Error('Connection not found')
+
+    // Fase 2 — Batch 2B2b: role-check (tenant_admin only)
+    const auth = await authenticateRequest(req, connection.tenant_id);
+    requireRole(auth, connection.tenant_id, ['tenant_admin']);
 
     const credentials = connection.credentials as OdooCredentials
     const settings = connection.settings as Record<string, unknown>
@@ -311,6 +316,9 @@ Deno.serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error syncing customers with Odoo:', errorMessage)
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders)
+    }
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
