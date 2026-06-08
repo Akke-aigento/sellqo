@@ -1599,3 +1599,124 @@ Resultaat: alleen `SELECT`, `UPDATE`, `DELETE` per tabel. Geen INSERT-policy mee
 
 ### Snapshot
 Pre-migration snapshot via Supabase dashboard genomen vóór uitvoering.
+
+---
+
+## Batch 2C2a-iii — Ads-platforms RLS-aanscherping
+
+**Datum:** 2026-06-08
+**Recon ref:** `docs/fase2-batch-2c2-recon.md` cluster 3
+**Beslispunt bevestigd:** §7-2 — viewer mag SELECT op ads-tabellen (dashboards).
+
+### Aanpak
+
+Vier policy-groepen per table-type:
+
+- **Group A — config tables** (`ad_campaigns`, `ad_creatives`, `ad_audience_syncs`, `ads_ai_rules`, `ads_product_channel_map`, `ads_amazon_*` (adgroups/campaigns/keywords), `ads_bolcom_*` (adgroups/campaigns/keywords/targeting_products), `ads_google_campaigns`, `ads_meta_campaigns`, `ads_meta_adsets`):
+  - SELECT: alle tenant-members + platform_admin
+  - INSERT / UPDATE / DELETE: `has_tenant_role(tenant_id, ['tenant_admin','staff','marketing'])`
+- **Group B — performance + search_terms** (`ads_amazon_performance`, `ads_amazon_search_terms`, `ads_bolcom_performance`, `ads_bolcom_search_terms`, `ads_google_performance`, `ads_meta_performance`):
+  - SELECT: alle tenant-members
+  - INSERT / UPDATE: marketing/staff/admin
+  - DELETE: tenant_admin only
+- **Group C — `ads_ai_recommendations`** (AI engine output):
+  - SELECT: alle tenant-members
+  - **INSERT: geen auth-policy → service-role only** (BYPASSRLS)
+  - UPDATE (accept/reject): marketing/staff/admin
+  - DELETE: tenant_admin only
+- **Group D — `ad_platform_connections` (OAuth-credentials, strikter)**:
+  - SELECT / INSERT / UPDATE / DELETE: `has_tenant_role(tenant_id, ['tenant_admin'])` only
+
+`ads_global_daily_summary` is een **view** — geen RLS toegevoegd; veiligheid wordt geërfd van onderliggende `ads_*_performance` tabellen.
+
+### Gedropte policies (per tabel)
+
+- `ad_campaigns`: `Tenant admins can manage campaigns`, `Tenant users can view their campaigns`
+- `ad_creatives`: `Tenant admins can manage creatives`, `Tenant users can view their creatives`
+- `ad_audience_syncs`: `Tenant admins can manage audience syncs`, `Tenant users can view their audience syncs`
+- `ads_ai_rules`: `ads_ai_rules_{select,insert,update,delete}`
+- `ads_product_channel_map`: `ads_product_channel_map_{select,insert,update,delete}`
+- `ads_amazon_*` + `ads_google_*` + `ads_meta_*`: `tenant_{select,insert,update,delete}`
+- `ads_bolcom_*`: `Users can {view|insert|update|delete} their tenant bolcom <type>`
+- `ads_ai_recommendations`: `ads_ai_recommendations_{select,insert,update,delete}`
+- `ad_platform_connections`: `apc_{select_tenant_members,insert_tenant_admin,update_tenant_admin,delete_tenant_admin}`
+
+### Nieuwe policies (volledige SQL)
+
+#### Group A — config tables (template per tabel `T`)
+
+```sql
+CREATE POLICY "<T>_select_members" ON public.<T> FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+CREATE POLICY "<T>_insert_marketing" ON public.<T> FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_update_marketing" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_delete_marketing" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+```
+
+Toegepast op: `ad_campaigns`, `ad_creatives`, `ad_audience_syncs`, `ads_ai_rules`, `ads_product_channel_map`, `ads_amazon_campaigns`, `ads_amazon_adgroups`, `ads_amazon_keywords`, `ads_bolcom_campaigns`, `ads_bolcom_adgroups`, `ads_bolcom_keywords`, `ads_bolcom_targeting_products`, `ads_google_campaigns`, `ads_meta_campaigns`, `ads_meta_adsets`.
+
+#### Group B — performance + search_terms (DELETE = admin)
+
+```sql
+CREATE POLICY "<T>_select_members" ON public.<T> FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+CREATE POLICY "<T>_insert_marketing" ON public.<T> FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_update_marketing" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_delete_admin" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+
+Toegepast op: `ads_amazon_performance`, `ads_amazon_search_terms`, `ads_bolcom_performance`, `ads_bolcom_search_terms`, `ads_google_performance`, `ads_meta_performance`.
+
+#### Group C — ads_ai_recommendations (INSERT service-role only)
+
+```sql
+CREATE POLICY "ads_ai_rec_select_members" ON public.ads_ai_recommendations FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+-- NB: geen INSERT-policy → enkel service-role kan inserten (BYPASSRLS)
+CREATE POLICY "ads_ai_rec_update_marketing" ON public.ads_ai_recommendations FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "ads_ai_rec_delete_admin" ON public.ads_ai_recommendations FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+
+#### Group D — ad_platform_connections (OAuth, tenant_admin only)
+
+```sql
+CREATE POLICY "apc_select_admin" ON public.ad_platform_connections FOR SELECT TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "apc_insert_admin" ON public.ad_platform_connections FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "apc_update_admin" ON public.ad_platform_connections FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "apc_delete_admin" ON public.ad_platform_connections FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+
+### Verificatie
+
+```sql
+SELECT cmd, COUNT(*) FROM pg_policies
+WHERE schemaname='public' AND tablename='ads_ai_recommendations'
+GROUP BY cmd;
+-- → DELETE|1, SELECT|1, UPDATE|1   (geen INSERT auth-policy ✅)
+```
+
+Alle 23 ads-tabellen tonen vier policies (SELECT/INSERT/UPDATE/DELETE), behalve `ads_ai_recommendations` (3 — INSERT service-role only) en `ad_platform_connections` (4, alle admin-only).
+
+### Backlog (niet in deze split)
+
+- **§7-11** — Column-masking voor `daily_budget` / `total_budget` op campaign-rows voor non-`tenant_admin` rollen → uitgesteld naar **2C2d**.
+
