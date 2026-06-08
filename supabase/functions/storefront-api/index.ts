@@ -1160,14 +1160,23 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
   const currency = (params.currency as string) || 'EUR';
   if (!sessionId) throw new Error('session_id is required');
 
-  // Check for existing cart
-  const { data: existing } = await supabase
-    .from('storefront_carts').select('id')
-    .eq('tenant_id', tenantId).eq('session_id', sessionId)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
+  // Idempotency: prefer the active shopping cart for this (tenant, session).
+  // A partial unique index (idx_storefront_carts_session_active) guarantees
+  // at most one row matches; under race we may briefly see two INSERTs — the
+  // losing one hits the unique-violation (23505) and we re-fetch.
+  const findActive = async () => {
+    const { data } = await supabase
+      .from('storefront_carts').select('id')
+      .eq('tenant_id', tenantId)
+      .eq('session_id', sessionId)
+      .eq('checkout_status', 'shopping')
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    return data?.id ?? null;
+  };
 
-  if (existing) return { cart_id: existing.id };
+  const existingId = await findActive();
+  if (existingId) return { cart_id: existingId };
 
   const cartData: any = { tenant_id: tenantId, session_id: sessionId, currency };
   if (params.locale) cartData.locale = params.locale;
@@ -1176,7 +1185,16 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
     .from('storefront_carts')
     .insert(cartData)
     .select('id').single();
-  if (error) throw error;
+
+  if (error) {
+    // 23505 = unique_violation on idx_storefront_carts_session_active.
+    // Another concurrent call won the race; return its cart.
+    if ((error as any).code === '23505') {
+      const racedId = await findActive();
+      if (racedId) return { cart_id: racedId };
+    }
+    throw error;
+  }
   return { cart_id: data.id };
 }
 
