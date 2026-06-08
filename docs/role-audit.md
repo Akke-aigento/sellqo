@@ -657,3 +657,71 @@ service_role behouden automatische bypass via de shared `requireRole`-helper.
 - [ ] `warehouse` / `viewer`: edge function returns 403; signed URL would also be rejected by storage RLS.
 - [ ] Cross-tenant: user from tenant A cannot generate PDF for credit_note of tenant B (`authenticateRequest` returns 403).
 - [ ] Generated PDF shows header "CREDITNOTA", reference to original invoice with original amount, positive amounts, correct VAT-regime text reused from the original invoice.
+
+---
+
+## Batch 2B1a — Integrations RLS-aanscherping
+
+Datum: 2026-06-08
+Scope: 8 integratie-tabellen (marketplace, ads, reviews, shipping, fulfillment-keys, Shopify-requests, OAuth-creds, custom domains).
+Migration: zie `supabase/migrations/` — laatste 2026-06-08 entry.
+
+### Open beslispunten bevestigd (recon §9, 2026-06-08)
+1. `test-*-connection` → tenant_admin only ✅
+2. `check-connect-status` → tenant_admin + staff ✅ (uitwerking in 2B1b)
+3. `tenant_oauth_credentials.SELECT` → tenant_admin only (secrets-tabel) ✅
+4. `disconnect-stripe-account` → migreren naar `requireRole(['tenant_admin'])` ✅ (in 2B1b)
+5. `shopify_connection_requests.INSERT` → beperken tot tenant_admin ✅
+
+### Patroon
+Per tabel: `is_platform_admin() OR has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[])` voor write,
+`is_platform_admin() OR tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))` voor read (behalve `tenant_oauth_credentials` en `fulfillment_api_keys` — daar SELECT óók admin-only).
+Service-role bypassen RLS by default → webhook/sync-paden ongewijzigd.
+`tenant_domains`: anon-SELECT op `is_active=true AND dns_verified=true` behouden voor storefront multi-domain routing.
+
+### Per tabel — gedropte + nieuwe policies
+
+#### marketplace_connections
+- DROP: `Users can view their tenant's marketplace connections` (SELECT), `Users can insert marketplace connections for their tenant` (INSERT — gunde staff write), `Users can update their tenant's marketplace connections` (UPDATE — idem), `Tenant admins can delete their tenant's marketplace connections` (DELETE).
+- CREATE: `mc_select_tenant_members` (SELECT), `mc_insert_tenant_admin`, `mc_update_tenant_admin`, `mc_delete_tenant_admin`.
+
+#### shopify_connection_requests
+- DROP: `Tenants can view their own requests` (SELECT), `Tenants can insert their own requests` (INSERT — gunde alle rollen).
+- KEEP: `Platform admins can manage all requests` (ALL, is_platform_admin).
+- CREATE: `scr_select_tenant_members`, `scr_insert_tenant_admin`, `scr_update_tenant_admin`, `scr_delete_tenant_admin`.
+
+#### ad_platform_connections
+- DROP: `Tenant users can view their ad connections` (SELECT), `Tenant admins can manage ad connections` (ALL — gebruikte user_roles direct).
+- CREATE: `apc_select_tenant_members`, `apc_insert_tenant_admin`, `apc_update_tenant_admin`, `apc_delete_tenant_admin`.
+
+#### tenant_oauth_credentials (stricter — SELECT óók admin-only)
+- DROP: `Tenant members can view own credentials` (SELECT — lekte token-metadata aan alle rollen), `Tenant admins can manage credentials` (ALL).
+- CREATE: `toc_select_tenant_admin`, `toc_insert_tenant_admin`, `toc_update_tenant_admin`, `toc_delete_tenant_admin`.
+
+#### tenant_domains
+- DROP: `Users can view own tenant domains` (SELECT), `Tenant admins can insert domains` (INSERT), `Tenant admins can update domains` (UPDATE), `Tenant admins can delete domains` (DELETE).
+- KEEP: `Public can read active domains` (anon SELECT, `is_active=true AND dns_verified=true`) — storefront routing.
+- CREATE: `td_select_tenant_members`, `td_insert_tenant_admin`, `td_update_tenant_admin`, `td_delete_tenant_admin`.
+
+#### review_platform_connections (dormant — security-bug gefixt)
+- DROP: `Public can view enabled platform connections` (anon SELECT — lekte OAuth-tokens zodra is_enabled=true), `Users can view their tenant's review connections`, `Users can insert their tenant's review connections` (rol-blind), `Users can update their tenant's review connections` (rol-blind), `Users can delete their tenant's review connections` (rol-blind).
+- CREATE: `rpc_select_tenant_members`, `rpc_insert_tenant_admin`, `rpc_update_tenant_admin`, `rpc_delete_tenant_admin`.
+
+#### shipping_integrations (dormant)
+- DROP: `Tenant admins can manage shipping integrations` (ALL — naam misleidend, was rol-blind), `Users can view their tenant shipping integrations` (SELECT).
+- CREATE: `si_select_tenant_members`, `si_insert_tenant_admin`, `si_update_tenant_admin`, `si_delete_tenant_admin`.
+
+#### fulfillment_api_keys (was al rol-aware, genormaliseerd)
+- DROP: `Tenant admins can manage their API keys` (ALL — voortaan SELECT óók admin-only voor consistency met secrets-tabellen).
+- CREATE: `fak_select_tenant_admin`, `fak_insert_tenant_admin`, `fak_update_tenant_admin`, `fak_delete_tenant_admin`.
+
+### Niet in scope (komt in 2B1b)
+- Edge-function `requireRole`-checks (`*-oauth-init`, `connect-*`, `disconnect-*`, `test-*-connection`, `verify-domain`, `check-domain-ssl`, `cloudflare-api-connect`, `create-connect-account`, `disconnect-stripe-account`, `check-connect-status`).
+- Frontend gating op connect/disconnect-knoppen (komt in H4).
+
+### Productie-test checklist (platform_admin via bypass)
+- [ ] `/admin/settings/integrations` → marketplace & ad connections laden
+- [ ] `/admin/settings/domains` → domains laden
+- [ ] Marketplace-tab → bestaande Bol/Shopify connections leesbaar
+- [ ] Storefront op custom domain → multi-domain routing werkt (anon SELECT op `tenant_domains`)
+- [ ] Stripe Connect / Bol / Meta webhooks blijven draaien (service-role bypass)
