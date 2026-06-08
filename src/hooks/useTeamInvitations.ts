@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 
-export type InvitationRole = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+export type InvitationRole = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
 
 export interface TeamInvitation {
   id: string;

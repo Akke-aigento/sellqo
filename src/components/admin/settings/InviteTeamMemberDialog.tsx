@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, UserPlus, Calculator, Warehouse, Eye, Shield, UserCog } from 'lucide-react';
+import { Mail, UserPlus, Calculator, Warehouse, Eye, Shield, UserCog, Megaphone } from 'lucide-react';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +53,12 @@ const roleOptions: RoleOption[] = [
     label: 'Magazijn',
     description: 'Voorraad, verzending en pakbonnen',
     icon: Warehouse,
+  },
+  {
+    value: 'marketing',
+    label: 'Marketing',
+    description: 'Campagnes, kortingen, ads, CMS en SEO — geen financiële data',
+    icon: Megaphone,
   },
   {
     value: 'viewer',
