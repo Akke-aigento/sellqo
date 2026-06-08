@@ -221,6 +221,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error in cloudflare-api-connect:', error);
     return new Response(
       JSON.stringify({ 
