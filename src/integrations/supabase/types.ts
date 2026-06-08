@@ -17733,6 +17733,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_credit_note_from_return: {
+        Args: { _return_id: string }
+        Returns: string
+      }
       create_pos_cashier: {
         Args: {
           p_avatar_color?: string
