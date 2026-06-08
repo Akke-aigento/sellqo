@@ -624,6 +624,11 @@ export default function OrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Credit notes */}
+          {invoice && (
+            <OrderCreditNotesSection invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
+          )}
         </div>
       </div>
 
