@@ -19,6 +19,7 @@ import type { CreditNoteStatus } from '@/types/creditNote';
 import { PageHeader } from '@/components/ui/page-header';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
+import { NewCreditNoteDialog } from '@/components/admin/NewCreditNoteDialog';
 
 export default function CreditNotesPage() {
   const { t } = useTranslation();
@@ -154,10 +155,13 @@ export default function CreditNotesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('creditnote.title')}
-        description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <PageHeader
+          title={t('creditnote.title')}
+          description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
+        />
+        {canWrite && <NewCreditNoteDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['credit-notes'] })} />}
+      </div>
 
       {/* Filters */}
       <Card>
