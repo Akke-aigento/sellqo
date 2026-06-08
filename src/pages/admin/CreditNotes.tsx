@@ -1,3 +1,7 @@
+// DEPRECATED — content moved to Invoices.tsx tabs (/admin/orders/invoices?tab=creditnotes).
+// The /admin/orders/creditnotes route now redirects there (see App.tsx).
+// This file is kept as a fallback safety net for any stale deeplinks/imports and will be
+// removed in a follow-up cleanup batch.
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
