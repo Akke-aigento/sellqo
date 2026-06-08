@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -178,7 +178,7 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -212,6 +212,9 @@ serve(async (req) => {
     if (quoteError || !quote) {
       throw new Error(`Quote not found: ${quoteError?.message}`);
     }
+
+    // Batch 2A2b: sales workflow — admin/staff (geen accountant).
+    requireRole(auth, quote.tenant_id, ["tenant_admin", "staff"]);
 
     logStep("Quote fetched", { quoteNumber: quote.quote_number });
 

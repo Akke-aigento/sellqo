@@ -44,11 +44,24 @@ serve(async (req) => {
       });
     }
 
-    // Batch 2A1: role gate — only admin/staff may process refunds (geen warehouse).
+    // Batch 2A2b: refund-write strikt tenant_admin tot cap-feature voor staff bestaat (Fase 3).
+    const orderForRole = returnRecord.orders as any;
+    const refundTenantId = orderForRole?.tenant_id || returnRecord.tenant_id;
+    requireRole(auth, refundTenantId, ["tenant_admin"]);
+
+    // Audit-log: welke admin heeft deze refund verwerkt.
     {
-      const orderForRole = returnRecord.orders as any;
-      const refundTenantId = orderForRole?.tenant_id || returnRecord.tenant_id;
-      requireRole(auth, refundTenantId, ["tenant_admin", "staff"]);
+      const { error: auditErr } = await supabase.from("admin_actions_log").insert({
+        admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
+        target_tenant_id: refundTenantId,
+        action_type: "refund_processed",
+        action_details: {
+          return_id,
+          refund_method: returnRecord.refund_method,
+          refund_amount: returnRecord.refund_amount,
+        },
+      });
+      if (auditErr) console.error("[process-refund] audit log failed:", auditErr);
     }
 
     // ── Idempotency guard ──
