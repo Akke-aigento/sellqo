@@ -18006,6 +18006,7 @@ export type Database = {
         | "accountant"
         | "viewer"
         | "warehouse"
+        | "marketing"
       changelog_change_type:
         | "breaking"
         | "feature"
@@ -18298,6 +18299,7 @@ export const Constants = {
         "accountant",
         "viewer",
         "warehouse",
+        "marketing",
       ],
       changelog_change_type: [
         "breaking",

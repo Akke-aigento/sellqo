@@ -49,4 +49,51 @@ describe("useCan / canWithRoles matrix", () => {
     expect(canWithRoles(["viewer", "warehouse"], "write", "orders")).toBe(true);
     expect(canWithRoles(["viewer", "accountant"], "write", "vat")).toBe(true);
   });
+
+  describe("marketing role", () => {
+    it("can read+write campaigns, discount_codes, ads, seo, cms", () => {
+      expect(canWithRoles(["marketing"], "write", "marketing")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "discount_codes")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "ads")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "seo")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "cms")).toBe(true);
+    });
+
+    it("cannot see invoices, credit_notes, payments, vat", () => {
+      expect(canWithRoles(["marketing"], "read", "invoices")).toBe(false);
+      expect(canWithRoles(["marketing"], "read", "credit_notes")).toBe(false);
+      expect(canWithRoles(["marketing"], "read", "payments")).toBe(false);
+      expect(canWithRoles(["marketing"], "read", "vat")).toBe(false);
+    });
+
+    it("can read but not write orders (no status changes)", () => {
+      expect(canWithRoles(["marketing"], "read", "orders")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "orders")).toBe(false);
+      expect(canWithRoles(["marketing"], "correct", "order_status")).toBe(false);
+    });
+
+    it("can configure ads but cannot release ad_budgets", () => {
+      expect(canWithRoles(["marketing"], "write", "ads")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "ad_budgets")).toBe(false);
+      expect(canWithRoles(["marketing"], "read", "ad_budgets")).toBe(false);
+    });
+
+    it("cannot manage integrations, team, settings or platform_billing", () => {
+      expect(canWithRoles(["marketing"], "write", "integrations")).toBe(false);
+      expect(canWithRoles(["marketing"], "read", "team")).toBe(false);
+      expect(canWithRoles(["marketing"], "write", "settings_general")).toBe(false);
+      expect(canWithRoles(["marketing"], "write", "platform_billing")).toBe(false);
+    });
+
+    it("can read products/customers for segmentation and campaign links", () => {
+      expect(canWithRoles(["marketing"], "read", "products")).toBe(true);
+      expect(canWithRoles(["marketing"], "read", "customers")).toBe(true);
+      expect(canWithRoles(["marketing"], "write", "customers")).toBe(false);
+    });
+
+    it("platform_admin bypasses even marketing-only restrictions", () => {
+      expect(canWithRoles(["platform_admin"], "write", "ad_budgets")).toBe(true);
+      expect(canWithRoles(["platform_admin"], "read", "invoices")).toBe(true);
+    });
+  });
 });

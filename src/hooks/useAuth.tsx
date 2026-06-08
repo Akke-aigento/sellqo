@@ -30,7 +30,7 @@ function clearAuthStorage(): void {
   }
 }
 
-export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer';
+export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer' | 'marketing';
 
 // Role priority for determining highest role
 const ROLE_PRIORITY: Record<AppRole, number> = {
@@ -39,6 +39,7 @@ const ROLE_PRIORITY: Record<AppRole, number> = {
   accountant: 3,
   staff: 4,
   warehouse: 5,
+  marketing: 5,
   viewer: 6,
 };
 

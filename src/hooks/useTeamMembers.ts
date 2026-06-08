@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
-export type AppRole = 'platform_admin' | 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+export type AppRole = 'platform_admin' | 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
 
 export interface TeamMember {
   id: string;
@@ -88,7 +88,8 @@ export function useTeamMembers() {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        // Cast tot DB enum wordt geregenereerd na app_role migration (marketing toegevoegd).
+        .update({ role: newRole as never })
         .eq('id', memberId);
 
       if (error) throw error;
