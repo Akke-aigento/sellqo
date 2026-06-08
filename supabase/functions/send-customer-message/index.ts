@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -62,7 +62,9 @@ const handler = async (req: Request): Promise<Response> => {
       attachments,
     }: SendMessageRequest = await req.json();
 
-    await authenticateRequest(req, tenant_id);
+    const auth = await authenticateRequest(req, tenant_id);
+    // Fase 2 — Batch 2B2b: klantenservice context (tenant_admin/staff/accountant)
+    requireRole(auth, tenant_id, ['tenant_admin', 'staff', 'accountant']);
 
     // Fetch tenant info for branding and reply-to
     const { data: tenant, error: tenantError } = await supabaseClient
