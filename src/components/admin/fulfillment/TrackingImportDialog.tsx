@@ -11,6 +11,7 @@ import { parseCSV, normalizeCarrier, type CSVRow, type ImportResult } from '@/li
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 
 interface TrackingImportDialogProps {
   open: boolean;
@@ -118,9 +119,8 @@ export function TrackingImportDialog({ open, onOpenChange, onImportComplete }: T
         let invokeError: { message: string } | null = null;
 
         if (shouldPromoteStatus) {
-          const { data: fnData, error: fnError } = await supabase.functions.invoke(
-            'update-order-fulfillment-status',
-            {
+          try {
+            await invokeWithErrorBody('update-order-fulfillment-status', {
               body: {
                 tenant_id: tenantId,
                 order_id: row.orderId!,
@@ -129,11 +129,9 @@ export function TrackingImportDialog({ open, onOpenChange, onImportComplete }: T
                 tracking_url: row.tracking_url || undefined,
                 shipped_at: shippedAt,
               },
-            },
-          );
-          if (fnError) invokeError = { message: fnError.message };
-          else if (fnData && (fnData as { success?: boolean }).success === false) {
-            invokeError = { message: (fnData as { error?: string }).error || 'Edge fn faalde' };
+            }, 'Edge fn faalde');
+          } catch (err) {
+            invokeError = { message: err instanceof Error ? err.message : String(err) };
           }
         }
 
