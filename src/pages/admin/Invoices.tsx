@@ -3,9 +3,12 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
+import { useToast } from '@/hooks/use-toast';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +17,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -29,6 +31,8 @@ export default function InvoicesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [peppolPendingOnly, setPeppolPendingOnly] = useState(false);
@@ -74,6 +78,10 @@ export default function InvoicesPage() {
     customer: string;
     invoiceId?: string;
     invoiceNumber?: string;
+    pdfUrl?: string | null;
+    ublUrl?: string | null;
+    peppolStatus?: string | null;
+    language?: string | null;
   };
 
   const combined: Combined[] = useMemo(() => {
@@ -89,6 +97,10 @@ export default function InvoicesPage() {
         : i.orders?.customer_name || 'Onbekend',
       invoiceId: i.id,
       invoiceNumber: i.invoice_number,
+      pdfUrl: i.pdf_url,
+      ublUrl: i.ubl_url,
+      peppolStatus: (i as any).peppol_status ?? null,
+      language: (i as any).language ?? null,
     }));
     const fromCNs: Combined[] = creditNotes.map((c: any) => ({
       kind: 'creditnote',
@@ -102,6 +114,10 @@ export default function InvoicesPage() {
         : '—',
       invoiceId: c.original_invoice?.id,
       invoiceNumber: c.original_invoice?.invoice_number,
+      pdfUrl: c.pdf_url ?? null,
+      ublUrl: c.ubl_url ?? null,
+      peppolStatus: c.peppol_status ?? null,
+      language: c.language ?? null,
     }));
     return [...fromInvoices, ...fromCNs].sort((a, b) => +new Date(b.date) - +new Date(a.date));
   }, [invoices, creditNotes]);
@@ -155,6 +171,58 @@ export default function InvoicesPage() {
 
   // Count peppol pending invoices
   const peppolPendingCount = invoices.filter(inv => (inv as any).peppol_status === 'pending').length;
+
+  // Credit-note action handlers (mirror CreditNotesTable for consistency)
+  const handleCnDownloadPdf = async (cnId: string, existingUrl: string | null | undefined, language?: string | null) => {
+    if (existingUrl) { window.open(existingUrl, '_blank'); return; }
+    try {
+      const res = await invokeWithErrorBody<{ pdf_url: string }>('generate-credit-note', {
+        body: { credit_note_id: cnId, language: language ?? undefined },
+      });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      if (res?.pdf_url) window.open(res.pdf_url, '_blank');
+    } catch (e: any) {
+      toast({ title: 'PDF genereren mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
+    }
+  };
+
+  const handleCnResend = async (cnId: string, language?: string | null) => {
+    try {
+      await invokeWithErrorBody('send-credit-note-email', {
+        body: { credit_note_id: cnId, language: language ?? undefined },
+      });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      toast({ title: 'E-mail verzonden', description: 'De creditnota is opnieuw naar de klant verstuurd.' });
+    } catch (e: any) {
+      toast({ title: 'E-mail versturen mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
+    }
+  };
+
+  // Build per-row action menu items for the combined "Alle" tab.
+  const buildCombinedActions = (r: Combined): ActionItem[] => {
+    const items: ActionItem[] = [];
+    if (r.kind === 'invoice') {
+      if (r.pdfUrl) items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(r.pdfUrl!, '_blank') });
+      if (r.ublUrl) items.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
+      if (r.peppolStatus === 'pending') {
+        items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
+      }
+      items.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(r.id) });
+    } else {
+      items.push({
+        label: r.pdfUrl ? 'Download PDF' : 'PDF genereren',
+        icon: <Download className="h-4 w-4" />,
+        onClick: () => handleCnDownloadPdf(r.id, r.pdfUrl, r.language),
+      });
+      if (r.ublUrl) items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
+      items.push({ label: 'E-mail opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => handleCnResend(r.id, r.language) });
+      if (r.invoiceId) {
+        items.push({ label: 'Originele factuur', icon: <ExternalLink className="h-4 w-4" />, onClick: () => setTab('invoices') });
+      }
+      items.push({ label: "Open in Creditnota's tab", icon: <ExternalLink className="h-4 w-4" />, onClick: () => setTab('creditnotes') });
+    }
+    return items;
+  };
 
   return (
     <div className="space-y-6">
