@@ -28,8 +28,14 @@ serve(async (req) => {
     );
 
     // Parse body
-    const { tenant_id } = await req.json();
+    const { tenant_id, confirmed_tenant_name } = await req.json();
     if (!tenant_id) throw new Error("tenant_id is required");
+    if (typeof confirmed_tenant_name !== "string" || confirmed_tenant_name.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Bevestigingsnaam ontbreekt" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Authenticate + role check (Batch 2B1b — replaces legacy tenant_users.role='owner' check)
     const auth = await authenticateRequest(req, tenant_id);
@@ -48,6 +54,20 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Tenant niet gevonden" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Type-to-confirm double-check against live tenants.name (case + whitespace
+    // insensitive). Hardening against accidental destructive disconnects during
+    // admin tests — see docs/role-audit.md "Hardening — Stripe disconnect
+    // type-to-confirm".
+    const liveName = (tenant.name ?? "").trim().toLowerCase();
+    const confirmed = confirmed_tenant_name.trim().toLowerCase();
+    if (liveName !== confirmed) {
+      logStep("Confirmation name mismatch", { liveName, confirmed });
+      return new Response(
+        JSON.stringify({ error: "Bevestigingsnaam matcht niet" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
