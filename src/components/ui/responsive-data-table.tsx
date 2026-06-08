@@ -2,7 +2,6 @@ import * as React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useViewMode } from "@/hooks/use-breakpoint";
 import { cn } from "@/lib/utils";
 
 export type ColumnPriority = "always" | "md" | "lg" | "xl";
@@ -34,12 +33,21 @@ export interface ResponsiveDataTableProps<T> {
   cardModeBreakpoint?: "mobile" | "compact";
 }
 
-const PRIORITY_HIDE_CLASS: Record<ColumnPriority, string> = {
-  always: "",
-  md: "hidden md:table-cell",
-  lg: "hidden lg:table-cell",
-  xl: "hidden xl:table-cell",
+// Container-width thresholds (px). Mirrors Tailwind md/lg/xl but applied
+// to the table's own container width via ResizeObserver — so a narrow
+// content area (e.g. with a wide sidebar) still hides columns / switches
+// to cards, even when the window itself is wide.
+const PRIORITY_MIN_WIDTH: Record<ColumnPriority, number> = {
+  always: 0,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
 };
+
+const CARD_MODE_MAX_WIDTH = {
+  mobile: 640,   // cards below sm
+  compact: 1024, // cards below lg
+} as const;
 
 const ALIGN_CLASS = {
   left: "text-left",
@@ -59,11 +67,31 @@ export function ResponsiveDataTable<T>({
   onSelectionChange,
   cardModeBreakpoint = "mobile",
 }: ResponsiveDataTableProps<T>) {
-  const viewMode = useViewMode();
-  const useCards =
-    cardModeBreakpoint === "compact"
-      ? viewMode === "mobile" || viewMode === "compact"
-      : viewMode === "mobile";
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+  // Start with a generous width so first paint shows the full table
+  // on desktop; ResizeObserver corrects within a frame on narrow areas.
+  const [containerWidth, setContainerWidth] = React.useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 1280,
+  );
+
+  React.useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setContainerWidth(w);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const useCards = containerWidth < CARD_MODE_MAX_WIDTH[cardModeBreakpoint];
+
+  const isColumnVisible = (priority: ColumnPriority = "always") =>
+    containerWidth >= PRIORITY_MIN_WIDTH[priority];
+
   const selectable = !!onSelectionChange;
   const selectedSet = React.useMemo(() => new Set(selectedIds ?? []), [selectedIds]);
 
@@ -82,7 +110,7 @@ export function ResponsiveDataTable<T>({
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <div ref={wrapperRef} className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
@@ -92,7 +120,7 @@ export function ResponsiveDataTable<T>({
 
   if (!rows.length) {
     return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
+      <div ref={wrapperRef} className="rounded-md border p-8 text-center text-sm text-muted-foreground">
         {emptyState ?? "Geen resultaten."}
       </div>
     );
@@ -100,7 +128,7 @@ export function ResponsiveDataTable<T>({
 
   if (useCards) {
     return (
-      <div className="space-y-3">
+      <div ref={wrapperRef} className="space-y-3">
         {rows.map((row) => {
           const id = getRowKey(row);
           return (
@@ -130,8 +158,10 @@ export function ResponsiveDataTable<T>({
 
   const allChecked = selectable && rows.length > 0 && rows.every((r) => selectedSet.has(getRowKey(r)));
 
+  const visibleColumns = columns.filter((c) => isColumnVisible(c.priority));
+
   return (
-    <div className="w-full overflow-x-auto rounded-md border">
+    <div ref={wrapperRef} className="w-full overflow-x-auto rounded-md border">
       <Table className="min-w-[640px]">
         <TableHeader>
           <TableRow>
@@ -140,12 +170,11 @@ export function ResponsiveDataTable<T>({
                 <Checkbox checked={allChecked} onCheckedChange={(c) => toggleAll(!!c)} />
               </TableHead>
             )}
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <TableHead
                 key={col.id}
                 style={col.width ? { width: col.width } : undefined}
                 className={cn(
-                  PRIORITY_HIDE_CLASS[col.priority ?? "always"],
                   col.align && ALIGN_CLASS[col.align],
                 )}
               >
@@ -172,11 +201,10 @@ export function ResponsiveDataTable<T>({
                     />
                   </TableCell>
                 )}
-                {columns.map((col) => (
+                {visibleColumns.map((col) => (
                   <TableCell
                     key={col.id}
                     className={cn(
-                      PRIORITY_HIDE_CLASS[col.priority ?? "always"],
                       col.align && ALIGN_CLASS[col.align],
                     )}
                   >
