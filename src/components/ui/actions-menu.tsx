@@ -10,13 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export interface ActionItem {
-  label: string;
+  label?: string;
   icon?: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: "default" | "destructive";
   /** Render a separator ABOVE this item. */
   separator?: boolean;
   disabled?: boolean;
+  /** Render a custom node directly inside the menu (skips the default DropdownMenuItem wrapper). */
+  render?: () => React.ReactNode;
 }
 
 export interface ActionsMenuProps {
