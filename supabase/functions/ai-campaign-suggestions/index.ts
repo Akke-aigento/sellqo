@@ -169,6 +169,7 @@ Baseer je suggesties op de data. Prioriteer op basis van potentiële impact en u
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Error in ai-campaign-suggestions:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
