@@ -45,17 +45,21 @@ export function ActionsMenu({ items, align = "end", ariaLabel = "Acties" }: Acti
         {items.map((item, i) => (
           <React.Fragment key={i}>
             {item.separator && i > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem
-              disabled={item.disabled}
-              onClick={(e) => {
-                e.stopPropagation();
-                item.onClick();
-              }}
-              className={item.variant === "destructive" ? "text-destructive focus:text-destructive" : ""}
-            >
-              {item.icon}
-              <span className={item.icon ? "ml-2" : ""}>{item.label}</span>
-            </DropdownMenuItem>
+            {item.render ? (
+              item.render()
+            ) : (
+              <DropdownMenuItem
+                disabled={item.disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  item.onClick?.();
+                }}
+                className={item.variant === "destructive" ? "text-destructive focus:text-destructive" : ""}
+              >
+                {item.icon}
+                <span className={item.icon ? "ml-2" : ""}>{item.label}</span>
+              </DropdownMenuItem>
+            )}
           </React.Fragment>
         ))}
       </DropdownMenuContent>
