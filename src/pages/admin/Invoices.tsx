@@ -329,16 +329,8 @@ export default function InvoicesPage() {
                     align: 'right',
                     width: '90px',
                     render: (r) => (
-                      <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1">
                         <ActionsMenu items={buildCombinedActions(r)} />
-                        {r.kind === 'invoice' && r.invoiceId && (
-                          <CreateCreditNoteFromInvoiceButton
-                            invoiceId={r.invoiceId}
-                            invoiceNumber={r.invoiceNumber!}
-                            onSuccess={() => refetch()}
-                            compact
-                          />
-                        )}
                       </div>
                     ),
                   },
