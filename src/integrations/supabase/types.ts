@@ -15368,6 +15368,51 @@ export type Database = {
           },
         ]
       }
+      tenant_odoo_settings: {
+        Row: {
+          aggregate_b2c_customers: boolean
+          aggregate_per_channel: boolean
+          b2c_dummy_partner_name: string
+          b2c_dummy_partner_odoo_id: number | null
+          created_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          aggregate_b2c_customers?: boolean
+          aggregate_per_channel?: boolean
+          b2c_dummy_partner_name?: string
+          b2c_dummy_partner_odoo_id?: number | null
+          created_at?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          aggregate_b2c_customers?: boolean
+          aggregate_per_channel?: boolean
+          b2c_dummy_partner_name?: string
+          b2c_dummy_partner_odoo_id?: number | null
+          created_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_odoo_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_odoo_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_return_settings: {
         Row: {
           allow_partial_refunds: boolean | null

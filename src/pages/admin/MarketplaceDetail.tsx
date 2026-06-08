@@ -71,6 +71,7 @@ import { MARKETPLACE_INFO, type MarketplaceSettings } from '@/types/marketplace'
 import { SyncRulesTab } from '@/components/admin/marketplace/SyncRulesTab';
 import { BolVVBSettings } from '@/components/admin/marketplace/BolVVBSettings';
 import { AmazonBuyShippingSettings } from '@/components/admin/marketplace/AmazonBuyShippingSettings';
+import { OdooB2CAggregationSettings } from '@/components/admin/marketplace/OdooB2CAggregationSettings';
 import { SyncHistoryWidget } from '@/components/admin/marketplace/SyncHistoryWidget';
 import { BolCsvImport } from '@/components/admin/marketplace/BolCsvImport';
 import { useAutoSync } from '@/hooks/useAutoSync';
@@ -988,6 +989,12 @@ export default function MarketplaceDetailPage() {
                 }}
               />
             )}
+
+            {/* Odoo B2C aggregation settings */}
+            {connection.marketplace_type === 'odoo' &&
+              (connection.settings as { odooModuleAccounting?: boolean })?.odooModuleAccounting && (
+                <OdooB2CAggregationSettings tenantId={connection.tenant_id} />
+              )}
 
             <Card>
               <CardHeader>
