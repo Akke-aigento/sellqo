@@ -928,3 +928,63 @@ in alle boekhoudings-exports.
 - ✅ Sidebar: "Creditnota's" entry weg; "Facturen & creditnota's" zichtbaar onder Bestellingen.
 - ✅ Migratie pg_net dispatch test: na nieuwe retour `status=completed` met `refund_amount>0` verschijnt credit_note rij; HTTP-call zichtbaar in `net._http_response`.
 
+---
+
+## Role expansion — `marketing` (2026-06-08)
+
+**Goal.** Specialist marketing-rol voor grotere teams die campagnes, promoties,
+ads-configs, SEO en CMS-content beheren zonder toegang tot fiscale data,
+integrations of platform-settings.
+
+**Enum.** Nieuwe migration voegt `marketing` toe aan `public.app_role`
+(`ALTER TYPE ... ADD VALUE IF NOT EXISTS 'marketing'`). Geen verdere
+DB-policy-wijzigingen in deze stap: bestaande RLS draait op `app_role[]`
+arrays — marketing valt automatisch buiten alle write-arrays
+(`tenant_admin/staff/accountant/warehouse`) en krijgt via `tenant_id IN
+get_user_tenant_ids()` automatisch tenant-scoped read op alles wat al
+publiek-leesbaar is binnen de tenant.
+
+**useCan matrix (`src/hooks/useCan.ts`).**
+- RW: `marketing`, `cms`, `seo`, `discount_codes`, `ads`, `volume_discounts`,
+  `social_channels`, `inbox`.
+- R: `orders` (campaign analytics), `customers` (segmentatie, geen schrijfrechten),
+  `products`, `reports`, `global_lookups`, `sellqo_legal`.
+- Geen toegang: `invoices`, `credit_notes`, `refunds`, `payments`, `vat`,
+  `returns`, `pos`, `themes`, `integrations`, `webhooks_api`, `team`,
+  `settings_general`, `settings_financial`, `platform_billing`,
+  `customer_notes`, `product_costs`, `suppliers`, `ops_helpers`,
+  `automations`, `ai_assistant`, `ai_coach`.
+- Nieuwe resource `ad_budgets` (gescheiden van `ads`): write blijft expliciet
+  bij `tenant_admin`; marketing kan campagnes configureren maar geen budget
+  vrijgeven.
+- `order_status.correct` (correction-pad) blijft `tenant_admin` only.
+
+**Sidebar (`src/components/admin/sidebar/sidebarConfig.ts`).**
+- Toegevoegd: `MARKETING_ALLOWED_ITEMS` als referentielijst.
+- Hidden voor marketing via `excludeRoles: ['marketing']`: fulfillment,
+  retouren, facturen, offertes, POS, webshop builder, betalingen,
+  categorieën, inkoop, verzending, notificaties, SellQo Connect, billing,
+  instellingen.
+- Zichtbaar: Dashboard, Inbox, Bestellingen (alleen lijst), Producten (R),
+  Klanten (R), Campagnes + AI Tools + SEO, Promoties (full group), Ads
+  (full group, budget-vrijgave UI-side te gaten via `useCan('write','ad_budgets')`),
+  Vertalingen, Rapporten/Analytics, Help.
+
+**Note voor Batch 2C2 (Marketing & CMS).** Bij het schrijven van expliciete
+RLS policies voor marketing-tabellen (campaigns, email_*, discount_codes,
+ads_*, automatic_discounts, automation_*, bogo_promotions, gift_promotions,
+volume_discounts, content_translations, storefront_pages, legal_pages,
+homepage_sections, seo_*, ab_test_configs, ad_creatives, ad_campaigns,
+ad_audience_syncs, ad_platform_connections (read-only), social_*) MOET de
+marketing-rol meegenomen worden in de policy-arrays — voorgeschreven
+pattern: `array['tenant_admin','staff','marketing']` voor write,
+`array['tenant_admin','staff','accountant','viewer','marketing']` voor read.
+Uitzondering: `ad_platform_connections` blijft `['tenant_admin']` write
+(geen credentials-management voor marketing).
+
+**Tests.** `src/hooks/useCan.test.ts` uitgebreid met `marketing role` suite:
+RW op campaigns/discount_codes/ads/seo/cms, R-only op orders, geen toegang
+tot invoices/credit_notes/payments/vat, geen `order_status.correct`, geen
+`ad_budgets` write, platform_admin bypass-check.
+
+**Seed.** Geen migration-seed; toewijzing via team-management UI.
