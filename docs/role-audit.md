@@ -1030,6 +1030,16 @@ tot invoices/credit_notes/payments/vat, geen `order_status.correct`, geen
 
 Alle gewijzigde functies hebben `verify_jwt = false` (expliciet in `supabase/config.toml` of via default deployment). JWT-validatie gebeurt in code via `authenticateRequest`. Geen nieuwe `[functions.*]` blokken nodig.
 
+**Config.toml — vijf `verify_jwt = false` entries toegevoegd (CORS-fix)**  
+Datum: 2026-06-08. De volgende functies ontbraken in `config.toml` waardoor browser-calls faalden met een CORS-preflight error (zelfde patroon als `update-order-fulfillment-status` uit Batch 2A0):
+- `[functions.create-shipping-label]`
+- `[functions.send-return-email]`
+- `[functions.disconnect-stripe-account]`
+- `[functions.test-odoo-connection]`
+- `[functions.test-shipping-connection]`
+
+Reden: alle vijf hebben `requireRole` + `authenticateRequest` in de function-body (eigen auth-pad), dus `verify_jwt = false` is correct en consistent met `process-refund`, `generate-invoice`, `generate-credit-note`, en alle andere admin-write-functies.
+
 ### `AppRole` shared type
 
 `supabase/functions/_shared/auth.ts` `AppRole` union uitgebreid met `'marketing'` om in sync te blijven met de DB-enum (Batch marketing-rol).
