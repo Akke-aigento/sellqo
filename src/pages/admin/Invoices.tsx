@@ -138,13 +138,104 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Facturen</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Facturen & creditnota's</h1>
           <p className="text-muted-foreground">
-            Beheer en bekijk alle facturen
+            Beheer en bekijk alle facturen en creditnota's
           </p>
         </div>
         <ManualInvoiceDialog onSuccess={() => refetch()} />
       </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="all">Alle</TabsTrigger>
+          <TabsTrigger value="invoices">Facturen</TabsTrigger>
+          <TabsTrigger value="creditnotes">Creditnota's</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Zoeken op nummer..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" /> Gecombineerd overzicht
+              </CardTitle>
+              <CardDescription>{combined.length} regels</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 sm:px-6">
+              {(isLoading || cnLoading) ? (
+                <div className="space-y-3 px-4 sm:px-0">
+                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : combined.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">Geen documenten gevonden</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Nummer</TableHead>
+                        <TableHead className="hidden md:table-cell">Klant</TableHead>
+                        <TableHead>Datum</TableHead>
+                        <TableHead className="text-right">Bedrag</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Acties</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {combined.map((row) => (
+                        <TableRow key={`${row.kind}-${row.id}`}>
+                          <TableCell>
+                            {row.kind === 'invoice' ? (
+                              <Badge variant="default">Factuur</Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-destructive/40 text-destructive">Creditnota</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{row.number}</TableCell>
+                          <TableCell className="hidden md:table-cell max-w-[200px] truncate">{row.customer}</TableCell>
+                          <TableCell>{format(new Date(row.date), 'd MMM yyyy', { locale: nl })}</TableCell>
+                          <TableCell className={`text-right font-medium ${row.amount < 0 ? 'text-destructive' : ''}`}>
+                            {formatCurrency(row.amount)}
+                          </TableCell>
+                          <TableCell><Badge variant="secondary">{row.status}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            {row.kind === 'invoice' && row.invoiceId ? (
+                              <CreateCreditNoteFromInvoiceButton
+                                invoiceId={row.invoiceId}
+                                invoiceNumber={row.invoiceNumber!}
+                                onSuccess={() => refetch()}
+                              />
+                            ) : row.kind === 'creditnote' ? (
+                              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders/creditnotes')}>
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="invoices" className="space-y-6">
 
       {/* Filters */}
       <Card>
@@ -426,6 +517,11 @@ export default function InvoicesPage() {
                               </TooltipTrigger>
                               <TooltipContent>Opnieuw versturen</TooltipContent>
                             </Tooltip>
+                            <CreateCreditNoteFromInvoiceButton
+                              invoiceId={invoice.id}
+                              invoiceNumber={invoice.invoice_number}
+                              onSuccess={() => refetch()}
+                            />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -438,6 +534,25 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="creditnotes">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Minus className="h-5 w-5" /> Creditnota's</CardTitle>
+              <CardDescription>
+                Ga naar de dedicated creditnota-pagina voor de volledige actiebalk.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => navigate('/admin/orders/creditnotes')}>
+                Open Creditnota's overzicht
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
