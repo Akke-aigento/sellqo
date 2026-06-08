@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Search, FileCode, ExternalLink } from 'lucide-react';
+import { FileText, Download, Search, FileCode, ExternalLink, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
+import { useQueryClient } from '@tanstack/react-query';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +23,9 @@ export default function CreditNotesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CreditNoteStatus | 'all'>('all');
 
@@ -27,6 +33,29 @@ export default function CreditNotesPage() {
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
+
+  const handleDownloadPdf = async (cnId: string, existingUrl: string | null, language?: string) => {
+    if (existingUrl) {
+      window.open(existingUrl, '_blank');
+      return;
+    }
+    try {
+      setGeneratingId(cnId);
+      const res = await invokeWithErrorBody<{ pdf_url: string }>('generate-credit-note', {
+        body: { credit_note_id: cnId, language },
+      });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      if (res?.pdf_url) window.open(res.pdf_url, '_blank');
+    } catch (e: any) {
+      toast({
+        title: 'PDF genereren mislukt',
+        description: e?.message || 'Onbekende fout',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingId(null);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
@@ -66,9 +95,13 @@ export default function CreditNotesPage() {
 
   const buildActions = (cn: CN): ActionItem[] => {
     const items: ActionItem[] = [];
-    if (cn.pdf_url) {
-      items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(cn.pdf_url!, '_blank') });
-    }
+    items.push({
+      label: cn.pdf_url ? 'Download PDF' : 'PDF genereren',
+      icon: generatingId === cn.id
+        ? <Loader2 className="h-4 w-4 animate-spin" />
+        : <Download className="h-4 w-4" />,
+      onClick: () => handleDownloadPdf(cn.id, cn.pdf_url, (cn as any).language),
+    });
     if (cn.ubl_url) {
       items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(cn.ubl_url!, '_blank') });
     }
