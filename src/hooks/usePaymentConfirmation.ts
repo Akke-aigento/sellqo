@@ -39,23 +39,16 @@ export function usePaymentConfirmation() {
       //     processing via gevalideerde edge function (RBAC + transitiematrix).
       const justPaid = paidRows && paidRows.length > 0 && paidRows[0].status === 'pending';
       if (justPaid) {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke(
-          'update-order-fulfillment-status',
-          {
+        try {
+          await invokeWithErrorBody('update-order-fulfillment-status', {
             body: {
               tenant_id: tenantId,
               order_id: orderId,
               new_status: 'processing',
             },
-          },
-        );
-        if (fnError) {
-          throw new Error(`Fout bij statusovergang: ${fnError.message}`);
-        }
-        if (fnData && (fnData as { success?: boolean }).success === false) {
-          throw new Error(
-            `Fout bij statusovergang: ${(fnData as { error?: string }).error || 'onbekend'}`,
-          );
+          }, 'onbekend');
+        } catch (err) {
+          throw new Error(`Fout bij statusovergang: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
