@@ -215,6 +215,42 @@ async function fetchInvoicePdfs(
   return out;
 }
 
+async function fetchCreditNotePdfs(
+  sb: ReturnType<typeof createClient>,
+  tenantId: string,
+  start: string,
+  end: string,
+): Promise<FetchedDoc[]> {
+  const { data, error } = await sb
+    .from("credit_notes")
+    .select("credit_note_number, pdf_url")
+    .eq("tenant_id", tenantId)
+    .gte("issue_date", start)
+    .lte("issue_date", end)
+    .not("pdf_url", "is", null);
+  if (error) {
+    console.warn("[q-bundle] credit_notes query failed", error.message);
+    return [];
+  }
+  const out: FetchedDoc[] = [];
+  const list = (data ?? []) as Array<{ credit_note_number: string; pdf_url: string }>;
+  const batchSize = 8;
+  for (let i = 0; i < list.length; i += batchSize) {
+    const batch = list.slice(i, i + batchSize);
+    const results = await Promise.allSettled(batch.map(async (row) => {
+      const resp = await fetch(row.pdf_url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const buf = new Uint8Array(await resp.arrayBuffer());
+      return { name: `${row.credit_note_number}.pdf`, bytes: buf };
+    }));
+    for (const r of results) {
+      if (r.status === "fulfilled") out.push(r.value);
+      else console.warn("[q-bundle] credit-note pdf fetch failed", r.reason);
+    }
+  }
+  return out;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsOptions(req);
   const cors = getCorsHeaders(req);
@@ -278,7 +314,7 @@ serve(async (req) => {
       return j.payload as Record<string, unknown>;
     })();
 
-    const [xlsxR, pdfR, vatXmlR, icXmlR, odooR, enginePayload, invoicePdfs] = await Promise.all([
+    const [xlsxR, pdfR, vatXmlR, icXmlR, odooR, enginePayload, invoicePdfs, creditNotePdfs] = await Promise.all([
       tryFetch("xlsx", callInternal("export-vat-xlsx", engineBody)),
       tryFetch("pdf", callInternal("export-vat-pdf", engineBody)),
       tryFetch("vat-xml", callInternal("export-vat-xml", engineBody)),
@@ -290,6 +326,10 @@ serve(async (req) => {
       body.include_invoice_pdfs
         ? fetchInvoicePdfs(sb, body.tenant_id, body.period_start, body.period_end)
           .catch((e) => { console.error("[q-bundle] invoice pdfs failed", e); return [] as FetchedDoc[]; })
+        : Promise.resolve([] as FetchedDoc[]),
+      body.include_invoice_pdfs
+        ? fetchCreditNotePdfs(sb, body.tenant_id, body.period_start, body.period_end)
+          .catch((e) => { console.error("[q-bundle] credit-note pdfs failed", e); return [] as FetchedDoc[]; })
         : Promise.resolve([] as FetchedDoc[]),
     ]);
 
@@ -345,6 +385,7 @@ serve(async (req) => {
 
     if (body.include_invoice_pdfs) {
       for (const d of invoicePdfs) zip.file(`06_Factuur_PDFs/${d.name}`, d.bytes);
+      for (const d of creditNotePdfs) zip.file(`06_Factuur_PDFs/creditnotas/${d.name}`, d.bytes);
     }
 
     if (enginePayload) {
