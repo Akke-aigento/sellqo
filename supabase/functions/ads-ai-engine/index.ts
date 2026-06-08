@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSyncSecret = req.headers.get("X-Sync-Secret");
+    const isCronSecret = !!cronSecret && providedSyncSecret === cronSecret;
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -23,14 +28,14 @@ Deno.serve(async (req) => {
 
     const supabaseAuthCheck = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      isServiceRole
+      isServiceRole || isCronSecret
         ? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         : Deno.env.get("SUPABASE_ANON_KEY")!,
-      isServiceRole
+      isServiceRole || isCronSecret
         ? undefined
         : { global: { headers: { Authorization: authHeader } } }
     );
-    if (!isServiceRole) {
+    if (!isServiceRole && !isCronSecret) {
       const { data: { user }, error: userError } = await supabaseAuthCheck.auth.getUser();
       if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -46,6 +51,11 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!isServiceRole && !isCronSecret) {
+      const userAuth = await authenticateRequest(req, tenant_id);
+      requireRole(userAuth, tenant_id, ["tenant_admin", "staff", "marketing"]);
     }
 
     const supabase = createClient(
@@ -222,6 +232,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     console.error("ads-ai-engine error:", err);
     const message = err instanceof Error ? err.message : String(err);
     return new Response(JSON.stringify({ error: message }), {
