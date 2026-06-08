@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,16 +38,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization header");
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) throw new Error("Unauthorized");
-
     const body: GenerateSocialRequest = await req.json();
     const { tenantId, context, platform, contentType, productIds, customPrompt, tone = 'casual', language = 'nl' } = body;
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
 
     // Check credits
     const { data: hasCredits } = await supabase.rpc('use_ai_credits', {
