@@ -451,3 +451,94 @@ Normale (niet-correctie) flow ongewijzigd: matrix + rol-check zoals 2A0.
 - [ ] Normale bulk-action "Markeer als verzonden" blijft werken
       (niet-correctie pad ongewijzigd).
 
+---
+
+## Batch 2A2a — Refund / Invoice / Quote RLS-aanscherping completed
+
+Datum: 2026-06-08
+Scope: één migration die legacy `has_role`-policies en rolloze ALL-policies
+vervangt door drie-policy templates met `has_tenant_role`. Platform-admin en
+service-role bypasses ongewijzigd.
+
+### Bevestigde beslispunten
+- ✅ Refund-write (`credit_notes` + `credit_note_lines`) strikt `tenant_admin` — staff/accountant uitgesloten tot cap-feature bestaat.
+- ✅ Accountant heeft **read + write** op `invoices`, `invoice_lines`, `invoice_archive` (append-only), `invoice_discounts`, `invoice_duplicates`, `payment_reminders` voor BTW-correcties.
+- ✅ Staff mag quotes en proforma's aanmaken/bewerken; delete blijft `tenant_admin`.
+- ✅ `payment_confirmations` writes nu service-role-only (Stripe/bank-webhook pad). UI behoudt SELECT.
+- ✅ `invoice_archive` blijft append-only (geen UPDATE/DELETE policies aangemaakt).
+
+### Gedropte policies per tabel
+- `credit_notes`: "Users can view/insert/update/delete credit notes in their tenants"
+- `credit_note_lines`: "Users can view/insert/update/delete credit note lines in their tenants"
+- `invoices`: "Users can view/insert/update their tenant's invoices", "Tenant admins can delete their tenant's invoices"
+- `invoice_lines`: "Users can view/insert/update/delete their tenant's invoice lines"
+- `invoice_archive`: "Users can view/insert archive for their tenant"
+- `invoice_discounts`: "Users can view/manage invoice discounts for their tenant"
+- `invoice_duplicates`: "Tenant users can manage invoice duplicates"
+- `proforma_invoices`: "Users can view/manage proforma invoices for their tenant"
+- `proforma_invoice_lines`: "Users can view/manage proforma lines for their tenant"
+- `quotes`: "Users can view/insert/update their tenant's quotes", "Tenant admins can delete their tenant's quotes"
+- `quote_items`: "Users can view/insert/update their tenant's quote items", "Tenant admins can delete their tenant's quote items"
+- `payment_confirmations`: "Users can view own tenant confirmations", "Staff+ can insert confirmations"
+- `payment_reminders`: "Users can view/manage payment reminders for their tenant"
+
+Platform-admin policies en service-role ALL-policies bleven onaangetast.
+
+### Nieuwe policies (samenvatting per tabel)
+
+Volledige SQL leeft in de migration `Batch 2A2a — Refund/Invoice/Quote RLS hardening`. Patroon per tabel:
+
+**credit_notes** (refund write strikt admin)
+- SELECT `authenticated`: `tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))`
+- INSERT/UPDATE/DELETE `authenticated`: `public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[])`
+
+**credit_note_lines** (parent-FK scope)
+- SELECT: parent `credit_note.tenant_id` in user tenants
+- INSERT/UPDATE/DELETE: parent + `has_tenant_role(parent.tenant_id, ['tenant_admin'])`
+
+**invoices, invoice_duplicates**
+- SELECT: tenant-scope
+- INSERT/UPDATE/DELETE: `has_tenant_role(tenant_id, ['tenant_admin','staff','accountant'])`
+
+**invoice_lines, invoice_discounts** (parent-FK via invoices)
+- SELECT: parent invoice tenant-scope
+- INSERT/UPDATE/DELETE: parent + `has_tenant_role(invoice.tenant_id, ['tenant_admin','staff','accountant'])`
+
+**invoice_archive** (append-only)
+- SELECT: tenant-scope
+- INSERT: `has_tenant_role(tenant_id, ['tenant_admin','staff','accountant'])`
+- Geen UPDATE / DELETE policies → effectief immutable voor authenticated.
+
+**proforma_invoices, quotes** (sales workflow)
+- SELECT: tenant-scope
+- INSERT/UPDATE: `has_tenant_role(tenant_id, ['tenant_admin','staff'])`
+- DELETE: `has_tenant_role(tenant_id, ['tenant_admin'])`
+
+**proforma_invoice_lines, quote_items** (parent-FK scope)
+- SELECT: parent tenant-scope
+- INSERT/UPDATE: parent + `has_tenant_role(parent.tenant_id, ['tenant_admin','staff'])`
+- DELETE: parent + `has_tenant_role(parent.tenant_id, ['tenant_admin'])`
+
+**payment_confirmations** (service_role-only writes)
+- SELECT: tenant-scope
+- INSERT/UPDATE/DELETE: **geen** authenticated policy → alleen service_role (Stripe / bank-webhook pad) kan schrijven.
+
+**payment_reminders** (parent-FK via invoices)
+- SELECT: parent invoice tenant-scope
+- INSERT/UPDATE: parent + `has_tenant_role(invoice.tenant_id, ['tenant_admin','staff','accountant'])`
+- DELETE: parent + `has_tenant_role(invoice.tenant_id, ['tenant_admin'])`
+
+### Test-checklist (productie, platform_admin bypass)
+- [ ] `/admin/credit-notes` lijst laadt; "Creditnota aanmaken" werkt voor tenant_admin.
+- [ ] `/admin/invoices` lijst laadt; nieuwe factuur via `create-manual-invoice` of `generate-invoice` slaagt voor admin/staff/accountant.
+- [ ] `/admin/proforma` en `/admin/quotes`: aanmaken/bewerken voor admin/staff; delete alleen admin.
+- [ ] `/admin/invoices/:id` betaalherinnering toevoegen werkt voor admin/staff/accountant.
+- [ ] Stripe refund-webhook → `process-refund` → updates op `returns` + Stripe blijven slagen (service-role pad).
+- [ ] Stripe payment-webhook schrijft `payment_confirmations` (service_role) — geen RLS-block.
+- [ ] Warehouse-user kan facturen/credit notes alleen lezen, geen schrijfacties.
+
+### Wat NIET in deze sub-batch zit (volgt in 2A2b/Hoofdstuk 4)
+- Edge-function `requireRole`-calls op `pos-refund-payment`, `create-manual-invoice`, `send-invoice-email`, `send-quote-email`, `create-quote-payment-link`, plus aanscherping `process-refund` naar `['tenant_admin']`.
+- Frontend gating in `useCan` voor `credit_note` / `invoice` / `quote` / `payment_reminder` resources.
+
+
