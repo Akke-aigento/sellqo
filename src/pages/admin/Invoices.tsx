@@ -24,6 +24,8 @@ import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
 import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
 import { CreditNotesTable } from '@/components/admin/CreditNotesTable';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
