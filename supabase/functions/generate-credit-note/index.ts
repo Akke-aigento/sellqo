@@ -107,7 +107,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { credit_note_id, language } = body as { credit_note_id?: string; language?: Lang };
+    const { credit_note_id, language, auto_send_email } = body as { credit_note_id?: string; language?: Lang; auto_send_email?: boolean };
     if (!credit_note_id) {
       return new Response(JSON.stringify({ success: false, error: "credit_note_id required" }), {
         status: 400,
