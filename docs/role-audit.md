@@ -2047,3 +2047,15 @@ Bestaande entries (`send-test-email`, `send-campaign-batch`, `ai-product-promo-k
 **Beslispunt §7-12 herzien:** "Geen consolidatie."
 
 **Backlog:** Eventuele toekomstige hernoeming naar duidelijkere namen (bijv. `social_oauth_accounts` vs `social_catalog_channels`) — vastgehouden als backlog item, niet actief werk.
+
+## getCartForCheckout + checkoutStart — variant-aware stock check (2026-06-08)
+
+**Bug:** `getCartForCheckout` berekende `in_stock` alleen op `products.stock`/`products.track_inventory`. Voor producten met variants (Mancini-model: `products.stock=0/NULL`, `product_variants.stock` heeft echte waarde) leverde dat altijd `in_stock=false`. `checkoutStart` weigerde checkout met "X is niet meer op voorraad" terwijl de variant wél voorraad had. `cartAddItem` werkte wel correct (variant.is_active), wat verklaart hoe de cart eerst gevuld kon worden.
+
+**Bewijs:** Mancini cart_get response 00:08 — Ghost Camo Crewneck S/Green had `product.in_stock=false` ondanks variant met stock.
+
+**Fix in `supabase/functions/storefront-api/index.ts`:**
+- `getCartForCheckout` (regel ~1426): `in_stock` is nu variant-aware. Als `variant_id` ingevuld → `variant.track_inventory ? variant.stock > 0 : true`. Anders → product-niveau zoals voorheen. SELECT op `product_variants` haalde `track_inventory` en `stock` al op, geen schema-wijziging nodig.
+- `checkoutStart` (regel ~1723-1727): error-code naar `OUT_OF_STOCK` (dedicated voor frontend-handling) en message bevat nu variant-title voor duidelijkheid.
+
+**Geen DB-migration, geen schema-wijziging, geen RLS-impact.**
