@@ -118,7 +118,7 @@ export function useDomainVerificationMulti(domain: TenantDomain) {
     setIsDetecting(true);
     try {
       const { data, error } = await supabase.functions.invoke<ProviderInfo>('detect-domain-provider', {
-        body: { domain: domain.domain },
+        body: { domain: domain.domain, tenant_id: currentTenant?.id },
       });
       if (error) throw error;
       setProviderInfo(data);
