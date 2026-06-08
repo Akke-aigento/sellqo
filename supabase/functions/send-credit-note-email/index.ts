@@ -204,21 +204,21 @@ ${tenant.name}${tenant.vat_number ? ` | BTW: ${tenant.vat_number}` : ""}
       status: "sent",
     }).eq("id", credit_note_id);
 
-    if (auth.user_id !== "service_role") {
-      await admin.from("admin_actions_log").insert({
-        tenant_id: cn.tenant_id,
-        user_id: auth.user_id,
-        action_type: "credit_note_email_sent",
-        action_details: {
-          credit_note_id: cn.id,
-          credit_note_number: cn.credit_note_number,
-          recipient: customer.email,
-          cc: ccEmails || [],
-          bcc: bccEmails || [],
-          language: lang,
-        },
-      });
-    }
+    // Audit trail — best-effort, do not fail the request on log errors.
+    const { error: auditError } = await admin.from("admin_actions_log").insert({
+      admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
+      target_tenant_id: cn.tenant_id,
+      action_type: "credit_note_email_sent",
+      action_details: {
+        credit_note_id: cn.id,
+        credit_note_number: cn.credit_note_number,
+        recipient: customer.email,
+        cc: ccEmails || [],
+        bcc: bccEmails || [],
+        language: lang,
+      },
+    });
+    if (auditError) console.warn("[send-credit-note-email] audit log failed", auditError);
 
     return new Response(JSON.stringify({ success: true, email_id: primary?.data?.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

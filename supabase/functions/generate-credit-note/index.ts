@@ -441,15 +441,14 @@ serve(async (req) => {
       console.warn("[generate-credit-note] UBL generation failed", ublErr);
     }
 
-    // Audit log
-    if (auth.user_id !== "service_role") {
-      await admin.from("admin_actions_log").insert({
-        tenant_id: cn.tenant_id,
-        user_id: auth.user_id,
-        action_type: "credit_note_pdf_generated",
-        action_details: { credit_note_id: cn.id, language: lang, credit_note_number: cn.credit_note_number },
-      });
-    }
+    // Audit trail — best-effort, do not fail the request on log errors.
+    const { error: auditError } = await admin.from("admin_actions_log").insert({
+      admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
+      target_tenant_id: cn.tenant_id,
+      action_type: "credit_note_pdf_generated",
+      action_details: { credit_note_id: cn.id, language: lang, credit_note_number: cn.credit_note_number },
+    });
+    if (auditError) console.warn("[generate-credit-note] audit log failed", auditError);
 
     // Optional auto-send by email (best-effort, never fails the PDF call)
     let email_sent = false;

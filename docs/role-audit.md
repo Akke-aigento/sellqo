@@ -1055,3 +1055,22 @@ Reden: alle vijf hebben `requireRole` + `authenticateRequest` in de function-bod
 - **§9-1 (test-* role)**: gekozen voor `tenant_admin` (credentials & rate-limits).
 - **§9-2 (check-connect-status)**: read-allowed voor `staff` zodat dashboard-widgets renderen zonder admin-rechten.
 - **§9-4 (disconnect-stripe-account)**: `tenant_users.role='owner'` legacy-pad volledig verwijderd; nu uitsluitend `app_role='tenant_admin'` (en `platform_admin` bypass).
+
+---
+
+## Audit-log kolom-mismatch fix — 2026-06-08
+
+**Bug**: `generate-credit-note` en `send-credit-note-email` insertten in `admin_actions_log` met kolomnamen `tenant_id` + `user_id`, terwijl het schema `target_tenant_id` + `admin_user_id` gebruikt. Insert faalde stilletjes (geen error-capture), waardoor de credit-note flow geen audit-trail produceerde.
+
+**Gefixte functions**:
+- `supabase/functions/generate-credit-note/index.ts` (regel ~445): kolomnamen gecorrigeerd, service_role-skip vervangen door null-fallback, error wordt nu opgevangen + `console.warn`.
+- `supabase/functions/send-credit-note-email/index.ts` (regel ~207): zelfde fix.
+
+**Sweep `admin_actions_log` over `supabase/functions/`**:
+- `update-order-fulfillment-status/index.ts` — ✅ correct (admin_user_id / target_tenant_id)
+- `process-refund/index.ts` — ✅ correct
+- `pos-refund-payment/index.ts` — ✅ correct
+- `generate-credit-note/index.ts` — ❌ → gefixt
+- `send-credit-note-email/index.ts` — ❌ → gefixt
+
+**Backfill**: niet uitgevoerd. Bestaande audit-gap (o.a. CN-2026-0001) blijft historisch leeg; vanaf nu wordt elk PDF-generated / email-sent event correct gelogd.
