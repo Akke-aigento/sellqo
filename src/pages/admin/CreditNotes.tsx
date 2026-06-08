@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Search, FileCode, ExternalLink, Loader2, Mail } from 'lucide-react';
+import { FileText, Download, Search, FileCode, ExternalLink, Loader2, Mail, Network, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
@@ -19,6 +19,7 @@ import type { CreditNoteStatus } from '@/types/creditNote';
 import { PageHeader } from '@/components/ui/page-header';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
+import { NewCreditNoteDialog } from '@/components/admin/NewCreditNoteDialog';
 
 export default function CreditNotesPage() {
   const { t } = useTranslation();
@@ -101,6 +102,33 @@ export default function CreditNotesPage() {
     return <Badge variant="outline">{labels[type] || type}</Badge>;
   };
 
+  const getPeppolBadge = (cn: any) => {
+    const s = cn.peppol_status;
+    if (!s || s === 'not_applicable') return null;
+    if (s === 'accepted' || s === 'archive_only' || s === 'sent') {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" /> Peppol
+        </Badge>
+      );
+    }
+    if (s === 'pending') {
+      return (
+        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+          <Clock className="h-3 w-3 mr-1" /> Peppol pending
+        </Badge>
+      );
+    }
+    if (s === 'failed' || s === 'error') {
+      return (
+        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+          <AlertCircle className="h-3 w-3 mr-1" /> Peppol mislukt
+        </Badge>
+      );
+    }
+    return <Badge variant="outline"><Network className="h-3 w-3 mr-1" />{s}</Badge>;
+  };
+
   const getCustomerName = (creditNote: typeof creditNotes[0]) => {
     if (creditNote.customer) {
       if (creditNote.customer.company_name) return creditNote.customer.company_name;
@@ -148,16 +176,24 @@ export default function CreditNotesPage() {
     { id: 'type', header: 'Type', priority: 'md', render: (cn) => getTypeBadge(cn.type) },
     { id: 'date', header: 'Datum', priority: 'md', render: (cn) => format(new Date(cn.issue_date), 'd MMM yyyy', { locale: nl }) },
     { id: 'amount', header: 'Bedrag', align: 'right', render: (cn) => <span className="font-medium text-destructive">-{formatCurrency(cn.total)}</span> },
-    { id: 'status', header: 'Status', render: (cn) => getStatusBadge(cn.status) },
+    { id: 'status', header: 'Status', render: (cn) => (
+      <div className="flex flex-wrap items-center gap-1">
+        {getStatusBadge(cn.status)}
+        {getPeppolBadge(cn)}
+      </div>
+    ) },
     { id: 'actions', header: '', align: 'right', width: '50px', render: (cn) => <ActionsMenu items={buildActions(cn)} /> },
   ];
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('creditnote.title')}
-        description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <PageHeader
+          title={t('creditnote.title')}
+          description={t('creditnote.description', "Beheer en bekijk alle creditnota's")}
+        />
+        {canWrite && <NewCreditNoteDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['credit-notes'] })} />}
+      </div>
 
       {/* Filters */}
       <Card>

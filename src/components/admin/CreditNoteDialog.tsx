@@ -44,6 +44,10 @@ interface CreditNoteDialogProps {
   invoiceNumber: string;
   invoiceLines: InvoiceLine[];
   onSuccess?: () => void;
+  /** Optional controlled open state — when provided the internal trigger button is hidden. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 export function CreditNoteDialog({
@@ -51,11 +55,19 @@ export function CreditNoteDialog({
   invoiceNumber,
   invoiceLines,
   onSuccess,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
 }: CreditNoteDialogProps) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { createCreditNote } = useCreditNotes();
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (v: boolean) => {
+    if (onOpenChange) onOpenChange(v);
+    else setOpenInternal(v);
+  };
   const [type, setType] = useState<CreditNoteType>('full');
   const [reason, setReason] = useState('');
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set());
@@ -136,12 +148,14 @@ export function CreditNoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Minus className="h-4 w-4 mr-2" />
-          {t('creditnote.create')}
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Minus className="h-4 w-4 mr-2" />
+            {t('creditnote.create')}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

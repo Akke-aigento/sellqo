@@ -102,6 +102,35 @@ function pickLang(input: unknown, customer: any, tenant: any): Lang {
   return "nl";
 }
 
+function customerDisplayName(c: any, lang: Lang): string {
+  const first = (c?.first_name || "").trim();
+  const last = (c?.last_name || "").trim();
+  const full = `${first} ${last}`.trim();
+  if (full) return full;
+  if (c?.company_name) return String(c.company_name);
+  const fallback: Record<Lang, string> = {
+    nl: "Particuliere klant",
+    en: "Private customer",
+    fr: "Client particulier",
+    de: "Privatkunde",
+  };
+  return fallback[lang];
+}
+
+async function tryEmbedLogo(pdfDoc: any, admin: any, tenant: any): Promise<any | null> {
+  try {
+    const url: string | undefined = tenant?.logo_url;
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("png")) return await pdfDoc.embedPng(bytes);
+    if (ct.includes("jpg") || ct.includes("jpeg")) return await pdfDoc.embedJpg(bytes);
+    try { return await pdfDoc.embedPng(bytes); } catch { return await pdfDoc.embedJpg(bytes); }
+  } catch { return null; }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -148,54 +177,84 @@ serve(async (req) => {
 
     // ---- PDF ----
     const pdfDoc = await PDFDocument.create();
+    pdfDoc.setTitle(`Credit Note ${cn.credit_note_number}`);
+    pdfDoc.setAuthor(tenant.name || "");
+    pdfDoc.setSubject(`Credit Note ${cn.credit_note_number}`);
+    pdfDoc.setProducer("Sellqo Credit Note Generator");
+    pdfDoc.setCreator("Sellqo");
+    pdfDoc.setCreationDate(new Date());
     const page = pdfDoc.addPage([595, 842]); // A4
-    const { width } = page.getSize();
+    const { width, height } = page.getSize();
     const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const text = rgb(0.12, 0.12, 0.12);
     const gray = rgb(0.45, 0.45, 0.45);
     const accent = rgb(0.86, 0.2, 0.27); // credit = red accent
+    const lightGray = rgb(0.9, 0.9, 0.92);
     const margin = 50;
-    let y = 800;
+    let y = height - margin;
 
-    // Header
-    page.drawText(String(tenant.name || ""), { x: margin, y, size: 16, font: bold, color: text });
-    page.drawText(HEADER[lang], { x: width - margin - 220, y, size: 22, font: bold, color: accent });
+    // ---- Header ----
+    const logoImg = await tryEmbedLogo(pdfDoc, admin, tenant);
+    if (logoImg) {
+      const dims = logoImg.scale(1);
+      const maxW = 150, maxH = 50;
+      const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
+      const w = dims.width * scale, h = dims.height * scale;
+      page.drawImage(logoImg, { x: margin, y: y - h + 14, width: w, height: h });
+    } else {
+      page.drawText(String(tenant.name || ""), { x: margin, y, size: 18, font: bold, color: text });
+    }
+    page.drawText(HEADER[lang], { x: width - margin - 240, y, size: 22, font: bold, color: accent });
     y -= 22;
-    page.drawText(String(cn.credit_note_number), { x: width - margin - 220, y, size: 12, font: helv, color: gray });
+    page.drawText(String(cn.credit_note_number), { x: width - margin - 240, y, size: 12, font: helv, color: gray });
 
-    // Tenant address block
-    y -= 30;
+    // ---- Two-column info blocks ----
+    y -= 36;
+    const colLeftX = margin;
+    const colRightX = width / 2 + 10;
+    const blockStartY = y;
+
+    // Left: tenant address
     const tLines = [
-      tenant.address_line1,
+      tenant.name,
+      tenant.address,
       [tenant.postal_code, tenant.city].filter(Boolean).join(" "),
       tenant.country,
-      tenant.vat_number ? `BTW: ${tenant.vat_number}` : null,
-      tenant.email,
+      tenant.vat_number || tenant.btw_number ? `BTW: ${tenant.vat_number || tenant.btw_number}` : null,
+      tenant.iban ? `IBAN: ${tenant.iban}` : null,
+      tenant.owner_email || tenant.email,
+      tenant.phone ? `Tel: ${tenant.phone}` : null,
     ].filter(Boolean) as string[];
-    for (const l of tLines) {
-      page.drawText(l, { x: margin, y, size: 10, font: helv, color: gray });
-      y -= 12;
+    let yL = blockStartY;
+    for (const [i, l] of tLines.entries()) {
+      page.drawText(l, { x: colLeftX, y: yL, size: 10, font: i === 0 ? bold : helv, color: i === 0 ? text : gray });
+      yL -= 12;
     }
 
-    // Recipient
-    y -= 18;
-    page.drawText(T.recipient[lang], { x: margin, y, size: 10, font: bold, color: text });
-    y -= 14;
+    // Right: recipient
     const c = cn.customer || {};
-    const cName = c.company_name || `${c.first_name || ""} ${c.last_name || ""}`.trim() || c.email || "-";
+    const cName = customerDisplayName(c, lang);
+    const billing = (c.default_billing_address || {}) as any;
+    const cStreet = c.billing_street || billing.street || billing.address_line1 || null;
+    const cPostal = c.billing_postal_code || billing.postal_code || null;
+    const cCity = c.billing_city || billing.city || null;
+    const cCountry = c.billing_country || billing.country || null;
     const cLines = [
       cName,
-      c.billing_address_line1 || c.address_line1,
-      [c.billing_postal_code || c.postal_code, c.billing_city || c.city].filter(Boolean).join(" "),
-      c.billing_country || c.country,
+      cStreet,
+      [cPostal, cCity].filter(Boolean).join(" ") || null,
+      cCountry,
       c.vat_number ? `BTW: ${c.vat_number}` : null,
       c.email,
     ].filter(Boolean) as string[];
-    for (const l of cLines) {
-      page.drawText(String(l), { x: margin, y, size: 10, font: helv, color: text });
-      y -= 12;
+    page.drawText(T.recipient[lang], { x: colRightX, y: blockStartY + 14, size: 9, font: bold, color: gray });
+    let yR = blockStartY;
+    for (const [i, l] of cLines.entries()) {
+      page.drawText(String(l), { x: colRightX, y: yR, size: 10, font: i === 0 ? bold : helv, color: text });
+      yR -= 12;
     }
+    y = Math.min(yL, yR) - 6;
 
     // Meta box
     y -= 18;
@@ -231,7 +290,7 @@ serve(async (req) => {
 
     // Lines table
     y -= 18;
-    page.drawRectangle({ x: margin, y: y - 4, width: width - 2 * margin, height: 20, color: rgb(0.95, 0.95, 0.97) });
+    page.drawRectangle({ x: margin, y: y - 4, width: width - 2 * margin, height: 20, color: rgb(0.953, 0.957, 0.965) });
     page.drawText(T.description[lang], { x: margin + 8, y, size: 10, font: bold, color: text });
     page.drawText(T.qty[lang], { x: 320, y, size: 10, font: bold, color: text });
     page.drawText(T.vat[lang], { x: 370, y, size: 10, font: bold, color: text });
@@ -240,17 +299,23 @@ serve(async (req) => {
     y -= 18;
 
     const lines = (cn.lines || []) as any[];
+    const vatGroups = new Map<number, { taxable: number; vat: number }>();
     for (const ln of lines) {
       const desc = String(ln.description || "").substring(0, 42);
       const qty = Number(ln.quantity || 1);
       const rate = Number(ln.vat_rate || 0);
       const unit = Math.abs(Number(ln.unit_price || 0));
       const total = Math.abs(Number(ln.line_total || 0));
+      const vat = Math.abs(Number(ln.vat_amount || 0));
+      const grp = vatGroups.get(rate) || { taxable: 0, vat: 0 };
+      grp.taxable += total; grp.vat += vat;
+      vatGroups.set(rate, grp);
       page.drawText(desc, { x: margin + 8, y, size: 10, font: helv, color: text });
       page.drawText(String(qty), { x: 320, y, size: 10, font: helv, color: text });
       page.drawText(`${rate}%`, { x: 370, y, size: 10, font: helv, color: text });
       page.drawText(fmt(unit, currency), { x: 420, y, size: 10, font: helv, color: text });
       page.drawText(fmt(total, currency), { x: 490, y, size: 10, font: helv, color: text });
+      page.drawLine({ start: { x: margin, y: y - 4 }, end: { x: width - margin, y: y - 4 }, thickness: 0.5, color: lightGray });
       y -= 14;
       if (y < 180) break;
     }
@@ -261,9 +326,11 @@ serve(async (req) => {
     page.drawText(T.subtotal[lang], { x: totalsX, y, size: 10, font: helv, color: text });
     page.drawText(fmt(Math.abs(Number(cn.subtotal || 0)), currency), { x: 490, y, size: 10, font: helv, color: text });
     y -= 14;
-    if (Number(cn.tax_amount || 0) !== 0) {
-      page.drawText(T.vatLabel[lang], { x: totalsX, y, size: 10, font: helv, color: text });
-      page.drawText(fmt(Math.abs(Number(cn.tax_amount || 0)), currency), { x: 490, y, size: 10, font: helv, color: text });
+    // VAT lines per rate
+    for (const [rate, g] of vatGroups.entries()) {
+      if (g.vat === 0) continue;
+      page.drawText(`${T.vatLabel[lang]} ${rate}%`, { x: totalsX, y, size: 10, font: helv, color: text });
+      page.drawText(fmt(g.vat, currency), { x: 490, y, size: 10, font: helv, color: text });
       y -= 14;
     }
     page.drawRectangle({ x: totalsX - 6, y: y - 6, width: width - margin - totalsX + 6, height: 22, color: rgb(0.97, 0.93, 0.94) });
@@ -273,8 +340,19 @@ serve(async (req) => {
     // VAT regime notice — reuse original invoice regime if present
     y -= 36;
     const regime = (inv as any)?.vat_regime as string | undefined;
-    if (regime && VAT_TEXTS[regime]?.[lang]) {
-      const note = `${T.vatNotice[lang]}: ${VAT_TEXTS[regime][lang]}`;
+    // Map regime aliases used in vat-regime engine to local keys
+    const regimeKey = (r?: string): keyof typeof VAT_TEXTS | null => {
+      if (!r) return null;
+      if (r in VAT_TEXTS) return r as keyof typeof VAT_TEXTS;
+      if (r === "ic_supply_goods") return "intracom_goods";
+      if (r === "ic_supply_services") return "intracom_services";
+      if (r === "oss_b2c_eu") return "oss_b2c_eu";
+      if (r === "export_outside_eu") return "export_outside_eu";
+      return null;
+    };
+    const rk = regimeKey(regime);
+    if (rk && VAT_TEXTS[rk]?.[lang]) {
+      const note = `${T.vatNotice[lang]}: ${VAT_TEXTS[rk][lang]}`;
       const wrapped = note.match(/.{1,95}(\s|$)/g) || [note];
       for (const w of wrapped) {
         page.drawText(w.trim(), { x: margin, y, size: 9, font: helv, color: gray });
@@ -283,12 +361,26 @@ serve(async (req) => {
     }
 
     // Refund status
+    y -= 10;
     if (inv?.payment_status === "refunded" || cn.status === "processed") {
-      y -= 6;
       page.drawText(T.refundIssued[lang], { x: margin, y, size: 9, font: bold, color: gray });
     } else {
-      y -= 6;
       page.drawText(T.refundPending[lang], { x: margin, y, size: 9, font: helv, color: gray });
+    }
+
+    // Footer
+    const footerText: string | null = (tenant.invoice_footer_text as string) || null;
+    if (footerText) {
+      let fy = 70;
+      page.drawLine({ start: { x: margin, y: fy + 12 }, end: { x: width - margin, y: fy + 12 }, thickness: 0.5, color: lightGray });
+      const fLines = (footerText.match(/.{1,110}(\s|$)/g) || [footerText]).slice(0, 3);
+      for (const fl of fLines) {
+        page.drawText(fl.trim(), { x: margin, y: fy, size: 8, font: helv, color: gray });
+        fy -= 10;
+      }
+    }
+    if (cn.peppol_status === "accepted" || cn.peppol_status === "archive_only") {
+      page.drawText("Verzonden via Peppol", { x: width - margin - 130, y: 40, size: 8, font: bold, color: gray });
     }
 
     const pdfBytes = await pdfDoc.save();
@@ -319,6 +411,35 @@ serve(async (req) => {
       .select(`*, original_invoice:invoices!original_invoice_id(id, invoice_number, total, customer_id), customer:customers(id, first_name, last_name, email, company_name), lines:credit_note_lines(*)`)
       .single();
     if (updErr) throw new Error(updErr.message);
+
+    // ---- Generate Peppol UBL (best effort, never blocks) ----
+    try {
+      const url = Deno.env.get("SUPABASE_URL")!;
+      const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const ublRes = await fetch(`${url}/functions/v1/generate-peppol-ubl`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sr}`,
+          "apikey": sr,
+        },
+        body: JSON.stringify({ document_type: "credit_note", document_id: cn.id }),
+      });
+      const ublJson = await ublRes.json().catch(() => ({}));
+      if (ublJson?.ubl_url) {
+        await admin
+          .from("credit_notes")
+          .update({
+            ubl_url: ublJson.ubl_url,
+            peppol_status: ublJson.peppol_status || (cn.peppol_required ? "pending" : "archive_only"),
+          })
+          .eq("id", cn.id);
+      } else {
+        console.warn("[generate-credit-note] UBL generation returned no url", ublJson);
+      }
+    } catch (ublErr) {
+      console.warn("[generate-credit-note] UBL generation failed", ublErr);
+    }
 
     // Audit log
     if (auth.user_id !== "service_role") {

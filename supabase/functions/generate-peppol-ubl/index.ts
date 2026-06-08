@@ -64,28 +64,69 @@ Deno.serve(async (req) => {
       { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  let body: { invoice_id?: string };
+  let body: { invoice_id?: string; document_type?: "invoice" | "credit_note"; document_id?: string };
   try { body = await req.json(); } catch {
     return new Response(JSON.stringify({ success: false, error: "Invalid JSON" }),
       { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
   }
-  const invoiceId = (body.invoice_id ?? "").trim();
+  const documentType = body.document_type === "credit_note" ? "credit_note" : "invoice";
+  const invoiceId = (body.invoice_id ?? body.document_id ?? "").trim();
   if (!invoiceId) {
-    return new Response(JSON.stringify({ success: false, error: "invoice_id required" }),
+    return new Response(JSON.stringify({ success: false, error: "document_id required" }),
       { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Load invoice first to know its tenant_id for auth.
-  const { data: invoice, error: invErr } = await sb
-    .from("invoices")
-    .select("id, tenant_id, customer_id, order_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, status, vat_regime, peppol_status, vat_number_validated_value")
-    .eq("id", invoiceId)
-    .maybeSingle();
-  if (invErr || !invoice) {
-    return new Response(JSON.stringify({ success: false, error: "invoice not found" }),
-      { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+  // ---- Load source document (invoice OR credit_note synthesized as invoice-shaped object) ----
+  let invoice: any;
+  if (documentType === "credit_note") {
+    const { data: cn, error: cnErr } = await sb
+      .from("credit_notes")
+      .select("id, tenant_id, customer_id, original_invoice_id, credit_note_number, issue_date, subtotal, tax_amount, total, status, peppol_status")
+      .eq("id", invoiceId)
+      .maybeSingle();
+    if (cnErr || !cn) {
+      return new Response(JSON.stringify({ success: false, error: "credit note not found" }),
+        { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    // Pull regime + order link from original invoice for parity
+    let vat_regime: string | null = null;
+    let order_id: string | null = null;
+    if (cn.original_invoice_id) {
+      const { data: oi } = await sb.from("invoices")
+        .select("vat_regime, order_id")
+        .eq("id", cn.original_invoice_id).maybeSingle();
+      vat_regime = oi?.vat_regime ?? null;
+      order_id = oi?.order_id ?? null;
+    }
+    invoice = {
+      id: cn.id,
+      tenant_id: cn.tenant_id,
+      customer_id: cn.customer_id,
+      order_id,
+      invoice_number: cn.credit_note_number,
+      issue_date: cn.issue_date,
+      due_date: cn.issue_date,
+      subtotal: cn.subtotal,
+      tax_amount: cn.tax_amount,
+      total: cn.total,
+      status: cn.status,
+      vat_regime,
+      peppol_status: cn.peppol_status,
+      vat_number_validated_value: null,
+    };
+  } else {
+    const { data: inv, error: invErr } = await sb
+      .from("invoices")
+      .select("id, tenant_id, customer_id, order_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, status, vat_regime, peppol_status, vat_number_validated_value")
+      .eq("id", invoiceId)
+      .maybeSingle();
+    if (invErr || !inv) {
+      return new Response(JSON.stringify({ success: false, error: "invoice not found" }),
+        { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    invoice = inv;
   }
 
   // Auth: admin / member of the invoice's tenant.
@@ -108,8 +149,9 @@ Deno.serve(async (req) => {
 
   // Resolve detect/early-skip non-Peppol regimes.
   const regime = String(invoice.vat_regime ?? "");
+  const targetTable = documentType === "credit_note" ? "credit_notes" : "invoices";
   if (!PEPPOL_RELEVANT_REGIMES.has(regime)) {
-    await sb.from("invoices").update({ peppol_status: "not_applicable" }).eq("id", invoiceId);
+    await sb.from(targetTable).update({ peppol_status: "not_applicable" }).eq("id", invoiceId);
     return new Response(JSON.stringify({
       success: true, skipped: true, reason: `regime "${regime}" is not Peppol-relevant`,
       peppol_status: "not_applicable",
@@ -182,20 +224,21 @@ Deno.serve(async (req) => {
 
   // B2B check.
   if (!custVat || !custVat.trim()) {
-    await sb.from("invoices").update({ peppol_status: "not_applicable" }).eq("id", invoiceId);
+    await sb.from(targetTable).update({ peppol_status: "not_applicable" }).eq("id", invoiceId);
     return new Response(JSON.stringify({
       success: true, skipped: true, reason: "b2c_no_vat",
       peppol_status: "not_applicable",
     }), { headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  // Invoice lines.
-  const { data: rawLines, error: linesErr } = await sb.from("invoice_lines")
-    .select("description, quantity, unit_price, vat_rate, line_total, sort_order, line_type")
-    .eq("invoice_id", invoiceId)
-    .order("sort_order", { ascending: true });
+  // Document lines (from invoice_lines or credit_note_lines).
+  const linesTable = documentType === "credit_note" ? "credit_note_lines" : "invoice_lines";
+  const linesFk = documentType === "credit_note" ? "credit_note_id" : "invoice_id";
+  const { data: rawLines, error: linesErr } = await sb.from(linesTable)
+    .select("description, quantity, unit_price, vat_rate, line_total, line_type")
+    .eq(linesFk, invoiceId);
   if (linesErr || !rawLines || rawLines.length === 0) {
-    return new Response(JSON.stringify({ success: false, error: "invoice has no lines" }),
+    return new Response(JSON.stringify({ success: false, error: "document has no lines" }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
@@ -233,8 +276,9 @@ Deno.serve(async (req) => {
     contactPhone: custPhone,
   };
 
-  // Determine if this is a credit note (negative total or invoice_number with "CN-" prefix).
-  const isCreditNote = Number(invoice.total ?? 0) < 0
+  // Determine if this is a credit note (explicit document_type OR heuristic).
+  const isCreditNote = documentType === "credit_note"
+    || Number(invoice.total ?? 0) < 0
     || /^CN-/i.test(String(invoice.invoice_number ?? ""))
     || /^CR-/i.test(String(invoice.invoice_number ?? ""));
 
@@ -262,17 +306,21 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[generate-peppol-ubl] builder error:", msg);
-    await sb.from("invoices").update({
-      peppol_status: "error",
-      peppol_error: msg.slice(0, 500),
-    }).eq("id", invoiceId);
+    if (documentType === "credit_note") {
+      await sb.from("credit_notes").update({ peppol_status: "error" }).eq("id", invoiceId);
+    } else {
+      await sb.from("invoices").update({
+        peppol_status: "error",
+        peppol_error: msg.slice(0, 500),
+      }).eq("id", invoiceId);
+    }
     return new Response(JSON.stringify({ success: false, error: msg }),
       { status: 422, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
   const bytes = new TextEncoder().encode(xml);
   const sha256 = await sha256Hex(bytes);
-  const storageKey = `${invoice.tenant_id}/${invoice.id}.xml`;
+  const storageKey = `${invoice.tenant_id}/${documentType === "credit_note" ? "credit-notes/" : ""}${invoice.id}.xml`;
 
   // Upload to bucket (upsert to allow regeneration).
   const upload = await sb.storage.from(BUCKET).upload(storageKey, bytes, {
@@ -304,13 +352,20 @@ Deno.serve(async (req) => {
     metadata: { source: "generate-peppol-ubl", mode: "archive_only", customization_id: "BIS3.0" },
   }, { onConflict: "document_id" });
 
-  // Update invoice.
-  await sb.from("invoices").update({
-    ubl_url: ublUrl,
-    peppol_status: "archive_only",
-    ubl_generated_at: new Date().toISOString(),
-    peppol_error: null,
-  }).eq("id", invoiceId);
+  // Update source document.
+  if (documentType === "credit_note") {
+    await sb.from("credit_notes").update({
+      ubl_url: ublUrl,
+      peppol_status: "archive_only",
+    }).eq("id", invoiceId);
+  } else {
+    await sb.from("invoices").update({
+      ubl_url: ublUrl,
+      peppol_status: "archive_only",
+      ubl_generated_at: new Date().toISOString(),
+      peppol_error: null,
+    }).eq("id", invoiceId);
+  }
 
   return new Response(JSON.stringify({
     success: true,
