@@ -1074,3 +1074,63 @@ Reden: alle vijf hebben `requireRole` + `authenticateRequest` in de function-bod
 - `send-credit-note-email/index.ts` — ❌ → gefixt
 
 **Backfill**: niet uitgevoerd. Bestaande audit-gap (o.a. CN-2026-0001) blijft historisch leeg; vanaf nu wordt elk PDF-generated / email-sent event correct gelogd.
+
+---
+
+## Batch 2B2a — Customers RLS-aanscherping — 2026-06-08
+
+Eén migration; alle customer-cluster policies herschreven naar `has_tenant_role(tenant_id, ARRAY[...]::app_role[])` met expliciete rol-arrays. Service-role en `is_platform_admin()` policies blijven onveranderd.
+
+### Gedropte → herbouwde policies per tabel
+
+**customers** — `Users can insert customers for their tenant` (INSERT), `Users can update their tenant's customers` (UPDATE), `Tenant admins can delete their tenant's customers` (DELETE). Nieuw: write/update = `['tenant_admin','staff']`, delete = `['tenant_admin']`. SELECT-policy onaangeroerd (al tenant-scoped, alle rollen lezen).
+
+**customer_communication_settings** — alle 4 policies (inline `user_roles`-subquery vervangen door `get_user_tenant_ids`). Write = `['tenant_admin','staff','marketing']`.
+
+**customer_events** — SELECT herbouwd (alleen casing-fix naar `authenticated`-role); writes blijven service-role.
+
+**customer_groups** — alle 4. Write = `['tenant_admin','staff','marketing']`.
+
+**customer_group_members** — alle 4, FK-scope via `customer_groups`. Write = `['tenant_admin','staff','marketing']`.
+
+**customer_group_product_prices** — alle 4, FK-scope via `customer_groups`. Write = `['tenant_admin','staff','marketing']`.
+
+**customer_loyalty** — alle 4, FK-scope via `loyalty_programs`. Write = `['tenant_admin','staff']`, delete = `['tenant_admin']`.
+
+**customer_messages** (inbox) — alle 4. SELECT = `['tenant_admin','staff','marketing','viewer']` (geen warehouse/accountant). Write = `['tenant_admin','staff','marketing']`.
+
+**customer_message_attachments** — SELECT (inline `user_roles`-subquery weg). Rollen = same as messages.
+
+**customer_segments** — alle 4. Write = `['tenant_admin','staff','marketing']`.
+
+**segment_members** — SELECT/INSERT/DELETE (geen UPDATE bestond), FK-scope via `customer_segments`.
+
+### Cross-tenant staff hard cap sweep (§9-7)
+
+Alle resterende `has_role(auth.uid(), 'X')` policies in public-schema gemigreerd naar `has_tenant_role(tenant_id, ARRAY['X']::app_role[])`:
+
+- `categories` — INSERT/UPDATE/DELETE
+- `products` — INSERT/UPDATE/DELETE
+- `product_variants` — ALL (FK-scope via `products.tenant_id`)
+- `product_variant_options` — ALL (behoudt `is_platform_admin` OR-tak)
+- `vat_rates` — INSERT/UPDATE/DELETE
+- `vat_validations` — INSERT
+- `tenant_tracking_settings` — ALL
+- `tenants` — UPDATE
+- `user_roles` — UPDATE/DELETE (behoudt `is_platform_admin` OR-tak)
+
+Post-migration verificatie: `pg_policies` bevat geen `has_role(auth.uid()` calls meer voor RLS van publieke tabellen.
+
+### Open beslispunten — definitief bevestigd
+- §9-1 Marketing READ customers → ✅ ja
+- §9-2 Accountant NIET inbox → ✅ bevestigd
+- §9-3 Viewer READ PII → ✅ ja
+- §9-4 customer_gdpr_requests → ⏸ Fase 3
+- §9-5 customer_notes inline → ⏸ Fase 3
+- §9-6 customer_tags inline → ⏸ Fase 3
+- §9-7 Cross-tenant cap → ✅ gemigreerd
+- §9-8 `sync-shopify-customers` → bewaar voor 2B2b (admin-trigger + cron-pad)
+
+### Niet in scope (zoals afgesproken)
+- Geen edge-function changes — komt in 2B2b
+- Geen nieuwe tabellen (customer_addresses/notes/tags/preferences/gdpr) — niet aanwezig in schema, postponed to Fase 3
