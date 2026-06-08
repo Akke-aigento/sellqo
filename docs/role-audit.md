@@ -1164,3 +1164,57 @@ Post-migration verificatie: `pg_policies` bevat geen `has_role(auth.uid()` calls
 
 ### Datum
 2026-06-08
+
+---
+
+## Batch 2B2b — Customer-cluster edge-function role-checks
+
+### Sweep — gevonden customer-cluster functies
+Grep `supabase/functions/` op `customer|segment|marketing|gdpr|merge|dedupe|odoo`:
+
+| Function | Auth-pad | Actie |
+|---|---|---|
+| `sync-shopify-customers` | tenant-user (admin UI + trigger-manual-sync via service-role) | ✅ requireRole `['tenant_admin','staff']` |
+| `sync-odoo-customers` | tenant-user (admin UI via ConnectMarketplaceDialog) | ✅ requireRole `['tenant_admin']` |
+| `send-customer-message` | tenant-user (klantenservice UI) | ✅ requireRole `['tenant_admin','staff','accountant']` |
+| `storefront-customer-api` | service-role / cart-session | ⛔ niet aanraken |
+| `platform-customer-portal` | Stripe customer portal (platform-niveau) | ⛔ buiten scope (platform billing, niet tenant) |
+| `run-csv-import` | tenant-user (al `tenant_admin`) | ⛔ ongewijzigd — bulk import van producten/orders/klanten valt onder tenant_admin |
+| `ai-marketing-context` | tenant-user (AI helper) | ⛔ buiten scope (geen write naar customer-data) |
+| `sync-bol-orders`, `sync-odoo-orders`, `sync-odoo-invoices`, `sync-odoo-inventory`, `import-bol-csv`, `import-bol-shipments`, `run-csv-import` | order/product/invoice-context, geen customer-cluster | ⛔ buiten 2B2b-scope |
+
+Niet aanwezig in dit project (skip):
+- `import-customers`, `bol-import-customers`, `shopify-import-customers`
+- `merge-customers`, `dedupe-customers`, `bulk-delete-customers`
+- `gdpr-export-customer`, `gdpr-delete-customer`
+- `send-marketing-email`, `send-customer-segment-email`
+- `create-customer-segment`, `update-customer-segment`, `delete-customer-segment` (gaan via RLS direct op `customer_segments`)
+
+### Gewijzigde functies
+
+**`sync-shopify-customers/index.ts`**
+- Import `authenticateRequest, requireRole, AuthError, authErrorResponse`.
+- Na connection-lookup: `requireRole(auth, connection.tenant_id, ['tenant_admin','staff'])`.
+- Catch-block: `AuthError` → `authErrorResponse(error, corsHeaders)`.
+- Service-role bypass (trigger-manual-sync) blijft werken via `requireRole`-bypass voor `service_role`.
+
+**`sync-odoo-customers/index.ts`**
+- Import `authenticateRequest, requireRole, AuthError, authErrorResponse`.
+- Na connection-lookup: `requireRole(auth, connection.tenant_id, ['tenant_admin'])`.
+- Catch-block: `AuthError` → `authErrorResponse(error, corsHeaders)`.
+
+**`send-customer-message/index.ts`**
+- Import-regel: `requireRole` toegevoegd.
+- Vervangt `await authenticateRequest(req, tenant_id)` met `const auth = await authenticateRequest(...)` + `requireRole(auth, tenant_id, ['tenant_admin','staff','accountant'])`.
+- Bestaand `AuthError` catch-pad blijft.
+
+### Config.toml wijzigingen
+- `[functions.sync-odoo-customers]` `verify_jwt = false` toegevoegd (preflight-fix, function was eerder niet expliciet geconfigureerd).
+- `[functions.send-customer-message]` `verify_jwt = false` toegevoegd.
+- `sync-shopify-customers` was al aanwezig — ongewijzigd.
+
+### Beslispunten
+- §9-8 bevestigd: `sync-shopify-customers` is admin-triggered → `['tenant_admin','staff']`.
+
+### Datum
+2026-06-08
