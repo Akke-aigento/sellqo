@@ -22,7 +22,6 @@ import QuotesPage from "./pages/admin/Quotes";
 import QuoteFormPage from "./pages/admin/QuoteForm";
 import QuoteDetailPage from "./pages/admin/QuoteDetail";
 import InvoicesPage from "./pages/admin/Invoices";
-import CreditNotesPage from "./pages/admin/CreditNotes";
 import CustomersPage from "./pages/admin/Customers";
 import CustomerDetailPage from "./pages/admin/CustomerDetail";
 import ShippingPage from "./pages/admin/Shipping";
@@ -179,7 +178,10 @@ const App = () => (
               <Route path="orders/quotes/:id" element={<QuoteDetailPage />} />
               <Route path="orders/quotes/:id/edit" element={<QuoteFormPage />} />
               <Route path="orders/invoices" element={<InvoicesPage />} />
-              <Route path="orders/creditnotes" element={<CreditNotesPage />} />
+              <Route
+                path="orders/creditnotes"
+                element={<Navigate to="/admin/orders/invoices?tab=creditnotes" replace />}
+              />
               <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
               <Route path="orders/discounts" element={<DiscountsPage />} />
               <Route path="promotions" element={<PromotionsPage />} />
