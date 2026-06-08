@@ -3928,6 +3928,7 @@ export type Database = {
           customer_id: string | null
           id: string
           issue_date: string
+          language: string
           ogm_reference: string | null
           original_invoice_id: string
           pdf_url: string | null
@@ -3949,6 +3950,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           issue_date?: string
+          language?: string
           ogm_reference?: string | null
           original_invoice_id: string
           pdf_url?: string | null
@@ -3970,6 +3972,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           issue_date?: string
+          language?: string
           ogm_reference?: string | null
           original_invoice_id?: string
           pdf_url?: string | null
