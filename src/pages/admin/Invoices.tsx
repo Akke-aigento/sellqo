@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network, Minus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { FileText, Download, Mail, Search, ExternalLink, FileCode, CheckCircle, Clock, Network } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
 import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
+import { CreditNotesTable } from '@/components/admin/CreditNotesTable';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -31,7 +32,28 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [peppolPendingOnly, setPeppolPendingOnly] = useState(false);
-  const [tab, setTab] = useState<'all' | 'invoices' | 'creditnotes'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as 'all' | 'invoices' | 'creditnotes' | null) || 'all';
+  const [tab, setTab] = useState<'all' | 'invoices' | 'creditnotes'>(
+    initialTab === 'invoices' || initialTab === 'creditnotes' ? initialTab : 'all',
+  );
+
+  // Keep URL ?tab=... in sync with active tab (replace, no history spam).
+  useEffect(() => {
+    const current = searchParams.get('tab');
+    if (tab === 'all') {
+      if (current) {
+        const next = new URLSearchParams(searchParams);
+        next.delete('tab');
+        setSearchParams(next, { replace: true });
+      }
+    } else if (current !== tab) {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', tab);
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const { invoices, isLoading, resendInvoice, markPeppolSent, refetch } = useInvoices({
     search: search || undefined,
