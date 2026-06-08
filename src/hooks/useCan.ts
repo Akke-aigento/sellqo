@@ -18,6 +18,7 @@ export type Resource =
   | "returns"
   | "refunds"
   | "invoices"
+  | "credit_notes"
   | "payments"
   | "customers"
   | "customer_notes"
@@ -87,6 +88,12 @@ export const PERMISSION_MATRIX: Matrix = {
   invoices: {
     read: ALL_ROLES.filter((r) => r !== "warehouse"),
     write: ["platform_admin", "tenant_admin", "staff"],
+  },
+  credit_notes: {
+    // Iedereen behalve warehouse mag inkijken (zichtbaarheid voor accountant/viewer);
+    // schrijven en e-mailen is voorbehouden aan admin/staff/accountant — matrix Hoofdstuk 2.
+    read: ALL_ROLES.filter((r) => r !== "warehouse"),
+    write: ["platform_admin", "tenant_admin", "staff", "accountant"],
   },
   payments: {
     read: ["platform_admin", "tenant_admin", "staff", "accountant", "viewer"],
