@@ -222,7 +222,7 @@ serve(async (req) => {
   }
 
   try {
-    const { domain } = await req.json();
+    const { domain, tenant_id } = await req.json();
 
     if (!domain || typeof domain !== 'string') {
       return new Response(
@@ -230,6 +230,16 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    if (!tenant_id) {
+      return new Response(
+        JSON.stringify({ error: 'tenant_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ['tenant_admin']);
 
     // Clean the domain
     const cleanDomain = domain
