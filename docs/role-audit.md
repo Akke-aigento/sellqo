@@ -609,3 +609,51 @@ service_role behouden automatische bypass via de shared `requireRole`-helper.
 - [ ] Stripe refund-webhook (service_role pad) blijft draaien.
 - [ ] Bol/Amazon sync (service_role pad) blijft draaien.
 - [ ] `platform_admin`: bypass werkt op alle functies.
+
+---
+
+## Feature — Credit Note PDF generation (2026-06-08)
+
+### Edge function
+- **`generate-credit-note`** (new, `verify_jwt = false` in `config.toml`).
+  - `authenticateRequest(req, tenant_id)` resolves tenant from the credit_note record.
+  - `requireRole(auth, tenant_id, ['tenant_admin','staff','accountant'])`.
+  - Input: `{ credit_note_id, language? ('nl'|'en'|'fr'|'de') }`.
+  - Default language: explicit param ▸ `customer.preferred_language` ▸ `tenant.default_invoice_language` ▸ `'nl'`.
+  - Renders a 4-language fiscal PDF via `pdf-lib` (header "CREDITNOTA / CREDIT NOTE / NOTE DE CRÉDIT / GUTSCHRIFT", reference to original invoice with date + original amount, positive line amounts under "Te crediteren" label, totals as "Totaal te crediteren", VAT-regime notice reused from the original invoice's `vat_regime`, refund status line).
+  - Uploads to private bucket `credit-notes` at `<tenant_id>/<credit_note_number>.pdf`, returns 24h signed URL.
+  - Updates `credit_notes.pdf_url` and `credit_notes.language`.
+  - Returns `{ success, pdf_url, credit_note: <full record with original_invoice, customer, lines> }`.
+  - Logs `admin_actions_log` entry with `action_type = 'credit_note_pdf_generated'`.
+
+### Bucket & schema
+- New private storage bucket `credit-notes` (workspace blocks public buckets, so signed URLs are used).
+- Storage RLS on `storage.objects`:
+  ```sql
+  CREATE POLICY "credit-notes tenant read" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'credit-notes'
+    AND (
+      public.is_platform_admin(auth.uid())
+      OR public.has_tenant_role(
+        ((string_to_array(name,'/'))[1])::uuid,
+        ARRAY['tenant_admin','staff','accountant']::app_role[]
+      )
+    )
+  );
+  ```
+  Writes are service_role only (no policy needed).
+- `public.credit_notes`: added `language TEXT NOT NULL DEFAULT 'nl'` + `CHECK language IN ('nl','en','fr','de')`. `pdf_url` and `reason` already existed.
+
+### Frontend
+- `src/pages/admin/CreditNotes.tsx`: action menu entry "PDF genereren / Download PDF" per row. If `pdf_url` is null it invokes `generate-credit-note` first, then opens the returned signed URL. Spinner via `generatingId` state.
+- `src/hooks/useCreditNotes.ts`: after a successful `createCreditNote` insert, auto-invokes `generate-credit-note` (best-effort, never blocks creation).
+- `useCan` matrix: no new permission — `requireRole` in the edge function is the source of truth; `tenant_admin`, `staff` and `accountant` keep read access to the PDF.
+
+### Production test checklist
+- [ ] `platform_admin`: download PDF for an existing credit note works.
+- [ ] `tenant_admin` / `staff` / `accountant`: download/generate PDF works for their tenant.
+- [ ] `warehouse` / `viewer`: edge function returns 403; signed URL would also be rejected by storage RLS.
+- [ ] Cross-tenant: user from tenant A cannot generate PDF for credit_note of tenant B (`authenticateRequest` returns 403).
+- [ ] Generated PDF shows header "CREDITNOTA", reference to original invoice with original amount, positive amounts, correct VAT-regime text reused from the original invoice.
