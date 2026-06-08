@@ -2247,10 +2247,18 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       .eq('tenant_id', tenantId).eq('email', cart.customer_email).maybeSingle();
     if (existing) {
       customerId = existing.id;
+      const updateFields: Record<string, any> = {};
+      if (cart.customer_first_name) updateFields.first_name = cart.customer_first_name;
+      if (cart.customer_last_name) updateFields.last_name = cart.customer_last_name;
+      if (cart.customer_phone) updateFields.phone = cart.customer_phone;
+      if (Object.keys(updateFields).length > 0) {
+        await supabase.from('customers').update(updateFields).eq('id', existing.id);
+      }
     } else {
+      const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
       const { data: newCust } = await supabase
         .from('customers')
-        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: 'consumer' })
+        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c' })
         .select('id').single();
       customerId = newCust?.id || null;
     }
