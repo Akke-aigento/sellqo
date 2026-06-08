@@ -33,9 +33,9 @@ serve(async (req) => {
 
   try {
     const { tenantId } = await req.json();
-    
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
     if (!tenantId) {
       return new Response(
         JSON.stringify({ error: "tenantId is required" }),
