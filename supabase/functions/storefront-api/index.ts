@@ -1425,10 +1425,18 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
+    // Variant-aware stock check: if variant_id present, variant.stock is authoritative;
+    // otherwise fall back to product.stock. Respect track_inventory at the correct level.
+    let in_stock = true;
+    if (item.variant_id && variant) {
+      in_stock = !variant.track_inventory || (variant.stock ?? 0) > 0;
+    } else if (item.products) {
+      in_stock = !item.products.track_inventory || (item.products.stock ?? 0) > 0;
+    }
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
       quantity: item.quantity, unit_price: item.unit_price,
-      product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0, category_id: item.products.category_id } : null,
+      product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
       line_total: item.quantity * item.unit_price,
     };
@@ -1722,7 +1730,8 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
   // Validate stock
   for (const item of cart.cartItems) {
     if (item.product && !item.product.in_stock) {
-      return { success: false, error: { code: 'VALIDATION_ERROR', message: `${item.product.name} is niet meer op voorraad` } };
+      const label = `${item.product.name}${item.variant?.title ? ' (' + item.variant.title + ')' : ''}`;
+      return { success: false, error: { code: 'OUT_OF_STOCK', message: `${label} is niet meer op voorraad` } };
     }
   }
 
