@@ -24,6 +24,8 @@ import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
 import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
 import { CreditNotesTable } from '@/components/admin/CreditNotesTable';
+import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
+import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -196,63 +198,129 @@ export default function InvoicesPage() {
               </CardTitle>
               <CardDescription>{combined.length} regels</CardDescription>
             </CardHeader>
-            <CardContent className="px-0 sm:px-6">
-              {(isLoading || cnLoading) ? (
-                <div className="space-y-3 px-4 sm:px-0">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                </div>
-              ) : combined.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">Geen documenten gevonden</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Nummer</TableHead>
-                        <TableHead className="hidden md:table-cell">Klant</TableHead>
-                        <TableHead>Datum</TableHead>
-                        <TableHead className="text-right">Bedrag</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Acties</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {combined.map((row) => (
-                        <TableRow key={`${row.kind}-${row.id}`}>
-                          <TableCell>
-                            {row.kind === 'invoice' ? (
-                              <Badge variant="default">Factuur</Badge>
-                            ) : (
-                              <Badge variant="outline" className="border-destructive/40 text-destructive">Creditnota</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-medium">{row.number}</TableCell>
-                          <TableCell className="hidden md:table-cell max-w-[200px] truncate">{row.customer}</TableCell>
-                          <TableCell>{format(new Date(row.date), 'd MMM yyyy', { locale: nl })}</TableCell>
-                          <TableCell className={`text-right font-medium ${row.amount < 0 ? 'text-destructive' : ''}`}>
-                            {formatCurrency(row.amount)}
-                          </TableCell>
-                          <TableCell><Badge variant="secondary">{row.status}</Badge></TableCell>
-                          <TableCell className="text-right">
-                            {row.kind === 'invoice' && row.invoiceId ? (
-                              <CreateCreditNoteFromInvoiceButton
-                                invoiceId={row.invoiceId}
-                                invoiceNumber={row.invoiceNumber!}
-                                onSuccess={() => refetch()}
-                              />
-                            ) : row.kind === 'creditnote' ? (
-                              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders/creditnotes')}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            ) : null}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+            <CardContent>
+              <ResponsiveDataTable<Combined>
+                rows={combined}
+                getRowKey={(r) => `${r.kind}-${r.id}`}
+                isLoading={isLoading || cnLoading}
+                cardModeBreakpoint="compact"
+                emptyState={<div className="py-6 text-center text-muted-foreground">Geen documenten gevonden</div>}
+                columns={[
+                  {
+                    id: 'type',
+                    header: 'Type',
+                    render: (r) => r.kind === 'invoice'
+                      ? <Badge variant="default">Factuur</Badge>
+                      : <Badge variant="outline" className="border-destructive/40 text-destructive whitespace-nowrap">Creditnota</Badge>,
+                  },
+                  {
+                    id: 'number',
+                    header: 'Nummer',
+                    render: (r) => <span className="font-medium whitespace-nowrap">{r.number}</span>,
+                  },
+                  {
+                    id: 'customer',
+                    header: 'Klant',
+                    priority: 'lg',
+                    render: (r) => <span className="block max-w-[200px] truncate">{r.customer}</span>,
+                  },
+                  {
+                    id: 'date',
+                    header: 'Datum',
+                    priority: 'md',
+                    render: (r) => <span className="whitespace-nowrap">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>,
+                  },
+                  {
+                    id: 'amount',
+                    header: 'Bedrag',
+                    align: 'right',
+                    render: (r) => (
+                      <span className={`whitespace-nowrap font-medium ${r.amount < 0 ? 'text-destructive' : ''}`}>
+                        {formatCurrency(r.amount)}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    render: (r) => <Badge variant="secondary" className="whitespace-nowrap">{r.status}</Badge>,
+                  },
+                  {
+                    id: 'actions',
+                    header: '',
+                    align: 'right',
+                    width: '60px',
+                    render: (r) => r.kind === 'invoice' && r.invoiceId ? (
+                      <CreateCreditNoteFromInvoiceButton
+                        invoiceId={r.invoiceId}
+                        invoiceNumber={r.invoiceNumber!}
+                        onSuccess={() => refetch()}
+                        compact
+                      />
+                    ) : r.kind === 'creditnote' ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setTab('creditnotes')}
+                            aria-label="Open creditnota's tab"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Open in Creditnota's tab</TooltipContent>
+                      </Tooltip>
+                    ) : null,
+                  },
+                ] satisfies ColumnDef<Combined>[]}
+                mobileCardRender={(r) => {
+                  const actions: ActionItem[] = [];
+                  if (r.kind === 'invoice' && r.invoiceId) {
+                    actions.push({
+                      label: 'Creditnota aanmaken',
+                      onClick: () => {/* trigger via dedicated button below */},
+                    });
+                  }
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            {r.kind === 'invoice'
+                              ? <Badge variant="default">Factuur</Badge>
+                              : <Badge variant="outline" className="border-destructive/40 text-destructive">Creditnota</Badge>}
+                            <span className="font-medium truncate">{r.number}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground truncate mt-1">{r.customer}</div>
+                        </div>
+                        <span className={`whitespace-nowrap font-medium ${r.amount < 0 ? 'text-destructive' : ''}`}>
+                          {formatCurrency(r.amount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
+                          <Badge variant="secondary">{r.status}</Badge>
+                        </div>
+                        {r.kind === 'invoice' && r.invoiceId ? (
+                          <CreateCreditNoteFromInvoiceButton
+                            invoiceId={r.invoiceId}
+                            invoiceNumber={r.invoiceNumber!}
+                            onSuccess={() => refetch()}
+                            compact
+                          />
+                        ) : r.kind === 'creditnote' ? (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setTab('creditnotes')} aria-label="Open creditnota's tab">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
