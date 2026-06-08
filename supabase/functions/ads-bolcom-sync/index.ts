@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,6 +71,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSyncSecret = req.headers.get("X-Sync-Secret");
+    const isCronSecret = !!cronSecret && providedSyncSecret === cronSecret;
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return jsonRes({ error: "Unauthorized" }, 401);
 
@@ -78,15 +83,15 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      isServiceRole
+      isServiceRole || isCronSecret
         ? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         : Deno.env.get("SUPABASE_ANON_KEY")!,
-      isServiceRole
+      isServiceRole || isCronSecret
         ? undefined
         : { global: { headers: { Authorization: authHeader } } }
     );
 
-    if (!isServiceRole) {
+    if (!isServiceRole && !isCronSecret) {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return jsonRes({ error: "Unauthorized" }, 401);
     }
@@ -94,6 +99,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const tenantId = body.tenant_id;
     if (!tenantId) return jsonRes({ error: "tenant_id required" }, 400);
+
+    if (!isServiceRole && !isCronSecret) {
+      const auth = await authenticateRequest(req, tenantId);
+      requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
+    }
 
     // Get advertising credentials
     const { data: connections } = await supabase
@@ -312,6 +322,7 @@ Deno.serve(async (req) => {
       products_synced: productsSynced,
     });
   } catch (error: any) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("ads-bolcom-sync error:", error);
     if (error.message?.startsWith("RATE_LIMITED")) {
       const retryAfter = error.message.split(":")[1];
