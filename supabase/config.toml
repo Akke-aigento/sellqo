@@ -317,3 +317,6 @@ verify_jwt = false
 
 [functions.generate-credit-note]
 verify_jwt = false
+
+[functions.send-credit-note-email]
+verify_jwt = false
