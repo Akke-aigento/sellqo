@@ -208,6 +208,18 @@ export default function InvoicesPage() {
         items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
       }
       items.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(r.id) });
+      if (r.invoiceId) {
+        items.push({
+          render: () => (
+            <CreateCreditNoteFromInvoiceButton
+              invoiceId={r.invoiceId}
+              invoiceNumber={r.invoiceNumber!}
+              onSuccess={() => refetch()}
+              variant="menuItem"
+            />
+          ),
+        });
+      }
     } else {
       items.push({
         label: r.pdfUrl ? 'Download PDF' : 'PDF genereren',
