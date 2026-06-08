@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 
 interface BankTransaction {
   date: string;
@@ -209,22 +210,19 @@ export function BankReconciliationUpload() {
           // 2. Status-transitie (pending → processing) via gevalideerde edge function.
           let transitionError: { message: string } | null = null;
           if (!updateError) {
-            const { data: fnData, error: fnError } = await supabase.functions.invoke(
-              'update-order-fulfillment-status',
-              {
+            try {
+              await invokeWithErrorBody('update-order-fulfillment-status', {
                 body: {
                   tenant_id: currentTenant.id,
                   order_id: order.id,
                   new_status: 'processing',
                 },
-              },
-            );
-            if (fnError) transitionError = { message: fnError.message };
-            else if (fnData && (fnData as { success?: boolean }).success === false) {
+              });
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
               // 422 (al niet meer pending) is ok in reconciliation-context — negeren.
-              const err = (fnData as { error?: string }).error || '';
-              if (!err.toLowerCase().includes('invalid status transition')) {
-                transitionError = { message: err };
+              if (!msg.toLowerCase().includes('invalid status transition')) {
+                transitionError = { message: msg };
               }
             }
           }
