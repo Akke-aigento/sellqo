@@ -15,7 +15,8 @@ export type AppRole =
   | "accountant"
   | "staff"
   | "warehouse"
-  | "viewer";
+  | "viewer"
+  | "marketing";
 
 export interface AuthResult {
   user_id: string;
