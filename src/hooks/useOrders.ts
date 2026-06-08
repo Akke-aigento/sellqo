@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { Order, OrderItem, OrderStatus, PaymentStatus, OrderFilters } from '@/types/order';
 
 export function useOrders(filters?: OrderFilters) {
@@ -58,20 +59,13 @@ export function useOrders(filters?: OrderFilters) {
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       if (!currentTenant?.id) throw new Error('Geen tenant context');
-      const { data, error } = await supabase.functions.invoke(
-        'update-order-fulfillment-status',
-        {
-          body: {
-            tenant_id: currentTenant.id,
-            order_id: orderId,
-            new_status: status,
-          },
+      await invokeWithErrorBody('update-order-fulfillment-status', {
+        body: {
+          tenant_id: currentTenant.id,
+          order_id: orderId,
+          new_status: status,
         },
-      );
-      if (error) throw error;
-      if (data && (data as { success?: boolean }).success === false) {
-        throw new Error((data as { error?: string }).error || 'Status update mislukt');
-      }
+      }, 'Status update mislukt');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });

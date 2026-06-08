@@ -35,6 +35,17 @@ import { OrderStatusCorrectionDialog } from '@/components/admin/OrderStatusCorre
 import { ActionsMenu } from '@/components/ui/actions-menu';
 import { useCan } from '@/hooks/useCan';
 import { AlertTriangle } from 'lucide-react';
+import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
+
+const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'In afwachting',
+  processing: 'In behandeling',
+  shipped: 'Verzonden',
+  delivered: 'Afgeleverd',
+  cancelled: 'Geannuleerd',
+  returned: 'Geretourneerd',
+  partially_returned: 'Deels geretourneerd',
+};
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -363,15 +374,23 @@ export default function OrderDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">In afwachting</SelectItem>
-                      <SelectItem value="processing">In behandeling</SelectItem>
-                      <SelectItem value="shipped">Verzonden</SelectItem>
-                      <SelectItem value="delivered">Afgeleverd</SelectItem>
-                      <SelectItem value="cancelled">Geannuleerd</SelectItem>
-                      <SelectItem value="returned">Geretourneerd</SelectItem>
-                      <SelectItem value="partially_returned">Deels geretourneerd</SelectItem>
+                      {getValidNextStatuses(order.status).map((s) => (
+                        <SelectItem key={s} value={s}>{ORDER_STATUS_LABELS[s]}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {canCorrectStatus &&
+                    ALL_ORDER_STATUSES.some(
+                      (s) => s !== order.status && !ORDER_STATUS_TRANSITIONS[order.status].includes(s),
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCorrectionDialog(true)}
+                        className="mt-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                      >
+                        Andere status nodig? Corrigeren…
+                      </button>
+                    )}
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Betaalstatus</label>

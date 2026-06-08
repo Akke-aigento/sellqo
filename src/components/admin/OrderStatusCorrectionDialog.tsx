@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { OrderStatus } from '@/types/order';
 
 const ALL_STATUSES: { value: OrderStatus; label: string }[] = [
@@ -78,22 +79,15 @@ export function OrderStatusCorrectionDialog({
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'update-order-fulfillment-status',
-        {
-          body: {
-            tenant_id: currentTenant.id,
-            order_id: orderId,
-            new_status: newStatus,
-            is_correction: true,
-            reason: reason.trim(),
-          },
+      await invokeWithErrorBody('update-order-fulfillment-status', {
+        body: {
+          tenant_id: currentTenant.id,
+          order_id: orderId,
+          new_status: newStatus,
+          is_correction: true,
+          reason: reason.trim(),
         },
-      );
-      if (error) throw error;
-      if (data && (data as { success?: boolean }).success === false) {
-        throw new Error((data as { error?: string }).error || 'Correctie mislukt');
-      }
+      }, 'Correctie mislukt');
       toast({ title: 'Status gecorrigeerd', description: `Order ${orderNumber} → ${newStatus}` });
       queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });

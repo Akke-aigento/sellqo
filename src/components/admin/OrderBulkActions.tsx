@@ -4,6 +4,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,22 +74,20 @@ export function OrderBulkActions({
       if (!currentTenant?.id) throw new Error('Geen tenant context');
       const failures: string[] = [];
       for (const orderId of selectedOrderIds) {
-        const { data, error } = await supabase.functions.invoke(
-          'update-order-fulfillment-status',
-          {
+        try {
+          await invokeWithErrorBody('update-order-fulfillment-status', {
             body: {
               tenant_id: currentTenant.id,
               order_id: orderId,
               new_status: status,
             },
-          },
-        );
-        if (error || (data && (data as { success?: boolean }).success === false)) {
-          failures.push(orderId);
+          });
+        } catch (err) {
+          failures.push(`${orderId}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
       if (failures.length > 0) {
-        throw new Error(`${failures.length} order(s) niet bijgewerkt (mogelijk ongeldige statusovergang of rolbeperking)`);
+        throw new Error(`${failures.length} order(s) niet bijgewerkt: ${failures[0]}`);
       }
 
       toast({ title: `${selectedOrderIds.length} order(s) bijgewerkt naar ${status}` });

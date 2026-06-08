@@ -4,6 +4,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,19 +69,17 @@ export function FulfillmentBulkActions({
       const shippedAt = new Date().toISOString();
       const failures: string[] = [];
       for (const orderId of selectedOrderIds) {
-        const { data, error } = await supabase.functions.invoke(
-          'update-order-fulfillment-status',
-          {
+        try {
+          await invokeWithErrorBody('update-order-fulfillment-status', {
             body: {
               tenant_id: currentTenant.id,
               order_id: orderId,
               new_status: 'shipped',
               shipped_at: shippedAt,
             },
-          },
-        );
-        if (error || (data && (data as { success?: boolean }).success === false)) {
-          failures.push(orderId);
+          });
+        } catch (err) {
+          failures.push(`${orderId}: ${err instanceof Error ? err.message : String(err)}`);
           continue;
         }
         // fulfillment_status is niet in de edge-function whitelist; nog directe update.
@@ -90,7 +89,7 @@ export function FulfillmentBulkActions({
           .eq('id', orderId);
       }
       if (failures.length > 0) {
-        throw new Error(`${failures.length} order(s) niet bijgewerkt`);
+        throw new Error(`${failures.length} order(s) niet bijgewerkt: ${failures[0]}`);
       }
 
       toast({ title: `${selectedOrderIds.length} order(s) als verzonden gemarkeerd` });
@@ -111,19 +110,17 @@ export function FulfillmentBulkActions({
       const deliveredAt = new Date().toISOString();
       const failures: string[] = [];
       for (const orderId of selectedOrderIds) {
-        const { data, error } = await supabase.functions.invoke(
-          'update-order-fulfillment-status',
-          {
+        try {
+          await invokeWithErrorBody('update-order-fulfillment-status', {
             body: {
               tenant_id: currentTenant.id,
               order_id: orderId,
               new_status: 'delivered',
               delivered_at: deliveredAt,
             },
-          },
-        );
-        if (error || (data && (data as { success?: boolean }).success === false)) {
-          failures.push(orderId);
+          });
+        } catch (err) {
+          failures.push(`${orderId}: ${err instanceof Error ? err.message : String(err)}`);
           continue;
         }
         await supabase
@@ -132,7 +129,7 @@ export function FulfillmentBulkActions({
           .eq('id', orderId);
       }
       if (failures.length > 0) {
-        throw new Error(`${failures.length} order(s) niet bijgewerkt`);
+        throw new Error(`${failures.length} order(s) niet bijgewerkt: ${failures[0]}`);
       }
 
       toast({ title: `${selectedOrderIds.length} order(s) als afgeleverd gemarkeerd` });
