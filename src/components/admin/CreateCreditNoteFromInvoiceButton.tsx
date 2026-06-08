@@ -69,21 +69,27 @@ export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, va
     }
   };
 
-  const trigger = compact ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClick} disabled={loading} aria-label="Creditnota aanmaken">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>Creditnota aanmaken</TooltipContent>
-    </Tooltip>
-  ) : (
-    <Button variant="outline" size="sm" onClick={handleClick} disabled={loading}>
-      {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Minus className="h-4 w-4 mr-2" />}
-      Creditnota
-    </Button>
-  );
+  const trigger =
+    variant === 'menuItem' ? (
+      <DropdownMenuItem onClick={handleClick} disabled={loading}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
+        <span className="ml-2">Creditnota aanmaken</span>
+      </DropdownMenuItem>
+    ) : compact ? (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClick} disabled={loading} aria-label="Creditnota aanmaken">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Creditnota aanmaken</TooltipContent>
+      </Tooltip>
+    ) : (
+      <Button variant="outline" size="sm" onClick={handleClick} disabled={loading}>
+        {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Minus className="h-4 w-4 mr-2" />}
+        Creditnota
+      </Button>
+    );
 
   return (
     <>
