@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { generateTrackingUrl, getCarrierById } from '@/lib/carrierPatterns';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 
 export interface UpdateTrackingInput {
   orderId: string;
@@ -47,22 +48,15 @@ export function useOrderShipping() {
       if (!currentTenant?.id) throw new Error('Geen tenant context');
 
       // Status + tracking velden via gevalideerde edge function (RBAC + transitiematrix).
-      const { data: fnData, error: fnError } = await supabase.functions.invoke(
-        'update-order-fulfillment-status',
-        {
-          body: {
-            tenant_id: currentTenant.id,
-            order_id: orderId,
-            new_status: 'shipped',
-            tracking_number: trackingNumber,
-            tracking_url: finalTrackingUrl,
-          },
+      await invokeWithErrorBody('update-order-fulfillment-status', {
+        body: {
+          tenant_id: currentTenant.id,
+          order_id: orderId,
+          new_status: 'shipped',
+          tracking_number: trackingNumber,
+          tracking_url: finalTrackingUrl,
         },
-      );
-      if (fnError) throw fnError;
-      if (fnData && (fnData as { success?: boolean }).success === false) {
-        throw new Error((fnData as { error?: string }).error || 'Tracking update mislukt');
-      }
+      }, 'Tracking update mislukt');
 
       // carrier + fulfillment_status zitten (nog) niet in de whitelist — losse update.
       const { error: extrasError } = await supabase
