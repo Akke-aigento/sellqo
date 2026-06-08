@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,7 +80,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    await authenticateRequest(req);
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSyncSecret = req.headers.get("X-Sync-Secret");
+    const isCronSecret = !!cronSecret && providedSyncSecret === cronSecret;
+    if (!isCronSecret) {
+      const auth = await authenticateRequest(req);
+      // No tenantId in body → require platform_admin/service_role only.
+      if (!auth.is_platform_admin && auth.user_id !== "service_role") {
+        throw new AuthError("Insufficient role for this action", 403);
+      }
+    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

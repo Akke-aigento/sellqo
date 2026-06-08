@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,6 +96,9 @@ Deno.serve(async (req) => {
     if (!tenant_id || !action || !payload) {
       return jsonRes({ error: "Missing tenant_id, action or payload" }, 400);
     }
+
+    const userAuth = await authenticateRequest(req, tenant_id);
+    requireRole(userAuth, tenant_id, ["tenant_admin", "staff", "marketing"]);
 
     // Get Bol.com credentials
     const { data: connections } = await supabase
@@ -304,6 +308,7 @@ Deno.serve(async (req) => {
 
     return jsonRes({ success: true, action, detail });
   } catch (err) {
+    if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     console.error("ads-bolcom-manage error:", err);
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.startsWith("RATE_LIMITED:")) {
