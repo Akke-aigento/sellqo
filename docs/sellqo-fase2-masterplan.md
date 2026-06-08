@@ -1196,6 +1196,17 @@ Schema-sync drops 3 ops-tabellen + voegt 40 CREATE-statements toe. Rollback: sna
 
 ### Batch 2C2 — Marketing & CMS
 
+> **Update 2026-06-08.** App-rol `marketing` is toegevoegd aan de `app_role`
+> enum (zie `docs/role-audit.md` → "Role expansion — marketing"). Bij het
+> schrijven van expliciete RLS policies voor de tabellen in deze batch
+> MOET marketing meegenomen worden in de policy-arrays:
+> write `array['tenant_admin','staff','marketing']`,
+> read `array['tenant_admin','staff','accountant','viewer','marketing']`.
+> Uitzondering: `ad_platform_connections` (en credential-tabellen) blijven
+> `['tenant_admin']` write — marketing krijgt geen integration-config-rechten.
+> Budget-gevoelige velden (campaign-budget vrijgeven) blijven UI-gated via
+> `useCan('write','ad_budgets')` → tenant_admin only.
+
 | Tabel | Rijen | Drift | Reden / Rol-mapping |
 |---|---:|:---:|---|
 | `ab_test_configs` | 0 |  | A/B-tests |
