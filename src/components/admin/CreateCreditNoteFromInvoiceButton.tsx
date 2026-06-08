@@ -32,7 +32,7 @@ interface RawLine {
  * Loads invoice_lines on demand, then opens CreditNoteDialog pre-filled.
  * Used from the invoices list and order detail.
  */
-export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, onSuccess, compact = false }: Props) {
+export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, variant = 'button', onSuccess, compact = false }: Props) {
   const { toast } = useToast();
   const canWrite = useCan('write', 'credit_notes');
   const [loading, setLoading] = useState(false);
