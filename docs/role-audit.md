@@ -542,3 +542,70 @@ Volledige SQL leeft in de migration `Batch 2A2a — Refund/Invoice/Quote RLS har
 - Frontend gating in `useCan` voor `credit_note` / `invoice` / `quote` / `payment_reminder` resources.
 
 
+
+---
+
+## Batch 2A2b — Edge-function role-checks completed (2026-06-08)
+
+Aanvulling op tabellen-RLS uit 2A2a: write-paden voor refunds, invoicing en quotes
+worden nu ook in de edge-laag gegated met `requireRole`. Platform_admin en
+service_role behouden automatische bypass via de shared `requireRole`-helper.
+
+### Functie-wijzigingen
+
+**process-refund**
+- Aanscherping t.o.v. Batch 2A1: `['tenant_admin','staff']` → `['tenant_admin']`.
+- Reden: cap-feature voor staff-refunds bestaat nog niet; refund-write blijft strikt
+  admin tot Fase 3 (Hoofdstuk 4 / capabilities).
+- Audit-log: bij elke refund wordt nu een `admin_actions_log`-record geschreven met
+  `action_type='refund_processed'` + `{return_id, refund_method, refund_amount}`.
+
+**pos-refund-payment**
+- Vervangen: `supabase.auth.getUser()`-flow → `authenticateRequest(req, tenant_id)`.
+- Toegevoegd: `requireRole(auth, tenant_id, ['tenant_admin'])`.
+- Service-role DB-client gebruikt voor data-access; client-JWT puur voor identity.
+- Audit-log: `action_type='pos_refund_processed'` + `{transaction_id, stripe_refund_id, amount, reason}`.
+- POS-frontend (`usePOS.ts`) stuurt al automatisch het user-JWT via `supabase.functions.invoke`,
+  consistent met `pos-process-payment`.
+
+**create-manual-invoice**
+- Toegevoegd: `requireRole(auth, tenant_id, ['tenant_admin','staff','accountant'])`.
+- Accountant moet handmatig kunnen factureren tijdens BTW-correcties.
+
+**send-invoice-email**
+- Toegevoegd: `requireRole(auth, invoice.tenant_id, ['tenant_admin','staff','accountant'])`
+  na invoice-fetch.
+
+**send-quote-email**
+- Toegevoegd: `requireRole(auth, quote.tenant_id, ['tenant_admin','staff'])`.
+- Accountant niet nodig — sales workflow.
+
+**create-quote-payment-link**
+- Toegevoegd: `requireRole(auth, quote.tenant_id, ['tenant_admin','staff'])`.
+
+### config.toml
+
+- `[functions.process-refund] verify_jwt = false` toegevoegd (auth gebeurt in-code
+  via `authenticateRequest`, consistent met andere admin-write-functies).
+- `pos-refund-payment`, `create-manual-invoice`, `send-invoice-email`,
+  `send-quote-email`, `create-quote-payment-link` hadden reeds `verify_jwt = false`.
+
+### Niet aangeraakt (service-role / cron / webhooks)
+
+- `auto-invoice-cron`, `repair-cid-references`, `repair-attachments`, `sync-odoo-invoices`
+- Alle Stripe-webhooks (`stripe-webhook`, `stripe-connect-webhook`, `pos-process-payment`, …)
+- Platform-billing functies (out-of-scope 2A2)
+
+### Test-checklist (productie)
+
+- [ ] `tenant_admin`: `process-refund` op een return → success + audit-log entry.
+- [ ] `staff`: `process-refund` → 403 (cap-feature pending).
+- [ ] `tenant_admin`: POS-refund via `/admin/pos` → success + audit-log entry.
+- [ ] `staff`: POS-refund → 403.
+- [ ] `tenant_admin` / `staff` / `accountant`: `create-manual-invoice` werkt.
+- [ ] `staff`: `send-quote-email` + `create-quote-payment-link` werkt.
+- [ ] `accountant`: `send-quote-email` → 403, `send-invoice-email` → 200.
+- [ ] `warehouse`: alle bovenstaande functies → 403.
+- [ ] Stripe refund-webhook (service_role pad) blijft draaien.
+- [ ] Bol/Amazon sync (service_role pad) blijft draaien.
+- [ ] `platform_admin`: bypass werkt op alle functies.
