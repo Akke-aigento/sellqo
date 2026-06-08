@@ -88,7 +88,8 @@ export function useTeamMembers() {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        // Cast tot DB enum wordt geregenereerd na app_role migration (marketing toegevoegd).
+        .update({ role: newRole as never })
         .eq('id', memberId);
 
       if (error) throw error;
