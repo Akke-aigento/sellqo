@@ -95,8 +95,6 @@ Deno.serve(async (req) => {
     }
 
     const { campaign_id, force_repush, action } = await req.json();
-    const auth = await authenticateRequest(req, tenant_id);
-    requireRole(auth, tenant_id, ["tenant_admin", "staff", "marketing"]);
     if (!campaign_id) {
       return new Response(
         JSON.stringify({ error: "campaign_id is required" }),
@@ -123,6 +121,9 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    const auth = await authenticateRequest(req, campaign.tenant_id);
+    requireRole(auth, campaign.tenant_id, ["tenant_admin", "staff", "marketing"]);
 
     if (campaign.platform !== "bol_ads") {
       return new Response(
