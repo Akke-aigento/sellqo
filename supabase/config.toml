@@ -240,6 +240,42 @@ verify_jwt = false
 [functions.ai-generate-storefront-copy]
 verify_jwt = false
 
+[functions.ai-generate-email]
+verify_jwt = false
+
+[functions.ai-generate-social]
+verify_jwt = false
+
+[functions.ai-campaign-suggestions]
+verify_jwt = false
+
+[functions.ai-seo-analyzer]
+verify_jwt = false
+
+[functions.ads-bolcom-sync]
+verify_jwt = false
+
+[functions.ads-bolcom-manage]
+verify_jwt = false
+
+[functions.ads-bolcom-reports]
+verify_jwt = false
+
+[functions.ads-ai-engine]
+verify_jwt = false
+
+[functions.ads-campaign-analyze]
+verify_jwt = false
+
+[functions.ads-inventory-watch]
+verify_jwt = false
+
+[functions.push-bol-campaign]
+verify_jwt = false
+
+[functions.sync-bol-campaign-status]
+verify_jwt = false
+
 [functions.meta-messaging-webhook]
 verify_jwt = false
 
