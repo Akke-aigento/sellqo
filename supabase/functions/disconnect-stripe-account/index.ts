@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeForTenant } from "../_shared/stripe.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,45 +27,14 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
-
     // Parse body
     const { tenant_id } = await req.json();
     if (!tenant_id) throw new Error("tenant_id is required");
 
-    // Check authorization: platform_admin OR tenant owner
-    const { data: adminRole } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "platform_admin")
-      .maybeSingle();
-
-    if (!adminRole) {
-      // Check if user is tenant owner
-      const { data: membership } = await supabaseClient
-        .from("tenant_users")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("tenant_id", tenant_id)
-        .eq("role", "owner")
-        .maybeSingle();
-
-      if (!membership) {
-        return new Response(
-          JSON.stringify({ error: "Niet geautoriseerd" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    // Authenticate + role check (Batch 2B1b — replaces legacy tenant_users.role='owner' check)
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ['tenant_admin']);
+    logStep("User authenticated", { userId: auth.user_id });
     logStep("Authorization verified");
 
     // Fetch tenant
@@ -139,6 +109,9 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     logStep("ERROR", { message: error.message });
     return new Response(
       JSON.stringify({ error: error.message }),
