@@ -1399,3 +1399,43 @@ Bestaand en bevestigd: `ai-product-promo-kit`, `ai-product-field-assistant`,
 
 - Aparte beslissing of `import-bol-csv` / `run-csv-import` (order/shipment) in batch 2D (orders) een role-check krijgen.
 - `delete-product` / `bulk-delete-products` ontbreken; destructieve product-acties lopen nu direct via PostgREST (RLS-gated). Edge-function laag pas bouwen als bulk-flow nodig is.
+
+---
+
+## Hardening — Stripe disconnect type-to-confirm
+
+**Datum:** 2026-06-08
+
+### Reden
+Tijdens Batch 2B1b-testing is per ongeluk de Stripe-koppeling van een
+productie-tenant (Mancini Milano) verwijderd via de eenmalige "Ontkoppelen"
+knop in `TenantOverviewTab`. De bestaande `AlertDialog` met enkel een "Weet
+je het zeker?" prompt biedt onvoldoende friction voor een destructieve actie
+op een live Express-account (niet ongedaan te maken).
+
+### Mitigatie — type-to-confirm pattern (GitHub repo-delete stijl)
+
+**Frontend** — nieuw gedeeld component `src/components/admin/settings/StripeDisconnectDialog.tsx`:
+- Toont tenant-naam + exacte `stripe_account_id` string + expliciete
+  destructieve waarschuwing.
+- Admin moet de tenant-naam letterlijk intypen voordat de "Definitief
+  ontkoppelen"-knop activeert (case + whitespace insensitive matching).
+- Bij annuleren/sluiten wordt het tekstveld gereset.
+
+Toegepast op alle 3 disconnect-callsites:
+- `src/components/platform/TenantOverviewTab.tsx` (platform-admin per-tenant)
+- `src/components/admin/settings/PaymentSettings.tsx` (tenant self-disconnect, 2 paden: actief + onboarding-incomplete)
+
+**Edge function** — `supabase/functions/disconnect-stripe-account/index.ts`:
+- Nieuwe verplichte body-parameter `confirmed_tenant_name: string`.
+- Server-side double-check tegen live `tenants.name` (case + whitespace
+  insensitive) ná de tenant-fetch en vóór `stripe.accounts.del`.
+- Mismatch → 400 `{ error: "Bevestigingsnaam matcht niet" }`.
+- Ontbrekend/leeg → 400 `{ error: "Bevestigingsnaam ontbreekt" }`.
+- Bestaande auth (`requireRole(['tenant_admin'])`) blijft ongewijzigd.
+
+### Gewijzigde bestanden
+- `src/components/admin/settings/StripeDisconnectDialog.tsx` (nieuw)
+- `src/components/platform/TenantOverviewTab.tsx`
+- `src/components/admin/settings/PaymentSettings.tsx`
+- `supabase/functions/disconnect-stripe-account/index.ts`
