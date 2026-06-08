@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Mail, UserPlus, Trash2, RefreshCw, Shield, UserCog, Calculator, Warehouse, Eye, Users, Clock } from 'lucide-react';
+import { Mail, UserPlus, Trash2, RefreshCw, Shield, UserCog, Calculator, Warehouse, Eye, Users, Clock, Megaphone } from 'lucide-react';
 
-type InvitationRole = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+type InvitationRole = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
 
 interface TeamMember {
   id: string;
@@ -34,6 +34,7 @@ const roleOptions: { value: InvitationRole; label: string; icon: React.Component
   { value: 'staff', label: 'Medewerker', icon: UserCog },
   { value: 'accountant', label: 'Boekhouder', icon: Calculator },
   { value: 'warehouse', label: 'Magazijn', icon: Warehouse },
+  { value: 'marketing', label: 'Marketing', icon: Megaphone },
   { value: 'viewer', label: 'Kijker', icon: Eye },
 ];
 
@@ -43,6 +44,7 @@ const roleLabelMap: Record<string, string> = {
   staff: 'Medewerker',
   accountant: 'Boekhouder',
   warehouse: 'Magazijn',
+  marketing: 'Marketing',
   viewer: 'Kijker',
 };
 
