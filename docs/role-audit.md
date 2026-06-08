@@ -1218,3 +1218,106 @@ Niet aanwezig in dit project (skip):
 
 ### Datum
 2026-06-08
+
+---
+
+## Batch 2C1a-i — Core catalog RLS-aanscherping
+
+Datum: 2026-06-08
+Migration: `core catalog RLS hardening` (zie supabase/migrations).
+
+### Gedropte policies
+- `products`: "Users can update their tenant's products"
+- `product_variants`: "Tenant staff can manage product_variants" (ALL)
+- `categories`: insert/update/delete-trio van tenant_admin+staff
+- `product_categories`: "Tenant users can manage product categories" (ALL)
+- `product_bundles`: insert/update/delete tenant-blind
+- `product_bundle_items`: insert/update/delete tenant-blind
+- `bundle_products`: insert/update/delete tenant-blind
+- `content_translations`: "Users can manage translations for their tenant" (ALL)
+
+### Nieuwe policies
+- `products` UPDATE: `tenant_admin`+`staff`+`warehouse` (warehouse mag stock muteren — §4 bevestigd)
+- `product_variants`: split in INSERT (`admin`+`staff`), UPDATE (`admin`+`staff`+`warehouse`), DELETE (`admin`) via parent-product join
+- `categories` INSERT/UPDATE/DELETE: `admin`+`staff`+`marketing` (merchandising — §3 bevestigd)
+- `product_categories` INSERT/UPDATE/DELETE: `admin`+`staff`+`marketing` via parent product
+- `product_categories` SELECT: tenant-scope alle rollen
+- `product_bundles` INSERT/UPDATE: `admin`+`staff`, DELETE: `admin`
+- `product_bundle_items` INSERT/UPDATE: `admin`+`staff`, DELETE: `admin` via parent product
+- `bundle_products` INSERT/UPDATE: `admin`+`staff`, DELETE: `admin` via parent bundle
+- `content_translations` INSERT/UPDATE/DELETE: `admin`+`staff`+`marketing`
+
+### Beslispunten bevestigd
+- §4 warehouse mag products UPDATEN (stock-mutatie pad).
+- §3 marketing mag categories beheren.
+- §11 cost_price-lek geaccepteerd tot 2C1d (column-masking via view).
+- §7 bundle_products behandeld als actief.
+
+### Open backlog
+- 2C1d: views `products_safe` + `product_variants_safe` zonder `cost_price`.
+- `bundle_products` legacy-onderzoek of nog effectief gebruikt naast `product_bundle_items`.
+
+---
+
+## Batch 2C1a-ii — Suppliers & purchase orders RLS-aanscherping
+
+Datum: 2026-06-08
+Migration: `suppliers + purchase orders RLS hardening`.
+
+### Gedropte policies (per tabel, alle tenant-blind / geen rol-check)
+- `suppliers`: view/create/update/delete in tenant
+- `supplier_documents`: view/create/update/delete in tenant
+- `product_suppliers`: view/create/update/delete in tenant
+- `purchase_orders`: view/create/update/delete in tenant
+- `purchase_order_items`: view/create/update/delete via order
+
+### Nieuwe policies
+- `suppliers` / `supplier_documents` / `product_suppliers`:
+  - SELECT: `admin`+`staff`+`accountant`+`warehouse`
+  - INSERT/UPDATE: `admin`+`staff`+`accountant`
+  - DELETE: `admin`
+- `purchase_orders`:
+  - SELECT: `admin`+`staff`+`accountant`+`warehouse`
+  - INSERT: `admin`+`staff`+`accountant`
+  - UPDATE: `admin`+`staff`+`accountant`+`warehouse` (warehouse boekt ontvangst — §5)
+  - DELETE: `admin`
+- `purchase_order_items` (FK-scope op parent):
+  - SELECT/UPDATE: `admin`+`staff`+`accountant`+`warehouse`
+  - INSERT: `admin`+`staff`+`accountant`
+  - DELETE: `admin`
+
+### Beslispunten bevestigd
+- §2 marketing+viewer mogen GEEN suppliers/inkoop zien.
+- §5 warehouse mag `purchase_orders` UPDATEN voor ontvangst-boekingen.
+
+### Frontend-impact
+- `src/pages/admin/Suppliers.tsx`, `usePurchaseOrders`, `useSuppliers`,
+  `useProductSuppliers`: marketing/viewer krijgen vanaf nu 403/empty. Frontend gating
+  in batch H4 om routes te verbergen.
+
+---
+
+## Batch 2C1a-iii — External reviews RLS-aanscherping
+
+Datum: 2026-06-08
+Migration: `external reviews RLS hardening`.
+
+### Gedropte policies
+- `external_reviews`: "Users can view/insert/update/delete their tenant's external reviews"
+  (allen tenant-blind, geen rol-check)
+
+### Nieuwe policies
+- `external_reviews` SELECT (auth): `admin`+`staff`+`marketing`+`viewer`
+- `external_reviews` INSERT/UPDATE/DELETE: `admin`+`staff`+`marketing` (moderatie)
+- Public-SELECT op `is_visible=true` **niet aangeraakt** (storefront leest blijft werken)
+
+### Beslispunten bevestigd
+- §6 GEEN anon-INSERT-policy. Klant-reviews lopen later via dedicated edge function
+  met rate-limit + spam-check (batch 2C1c).
+
+### Open backlog
+- 2C1b: edge-function role-checks (`ai-product-field-assistant`, `ai-product-promo-kit`,
+  `ai-optimize-marketplace-content`, `ai-translate-content`, `ai-generate-image`,
+  `sync-platform-reviews`, marketplace create/update-product functies).
+- 2C1c: anon-INSERT-pad voor `external_reviews` via edge function met rate-limit.
+- 2C1d: column-masking views voor `cost_price` (`products_safe`, `product_variants_safe`).
