@@ -1,55 +1,31 @@
-## Doel
+## Probleem
 
-Prijs-per-variant gedragen als de bestaande voorraad-per-variant flow: hoofd-verkoopprijs gelockt zodra er actieve varianten zijn, en nieuwe varianten automatisch pre-filled met de hoofdprijs (manuele override blijft gewoon opgeslagen).
+1. **Sidebar-label wrapt over 2 regels.** "Facturen & creditnota's" is te lang voor de sidebar-kolom en breekt naar "Facturen & / creditnota's".
+2. **Gecombineerd overzicht-tabel valt uit z'n container** op middelgrote schermen (~1185px met sidebar open): factuurnummers (`INV-2026-0142`) en datums (`8 jun. 2026`) wrappen lelijk over meerdere regels, terwijl er rechts nog een brede "Creditnota"-actieknop staat.
 
-## Wijzigingen
+## Fix
 
-### 1. `src/pages/admin/ProductForm.tsx` — Verkoopprijs locken
+### 1. Sidebar — korter label
+`src/components/admin/sidebar/sidebarConfig.ts`: label van `orders-invoices` terugbrengen naar **`"Facturen"`** (1 regel). De page-titel toont al `"Facturen & creditnota's"` en de tabs (Alle / Facturen / Creditnota's) maken meteen duidelijk dat CN's hier ook leven. Geen aparte CN-sidebar-entry meer nodig.
 
-In de "Prijzen"-card het `price`-veld vervangen door dezelfde conditional als bij voorraad:
+### 2. Gecombineerd overzicht — responsive tabel
+In `src/pages/admin/Invoices.tsx`, TabsContent `value="all"`:
 
-- Als `id && product?.product_variants` minstens 1 actieve variant heeft → toon een read-only info-blok (zelfde stijl als "Voorraad wordt per variant beheerd"):
-  > **Prijs wordt per variant beheerd**
-  > 4 actieve varianten — pas de verkoopprijs aan in het tabblad "Varianten".
-- Anders → huidige `Input`-veld blijft zoals het is.
+- Vervang de huidige losse `<Table>` door `<ResponsiveDataTable>` (zelfde component als CreditNotesTable gebruikt) met `cardModeBreakpoint="compact"` → onder ~1024px valt 'ie automatisch terug naar card-layout in plaats van uitlopen.
+- Voor desktop-tabel zelf:
+  - `whitespace-nowrap` op Nummer/Datum-kolommen zodat ze niet wrappen.
+  - Compactere actie-knop: icon-only "Creditnota" (Minus-icoon in een ghost-button + tooltip) i.p.v. de volledige `Creditnota`-tekstknop. Spaart ~80px per rij.
+  - Klant-kolom: krijg `priority: 'lg'` (verborgen onder lg-breakpoint) zodat hij niet samenpropt met andere kolommen.
+- Mobile card render: kind-badge, nummer, klant, datum, bedrag, status, en een ActionsMenu (☰) met "Creditnota aanmaken" / "Open creditnota".
 
-`compare_at_price` en `cost_price` blijven onaangetast (productniveau bewerkbaar).
+### 3. Verificatie
+- Sidebar: "Facturen" past op 1 regel, zowel in open als smalle sidebar-states.
+- `/admin/orders/invoices` op 1185px en 1024px: tabel blijft binnen container, geen wrappende cellen.
+- Onder 1024px: tabel wordt cards (zelfde patroon als CreditNotesTable).
+- Tab "Creditnota's" en "Facturen" ongewijzigd (al responsive).
 
-### 2. `src/hooks/useProductVariants.ts` — Default prijs bij genereren
-
-`generateVariants` mutation accepteert nu een optionele `defaultPrice: number | null`. In de `inserts.map(...)` wordt `price: defaultPrice ?? null` toegevoegd.
-
-`createVariant` mutation: als `price` niet wordt meegegeven door de caller, ook hier de hoofdprijs als default doorgeven (caller-bepaald).
-
-### 3. `src/components/admin/products/ProductVariantsTab.tsx` — Hoofdprijs doorgeven
-
-- Component krijgt al `product` via props (of haalt het op) — verifieer en geef `product.price` mee aan `generateVariants.mutate({ defaultPrice: product.price })` en aan handmatige `createVariant`-calls.
-- Bij de "Variant bewerken"-flow: niets veranderen — manuele prijs override werkt al via bestaande `updateVariant`-call.
-
-### 4. Eenmalige data-fix voor tenant Mancini Milano
-
-Migration die alle `product_variants.price` van producten binnen tenant `2606c5b9-caf8-4a42-94cd-80e3f3f31988` overschrijft met `products.price`:
-
-```sql
-UPDATE public.product_variants v
-SET price = p.price
-FROM public.products p
-WHERE v.product_id = p.id
-  AND p.tenant_id = '2606c5b9-caf8-4a42-94cd-80e3f3f31988';
-```
-
-Geen schema-wijzigingen, alleen data-update. `compare_at_price` en `cost_price` van varianten blijven onaangetast.
-
-## Out of scope (expliciet)
-
-- Storefront prijs-fallback (variant.price NULL → product.price) blijft zoals het is; we slaan voortaan altijd de juiste prijs op de variant op, dus geen fallback-aanpassing nodig.
-- Bulk "reset alle varianten naar hoofdprijs"-knop in UI — niet gevraagd. Eenmalige tenant-fix volstaat.
-- `compare_at_price` / `cost_price` locking — bewust beperkt tot verkoopprijs.
-
-## Verificatie
-
-1. Mancini Milano product met varianten: hoofdprijs-veld toont info-blok, niet bewerkbaar.
-2. Nieuw product zonder varianten: prijs-veld werkt normaal.
-3. Nieuwe variant genereren: krijgt automatisch hoofdprijs.
-4. Variant manueel naar €200 zetten → opslaan → blijft €200 (niet overschreven door hoofdprijs).
-5. Na migration: alle Mancini Milano varianten tonen €900 (of de actuele hoofdprijs van hun product).
+## Technische details
+- Hergebruik `ResponsiveDataTable` / `ColumnDef` / `ActionsMenu` uit `src/components/ui/`.
+- `CreateCreditNoteFromInvoiceButton` accepteert al een onSuccess-callback; we wrappen 'm in een icon-only variant of voegen een prop `compact` toe (alleen icon + tooltip). Inspectie van die component bepaalt of we 'm uitbreiden of de aanroep gewoon door een `ActionsMenu`-item vervangen.
+- Geen wijzigingen aan migraties, backend, of CreditNotesTable.
+- Geen wijzigingen aan de "Facturen" of "Creditnota's" tab — die zijn al responsive.
