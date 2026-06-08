@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
 import { ManualInvoiceDialog } from '@/components/admin/ManualInvoiceDialog';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
