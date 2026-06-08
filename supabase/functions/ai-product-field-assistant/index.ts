@@ -384,6 +384,9 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
     });
   } catch (error) {
     console.error("Error in ai-product-field-assistant:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
