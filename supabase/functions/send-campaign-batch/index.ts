@@ -1,6 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    requireRole(auth, campaign.tenant_id, ["tenant_admin", "staff", "marketing"]);
 
     // Get tenant info for email personalization
     const { data: tenant } = await supabase
