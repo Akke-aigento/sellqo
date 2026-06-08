@@ -15,6 +15,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useStripeConnect } from '@/hooks/useStripeConnect';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { StripeDisconnectDialog } from '@/components/admin/settings/StripeDisconnectDialog';
 
 const SUPPORTED_COUNTRIES = [
   { code: 'NL', name: 'Nederland', flag: '🇳🇱' },
