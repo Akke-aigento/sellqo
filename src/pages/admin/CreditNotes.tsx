@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { FileText, Download, Search, FileCode, ExternalLink, Loader2 } from 'lucide-react';
+import { FileText, Download, Search, FileCode, ExternalLink, Loader2, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
@@ -9,6 +9,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useQueryClient } from '@tanstack/react-query';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { useToast } from '@/hooks/use-toast';
+import { useCan } from '@/hooks/useCan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,8 @@ export default function CreditNotesPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const canWrite = useCan('write', 'credit_notes');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CreditNoteStatus | 'all'>('all');
 
@@ -54,6 +57,21 @@ export default function CreditNotesPage() {
       });
     } finally {
       setGeneratingId(null);
+    }
+  };
+
+  const handleResendEmail = async (cnId: string, language?: string) => {
+    try {
+      setResendingId(cnId);
+      await invokeWithErrorBody('send-credit-note-email', {
+        body: { credit_note_id: cnId, language },
+      });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      toast({ title: 'E-mail verzonden', description: 'De creditnota is opnieuw naar de klant verstuurd.' });
+    } catch (e: any) {
+      toast({ title: 'E-mail versturen mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -104,6 +122,13 @@ export default function CreditNotesPage() {
     });
     if (cn.ubl_url) {
       items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(cn.ubl_url!, '_blank') });
+    }
+    if (canWrite) {
+      items.push({
+        label: cn.sent_at ? 'E-mail opnieuw versturen' : 'E-mail versturen',
+        icon: resendingId === cn.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />,
+        onClick: () => handleResendEmail(cn.id, (cn as any).language),
+      });
     }
     if (cn.original_invoice) {
       items.push({ label: 'Originele factuur', icon: <ExternalLink className="h-4 w-4" />, onClick: () => navigate('/admin/orders/invoices') });

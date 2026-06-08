@@ -3935,6 +3935,7 @@ export type Database = {
           peppol_required: boolean | null
           peppol_status: string | null
           reason: string
+          sent_at: string | null
           status: string | null
           subtotal: number
           tax_amount: number | null
@@ -3957,6 +3958,7 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_status?: string | null
           reason: string
+          sent_at?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null
@@ -3979,6 +3981,7 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_status?: string | null
           reason?: string
+          sent_at?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null

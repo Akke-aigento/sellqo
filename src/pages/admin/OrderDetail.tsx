@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { InvoiceStatusBadge } from '@/components/admin/InvoiceStatusBadge';
+import { OrderCreditNotesSection } from '@/components/admin/OrderCreditNotesSection';
 import { OrderReturnTag } from '@/components/admin/OrderReturnTag';
 import { CustomerMessageDialog } from '@/components/admin/CustomerMessageDialog';
 import { MessageHistoryPanel } from '@/components/admin/MessageHistoryPanel';
@@ -623,6 +624,11 @@ export default function OrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Credit notes */}
+          {invoice && (
+            <OrderCreditNotesSection invoiceId={invoice.id} invoiceNumber={invoice.invoice_number} />
+          )}
         </div>
       </div>
 

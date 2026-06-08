@@ -17,6 +17,7 @@ interface CreateCreditNoteData {
   type: CreditNoteType;
   reason: string;
   lines: Omit<CreditNoteLine, 'id' | 'credit_note_id' | 'created_at'>[];
+  auto_send_email?: boolean;
 }
 
 export function useCreditNotes(filters?: CreditNoteFilters) {
@@ -114,22 +115,27 @@ export function useCreditNotes(filters?: CreditNoteFilters) {
 
       if (linesError) throw linesError;
 
-      // Auto-generate PDF (best-effort — never block creation flow)
+      // Auto-generate PDF (best-effort — never block creation flow).
+      // Optionally also auto-send the email when caller asked for it.
+      let emailSent = false;
       try {
-        await invokeWithErrorBody('generate-credit-note', {
-          body: { credit_note_id: creditNote.id },
+        const res = await invokeWithErrorBody<{ email_sent?: boolean }>('generate-credit-note', {
+          body: { credit_note_id: creditNote.id, auto_send_email: !!data.auto_send_email },
         });
+        emailSent = !!res?.email_sent;
       } catch (pdfErr) {
         console.warn('[useCreditNotes] PDF auto-generation failed', pdfErr);
       }
 
-      return creditNote;
+      return { ...creditNote, _email_sent: emailSent };
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
       toast({
-        title: 'Creditnota aangemaakt',
-        description: 'De creditnota is succesvol aangemaakt.',
+        title: result?._email_sent ? 'Creditnota aangemaakt en verzonden' : 'Creditnota aangemaakt',
+        description: result?._email_sent
+          ? 'De PDF is per e-mail naar de klant verstuurd.'
+          : 'De creditnota is opgeslagen als concept.',
       });
     },
     onError: (error) => {
