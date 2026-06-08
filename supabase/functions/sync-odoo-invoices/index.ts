@@ -115,6 +115,54 @@ Deno.serve(async (req) => {
     const auth = await odooAuthenticate(credentials)
     if (!auth) throw new Error('Odoo authentication failed')
 
+    // Load tenant Odoo settings (B2C aggregation toggle)
+    const { data: odooSettings } = await supabase
+      .from('tenant_odoo_settings')
+      .select('aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
+      .eq('tenant_id', connection.tenant_id)
+      .maybeSingle()
+
+    const aggregateB2C = odooSettings?.aggregate_b2c_customers === true
+    let dummyPartnerId: number | null = odooSettings?.b2c_dummy_partner_odoo_id ?? null
+    const dummyPartnerName = odooSettings?.b2c_dummy_partner_name || 'Diverse particulieren'
+
+    // Lazily ensure the B2C dummy res.partner exists (only when aggregation is on)
+    const ensureDummyPartner = async (): Promise<number> => {
+      if (dummyPartnerId) return dummyPartnerId
+      const existing = await odooCallMethod(
+        credentials,
+        auth.sessionId,
+        'res.partner',
+        'search',
+        [[['name', '=', dummyPartnerName], ['customer_rank', '>', 0]]],
+        { limit: 1 }
+      ) as number[]
+
+      if (existing.length > 0) {
+        dummyPartnerId = existing[0]
+      } else {
+        dummyPartnerId = await odooCallMethod(
+          credentials,
+          auth.sessionId,
+          'res.partner',
+          'create',
+          [{
+            name: dummyPartnerName,
+            company_type: 'person',
+            customer_rank: 1,
+            comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
+          }]
+        ) as number
+      }
+
+      await supabase
+        .from('tenant_odoo_settings')
+        .update({ b2c_dummy_partner_odoo_id: dummyPartnerId })
+        .eq('tenant_id', connection.tenant_id)
+
+      return dummyPartnerId
+    }
+
     // Get invoices to sync
     let invoicesQuery = supabase
       .from('invoices')
@@ -146,40 +194,61 @@ Deno.serve(async (req) => {
 
     for (const invoice of invoices || []) {
       try {
-        // First, find or create the partner (customer) in Odoo
         const customerName = invoice.order?.customer_name || 'Onbekende klant'
         const customerEmail = invoice.order?.customer_email || ''
 
-        // Search for existing partner
-        let partnerId: number
-        const existingPartners = await odooCallMethod(
-          credentials,
-          auth.sessionId,
-          'res.partner',
-          'search',
-          [[['email', '=', customerEmail]]],
-          { limit: 1 }
-        ) as number[]
+        // Determine customer type. Prefer the linked customer record; fall back to order heuristics.
+        let customerType: 'b2b' | 'b2c' = 'b2c'
+        if (invoice.order?.customer_id) {
+          const { data: cust } = await supabase
+            .from('customers')
+            .select('customer_type')
+            .eq('id', invoice.order.customer_id)
+            .maybeSingle()
+          if (cust?.customer_type === 'b2b') customerType = 'b2b'
+        } else if (invoice.order?.customer_vat_number || invoice.order?.customer_company_name) {
+          customerType = 'b2b'
+        }
 
-        if (existingPartners.length > 0) {
-          partnerId = existingPartners[0]
+        let partnerId: number
+        let auditNote: string | null = null
+
+        if (aggregateB2C && customerType === 'b2c') {
+          // Route B2C invoice to the shared dummy partner; keep audit info in invoice narration
+          partnerId = await ensureDummyPartner()
+          auditNote = `SellQo customer: ${customerName}${customerEmail ? ` <${customerEmail}>` : ''} (order ${invoice.order?.order_number || invoice.order?.id || ''})`
         } else {
-          // Create new partner
-          partnerId = await odooCallMethod(
-            credentials,
-            auth.sessionId,
-            'res.partner',
-            'create',
-            [{
-              name: customerName,
-              email: customerEmail || false,
-              phone: invoice.order?.customer_phone || false,
-              street: invoice.order?.billing_address?.street || false,
-              city: invoice.order?.billing_address?.city || false,
-              zip: invoice.order?.billing_address?.postal_code || false,
-              customer_rank: 1,
-            }]
-          ) as number
+          // B2B or aggregation off → existing per-customer behaviour
+          const existingPartners = customerEmail
+            ? await odooCallMethod(
+                credentials,
+                auth.sessionId,
+                'res.partner',
+                'search',
+                [[['email', '=', customerEmail]]],
+                { limit: 1 }
+              ) as number[]
+            : []
+
+          if (existingPartners.length > 0) {
+            partnerId = existingPartners[0]
+          } else {
+            partnerId = await odooCallMethod(
+              credentials,
+              auth.sessionId,
+              'res.partner',
+              'create',
+              [{
+                name: customerName,
+                email: customerEmail || false,
+                phone: invoice.order?.customer_phone || false,
+                street: invoice.order?.billing_address?.street || false,
+                city: invoice.order?.billing_address?.city || false,
+                zip: invoice.order?.billing_address?.postal_code || false,
+                customer_rank: 1,
+              }]
+            ) as number
+          }
         }
 
         // Create invoice (account.move) in Odoo
@@ -197,6 +266,10 @@ Deno.serve(async (req) => {
           invoice_date: invoice.invoice_date || new Date().toISOString().split('T')[0],
           ref: invoice.invoice_number,
           invoice_line_ids: invoiceLines,
+        }
+
+        if (auditNote) {
+          moveData.narration = auditNote
         }
 
         if (settings.odooDefaultJournalId) {
