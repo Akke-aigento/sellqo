@@ -725,3 +725,29 @@ Service-role bypassen RLS by default → webhook/sync-paden ongewijzigd.
 - [ ] Marketplace-tab → bestaande Bol/Shopify connections leesbaar
 - [ ] Storefront op custom domain → multi-domain routing werkt (anon SELECT op `tenant_domains`)
 - [ ] Stripe Connect / Bol / Meta webhooks blijven draaien (service-role bypass)
+
+## Feature — Odoo B2C dummy aggregation (Pieter-requirement #6) — 2026-06-08
+
+### Nieuwe tabel `public.tenant_odoo_settings`
+- Kolommen: `tenant_id` (PK → tenants), `aggregate_b2c_customers` (bool, default false), `b2c_dummy_partner_name` (text, default `Diverse particulieren`), `b2c_dummy_partner_odoo_id` (int, cache), `aggregate_per_channel` (bool, default false, future-use), timestamps + updated_at trigger.
+- GRANT `SELECT,INSERT,UPDATE,DELETE` aan `authenticated`; `ALL` aan `service_role`.
+- RLS:
+  - `tos_select_tenant_members` — SELECT: alle tenant-leden (+ platform_admin bypass).
+  - `tos_insert_admin_accountant` — INSERT: `has_tenant_role(['tenant_admin','accountant'])` (+ platform_admin).
+  - `tos_update_admin_accountant` — UPDATE: idem.
+  - `tos_delete_admin_accountant` — DELETE: idem.
+
+### Edge-function wijzigingen
+- `sync-odoo-customers`: leest `tenant_odoo_settings.aggregate_b2c_customers`. Wanneer `true` én `customer.customer_type !== 'b2b'` → klant wordt overgeslagen (status `skipped` + reason `B2C customer aggregated (anonymized)`). B2B en aggregation-uit blijven onveranderd individueel pushen.
+- `sync-odoo-invoices`: bij `aggregate=true` + B2C-klant wordt de Odoo `res.partner` voor "Diverse particulieren" eenmalig opgezocht/aangemaakt (`ensureDummyPartner`), de ID gecached in `tenant_odoo_settings.b2c_dummy_partner_odoo_id`, en hergebruikt voor alle vervolgsyncs. De originele klantnaam/e-mail + ordernummer worden in `account.move.narration` opgenomen als audit-trail. B2B / aggregation-uit pad ongewijzigd.
+- Customer-type bepaling: primair via gekoppelde `customers.customer_type`, fallback op `orders.customer_vat_number`/`customer_company_name`.
+
+### Admin UI
+- Nieuwe sectie `OdooB2CAggregationSettings` op de Odoo-marketplace-detail (`/admin/marketplaces/:id`, tab Instellingen), alleen zichtbaar wanneer Odoo-connectie + `odooModuleAccounting=true`.
+- Toggle + naam-veld + read-only info over de gecachte Odoo partner ID.
+- Gating via `useCan('write','integrations')` → tenant_admin (en platform_admin via bypass) mag wijzigen, andere rollen alleen lezen.
+
+### Effect
+- SellQo-customers tabel onaangetast (marketing/CRM blijft individueel).
+- Odoo-boekhouding krijgt één verzamelklant voor consumer-omzet wanneer ingeschakeld; B2B blijft altijd individueel.
+- Pieter-requirement #6 vervuld.
