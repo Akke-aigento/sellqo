@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Minus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CreditNoteDialog } from './CreditNoteDialog';
@@ -11,6 +12,8 @@ interface Props {
   invoiceNumber: string;
   variant?: 'button' | 'menuItem';
   onSuccess?: () => void;
+  /** Render as icon-only button with tooltip (saves horizontal space in dense tables). */
+  compact?: boolean;
 }
 
 interface RawLine {
@@ -28,7 +31,7 @@ interface RawLine {
  * Loads invoice_lines on demand, then opens CreditNoteDialog pre-filled.
  * Used from the invoices list and order detail.
  */
-export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, onSuccess }: Props) {
+export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, onSuccess, compact = false }: Props) {
   const { toast } = useToast();
   const canWrite = useCan('write', 'credit_notes');
   const [loading, setLoading] = useState(false);
@@ -65,12 +68,25 @@ export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, on
     }
   };
 
+  const trigger = compact ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClick} disabled={loading} aria-label="Creditnota aanmaken">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Creditnota aanmaken</TooltipContent>
+    </Tooltip>
+  ) : (
+    <Button variant="outline" size="sm" onClick={handleClick} disabled={loading}>
+      {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Minus className="h-4 w-4 mr-2" />}
+      Creditnota
+    </Button>
+  );
+
   return (
     <>
-      <Button variant="outline" size="sm" onClick={handleClick} disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Minus className="h-4 w-4 mr-2" />}
-        Creditnota
-      </Button>
+      {trigger}
       {lines && (
         <CreditNoteDialog
           invoiceId={invoiceId}
