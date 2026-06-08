@@ -5,6 +5,7 @@ import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import { CreditNote, CreditNoteLine, CreditNoteWithRelations, CreditNoteType, CreditNoteStatus } from '@/types/creditNote';
 import { generateOGM } from '@/lib/ogm';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 
 interface CreditNoteFilters {
   status?: CreditNoteStatus;
@@ -112,6 +113,15 @@ export function useCreditNotes(filters?: CreditNoteFilters) {
         .insert(linesWithCreditNoteId);
 
       if (linesError) throw linesError;
+
+      // Auto-generate PDF (best-effort — never block creation flow)
+      try {
+        await invokeWithErrorBody('generate-credit-note', {
+          body: { credit_note_id: creditNote.id },
+        });
+      } catch (pdfErr) {
+        console.warn('[useCreditNotes] PDF auto-generation failed', pdfErr);
+      }
 
       return creditNote;
     },
