@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { PaymentMethodType } from '@/components/admin/MarkAsPaidButton';
 
 interface ConfirmPaymentParams {
