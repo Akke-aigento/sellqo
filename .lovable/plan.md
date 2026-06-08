@@ -1,31 +1,42 @@
 ## Probleem
 
-1. **Sidebar-label wrapt over 2 regels.** "Facturen & creditnota's" is te lang voor de sidebar-kolom en breekt naar "Facturen & / creditnota's".
-2. **Gecombineerd overzicht-tabel valt uit z'n container** op middelgrote schermen (~1185px met sidebar open): factuurnummers (`INV-2026-0142`) en datums (`8 jun. 2026`) wrappen lelijk over meerdere regels, terwijl er rechts nog een brede "Creditnota"-actieknop staat.
+Bij ~1185px schermbreedte is het content-gebied (na 256px sidebar) ongeveer 929px. De `ResponsiveDataTable` switcht echter pas naar cards op basis van **window**-breedte (`matchMedia`, lg=1024px), niet container-breedte. Dus:
 
-## Fix
+- **Alle**-tab en **Creditnota's**-tab: tabellen blijven in "full" modus terwijl ze maar ~929px ruimte hebben → Status-kolom + acties lopen uit het kader.
+- **Facturen**-tab: gebruikt nog de legacy hand-gerolde `<Table>` met 8 kolommen (factuurnummer, klant, order, bron, datum, bedrag, status, acties) + `sm:hidden` mobile cards die pas <640px aanslaan → Status klapt af, acties verdwijnen.
 
-### 1. Sidebar — korter label
-`src/components/admin/sidebar/sidebarConfig.ts`: label van `orders-invoices` terugbrengen naar **`"Facturen"`** (1 regel). De page-titel toont al `"Facturen & creditnota's"` en de tabs (Alle / Facturen / Creditnota's) maken meteen duidelijk dat CN's hier ook leven. Geen aparte CN-sidebar-entry meer nodig.
+## Oplossing
 
-### 2. Gecombineerd overzicht — responsive tabel
-In `src/pages/admin/Invoices.tsx`, TabsContent `value="all"`:
+### 1. `src/components/ui/responsive-data-table.tsx` — container-aware switching
 
-- Vervang de huidige losse `<Table>` door `<ResponsiveDataTable>` (zelfde component als CreditNotesTable gebruikt) met `cardModeBreakpoint="compact"` → onder ~1024px valt 'ie automatisch terug naar card-layout in plaats van uitlopen.
-- Voor desktop-tabel zelf:
-  - `whitespace-nowrap` op Nummer/Datum-kolommen zodat ze niet wrappen.
-  - Compactere actie-knop: icon-only "Creditnota" (Minus-icoon in een ghost-button + tooltip) i.p.v. de volledige `Creditnota`-tekstknop. Spaart ~80px per rij.
-  - Klant-kolom: krijg `priority: 'lg'` (verborgen onder lg-breakpoint) zodat hij niet samenpropt met andere kolommen.
-- Mobile card render: kind-badge, nummer, klant, datum, bedrag, status, en een ActionsMenu (☰) met "Creditnota aanmaken" / "Open creditnota".
+Vervang de window-based `useViewMode()` door een lokale `ResizeObserver` op een wrapper-`div`. Drempels gelijk aan huidige breakpoints:
 
-### 3. Verificatie
-- Sidebar: "Facturen" past op 1 regel, zowel in open als smalle sidebar-states.
-- `/admin/orders/invoices` op 1185px en 1024px: tabel blijft binnen container, geen wrappende cellen.
-- Onder 1024px: tabel wordt cards (zelfde patroon als CreditNotesTable).
-- Tab "Creditnota's" en "Facturen" ongewijzigd (al responsive).
+- `cardModeBreakpoint="mobile"` → cards bij container < 640px
+- `cardModeBreakpoint="compact"` → cards bij container < 1024px
 
-## Technische details
-- Hergebruik `ResponsiveDataTable` / `ColumnDef` / `ActionsMenu` uit `src/components/ui/`.
-- `CreateCreditNoteFromInvoiceButton` accepteert al een onSuccess-callback; we wrappen 'm in een icon-only variant of voegen een prop `compact` toe (alleen icon + tooltip). Inspectie van die component bepaalt of we 'm uitbreiden of de aanroep gewoon door een `ActionsMenu`-item vervangen.
-- Geen wijzigingen aan migraties, backend, of CreditNotesTable.
-- Geen wijzigingen aan de "Facturen" of "Creditnota's" tab — die zijn al responsive.
+Kolom-prio classes (`hidden md:table-cell`, `lg:table-cell`, `xl:table-cell`) blijven werken op window-basis, of we vervangen ze ook door container-based zichtbaarheid (zelfde ResizeObserver state). Voor consistentie: kolommen verbergen op zelfde container-drempels (md=768, lg=1024, xl=1280) i.p.v. window — voorkomt dat kolommen verschijnen die in de smalle container niet passen.
+
+Geen API-wijziging voor callers; alle bestaande tabellen profiteren automatisch.
+
+### 2. `src/pages/admin/Invoices.tsx` — Facturen-tab naar `ResponsiveDataTable`
+
+Vervang het hele blok `{isLoading ? … : invoices.length === 0 ? … : <> mobile cards + desktop Table </>}` (regels ~395-…) door één `<ResponsiveDataTable<Invoice>>` met:
+
+- Kolommen: `nummer` (always), `klant` (always, truncate), `order` (priority `lg`, met ExternalLink), `bron` (priority `xl`, `OrderMarketplaceBadge`), `datum` (priority `md`, `whitespace-nowrap`), `bedrag` (always, right, `whitespace-nowrap`), `status` (always, `InvoiceStatusBadge` + `getPeppolStatusBadge`), `acties` (always, `ActionsMenu` met PDF/UBL/E-mail/Creditnota aanmaken).
+- `cardModeBreakpoint="compact"` → cards bij <1024px container.
+- `mobileCardRender`: pakt huidige inhoud van de `sm:hidden` cards (al aanwezig).
+
+De bestaande `sm:hidden` / `hidden sm:block` blokken vervallen.
+
+### 3. Geen wijzigingen aan
+
+- `CreditNotesTable.tsx` — al op `ResponsiveDataTable` met `cardModeBreakpoint="compact"`; profiteert direct van fix #1.
+- "Alle"-tab — idem.
+- Sidebar, routes, backend, migraties.
+
+## Verificatie
+
+- 1280×800: alle drie tabs in vol tabel-formaat zonder afkappen.
+- 1185×800 (huidige situatie): "Alle", "Facturen" en "Creditnota's" switchen naar card-layout → geen overflow.
+- <768px: cards (al ok).
+- Geen TS-fouten, geen regressies op andere pagina's die `ResponsiveDataTable` gebruiken (productgrid, klanten, fulfillment, etc.) — die kunnen alleen *eerder* naar cards switchen op kleine containers, wat een verbetering is.
