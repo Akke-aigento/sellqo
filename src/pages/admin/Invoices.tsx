@@ -559,20 +559,7 @@ export default function InvoicesPage() {
         </TabsContent>
 
         <TabsContent value="creditnotes">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Minus className="h-5 w-5" /> Creditnota's</CardTitle>
-              <CardDescription>
-                Ga naar de dedicated creditnota-pagina voor de volledige actiebalk.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" onClick={() => navigate('/admin/orders/creditnotes')}>
-                Open Creditnota's overzicht
-                <ExternalLink className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
+          <CreditNotesTable />
         </TabsContent>
       </Tabs>
     </div>
