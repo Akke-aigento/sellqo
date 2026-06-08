@@ -1929,3 +1929,89 @@ WHERE checkout_status='shopping' GROUP BY 1,2 HAVING COUNT(*) > 1;
 -- Verwacht: 0 rijen.
 ```
 
+
+---
+
+## Batch 2C2b — Marketing/CMS/Ads edge-function role-checks
+Datum: 2026-06-08
+
+### Sweep-rapport — classificatie per categorie
+
+**Marketing / Email (admin-triggered):**
+- `send-campaign-batch` — JWT, admin-triggered batch send
+- `send-test-email` — JWT, tenant preview
+- `send-customer-message` — al gehard in eerdere batch (`tenant_admin`/`staff`/`accountant`)
+- `ai-generate-email`, `ai-generate-social`, `ai-campaign-suggestions`, `ai-product-promo-kit`, `ai-seo-analyzer` — AI-generators voor marketing
+
+**Ads (admin + dual-path cron):**
+- `ads-bolcom-sync`, `ads-bolcom-reports`, `ads-ai-engine`, `ads-inventory-watch` — kunnen door cron én admin worden aangeroepen → dual-path
+- `ads-bolcom-manage`, `ads-campaign-analyze`, `push-bol-campaign`, `sync-bol-campaign-status` — uitsluitend admin-triggered
+- `ads-bolcom-scheduler` — service-role cron, niet aangeraakt
+
+**Social (admin only):**
+- `social-post-publish` — admin posting
+- `social-oauth-init` — al gehard (tenant_admin only)
+
+**Newsletter / connectivity tests:**
+- `newsletter-test-connection` — admin-only utility, voorheen volledig ongauth → JWT toegevoegd
+
+**Skip-lijst (anoniem of webhook, niet aangeraakt — bevestigd recon §2 + §7-8/§7-9/§7-10):**
+- `unsubscribe`, `newsletter-subscribe`, `newsletter-confirm`, `email-preferences` (anon pad)
+- `process-email-webhook`, `tracking-webhook`, `whatsapp-webhook`, `meta-messaging-webhook`, `shipping-webhook`, `stripe-connect-webhook`, `platform-stripe-webhook` (signature-auth)
+- `generate-sitemap` (publiek/cron — §7-8)
+- `storefront-api` (anon validate-discount-code zit hierin — §7-9)
+- `ads-bolcom-scheduler`, `marketplace-sync-scheduler`, `automation-scheduler`, `check-scheduled-notifications` (service-role cron)
+
+**Niet aanwezig in dit project (gevraagd in opdracht, skip):**
+`send-marketing-email`, `send-email-campaign`, `dispatch-email`, `process-email-blast`, `apply-ad-recommendation`, `accept-ad-recommendation`, `trigger-seo-audit`, `run-seo-keyword-search`, `generate-blog-post-ai`, `generate-product-description-ai`, `publish-storefront-page`, `preview-cms-page`, `post-to-social`, `schedule-social-post`, `upload-cms-asset`, `upload-blog-image`, `import-newsletter-subscribers`, `bulk-newsletter-import`, `rotate-newsletter-api-key`, `reset-discount-quota`, `bulk-delete-campaigns`, `generate-discount-codes`, `update-theme-settings`.
+
+### Per-functie wijzigingen
+
+`requireRole(['tenant_admin','staff','marketing'])` toegevoegd aan:
+- `send-test-email` — na `authenticateRequest(req, tenantId)`
+- `send-campaign-batch` — na fetch van `campaign.tenant_id` (campaign-id-only payload)
+- `ai-generate-email` — vervangt inline `supabase.auth.getUser` met `authenticateRequest(req, tenantId)` + `requireRole`
+- `ai-generate-social` — idem
+- `ai-campaign-suggestions` — idem
+- `ai-seo-analyzer` — na bestaande `authenticateRequest(req, tenantId)`
+- `social-post-publish` — na bestaande `authenticateRequest(req, tenantId)`
+- `ads-campaign-analyze` — na bestaande `authenticateRequest(req, tenant_id)`
+- `push-bol-campaign` — verplaatst naar na fetch van `campaign.tenant_id` (oude regel verwees naar ongedefinieerde `tenant_id` — bug-fix)
+- `sync-bol-campaign-status` — `authenticateRequest` + `requireRole` toegevoegd (was alleen `auth.getUser`)
+- `ads-bolcom-manage` — `authenticateRequest` + `requireRole` toegevoegd (was alleen `auth.getUser`)
+
+### Dual-path (cron-secret bypass, beslispunt §7-10)
+
+Patroon: `X-Sync-Secret` header tegen `Deno.env.get("CRON_SECRET")` checken. Bij match → skip role-check en gebruik service-role client. Anders → `authenticateRequest` + `requireRole(['tenant_admin','staff','marketing'])`. Bestaande `isServiceRole` bearer-token bypass blijft behouden voor scheduler die met service-role-key aanroept.
+
+Toegepast op:
+- `ads-bolcom-sync`
+- `ads-bolcom-reports`
+- `ads-ai-engine`
+- `ads-inventory-watch` (geen tenant_id in payload — user-pad valt terug op `is_platform_admin` only)
+
+### Newsletter test-connection
+
+`newsletter-test-connection` was volledig ongauthenticeerd. Toegevoegd: `await authenticateRequest(req)` (alleen JWT-check, geen tenant scope — utility accepteert geen tenant_id in payload).
+
+### Config.toml wijzigingen
+
+`verify_jwt = false` toegevoegd voor (waren impliciet default of niet expliciet):
+- `ai-generate-email`, `ai-generate-social`, `ai-campaign-suggestions`, `ai-seo-analyzer`
+- `ads-bolcom-sync`, `ads-bolcom-manage`, `ads-bolcom-reports`, `ads-ai-engine`
+- `ads-campaign-analyze`, `ads-inventory-watch`
+- `push-bol-campaign`, `sync-bol-campaign-status`
+
+Bestaande entries (`send-test-email`, `send-campaign-batch`, `ai-product-promo-kit`, `social-post-publish`, `newsletter-test-connection`, `ai-generate-storefront-copy`) ongewijzigd — interne auth-validatie bevestigd.
+
+### Beslispunten bevestigd
+- §7-3: marketing-rol mag email/ads/social schrijven → `['tenant_admin','staff','marketing']` matrix toegepast
+- §7-8: `generate-sitemap` niet aangeraakt (publiek/cron)
+- §7-9: `storefront-api` (validate-discount-code anon pad) niet aangeraakt
+- §7-10: ads-sync dual-path via `X-Sync-Secret` + service-role bearer-token
+
+### Productie-test
+- Platform admin (Jeroen): alle acties bypassen via `is_platform_admin`
+- Anon-paden (`track-email-open`, `unsubscribe`, `newsletter-subscribe`, `generate-sitemap`, `storefront-api`/validate-discount-code) ongewijzigd
+- Bol-ads-scheduler blijft draaien (service-role bearer-token pad ongewijzigd)
+- Email-pixel-trackers / unsubscribe / sitemap.xml — geen wijziging
