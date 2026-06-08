@@ -1134,3 +1134,33 @@ Post-migration verificatie: `pg_policies` bevat geen `has_role(auth.uid()` calls
 ### Niet in scope (zoals afgesproken)
 - Geen edge-function changes — komt in 2B2b
 - Geen nieuwe tabellen (customer_addresses/notes/tags/preferences/gdpr) — niet aanwezig in schema, postponed to Fase 3
+
+## Customer-data integriteit hersteld (2026-06-08)
+
+### Probleem
+- Order #1149 (webshop, bieke.derdeyn@gmail.com) had customer_id=NULL — storefront-api skip zonder log.
+- Order #1150 + alle Bol/Shopify-orders hadden customer_id=NULL — sync-functies deden geen find-or-create.
+- Customers-tabel was incompleet → segmentatie/marketing/reports onvolledig.
+
+### Fix A — Backfill (SQL-migration)
+- Loop over alle `orders WHERE customer_id IS NULL AND customer_email <> ''`.
+- Find-or-create per (tenant_id, email) op `public.customers` (gebruikt `vat_number` ipv `btw_number` — kolom-naam in dit schema).
+- Resultaat: orphan-count 39 → 0 (129 orders met email, allen gekoppeld).
+- Tweede pass: ontbrekende `first_name`/`last_name` afgeleid uit `orders.customer_name` (split_part).
+- Geverifieerd: bieke.derdeyn@gmail.com → "Bieke Derdeyn" (b2c); bol-klant 24e34e5... → "Kevin Sterk" (b2c).
+
+### Fix B — sync-functies find-or-create
+- `supabase/functions/sync-bol-orders/index.ts` (~regel 411): customer lookup + insert toegevoegd vóór order-insert; `customer_id` gezet in order payload; fallback-email `bol-{orderId}@noreply.bol.com` als shipment.email leeg is.
+- `supabase/functions/sync-shopify-orders/index.ts`: zelfde patroon, names uit `shopifyOrder.customer` of `shipping_address`.
+- `sync-shopify-customers` doet al volledige customer-create — geen wijziging nodig.
+- Geen amazon/ebay sync edge functions actief in dit project.
+
+### Fix C — storefront-api defensieve logging
+- `supabase/functions/storefront-api/index.ts` (regel ~1594 en ~2244): beide customer-creation paden krijgen nu:
+  - `console.warn` als `cart.customer_email` leeg/null is (incl. tenant_id-context).
+  - `console.error` op `lookupErr` van de SELECT.
+  - `console.error` op `insertErr` van de INSERT (met email + tenant_id).
+- Geen functionele change — alleen traceability voor toekomstige incidents.
+
+### Datum
+2026-06-08

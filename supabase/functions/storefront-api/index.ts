@@ -1592,9 +1592,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   // Find or create customer
   let customerId: string | null = null;
   if (cart.customer_email) {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from('customers').select('id')
       .eq('tenant_id', tenantId).eq('email', cart.customer_email).maybeSingle();
+    if (lookupErr) {
+      console.error(`[STOREFRONT-CUSTOMER] lookup error for ${cart.customer_email} (tenant ${tenantId}):`, lookupErr.message);
+    }
     if (existing) {
       customerId = existing.id;
       const updateFields: Record<string, any> = {};
@@ -1606,7 +1609,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       }
     } else {
       const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
-      const { data: newCust } = await supabase
+      const { data: newCust, error: insertErr } = await supabase
         .from('customers')
         .insert({
           tenant_id: tenantId, email: cart.customer_email,
@@ -1614,8 +1617,13 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
           phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c',
         })
         .select('id').single();
+      if (insertErr) {
+        console.error(`[STOREFRONT-CUSTOMER] insert failed for ${cart.customer_email} (tenant ${tenantId}):`, insertErr.message);
+      }
       customerId = newCust?.id || null;
     }
+  } else {
+    console.warn(`[STOREFRONT-CUSTOMER] cart.customer_email empty for tenant ${tenantId} — skipping customer creation (order will have customer_id=NULL)`);
   }
 
   const orderStatus = paymentStatus === 'paid' ? 'processing' : 'pending';
@@ -2242,9 +2250,12 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Find or create customer
   let customerId: string | null = null;
   if (cart.customer_email) {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from('customers').select('id')
       .eq('tenant_id', tenantId).eq('email', cart.customer_email).maybeSingle();
+    if (lookupErr) {
+      console.error(`[STOREFRONT-CUSTOMER] lookup error for ${cart.customer_email} (tenant ${tenantId}):`, lookupErr.message);
+    }
     if (existing) {
       customerId = existing.id;
       const updateFields: Record<string, any> = {};
@@ -2256,12 +2267,17 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       }
     } else {
       const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
-      const { data: newCust } = await supabase
+      const { data: newCust, error: insertErr } = await supabase
         .from('customers')
         .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c' })
         .select('id').single();
+      if (insertErr) {
+        console.error(`[STOREFRONT-CUSTOMER] insert failed for ${cart.customer_email} (tenant ${tenantId}):`, insertErr.message);
+      }
       customerId = newCust?.id || null;
     }
+  } else {
+    console.warn(`[STOREFRONT-CUSTOMER] cart.customer_email empty for tenant ${tenantId} — skipping customer creation (order will have customer_id=NULL)`);
   }
 
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });

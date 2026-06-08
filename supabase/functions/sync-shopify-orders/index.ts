@@ -132,8 +132,55 @@ Deno.serve(async (req) => {
         .single()
 
       // Map Shopify order to SellQo format
+      const customerEmail = shopifyOrder.email || null
+      const sFirst = shopifyOrder.customer?.first_name || shopifyOrder.shipping_address?.first_name || ''
+      const sLast = shopifyOrder.customer?.last_name || shopifyOrder.shipping_address?.last_name || ''
+      const sPhone = shopifyOrder.customer?.phone || shopifyOrder.shipping_address?.phone || null
+
+      // Find-or-create customer
+      let customerId: string | null = null
+      if (customerEmail) {
+        try {
+          const { data: existing } = await supabase
+            .from('customers').select('id')
+            .eq('tenant_id', connection.tenant_id)
+            .eq('email', customerEmail)
+            .maybeSingle()
+          if (existing) {
+            customerId = existing.id
+            const updateFields: Record<string, any> = {}
+            if (sFirst) updateFields.first_name = sFirst
+            if (sLast) updateFields.last_name = sLast
+            if (sPhone) updateFields.phone = sPhone
+            if (Object.keys(updateFields).length > 0) {
+              await supabase.from('customers').update(updateFields).eq('id', existing.id)
+            }
+          } else {
+            const { data: newCust, error: custErr } = await supabase
+              .from('customers')
+              .insert({
+                tenant_id: connection.tenant_id,
+                email: customerEmail,
+                first_name: sFirst,
+                last_name: sLast,
+                phone: sPhone,
+                customer_type: 'b2c',
+              })
+              .select('id').single()
+            if (custErr) {
+              console.error(`[SHOPIFY-CUSTOMER] insert failed for ${customerEmail}:`, custErr.message)
+            } else {
+              customerId = newCust?.id || null
+            }
+          }
+        } catch (e) {
+          console.error(`[SHOPIFY-CUSTOMER] find-or-create error for ${customerEmail}:`, e)
+        }
+      }
+
       const orderData = {
         tenant_id: connection.tenant_id,
+        customer_id: customerId,
         marketplace_order_id: shopifyOrder.id.toString(),
         marketplace_type: 'shopify',
         order_number: shopifyOrder.order_number?.toString() || shopifyOrder.name,

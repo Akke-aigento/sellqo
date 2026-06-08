@@ -413,6 +413,50 @@ Deno.serve(async (req) => {
               ? `${shipment.firstName || ''} ${shipment.surname || ''}`.trim() || 'Onbekend'
               : 'Onbekend'
 
+            const customerEmail = shipment?.email || `bol-${bolOrder.orderId}@noreply.bol.com`
+            const customerPhone = shipment?.deliveryPhoneNumber || null
+            const firstName = shipment?.firstName || ''
+            const lastName = shipment?.surname || ''
+
+            // Find-or-create customer (customer-data integriteit)
+            let customerId: string | null = null
+            try {
+              const { data: existing } = await supabase
+                .from('customers').select('id')
+                .eq('tenant_id', connection.tenant_id)
+                .eq('email', customerEmail)
+                .maybeSingle()
+              if (existing) {
+                customerId = existing.id
+                const updateFields: Record<string, any> = {}
+                if (firstName) updateFields.first_name = firstName
+                if (lastName) updateFields.last_name = lastName
+                if (customerPhone) updateFields.phone = customerPhone
+                if (Object.keys(updateFields).length > 0) {
+                  await supabase.from('customers').update(updateFields).eq('id', existing.id)
+                }
+              } else {
+                const { data: newCust, error: custErr } = await supabase
+                  .from('customers')
+                  .insert({
+                    tenant_id: connection.tenant_id,
+                    email: customerEmail,
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: customerPhone,
+                    customer_type: 'b2c',
+                  })
+                  .select('id').single()
+                if (custErr) {
+                  console.error(`[BOL-CUSTOMER] insert failed for ${customerEmail}:`, custErr.message)
+                } else {
+                  customerId = newCust?.id || null
+                }
+              }
+            } catch (e) {
+              console.error(`[BOL-CUSTOMER] find-or-create error for ${customerEmail}:`, e)
+            }
+
             // Generate order number
             const { data: orderNumber } = await supabase.rpc('generate_order_number', {
               _tenant_id: connection.tenant_id
@@ -427,9 +471,10 @@ Deno.serve(async (req) => {
                 marketplace_source: 'bol_com',
                 marketplace_order_id: bolOrder.orderId,
                 marketplace_connection_id: connection.id,
+                customer_id: customerId,
                 customer_name: customerName,
-                customer_email: shipment?.email || `bol-${bolOrder.orderId}@noreply.bol.com`,
-                customer_phone: shipment?.deliveryPhoneNumber,
+                customer_email: customerEmail,
+                customer_phone: customerPhone,
                 subtotal: safeSubtotal,
                 total: safeSubtotal,
                 tax_amount: vatRate > 0
