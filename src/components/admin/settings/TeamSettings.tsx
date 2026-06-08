@@ -305,52 +305,23 @@ export function TeamSettings() {
         <CardHeader>
           <CardTitle className="text-base">Rollen uitleg</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-3">
-            <Badge className="bg-blue-500 mt-0.5">Admin</Badge>
-            <div>
-              <p className="font-medium">Tenant Admin</p>
-              <p className="text-sm text-muted-foreground">
-                Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.
-              </p>
+        <CardContent className="space-y-3">
+          {[
+            { badge: <Badge className="bg-blue-500 hover:bg-blue-500">Admin</Badge>, name: 'Tenant Admin', desc: 'Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.' },
+            { badge: <Badge variant="secondary">Medewerker</Badge>, name: 'Staff', desc: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
+            { badge: <Badge className="bg-green-500 hover:bg-green-500">Boekhouder</Badge>, name: 'Accountant', desc: "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten." },
+            { badge: <Badge className="bg-orange-500 hover:bg-orange-500">Magazijn</Badge>, name: 'Warehouse', desc: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
+            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">Marketing</Badge>, name: 'Marketing', desc: 'Campagnes, kortingen, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen.' },
+            { badge: <Badge variant="outline">Kijker</Badge>, name: 'Viewer', desc: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
+          ].map((r) => (
+            <div key={r.name} className="grid grid-cols-[110px_1fr] items-start gap-4">
+              <div className="flex justify-start pt-0.5">{r.badge}</div>
+              <div className="min-w-0">
+                <p className="font-medium leading-tight">{r.name}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">{r.desc}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge variant="secondary" className="mt-0.5">Medewerker</Badge>
-            <div>
-              <p className="font-medium">Staff</p>
-              <p className="text-sm text-muted-foreground">
-                Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge className="bg-green-500 mt-0.5">Boekhouder</Badge>
-            <div>
-              <p className="font-medium">Accountant</p>
-              <p className="text-sm text-muted-foreground">
-                Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge className="bg-orange-500 mt-0.5">Magazijn</Badge>
-            <div>
-              <p className="font-medium">Warehouse</p>
-              <p className="text-sm text-muted-foreground">
-                Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Badge variant="outline" className="mt-0.5">Kijker</Badge>
-            <div>
-              <p className="font-medium">Viewer</p>
-              <p className="text-sm text-muted-foreground">
-                Alleen lezen. Kan alles bekijken maar niets wijzigen.
-              </p>
-            </div>
-          </div>
+          ))}
         </CardContent>
       </Card>
 
