@@ -35,6 +35,17 @@ import { OrderStatusCorrectionDialog } from '@/components/admin/OrderStatusCorre
 import { ActionsMenu } from '@/components/ui/actions-menu';
 import { useCan } from '@/hooks/useCan';
 import { AlertTriangle } from 'lucide-react';
+import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
+
+const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'In afwachting',
+  processing: 'In behandeling',
+  shipped: 'Verzonden',
+  delivered: 'Afgeleverd',
+  cancelled: 'Geannuleerd',
+  returned: 'Geretourneerd',
+  partially_returned: 'Deels geretourneerd',
+};
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
