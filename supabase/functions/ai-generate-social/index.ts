@@ -288,6 +288,7 @@ Geef de alternatieven als JSON array: ["alternatief 1", "alternatief 2"]`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Error in ai-generate-social:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
