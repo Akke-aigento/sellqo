@@ -988,3 +988,60 @@ tot invoices/credit_notes/payments/vat, geen `order_status.correct`, geen
 `ad_budgets` write, platform_admin bypass-check.
 
 **Seed.** Geen migration-seed; toewijzing via team-management UI.
+
+---
+
+## Batch 2B1b — Integration edge-function role-checks
+
+**Datum:** 2026-06-08
+**Scope:** OAuth-init / connect / disconnect / test / Stripe Connect / custom-domain edge-functies krijgen `requireRole` op basis van `_shared/auth.ts`.
+**Bron:** `docs/fase2-batch-2b1-recon.md` §2.
+
+### Gewijzigde functies
+
+| Function | `requireRole` allowed | Opmerking |
+|---|---|---|
+| `shopify-oauth-init` | `['tenant_admin']` | `authenticateRequest` + role-check toegevoegd |
+| `social-oauth-init` (meta/whatsapp/twitter/linkedin) | `['tenant_admin']` | bestaande `authenticateRequest` aangevuld met `requireRole` |
+| `test-marketplace-connection` (bol/amazon) | `['tenant_admin']` | tenantId nu verplicht in body |
+| `test-shopify-connection` | `['tenant_admin']` | tenantId nu verplicht in body |
+| `test-ebay-connection` | `['tenant_admin']` | imports gefixt + tenantId verplicht |
+| `test-odoo-connection` | `['tenant_admin']` | tenantId verplicht |
+| `test-shipping-connection` | `['tenant_admin']` | tenant_id afgeleid uit `shipping_integrations.tenant_id` row |
+| `create-connect-account` | `['tenant_admin']` | handmatige `getUser` vervangen door `authenticateRequest` |
+| `check-connect-status` | `['tenant_admin','staff']` | read-only status — staff mag inzien (§9-2) |
+| `disconnect-stripe-account` | `['tenant_admin']` | **vervangt** legacy `tenant_users.role='owner'` check (§9-4); `owner` is geen `app_role` |
+| `get-stripe-login-link` | `['tenant_admin']` | handmatige auth vervangen door `authenticateRequest` |
+| `verify-domain` | `['tenant_admin']` | eerder ongeauthenticeerd — nu hard gated |
+| `check-domain-ssl` | `['tenant_admin']` | tenant_id verplicht in body |
+| `detect-domain-provider` | `['tenant_admin']` | tenant_id toegevoegd aan body (frontend hooks bijgewerkt) |
+| `cloudflare-api-connect` | `['tenant_admin']` | `getClaims` vervangen door `authenticateRequest` + tenant-scoped check |
+
+### Niet gewijzigd (bewust)
+
+- `shopify-oauth-callback`, `social-oauth-callback`: anonieme provider-redirects, auth via signed state-token in `oauth_states` (service-role-only sinds Fase 1D). Recon §3.
+- Alle `sync-*`, `import-*`, `lookup-*`, `confirm-*`, `accept-*`, `marketplace-sync-scheduler`, `tracking-webhook`, `sync-platform-reviews`: service-role cron/sync.
+- `stripe-connect-webhook`, `platform-stripe-webhook`, `meta-messaging-webhook`, `whatsapp-webhook`, `shipping-webhook`, `process-email-webhook`: webhooks met provider-signature verificatie.
+- `fulfillment-api`: externe 3PL API met eigen API-key auth (`fulfillment_api_keys`).
+- `cleanup-connected-accounts`: platform-admin only, behoudt bestaande check.
+- `storefront-api`, `storefront-customer-api`, `storefront-resolve`, `sellqo-proxy`, `sellqo-customer-proxy`: publieke / proxy-paden.
+
+### Config.toml audit
+
+Alle gewijzigde functies hebben `verify_jwt = false` (expliciet in `supabase/config.toml` of via default deployment). JWT-validatie gebeurt in code via `authenticateRequest`. Geen nieuwe `[functions.*]` blokken nodig.
+
+### `AppRole` shared type
+
+`supabase/functions/_shared/auth.ts` `AppRole` union uitgebreid met `'marketing'` om in sync te blijven met de DB-enum (Batch marketing-rol).
+
+### Frontend-aanpassingen
+
+- `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx`: `useTenant` + `tenantId` in `test-marketplace-connection` body.
+- `src/components/admin/marketplace/shopify/ShopifyInstantConnect.tsx`: `useTenant` + `tenantId` in `test-shopify-connection` body.
+- `src/hooks/useDomainVerification.ts` en `src/hooks/useDomainVerificationMulti.ts`: `tenant_id` toegevoegd aan `detect-domain-provider` body.
+
+### Beslispunten geadresseerd
+
+- **§9-1 (test-* role)**: gekozen voor `tenant_admin` (credentials & rate-limits).
+- **§9-2 (check-connect-status)**: read-allowed voor `staff` zodat dashboard-widgets renderen zonder admin-rechten.
+- **§9-4 (disconnect-stripe-account)**: `tenant_users.role='owner'` legacy-pad volledig verwijderd; nu uitsluitend `app_role='tenant_admin'` (en `platform_admin` bypass).

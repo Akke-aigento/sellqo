@@ -20,6 +20,7 @@ import {
 import { ShopifySetupGuide } from './ShopifySetupGuide';
 import { supabase } from '@/integrations/supabase/client';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
+import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 
 interface ShopifyInstantConnectProps {
@@ -39,6 +40,7 @@ const REQUIRED_SCOPES = [
 ];
 
 export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps) {
+  const { currentTenant } = useTenant();
   const [storeUrl, setStoreUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -98,6 +100,7 @@ export function ShopifyInstantConnect({ onSuccess }: ShopifyInstantConnectProps)
             storeUrl: normalizeStoreUrl(storeUrl),
             accessToken: accessToken.trim(),
           },
+          tenantId: currentTenant?.id,
         },
       });
 

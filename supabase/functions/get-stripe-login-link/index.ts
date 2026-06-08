@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getStripeForTenant } from "../_shared/stripe.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,25 +27,17 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header provided");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) {
-      throw new Error("User not authenticated");
-    }
-    logStep("User authenticated", { userId: userData.user.id });
-
     // Get tenant_id from request
     const { tenant_id } = await req.json();
     if (!tenant_id) {
       throw new Error("tenant_id is required");
     }
     logStep("Tenant ID received", { tenant_id });
+
+    // Authenticate user + role check (Batch 2B1b)
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ['tenant_admin']);
+    logStep("User authenticated", { userId: auth.user_id });
 
     // Get tenant's Stripe account ID
     const { data: tenantData, error: tenantError } = await supabaseClient
@@ -78,6 +71,9 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     logStep("ERROR", { message: error.message });
     return new Response(
       JSON.stringify({ error: error.message }),

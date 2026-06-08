@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -222,7 +223,7 @@ serve(async (req) => {
   }
 
   try {
-    const { domain } = await req.json();
+    const { domain, tenant_id } = await req.json();
 
     if (!domain || typeof domain !== 'string') {
       return new Response(
@@ -230,6 +231,16 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    if (!tenant_id) {
+      return new Response(
+        JSON.stringify({ error: 'tenant_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ['tenant_admin']);
 
     // Clean the domain
     const cleanDomain = domain
@@ -262,6 +273,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error detecting provider:', error);
     return new Response(
       JSON.stringify({ 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTenant } from '@/hooks/useTenant';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ export function ConnectMarketplaceDialog({
   marketplaceType,
   onSuccess,
 }: ConnectMarketplaceDialogProps) {
+  const { currentTenant } = useTenant();
   const [step, setStep] = useState<Step>('intro');
   const [connectionName, setConnectionName] = useState('');
   const [clientId, setClientId] = useState('');
@@ -147,6 +149,7 @@ export function ConnectMarketplaceDialog({
         body: { 
           marketplaceType, 
           credentials,
+          tenantId: currentTenant?.id,
         }
       });
       

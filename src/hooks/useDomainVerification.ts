@@ -140,7 +140,7 @@ export function useDomainVerification(): UseDomainVerificationReturn {
     setIsDetecting(true);
     try {
       const { data, error } = await supabase.functions.invoke<ProviderInfo>('detect-domain-provider', {
-        body: { domain: cleanDomain },
+        body: { domain: cleanDomain, tenant_id: currentTenant?.id },
       });
 
       if (error) throw error;
