@@ -208,6 +208,18 @@ export default function InvoicesPage() {
         items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
       }
       items.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(r.id) });
+      if (r.invoiceId) {
+        items.push({
+          render: () => (
+            <CreateCreditNoteFromInvoiceButton
+              invoiceId={r.invoiceId}
+              invoiceNumber={r.invoiceNumber!}
+              onSuccess={() => refetch()}
+              variant="menuItem"
+            />
+          ),
+        });
+      }
     } else {
       items.push({
         label: r.pdfUrl ? 'Download PDF' : 'PDF genereren',
@@ -317,16 +329,8 @@ export default function InvoicesPage() {
                     align: 'right',
                     width: '90px',
                     render: (r) => (
-                      <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1">
                         <ActionsMenu items={buildCombinedActions(r)} />
-                        {r.kind === 'invoice' && r.invoiceId && (
-                          <CreateCreditNoteFromInvoiceButton
-                            invoiceId={r.invoiceId}
-                            invoiceNumber={r.invoiceNumber!}
-                            onSuccess={() => refetch()}
-                            compact
-                          />
-                        )}
                       </div>
                     ),
                   },
@@ -352,19 +356,9 @@ export default function InvoicesPage() {
                           <ActionsMenu items={actions} />
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
-                          <Badge variant="secondary">{r.status}</Badge>
-                        </div>
-                        {r.kind === 'invoice' && r.invoiceId && (
-                          <CreateCreditNoteFromInvoiceButton
-                            invoiceId={r.invoiceId}
-                            invoiceNumber={r.invoiceNumber!}
-                            onSuccess={() => refetch()}
-                            compact
-                          />
-                        )}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
+                        <Badge variant="secondary">{r.status}</Badge>
                       </div>
                     </div>
                   );
