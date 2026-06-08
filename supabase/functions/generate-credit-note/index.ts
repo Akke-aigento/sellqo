@@ -330,7 +330,26 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, pdf_url: pdfUrl, credit_note: updated }), {
+    // Optional auto-send by email (best-effort, never fails the PDF call)
+    let email_sent = false;
+    if (auto_send_email) {
+      try {
+        const url = Deno.env.get("SUPABASE_URL")!;
+        const authHeader = req.headers.get("Authorization") || `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`;
+        const r = await fetch(`${url}/functions/v1/send-credit-note-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": authHeader, "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")! },
+          body: JSON.stringify({ credit_note_id: cn.id, language: lang }),
+        });
+        const j = await r.json();
+        email_sent = !!j?.success;
+        if (!email_sent) console.warn("[generate-credit-note] auto-send returned non-success", j);
+      } catch (e) {
+        console.warn("[generate-credit-note] auto-send failed", e);
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, pdf_url: pdfUrl, credit_note: updated, email_sent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
