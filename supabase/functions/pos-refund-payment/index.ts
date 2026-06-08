@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,27 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Geen autorisatie header");
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      throw new Error("Niet geautoriseerd");
-    }
-
     const { transaction_id, amount, reason } = await req.json();
 
     if (!transaction_id) {
       throw new Error("Transaction ID is vereist");
     }
+
+    // Use service-role client for DB access; auth is handled below via shared helper.
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
     // Get the transaction with stripe_payment_intent_id
     const { data: transaction, error: txError } = await supabaseClient
@@ -45,6 +36,10 @@ serve(async (req) => {
     if (txError || !transaction) {
       throw new Error("Transactie niet gevonden");
     }
+
+    // Batch 2A2b: authenticate + strikt tenant_admin (cap-feature voor staff bestaat nog niet).
+    const auth = await authenticateRequest(req, transaction.tenant_id);
+    requireRole(auth, transaction.tenant_id, ["tenant_admin"]);
 
     if (transaction.status === "refunded") {
       throw new Error("Transactie is al terugbetaald");
@@ -122,6 +117,22 @@ serve(async (req) => {
 
     console.log(`Stripe refund created: ${refund.id} for transaction ${transaction_id}`);
 
+    // Audit-log: welke admin heeft POS-refund verwerkt.
+    {
+      const { error: auditErr } = await supabaseClient.from("admin_actions_log").insert({
+        admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
+        target_tenant_id: transaction.tenant_id,
+        action_type: "pos_refund_processed",
+        action_details: {
+          transaction_id,
+          stripe_refund_id: refund.id,
+          amount: refundAmountCents / 100,
+          reason: reason || null,
+        },
+      });
+      if (auditErr) console.error("[pos-refund-payment] audit log failed:", auditErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -135,6 +146,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error("POS refund error:", error);
     const errorMessage = error instanceof Error ? error.message : "Onbekende fout";
     return new Response(
