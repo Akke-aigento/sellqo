@@ -11,7 +11,6 @@ import {
   Store,
   FileText,
   Receipt,
-  FileMinus,
   Upload,
   Cable,
   Megaphone,
