@@ -114,6 +114,15 @@ Deno.serve(async (req) => {
     let syncedCount = 0
 
     if (direction === 'push') {
+      // Load tenant Odoo settings (B2C aggregation toggle)
+      const { data: odooSettings } = await supabase
+        .from('tenant_odoo_settings')
+        .select('aggregate_b2c_customers')
+        .eq('tenant_id', connection.tenant_id)
+        .maybeSingle()
+
+      const aggregateB2C = odooSettings?.aggregate_b2c_customers === true
+
       // Push SellQo customers to Odoo as res.partner
       let customersQuery = supabase
         .from('customers')
@@ -129,6 +138,20 @@ Deno.serve(async (req) => {
 
       for (const customer of customers || []) {
         try {
+          // B2C aggregation: skip individual push, invoice-sync will route to dummy partner
+          if (aggregateB2C && customer.customer_type !== 'b2b') {
+            await supabase.from('odoo_customer_sync_log').insert({
+              tenant_id: connection.tenant_id,
+              marketplace_connection_id: connectionId,
+              customer_id: customer.id,
+              sync_status: 'skipped',
+              sync_direction: 'push',
+              error_message: 'B2C customer aggregated (anonymized)',
+              synced_at: new Date().toISOString(),
+            })
+            continue
+          }
+
           // Check if customer already exists in Odoo (by email)
           let partnerId: number | null = null
           
