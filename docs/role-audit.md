@@ -1522,3 +1522,80 @@ Voor elke tabel: bestaande tenant-blind policies gedropt en vervangen door role-
 
 ### Snapshot
 Pre-migration snapshot via Supabase dashboard genomen vóór uitvoering.
+
+---
+
+## Batch 2C2a-ii — Discount/promo/loyalty/gift-cards RLS-aanscherping
+
+**Datum:** 2026-06-08
+**Migration:** Cluster 2 (recon §1) — één migration met heel cluster.
+**Doel:** marketing-rol krijgt RW op alle merchandising-tabellen; usage/transactions worden service-role-only voor INSERT (atomic via checkout RPC's).
+
+### Merchandising-tabellen (SELECT tenant-scope alle rollen; INSERT/UPDATE/DELETE marketing/staff/admin)
+
+#### `discount_codes`
+- **Gedropt:** `Tenant users can view/create/update/delete their discount codes`.
+- **Nieuw:** SELECT tenant-scope; INSERT/UPDATE/DELETE met `has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[])`.
+
+#### `automatic_discounts`, `bogo_promotions`, `volume_discounts`, `gift_promotions`, `discount_stacking_rules`
+- **Gedropt:** `Users can {view,insert,update,delete} {...} for their tenant`.
+- **Nieuw:** identiek patroon — SELECT tenant-scope, writes marketing/staff/admin.
+
+#### `volume_discount_tiers` (geen `tenant_id`)
+- **Gedropt:** `Users can {view,insert,update,delete} volume discount tiers`.
+- **Nieuw:** EXISTS-subquery op `volume_discounts.tenant_id`. Writes marketing/staff/admin.
+
+#### `gift_cards`, `gift_card_designs`
+- **Gedropt overlap:** `Tenant admins can manage gift cards` (ALL) + `Tenant users can view gift cards` (SELECT) — idem voor designs.
+- **Nieuw:** SELECT tenant-scope; INSERT/UPDATE/DELETE marketing/staff/admin (geen meer aparte `ALL` policy).
+
+#### `loyalty_programs`
+- **Gedropt:** `Users can {view,insert,update,delete} loyalty programs for their tenant`.
+- **Nieuw:** SELECT tenant-scope; writes marketing/staff/admin.
+
+#### `loyalty_tiers` (geen `tenant_id`)
+- **Gedropt:** `Users can {view,insert,update,delete} loyalty tiers`.
+- **Nieuw:** EXISTS-subquery op `loyalty_programs.tenant_id`. Writes marketing/staff/admin.
+
+### Usage / transactions — INSERT service-role only
+
+#### `discount_code_usage` (geen `tenant_id`; via `discount_code_id`)
+- **Gedropt:** `Tenant users can create usage records` (auth-INSERT), `Tenant users can view usage of their discount codes`.
+- **Nieuw:**
+  - SELECT (auth) tenant-scope via `discount_codes.tenant_id`.
+  - **INSERT: geen auth-policy → service-role only** (checkout RPC).
+  - UPDATE/DELETE: `tenant_admin` only.
+
+#### `gift_card_transactions` (geen `tenant_id`; via `gift_card_id`)
+- **Gedropt overlap:** `Tenant admins can manage gift card transactions` (ALL), `Tenant users can view gift card transactions`.
+- **Nieuw:**
+  - SELECT (auth) tenant-scope via `gift_cards.tenant_id`.
+  - **INSERT: geen auth-policy → service-role only** (checkout/redemption flow).
+  - UPDATE/DELETE: `tenant_admin` only.
+
+#### `loyalty_transactions` (geen `tenant_id`; via `customer_loyalty_id → customer_loyalty.loyalty_program_id → loyalty_programs.tenant_id`)
+- **Gedropt:** `Users can view loyalty transactions`, `Users can insert loyalty transactions`.
+- **Nieuw:**
+  - SELECT (auth) via JOIN op customer_loyalty + loyalty_programs.
+  - **INSERT: geen auth-policy → service-role only** (checkout/refund flow).
+  - UPDATE/DELETE: `tenant_admin` only.
+
+### Verificatie
+
+```sql
+SELECT tablename, cmd, COUNT(*) FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('discount_code_usage','gift_card_transactions','loyalty_transactions')
+GROUP BY tablename, cmd;
+```
+
+Resultaat: alleen `SELECT`, `UPDATE`, `DELETE` per tabel. Geen INSERT-policy meer met `qual = true` of überhaupt aanwezig — service-role is de enige insert-pad.
+
+### Frontend-impact
+
+- `validate-discount-code` flow loopt via `storefront-api` edge function (service-role) — geen wijziging.
+- POS gift-card redemption en loyalty earn/spend lopen via service-role edge functions / RPC's — geen wijziging.
+- `useDiscountCodes`, `useGiftCards`, `useLoyalty` blijven werken voor `tenant_admin`/`staff`/`marketing`.
+
+### Snapshot
+Pre-migration snapshot via Supabase dashboard genomen vóór uitvoering.
