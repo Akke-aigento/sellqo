@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -134,8 +134,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await authenticateRequest(req);
-    const { credentials } = await req.json()
+    const { credentials, tenantId } = await req.json()
+    if (!tenantId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'tenantId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ['tenant_admin']);
 
     console.log('Testing Odoo connection...')
 
