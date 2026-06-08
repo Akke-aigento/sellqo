@@ -176,6 +176,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error in verify-domain:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
