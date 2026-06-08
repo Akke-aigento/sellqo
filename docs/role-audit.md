@@ -1720,3 +1720,169 @@ Alle 23 ads-tabellen tonen vier policies (SELECT/INSERT/UPDATE/DELETE), behalve 
 
 - **§7-11** — Column-masking voor `daily_budget` / `total_budget` op campaign-rows voor non-`tenant_admin` rollen → uitgesteld naar **2C2d**.
 
+
+---
+
+## Batch 2C2a-iv — CMS/SEO/Theme/Social/A-B/Notifications RLS-aanscherping
+
+**Datum:** 2026-06-08
+**Recon ref:** `docs/fase2-batch-2c2-recon.md` cluster 4 + cluster 5
+**Beslispunten bevestigd:** §7-6 (A/B JSONB), §7-7 (storefront_pages = landing_pages), §7-12 (beide social-tabellen hardenen), §7-13 (theme tenant_admin only), §7-14 (notifications auth-INSERT = admin/staff), §7-15 (seo_keywords + seo_scores overlap-consolidatie).
+
+### Aanpak per cluster
+
+**CONTENT (members read, marketing RW):**
+`storefront_pages`, `homepage_sections`, `legal_pages`, `social_posts`, `message_templates`, `whatsapp_templates`
+- Public/anon SELECT-policies (storefront-visible content) blijven behouden.
+- Auth-policies vervangen door per-cmd `has_tenant_role(['tenant_admin','staff','marketing'])`.
+- `whatsapp_templates`: blanket `ALL` policy gedropt.
+
+**SEO research (marketing RW):**
+`seo_keywords`, `seo_competitors`, `seo_competitor_keywords`, `seo_scheduled_audits`
+- `seo_keywords`: blanket `ALL` + 4 legacy per-cmd policies gedropt → 4 schone policies met has_tenant_role.
+
+**SEO result tables (runner = service-role insert):**
+`seo_scores`, `seo_audit_results`, `seo_search_console_data`, `seo_web_vitals`
+- SELECT: alle tenant-members
+- **INSERT: geen auth-policy → service-role only**
+- UPDATE/DELETE: `tenant_admin` only
+- `seo_scores`: blanket `ALL` + legacy SELECT gedropt.
+
+**THEME (tenant_admin only writes):**
+`tenant_theme_settings`, `tenant_theme_presets`
+- SELECT: alle members; INSERT/UPDATE/DELETE: `tenant_admin` only (geen marketing — §7-13).
+
+**SOCIAL OAUTH (tenant_admin only):**
+`social_connections`, `social_channel_connections`
+- Alle ops (incl. SELECT) beperkt tot `tenant_admin` — OAuth-tokens strikt afgeschermd. Beide tabellen gehard; consolidatie in 2C2c.
+
+**A/B TESTS:**
+`ab_test_configs` — varianten/conversies in JSONB (§7-6 bevestigd, geen aparte tabellen). Members read; admin/staff/marketing write.
+
+**NOTIFICATIONS (§7-14):**
+`notifications`
+- SELECT: alle tenant-members
+- INSERT: `tenant_admin`/`staff` (trigger-pad gebruikt service-role en bypasst RLS)
+- UPDATE: `user_id = auth.uid() OR has_tenant_role(['tenant_admin','staff'])` (eigen mark-as-read)
+- DELETE: `tenant_admin`/`staff`
+`tenant_notification_settings`
+- SELECT alle members; INSERT/UPDATE/DELETE: `tenant_admin` only.
+
+### Gedropte policies (samenvatting)
+
+- **storefront_pages**: `Tenant members can {view,insert,update,delete} pages`
+- **homepage_sections**: `Tenant members can {view,insert,update,delete} sections`
+- **legal_pages**: `Tenants can {view,insert,update,delete} their own legal pages`
+- **social_posts**: `Users can {view,insert,update,delete} their tenant social posts` (insert: `Users can insert social posts`)
+- **message_templates**: `Users can {view,create,update,delete} message templates for their tenants`
+- **whatsapp_templates**: `Tenant admins can manage whatsapp templates` (ALL), `Users can view their tenant whatsapp templates`
+- **seo_keywords**: `Users can manage SEO keywords` (ALL), `Users can view SEO keywords`, `Users can create SEO keywords for their tenant`, `Users can update/delete their tenant's SEO keywords`
+- **seo_scores**: `Users can manage SEO scores` (ALL), `Users can view SEO scores`
+- **seo_competitors / seo_competitor_keywords / seo_scheduled_audits**: `Users can {view,insert,update,delete} their tenant's …`
+- **seo_audit_results / seo_search_console_data / seo_web_vitals**: `Users can {view,insert} their tenant's …`
+- **tenant_theme_settings**: `Tenant members can {view,insert,update} theme settings`
+- **tenant_theme_presets**: `Tenants can {view,create,delete} their own presets`
+- **social_connections**: `Users can {view,insert,update,delete} their tenant social connections` (insert: `Users can insert social connections`)
+- **social_channel_connections**: `Users can {view,create,update,delete} their tenant's social channel connections`
+- **ab_test_configs**: `Users can {view,insert,update,delete} their tenant ab_test_configs`
+- **notifications**: `Users can {view,insert,update,delete} their tenant notifications` (insert: `Users can insert notifications for their tenant`)
+- **tenant_notification_settings**: `Users can {view,insert,update,delete} their tenant notification settings` (insert: `Users can insert notification settings for their tenant`)
+
+### Nieuwe policies — templates (toegepast op cluster)
+
+#### CONTENT / SEO-research (marketing RW)
+
+```sql
+CREATE POLICY "<T>_select_members" ON public.<T> FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+CREATE POLICY "<T>_insert_marketing" ON public.<T> FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_update_marketing" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+CREATE POLICY "<T>_delete_marketing" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing']::app_role[]));
+```
+Toegepast op: `storefront_pages`, `homepage_sections`, `legal_pages`, `social_posts`, `message_templates`, `whatsapp_templates`, `seo_keywords`, `seo_competitors`, `seo_competitor_keywords`, `seo_scheduled_audits`, `ab_test_configs`.
+
+#### SEO RESULT (service-role INSERT)
+
+```sql
+CREATE POLICY "<T>_select_members" ON public.<T> FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+-- INSERT: geen auth-policy → service-role only
+CREATE POLICY "<T>_update_admin" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_delete_admin" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+Toegepast op: `seo_scores`, `seo_audit_results`, `seo_search_console_data`, `seo_web_vitals`.
+
+#### THEME + tenant_notification_settings (tenant_admin only writes)
+
+```sql
+CREATE POLICY "<T>_select_members" ON public.<T> FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+CREATE POLICY "<T>_insert_admin" ON public.<T> FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_update_admin" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_delete_admin" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+Toegepast op: `tenant_theme_settings`, `tenant_theme_presets`, `tenant_notification_settings`.
+
+#### SOCIAL OAUTH (tenant_admin only, ook SELECT)
+
+```sql
+CREATE POLICY "<T>_select_admin" ON public.<T> FOR SELECT TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_insert_admin" ON public.<T> FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_update_admin" ON public.<T> FOR UPDATE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]))
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+CREATE POLICY "<T>_delete_admin" ON public.<T> FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin']::app_role[]));
+```
+Toegepast op: `social_connections`, `social_channel_connections`.
+
+#### NOTIFICATIONS (custom — user-zelf-update toegestaan)
+
+```sql
+CREATE POLICY "notifications_select_members" ON public.notifications FOR SELECT TO authenticated
+  USING (tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))
+         OR public.is_platform_admin(auth.uid()));
+CREATE POLICY "notifications_insert_staff" ON public.notifications FOR INSERT TO authenticated
+  WITH CHECK (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]));
+CREATE POLICY "notifications_update_self_or_staff" ON public.notifications FOR UPDATE TO authenticated
+  USING (user_id = auth.uid()
+         OR public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]))
+  WITH CHECK (user_id = auth.uid()
+              OR public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]));
+CREATE POLICY "notifications_delete_staff" ON public.notifications FOR DELETE TO authenticated
+  USING (public.has_tenant_role(tenant_id, ARRAY['tenant_admin','staff']::app_role[]));
+```
+
+### Verificatie
+
+```sql
+SELECT tablename, COUNT(*) FILTER (WHERE cmd='ALL') AS blanket, COUNT(*) AS total
+FROM pg_policies WHERE schemaname='public'
+  AND tablename IN ('seo_keywords','seo_scores')
+GROUP BY tablename;
+-- seo_keywords: blanket=0, total=4 ✅
+-- seo_scores:   blanket=0, total=3 ✅ (geen INSERT → service-role only)
+```
+
+SEO result tabellen (`seo_audit_results`, `seo_search_console_data`, `seo_web_vitals`, `seo_scores`) hebben elk exact SELECT+UPDATE+DELETE (geen auth-INSERT). Social-OAuth-tabellen alle vier policies onder `has_tenant_role(['tenant_admin'])`.
+
+### Status 2C2a
+
+Splits 2C2a-i (email), 2C2a-ii (merchandising), 2C2a-iii (ads), 2C2a-iv (CMS/SEO/theme/social/A-B/notifications) **afgerond**. Backlog (column-masking budgets, social-table consolidatie, anon tracking_events) blijft voor 2C2b/c/d.
+
