@@ -341,3 +341,9 @@ verify_jwt = false
 
 [functions.send-customer-message]
 verify_jwt = false
+
+[functions.create-odoo-product]
+verify_jwt = false
+
+[functions.update-odoo-product]
+verify_jwt = false
