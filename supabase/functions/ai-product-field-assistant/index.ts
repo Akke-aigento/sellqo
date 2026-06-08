@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,24 +69,10 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Auth
-    const authHeader = req.headers.get("Authorization");
-    let tenantId: string | null = null;
-    let userId: string | null = null;
-
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        userId = user.id;
-        const { data: userRole } = await supabase
-          .from("user_roles")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .single();
-        tenantId = userRole?.tenant_id;
-      }
-    }
+    // Auth — Batch 2C1b role check
+    const auth = await authenticateRequest(req);
+    const tenantId: string | null = auth.tenant_ids[0] ?? null;
+    const userId: string | null = auth.user_id;
 
     if (!tenantId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -93,6 +80,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    requireRole(auth, tenantId, ['tenant_admin', 'staff', 'marketing']);
 
     const body: RequestBody = await req.json();
     const { fieldType, currentValue, action, briefing, language, productContext, existingTranslation, seoKeywords } = body;
