@@ -751,3 +751,99 @@ Service-role bypassen RLS by default → webhook/sync-paden ongewijzigd.
 - SellQo-customers tabel onaangetast (marketing/CRM blijft individueel).
 - Odoo-boekhouding krijgt één verzamelklant voor consumer-omzet wanneer ingeschakeld; B2B blijft altijd individueel.
 - Pieter-requirement #6 vervuld.
+
+---
+
+## Feature — Credit-notes volledige flow (2026-06-08)
+
+### Doel
+Creditnota's voortaan volledig bruikbaar maken in admin UI, met email-pad
+(incl. CC naar boekhouder), auto-send-bij-creatie en correcte verwerking
+in alle boekhoudings-exports.
+
+### Wijzigingen
+
+**Sidebar & permissies**
+- `src/components/admin/sidebar/sidebarConfig.ts`: nieuwe entry "Creditnota's"
+  onder Bestellingen → na "Facturen", path `/admin/orders/creditnotes`,
+  icon `FileMinus`, `excludeRoles: ['warehouse']`.
+- `src/hooks/useCan.ts`: nieuwe resource `credit_notes`.
+  - read = alle rollen behalve warehouse (accountant/viewer mogen inkijken).
+  - write = platform_admin / tenant_admin / staff / accountant.
+
+**Order-detail integratie**
+- Nieuwe component `src/components/admin/OrderCreditNotesSection.tsx`.
+- `src/pages/admin/OrderDetail.tsx`: renderen onder Documenten-card wanneer
+  een factuur bestaat. Toont per credit-note nummer, datum, bedrag, status
+  (Concept / Verzonden), download- en resend-knoppen. "Nieuwe creditnota"
+  via `<PermissionGate action="write" resource="credit_notes">`.
+
+**Nieuwe edge function `send-credit-note-email`**
+- `supabase/functions/send-credit-note-email/index.ts`
+- `authenticateRequest` + `requireRole(['tenant_admin','staff','accountant'])`.
+- Body: `{ credit_note_id, language? }`.
+- Taalvolgorde: body → `customer.preferred_language` → `tenant.default_invoice_language`
+  → `'nl'`.
+- Onderwerp per taal: nl/en/fr/de variant van "Creditnota {nr} - {tenant}".
+- Genereert PDF on-the-fly indien `pdf_url` ontbreekt door
+  `generate-credit-note` opnieuw aan te roepen.
+- Verstuurt naar `customer.email`, hergebruikt `tenant.invoice_cc_email`
+  + `tenant.invoice_bcc_email` voor Pieter/boekhouder-kopie (zelfde adressen
+  als factuur-flow).
+- Update na succes: `credit_notes.sent_at = now()`, `status = 'sent'`.
+- Audit: `admin_actions_log.action_type = 'credit_note_email_sent'`
+  met `{credit_note_id, recipient, cc, bcc, language}`.
+- `supabase/config.toml`: `[functions.send-credit-note-email] verify_jwt = false`.
+
+**Auto-send parameter**
+- `supabase/functions/generate-credit-note/index.ts`: accepteert nu
+  `{ credit_note_id, language?, auto_send_email? }`. Bij `auto_send_email=true`
+  roept de functie na PDF-persist `send-credit-note-email` aan; failures
+  worden gelogd maar laten de PDF-generatie zelf niet falen (zelfde
+  best-effort patroon als `generate-invoice`).
+- Response bevat extra `email_sent: boolean` flag.
+
+**Dialog UX**
+- `src/components/admin/CreditNoteDialog.tsx`: nieuwe checkbox
+  "Direct verzenden naar klant per e-mail" (default `aan`).
+- `src/hooks/useCreditNotes.ts`: nieuw `auto_send_email` veld in payload,
+  toast-tekst varieert ("Creditnota aangemaakt en verzonden" vs
+  "Creditnota aangemaakt").
+
+**Lijst-pagina actions**
+- `src/pages/admin/CreditNotes.tsx`: ActionsMenu krijgt extra item
+  "E-mail (opnieuw) versturen" achter `useCan('write','credit_notes')`.
+  Statusbadge per row was reeds aanwezig (`getStatusBadge`).
+
+**Schema-aanvulling**
+- Migration `20260608161220_*` (tenant-ref `gczmfcabnoofnmfpzeop`):
+  ```sql
+  ALTER TABLE public.credit_notes ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ;
+  CREATE INDEX IF NOT EXISTS idx_credit_notes_sent_at ON public.credit_notes(sent_at);
+  ```
+- `credit_notes.status` bestond al (`draft`/`sent`/`processed`); de UI
+  blijft die enum gebruiken — geen CHECK-rewrite om historisch
+  data-conflict te vermijden.
+- `src/types/creditNote.ts`: `sent_at: string | null` toegevoegd.
+
+**Boekhouding-rapportages**
+| Export | Credit-notes meegenomen? | Status |
+|---|---|---|
+| `vat-report-engine` | Ja — `aggregator.ts` walks `credit_notes + credit_note_lines`, markeert rijen met `is_credit_note: true` en negatieve base/vat in `audit_trail`. | Reeds aanwezig — geverifieerd. |
+| `export-vat-xlsx` | Ja — filtert `audit_trail.is_credit_note` voor aparte detail (regel 436-438) + meta-teller "Aantal creditnota's verwerkt". | Reeds aanwezig. |
+| `export-vat-pdf`  | Ja — sectie "Creditnota's" gebouwd uit `audit_trail` met `meta.credit_note_count`. | Reeds aanwezig. |
+| `export-ic-listing-xml` | Engine zelf bouwt IC-listing uit invoices + credit-note correcties; credit-notes met IC-leveringen worden via `audit_trail` netto verrekend in de engine-output (geen aparte XML-tag nodig). | Reeds aanwezig via engine. |
+| `export-q-bundle` | **Nieuw toegevoegd** — extra `fetchCreditNotePdfs()` haalt credit-note PDFs en stopt ze in `06_Factuur_PDFs/creditnotas/` van de ZIP wanneer `include_invoice_pdfs=true`. | Nieuw deze release. |
+| `generate-peppol-ubl` | Credit-notes nog niet als UBL CreditNote (BIS 3.0) — open follow-up, niet in deze batch. | Open. |
+
+### Permissie-matrix recap
+| Actie | tenant_admin | staff | accountant | warehouse | viewer |
+|---|---|---|---|---|---|
+| Creditnota inzien | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Creditnota aanmaken | ✅ | ✅ | ✅ | ❌ | ❌ |
+| PDF genereren / downloaden | ✅ | ✅ | ✅ | ❌ | ✅ (download) |
+| E-mail (opnieuw) versturen | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+### Open follow-ups
+- Peppol UBL CreditNote-generatie voor B2B-uitsturing.
+- Bulk-export van credit-notes in eigen ZIP (los van Q-bundle).
