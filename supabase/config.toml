@@ -320,3 +320,18 @@ verify_jwt = false
 
 [functions.send-credit-note-email]
 verify_jwt = false
+
+[functions.create-shipping-label]
+verify_jwt = false
+
+[functions.send-return-email]
+verify_jwt = false
+
+[functions.disconnect-stripe-account]
+verify_jwt = false
+
+[functions.test-odoo-connection]
+verify_jwt = false
+
+[functions.test-shipping-connection]
+verify_jwt = false
