@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,7 +95,8 @@ Deno.serve(async (req) => {
     }
 
     const { campaign_id, force_repush, action } = await req.json();
-    await authenticateRequest(req, tenant_id);
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ["tenant_admin", "staff", "marketing"]);
     if (!campaign_id) {
       return new Response(
         JSON.stringify({ error: "campaign_id is required" }),
