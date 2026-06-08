@@ -356,19 +356,9 @@ export default function InvoicesPage() {
                           <ActionsMenu items={actions} />
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
-                          <Badge variant="secondary">{r.status}</Badge>
-                        </div>
-                        {r.kind === 'invoice' && r.invoiceId && (
-                          <CreateCreditNoteFromInvoiceButton
-                            invoiceId={r.invoiceId}
-                            invoiceNumber={r.invoiceNumber!}
-                            onSuccess={() => refetch()}
-                            compact
-                          />
-                        )}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">{format(new Date(r.date), 'd MMM yyyy', { locale: nl })}</span>
+                        <Badge variant="secondary">{r.status}</Badge>
                       </div>
                     </div>
                   );
