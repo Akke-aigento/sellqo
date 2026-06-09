@@ -28,6 +28,7 @@ import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { PermissionGate } from '@/components/PermissionGate';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { useCan } from '@/hooks/useCan';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -35,6 +36,8 @@ export default function InvoicesPage() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  // H4d: gate write-acties (Peppol mark-sent + resend).
+  const canWriteInvoices = useCan('write', 'invoices');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [peppolPendingOnly, setPeppolPendingOnly] = useState(false);
