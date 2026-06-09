@@ -39,6 +39,7 @@ type CheckResult = {
   alreadyMember: boolean;
   hasPendingInvite: boolean;
   pendingInviteId: string | null;
+  recentlyRevoked: boolean;
 };
 
 interface InviteTeamMemberDialogProps {
@@ -80,6 +81,7 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
           alreadyMember: !!data.alreadyMember,
           hasPendingInvite: !!data.hasPendingInvite,
           pendingInviteId: data.pendingInviteId ?? null,
+          recentlyRevoked: !!data.recentlyRevoked,
         });
       } catch (e) {
         setCheckResult(null);
@@ -248,6 +250,16 @@ function EmailCheckBanner({
             {resending ? 'Verzenden...' : 'Verzend opnieuw'}
           </button>
         </div>
+      </div>
+    );
+  }
+  if (result.recentlyRevoked) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/5 p-2 text-xs">
+        <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+        <span>
+          Deze persoon was eerder verwijderd uit het team. Een nieuwe uitnodiging maakt een schone start.
+        </span>
       </div>
     );
   }

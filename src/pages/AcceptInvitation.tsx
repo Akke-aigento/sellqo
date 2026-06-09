@@ -398,7 +398,7 @@ export default function AcceptInvitation() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild><Link to="/auth/login">Naar login</Link></Button>
+            <Button asChild><Link to="/auth">Naar login</Link></Button>
           </CardContent>
         </Card>
       </Shell>
@@ -417,7 +417,7 @@ export default function AcceptInvitation() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild variant="outline"><Link to="/auth/login">Naar login</Link></Button>
+            <Button asChild variant="outline"><Link to="/auth">Naar login</Link></Button>
           </CardContent>
         </Card>
       </Shell>
@@ -434,7 +434,7 @@ export default function AcceptInvitation() {
             <CardDescription>Deze uitnodiging is al geaccepteerd.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild><Link to="/auth/login">Naar login</Link></Button>
+            <Button asChild><Link to="/auth">Naar login</Link></Button>
           </CardContent>
         </Card>
       </Shell>
