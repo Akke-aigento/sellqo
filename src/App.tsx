@@ -114,6 +114,7 @@ import ShopOrderConfirmation from "./pages/storefront/ShopOrderConfirmation";
 import ShopLegalPage from "./pages/storefront/ShopLegalPage";
 import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopQRPayment from "./pages/storefront/ShopQRPayment";
+import { SimulatedRoleProvider, RoleSimulator } from "@/components/dev/RoleSimulator";
 
 const queryClient = new QueryClient();
 
@@ -122,8 +123,10 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <SimulatedRoleProvider>
           <Toaster />
           <Sonner />
+          <RoleSimulator />
         <BrowserRouter>
           <ScrollToTop />
           <Routes>
