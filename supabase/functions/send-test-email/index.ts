@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { tenantId, toEmail, subject, htmlContent, previewData }: SendTestEmailRequest = await req.json();
+    const { tenantId, toEmail, subject, htmlContent, previewData, sender }: SendTestEmailRequest = await req.json();
 
     const auth = await authenticateRequest(req, tenantId);
     requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     }
 
     // Resolve sender (defaults to customerService stream)
-    const senderKey: SenderKey = (body as SendTestEmailRequest).sender || 'customerService';
+    const senderKey: SenderKey = sender || 'customerService';
     const senderEntry = (EMAIL_SENDERS as any)[senderKey];
     const resolvedSender = typeof senderEntry === 'function'
       ? senderEntry(tenant.name, (tenant as any).owner_email)
