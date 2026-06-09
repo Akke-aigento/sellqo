@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, RefreshCw, X, Calculator, Warehouse, Eye, Mail } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, Calculator, Warehouse, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,10 +24,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
-import { useTeamInvitations, TeamInvitation } from '@/hooks/useTeamInvitations';
+import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { useAuth } from '@/hooks/useAuth';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
-import { format, isPast } from 'date-fns';
+import { TenantInvitationsList } from './TenantInvitationsList';
+import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 const getRoleBadge = (role: string) => {
@@ -58,7 +59,7 @@ const getInitials = (name: string | null, email: string | null) => {
 
 export function TeamSettings() {
   const { members, isLoading, updateMemberRole, removeMember } = useTeamMembers();
-  const { invitations, isLoading: invitationsLoading, cancelInvitation, resendInvitation, refetch: refetchInvitations } = useTeamInvitations();
+  const { refetch: refetchInvitations } = useTeamInvitations({ statusFilter: 'all' });
   const { user } = useAuth();
   
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
@@ -76,9 +77,8 @@ export function TeamSettings() {
     setMemberToRemove(null);
   };
 
-  const pendingInvitations = invitations.filter(i => !i.accepted_at);
-  const loading = isLoading || invitationsLoading;
-  const isEmpty = !loading && members.length === 0 && pendingInvitations.length === 0;
+  const loading = isLoading;
+  const isEmpty = !loading && members.length === 0;
 
   return (
     <div className="space-y-6">
