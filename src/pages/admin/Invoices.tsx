@@ -550,10 +550,12 @@ export default function InvoicesPage() {
                   if (invoice.ubl_url) {
                     actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
                   }
-                  if (invoiceAny.peppol_status === 'pending') {
+                  if (canWriteInvoices && invoiceAny.peppol_status === 'pending') {
                     actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
                   }
-                  actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
+                  if (canWriteInvoices) {
+                    actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
+                  }
                   actions.push({ label: 'Creditnota aanmaken', onClick: () => {/* handled by dedicated button via menu — fallback no-op */} });
                   return (
                     <div className="flex items-center justify-end gap-1">
@@ -575,8 +577,8 @@ export default function InvoicesPage() {
               const actions: ActionItem[] = [];
               if (invoice.pdf_url) actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(invoice.pdf_url!, '_blank') });
               if (invoice.ubl_url) actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
-              if (invoiceAny.peppol_status === 'pending') actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
-              actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
+              if (canWriteInvoices && invoiceAny.peppol_status === 'pending') actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
+              if (canWriteInvoices) actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
               return (
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
