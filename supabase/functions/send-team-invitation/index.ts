@@ -126,6 +126,33 @@ serve(async (req) => {
       throw new Error("Kon uitnodiging niet aanmaken: " + insertError.message);
     }
 
+    // Fetch inviter display name for email + audit metadata
+    let invitedByName: string | null = null;
+    try {
+      const { data: inviterProfile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .maybeSingle();
+      invitedByName = inviterProfile?.full_name || inviterProfile?.email || null;
+    } catch (_e) {
+      // non-fatal
+    }
+
+    // Audit log: 'sent'
+    try {
+      await supabase.from("invite_audit_log").insert({
+        invitation_id: invitation.id,
+        tenant_id: tenantId,
+        event_type: "sent",
+        actor_user_id: user.id,
+        actor_email: invitedByName,
+        metadata: { email: email.toLowerCase(), role, invited_by_name: invitedByName },
+      });
+    } catch (auditErr) {
+      console.warn("audit log insert failed (sent)", auditErr);
+    }
+
     // Send email
     const resend = new Resend(resendApiKey);
     const inviteUrl = `https://sellqo.lovable.app/invite/${invitation.token}`;
@@ -137,12 +164,15 @@ serve(async (req) => {
     });
 
     const tenantName = tenant.name || 'een team';
+    const inviterLine = invitedByName
+      ? `<strong>${invitedByName}</strong> heeft je uitgenodigd om als `
+      : `Je werd uitgenodigd om als `;
     const html = renderSellqoEmail({
       preheader: `Je bent uitgenodigd om deel te nemen aan ${tenantName} op SellQo.`,
       heading: `Je bent uitgenodigd voor ${tenantName}`,
       intro: `
         <p style="margin:0 0 12px;">Hallo,</p>
-        <p style="margin:0;">Je werd uitgenodigd om als <strong>${roleInfo.nl.toLowerCase()}</strong> deel te nemen aan het team van <strong>${tenantName}</strong> op SellQo. Klik op de knop hieronder om de uitnodiging te accepteren en aan de slag te gaan.</p>
+        <p style="margin:0;">${inviterLine}<strong>${roleInfo.nl.toLowerCase()}</strong> deel te nemen aan het team van <strong>${tenantName}</strong> op SellQo. Klik op de knop hieronder om de uitnodiging te accepteren en aan de slag te gaan.</p>
       `,
       infoBox: {
         title: `Jouw rol: ${roleInfo.nl}`,
