@@ -209,10 +209,12 @@ export default function InvoicesPage() {
     if (r.kind === 'invoice') {
       if (r.pdfUrl) items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(r.pdfUrl!, '_blank') });
       if (r.ublUrl) items.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
-      if (r.peppolStatus === 'pending') {
+      if (canWriteInvoices && r.peppolStatus === 'pending') {
         items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
       }
-      items.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(r.id) });
+      if (canWriteInvoices) {
+        items.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(r.id) });
+      }
       if (r.invoiceId) {
         items.push({
           render: () => (
