@@ -2947,3 +2947,57 @@ Recon §Marketing-extras: n=0 niet-rol-aware tabellen. Volledig gehard in eerder
 
 Alle vier gewijzigde tabellen hebben nu een expliciete `FOR ALL TO service_role USING (true) WITH CHECK (true)` policy. Edge functions die met `SUPABASE_SERVICE_ROLE_KEY` connecten (audit-runner, search-console-sync, loyalty-trigger) blijven werken.
 
+
+---
+
+## Batch 2F-ii — Procurement / Payment / Integrations dormant lockdown
+
+**Datum:** 2026-06-09
+**Migration:** `20260609083923_batch_2f_ii.sql`
+
+### Gehard in deze batch (9 tabellen)
+
+| Tabel | Cluster | Oude policies | Nieuwe policies |
+|---|---|---|---|
+| `payment_confirmations` | Payment-extras | 1 (SELECT tenant_id-only) | 4 (members SELECT, admin/accountant UPDATE, admin DELETE, service-role ALL) |
+| `sync_activity_log` | Integrations | 4 tenant-blind (public) | 4 (log-pattern + service-role) |
+| `sync_conflicts` | Integrations | 2 tenant-blind (public ALL) | 4 (log-pattern + service-role) |
+| `sync_queue` | Integrations | 2 tenant-blind (public ALL) | 4 (log-pattern + service-role) |
+| `inventory_sync_log` | Integrations | 1 (public SELECT) | 4 (log-pattern + service-role) |
+| `odoo_customer_sync_log` | Integrations | 3 public (INSERT/SELECT/UPDATE) | 4 (log-pattern + service-role) |
+| `odoo_invoice_sync_log` | Integrations | 3 public (INSERT/SELECT/UPDATE) | 4 (log-pattern + service-role) |
+| `webhook_deliveries` | Integrations | 2 public | 4 (log-pattern + service-role) |
+| `storefront_webhooks` | Integrations (config) | 2 public (ALL + SELECT) | 5 (admin manage + members SELECT + service-role) |
+
+**Patroon log-tabellen:** SELECT = `tenant_admin/staff/accountant`; UPDATE/DELETE = `tenant_admin` only; INSERT alleen via service-role (sync-runners). Geen INSERT-policy voor authenticated users — schrijven via edge functions met service-role.
+
+**Patroon storefront_webhooks (config):** SELECT = `tenant_admin/staff/accountant`; INSERT/UPDATE/DELETE = `tenant_admin`; service-role ALL.
+
+### Reeds gehard in eerdere batches (geen wijziging)
+
+| Tabel | Cluster | Reden |
+|---|---|---|
+| `suppliers`, `supplier_documents` | Procurement | Hardened met Finance-role policies in eerdere batch (2C / 2D) |
+| `purchase_orders`, `purchase_order_items` | Procurement | Hardened met Finance/warehouse policies |
+| `product_suppliers` | Procurement | Hardened met Finance policies |
+| `shipping_integrations` | Integrations | Hardened met `si_*_tenant_admin` policies |
+| `tenant_oauth_credentials` | Integrations | **OB-2F-6 bevestigd**: reeds strict `tenant_admin`-only (toc_select/insert/update/delete_tenant_admin) — bevat OAuth refresh tokens |
+| `payment_reminders` | Payment | Reeds Finance-role policies |
+| `pending_platform_payments` | Payment | Reeds platform_admin ALL + tenant SELECT |
+
+### Niet aanwezig in schema (recon-fictie / masterplan-only)
+
+`supplier_invoices`, `supplier_payments`, `vendor_contracts`, `rfqs`, `purchase_requisitions`, `payment_gateways`, `payment_provider_configs`, `chargeback_log`, `chargeback_disputes`, `tenant_payment_gateway_settings`, `sync_jobs`, `sync_job_logs`, `webhook_logs` — niet gecreëerd in publieke schema, geen action.
+
+### Service-role pad behouden
+
+Alle 9 gewijzigde tabellen hebben expliciete `FOR ALL TO service_role USING (true) WITH CHECK (true)`. Kritieke flows blijven werken:
+- Stripe-webhook → `payment_confirmations` insert/update via service-role
+- Bol.com/Shopify sync-runners → `sync_queue`, `sync_activity_log`, `sync_conflicts`, `inventory_sync_log` insert via service-role
+- Odoo sync-runners → `odoo_*_sync_log` insert/update via service-role
+- Headless webhook delivery → `webhook_deliveries` insert via service-role
+- OAuth refresh-runners → `tenant_oauth_credentials` update via service-role (reeds aanwezig)
+
+### Beslispunten bevestigd
+
+- **OB-2F-6**: `tenant_oauth_credentials` blijft strict `tenant_admin`-only voor alle CRUD (geen staff/accountant SELECT). Reeds gehard, geen wijziging nodig.
