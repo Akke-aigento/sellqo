@@ -3,6 +3,8 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -329,108 +331,43 @@ serve(async (req) => {
       ? `<p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">BTW-nummer: ${quote.customer.vat_number}</p>` 
       : '';
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <tr>
-            <td style="padding: 40px 30px; background-color: ${tenant.primary_color || '#3b82f6'};">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px;">${tenant.name}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 40px 30px;">
-              <h2 style="margin: 0 0 20px 0; color: #111827; font-size: 20px;">Offerte ${quote.quote_number}</h2>
-              
-              <div style="margin-bottom: 20px; padding: 15px; background-color: #f9fafb; border-radius: 8px;">
-                <p style="margin: 0; font-weight: 600;">${customerDisplayName}</p>
-                ${quote.customer.company_name && quote.customer.first_name ? `<p style="margin: 5px 0 0 0; font-size: 14px; color: #6b7280;">t.a.v. ${customerName}</p>` : ''}
-                ${customerVatInfo}
-              </div>
-              
-              <p style="margin: 0 0 20px 0; color: #374151; line-height: 1.6;">
-                Beste ${customerName},
-              </p>
-              <p style="margin: 0 0 20px 0; color: #374151; line-height: 1.6;">
-                Hierbij ontvangt u onze offerte. Hieronder vindt u een overzicht van de producten en/of diensten.
-              </p>
-              
-              ${validUntilDate ? `
-                <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 14px;">
-                  <strong>Geldig tot:</strong> ${validUntilDate}
-                </p>
-              ` : ''}
-              
-              <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
-                <thead>
-                  <tr style="background-color: #f9fafb;">
-                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Omschrijving</th>
-                    <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151;">Aantal</th>
-                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151;">Prijs</th>
-                    <th style="padding: 12px; text-align: right; font-weight: 600; color: #374151;">Totaal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="3" style="padding: 12px; text-align: right; color: #6b7280;">Subtotaal</td>
-                    <td style="padding: 12px; text-align: right;">€${subtotal.toFixed(2)}</td>
-                  </tr>
-                  ${vatDisplayHtml}
-                  ${discountAmount > 0 ? `
-                    <tr>
-                      <td colspan="3" style="padding: 12px; text-align: right; color: #059669;">Korting</td>
-                      <td style="padding: 12px; text-align: right; color: #059669;">-€${discountAmount.toFixed(2)}</td>
-                    </tr>
-                  ` : ''}
-                  <tr style="background-color: #f9fafb;">
-                    <td colspan="3" style="padding: 16px 12px; text-align: right; font-weight: 700; font-size: 16px;">Totaal</td>
-                    <td style="padding: 16px 12px; text-align: right; font-weight: 700; font-size: 16px;">€${total.toFixed(2)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-              
-              ${quote.notes ? `
-                <div style="padding: 20px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 30px;">
-                  <p style="margin: 0; color: #374151; font-size: 14px;">${quote.notes}</p>
-                </div>
-              ` : ''}
-              
-              ${quote.payment_link ? `
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${quote.payment_link}" style="display: inline-block; padding: 16px 32px; background-color: ${tenant.primary_color || '#3b82f6'}; color: #ffffff; text-decoration: none; font-weight: 600; border-radius: 8px; font-size: 16px;">
-                    Offerte accepteren & betalen
-                  </a>
-                </div>
-              ` : ''}
-              
-              <p style="margin: 30px 0 0 0; color: #374151; line-height: 1.6;">
-                Met vriendelijke groet,<br>
-                <strong>${tenant.name}</strong>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 30px; background-color: #f9fafb; text-align: center;">
-              <p style="margin: 0; color: #6b7280; font-size: 12px;">
-                ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code ? `${tenant.postal_code} ` : ''}${tenant.city || ''} ${tenant.country || ''}
-                ${tenant.phone ? `<br>Tel: ${tenant.phone}` : ''}
-                ${tenant.owner_email ? `<br>${tenant.owner_email}` : ''}
-                ${tenant.btw_number ? `<br>BTW: ${tenant.btw_number}` : ''}
-              </p>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `;
+    const brand = await getTenantBrand(supabase, quote.tenant_id);
+    const locale = brand.defaultLocale;
+
+    const summaryTable = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      <thead><tr style="background:#f9fafb;">
+        <th style="padding:12px;text-align:left;font-weight:600;color:#374151;">Omschrijving</th>
+        <th style="padding:12px;text-align:center;font-weight:600;color:#374151;">Aantal</th>
+        <th style="padding:12px;text-align:right;font-weight:600;color:#374151;">Prijs</th>
+        <th style="padding:12px;text-align:right;font-weight:600;color:#374151;">Totaal</th>
+      </tr></thead>
+      <tbody>${itemsHtml}</tbody>
+      <tfoot>
+        <tr><td colspan="3" style="padding:12px;text-align:right;color:#6b7280;">Subtotaal</td><td style="padding:12px;text-align:right;">€${subtotal.toFixed(2)}</td></tr>
+        ${vatDisplayHtml}
+        ${discountAmount > 0 ? `<tr><td colspan="3" style="padding:12px;text-align:right;color:#059669;">Korting</td><td style="padding:12px;text-align:right;color:#059669;">-€${discountAmount.toFixed(2)}</td></tr>` : ''}
+        <tr style="background:#f9fafb;"><td colspan="3" style="padding:16px 12px;text-align:right;font-weight:700;font-size:16px;">Totaal</td><td style="padding:16px 12px;text-align:right;font-weight:700;font-size:16px;">€${total.toFixed(2)}</td></tr>
+      </tfoot>
+    </table>`;
+
+    const customerCard = `<div style="margin-bottom:20px;padding:15px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0;font-weight:600;">${customerDisplayName}</p>
+      ${quote.customer.company_name && quote.customer.first_name ? `<p style="margin:5px 0 0;font-size:14px;color:#6b7280;">t.a.v. ${customerName}</p>` : ''}
+      ${customerVatInfo}
+    </div>`;
+    const validUntilHtml = validUntilDate ? `<p style="margin:0 0 16px;color:#6b7280;font-size:14px;"><strong>${t(locale, 'quote.validUntil')}:</strong> ${validUntilDate}</p>` : '';
+    const notesHtml = quote.notes ? `<div style="padding:20px;background:#f9fafb;border-radius:8px;margin:16px 0;font-size:14px;color:#374151;">${quote.notes}</div>` : '';
+
+    const { html: emailHtml, text: emailText } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: t(locale, 'quote.intro', { customerName }),
+      heading: t(locale, 'quote.heading', { quoteNumber: quote.quote_number }),
+      intro: `${customerCard}<p>${t(locale, 'quote.intro', { customerName })}</p>${validUntilHtml}`,
+      content: `${summaryTable}${notesHtml}`,
+      primaryCta: quote.payment_link ? { label: t(locale, 'quote.cta'), url: quote.payment_link } : undefined,
+      poweredByLabel: t(locale, 'quote.poweredBy'),
+    });
 
     logStep("Sending email", { to: quote.customer.email });
 
@@ -440,8 +377,9 @@ serve(async (req) => {
       from: quoteSender.from,
       reply_to: quoteSender.replyTo,
       to: [quote.customer.email],
-      subject: `Offerte ${quote.quote_number} van ${tenant.name}`,
+      subject: t(locale, 'quote.subject', { quoteNumber: quote.quote_number, tenantName: brand.tenantName }),
       html: emailHtml,
+      text: emailText,
     });
 
     logStep("Email sent", { emailResponse });
