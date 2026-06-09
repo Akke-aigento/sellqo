@@ -19,9 +19,24 @@ const DOCS = path.join(ROOT, "docs");
 
 const src = fs.readFileSync(APP, "utf8");
 
-// Find every <Route ... path="..." ... element={...}> within the admin subtree.
-// We capture the entire opening tag (up to /> or > on same/next lines) by a non-greedy match.
-const routeRe = /<Route\s+([^>]*?path=["']([^"']+)["'][^>]*?)(?:\/>|>[\s\S]*?<\/Route>)/g;
+// We scan line-by-line and pair each `<Route ... path="..."` opening with the
+// rest of its element-prop until we see `/>` or the closing `</Route>`.
+const lines = src.split("\n");
+const routes = []; // {path, body}
+for (let i = 0; i < lines.length; i++) {
+  const line = lines[i];
+  const pathMatch = line.match(/<Route\s+path=["']([^"']+)["']/);
+  if (!pathMatch) continue;
+  // Collect the body until we hit `/>` or `</Route>` (max 6 lines safety).
+  let body = line;
+  if (!/\/>|<\/Route>/.test(body)) {
+    for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
+      body += "\n" + lines[j];
+      if (/\/>|<\/Route>/.test(lines[j])) break;
+    }
+  }
+  routes.push({ path: pathMatch[1], body });
+}
 
 const INTENTIONAL_OPEN = new Set([
   "/admin", // wrapper
@@ -76,17 +91,10 @@ const NOTE_MAP = {
 };
 
 const rows = [];
-let m;
-while ((m = routeRe.exec(src))) {
-  const inner = m[1];
-  const fullPath = m[2];
-  // Only collect routes that are within the /admin tree. We detect by either
-  // path === "/admin" or being a relative path without leading "/".
+for (const r of routes) {
+  const fullPath = r.path;
   if (fullPath !== "/admin" && fullPath.startsWith("/")) continue;
-  // element attribute body
-  const elIdx = m.index + m[0].indexOf("element=");
-  const tail = src.slice(elIdx, elIdx + 800);
-  const guardMatch = tail.match(/<RouteGuard\s+(require(?:Read|Write))=["']([a-z_]+)["']/);
+  const guardMatch = r.body.match(/<RouteGuard\s+(require(?:Read|Write))=["']([a-z_]+)["']/);
   const guard = guardMatch ? `${guardMatch[1]}="${guardMatch[2]}"` : null;
   const isIntentional = INTENTIONAL_OPEN.has(fullPath);
   let note;
