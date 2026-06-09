@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 import { SEOScoreCard } from '@/components/admin/seo/SEOScoreCard';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
-import { useCan } from '@/hooks/useCan';
 import { SEOQuickWins } from '@/components/admin/seo/SEOQuickWins';
 import { SEOHealthChecklist } from '@/components/admin/seo/SEOHealthChecklist';
 import { SEOProductTable } from '@/components/admin/seo/SEOProductTable';
