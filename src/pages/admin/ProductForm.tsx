@@ -878,7 +878,7 @@ export default function ProductForm() {
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="cost_price" render={({ field }) => (
-                          <FormItem>
+                          <PermissionGateFormItem>
                             <FormLabel>Inkoopprijs</FormLabel>
                             <FormControl>
                               <div className="relative">
@@ -888,7 +888,7 @@ export default function ProductForm() {
                             </FormControl>
                             <FormDescription>Voor winstberekening (niet zichtbaar)</FormDescription>
                             <FormMessage />
-                          </FormItem>
+                          </PermissionGateFormItem>
                         )} />
                       </div>
                     </CardContent>
