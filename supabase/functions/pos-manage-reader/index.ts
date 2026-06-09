@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,15 +19,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error("Niet geautoriseerd");
-    }
-
     const { action, tenant_id, reader_id, registration_code, label, location_id } = await req.json();
+
+    // Batch 2E (OB-2E-6): terminal-pairing is tenant_admin only
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ["tenant_admin"]);
 
     // Get tenant's Stripe Connect account
     const { data: tenant, error: tenantError } = await supabaseClient
@@ -151,6 +148,9 @@ serve(async (req) => {
     }
   } catch (error: unknown) {
     console.error("[POS] Reader management error:", error);
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: message }),
