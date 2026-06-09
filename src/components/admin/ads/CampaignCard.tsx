@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw, Loader2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCan } from '@/hooks/useCan';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
