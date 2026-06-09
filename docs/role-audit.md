@@ -2474,3 +2474,88 @@ Uitgevoerd als platform_admin (bypass overal van toepassing) — geen
 regressies verwacht in VAT-aangifte-, subscription-zelfservice- of
 translation-flows.
 
+
+---
+
+## Batch 2D-i — Reports RLS-aanscherping
+
+**Datum:** 2026-06-09
+**Bron:** docs/fase2-batch-2d-recon.md + bevestigde beslispunten OB1 (DELETE
+voor zowel tenant_admin als accountant) en OB5 (operations dashboards open
+voor alle tenant-rollen).
+
+### Tabellen-scan
+`SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename
+LIKE 'vat%' OR tablename LIKE 'oss%' OR tablename LIKE '%report%' OR
+tablename LIKE '%export%' OR tablename LIKE 'audit%' OR tablename LIKE
+'dashboard%' OR …);`
+
+| Tabel uit recon-scope | Bestaat? | Actie |
+| --- | --- | --- |
+| `vat_returns` | ja | SELECT aangescherpt (was tenant-blind); INSERT/UPDATE/DELETE al rol-aware via pre-2D-quickfix |
+| `vat_validations` | ja | SELECT aangescherpt; UPDATE + DELETE policies toegevoegd (waren afwezig) |
+| `vat_report_cache` | ja | SELECT aangescherpt; geen schrijfpolicies → service-role only (cache wordt door vat-report-engine gevuld) |
+| `vat_rates` | ja | **buiten scope** — lookup-tabel met globale + tenant-overrides; valt onder cluster `global_lookups` |
+| `vat_regimes` | ja | **buiten scope** — pure lookup, "Anyone can read" is correct |
+| `oss_reports`, `oss_report_lines` | nee | overgeslagen — niet aanwezig |
+| `intervat_xml_exports` | nee | overgeslagen — XML wordt on-demand door edge-functie gegenereerd (geen persistente tabel) |
+| `intrastat_reports` | nee | overgeslagen — feature nog niet aanwezig |
+| `financial_reports`, `sales_reports`, `revenue_reports`, `margin_reports` | nee | overgeslagen — rapporten worden runtime gegenereerd vanuit `orders`/`invoices` |
+| `operations_reports`, `operations_report_runs` | nee | overgeslagen — geen tabellen; KPIs runtime |
+| `dashboard_kpi_snapshots` | nee | overgeslagen — geen snapshots opgeslagen (wel `dashboard_preferences`, dat is gebruikersprefs en buiten scope) |
+| `export_jobs` | nee | overgeslagen — exports zijn synchroon via edge-functions, geen jobs-tabel |
+| `audit_reports`, `audit_log_exports` | nee | overgeslagen — alleen `admin_actions_log` bestaat (al gepind onder platform-billing cluster) |
+
+### Per-tabel beleid (nieuw)
+
+**vat_returns** — fiscaal-sensitive
+- `vat_returns_select` (auth): `is_platform_admin OR (tenant-scope AND has_tenant_role([tenant_admin, accountant]))`
+- INSERT/UPDATE/DELETE: idem (ongewijzigd uit pre-2D-quickfix)
+- service-role: BYPASS RLS
+
+**vat_validations** — fiscaal-sensitive
+- `vat_validations_select` (auth): `is_platform_admin OR (tenant-scope AND has_tenant_role([tenant_admin, accountant]))`
+- `vat_validations_insert` (auth): ongewijzigd (pre-2D-quickfix, met WITH CHECK)
+- `vat_validations_update` + `vat_validations_delete` (auth): tenant_admin + accountant
+- service-role: BYPASS RLS
+
+**vat_report_cache** — fiscaal-sensitive (cache)
+- `vat_report_cache_select` (auth): tenant_admin + accountant
+- geen INSERT/UPDATE/DELETE policies → schrijven uitsluitend via service-role (vat-report-engine)
+
+### Beleidspatronen die NIET geraakt zijn (geen tabellen)
+De recon-instructie beschrijft ook patronen voor financial/operations/export/audit
+reports. Aangezien die tabellen niet bestaan in het schema, zijn de
+patronen gedocumenteerd voor toekomstige introductie maar niet uitgerold.
+Wanneer een van deze tabellen wordt toegevoegd, gebruik het patroon zoals
+beschreven in `docs/fase2-batch-2d-recon.md` § Reports-cluster.
+
+### Service-role pad
+Alle drie de geraakte tabellen behouden volledige BYPASS RLS voor de
+service-role. De automated runners (vat-report-engine, periodic VAT-cache
+refresh) blijven ongewijzigd functioneren.
+
+### Verificatie
+```sql
+SELECT tablename, cmd, COUNT(*) AS policy_count
+FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('vat_returns','vat_validations','vat_report_cache')
+GROUP BY tablename, cmd
+ORDER BY tablename, cmd;
+```
+
+Resultaat: per tabel één policy per relevante cmd, geen overlap-ALLs meer.
+
+### Bevestigde beslispunten
+- **OB1:** DELETE op fiscale tabellen toegestaan voor zowel `tenant_admin`
+  als `accountant` (geïmplementeerd voor `vat_validations`; `vat_returns`
+  reeds zo via pre-2D-quickfix).
+- **OB5:** Operations dashboards open voor alle tenant-rollen — niet van
+  toepassing in deze batch want geen operations-tabellen bestaan. Wanneer
+  toegevoegd in toekomst, patroon uitrollen.
+
+### Vervolg
+- 2D-ii (Settings cluster) — `tenant_settings`, `business_info`, shipping/tax
+- 2D-iii (Platform-billing strict lockdown)
+- 2D-iv (Edge-function role-checks voor export-pipeline)
