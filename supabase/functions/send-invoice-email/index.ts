@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -171,106 +173,30 @@ serve(async (req) => {
       attachmentsInfo.push(`<a href="${invoice.ubl_url}" style="color: #3b82f6;">Download factuur (UBL/XML)</a>`);
     }
 
-    // Use custom email subject/body or defaults
-    const emailSubject = tenant.invoice_email_subject || 
-      `Factuur ${invoice.invoice_number} van ${tenant.name}`;
-    
-    const customBody = tenant.invoice_email_body || '';
+    const brand = await getTenantBrand(supabaseClient, invoice.tenant_id);
+    const locale = brand.defaultLocale;
+    const emailSubject = tenant.invoice_email_subject ||
+      t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName });
+    const customBody = tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName });
 
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          
-          <!-- Header -->
-          <tr>
-            <td style="background-color: ${tenant.primary_color || '#3b82f6'}; padding: 30px; text-align: center;">
-              ${tenant.logo_url ? 
-                `<img src="${tenant.logo_url}" alt="${tenant.name}" style="max-height: 50px; margin-bottom: 10px;">` : 
-                `<h1 style="color: #ffffff; margin: 0; font-size: 24px;">${tenant.name}</h1>`
-              }
-            </td>
-          </tr>
+    const summary = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr><td style="color:#6b7280;padding:5px 0;">Factuurnummer:</td><td style="color:#1f2937;text-align:right;padding:5px 0;"><strong>${invoice.invoice_number}</strong></td></tr>
+        <tr><td style="color:#6b7280;padding:5px 0;">Totaalbedrag:</td><td style="color:#1f2937;text-align:right;padding:5px 0;"><strong>${formatAmount(Number(invoice.total), currency, locale)}</strong></td></tr>
+      </table>
+    </td></tr></table>
+    ${attachmentsInfo.length ? `<div style="text-align:center;margin:24px 0;">${attachmentsInfo.join('<br/>')}</div>` : ''}
+    <p style="color:#4b5563;">${t(locale, 'invoice.attached')}</p>`;
 
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px 30px;">
-              <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 20px;">
-                Factuur ${invoice.invoice_number}
-              </h2>
-              
-              <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px;">
-                Beste ${customerName},
-              </p>
-              
-              ${customBody ? `<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px;">${customBody}</p>` : `
-              <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px;">
-                Bedankt voor je bestelling! Hierbij ontvang je de factuur voor je aankoop.
-              </p>
-              `}
-
-              <!-- Invoice Summary -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 20px 0;">
-                <tr>
-                  <td style="padding: 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="color: #6b7280; padding: 5px 0;">Factuurnummer:</td>
-                        <td style="color: #1f2937; text-align: right; padding: 5px 0;"><strong>${invoice.invoice_number}</strong></td>
-                      </tr>
-                      <tr>
-                        <td style="color: #6b7280; padding: 5px 0;">Totaalbedrag:</td>
-                        <td style="color: #1f2937; text-align: right; padding: 5px 0;"><strong>${formatCurrency(Number(invoice.total), currency)}</strong></td>
-                      </tr>
-                      <tr>
-                        <td style="color: #6b7280; padding: 5px 0;">Status:</td>
-                        <td style="color: #059669; text-align: right; padding: 5px 0;"><strong>Betaald</strong></td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Download Links -->
-              <div style="text-align: center; margin: 30px 0;">
-                ${attachmentsInfo.join('<br style="margin: 10px 0;">')}
-              </div>
-
-              <p style="color: #4b5563; line-height: 1.6; margin: 20px 0 0;">
-                Heb je vragen over deze factuur? Neem dan gerust contact met ons op.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">
-                ${tenant.name}
-                ${tenant.address ? ` | ${tenant.address}` : ''}
-                ${tenant.city ? `, ${tenant.city}` : ''}
-              </p>
-              <p style="color: #6b7280; font-size: 12px; margin: 5px 0 0;">
-                ${tenant.kvk_number ? `KvK: ${tenant.kvk_number}` : ''}
-                ${tenant.btw_number ? ` | BTW: ${tenant.btw_number}` : ''}
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+    const { html: emailHtml, text: emailText } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: emailSubject,
+      heading: t(locale, 'invoice.heading', { invoiceNumber: invoice.invoice_number }),
+      intro: `<p>${customBody}</p>`,
+      content: summary,
+      poweredByLabel: t(locale, 'invoice.poweredBy'),
+    });
 
     // Build recipients list
     const toEmails = [customer.email];
@@ -287,6 +213,7 @@ serve(async (req) => {
       to: toEmails,
       subject: emailSubject,
       html: emailHtml,
+      text: emailText,
       attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
     });
 
@@ -307,6 +234,7 @@ serve(async (req) => {
           to: copyRecipients,
           subject: `[Kopie] ${emailSubject}`,
           html: emailHtml,
+          text: emailText,
           attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
         });
         logStep("Copy email sent", { response: copyResponse });

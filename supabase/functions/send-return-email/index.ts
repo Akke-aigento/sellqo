@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -127,57 +129,10 @@ const bodies: Record<ReturnEmailEvent, Record<Locale, (d: TemplateData) => strin
 
 // ── Canonical SellQo layout ─────────────────────────────────
 
-function wrapHtml(body: string, tenant: TenantBranding, supportEmail: string): string {
-  const primaryColor = tenant.primary_color || '#3b82f6';
-  const tenantName = esc(tenant.name);
-  const address = [tenant.street, tenant.house_number, tenant.postal_code, tenant.city]
-    .filter(Boolean).join(', ');
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-          <tr>
-            <td style="background:${primaryColor};padding:24px 32px;text-align:center;">
-              ${tenant.logo_url
-                ? `<img src="${esc(tenant.logo_url)}" alt="${tenantName}" style="max-height:48px;max-width:200px;">`
-                : `<span style="color:#ffffff;font-size:24px;font-weight:600;">${tenantName}</span>`}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px;font-size:16px;line-height:1.6;color:#374151;">
-              ${body}
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center;">
-              <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">
-                <strong>${tenantName}</strong>${address ? ` &middot; ${esc(address)}` : ''}
-              </p>
-              <p style="margin:0;font-size:12px;color:#9ca3af;">
-                Vragen? <a href="mailto:${esc(supportEmail)}" style="color:${primaryColor};text-decoration:none;">${esc(supportEmail)}</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
 function getTemplate(event: ReturnEmailEvent, locale: Locale, data: TemplateData): { subject: string; html: string } {
   return {
     subject: subjects[event][locale](data),
-    html: wrapHtml(bodies[event][locale](data), data.tenant, data.supportEmail),
+    html: bodies[event][locale](data),
   };
 }
 
@@ -281,8 +236,17 @@ serve(async (req) => {
       supportEmail,
     };
 
-    const template = getTemplate(event as ReturnEmailEvent, locale, templateData);
-    log('Sending', { to, subject: template.subject });
+    const tpl = getTemplate(event as ReturnEmailEvent, locale, templateData);
+    const brand = await getTenantBrand(supabase, tenantId);
+    const { html, text } = renderTenantEmail({
+      tenantBrand: brand,
+      locale: locale as any,
+      preheader: tpl.subject,
+      heading: t(locale, 'return.heading'),
+      intro: tpl.html,
+      poweredByLabel: t(locale, 'return.poweredBy'),
+    });
+    log('Sending', { to, subject: tpl.subject });
 
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);
@@ -291,8 +255,9 @@ serve(async (req) => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: returnSender.from,
       to: [to],
-      subject: template.subject,
-      html: template.html,
+      subject: tpl.subject,
+      html,
+      text,
       reply_to: returnSender.replyTo,
     });
 

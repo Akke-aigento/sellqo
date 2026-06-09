@@ -3,6 +3,8 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -78,95 +80,28 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Tenant not found");
     }
 
-    const replyToEmail = tenant.owner_email || "support@sellqo.app";
-    const fromName = tenant.name || "Sellqo";
-    const csSender = EMAIL_SENDERS.customerService(fromName, tenant.owner_email);
-    const primaryColor = tenant.primary_color || "#2563eb";
+    const brand = await getTenantBrand(supabaseClient, tenant_id);
+    const locale = brand.defaultLocale;
+    const fromName = brand.tenantName;
+    const replyToEmail = brand.supportEmail;
+    const csSender = EMAIL_SENDERS.customerService(fromName, replyToEmail);
 
-    // Build professional HTML email template
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td style="background-color: ${primaryColor}; padding: 24px 32px;">
-              ${tenant.logo_url 
-                ? `<img src="${tenant.logo_url}" alt="${fromName}" style="max-height: 40px; max-width: 200px;">` 
-                : `<span style="color: #ffffff; font-size: 24px; font-weight: 600;">${fromName}</span>`
-              }
-            </td>
-          </tr>
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 32px;">
-              <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px;">
-                Beste ${customer_name || 'klant'},
-              </p>
-              
-              <div style="color: #374151; font-size: 16px; line-height: 1.6;">
-                ${body_html}
-              </div>
-              
-              ${context_type === 'order' && context_data?.order_number ? `
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <tr>
-                  <td style="padding: 16px;">
-                    <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                      📦 Betreft bestelling: <strong style="color: #111827;">${context_data.order_number}</strong>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-              
-              ${context_type === 'quote' && context_data?.quote_number ? `
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <tr>
-                  <td style="padding: 16px;">
-                    <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                      📄 Betreft offerte: <strong style="color: #111827;">${context_data.quote_number}</strong>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-              
-              <p style="margin: 32px 0 0 0; color: #374151; font-size: 16px;">
-                Met vriendelijke groet,<br>
-                <strong>${fromName}</strong>
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 24px 32px; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">
-                ${tenant.address ? `${tenant.address}, ` : ''}${tenant.postal_code || ''} ${tenant.city || ''}${tenant.country ? `, ${tenant.country}` : ''}
-              </p>
-              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-    `.trim();
+    const contextBlock = context_type === 'order' && context_data?.order_number
+      ? `<div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;font-size:14px;color:#6b7280;">📦 Betreft bestelling: <strong style="color:#111827;">${String(context_data.order_number)}</strong></div>`
+      : context_type === 'quote' && context_data?.quote_number
+      ? `<div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;font-size:14px;color:#6b7280;">📄 Betreft offerte: <strong style="color:#111827;">${String(context_data.quote_number)}</strong></div>`
+      : "";
+
+    const { html: emailHtml, text: emailText } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: subject,
+      heading: subject,
+      intro: `<p style="margin:0 0 16px;">${t(locale, 'message.greeting', { customerName: customer_name || 'klant' })}</p><div style="font-size:15px;line-height:1.65;">${body_html}</div>`,
+      content: `${contextBlock}<p style="margin:32px 0 0;font-size:15px;">${t(locale, 'message.regards')},<br/><strong>${fromName}</strong></p>`,
+      footerNote: `Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.`,
+      poweredByLabel: t(locale, 'message.poweredBy'),
+    });
 
     // Create message record first
     const { data: message, error: insertError } = await supabaseClient
@@ -214,7 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
       reply_to: csSender.replyTo,
       subject,
       html: emailHtml,
-      text: body_text || body_html.replace(/<[^>]*>/g, ''),
+      text: body_text || emailText,
       ...(Object.keys(emailHeaders).length > 0 && { headers: emailHeaders }),
       ...(cc && cc.length > 0 && { cc }),
       ...(bcc && bcc.length > 0 && { bcc }),

@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,6 +116,8 @@ serve(async (req) => {
     if (!customer?.email) throw new Error("Customer email not found");
 
     const lang = pickLang(language, customer, tenant);
+    const brand = await getTenantBrand(admin, cn.tenant_id);
+    const locale = lang;
     const currency = tenant.currency || "EUR";
     const customerName = (customer.company_name || `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || "").trim();
 
@@ -147,30 +151,23 @@ serve(async (req) => {
     }
 
     const invoiceNumber = cn.original_invoice?.invoice_number || "-";
-    const subject = SUBJECT[lang](cn.credit_note_number, tenant.name);
-    const body = BODY_TEXT[lang];
+    const subject = t(locale, "creditNote.subject", { creditNoteNumber: cn.credit_note_number, tenantName: brand.tenantName });
+    const amountFmt = formatAmount(Math.abs(Number(cn.total || 0)), currency, locale);
 
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.1);">
-<tr><td style="background:${tenant.primary_color || "#dc2626"};padding:30px;text-align:center;">
-${tenant.logo_url ? `<img src="${tenant.logo_url}" alt="${tenant.name}" style="max-height:50px;">` : `<h1 style="color:#fff;margin:0;font-size:24px;">${tenant.name}</h1>`}
-</td></tr>
-<tr><td style="padding:40px 30px;color:#1f2937;">
-<h2 style="margin:0 0 20px;font-size:20px;">${subject}</h2>
-<p style="margin:0 0 16px;line-height:1.6;">${body.greeting} ${customerName || ""},</p>
-<p style="margin:0 0 16px;line-height:1.6;">${body.intro(invoiceNumber)}</p>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="color:#6b7280;padding:4px 0;">${cn.credit_note_number}</td><td style="color:#dc2626;text-align:right;padding:4px 0;font-weight:bold;">-${fmt(Math.abs(Number(cn.total || 0)), currency)}</td></tr>
-</table></td></tr></table>
-<p style="margin:0 0 16px;line-height:1.6;">${body.attach}</p>
-<p style="margin:24px 0 0;line-height:1.6;color:#4b5563;">${body.outro}</p>
-</td></tr>
-<tr><td style="background:#f9fafb;padding:20px 30px;text-align:center;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;">
-${tenant.name}${tenant.vat_number ? ` | BTW: ${tenant.vat_number}` : ""}
-</td></tr>
-</table></td></tr></table></body></html>`;
+    const summary = `<div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;display:flex;justify-content:space-between;">
+      <span style="color:#6b7280;">${cn.credit_note_number}</span>
+      <strong style="color:#dc2626;float:right;">-${amountFmt}</strong>
+    </div>`;
+
+    const { html, text } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: subject,
+      heading: t(locale, "creditNote.heading", { creditNoteNumber: cn.credit_note_number }),
+      intro: `<p>${BODY_TEXT[lang].greeting} ${customerName || ""},</p><p>${t(locale, "creditNote.intro", { invoiceNumber })}</p>`,
+      content: `${summary}<p>${t(locale, "creditNote.attached")}</p><p style="color:#4b5563;">${t(locale, "creditNote.closing")}</p>`,
+      poweredByLabel: t(locale, "creditNote.poweredBy"),
+    });
 
     const toEmails = [customer.email];
     const ccEmails = tenant.invoice_cc_email ? [tenant.invoice_cc_email] : undefined;
@@ -183,6 +180,7 @@ ${tenant.name}${tenant.vat_number ? ` | BTW: ${tenant.vat_number}` : ""}
       to: toEmails,
       subject,
       html,
+      text,
       attachments: attachments.length ? attachments : undefined,
     });
 

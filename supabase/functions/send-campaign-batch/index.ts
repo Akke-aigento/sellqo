@@ -2,6 +2,8 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +55,8 @@ Deno.serve(async (req) => {
       .eq("id", campaign.tenant_id)
       .single();
     const marketingSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.email || (tenant as any)?.owner_email);
+    const brand = await getTenantBrand(supabase, campaign.tenant_id);
+    const locale = brand.defaultLocale;
 
     // Build recipient query
     let recipientQuery = supabase
@@ -125,13 +129,29 @@ Deno.serve(async (req) => {
         .replace(/\{\{company_address\}\}/g, companyAddress)
         .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`);
 
+      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
+      const { html: wrappedHtml, text: wrappedText } = renderTenantEmail({
+        tenantBrand: brand,
+        locale,
+        preheader: campaign.subject,
+        heading: campaign.subject,
+        intro: htmlContent,
+        unsubscribeUrl, // MANDATORY for marketing (anti-spam law)
+        poweredByLabel: t(locale, 'campaign.poweredBy'),
+      });
+
       try {
         const emailResponse = await resend.emails.send({
           from: marketingSender.from,
           reply_to: marketingSender.replyTo,
           to: [recipient.email],
           subject: campaign.subject.replace(/\{\{customer_name\}\}/g, customerName),
-          html: htmlContent,
+          html: wrappedHtml,
+          text: wrappedText,
+          headers: {
+            'List-Unsubscribe': `<${unsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
         });
 
         // Create campaign_send record
