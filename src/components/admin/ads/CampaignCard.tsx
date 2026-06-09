@@ -222,39 +222,43 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Bewerken
-          </DropdownMenuItem>
-          {notPushed && (
+          {canWriteAds && (
+            <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Bewerken
+            </DropdownMenuItem>
+          )}
+          {canWriteAds && notPushed && (
             <DropdownMenuItem onClick={handlePushToBol} disabled={pushing}>
               <Upload className="h-4 w-4 mr-2" />
               Push naar Bol.com
             </DropdownMenuItem>
           )}
-          {isBol && campaign.platform_campaign_id && (
+          {canWriteAds && isBol && campaign.platform_campaign_id && (
             <DropdownMenuItem onClick={handleRepushToBol} disabled={pushing}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Producten opnieuw pushen
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator />
-          {campaign.status === 'active' ? (
+          {canWriteAds && <DropdownMenuSeparator />}
+          {canWriteAds && campaign.status === 'active' ? (
             <DropdownMenuItem onClick={handlePause}>
               <Pause className="h-4 w-4 mr-2" />
               Pauzeren
             </DropdownMenuItem>
-          ) : campaign.status === 'paused' ? (
+          ) : canWriteAds && campaign.status === 'paused' ? (
             <DropdownMenuItem onClick={handleActivate}>
               <Play className="h-4 w-4 mr-2" />
               Hervatten
             </DropdownMenuItem>
           ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Verwijderen
-          </DropdownMenuItem>
+          {canWriteAds && <DropdownMenuSeparator />}
+          {canWriteAds && (
+            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Verwijderen
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
