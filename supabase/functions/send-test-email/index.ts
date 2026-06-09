@@ -1,6 +1,7 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS, type SenderKey } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,7 @@ interface SendTestEmailRequest {
   toEmail: string;
   subject: string;
   htmlContent: string;
+  sender?: SenderKey;
   previewData?: {
     customer_name?: string;
     customer_email?: string;
@@ -102,9 +104,17 @@ Deno.serve(async (req) => {
       processedHtml = testBanner + processedHtml;
     }
 
+    // Resolve sender (defaults to customerService stream)
+    const senderKey: SenderKey = (body as SendTestEmailRequest).sender || 'customerService';
+    const senderEntry = (EMAIL_SENDERS as any)[senderKey];
+    const resolvedSender = typeof senderEntry === 'function'
+      ? senderEntry(tenant.name, (tenant as any).owner_email)
+      : senderEntry;
+
     // Send the test email
     const emailResponse = await resend.emails.send({
-      from: `${tenant.name} <noreply@sellqo.app>`,
+      from: resolvedSender.from,
+      reply_to: resolvedSender.replyTo,
       to: [toEmail],
       subject: `[TEST] ${processedSubject}`,
       html: processedHtml,
