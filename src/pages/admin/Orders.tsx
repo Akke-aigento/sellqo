@@ -19,6 +19,8 @@ import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { useCan } from '@/hooks/useCan';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export default function OrdersPage() {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
+  const canWriteOrders = useCan('write', 'orders');
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -98,7 +101,10 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Bestellingen</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
+            Bestellingen
+            <ReadOnlyBadge resource="orders" />
+          </h1>
           <p className="text-sm text-muted-foreground">Beheer alle bestellingen van je winkel</p>
         </div>
       </div>
@@ -236,6 +242,7 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const canWriteOrders = useCan('write', 'orders');
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50">
       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -325,13 +332,15 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => onDelete(order)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Verwijderen
-            </DropdownMenuItem>
+            {canWriteOrders && (
+              <DropdownMenuItem 
+                onClick={() => onDelete(order)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Verwijderen
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -340,6 +349,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
 }
 
 function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const canWriteOrders = useCan('write', 'orders');
   return (
     <div 
       className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
@@ -415,13 +425,15 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => onDelete(order)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Verwijderen
-              </DropdownMenuItem>
+              {canWriteOrders && (
+                <DropdownMenuItem 
+                  onClick={() => onDelete(order)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Verwijderen
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

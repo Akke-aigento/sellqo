@@ -52,6 +52,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { PermissionGate } from '@/components/PermissionGate';
+import { GatedButton } from '@/components/permissions/GatedButton';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import {
   Select,
   SelectContent,
@@ -394,7 +397,10 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Producten</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            Producten
+            <ReadOnlyBadge resource="products" />
+          </h1>
           <p className="text-muted-foreground">
             Beheer je productcatalogus
           </p>
@@ -413,6 +419,16 @@ export default function ProductsPage() {
               <Grid3X3 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
+          <PermissionGate
+            action="write"
+            resource="products"
+            fallback={
+              <GatedButton action="write" resource="products">
+                <Plus className="mr-2 h-4 w-4" />
+                Nieuw product
+              </GatedButton>
+            }
+          >
           {isOverLimit('products') && !isTrialing ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -433,6 +449,7 @@ export default function ProductsPage() {
               </Link>
             </Button>
           )}
+          </PermissionGate>
         </div>
       </div>
 

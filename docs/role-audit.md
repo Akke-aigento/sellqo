@@ -10,6 +10,117 @@ Voor batch-detail per dag/cluster: zie secties hieronder.
 
 ---
 
+## Hoofdstuk 4b — Hotspot-pagina's (2026-06-09)
+
+### Nieuwe herbruikbare componenten
+
+- `src/components/permissions/GatedButton.tsx` — knop met automatische
+  `useCan` check. Default fallback `disable+tooltip` (beslispunt H4-1),
+  optioneel `fallback="hide"`. Tooltip uit `TOOLTIP_NO_ACCESS_LONG`.
+- `src/components/permissions/ReadOnlyBadge.tsx` — kleine badge "Alleen-lezen"
+  naast page-title, alleen zichtbaar bij gebrek aan write-rechten
+  (beslispunt H4-2).
+- `src/components/permissions/MaskedValue.tsx` — `••• EUR`-style fallback
+  voor field-level masking (beslispunt H4-7).
+- `src/components/permissions/index.ts` — barrel re-export.
+
+### Cluster: Orders
+
+- `pages/admin/Orders.tsx`:
+  - `ReadOnlyBadge resource="orders"` naast page-title.
+  - Row-level + mobile-card "Verwijderen" item gated op
+    `useCan('write', 'orders')` (hide).
+  - **TODO H4c:** OrderBulkActions component, status-transitions per item
+    in dropdown (annuleren/processing/shipped/delivered).
+- `pages/admin/Invoices.tsx`:
+  - `ManualInvoiceDialog` gewrapt in `<PermissionGate write invoices>`.
+  - `ReadOnlyBadge resource="invoices"`.
+  - **TODO H4c:** Creditnota row-actions (`CreateCreditNoteFromInvoiceButton`),
+    Peppol "mark as sent" actions.
+- `pages/admin/Fulfillment.tsx`: **TODO H4c** (geen page-level CTA gewijzigd
+  in deze batch; bulk-acties + import-dialog volgen in H4c).
+- `pages/admin/OrderDetail.tsx`: **TODO H4c** (refund/cancel/edit knoppen).
+
+### Cluster: Products
+
+- `pages/admin/Products.tsx`:
+  - `ReadOnlyBadge resource="products"` naast page-title.
+  - "Nieuw product"-knop (incl. limiet-tooltip-variant) gewrapt in
+    `<PermissionGate write products>` met `<GatedButton>` fallback.
+- `pages/admin/ProductForm.tsx`:
+  - `cost_price` FormField volledig gewrapt in
+    `<PermissionGate action="read" resource="product_costs">` →
+    veld is onzichtbaar voor rollen zonder kostenprijs-toegang
+    (vermijdt accidentele empty-save bij submit).
+- **TODO H4c:** cost_price masking in spreadsheet-grid
+  (`components/admin/products/grid/`) — `MaskedValue` per cel, plus
+  uitsluiten in `BulkPricingTab.tsx` voor non-authorized rollen.
+
+### Cluster: Customers
+
+- `pages/admin/Customers.tsx`:
+  - `ReadOnlyBadge resource="customers"`.
+  - `CustomerFormDialog` gewrapt in `<PermissionGate write customers>`.
+- **TODO H4c:** row-delete (tenant_admin only), export-knoppen,
+  customer-notes tab gating in `CustomerDetail.tsx`.
+
+### Cluster: Marketing
+
+- `pages/admin/Marketing.tsx`:
+  - `ReadOnlyBadge resource="marketing"`.
+  - "Nieuw segment" + "Nieuwe campagne" knoppen vervangen door
+    `<GatedButton action="write" resource="marketing">`.
+- `pages/admin/Discounts.tsx`:
+  - `ReadOnlyBadge resource="discount_codes"`.
+  - Beide "Nieuwe code" Buttons → `<GatedButton write discount_codes>`.
+- `pages/admin/SEODashboard.tsx`:
+  - `ReadOnlyBadge resource="seo"`.
+  - **TODO H4c:** `analyzeSEO()` knop gaten op `write seo`.
+- `pages/admin/Ads.tsx`:
+  - `ReadOnlyBadge resource="ads"`.
+  - **TODO H4c:** budget-input fields gaten op `write ad_budgets`
+    (tenant_admin only — beslispunt H4-7 pattern).
+- `pages/admin/AIMarketingHub.tsx`:
+  - `ReadOnlyBadge resource="ai_assistant"`.
+
+### Stats per page
+
+| Page | `<PermissionGate>` | `<GatedButton>` | `<ReadOnlyBadge>` | `<MaskedValue>` |
+|---|---|---|---|---|
+| Orders.tsx | — | — | 1 | — |
+| Invoices.tsx | 1 | — | 1 | — |
+| Products.tsx | 1 | 1 (fallback) | 1 | — |
+| ProductForm.tsx | 1 (cost_price) | — | — | — |
+| Customers.tsx | 1 | — | 1 | — |
+| Marketing.tsx | — | 2 | 1 | — |
+| Discounts.tsx | — | 2 | 1 | — |
+| SEODashboard.tsx | — | — | 1 | — |
+| Ads.tsx | — | — | 1 | — |
+| AIMarketingHub.tsx | — | — | 1 | — |
+
+### Resterende ungated UI → H4c
+
+1. **Row-action menus** (Orders, Invoices, Customers, Products):
+   status-transitions, Peppol-acties, archive/restore. Strategie: ofwel
+   filter `ActionItem[]` op `useCan`, ofwel verberg lege menu's.
+2. **OrderDetail** modals: refund, cancel, edit-address, manual-status-correct
+   (gebruik resource `order_status` + action `correct` voor de bypass-knop).
+3. **Bulk-action bars** (`OrderBulkActions`, product-bulk-edit,
+   customer-export): filter actions per `useCan`.
+4. **cost_price masking in spreadsheet-grid** + `BulkPricingTab`
+   (huidige gate is alleen in single-edit form).
+5. **Ads budget-inputs** — `ad_budgets` (tenant_admin only) field-level
+   gating in `AdsBolcomCampaignDetail` en budget-edit dialogs.
+6. **CustomerDetail**: notes-tab (verbergen voor marketing/warehouse),
+   delete-knop (tenant_admin only), data-export.
+7. **Themes / CMS / Translations** pagina's — H4d cluster (page-level
+   nog niet aangeraakt; sidebar+route-guard al klaar).
+8. **POS / Inventory / Suppliers** — H4e cluster.
+
+Datum: 2026-06-09.
+
+---
+
 ## Hoofdstuk 4a — Sidebar + Route-guards (2026-06-09)
 
 ### H4-5 verificatie — multi-tenant rol-binding

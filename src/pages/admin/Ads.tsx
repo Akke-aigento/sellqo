@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -100,7 +101,10 @@ export default function AdsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Ads Overzicht</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2 flex-wrap">
+            Ads Overzicht
+            <ReadOnlyBadge resource="ads" />
+          </h1>
           <p className="text-muted-foreground">Cross-channel advertentie performance</p>
         </div>
         <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1">
