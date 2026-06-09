@@ -3,6 +3,12 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import {
+  getTenantBrand,
+  renderTenantEmail,
+  renderGiftCardVisual,
+} from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -61,115 +67,43 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Tenant not found");
     }
 
-    const fromName = tenant.name || "Sellqo";
-    const primaryColor = tenant.primary_color || "#2563eb";
-    const websiteUrl = tenant.website_url || "#";
-    const designImage = giftCard.design?.image_url;
+    const brand = await getTenantBrand(supabaseClient, giftCard.tenant_id);
+    const locale = brand.defaultLocale;
+    const fromName = brand.tenantName;
+    const websiteUrl = (tenant.website_url as string) || brand.websiteUrl || "https://sellqo.app";
     const recipientName = giftCard.recipient_name || "ontvanger";
-    const personalMessage = giftCard.personal_message;
-    const expiresAt = giftCard.expires_at 
-      ? new Date(giftCard.expires_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
-      : null;
+    const personalMessage = giftCard.recipient_name ? giftCard.personal_message : "";
+    const expiresAt = giftCard.expires_at
+      ? new Date(giftCard.expires_at).toLocaleDateString(locale === "nl" ? "nl-NL" : "en-US", { day: "numeric", month: "long", year: "numeric" })
+      : undefined;
 
-    // Build beautiful HTML email
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Je hebt een cadeaukaart ontvangen!</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          
-          <!-- Design Header Image -->
-          ${designImage ? `
-          <tr>
-            <td>
-              <img src="${designImage}" alt="Cadeaukaart" style="width: 100%; height: auto; display: block;">
-            </td>
-          </tr>
-          ` : `
-          <tr>
-            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%); padding: 48px 32px; text-align: center;">
-              <span style="font-size: 48px;">🎁</span>
-              <h1 style="color: #ffffff; font-size: 28px; margin: 16px 0 0 0;">Cadeaukaart</h1>
-            </td>
-          </tr>
-          `}
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 32px;">
-              <h2 style="margin: 0 0 8px 0; color: #111827; font-size: 24px; text-align: center;">
-                Gefeliciteerd, ${recipientName}!
-              </h2>
-              <p style="margin: 0 0 24px 0; color: #6b7280; font-size: 16px; text-align: center;">
-                Je hebt een cadeaukaart ontvangen van ${fromName}
-              </p>
-              
-              ${personalMessage ? `
-              <div style="background-color: #f9fafb; border-left: 4px solid ${primaryColor}; padding: 16px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
-                <p style="margin: 0; color: #374151; font-size: 16px; font-style: italic;">
-                  "${personalMessage}"
-                </p>
-              </div>
-              ` : ''}
-              
-              <!-- Gift Card Code Box -->
-              <div style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
-                  Jouw code
-                </p>
-                <p style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #111827; font-family: 'Courier New', monospace; letter-spacing: 2px;">
-                  ${giftCard.code}
-                </p>
-                <div style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; padding: 8px 24px; border-radius: 9999px; font-size: 20px; font-weight: 600;">
-                  €${Number(giftCard.current_balance).toFixed(2)}
-                </div>
-              </div>
-              
-              ${expiresAt ? `
-              <p style="margin: 0 0 24px 0; color: #9ca3af; font-size: 14px; text-align: center;">
-                ⏰ Geldig tot: ${expiresAt}
-              </p>
-              ` : ''}
-              
-              <!-- CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="center">
-                    <a href="${websiteUrl}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                      Bekijk de webshop
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 24px 32px; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px; text-align: center;">
-                Voer de code in bij het afrekenen om je tegoed te gebruiken.
-              </p>
-              <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                Deze email is verzonden door ${fromName}
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-    `.trim();
+    const personalBlock = personalMessage
+      ? `<div style="background:#f9fafb;border-left:4px solid ${brand.primaryColor};padding:16px;margin:16px 0;border-radius:0 8px 8px 0;font-style:italic;color:#374151;">${String(personalMessage).replace(/[<>]/g, "")}</div>`
+      : "";
+
+    const content = `
+      ${personalBlock}
+      ${renderGiftCardVisual({
+        code: giftCard.code,
+        amount: Number(giftCard.current_balance) || 0,
+        currency: giftCard.currency || "EUR",
+        locale,
+        expiresAt: expiresAt ? `${t(locale, "giftCard.expires")}: ${expiresAt}` : undefined,
+        brandColor: brand.primaryColor,
+      })}
+      <p style="margin:16px 0 0;color:#6b7280;font-size:14px;text-align:center;">${t(locale, "giftCard.instructions")}</p>
+    `;
+
+    const { html: emailHtml, text } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: t(locale, "giftCard.intro", { tenantName: fromName }),
+      heading: t(locale, "giftCard.heading", { recipientName }),
+      intro: `<p>${t(locale, "giftCard.intro", { tenantName: fromName })}</p>`,
+      content,
+      primaryCta: { label: t(locale, "giftCard.cta"), url: websiteUrl },
+      poweredByLabel: t(locale, "giftCard.poweredBy"),
+    });
 
     const gcSender = EMAIL_SENDERS.giftCards(fromName, tenant.owner_email);
     // Send email
@@ -177,8 +111,9 @@ const handler = async (req: Request): Promise<Response> => {
       from: gcSender.from,
       reply_to: gcSender.replyTo,
       to: [recipientEmail],
-      subject: `🎁 Je hebt een cadeaukaart ontvangen van ${fromName}!`,
+      subject: t(locale, "giftCard.subject", { tenantName: fromName }),
       html: emailHtml,
+      text,
     });
 
     if (emailResponse.error) {
