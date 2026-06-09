@@ -6,6 +6,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { PermissionGate } from '@/components/PermissionGate';
 import { 
   ArrowLeft, 
   Save, 
@@ -877,19 +878,23 @@ export default function ProductForm() {
                             <FormMessage />
                           </FormItem>
                         )} />
-                        <FormField control={form.control} name="cost_price" render={({ field }) => (
-                          <PermissionGateFormItem>
-                            <FormLabel>Inkoopprijs</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-                                <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" />
-                              </div>
-                            </FormControl>
-                            <FormDescription>Voor winstberekening (niet zichtbaar)</FormDescription>
-                            <FormMessage />
-                          </PermissionGateFormItem>
-                        )} />
+                        {/* H4b — cost_price (Inkoopprijs) verbergen voor rollen zonder
+                            product_costs read recht. Vermijdt accidentele empty-save. */}
+                        <PermissionGate action="read" resource="product_costs">
+                          <FormField control={form.control} name="cost_price" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Inkoopprijs</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                  <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" />
+                                </div>
+                              </FormControl>
+                              <FormDescription>Voor winstberekening (niet zichtbaar)</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        </PermissionGate>
                       </div>
                     </CardContent>
                   </Card>
