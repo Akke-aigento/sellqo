@@ -75,6 +75,12 @@ interface AuthContextType {
    * the Authorization header is present.
    */
   getVerifiedAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
+  /**
+   * Force-refetches user_roles from the database and updates context state.
+   * Used after server-side INSERTs into user_roles (e.g. invite-accept) so
+   * `useCan` reflects the new permissions without a page-refresh.
+   */
+  refetchRoles: () => Promise<UserRole[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,6 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return (data || []) as UserRole[];
   };
+
+  const refetchRoles = useCallback(async (): Promise<UserRole[]> => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      setRoles([]);
+      return [];
+    }
+    const fresh = await fetchUserRoles(currentUser.id);
+    setRoles(fresh);
+    return fresh;
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -410,6 +427,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         ensureAuthenticated,
         getVerifiedAccessToken,
+        refetchRoles,
       }}
     >
       {children}

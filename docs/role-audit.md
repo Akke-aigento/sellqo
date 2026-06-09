@@ -3388,3 +3388,25 @@ branding-hooks) en INV-5 (regressie-test paden a–g).
   architectuur, 8 beslispunten, handmatige acties, backlog.
 
 **Status:** Team Invite-flow refactor AFGESLOTEN — 2026-06-09.
+
+---
+
+## Invite-flow bug-fix: auth-state refresh post-accept — 2026-06-09
+
+**Probleem:** Na succesvolle `accept-team-invitation` INSERT in
+`user_roles` server-side, navigeerde de client direct naar `/admin`.
+`useCan` leest rollen uit `AuthProvider`-state (geen react-query),
+en die state was nog de pré-insert snapshot → user kreeg `/no-access`
+of een lege sidebar tot manuele page-refresh. Race-condition tussen
+server-side write en client-side roles-cache.
+
+**Fix:**
+1. `useAuth()` exporteert nu `refetchRoles()` — herhaalt de
+   `select * from user_roles where user_id = …` en update context-state.
+2. In `AcceptInvitation.tsx` success-effect:
+   `await supabase.auth.refreshSession()` → `await refetchRoles()` →
+   `window.location.href = '/admin'` (volle browser-navigatie als
+   pragmatic fallback voor eventuele andere caches).
+3. RoleSimulator-bug-list: eerste-login-na-invite vereist deze
+   refresh-stap; gedocumenteerd hier.
+

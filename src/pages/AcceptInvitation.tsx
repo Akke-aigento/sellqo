@@ -73,7 +73,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 export default function AcceptInvitation() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, refetchRoles } = useAuth();
   const { toast } = useToast();
 
   const [state, setState] = useState<FlowState>({ kind: 'loading' });
@@ -209,12 +209,31 @@ export default function AcceptInvitation() {
     }
   }, [state, doAccept]);
 
-  // Auto-redirect after success
+  // Auto-redirect after success — refresh JWT + refetch user_roles BEFORE
+  // navigating, otherwise useCan still sees the stale (pre-insert) cache
+  // and the user lands on /no-access until a manual page-refresh.
   useEffect(() => {
     if (state.kind !== 'success') return;
-    const t = setTimeout(() => navigate('/admin'), 3000);
-    return () => clearTimeout(t);
-  }, [state, navigate]);
+    let cancelled = false;
+    (async () => {
+      try {
+        // a) Force JWT refresh so server-side claims (if any) are fresh.
+        await supabase.auth.refreshSession();
+        // b+c) Refetch user_roles into AuthProvider state and await result.
+        await refetchRoles();
+      } catch (e) {
+        console.warn('[AcceptInvitation] post-accept refresh failed', e);
+      }
+      if (cancelled) return;
+      // Small visual delay so user sees the success card briefly, then
+      // hard-navigate to /admin. window.location.href guarantees a clean
+      // state-load even if some downstream cache wasn't invalidated.
+      setTimeout(() => {
+        if (!cancelled) window.location.href = '/admin';
+      }, 1500);
+    })();
+    return () => { cancelled = true; };
+  }, [state, refetchRoles]);
 
   // -------- Action handlers --------
 
