@@ -2894,3 +2894,56 @@ wordt in-code afgedwongen via `authenticateRequest` + `requireRole`
   anonymous B2B-checkout-BTW-validatie.
 - Wanneer reports/settings/branding-edge-functions worden gebouwd,
   `requireRole` direct meenemen volgens dit document.
+
+---
+
+## Batch 2F-i — Marketing + Loyalty + SEO dormant lockdown (2026-06-09)
+
+**Recon:** `docs/fase2-batch-2f-recon.md` — sub-volgorde Marketing-extras + Loyalty-restant + SEO.
+
+### Resultaat per tabel
+
+| Tabel | Bestaat | Status vóór | Status na |
+|---|---|---|---|
+| `loyalty_referrals` | nee | — | overgeslagen (niet in schema) |
+| `loyalty_rewards` | nee | — | overgeslagen (niet in schema) |
+| `loyalty_redemptions` | nee | — | overgeslagen (niet in schema) |
+| `seo_competitor_data` | nee | — | overgeslagen (niet in schema) |
+| `loyalty_programs` | ja | reeds gehard 2C2a-ii | ongewijzigd |
+| `loyalty_tiers` | ja | reeds gehard 2C2a-ii | ongewijzigd |
+| `customer_loyalty` | ja | reeds gehard 2C2a-ii | ongewijzigd |
+| `loyalty_transactions` | ja | SELECT/UPDATE/DELETE via has_tenant_role join; geen platform_admin lees-bypass, geen expliciete service-role policy | + `loyalty_transactions_select_platform_admin` (platform_admin SELECT bypass)<br>+ `loyalty_transactions_service_role_all` (service-role ALL) |
+| `tenant_loyalty_rewards` | ja | enige policy: `platform_admin ALL` — tenant-leden konden niets lezen | DROP platform_admin policy →<br>+ `tenant_loyalty_rewards_select_members` (tenant-leden + platform_admin)<br>+ `tenant_loyalty_rewards_insert_service` (tenant_admin/staff + platform_admin)<br>+ `tenant_loyalty_rewards_update_admin`<br>+ `tenant_loyalty_rewards_delete_admin`<br>+ `tenant_loyalty_rewards_service_role_all` |
+| `seo_search_console_data` | ja | SELECT = elke tenant-rol via `get_user_tenant_ids` (te ruim, geen rol-discriminatie) | DROP oude SELECT/UPDATE/DELETE →<br>+ `seo_search_console_select_members` (tenant_admin/staff/marketing/viewer/accountant per OB-2F-8)<br>+ `seo_search_console_update_admin`<br>+ `seo_search_console_delete_admin`<br>+ `seo_search_console_service_role_all` |
+| `seo_analysis_history` | ja | SELECT + INSERT voor elke tenant-lid, geen UPDATE/DELETE policy, geen service-role bypass | DROP oude SELECT/INSERT →<br>+ `seo_analysis_history_select_members` (tenant_admin/staff/marketing/viewer/accountant)<br>+ `seo_analysis_history_insert_admin` (tenant_admin/marketing — audit-runner triggert via service-role)<br>+ `seo_analysis_history_delete_admin`<br>+ `seo_analysis_history_service_role_all` |
+| `seo_scores`, `seo_audit_results`, `seo_web_vitals`, `seo_keywords`, `seo_competitors`, `seo_competitor_keywords`, `seo_scheduled_audits` | ja | reeds rol-aware (SELECT members + admin/marketing schrijfrechten) | ongewijzigd |
+
+### Beslispunten bevestigd
+
+- **OB-2F-7 (Loyalty log-pattern):** Bevestigd. `loyalty_transactions` blijft service-role/admin schrijvend; correcties via `tenant_admin` UPDATE/DELETE behouden. Platform_admin lees-bypass toegevoegd voor support-flows.
+- **OB-2F-8 (SEO marketing/staff/viewer SELECT):** Bevestigd. `seo_search_console_data` en `seo_analysis_history` SELECT toegankelijk voor `tenant_admin`, `staff`, `marketing`, `viewer`, `accountant`. Geen PII, externe API-data.
+
+### Verificatie
+
+```
+SELECT tablename, cmd, COUNT(*) FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('loyalty_transactions','tenant_loyalty_rewards',
+                    'seo_search_console_data','seo_analysis_history')
+GROUP BY tablename, cmd ORDER BY tablename, cmd;
+```
+
+Resultaat:
+- `loyalty_transactions`: ALL(1) DELETE(1) SELECT(2) UPDATE(1) — geen INSERT (log-pattern via service-role)
+- `tenant_loyalty_rewards`: ALL(1) DELETE(1) INSERT(1) SELECT(1) UPDATE(1)
+- `seo_search_console_data`: ALL(1) DELETE(1) SELECT(1) UPDATE(1) — geen INSERT (log-pattern via service-role)
+- `seo_analysis_history`: ALL(1) DELETE(1) INSERT(1) SELECT(1)
+
+### Marketing-extras
+
+Recon §Marketing-extras: n=0 niet-rol-aware tabellen. Volledig gehard in eerdere batches 2C2a-i t/m iv. Geen aanvullende actie vereist in 2F-i.
+
+### Service-role bypass
+
+Alle vier gewijzigde tabellen hebben nu een expliciete `FOR ALL TO service_role USING (true) WITH CHECK (true)` policy. Edge functions die met `SUPABASE_SERVICE_ROLE_KEY` connecten (audit-runner, search-console-sync, loyalty-trigger) blijven werken.
+
