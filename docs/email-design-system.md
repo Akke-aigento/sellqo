@@ -134,3 +134,131 @@ await resend.emails.send({
 - Litmus / Email-on-Acid cross-client snapshots in CI
 - React-Email migratie wanneer Lovable cloud-side scaffolding klaar is
 - Per-stream A/B-templates voor open-rate optimalisatie
+
+---
+
+## Stream B — Tenant → Customer (EMAIL-2)
+
+`_shared/tenantEmail.ts` is de parallel-util voor customer-facing emails.
+Erft het skelet (`emailBaseLayout`, dark-mode CSS, plain-text fallback) van
+`_shared/sellqoEmail.ts`, maar injecteert per-tenant branding uit
+`tenants` + `tenant_theme_settings`.
+
+### getTenantBrand()
+
+```ts
+const brand = await getTenantBrand(supabase, tenantId);
+// → { tenantName, logoUrl, primaryColor, accentColor, themeMode,
+//     headingFont, bodyFont, supportEmail, defaultLocale, ... }
+```
+
+Fallback-strategie (graceful degradation):
+
+| Veld              | Bron (in volgorde)                                              | Fallback                |
+| ----------------- | --------------------------------------------------------------- | ----------------------- |
+| `tenantName`      | `tenants.name`                                                  | `"SellQo"`              |
+| `logoUrl`         | `theme.logo_url` → `tenants.logo_url`                           | `LOGO_URL` (SellQo)     |
+| `primaryColor`    | `theme.primary_color` → `tenants.primary_color`                 | `BRAND.primary`         |
+| `themeMode`       | `theme.theme_mode`                                              | `"light"`               |
+| `headingFont`     | `theme.heading_font`                                            | `"Inter"`               |
+| `supportEmail`    | `tenants.support_email` → `contact_email` → `owner_email`       | `support@sellqo.app`    |
+| `defaultLocale`   | `tenants.language` (sanitized)                                  | `"nl"`                  |
+
+Malformed hex (bv. `red`, `#zzz`) wordt door `sanitizeColor()` teruggebracht
+naar de SellQo default — voorkomt gebroken CTA-knoppen.
+
+### renderTenantEmail()
+
+```ts
+const { html, text } = renderTenantEmail({
+  tenantBrand: brand,
+  locale,                            // 'nl' | 'en' | 'fr' | 'de'
+  preheader: t(locale, 'order.thanks'),
+  heading: t(locale, 'order.heading'),
+  intro: `<p>${t(locale, 'order.intro', { customerName })}</p>`,
+  content,                           // template-specific building blocks
+  primaryCta: { label, url },
+  secondaryCta: { label, url },
+  unsubscribeUrl,                    // VERPLICHT voor marketing
+  showSellqoFooter: true,            // "Powered by SellQo" — default ON
+  poweredByLabel: t(locale, 'order.poweredBy'),
+});
+```
+
+### Template-specific helpers
+
+- `renderOrderLineItems(items, currency, locale, quantityLabel)`
+- `renderInvoiceLineItems(lines, currency, locale, headers?)`
+- `renderQuoteLineItems(lines, currency, locale, headers?)` (alias)
+- `renderAddressBlocks({ shipping, billing, shippingLabel, billingLabel })`
+- `renderTotalsBreakdown({ subtotal, shipping, tax, discount, total, currency, locale, labels, accentColor })`
+- `renderPaymentInstructions({ iban, bic?, reference, amount, currency, locale, beneficiary? })`
+- `renderTrackingInfo({ carrier, trackingNumber, trackingUrl? })`
+- `renderGiftCardVisual({ code, amount, currency, locale, expiresAt?, brandColor? })`
+
+Allemaal pure functies; ze geven een HTML-string terug die je in de
+`content` parameter van `renderTenantEmail()` doorgeeft.
+
+### i18n
+
+`_shared/tenantEmailI18n.ts` definieert hard-coded strings voor 4 locales
+(NL/EN/FR/DE) × 8 templates (order/invoice/creditNote/return/giftCard/
+quote/message/campaign).
+
+```ts
+import { t } from '../_shared/tenantEmailI18n.ts';
+t('nl', 'order.heading');                       // → "Bedankt voor je bestelling!"
+t('en', 'order.subject', { orderNumber: 'A12' }); // → "Thank you for your order — A12"
+```
+
+Onbekende locale → automatisch fallback naar `en`. Onbekend pad → returneert
+het pad zelf (zichtbaar tijdens dev).
+
+**Nieuwe locale toevoegen:**
+1. Copy een complete locale-block in `tenantEmailI18n.ts`.
+2. Vertaal alle waarden (variabel-tokens `{customerName}` etc. ongewijzigd
+   laten).
+3. Voeg de code toe aan `SUPPORTED_LOCALES` in `tenantEmail.ts`.
+4. Re-deploy de edge functions.
+
+### Locale-resolution
+
+```ts
+const locale = await resolveEmailLocale(supabase, {
+  explicit: order.locale,            // hoogste prioriteit
+  customerLocale: customer?.locale,  // dan customer
+  tenantId,
+  countryCode: order.shipping_address?.country, // dan land-heuristic
+  tenantDefault: brand.defaultLocale,           // dan tenant default
+});
+// Volgorde: explicit > customer > single-tenant-domain > country → en
+```
+
+### Refactored functies (EMAIL-2)
+
+| Functie                       | Helper(s) gebruikt                                              |
+| ----------------------------- | --------------------------------------------------------------- |
+| `send-order-confirmation`     | renderOrderLineItems + renderAddressBlocks + renderTotalsBreakdown |
+| `send-invoice-email`          | summary-block + renderTenantEmail (PDF blijft attached)         |
+| `send-credit-note-email`      | renderTenantEmail + custom summary div                          |
+| `send-quote-email`            | renderTenantEmail + bestaande VAT-logic                         |
+| `send-return-email`           | renderTenantEmail + bestaande event-bodies (4 templates)        |
+| `send-gift-card-email`        | renderGiftCardVisual                                            |
+| `send-customer-message`       | renderTenantEmail (conversational toon)                         |
+| `send-campaign-batch`         | renderTenantEmail + verplicht `unsubscribeUrl` + List-Unsubscribe header |
+
+### Edge cases (gehandeld)
+
+- **Geen `tenant_theme_settings` row** → enkel `tenants` velden + defaults
+- **`logo_url` NULL of niet-http** → SellQo logo (`https://sellqo.app/email-logo.png`)
+- **Malformed hex** (`red`, `#zzz`, leeg) → `BRAND.primary` (`#1d3a5f`)
+- **Onbekende locale** → fallback `en`
+- **Geen `customer.locale`** → tenant default → land-heuristic → `en`
+- **Marketing zonder `unsubscribeUrl`** → footer toont géén unsubscribe (caller
+  moet dit zetten — verplicht door anti-spam wet voor `send-campaign-batch`)
+
+### Powered by SellQo
+
+Default `showSellqoFooter: true` toont kleine muted-tekst onder tenant-footer.
+Backlog: `tenant_theme_settings.show_sellqo_branding` kolom om enterprise-
+tenants opt-out te geven.
