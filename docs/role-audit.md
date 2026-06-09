@@ -5,6 +5,50 @@ docs/fase2-backlog.md.**
 
 ---
 
+## Batch 2F-iii — Ads-restant + Analytics/Tracking dormant lockdown (2026-06-09)
+
+### RLS-aanscherping (1 migration)
+
+**Ads-restant**: alle aanwezige `ads_*` per-platform tabellen (amazon: adgroups/
+campaigns/keywords/performance/search_terms; bolcom: idem + targeting_products;
+google: campaigns/performance; meta: adsets/campaigns/performance; +
+ads_product_channel_map, ads_ai_rules) zijn reeds rol-bewust gehard in Batch
+2C2a-iii met `has_tenant_role(['tenant_admin','staff','marketing'])` voor write
+en tenant-scope SELECT (incl. viewer). Geen verdere wijziging nodig.
+
+**Analytics/Tracking**: 3 tabellen tenant-blind SELECT vervangen door
+rol-bewuste policies. INSERT blijft via service-role (event-trackers) of
+bestaande user-policy. DELETE strict tenant_admin (retention).
+
+| Tabel | Bestaat | SELECT | INSERT | DELETE |
+|-------|---------|--------|--------|--------|
+| customer_events | ✓ | tenant_admin/staff/marketing/accountant | service_role | tenant_admin |
+| feature_usage_events | ✓ | tenant_admin/staff/marketing/accountant | service_role + user-self (bestaand) | tenant_admin |
+| tracking_import_log | ✓ | tenant_admin/staff/warehouse/accountant | service_role | tenant_admin |
+
+Service-role expliciet via `FOR ALL TO service_role USING(true)` op alle 3.
+`is_platform_admin(auth.uid())` bypass overal toegevoegd.
+`ai_user_behavior_log` behoudt user-self-SELECT pattern (AI read-only-UI).
+
+### Niet-bestaande masterplan-tabellen (geen actie)
+
+`events_processed`, `events_archive`, `cohort_definitions`, `cohort_members`,
+`funnel_definitions`, `funnel_runs`, `behavioural_events`, `conversion_events`,
+`session_recordings`, `attribution_models`, `attribution_runs`,
+`meta_ad_accounts`, `meta_ad_sets`, `meta_ad_creatives`, `meta_pixels`,
+`google_ad_accounts`, `google_keywords`, `google_negative_keywords`,
+`amazon_ads_*`, `amazon_sponsored_*` — bestaan niet in huidig schema.
+
+### Service-role pad behouden
+
+- Event-trackers (`track-storefront-event`) blijven inserten via service-role
+  op `customer_events`.
+- Webhook `tracking-webhook` blijft schrijven naar `tracking_import_log` via
+  service-role.
+- Per-platform ads-sync runners ongewijzigd (reeds gehard 2C2a-iii).
+
+---
+
 ## Batch 2E — POS RLS + edge-function role-checks (2026-06-09)
 
 ### RLS-aanscherping (1 migration)
