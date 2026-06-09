@@ -3158,3 +3158,39 @@ Alle 9 gewijzigde tabellen hebben expliciete `FOR ALL TO service_role USING (tru
 ### Beslispunten bevestigd
 
 - **OB-2F-6**: `tenant_oauth_credentials` blijft strict `tenant_admin`-only voor alle CRUD (geen staff/accountant SELECT). Reeds gehard, geen wijziging nodig.
+
+---
+
+## Hygiene — secrets-management pass
+
+_Datum: 2026-06-09_
+
+### .env hygiene applied
+- `.gitignore` uitgebreid met `.env`, `.env.local`, `.env.*.local`.
+- `.env.example` toegevoegd (dummy waardes voor 5 publieke Supabase vars).
+- Lokale `.env` blijft bestaan en werkend; **handmatige actie voor Akke**: `git rm --cached .env` om het bestand uit version control te halen zonder de lokale kopie te verwijderen.
+
+### Sweep result — hardcoded secrets in repo
+
+Grep over `*.ts`, `*.tsx`, `*.toml`, `*.json` (excl. `node_modules`), filter op niet-`Deno.env.get`-matches:
+
+| Categorie | Patroon | Hardcoded gevonden |
+|---|---|---|
+| Service-role | `SUPABASE_SERVICE_ROLE_KEY`, `SERVICE_ROLE_KEY` | **0** |
+| Stripe secret | `STRIPE_SECRET_KEY`, `STRIPE_LIVE_KEY`, `sk_live_...` | **0** (alleen `Deno.env.get` + error-strings met de naam) |
+| Email providers | `RESEND_API_KEY`, `MIGADU_API_KEY`, `CLOUDFLARE_API_TOKEN` | **0** (alleen `Deno.env.get` + error-strings) |
+| Webhook secrets | `WEBHOOK_SECRET`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET` | **0** |
+| OAuth secrets | `BOL_CLIENT_SECRET`, `SHOPIFY_API_SECRET`, `META_APP_SECRET` | **0** |
+| Raw live key | `sk_live_[A-Za-z0-9]{20,}` (alle bestandstypes) | **0** |
+
+**Conclusie:** repo is schoon. Alle private secrets worden uitsluitend via `Deno.env.get()` gelezen in edge functions; geen rotatie nodig.
+
+### Documentatie
+- `docs/secrets-management.md` aangemaakt met: inventory (publiek vs privaat), add/rotate flow, onboarding-stappen.
+
+### Git history (commit 779602a)
+- Bevat alleen publieke anon-keys + project URL/ID — geen acute lek.
+- Geen BFG/filter-branch uitgevoerd (per beslissing: praktische impact = low, force-push risico hoog).
+
+### Status
+Hygiene-pass voltooid. Geen secret-rotaties nodig.

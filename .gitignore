@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (never commit — use .env.example for onboarding)
+.env
+.env.local
+.env.*.local
