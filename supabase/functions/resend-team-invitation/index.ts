@@ -12,10 +12,10 @@ const corsHeaders = {
 const roleLabels: Record<string, { nl: string; description: string }> = {
   tenant_admin: { nl: "Admin", description: "Volledige toegang tot alle functies" },
   staff: { nl: "Medewerker", description: "Kan producten, orders en klanten beheren" },
-  accountant: { nl: "Boekhouder", description: "Toegang tot facturen, rapporten en BTW-gegevens" },
-  warehouse: { nl: "Magazijn", description: "Kan voorraad en verzending beheren" },
-  viewer: { nl: "Kijker", description: "Alleen lezen, geen wijzigingen" },
-  marketing: { nl: "Marketing", description: "Beheert campagnes en content" },
+  accountant: { nl: "Boekhouder", description: "Toegang tot financiële gegevens en facturatie" },
+  warehouse: { nl: "Magazijn", description: "Kan voorraad beheren, verzendingen verwerken" },
+  viewer: { nl: "Kijker", description: "Alleen lezen. Kan alles bekijken maar niets wijzigen" },
+  marketing: { nl: "Marketing", description: "Campagnes, kortingen, ads, CMS en SEO" },
 };
 
 interface ResendBody {

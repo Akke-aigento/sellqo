@@ -237,3 +237,20 @@ Reden voor aparte tabel: gerichter, geen schema-pollution op `admin_actions_log`
 ---
 
 **Einde recon. Geen code gewijzigd. Wacht op go voor batch INV-1.**
+
+---
+
+## Handmatige post-deploy actie (na Batch INV-5)
+
+**Supabase OTP-email branding** (out-of-code-scope):
+
+De OTP-email voor pad E (`signInWithOtp`) gebruikt de default Supabase
+template. Akke moet handmatig in Supabase Dashboard → Auth → Email
+Templates → "Magic Link" de template aanpassen met SellQo-logo + NL-tekst:
+
+- Subject: `Bevestig je email voor SellQo`
+- Body: `Hallo! Je 6-cijferige bevestigingscode is: {{ .Token }}.
+  Deze code is 60 minuten geldig.`
+
+Zie `docs/team-invite-eindrapport.md` §Handmatige acties voor de
+volledige checklist.
