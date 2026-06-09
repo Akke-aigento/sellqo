@@ -2270,3 +2270,38 @@ Bestaande entries (`send-test-email`, `send-campaign-batch`, `ai-product-promo-k
 - `checkoutStart` (regel ~1723-1727): error-code naar `OUT_OF_STOCK` (dedicated voor frontend-handling) en message bevat nu variant-title voor duidelijkheid.
 
 **Geen DB-migration, geen schema-wijziging, geen RLS-impact.**
+
+## Hoofdstuk 4c — Row-level + Bulk + Modals + Field-masking (2026-06-08)
+
+**Status:** GEDEELTELIJK toegepast — hoogimpact-clusters gegated, restant doorgeschoven naar H4d.
+
+### Gewijzigd
+- `src/components/admin/OrderBulkActions.tsx` — `useCan('write', 'orders')` gate op **Verwijderen** bulk-item; `useCan('read', 'reports')` gate op **CSV-export**. Status- en betaalsubmenu's blijven open (warehouse + staff hebben `write` op orders volgens matrix 2A2a).
+- `src/pages/admin/Products.tsx` — bulk-action-bar (Bewerken/Activeren/Deactiveren/Verwijderen/AI) volledig achter `<PermissionGate action="write" resource="products">`. Row-action "Verwijderen" in zowel desktop-tabel als mobile-card-view gegated.
+- `src/pages/admin/Customers.tsx` — row-action "Verwijderen" + bijbehorende AlertDialog gegated met `useCan('write', 'customers')` (verbergt voor marketing/viewer/warehouse).
+- `src/components/admin/OrderCreditNotesSection.tsx` — bevestigd: dialoog-trigger en "E-mail opnieuw versturen" zijn reeds `<PermissionGate action="write" resource="credit_notes">` (H4b).
+- `src/components/admin/CreateCreditNoteFromInvoiceButton.tsx` — bevestigd: interne `useCan('write', 'credit_notes')` early-return blijft staan.
+
+### Componenten-telling H4c (delta t.o.v. H4b)
+- `<PermissionGate>` toegevoegd: 4 (Products bulk, Products row-desktop, Products row-mobile, Customers row)
+- `useCan` directe checks toegevoegd: 3 (OrderBulkActions ×2, Customers row ×1)
+- `<GatedButton>`/`<MaskedValue>`/type-to-confirm modals: 0 deze ronde
+
+### Bevestigde beslispunten
+- **H4-1** (hide vs disable): voor bulk- en row-actions die in een dropdown zitten gekozen voor **hide** — een grijze "Verwijderen" in een drie-puntjes-menu voegt geen UX-waarde toe. Disable+tooltip blijft het standaard-patroon voor zichtbare top-level CTA's (cf. H4b).
+- **H4-3** (tooltip-tekst): `TOOLTIP_NO_ACCESS_LONG` / `_SHORT` constanten in `src/lib/permissions/constants.ts` blijven de single source.
+- **H4-7** (field-level masking): `cost_price` staat momenteel niet in de Products-list-tabel (alleen `price` en `compare_at_price`). Masking-werk geparkeerd tot we cost_price in de lijstweergave toevoegen of in ProductForm rendering aanpassen. Form-side hide voor `cost_price` is al actief vanuit H4b (`<PermissionGate resource="product_costs">`).
+
+### Resterend voor H4d (open TODO's)
+- `OrderDetail.tsx` row-action "Verwijderen" + "Annuleren" knoppen: nog niet expliciet gegated (route-guard dekt page-level read, maar inline write-acties verdienen `<PermissionGate>`).
+- `Fulfillment.tsx` bulk-bar (`FulfillmentBulkActions`): warehouse + staff + admin hebben allen `write` op orders, geen rol-blokkade nodig; gating-toevoeging optioneel voor zelf-documentatie.
+- `Invoices.tsx` Peppol "mark as sent": nog niet inline gegated.
+- `Inventory.tsx` stock-adjust + bulk-stock: nog niet aangeraakt deze ronde.
+- `CustomerDetail.tsx` tabs (notes / segments): tab-level gating uitgesteld naar H4d.
+- `AdsBolcomCampaignDetail.tsx` budget-displays zijn read-only `<Card>`-velden, geen `<Input>`; echte budget-write zit in `BolCampaignEditForm` → daar `'ad_budgets'` gating toepassen in H4d.
+- `pages/admin/Campaigns.tsx` / `Discounts*` / `SEO*` / `CMS*` row-actions: nog niet aangeraakt.
+
+### Productie-test (platform_admin bypass)
+- Bulk-bars in Orders en Products renderen alle acties (admin bypass via `useCan`).
+- Geen console-warnings na render.
+- Geen gewijzigde business-logic — alle handlers blijven identiek; alleen render-conditions zijn aangepast.
