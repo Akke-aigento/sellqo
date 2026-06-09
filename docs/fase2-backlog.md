@@ -1,4 +1,7 @@
-# Fase 2 backlog — geparkeerd na 2026-06-08
+# Fase 2 backlog — geparkeerd na afsluiting 2026-06-09
+
+> Fase 2 is volledig afgesloten — zie `docs/fase2-eindrapport.md`.
+> De items hieronder zijn bewust geparkeerd voor losse opname.
 
 ## 2C1c — Anon-INSERT external_reviews via edge function
 
@@ -40,9 +43,3 @@
 - CI-check op edge functions zonder requireRole
 - Audit-log compleetheid sweep — alle admin-acties moeten loggen
 - Pentest planning
-
-## Volgende fase
-
-- Hoofdstuk 4 — Frontend gating: useCan/PermissionGate uitrol over admin-UI
-- Hoofdstuk 5 — Cleanup (post-merge): drop legacy helpers, archive old 
-  policies, verify pg_policies tegen masterplan-matrix
