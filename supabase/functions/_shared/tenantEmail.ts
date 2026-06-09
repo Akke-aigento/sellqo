@@ -505,4 +505,4 @@ export async function resolveEmailLocale(
   return opts.tenantDefault || "en";
 }
 
-export { escapeHtml as escTenant } from "./_tenantEmailEsc.ts";
+export { esc as escTenant };
