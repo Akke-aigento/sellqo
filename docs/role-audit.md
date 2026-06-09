@@ -3482,3 +3482,68 @@ en cross-client rendering hebben.
   (`send-team-invitation`, `send-trial-expiry-warning`,
   `create-notification`) via `htmlToPlainText(html)` als `text`-parameter
   aan `resend.emails.send()`.
+
+## Email design system — Batch EMAIL-2 (2026-06-09)
+
+Stream B (Tenant → Customer) gedeelde util + i18n + refactor van 8 customer-
+facing edge functions.
+
+### Nieuwe shared modules
+
+- `supabase/functions/_shared/tenantEmail.ts` (NIEUW, parallel aan
+  `sellqoEmail.ts`):
+  - `getTenantBrand(supabase, tenantId)` — JOIN `tenants` +
+    `tenant_theme_settings`, sanitized fallbacks (logo, kleuren, locale).
+  - `renderTenantEmail(opts)` — wrapper op `emailBaseLayout` met tenant-
+    branded header + footer, dark-mode erfgenaam, `{ html, text }`.
+  - Template-helpers: `renderOrderLineItems`, `renderInvoiceLineItems`,
+    `renderQuoteLineItems`, `renderAddressBlocks`,
+    `renderTotalsBreakdown`, `renderPaymentInstructions`,
+    `renderTrackingInfo`, `renderGiftCardVisual`.
+  - `resolveEmailLocale()` — explicit > customer > tenant-domain > country
+    → `en`.
+  - Sanitization: hex-color regex, http(s) URL regex, locale whitelist.
+
+- `supabase/functions/_shared/tenantEmailI18n.ts` (NIEUW):
+  - 4 locales (NL/EN/FR/DE) × 8 templates (order, invoice, creditNote,
+    return, giftCard, quote, message, campaign).
+  - `t(locale, path, vars?)` helper met `{var}` interpolation.
+
+### Refactored edge functions
+
+| Functie                       | Wat verdwenen                                  | Wat erbij                           |
+| ----------------------------- | ---------------------------------------------- | ----------------------------------- |
+| `send-order-confirmation`     | ~150r `wrapHtml` + `buildItemsTable` + locale-maps | `getTenantBrand` + `renderTenantEmail` + 3 helpers |
+| `send-invoice-email`          | ~100r `emailHtml` template-string              | `renderTenantEmail` + summary-block + plain-text |
+| `send-credit-note-email`      | ~20r inline `<html>` skelet                    | `renderTenantEmail` + i18n         |
+| `send-quote-email`            | ~100r `emailHtml` template-string              | `renderTenantEmail` + behouden VAT |
+| `send-return-email`           | `wrapHtml` (~40r)                              | `renderTenantEmail` rond bestaande event-bodies |
+| `send-gift-card-email`        | ~100r `emailHtml` + handcrafted code-box      | `renderGiftCardVisual` + i18n      |
+| `send-customer-message`       | ~80r `emailHtml`                               | `renderTenantEmail` + List-Unsubscribe behouden |
+| `send-campaign-batch`         | bare wrapping                                  | `renderTenantEmail` met **verplichte** `unsubscribeUrl` + `List-Unsubscribe` header |
+
+Totaal: ~600r HTML duplicate verwijderd; alle 8 functies leveren nu
+`text`-fallback via `htmlToPlainText` (geërfd via `renderTenantEmail`).
+
+### Edge cases (code-comments in `tenantEmail.ts`)
+
+- `tenant_theme_settings.logo_url` NULL → SellQo logo fallback
+- Malformed hex (`red`, `#zzz`) → sanitized naar `BRAND.primary`
+- Locale niet ondersteund → `en`
+- Geen `customer.locale` → tenant default → country heuristic → `en`
+- Marketing zonder `unsubscribeUrl` → footer toont geen link
+  (`send-campaign-batch` zet 'm altijd, anti-spam wet)
+
+### Dark-mode + "Powered by SellQo"
+
+- Stream B erft `prefers-color-scheme: dark` CSS overrides via
+  `emailBaseLayout` (geen extra werk).
+- Footer toont default "Mogelijk gemaakt door SellQo / Powered by SellQo /
+  Propulsé par SellQo / Bereitgestellt von SellQo" (locale-aware).
+  Backlog: `tenant_theme_settings.show_sellqo_branding` kolom voor
+  enterprise opt-out.
+
+### Documentatie
+
+- `docs/email-design-system.md`: Stream B sectie toegevoegd met
+  fallback-tabel, helper-overzicht, i18n-strategie en edge-cases.
