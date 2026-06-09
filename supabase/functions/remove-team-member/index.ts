@@ -110,15 +110,49 @@ serve(async (req) => {
       .eq("tenant_id", tenantId);
     if (deleteErr) throw deleteErr;
 
-    // 2) Drop any pending invitation for this email + tenant so a fresh
-    //    re-invite later behaves like a clean slate.
+    // 2) Mark ALL invitations (pending + accepted + expired) as revoked,
+    //    so a fresh re-invite later behaves like a clean slate while
+    //    history remains intact via the audit log.
     if (profile?.email) {
-      await supabase
+      const { data: affectedInvites } = await supabase
         .from("team_invitations")
-        .delete()
+        .select("id, status")
         .eq("tenant_id", tenantId)
         .ilike("email", profile.email)
-        .is("accepted_at", null);
+        .neq("status", "revoked");
+
+      if (affectedInvites && affectedInvites.length > 0) {
+        const inviteIds = affectedInvites.map((i: any) => i.id);
+
+        await supabase
+          .from("team_invitations")
+          .update({
+            status: "revoked",
+            revoked_at: new Date().toISOString(),
+            revoked_by: callerId,
+          })
+          .in("id", inviteIds);
+
+        const auditEntries = affectedInvites.map((inv: any) => ({
+          invitation_id: inv.id,
+          tenant_id: tenantId,
+          event_type: "revoked",
+          actor_user_id: callerId,
+          actor_email: null,
+          metadata: {
+            reason: "team_member_removed",
+            previous_status: inv.status,
+            removed_user_id: targetRole.user_id,
+            removed_user_email: profile.email,
+          },
+        }));
+
+        try {
+          await supabase.from("invite_audit_log").insert(auditEntries);
+        } catch (auditErr) {
+          console.warn("invite_audit_log insert failed", auditErr);
+        }
+      }
     }
 
     // 3) Audit log (best effort)

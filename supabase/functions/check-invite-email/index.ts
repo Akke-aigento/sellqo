@@ -84,12 +84,33 @@ serve(async (req) => {
       console.warn("pending invite lookup failed", e);
     }
 
+    // 3. Recently revoked invite (last 7 days)? — hint to admin that this
+    //    user may have just been removed from the team.
+    let recentlyRevoked = false;
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: revoked } = await supabase
+        .from("team_invitations")
+        .select("id, revoked_at")
+        .eq("tenant_id", tenant_id)
+        .ilike("email", normalized)
+        .eq("status", "revoked")
+        .gte("revoked_at", sevenDaysAgo)
+        .order("revoked_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      recentlyRevoked = !!revoked?.id;
+    } catch (e) {
+      console.warn("revoked lookup failed", e);
+    }
+
     return new Response(
       JSON.stringify({
         accountExists,
         alreadyMember,
         hasPendingInvite,
         pendingInviteId,
+        recentlyRevoked,
         userId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
