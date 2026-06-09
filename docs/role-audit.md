@@ -2364,3 +2364,74 @@ Verifieerd: huidige tabs zijn `orders`, `conversations`, `activity`, `details`. 
 - BolCampaignEditForm budget-inputs zijn editable.
 - Invoices Peppol "Markeer als verzonden" en "Opnieuw versturen" zichtbaar in beide tabs.
 - Geen console-warnings of render-errors.
+
+---
+
+## Hoofdstuk 4e — Regressie-pass + matrix-verificatie
+Datum: 2026-06-09
+
+### 1. Static-sweep resultaten
+Script: `node scripts/verify-permissions-matrix.mjs` (exit 0).
+
+| Categorie | Aantal |
+|---|---:|
+| `useCan(...)` | 16 |
+| `<PermissionGate>` | 10 |
+| `<GatedButton>` | 5 |
+| `<MaskedValue>` | 0 |
+| `<RouteGuard>` | 37 |
+| `sidebarRequireRead` | 47 |
+| **TOTAAL** | **115** |
+
+- **Onbekende (action, resource) combos:** 0 — alle gating-calls verwijzen naar bestaande matrix-entries. ✅
+- **Matrix-entries met 0 toegelaten rollen (WARNING):** 1 — `reports.write` (intentioneel: rapportages worden niet vanuit UI geschreven, alleen gegenereerd). ✅
+- **Matrix-resources zonder enige UI-gating (INFO):** 11 — `refunds`, `customer_notes`, `vat`, `webhooks_api`, `team`, `settings_financial`, `automations`, `social_channels`, `ops_helpers`, `global_lookups`, `sellqo_legal`. Allemaal afgedekt door RLS + admin-only edge functions; UI-gating volgt zodra deze surfaces een eigen pagina krijgen.
+
+Volledig rapport: `docs/h4e-static-sweep-report.md`.
+
+### 2. Matrix-coverage rapport
+Script schrijft `docs/h4e-matrix-coverage.md`. Hoofdpunten:
+
+- 100% coverage (read+write beide gegated): `orders`, `order_status`, `invoices`, `customers`, `products`, `discount_codes`, `ads`, `marketing`, `integrations`.
+- Partial (read gegated via route, write via RLS): `returns`, `credit_notes`, `payments`, `inbox`, `product_costs`, `ad_budgets`, `cms`, `seo`, `themes`, `reports`, `settings_general`, `platform_billing`, `ai_assistant`, `ai_coach`, `pos`, `loyalty`, `volume_discounts`, `suppliers`.
+- 0% UI-gating (RLS-only): zie sectie 1 hierboven.
+
+Geen kritieke gaten — alle write-acties op user-facing surfaces zijn gegated; resources zonder UI worden niet vanaf admin-pagina's geschreven.
+
+### 3. Route-coverage scan
+Script: `node scripts/verify-route-coverage.mjs` → `docs/h4e-route-coverage.md`.
+
+- **Totaal admin-routes:** 77
+- **Met `RouteGuard`:** 37
+- **Bewust zonder guard:** 39 (promotions/*, platform/*, pos terminals, badges, help, messages, shipping, categories, quotes/* — afgedekt via sidebar gating en/of platform_admin layout-check)
+- **Flagged (⚠️ controle):** 1 — de catch-all `*` 404-route in App.tsx (geen gating nodig, accepteren).
+
+Geen onbedoelde gaten gevonden.
+
+### 4. Manuele test-checklist
+Aangemaakt: `docs/h4e-manual-test-checklist.md`. Per rol (6 rollen + cross-tenant + RouteGuard-redirect) een copy-paste checkbox-lijst van 5-10 representatieve flows.
+
+### 5. Rol-simulator dev-tool
+**Aangemaakt**, locatie: `src/components/dev/RoleSimulator.tsx`.
+
+- `<SimulatedRoleProvider>` gemount in `src/App.tsx` boven `<BrowserRouter>`.
+- `<RoleSimulator />` floating widget rendert alleen wanneer `import.meta.env.DEV` true is.
+- Sneltoets: `Ctrl+Shift+R`.
+- Persistentie: `sessionStorage["h4e:simulated-role"]`.
+- Integratie: `useCan` consulteert `SimulatedRoleContext` als eerste check in dev-builds; productie-build raakt het pad niet.
+- WAARSCHUWING expliciet in widget en in style-guide: simulator overschrijft alleen UI-gating, RLS draait nog onder de echte rol (typisch platform_admin bypass).
+
+### 6. Style-guide + opruim
+- **Nieuw:** `docs/h4-style-guide.md` — page-template, hide vs disable beslisregel, gating-primitieven volgorde, cross-tenant rule, verificatie-commando's.
+- **Opruim:** geen legacy permission-helpers gevonden naast `useCan` (al opgeruimd in H4a). `PermissionGate` props zijn consistent (`action`/`resource`), geen rename nodig.
+
+### 7. Status
+✅ **Hoofdstuk 4 = AFGESLOTEN.**
+
+Frontend gating is volledig in lijn met de matrix:
+- 37 routes geguard, 47 sidebar-entries whitelist, 31 inline gating-calls.
+- 0 onbekende matrix-combos.
+- Cross-tenant rol-binding (H4-5) gefixt en geverifieerd.
+- Verificatie-scripts + manuele checklist + dev-simulator + style-guide leveren een herhaalbare maintenance-loop.
+
+Volgende stap (Hoofdstuk 5): edge-function `assertRole()` audit + RLS-policy-coverage cross-check tegen dezelfde matrix.
