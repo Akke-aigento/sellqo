@@ -1,6 +1,6 @@
 # H4e — Static Permission Sweep Report
 
-_Gegenereerd: 2026-06-09T06:41:12.822Z_
+_Gegenereerd: 2026-06-09T06:44:51.093Z_
 
 ## Totalen per categorie
 
@@ -54,7 +54,7 @@ Resources die in de matrix staan maar nergens in de UI worden gegated. Kan bewus
 | `src/components/admin/ads/BolCampaignEditForm.tsx` | 45 | write | ad_budgets |
 | `src/components/admin/ads/CampaignCard.tsx` | 39 | write | ads |
 | `src/components/admin/marketplace/OdooB2CAggregationSettings.tsx` | 16 | write | integrations |
-| `src/hooks/useCan.ts` | 248 | write | orders |
+| `src/hooks/useCan.ts` | 249 | write | orders |
 | `src/pages/admin/CreditNotes.tsx` | 36 | write | credit_notes |
 | `src/pages/admin/Customers.tsx` | 321 | write | customers |
 | `src/pages/admin/Invoices.tsx` | 40 | write | invoices |
@@ -96,43 +96,43 @@ _Geen._
 
 | File | Line | Action | Resource |
 |---|---:|---|---|
-| `src/App.tsx` | 169 | read | orders |
-| `src/App.tsx` | 170 | read | products |
-| `src/App.tsx` | 171 | write | products |
-| `src/App.tsx` | 172 | write | products |
-| `src/App.tsx` | 173 | read | orders |
-| `src/App.tsx` | 174 | read | orders |
-| `src/App.tsx` | 175 | read | returns |
-| `src/App.tsx` | 176 | read | returns |
-| `src/App.tsx` | 181 | read | invoices |
-| `src/App.tsx` | 187 | read | discount_codes |
-| `src/App.tsx` | 188 | read | discount_codes |
-| `src/App.tsx` | 198 | read | customers |
-| `src/App.tsx` | 199 | read | customers |
-| `src/App.tsx` | 202 | read | payments |
-| `src/App.tsx` | 203 | read | platform_billing |
-| `src/App.tsx` | 204 | read | settings_general |
-| `src/App.tsx` | 205 | read | integrations |
-| `src/App.tsx` | 206 | read | integrations |
-| `src/App.tsx` | 207 | read | integrations |
-| `src/App.tsx` | 208 | read | marketing |
-| `src/App.tsx` | 209 | read | ai_assistant |
-| `src/App.tsx` | 210 | read | ai_coach |
-| `src/App.tsx` | 212 | read | seo |
-| `src/App.tsx` | 213 | read | cms |
-| `src/App.tsx` | 214 | read | settings_general |
-| `src/App.tsx` | 215 | read | integrations |
-| `src/App.tsx` | 216 | read | reports |
-| `src/App.tsx` | 217 | read | reports |
-| `src/App.tsx` | 218 | read | suppliers |
-| `src/App.tsx` | 219 | read | suppliers |
-| `src/App.tsx` | 220 | read | suppliers |
-| `src/App.tsx` | 221 | read | pos |
-| `src/App.tsx` | 224 | read | themes |
-| `src/App.tsx` | 225 | read | ads |
-| `src/App.tsx` | 226 | read | ads |
-| `src/App.tsx` | 230 | read | ads |
-| `src/App.tsx` | 231 | read | ads |
+| `src/App.tsx` | 172 | read | orders |
+| `src/App.tsx` | 173 | read | products |
+| `src/App.tsx` | 174 | write | products |
+| `src/App.tsx` | 175 | write | products |
+| `src/App.tsx` | 176 | read | orders |
+| `src/App.tsx` | 177 | read | orders |
+| `src/App.tsx` | 178 | read | returns |
+| `src/App.tsx` | 179 | read | returns |
+| `src/App.tsx` | 184 | read | invoices |
+| `src/App.tsx` | 190 | read | discount_codes |
+| `src/App.tsx` | 191 | read | discount_codes |
+| `src/App.tsx` | 201 | read | customers |
+| `src/App.tsx` | 202 | read | customers |
+| `src/App.tsx` | 205 | read | payments |
+| `src/App.tsx` | 206 | read | platform_billing |
+| `src/App.tsx` | 207 | read | settings_general |
+| `src/App.tsx` | 208 | read | integrations |
+| `src/App.tsx` | 209 | read | integrations |
+| `src/App.tsx` | 210 | read | integrations |
+| `src/App.tsx` | 211 | read | marketing |
+| `src/App.tsx` | 212 | read | ai_assistant |
+| `src/App.tsx` | 213 | read | ai_coach |
+| `src/App.tsx` | 215 | read | seo |
+| `src/App.tsx` | 216 | read | cms |
+| `src/App.tsx` | 217 | read | settings_general |
+| `src/App.tsx` | 218 | read | integrations |
+| `src/App.tsx` | 219 | read | reports |
+| `src/App.tsx` | 220 | read | reports |
+| `src/App.tsx` | 221 | read | suppliers |
+| `src/App.tsx` | 222 | read | suppliers |
+| `src/App.tsx` | 223 | read | suppliers |
+| `src/App.tsx` | 224 | read | pos |
+| `src/App.tsx` | 227 | read | themes |
+| `src/App.tsx` | 228 | read | ads |
+| `src/App.tsx` | 229 | read | ads |
+| `src/App.tsx` | 233 | read | ads |
+| `src/App.tsx` | 234 | read | ads |
 
 ### sidebarRequireRead (47)
 

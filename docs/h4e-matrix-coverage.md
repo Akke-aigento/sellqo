@@ -1,6 +1,6 @@
 # H4e — Matrix-Coverage Report
 
-_Gegenereerd: 2026-06-09T06:41:12.822Z_
+_Gegenereerd: 2026-06-09T06:44:51.094Z_
 
 Coverage% = (#acties met ≥1 UI gating-point) / (#acties in matrix).
 
