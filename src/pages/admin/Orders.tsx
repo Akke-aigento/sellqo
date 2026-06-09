@@ -19,6 +19,8 @@ import { OrderFilters } from '@/components/admin/OrderFilters';
 import { OrderMarketplaceBadge } from '@/components/admin/marketplace/OrderMarketplaceBadge';
 import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { useCan } from '@/hooks/useCan';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export default function OrdersPage() {
   const { currentTenant, loading: tenantLoading } = useTenant();
   const [filters, setFilters] = useState<OrderFiltersType>({});
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
+  const canWriteOrders = useCan('write', 'orders');
   
   // Batch selection state
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -98,7 +101,10 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Bestellingen</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
+            Bestellingen
+            <ReadOnlyBadge resource="orders" />
+          </h1>
           <p className="text-sm text-muted-foreground">Beheer alle bestellingen van je winkel</p>
         </div>
       </div>
