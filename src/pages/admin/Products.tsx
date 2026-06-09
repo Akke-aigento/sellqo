@@ -626,11 +626,13 @@ export default function ProductsPage() {
                           Bewerken
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Verwijderen
-                      </DropdownMenuItem>
+                      <PermissionGate action="write" resource="products">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Verwijderen
+                        </DropdownMenuItem>
+                      </PermissionGate>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
