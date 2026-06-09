@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,32 +25,20 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch (e) {
+      if (e instanceof AuthError) return authErrorResponse(e, corsHeaders);
+      throw e;
     }
 
-    // Check if user is platform admin
-    const { data: adminRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "platform_admin")
-      .single();
-
-    if (!adminRole) {
-      logStep("User is not platform admin", { userId: user.id });
-      return new Response(JSON.stringify({ error: "Not authorized" }), { 
-        status: 403, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    // Pre-2D security quick-fix: hard gate on platform_admin (LEK 1).
+    if (!auth.is_platform_admin) {
+      logStep("Forbidden: not a platform admin", { userId: auth.user_id });
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -122,7 +111,7 @@ Deno.serve(async (req) => {
         tenant_id: tenantId,
         action: "gift_month",
         details: { months, newEndDate: newEndDate.toISOString(), hasStripe: !!subscription.stripe_subscription_id },
-        performed_by: user.id,
+        performed_by: auth.user_id,
       });
 
     logStep("Gift month applied successfully");
