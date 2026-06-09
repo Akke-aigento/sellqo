@@ -3223,3 +3223,64 @@ Datum: 2026-06-09
 
 ### Status
 Batch INV-1 voltooid. Klaar voor Batch INV-2 (edge functions: send/fetch/accept/revoke/resend met audit-log writes).
+
+## Batch INV-2 — Edge functions
+Datum: 2026-06-09
+
+### Wijzigingen per functie
+
+**`send-team-invitation` (UPDATE)**
+- Bestaande `authenticateRequest` + tenant/platform-admin authorisatie bevestigd.
+- Na succesvolle `INSERT team_invitations`: extra fetch van inviter `profiles.full_name` voor email-greeting en audit-metadata.
+- Email-intro toont nu "<inviter> heeft je uitgenodigd om als <rol> …" wanneer beschikbaar.
+- Nieuwe `invite_audit_log` entry met `event_type='sent'` + metadata `{email, role, invited_by_name}` — service-role bypass voor RLS.
+
+**`fetch-invitation` (UPDATE)**
+- Status-bepaling vervangen door RPC `public.get_invitation_effective_status(inv_id)` met inline fallback bij RPC-fout.
+- Response uitgebreid met: `tenantId`, `mailboxConfirmed` (alias van `accountExists` voor INV-3 frontend), `invitedByName` (uit `profiles.full_name` via `invited_by`).
+- `accountExists` blijft aanwezig (backwards-compat).
+- Geen audit-log writes (read-only).
+
+**`accept-team-invitation` (UPDATE)**
+- Refactor naar gestructureerde `jsonResponse(status, body)` helper voor accurate HTTP-codes (was alles 400).
+- Server-side re-fetch van invitation per `token` (geen client-payload vertrouwen).
+- Defensive status-checks in volgorde:
+  - `accepted_at IS NOT NULL` → **409** "Reeds geaccepteerd"
+  - `status IN ('revoked','rejected')` → **410** "Uitnodiging ingetrokken"
+  - `expires_at < NOW()` → **410** "Verlopen"
+- **KRITIEK** — email-match check: vergelijk `auth.getUser(jwt).user.email` (case-insensitive) met `invitation.email`. Mismatch → **403** met `code: 'EMAIL_MISMATCH'`.
+- Bestaande "reeds lid"-check behouden → **409**.
+- `UPDATE team_invitations SET accepted_at=NOW(), status='accepted'`.
+- Nieuwe `invite_audit_log` entry `event_type='accepted'` met `actor_user_id`, `actor_email`, metadata `{role, tenant_id}`.
+- Response bevat `tenantId` + `tenantName` + `role` voor frontend redirect.
+
+**`revoke-team-invitation` (NIEUW)**
+- Auth: `authenticateRequest` + `requireRole(auth, tenant_id, ['tenant_admin'])` (platform-admin bypasst automatisch).
+- Body: `{ invitation_id }`.
+- Fetch invitation → 404 indien afwezig.
+- Status-guard: alleen `status='pending'` mag worden ingetrokken → **400** met `currentStatus` veld bij andere status.
+- `UPDATE team_invitations SET status='revoked', revoked_at=NOW(), revoked_by=auth.user_id`.
+- Audit-log entry `event_type='revoked'`.
+
+**`resend-team-invitation` (NIEUW)**
+- Auth: identiek aan revoke (tenant_admin/platform_admin).
+- Body: `{ invitation_id }`.
+- Status-guard: `accepted` → **409**, `revoked` → **410**.
+- `UPDATE team_invitations SET status='pending', expires_at=NOW()+7d, last_reminder_sent_at=NULL`.
+- Verzendt nieuwe email via Resend (zelfde sjabloon als send, met "Herinnering" preheader + intro).
+- Audit-log entry `event_type='resent'` met metadata `{previous_expires_at, new_expires_at, email, role}`.
+
+### `supabase/config.toml`
+- Geen wijzigingen nodig: Lovable-managed edge functions deployen by default met `verify_jwt = false`. De twee nieuwe functies (`revoke-team-invitation`, `resend-team-invitation`) voeren JWT-validatie zelf uit via `authenticateRequest` — consistent met `send-team-invitation` en `remove-team-member`.
+
+### Audit-log writes — overzicht
+| Functie | event_type | actor |
+|---|---|---|
+| send-team-invitation | sent | auth.user_id |
+| accept-team-invitation | accepted | acceptende user |
+| revoke-team-invitation | revoked | auth.user_id |
+| resend-team-invitation | resent | auth.user_id |
+| (cron `expire-invitations`) | — (geen log; alleen status-update) | — |
+
+### Status
+Batch INV-2 voltooid. Klaar voor Batch INV-3 (frontend state-machine refactor + nieuwe componenten voor revoke/resend acties + paden a–g).
