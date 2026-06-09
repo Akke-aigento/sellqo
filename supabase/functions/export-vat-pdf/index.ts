@@ -15,7 +15,7 @@ import {
   rgb,
 } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
-import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 type PeriodType = 'monthly' | 'quarterly' | 'annual' | 'custom';
@@ -712,7 +712,8 @@ serve(async (req) => {
   };
 
   try {
-    await authenticateRequest(req, body.tenant_id);
+    const auth = await authenticateRequest(req, body.tenant_id);
+    requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

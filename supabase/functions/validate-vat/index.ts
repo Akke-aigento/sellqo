@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authenticateRequest, authErrorResponse, AuthError, type AppRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const ADMIN_ROLES: AppRole[] = ['tenant_admin', 'staff', 'accountant'];
+
+function hasAdminRole(rolesByTenant: Record<string, AppRole[]> | undefined): boolean {
+  if (!rolesByTenant) return false;
+  for (const list of Object.values(rolesByTenant)) {
+    if (list.some((r) => ADMIN_ROLES.includes(r))) return true;
+  }
+  return false;
+}
 
 interface ViesResponse {
   isValid: boolean;
@@ -38,6 +49,22 @@ serve(async (req) => {
   }
 
   try {
+    // Batch 2D-iv / OB8: validate-vat is admin-only. Auth required +
+    // user must hold tenant_admin, staff or accountant in any tenant
+    // (platform_admin / service-role bypass via authenticateRequest).
+    try {
+      const auth = await authenticateRequest(req);
+      if (!auth.is_platform_admin && !hasAdminRole(auth.roles_by_tenant)) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: admin role required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    } catch (e) {
+      if (e instanceof AuthError) return authErrorResponse(e, corsHeaders);
+      throw e;
+    }
+
     const { vat_number } = await req.json();
     logStep('Received request', { vat_number });
 

@@ -6,7 +6,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
-import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -253,7 +253,8 @@ serve(async (req) => {
   };
 
   try {
-    await authenticateRequest(req, body.tenant_id);
+    const auth = await authenticateRequest(req, body.tenant_id);
+    requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
     const { buffer, filename } = await buildOdooZip(body.tenant_id, body.period_start, body.period_end);
     return new Response(buffer, {
       status: 200,

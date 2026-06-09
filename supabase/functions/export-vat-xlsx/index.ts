@@ -3,7 +3,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
-import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -576,7 +576,8 @@ serve(async (req) => {
   const body: ReqBody = { tenant_id: b.tenant_id, period_start: b.period_start, period_end: b.period_end, period_type: pt };
 
   try {
-    await authenticateRequest(req, body.tenant_id);
+    const auth = await authenticateRequest(req, body.tenant_id);
+    requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
