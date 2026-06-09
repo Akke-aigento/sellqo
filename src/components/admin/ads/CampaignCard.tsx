@@ -33,6 +33,10 @@ const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default
 export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
   const { updateStatus, deleteCampaign } = useAdCampaigns();
   const queryClient = useQueryClient();
+  // H4d: row-action gating in dropdown — hide voor non-write rollen.
+  // matrix: ads write = tenant_admin + marketing (edit/pause/duplicate);
+  // delete blijft impliciet ook write — geen aparte resource.
+  const canWriteAds = useCan('write', 'ads');
   const [pushing, setPushing] = useState(false);
   const [pushStep, setPushStep] = useState('');
   const stepTimerRef = useRef<NodeJS.Timeout | null>(null);
