@@ -24,9 +24,12 @@ export function RouteGuard({
   const location = useLocation();
   const { loading, roles, isPlatformAdmin } = useAuth();
 
-  // useCan returns false while loading; gate that ourselves.
-  const readOk = requireRead ? useCan('read', requireRead) : true;
-  const writeOk = requireWrite ? useCan('write', requireWrite) : true;
+  // Hooks moeten onvoorwaardelijk gerund worden — geef een dummy resource
+  // mee als er geen check nodig is en negeer het resultaat.
+  const readResult = useCan('read', requireRead ?? 'orders');
+  const writeResult = useCan('write', requireWrite ?? 'orders');
+  const readOk = !requireRead || readResult;
+  const writeOk = !requireWrite || writeResult;
 
   if (loading) return null;
 
