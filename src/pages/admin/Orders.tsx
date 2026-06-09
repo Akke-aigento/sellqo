@@ -242,6 +242,7 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const canWriteOrders = useCan('write', 'orders');
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50">
       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -348,6 +349,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
 }
 
 function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const canWriteOrders = useCan('write', 'orders');
   return (
     <div 
       className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
