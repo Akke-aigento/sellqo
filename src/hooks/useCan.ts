@@ -1,4 +1,6 @@
+import { useContext } from "react";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
+import { TenantContext } from "@/hooks/useTenant";
 
 /**
  * Fase 2 Foundation — permissie-matrix.
@@ -248,7 +250,17 @@ export function canWithRoles(
  */
 export function useCan(action: PermissionAction, resource: Resource): boolean {
   const { roles, loading, user } = useAuth();
+  const tenantCtx = useContext(TenantContext);
+  const currentTenantId = tenantCtx?.currentTenant?.id ?? null;
   if (loading || !user) return false;
-  const flat = (roles ?? []).map((r) => r.role as AppRole);
+  // H4-5: filter per-tenant zodat cross-tenant rollen niet lekken.
+  // platform_admin blijft globaal (bypass in canWithRoles).
+  const scoped = (roles ?? []).filter((r) => {
+    if (r.role === "platform_admin") return true;
+    if (r.tenant_id == null) return true;
+    if (currentTenantId == null) return false;
+    return r.tenant_id === currentTenantId;
+  });
+  const flat = scoped.map((r) => r.role as AppRole);
   return canWithRoles(flat, action, resource);
 }
