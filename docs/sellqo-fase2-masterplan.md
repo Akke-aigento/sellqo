@@ -1,5 +1,10 @@
 # SellQo Fase 2 — Role-Aware RLS Masterplan (v2)
 
+> **Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)**
+>
+> Alle hoofdstukken (0 t/m 5) zijn uitgerold. Zie
+> `docs/fase2-eindrapport.md` voor scope, statistiek en backlog.
+
 > **Bedoeling.** Een feilloos af te draaien plan voor de uitrol van rol-gediscrimineerde RLS-policies en edge-function-checks over de hele SellQo-codebase. Koud op te pakken na de pentest. Toekomst-klaar: ook dormant features krijgen passende defaults zodat ze veilig zijn op het moment dat ze ooit activeren.
 >
 > **Wanneer uitvoeren.** Niet vóór de pentest. Eerst pentest doorlopen, debrief, Fase 2A DROP-batch (zie `docs/role-audit-phase1d-triage.md`), schema-sync (zie Pre-Fase 2 hieronder), dán dit traject.
