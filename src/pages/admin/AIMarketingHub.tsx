@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Bot, ArrowLeft, Library, Calendar, ImageIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AICreditsBadge } from '@/components/admin/marketing/AICreditsBadge';
 import { AIInsightsCard } from '@/components/admin/marketing/AIInsightsCard';
@@ -77,11 +78,12 @@ export default function AIMarketingHub() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 flex-wrap">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
                   <Bot className="h-5 w-5 text-white" />
                 </div>
                 Sellqo AI
+                <ReadOnlyBadge resource="ai_assistant" />
               </h1>
               <p className="text-muted-foreground">
                 Genereer marketing content met één klik
