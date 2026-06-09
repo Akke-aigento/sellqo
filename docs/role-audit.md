@@ -2559,3 +2559,92 @@ Resultaat: per tabel één policy per relevante cmd, geen overlap-ALLs meer.
 - 2D-ii (Settings cluster) — `tenant_settings`, `business_info`, shipping/tax
 - 2D-iii (Platform-billing strict lockdown)
 - 2D-iv (Edge-function role-checks voor export-pipeline)
+
+---
+
+## Batch 2D-ii — Settings RLS-aanscherping
+
+**Datum:** 2026-06-09
+**Bron:** docs/fase2-batch-2d-recon.md §5b-5e + bevestigde beslispunten
+OB3 (vat_rates SELECT alle rollen), OB4 (shipping SELECT alle rollen),
+OB6 (settings vs business-info scheiding), OB10 (tenants column-level
+pragmatische RPC i.p.v. trigger).
+
+### Tabellen-scan
+| Tabel uit recon-scope | Bestaat? | Actie |
+| --- | --- | --- |
+| `tenant_settings` | nee | overgeslagen — algemene config zit als kolommen in `tenants` |
+| `tenant_branding` | nee | overgeslagen — branding zit in `tenant_theme_settings` (al admin-only correct) |
+| `tenant_email_settings` / `tenant_email_branding` | nee | overgeslagen — zit in `tenants` + `tenant_notification_settings` (al admin-only correct) |
+| `tenant_invoice_settings` | nee | overgeslagen — kolommen in `tenants` |
+| `tenant_shipping_zones` / `tenant_shipping_rates` | nee | overgeslagen — niet aanwezig |
+| `shipping_methods` (top-level, niet `tenant_`-prefixed) | ja | beleid herschreven (zie hieronder) |
+| `tenant_tax_zones` | nee | overgeslagen — niet aanwezig |
+| `vat_rates` | ja | INSERT/UPDATE uitgebreid met `accountant` |
+| `tenant_payment_terms` / `tenant_payment_methods` | nee | overgeslagen — payment-config staat in `tenants` (`payment_methods` jsonb) en in `tenant_oauth_credentials` |
+| `tenant_locales` / `tenant_currencies` | nee | overgeslagen — locales in `tenants.languages` + per-tenant `translation_settings` |
+| `tenant_return_settings` | ja | reeds rol-aware via pre-2D-quickfix (geen wijziging) |
+| `translation_settings` | ja | reeds rol-aware via pre-2D-quickfix |
+| `tenant_theme_settings` | ja | reeds rol-aware (`tenant_admin`-only voor schrijven, alle members lezen) |
+| `tenant_theme_presets` | ja | idem — geen wijziging |
+| `tenant_notification_settings` | ja | idem — geen wijziging |
+| `tenant_newsletter_config` | ja | idem — geen wijziging |
+| `tenant_tracking_settings` | ja | reeds correct (admin-ALL + tenant-members SELECT) |
+| `tenant_odoo_settings` | ja | reeds rol-aware (`tenant_admin` + `accountant`) |
+| `tenants` | ja | RLS ongewijzigd (`tenant_admin`-only UPDATE); accountant-pad via nieuwe RPC |
+
+### Nieuwe / herschreven policies
+
+**shipping_methods** — OB4
+- DROP: oude `Admin/staff … shipping methods` + `Platform admins …` varianten
+- NEW `shipping_methods_insert` (auth): `is_platform_admin OR (tenant-scope AND has_tenant_role([tenant_admin, accountant]))`
+- NEW `shipping_methods_update` (auth): idem (USING + WITH CHECK)
+- NEW `shipping_methods_delete` (auth): `is_platform_admin OR (tenant-scope AND has_tenant_role([tenant_admin]))`
+- SELECT-policies onveranderd: tenant-scope alle rollen + platform_admin
+- Storefront leest via service-role (BYPASS RLS) — onveranderd
+
+**vat_rates** — OB3
+- DROP: alle oude `Tenant admins …` + `Platform admins …` write-policies
+- NEW `vat_rates_insert` (auth): tenant_admin + accountant
+- NEW `vat_rates_update` (auth): tenant_admin + accountant
+- NEW `vat_rates_delete` (auth): tenant_admin only
+- SELECT-policies onveranderd: tenant-scope (+ globale rates) alle rollen + platform_admin
+
+### tenants — pragmatische column-level (OB10)
+- UPDATE-policy `Tenant admins can update their own tenant` blijft `tenant_admin` only.
+- NIEUWE RPC `public.update_tenant_fiscal_info(_tenant_id, _vat_number, _iban, _bic, _swift, _kvk_number, _business_address, _business_city, _business_postal_code, _business_country)`:
+  - `SECURITY DEFINER` met expliciete `search_path = public`
+  - Interne rol-check via `has_tenant_role([tenant_admin, accountant])` (bevat platform_admin-bypass)
+  - Werkt enkel de meegegeven fiscale kolommen bij via `COALESCE`; raakt branding/billing/payments NIET aan
+  - `EXECUTE` granted aan `authenticated`; effectieve toegang gegated via interne check
+- Frontend hookt accountants in via deze RPC; reguliere tenant-admin flow blijft `UPDATE public.tenants ...` gebruiken.
+- Volledige split-table (`tenant_business_info`) volgt in H3 — interim acceptabel omdat:
+  - accountant kan geen niet-fiscale kolommen muteren
+  - geen extra trigger-complexiteit
+  - eenvoudig terug te draaien wanneer H3 landt
+
+### Service-role pad
+Alle geraakte tabellen behouden BYPASS RLS voor service-role. Storefront
+edge-functions (shipping-quote, checkout, vat-rate-lookup) blijven
+ongewijzigd functioneren.
+
+### Verificatie
+```sql
+SELECT tablename, cmd, COUNT(*) AS n
+FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('shipping_methods','vat_rates','tenants')
+GROUP BY tablename, cmd ORDER BY tablename, cmd;
+```
+Verwacht: per cmd één policy (plus platform-admin-bypass voor `tenants`
+SELECT/INSERT/UPDATE/DELETE die separaat is gedefinieerd).
+
+### Bevestigde beslispunten
+- **OB3** — `vat_rates` SELECT open voor alle tenant-rollen (incl. viewer, marketing).
+- **OB4** — `shipping_methods` SELECT open voor alle tenant-rollen; storefront via service-role.
+- **OB6** — Settings vs business-info: voor nu fiscale info als kolommen op `tenants`; H3 splitst naar `tenant_business_info`.
+- **OB10** — Column-level via pragmatische `SECURITY DEFINER` RPC i.p.v. trigger of column-policies.
+
+### Vervolg
+- 2D-iii — Platform-billing strict lockdown
+- 2D-iv — Edge-function role-checks voor export-pipeline
