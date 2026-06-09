@@ -3359,3 +3359,32 @@ Batch INV-2 voltooid. Klaar voor Batch INV-3 (frontend state-machine refactor + 
 ### Status
 Batch INV-3 voltooid. Klaar voor Batch INV-4 (email-templates polish +
 branding-hooks) en INV-5 (regressie-test paden a–g).
+
+---
+
+## Batch INV-4+5 — Email-template polish + regressie-test (2026-06-09)
+
+### Email-templates
+- `send-team-invitation`: rol-uitleg-mapping uitgelijnd met recon §3
+  (accountant → "Toegang tot financiële gegevens en facturatie";
+  warehouse → "Kan voorraad beheren, verzendingen verwerken";
+  marketing TOEGEVOEGD → "Campagnes, kortingen, ads, CMS en SEO";
+  viewer → "Alleen lezen. Kan alles bekijken maar niets wijzigen").
+  `invitedByName` regel ("<Naam> heeft je uitgenodigd…") al sinds INV-2
+  aanwezig, hier geverifieerd.
+- `resend-team-invitation`: hergebruikt `renderSellqoEmail` template met
+  herinneringskoptekst ("Herinnering: …", "We hebben de uitnodiging
+  zojuist opnieuw verstuurd en verlengd"). Zelfde rol-mapping-update
+  toegepast.
+- **Handmatige post-deploy actie voor Akke**: Supabase Dashboard → Auth →
+  Email Templates → "Magic Link" customizen met SellQo-branding voor
+  OTP-flow (pad E). Voorgestelde NL-tekst gedocumenteerd in
+  `docs/team-invite-eindrapport.md` §Handmatige acties #1.
+
+### Regressie + eindrapport
+- `docs/team-invite-test-checklist.md` gemaakt — 7 paden (A–G) +
+  7 edge cases + audit-log queries + performance-baseline-tabel.
+- `docs/team-invite-eindrapport.md` gemaakt — scope, opgeloste issues,
+  architectuur, 8 beslispunten, handmatige acties, backlog.
+
+**Status:** Team Invite-flow refactor AFGESLOTEN — 2026-06-09.
