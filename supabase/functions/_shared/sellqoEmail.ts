@@ -24,7 +24,7 @@ export const BRAND = {
 
 export type BrandTokens = typeof BRAND;
 
-export const LOGO_URL = "https://sellqo.lovable.app/email-logo.png";
+export const LOGO_URL = "https://sellqo.app/email-logo.png";
 
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
