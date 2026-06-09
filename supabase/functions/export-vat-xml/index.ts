@@ -4,7 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
-import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 import {
   PeriodType,
   callVatEngine,
@@ -127,7 +127,8 @@ serve(async (req) => {
   };
 
   try {
-    await authenticateRequest(req, body.tenant_id);
+    const auth = await authenticateRequest(req, body.tenant_id);
+    requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
 
     const [tenant, payload] = await Promise.all([
       loadTenantInfo(body.tenant_id),
