@@ -22,6 +22,7 @@ import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
 import { PermissionGate } from '@/components/PermissionGate';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { useCan } from '@/hooks/useCan';
 
 interface UnifiedCustomer {
   id: string;
@@ -317,6 +318,7 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
   const navigate = useNavigate();
   const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
   const canNavigate = !!customer.crm_id;
+  const canWriteCustomers = useCan('write', 'customers');
 
   return (
     <TableRow 
@@ -393,6 +395,7 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
                   </Link>
                 </DropdownMenuItem>
               )}
+              {canWriteCustomers && (<>
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -420,6 +423,7 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              </>)}
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
