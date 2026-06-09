@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { RouteGuard } from "@/components/admin/RouteGuard";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -165,26 +166,26 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="badges" element={<BadgesPage />} />
-              <Route path="fulfillment" element={<FulfillmentPage />} />
-              <Route path="products" element={<ProductsPage />} />
-              <Route path="products/new" element={<ProductForm />} />
-<Route path="products/:id/edit" element={<ProductForm />} />
-              <Route path="orders" element={<OrdersPage />} />
-              <Route path="orders/:id" element={<OrderDetailPage />} />
-              <Route path="returns" element={<ReturnsPage />} />
-              <Route path="returns/:id" element={<ReturnDetailPage />} />
+              <Route path="fulfillment" element={<RouteGuard requireRead="orders"><FulfillmentPage /></RouteGuard>} />
+              <Route path="products" element={<RouteGuard requireRead="products"><ProductsPage /></RouteGuard>} />
+              <Route path="products/new" element={<RouteGuard requireWrite="products"><ProductForm /></RouteGuard>} />
+              <Route path="products/:id/edit" element={<RouteGuard requireWrite="products"><ProductForm /></RouteGuard>} />
+              <Route path="orders" element={<RouteGuard requireRead="orders"><OrdersPage /></RouteGuard>} />
+              <Route path="orders/:id" element={<RouteGuard requireRead="orders"><OrderDetailPage /></RouteGuard>} />
+              <Route path="returns" element={<RouteGuard requireRead="returns"><ReturnsPage /></RouteGuard>} />
+              <Route path="returns/:id" element={<RouteGuard requireRead="returns"><ReturnDetailPage /></RouteGuard>} />
               <Route path="orders/quotes" element={<QuotesPage />} />
               <Route path="orders/quotes/new" element={<QuoteFormPage />} />
               <Route path="orders/quotes/:id" element={<QuoteDetailPage />} />
               <Route path="orders/quotes/:id/edit" element={<QuoteFormPage />} />
-              <Route path="orders/invoices" element={<InvoicesPage />} />
+              <Route path="orders/invoices" element={<RouteGuard requireRead="invoices"><InvoicesPage /></RouteGuard>} />
               <Route
                 path="orders/creditnotes"
                 element={<Navigate to="/admin/orders/invoices?tab=creditnotes" replace />}
               />
               <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
-              <Route path="orders/discounts" element={<DiscountsPage />} />
-              <Route path="promotions" element={<PromotionsPage />} />
+              <Route path="orders/discounts" element={<RouteGuard requireRead="discount_codes"><DiscountsPage /></RouteGuard>} />
+              <Route path="promotions" element={<RouteGuard requireRead="discount_codes"><PromotionsPage /></RouteGuard>} />
               <Route path="promotions/bundles" element={<BundlesPage />} />
               <Route path="promotions/volume" element={<VolumeDiscountsPage />} />
               <Route path="promotions/auto" element={<AutoDiscountsPage />} />
@@ -194,40 +195,40 @@ const App = () => (
               <Route path="promotions/loyalty" element={<LoyaltyProgramsPage />} />
               <Route path="promotions/gift-cards" element={<GiftCardsPage />} />
               <Route path="promotions/stacking" element={<StackingRulesPage />} />
-              <Route path="customers" element={<CustomersPage />} />
-              <Route path="customers/:customerId" element={<CustomerDetailPage />} />
+              <Route path="customers" element={<RouteGuard requireRead="customers"><CustomersPage /></RouteGuard>} />
+              <Route path="customers/:customerId" element={<RouteGuard requireRead="customers"><CustomerDetailPage /></RouteGuard>} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipping" element={<ShippingPage />} />
-              <Route path="payments" element={<PaymentsPage />} />
-              <Route path="billing" element={<BillingPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="connect" element={<MarketplacesPage />} />
-              <Route path="connect/conflicts" element={<SyncConflictsPage />} />
-              <Route path="connect/:connectionId" element={<MarketplaceDetailPage />} />
-              <Route path="marketing" element={<MarketingPage />} />
-              <Route path="marketing/ai" element={<AIMarketingHub />} />
-              <Route path="marketing/ai-center" element={<AIActionCenter />} />
+              <Route path="payments" element={<RouteGuard requireRead="payments"><PaymentsPage /></RouteGuard>} />
+              <Route path="billing" element={<RouteGuard requireRead="platform_billing"><BillingPage /></RouteGuard>} />
+              <Route path="settings" element={<RouteGuard requireRead="settings_general"><SettingsPage /></RouteGuard>} />
+              <Route path="connect" element={<RouteGuard requireRead="integrations"><MarketplacesPage /></RouteGuard>} />
+              <Route path="connect/conflicts" element={<RouteGuard requireRead="integrations"><SyncConflictsPage /></RouteGuard>} />
+              <Route path="connect/:connectionId" element={<RouteGuard requireRead="integrations"><MarketplaceDetailPage /></RouteGuard>} />
+              <Route path="marketing" element={<RouteGuard requireRead="marketing"><MarketingPage /></RouteGuard>} />
+              <Route path="marketing/ai" element={<RouteGuard requireRead="ai_assistant"><AIMarketingHub /></RouteGuard>} />
+              <Route path="marketing/ai-center" element={<RouteGuard requireRead="ai_coach"><AIActionCenter /></RouteGuard>} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
-              <Route path="marketing/seo" element={<SEODashboard />} />
-              <Route path="marketing/translations" element={<TranslationHub />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="import" element={<ImportPage />} />
-              <Route path="reports" element={<ReportsPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="suppliers" element={<SuppliersPage />} />
-              <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-              <Route path="supplier-documents" element={<SupplierDocumentsPage />} />
-              <Route path="pos" element={<POSPage />} />
+              <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
+              <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
+              <Route path="notifications" element={<RouteGuard requireRead="settings_general"><NotificationsPage /></RouteGuard>} />
+              <Route path="import" element={<RouteGuard requireRead="integrations"><ImportPage /></RouteGuard>} />
+              <Route path="reports" element={<RouteGuard requireRead="reports"><ReportsPage /></RouteGuard>} />
+              <Route path="analytics" element={<RouteGuard requireRead="reports"><AnalyticsPage /></RouteGuard>} />
+              <Route path="suppliers" element={<RouteGuard requireRead="suppliers"><SuppliersPage /></RouteGuard>} />
+              <Route path="purchase-orders" element={<RouteGuard requireRead="suppliers"><PurchaseOrdersPage /></RouteGuard>} />
+              <Route path="supplier-documents" element={<RouteGuard requireRead="suppliers"><SupplierDocumentsPage /></RouteGuard>} />
+              <Route path="pos" element={<RouteGuard requireRead="pos"><POSPage /></RouteGuard>} />
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
-              <Route path="storefront" element={<StorefrontPage />} />
-              <Route path="ads" element={<AdsPage />} />
-              <Route path="ads/bolcom" element={<AdsBolcomPage />} />
+              <Route path="storefront" element={<RouteGuard requireRead="themes"><StorefrontPage /></RouteGuard>} />
+              <Route path="ads" element={<RouteGuard requireRead="ads"><AdsPage /></RouteGuard>} />
+              <Route path="ads/bolcom" element={<RouteGuard requireRead="ads"><AdsBolcomPage /></RouteGuard>} />
               <Route path="ads/bolcom/campaigns/:id" element={<AdsBolcomCampaignDetailPage />} />
               <Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
               <Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTermsPage />} />
-              <Route path="ads/ai" element={<AdsAiRulesPage />} />
-              <Route path="ads/products" element={<AdsProductMapPage />} />
+              <Route path="ads/ai" element={<RouteGuard requireRead="ads"><AdsAiRulesPage /></RouteGuard>} />
+              <Route path="ads/products" element={<RouteGuard requireRead="ads"><AdsProductMapPage /></RouteGuard>} />
               <Route path="help" element={<HelpPage />} />
               <Route path="platform" element={
                 <ProtectedRoute requirePlatformAdmin>
