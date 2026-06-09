@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -279,8 +280,10 @@ serve(async (req) => {
     // 1. Primaire e-mail naar klant (met PDF bijlage)
     logStep("Sending primary email", { to: customer.email, attachments: emailAttachments.length });
 
+    const invoiceSender = EMAIL_SENDERS.invoices(tenant.name, (tenant as any).support_email || (tenant as any).owner_email);
     const emailResponse = await resend.emails.send({
-      from: `${tenant.name} <noreply@sellqo.app>`,
+      from: invoiceSender.from,
+      reply_to: invoiceSender.replyTo,
       to: toEmails,
       subject: emailSubject,
       html: emailHtml,
@@ -299,7 +302,8 @@ serve(async (req) => {
       try {
         logStep("Sending copy email", { to: copyRecipients });
         const copyResponse = await resend.emails.send({
-          from: `${tenant.name} <noreply@sellqo.app>`,
+          from: invoiceSender.from,
+          reply_to: invoiceSender.replyTo,
           to: copyRecipients,
           subject: `[Kopie] ${emailSubject}`,
           html: emailHtml,

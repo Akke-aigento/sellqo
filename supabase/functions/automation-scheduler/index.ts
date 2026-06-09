@@ -1,5 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -217,8 +218,10 @@ Deno.serve(async (req) => {
               .replace(/\{\{company_name\}\}/g, tenant?.name || "");
 
             const resend = new Resend(resendApiKey);
+            const autoSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.owner_email || (tenant as any)?.email);
             await resend.emails.send({
-              from: `${tenant?.name || 'Sellqo'} <noreply@sellqo.app>`,
+              from: autoSender.from,
+              reply_to: autoSender.replyTo,
               to: [recipient.email],
               subject,
               html: htmlContent,

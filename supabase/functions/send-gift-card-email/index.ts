@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -170,11 +171,12 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `.trim();
 
+    const gcSender = EMAIL_SENDERS.giftCards(fromName, tenant.owner_email);
     // Send email
     const emailResponse = await resend.emails.send({
-      from: `${fromName} <noreply@sellqo.app>`,
+      from: gcSender.from,
+      reply_to: gcSender.replyTo,
       to: [recipientEmail],
-      reply_to: tenant.owner_email || undefined,
       subject: `🎁 Je hebt een cadeaukaart ontvangen van ${fromName}!`,
       html: emailHtml,
     });

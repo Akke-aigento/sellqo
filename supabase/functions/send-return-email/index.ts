@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -286,12 +287,13 @@ serve(async (req) => {
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);
 
+    const returnSender = EMAIL_SENDERS.returns(tenant?.name || 'SellQo', supportEmail !== 'admin@sellqo.app' ? supportEmail : undefined);
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${tenant?.name || 'SellQo'} <retouren@sellqo.app>`,
+      from: returnSender.from,
       to: [to],
       subject: template.subject,
       html: template.html,
-      reply_to: supportEmail !== 'admin@sellqo.app' ? supportEmail : undefined,
+      reply_to: returnSender.replyTo,
     });
 
     if (emailError) throw new Error(`Email verzenden mislukt: ${emailError.message}`);

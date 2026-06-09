@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -77,8 +78,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Tenant not found");
     }
 
-    const replyToEmail = tenant.owner_email || "noreply@sellqo.app";
+    const replyToEmail = tenant.owner_email || "support@sellqo.app";
     const fromName = tenant.name || "Sellqo";
+    const csSender = EMAIL_SENDERS.customerService(fromName, tenant.owner_email);
     const primaryColor = tenant.primary_color || "#2563eb";
 
     // Build professional HTML email template
@@ -178,7 +180,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject,
         body_html,
         body_text: body_text || body_html.replace(/<[^>]*>/g, ''),
-        from_email: `${fromName} <noreply@sellqo.app>`,
+        from_email: csSender.from,
         to_email: customer_email,
         reply_to_email: replyToEmail,
         delivery_status: 'sending',
@@ -207,9 +209,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: `${fromName} <noreply@sellqo.app>`,
+      from: csSender.from,
       to: [customer_email],
-      reply_to: replyToEmail,
+      reply_to: csSender.replyTo,
       subject,
       html: emailHtml,
       text: body_text || body_html.replace(/<[^>]*>/g, ''),

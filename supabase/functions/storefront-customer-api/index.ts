@@ -243,11 +243,14 @@ serve(async (req) => {
             // Build reset URL — use tenant slug-based storefront URL
             const resetUrl = `https://sellqo.lovable.app/shop/${tenant?.slug || ''}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
+            const { EMAIL_SENDERS: _SENDERS_PWR } = await import('../_shared/emailSenders.ts');
+            const _pwSender = _SENDERS_PWR.customerService(storeName, (tenant as any)?.support_email);
             const emailRes = await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                from: `${storeName} <noreply@sellqo.app>`,
+                from: _pwSender.from,
+                reply_to: _pwSender.replyTo,
                 to: [email],
                 subject: `Wachtwoord herstellen — ${storeName}`,
                 html: `

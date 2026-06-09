@@ -2917,8 +2917,11 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         console.log('[WELCOME-EMAIL] Sending to:', email, '| tenant:', tenantName);
         const { Resend } = await import("https://esm.sh/resend@2.0.0");
         const resend = new Resend(resendApiKey);
+        const { EMAIL_SENDERS: _SENDERS_WC } = await import('../_shared/emailSenders.ts');
+        const _wcSender = _SENDERS_WC.marketing(tenantName || 'Sellqo');
         const emailResponse = await resend.emails.send({
-          from: `${tenantName || 'Sellqo'} <noreply@sellqo.app>`,
+          from: _wcSender.from,
+          reply_to: _wcSender.replyTo,
           to: [email],
           subject: processedSubject,
           html: processedBody,

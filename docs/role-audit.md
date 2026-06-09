@@ -3410,3 +3410,36 @@ server-side write en client-side roles-cache.
 3. RoleSimulator-bug-list: eerste-login-na-invite vereist deze
    refresh-stap; gedocumenteerd hier.
 
+
+## Email sender architecture refactor — 2026-06-09
+
+**Doel:** Vervang hardcoded `noreply@sellqo.app` overal door 14 dedicated mailboxes,
+gescheiden in Stream A (Platform → Tenant-users, NL) en Stream B (Tenant → Customers).
+
+**Wijzigingen:**
+- NIEUW: `supabase/functions/_shared/emailSenders.ts` — `EMAIL_SENDERS` registry
+  met 5 vaste Stream-A configs (`invite`, `billing`, `notifications`, `security`,
+  `noReply`) en 7 Stream-B factories (`orders`, `invoices`, `quotes`, `returns`,
+  `giftCards`, `marketing`, `customerService`). Factories ontvangen
+  `(tenantName, tenantReplyTo?)` en sanitizen de naam (geen `<>`, `"`, controlechars,
+  max 80 tekens). `replyTo` fallt automatisch terug op `support@sellqo.app`.
+- 13 edge functions ge-refactored om `EMAIL_SENDERS` te gebruiken:
+  Stream A: `send-team-invitation`, `resend-team-invitation`,
+  `send-trial-expiry-warning`, `create-notification`.
+  Stream B: `send-order-confirmation`, `send-invoice-email`,
+  `send-credit-note-email`, `send-quote-email`, `send-return-email`,
+  `send-gift-card-email`, `send-campaign-batch`, `send-customer-message`,
+  `automation-scheduler`.
+- `send-test-email`: nieuwe optionele `sender?: SenderKey` parameter zodat
+  admin-UI per stream een testmail kan versturen (default `customerService`).
+- `send-campaign-batch`: tenant-select uitgebreid met `owner_email` voor
+  reply-to-resolutie.
+- `send-customer-message`: hardcoded `"noreply@sellqo.app"` fallback voor
+  `replyToEmail` vervangen door `"support@sellqo.app"`.
+- Geen DNS-werk vereist — `sellqo.app` is geverifieerd in Resend; alle 14
+  mailboxes routeren via hetzelfde geverifieerde domain.
+- Documentatie: `docs/email-architecture.md` met sender-tabel,
+  Stream A/B-rationale, body-taal vs sender-taal scheiding, Resend-status
+  en backlog (per-tenant verified domains).
+
+**Storefront-inbound (`inbox@sellqo.app`) ongewijzigd.**
