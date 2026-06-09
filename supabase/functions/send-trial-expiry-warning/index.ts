@@ -151,10 +151,12 @@ serve(async (req) => {
             heading: `Je ${planName}-proefperiode eindigt morgen`,
             intro: introHtml,
             infoBox: {
-              title: "✅ Je data blijft bewaard",
-              subtitle: "Al je producten, bestellingen, klanten en instellingen blijven behouden. Bij een latere upgrade heb je meteen weer toegang tot alles.",
+              title: `⏰ Proefperiode eindigt op ${formattedDate}`,
+              subtitle: "Al je producten, bestellingen, klanten en instellingen blijven bewaard. Bij een latere upgrade heb je meteen weer toegang tot alles.",
+              variant: "warning",
             },
             cta: { label: `Upgrade naar ${planName}`, url: billingUrl },
+            secondaryCta: { label: "Of neem contact op", url: "mailto:support@sellqo.app" },
             ctaNote: "Je ontvangt deze e-mail omdat je een actieve proefperiode hebt.",
           });
           const textContent = htmlToPlainText(htmlContent);

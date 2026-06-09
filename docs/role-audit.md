@@ -3443,3 +3443,33 @@ gescheiden in Stream A (Platform → Tenant-users, NL) en Stream B (Tenant → C
   en backlog (per-tenant verified domains).
 
 **Storefront-inbound (`inbox@sellqo.app`) ongewijzigd.**
+
+## Email design system — Batch EMAIL-1 — 2026-06-09
+
+**Doel:** Email-templates standaardiseren via gedeelde building blocks +
+dark-mode support, zodat Stream A & Stream B emails consistente branding
+en cross-client rendering hebben.
+
+**Wijzigingen:**
+- `supabase/functions/_shared/sellqoEmail.ts` uitgebreid met 8 building
+  blocks (`emailHeader`, `emailFooter`, `emailButton`, `emailInfoBox`,
+  `emailDivider`, `emailTable`, `emailAddressBlock`, `emailHeading`,
+  `emailParagraph`) + `emailBaseLayout` (volledige `<html>`-wrapper met
+  `@media (prefers-color-scheme: dark)` overrides).
+- `BRAND` tokens + `LOGO_URL` nu exported voor hergebruik in Stream B.
+- `renderSellqoEmail` herschreven om de nieuwe blocks te gebruiken;
+  backwards-compatible met alle bestaande callers.
+- Nieuwe opties: `infoBox.variant` (`info`/`success`/`warning`/`danger`),
+  `secondaryCta`, `supportEmail`, `unsubscribeUrl`, `darkMode`.
+- Interne HTML-escapers (`escapeHtml`/`escapeAttr`) voor user-supplied
+  plain-text in headings/buttons/info-boxes/addresses.
+- `send-trial-expiry-warning` gepolijst met `variant: "warning"` info-box
+  en secondary CTA "Of neem contact op".
+- `send-team-invitation`, `resend-team-invitation`, `create-notification`,
+  `send-trial-expiry-warning` blijven `renderSellqoEmail` gebruiken en
+  krijgen automatisch dark-mode + nieuwe footer (legal + support-mail).
+- Plain-text fallback was reeds aanwezig via `htmlToPlainText` —
+  ongewijzigd.
+- Documentatie: `docs/email-design-system.md` met architecture-overview,
+  building-block-tabel, color-tokens, dark-mode strategie en
+  developer-guide.
