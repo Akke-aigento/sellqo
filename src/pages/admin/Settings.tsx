@@ -23,12 +23,14 @@ import {
   Bot,
   Inbox,
   Undo2,
+  Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
 import { BusinessSettings } from '@/components/admin/settings/BusinessSettings';
+import { BrandingSettings } from '@/components/admin/settings/BrandingSettings';
 import { StoreSettings } from '@/components/admin/settings/StoreSettings';
 import { PaymentSettings } from '@/components/admin/settings/PaymentSettings';
 import { TeamSettings } from '@/components/admin/settings/TeamSettings';
@@ -86,6 +88,7 @@ const settingsGroups: SettingsGroup[] = [
     description: 'Bedrijfsgegevens en winkelinstellingen',
     sections: [
       { id: 'company', title: 'Bedrijfsgegevens', icon: Building2, component: BusinessSettings },
+      { id: 'branding', title: 'Branding', icon: Palette, component: BrandingSettings },
       { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
       { id: 'domain', title: 'Domeinen', icon: Globe, component: MultiDomainSettings },
     ],
