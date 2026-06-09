@@ -3284,3 +3284,78 @@ Datum: 2026-06-09
 
 ### Status
 Batch INV-2 voltooid. Klaar voor Batch INV-3 (frontend state-machine refactor + nieuwe componenten voor revoke/resend acties + paden a–g).
+
+---
+
+## Batch INV-3 — Frontend state-machine + componenten
+
+**Datum:** 2026-06-09
+
+### Wijzigingen
+
+- **`src/pages/AcceptInvitation.tsx`** — volledig herschreven naar `FlowState`
+  discriminated union (15 states). Paden a–g geïmplementeerd:
+  - `loading`, `not_found`, `expired`, `revoked`, `already_accepted`,
+    `already_member`
+  - `wrong_account` (pad g) → enkel "Uitloggen en doorgaan" knop
+    (geen "Naar dashboard" meer)
+  - `login_required` (pad d) → e-mail disabled, wachtwoord + "Wachtwoord
+    vergeten" link
+  - `otp_request` → `otp_verify` → `set_password` (pad e, 3 stappen) met
+    `signInWithOtp` + `verifyOtp` + `updateUser({password})`. 30s resend
+    cooldown, gemaskeerde e-mail in code-bevestiging.
+  - `one_click_accept` (pad f) → enkele knop voor reeds-ingelogde matchende
+    gebruiker.
+  - `accepting` → auto-invoke `accept-team-invitation`; mapt 403/409/410
+    responses terug naar de juiste state (incl. `EMAIL_MISMATCH`).
+  - `success` → bevestiging + auto-redirect na 3s.
+  - `error` → "Probeer opnieuw" + support-link.
+  - Oude `showRegister` / `handleRegister` / `emailConfirmationSent`
+    verwijderd.
+
+- **`src/hooks/useTeamInvitations.ts`** — uitgebreid:
+  - Nieuw `UseTeamInvitationsOptions { statusFilter }` (default `'pending'`,
+    `'all'` voor TenantInvitationsList).
+  - `TeamInvitation` interface uitgebreid met `status`, `revoked_at`,
+    `revoked_by`, `last_reminder_sent_at`.
+  - `revokeInvitation` (optimistic update + rollback) via nieuwe
+    `revoke-team-invitation` edge function.
+  - `resendInvitation` aangepast: roept nu `resend-team-invitation` edge
+    function aan i.p.v. delete+create (behoudt audit-trail + token).
+  - `cancelInvitation` blijft als alias naar `revokeInvitation`
+    (backwards compat).
+
+- **`src/components/admin/settings/InviteTeamMemberDialog.tsx`** —
+  real-time email-check via debounced (300ms) `check-invite-email` call.
+  4 banner-states: groen (account bestaat, één-klik), rood (al lid,
+  knop disabled), oranje (pending invite, "Verzend opnieuw" knop), blauw
+  (nieuw account via code-verificatie). Knop disabled bij `alreadyMember`.
+
+- **`src/components/admin/settings/TenantInvitationsList.tsx`** (NIEUW) —
+  vervangt inline invitation-rij in TeamSettings. Tabs `Alle | Pending |
+  Accepted | Expired | Revoked` met counts. Status-badges met semantische
+  kleuren. 3-puntjes-dropdown per rij: pending → Opnieuw verzenden +
+  Intrekken (met AlertDialog confirm); expired/revoked/rejected →
+  Opnieuw uitnodigen. Responsive: extra kolommen verborgen onder md.
+
+- **`src/components/admin/settings/TeamSettings.tsx`** — pending-invitations
+  rijen verwijderd uit de members-tabel (was inline rendering); de losse
+  `<TenantInvitationsList />` wordt nu onder de leden-card gerenderd.
+
+- **`supabase/functions/check-invite-email/index.ts`** (NIEUW) — admin-only
+  edge function (`requireRole tenant_admin`); returnt `{ accountExists,
+  alreadyMember, hasPendingInvite, pendingInviteId, userId }` voor het
+  dialog-banner-systeem. Lookup via `profiles.email ilike` +
+  `user_roles(user_id, tenant_id)` + `team_invitations(status='pending'
+  AND expires_at > now())`.
+
+- **`supabase/functions/resend-team-invitation/index.ts`** — vroege return
+  op `status='revoked'` verwijderd: revoked / expired / rejected /
+  pending mogen nu allemaal worden gereactiveerd (reset naar
+  `status='pending'` + nieuwe `expires_at` +7d) zodat "Opnieuw uitnodigen"
+  vanuit `TenantInvitationsList` werkt voor non-accepted statussen.
+  Accepted blijft 409.
+
+### Status
+Batch INV-3 voltooid. Klaar voor Batch INV-4 (email-templates polish +
+branding-hooks) en INV-5 (regressie-test paden a–g).
