@@ -16,6 +16,8 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GatedButton } from '@/components/permissions/GatedButton';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
@@ -41,9 +43,10 @@ export default function MarketingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 flex-wrap">
             <Megaphone className="h-6 w-6" />
             Marketing Command Center
+            <ReadOnlyBadge resource="marketing" />
           </h1>
           <p className="text-muted-foreground">
             Email campagnes, analytics en klant engagement
@@ -56,14 +59,14 @@ export default function MarketingPage() {
               AI Marketing Hub
             </Button>
           </Link>
-          <Button variant="outline" onClick={() => setSegmentDialogOpen(true)}>
+          <GatedButton action="write" resource="marketing" variant="outline" onClick={() => setSegmentDialogOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             Nieuw segment
-          </Button>
-          <Button onClick={() => setCampaignDialogOpen(true)}>
+          </GatedButton>
+          <GatedButton action="write" resource="marketing" onClick={() => setCampaignDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nieuwe campagne
-          </Button>
+          </GatedButton>
         </div>
       </div>
 

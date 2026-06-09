@@ -21,6 +21,8 @@ import {
 import { Plus, Search, Tag } from 'lucide-react';
 import { DiscountCodeCard } from '@/components/admin/DiscountCodeCard';
 import { DiscountCodeDialog } from '@/components/admin/DiscountCodeDialog';
+import { GatedButton } from '@/components/permissions/GatedButton';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import {
   useDiscountCodes,
   useCreateDiscountCode,
@@ -81,15 +83,18 @@ export default function Discounts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Kortingscodes</h1>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            Kortingscodes
+            <ReadOnlyBadge resource="discount_codes" />
+          </h1>
           <p className="text-muted-foreground">
             Beheer kortingscodes voor je klanten
           </p>
         </div>
-        <Button onClick={handleOpenCreate}>
+        <GatedButton action="write" resource="discount_codes" onClick={handleOpenCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Nieuwe code
-        </Button>
+        </GatedButton>
       </div>
 
       {/* Filters */}
@@ -131,10 +136,10 @@ export default function Discounts() {
               : 'Maak je eerste kortingscode aan'}
           </p>
           {!search && statusFilter === 'all' && (
-            <Button onClick={handleOpenCreate}>
+            <GatedButton action="write" resource="discount_codes" onClick={handleOpenCreate}>
               <Plus className="h-4 w-4 mr-2" />
               Nieuwe code
-            </Button>
+            </GatedButton>
           )}
         </div>
       ) : (
