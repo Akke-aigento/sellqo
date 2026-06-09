@@ -3194,3 +3194,32 @@ Grep over `*.ts`, `*.tsx`, `*.toml`, `*.json` (excl. `node_modules`), filter op 
 
 ### Status
 Hygiene-pass voltooid. Geen secret-rotaties nodig.
+
+## Hoofdstuk Team-Invite — Batch INV-1 schema + audit-log infra
+Datum: 2026-06-09
+
+### Wijzigingen
+- **Enum `public.invite_status`** aangemaakt — waardes: `pending`, `accepted`, `expired`, `revoked`, `rejected`. Geen naming-conflict (OB-INV-7 bevestigd).
+- **`team_invitations`** uitgebreid met 4 kolommen:
+  - `status invite_status NOT NULL DEFAULT 'pending'`
+  - `last_reminder_sent_at TIMESTAMPTZ NULL`
+  - `revoked_at TIMESTAMPTZ NULL`
+  - `revoked_by UUID NULL → auth.users(id) ON DELETE SET NULL`
+- **Backfill resultaat**: 5 bestaande rijen → `accepted` (alle hadden `accepted_at`). 0 → `expired`. 0 → `pending`.
+- **pg_cron job `expire-invitations`** geactiveerd: daily `0 3 * * *` UTC, zet `pending` met `expires_at < NOW()` naar `expired`. Idempotent geïnstalleerd (unschedule → schedule). Optie B gekozen (cron) — robuust, geen complexe triggers.
+- **`invite_audit_log` tabel** aangemaakt (OB-INV-2 bevestigd: aparte tabel ipv `admin_actions_log`):
+  - kolommen: `id`, `invitation_id` (FK CASCADE), `tenant_id` (FK CASCADE), `event_type` (CHECK: sent/accepted/rejected/expired/revoked/reminded/resent), `actor_user_id`, `actor_email`, `metadata JSONB`, `created_at`.
+  - 3 indexes: invitation_id, tenant_id, created_at DESC.
+  - GRANT SELECT to authenticated, ALL to service_role.
+  - RLS enabled, 2 SELECT policies (tenant_admin van eigen tenant + platform_admin). Geen INSERT/UPDATE/DELETE policies — schrijven enkel via edge functions (service-role).
+- **`team_invitations` policy toegevoegd**: `platform_admin_select_invitations` (FOR SELECT, `is_platform_admin(auth.uid())`). Bestaande tenant-admin policy ongewijzigd.
+- **Helper-functie `public.get_invitation_effective_status(uuid)`** — SECURITY DEFINER, STABLE — berekent live status (defensief voor edge cases waar cron nog niet heeft gelopen).
+
+### Verificatie post-migration
+- Enum aanwezig ✓
+- pg_cron job `expire-invitations` geregistreerd ✓
+- Status-counts: `accepted=5` (geen pending/expired in test-data) ✓
+- RLS-policies op `invite_audit_log`: `tenant_admin_select_invite_audit`, `platform_admin_select_invite_audit` ✓
+
+### Status
+Batch INV-1 voltooid. Klaar voor Batch INV-2 (edge functions: send/fetch/accept/revoke/resend met audit-log writes).
