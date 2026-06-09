@@ -21,18 +21,18 @@ const src = fs.readFileSync(APP, "utf8");
 
 // We scan line-by-line and pair each `<Route ... path="..."` opening with the
 // rest of its element-prop until we see `/>` or the closing `</Route>`.
-const lines = src.split("\n");
+const srcLines = src.split("\n");
 const routes = []; // {path, body}
-for (let i = 0; i < lines.length; i++) {
-  const line = lines[i];
+for (let i = 0; i < srcLines.length; i++) {
+  const line = srcLines[i];
   const pathMatch = line.match(/<Route\s+path=["']([^"']+)["']/);
   if (!pathMatch) continue;
   // Collect the body until we hit `/>` or `</Route>` (max 6 lines safety).
   let body = line;
   if (!/\/>|<\/Route>/.test(body)) {
-    for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
-      body += "\n" + lines[j];
-      if (/\/>|<\/Route>/.test(lines[j])) break;
+    for (let j = i + 1; j < Math.min(i + 8, srcLines.length); j++) {
+      body += "\n" + srcLines[j];
+      if (/\/>|<\/Route>/.test(srcLines[j])) break;
     }
   }
   routes.push({ path: pathMatch[1], body });
