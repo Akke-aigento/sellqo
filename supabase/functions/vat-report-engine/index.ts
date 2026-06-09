@@ -3,7 +3,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
-import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 import { aggregate } from "./aggregator.ts";
 import type {
   DbCreditNote,
@@ -84,7 +84,8 @@ serve(async (req) => {
           .maybeSingle();
     let cached: { payload: VatReportPayload; computed_at: string } | null = null;
     try {
-      const [_auth, cacheRes] = await Promise.all([authPromise, cachePromise]);
+      const [auth, cacheRes] = await Promise.all([authPromise, cachePromise]);
+      requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
       cached = (cacheRes?.data ?? null) as typeof cached;
     } catch (e) {
       if (e instanceof AuthError) return authErrorResponse(e, cors);
