@@ -230,75 +230,14 @@ export function TeamSettings() {
                     </TableRow>
                   );
                 })}
-                {pendingInvitations.map((invitation: TeamInvitation) => {
-                  const expired = isPast(new Date(invitation.expires_at));
-                  return (
-                    <TableRow key={`inv-${invitation.id}`} className="bg-muted/20">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 opacity-70">
-                            <AvatarFallback>
-                              {invitation.email.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{invitation.email}</p>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  expired
-                                    ? 'border-destructive/40 text-destructive'
-                                    : 'border-yellow-500/40 text-yellow-700 bg-yellow-500/10'
-                                }
-                              >
-                                <Mail className="h-3 w-3 mr-1" />
-                                {expired ? 'Verlopen' : 'In afwachting'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {expired
-                                ? 'Uitnodiging verlopen'
-                                : `Verloopt ${format(new Date(invitation.expires_at), 'd MMM yyyy', { locale: nl })}`}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getRoleBadge(invitation.role)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        Uitgenodigd {format(new Date(invitation.created_at), 'd MMM yyyy', { locale: nl })}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => resendInvitation(invitation.id)}>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Opnieuw versturen
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => cancelInvitation(invitation.id)}
-                              className="text-destructive"
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Uitnodiging annuleren
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Invitations management */}
+      <TenantInvitationsList />
 
       {/* Role explanations */}
       <Card>
