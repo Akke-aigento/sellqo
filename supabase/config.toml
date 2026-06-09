@@ -93,6 +93,15 @@ verify_jwt = false
 [functions.pos-refund-payment]
 verify_jwt = false
 
+[functions.pos-create-payment-intent]
+verify_jwt = false
+
+[functions.pos-process-payment]
+verify_jwt = false
+
+[functions.pos-manage-reader]
+verify_jwt = false
+
 [functions.check-bol-process-status]
 verify_jwt = false
 
