@@ -1,5 +1,10 @@
 # SellQo Fase 2 — Role-Aware RLS Masterplan (v2)
 
+> **Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)**
+>
+> Alle hoofdstukken (0 t/m 5) zijn uitgerold. Zie
+> `docs/fase2-eindrapport.md` voor scope, statistiek en backlog.
+
 > **Bedoeling.** Een feilloos af te draaien plan voor de uitrol van rol-gediscrimineerde RLS-policies en edge-function-checks over de hele SellQo-codebase. Koud op te pakken na de pentest. Toekomst-klaar: ook dormant features krijgen passende defaults zodat ze veilig zijn op het moment dat ze ooit activeren.
 >
 > **Wanneer uitvoeren.** Niet vóór de pentest. Eerst pentest doorlopen, debrief, Fase 2A DROP-batch (zie `docs/role-audit-phase1d-triage.md`), schema-sync (zie Pre-Fase 2 hieronder), dán dit traject.
@@ -905,7 +910,7 @@ Voor elk van de 12 dormant clusters: als/wanneer de feature live gaat voor een t
 
 Overweeg een herhaal-pentest na Fase 2 — gericht op cross-rol-privilege-escalatie binnen één tenant, frontend-gating-bypass, en edge-function-authorization-checks.
 
-## Hoofdstuk 3 — Uitrol-status (afgesloten 2026-06-08)
+## Hoofdstuk 3 — Uitrol-status (afgesloten 2026-06-09)
 
 ### Voltooid
 
@@ -930,6 +935,14 @@ Overweeg een herhaal-pentest na Fase 2 — gericht op cross-rol-privilege-escala
 | 2C2a-iv | CMS/SEO/Theme/Social/A-B/Notif RLS (21 tabellen, 82 calls) | ✅ |
 | 2C2b | Marketing/Ads edge-function role-checks (16 functies) | ✅ |
 | 2C2c | Social-tabellen consolidatie | ✅ (no-op — verschillende domeinen) |
+| 2D | Reports/Settings/Billing RLS + 5 viewer-write-lekken + platform-gift-month fix | ✅ |
+| 2E | POS RLS (8 tabellen, 40 policies, 3 edges) | ✅ |
+| 2F-i | Marketing-extras + Loyalty-restant + SEO dormant lockdown | ✅ |
+| 2F-ii | Procurement/Payment/Integrations dormant lockdown | ✅ |
+| 2F-iii | Ads-restant + Analytics/Tracking dormant lockdown | ✅ |
+| 2F-iv | Customer/Product/AI/Uncategorized dormant lockdown | ✅ |
+| H4 | Frontend gating (useCan/PermissionGate/RouteGuard/RoleSimulator) | ✅ |
+| H5 | Cleanup post-merge (legacy helpers gedropt, eindrapport) | ✅ |
 
 ### Marketing-rol uitgerold
 

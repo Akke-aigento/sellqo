@@ -1,7 +1,48 @@
-# Fase 2 — Uitrol-status (laatst bijgewerkt: 2026-06-08)
+# Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
-**Hoofdstuk 3 (uitrol-batches): voltooid behalve geparkeerde items in 
-docs/fase2-backlog.md.**
+Alle hoofdstukken voltooid. Voor scope + statistiek:
+`docs/fase2-eindrapport.md`.
+
+Voor batch-detail per dag/cluster: zie secties hieronder.
+
+---
+
+## Hoofdstuk 5 — Cleanup post-merge (2026-06-09)
+
+### Legacy helpers gedropt
+
+| Functie | Reden | Verificatie |
+|---|---|---|
+| `public.has_role(uuid, app_role)` | Vervangen door `has_tenant_role(uuid, app_role[])` | 0 policies, 0 code-paden |
+| `public.get_user_role(uuid)` | Niet meer gebruikt; rol-lookup gaat via `user_roles` + `has_tenant_role` | 0 policies, 0 code-paden |
+
+Behouden helpers: `has_tenant_role(uuid, app_role[])`,
+`get_user_tenant_ids()` (zero + uuid arg), `is_platform_admin(uuid)`.
+
+### Sanity-check uitkomsten
+
+1. **Tenant-blind policies overgebleven (excl. `service_role`/public/`auth.uid()`):**
+   54 hits, allemaal verklaarbaar:
+   - `*_service_role_all`-policies (FOR ALL TO service_role USING(true))
+   - Public storefront-read op `products`, `product_variants`, `categories`,
+     `homepage_sections`, `storefront_pages`, `legal_pages`,
+     `sellqo_legal_pages`, `pricing_plans`, `themes`, `vat_regimes`,
+     `external_reviews`, `tenant_domains`, `doc_articles`, `doc_categories`,
+     `product_bundle_items`, `product_categories`, `product_variant_options`
+   - `team_invitations` user-self-SELECT via `auth.uid()`
+   - `channel_field_mappings` read voor alle authenticated users
+2. **Legacy `has_role(uuid, app_role)` policy-calls:** 0
+3. **RLS-disabled public-tabellen:** 0
+
+### Eindrapport
+
+- `docs/fase2-eindrapport.md` gegenereerd
+- `docs/sellqo-fase2-masterplan.md` bovenin afsluiting-banner + Hoofdstuk 3
+  status-tabel uitgebreid met 2D/2E/2F/H4/H5
+- `docs/fase2-backlog.md` "Volgende fase"-sectie verwijderd (H4 + H5 klaar)
+- `docs/role-audit.md` eindregel bijgewerkt (dit blok)
+
+**Status:** Fase 2 VOLLEDIG AFGESLOTEN — 2026-06-09.
 
 ---
 
