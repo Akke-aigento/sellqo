@@ -54,6 +54,9 @@ export function FulfillmentBulkActions({
   onClearSelection,
   onComplete,
 }: FulfillmentBulkActionsProps) {
+  // H4d: bulk-actions toegestaan voor warehouse + staff + tenant_admin
+  // (matrix orders.write). Bewust ongated: route-guard /admin/fulfillment
+  // garandeert al dat alleen toegelaten rollen hier komen.
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
