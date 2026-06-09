@@ -2730,3 +2730,91 @@ GROUP BY tablename, cmd ORDER BY tablename, cmd;
 
 ### Vervolg
 - 2D-iv — Edge-function role-checks voor export-pipeline + admin acties
+
+## Batch 2D-iv — Reports/Settings/Billing edge-function role-checks
+
+_Datum: 2026-06-09_
+
+### Sweep — gevonden functies + classificatie
+
+| Functie | Pad | Status |
+|---|---|---|
+| `export-vat-xlsx` | tenant-user (admin-trigger) | **role-check toegevoegd** |
+| `export-vat-pdf` | tenant-user (admin-trigger) | **role-check toegevoegd** |
+| `export-vat-xml` | tenant-user (admin-trigger) | **role-check toegevoegd** |
+| `export-ic-listing-xml` | tenant-user (admin-trigger) | **role-check toegevoegd** |
+| `export-odoo-csv` | tenant-user (admin-trigger) | **role-check toegevoegd** |
+| `export-q-bundle` | tenant-user (admin-trigger) | **role-check toegevoegd (OB7: staff niet)** |
+| `vat-report-engine` | tenant-user + service-role (callees) | **role-check toegevoegd (service-role bypass intact)** |
+| `validate-vat` | was anonymous → nu tenant-user (admin-only) | **OB8: dichtgezet** |
+| `warmup-vat-cache` | service-role / cron + platform_admin trigger | ongewijzigd (cron-pad) |
+| `regression-test-vat` | dev/admin-tool | ongewijzigd (intern) |
+| `backfill-vat-regimes` | one-shot admin | ongewijzigd (low-risk) |
+| `resolve-vat-regime` | utility, gebruikt in checkout-flow | ongewijzigd (anonymous storefront-pad vereist) |
+| `platform-gift-month` | platform_admin only | reeds gehard in pre-2D quickfix |
+
+### Per gewijzigde functie
+
+- `export-vat-xlsx`, `export-vat-pdf`, `export-vat-xml`,
+  `export-ic-listing-xml`, `export-odoo-csv`, `vat-report-engine`:
+  `requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant'])`.
+- `export-q-bundle`:
+  `requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant'])`
+  — **OB7 bevestigd: `staff` uitgesloten** uit Q-Pakket export.
+- `validate-vat` (OB8):
+  - `verify_jwt = false` regel uit `supabase/config.toml` verwijderd
+    → function vereist nu een geldige JWT (platform default).
+  - Body-handler roept `authenticateRequest(req)` aan en weigert (403)
+    wanneer de gebruiker geen `tenant_admin`, `staff` of `accountant`
+    rol heeft in eender welke tenant.
+  - Platform-admin en service-role bypassen via `authenticateRequest`.
+  - **Rate-limiting / storefront-API routing voor anonymous B2B-checkout
+    is uitgesteld** (zie TODO hieronder); admin-UI gebruikt nu het
+    auth-pad direct via `supabase.functions.invoke('validate-vat', …)`.
+
+### Niet aangeraakt (bewust)
+
+- `storefront-api` — anonymous storefront-pad blijft intact.
+- Stripe / billing webhooks — signature-auth.
+- `resolve-vat-regime` — utility, ook tijdens checkout.
+- `warmup-vat-cache`, `backfill-vat-regimes`, `regression-test-vat` —
+  cron of one-shot admin-trigger; geen extra rol-gating noodzakelijk.
+
+### Niet bestaand in repo (masterplan-stubs)
+
+`oss-report-engine`, `generate-oss-report`, `intervat-xml-exporter`
+(functie heet `export-vat-xml`), `intrastat-report`,
+`financial-report-runner`, `operations-report-engine`,
+`run-operations-report`, `export-orders`, `export-customers`,
+`export-jobs-runner`, `sync-vat-rates`, `update-tenant-branding`,
+`update-tenant-settings`, `rotate-tenant-keys`, `regenerate-api-keys`,
+`platform-billing-runner`, `stripe-billing-webhook`.
+→ Wanneer deze functies later worden toegevoegd, gebruik dezelfde
+`requireRole`-pattern uit dit bestand als template.
+
+### Config.toml-wijzigingen
+
+| Functie | Vorige `verify_jwt` | Nieuw |
+|---|---|---|
+| `validate-vat` | `false` (anonymous) | **standaard `true`** (regel verwijderd) |
+
+Alle andere gewijzigde functies behouden hun bestaande config — auth
+wordt in-code afgedwongen via `authenticateRequest` + `requireRole`
+(consistent met overige admin-functies in deze codebase).
+
+### Beslispunten
+
+- **OB7** bevestigd: `staff` mag **geen** Q-Pakket / Q-bundle ZIP
+  exporteren — alleen `tenant_admin` + `accountant` (+ platform_admin).
+- **OB8** bevestigd: `validate-vat` dichtgezet voor anonymous callers,
+  admin-only via auth-pad. Storefront B2B-checkout-validatie loopt voor
+  nu nog niet via een aparte anonymous route — TODO voor volgende
+  iteratie: `storefront-api` action `validate_vat` met rate-limit per
+  session (max 10 calls / 5 min).
+
+### TODO (volgende iteratie)
+
+- `storefront-api` action `validate_vat` met sessie-rate-limit voor
+  anonymous B2B-checkout-BTW-validatie.
+- Wanneer reports/settings/branding-edge-functions worden gebouwd,
+  `requireRole` direct meenemen volgens dit document.
