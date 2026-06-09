@@ -17967,6 +17967,21 @@ export type Database = {
         Args: { p_cashier_id: string; p_new_pin: string }
         Returns: undefined
       }
+      update_tenant_fiscal_info: {
+        Args: {
+          _bic?: string
+          _business_address?: string
+          _business_city?: string
+          _business_country?: string
+          _business_postal_code?: string
+          _iban?: string
+          _kvk_number?: string
+          _swift?: string
+          _tenant_id: string
+          _vat_number?: string
+        }
+        Returns: undefined
+      }
       update_user_learning_pattern: {
         Args: {
           p_learned_value: Json
