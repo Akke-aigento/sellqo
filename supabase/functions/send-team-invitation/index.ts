@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -205,8 +206,8 @@ serve(async (req) => {
     ].filter(Boolean).join('\n');
 
     const emailResponse = await resend.emails.send({
-      from: `SellQo <noreply@sellqo.app>`,
-      reply_to: 'support@sellqo.app',
+      from: EMAIL_SENDERS.invite.from,
+      reply_to: EMAIL_SENDERS.invite.replyTo,
       to: [email],
       subject: `Je bent uitgenodigd voor ${tenantName}`,
       html,

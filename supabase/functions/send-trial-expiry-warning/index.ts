@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,8 +160,8 @@ serve(async (req) => {
           const textContent = htmlToPlainText(htmlContent);
 
           const emailResponse = await resend.emails.send({
-            from: "SellQo <noreply@sellqo.app>",
-            reply_to: "support@sellqo.app",
+            from: EMAIL_SENDERS.billing.from,
+            reply_to: EMAIL_SENDERS.billing.replyTo,
             to: [tenant.owner_email],
             subject: `Je proefperiode voor ${tenantName} eindigt morgen`,
             html: htmlContent,

@@ -1,6 +1,7 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,9 +49,10 @@ Deno.serve(async (req) => {
     // Get tenant info for email personalization
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("name, email, street, city, postal_code, country")
+      .select("name, email, owner_email, street, city, postal_code, country")
       .eq("id", campaign.tenant_id)
       .single();
+    const marketingSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.email || (tenant as any)?.owner_email);
 
     // Build recipient query
     let recipientQuery = supabase
@@ -125,7 +127,8 @@ Deno.serve(async (req) => {
 
       try {
         const emailResponse = await resend.emails.send({
-          from: `${tenant?.name || 'Sellqo'} <noreply@sellqo.app>`,
+          from: marketingSender.from,
+          reply_to: marketingSender.replyTo,
           to: [recipient.email],
           subject: campaign.subject.replace(/\{\{customer_name\}\}/g, customerName),
           html: htmlContent,
