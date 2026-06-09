@@ -10,8 +10,6 @@ Voor batch-detail per dag/cluster: zie secties hieronder.
 
 ---
 
-## Hoofdstuk 4a — Sidebar + Route-guards (2026-06-09)
-
 ## Hoofdstuk 4b — Hotspot-pagina's (2026-06-09)
 
 ### Nieuwe herbruikbare componenten
