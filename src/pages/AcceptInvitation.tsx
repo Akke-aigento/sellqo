@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,20 +6,40 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle, XCircle, Mail, Lock, User, AlertTriangle } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Loader2, CheckCircle, XCircle, Mail, Lock, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { useToast } from '@/hooks/use-toast';
 
-type InvitationStatus = 'loading' | 'valid' | 'expired' | 'accepted' | 'not_found' | 'error' | 'already_member';
+type Role = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
 
-interface InvitationData {
+interface InviteData {
   email: string;
-  role: string;
+  role: Role;
   tenantName: string;
+  tenantId: string;
   expiresAt: string;
   accountExists: boolean;
   alreadyMember: boolean;
+  invitedByName: string | null;
 }
+
+type FlowState =
+  | { kind: 'loading' }
+  | { kind: 'not_found' }
+  | { kind: 'expired'; expiresAt?: string }
+  | { kind: 'revoked' }
+  | { kind: 'already_accepted' }
+  | { kind: 'already_member'; tenantId: string; tenantName: string }
+  | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
+  | { kind: 'one_click_accept'; invite: InviteData }
+  | { kind: 'login_required'; invite: InviteData }
+  | { kind: 'otp_request'; invite: InviteData }
+  | { kind: 'otp_verify'; invite: InviteData }
+  | { kind: 'set_password'; invite: InviteData }
+  | { kind: 'accepting'; invite: InviteData }
+  | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
+  | { kind: 'error'; message: string };
 
 const roleLabels: Record<string, string> = {
   tenant_admin: 'Admin',
@@ -27,7 +47,28 @@ const roleLabels: Record<string, string> = {
   accountant: 'Boekhouder',
   warehouse: 'Magazijn',
   viewer: 'Kijker',
+  marketing: 'Marketing',
 };
+
+function maskEmail(email: string) {
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const visible = local.slice(0, 2);
+  return `${visible}${'•'.repeat(Math.max(local.length - 2, 1))}@${domain}`;
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <SellqoLogo variant="full" width={160} className="mx-auto mb-4" />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function AcceptInvitation() {
   const { token } = useParams<{ token: string }>();
@@ -35,558 +76,609 @@ export default function AcceptInvitation() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
 
-  const [status, setStatus] = useState<InvitationStatus>('loading');
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
-  const [isAccepting, setIsAccepting] = useState(false);
-  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
-
-  // Registration form state — default flipped later based on accountExists
-  const [showRegister, setShowRegister] = useState(true);
-  const [email, setEmail] = useState('');
+  const [state, setState] = useState<FlowState>({ kind: 'loading' });
+  const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSendingReset, setIsSendingReset] = useState(false);
-  const acceptAttemptedRef = useRef(false);
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const acceptedRef = useRef(false);
+  const resolvedTokenRef = useRef<string | null>(null);
 
+  // Resend cooldown countdown
   useEffect(() => {
-    const fetchInvitation = async () => {
-      if (!token) {
-        setStatus('not_found');
-        return;
-      }
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
-      try {
-        const response = await supabase.functions.invoke('fetch-invitation', {
-          body: { token },
-        });
-
-        if (response.error) {
-          setStatus('not_found');
-          return;
-        }
-
-        const data = response.data;
-
-        if (!data || data.error) {
-          setStatus('not_found');
-          return;
-        }
-
-        if (data.status === 'accepted') {
-          setStatus('accepted');
-          return;
-        }
-
-        if (data.status === 'expired') {
-          setStatus('expired');
-          return;
-        }
-
-        const accountExists = !!data.accountExists;
-        const alreadyMember = !!data.alreadyMember;
-
-        setInvitation({
-          email: data.email,
-          role: data.role,
-          tenantName: data.tenantName,
-          expiresAt: data.expiresAt,
-          accountExists,
-          alreadyMember,
-        });
-        setEmail(data.email);
-        // If the account already exists, surface the login form first.
-        // Otherwise default to the create-account form.
-        setShowRegister(!accountExists);
-
-        if (alreadyMember) {
-          setStatus('already_member');
-        } else {
-          setStatus('valid');
-        }
-      } catch (error) {
-        console.error('Error fetching invitation:', error);
-        setStatus('error');
-      }
-    };
-
-    fetchInvitation();
-  }, [token]);
-
-  const handleAccept = async () => {
-    if (!token) return;
-
-    setIsAccepting(true);
+  const resolveFlow = useCallback(async () => {
+    if (!token) {
+      setState({ kind: 'not_found' });
+      return;
+    }
+    if (authLoading) return;
+    setState({ kind: 'loading' });
     try {
-      const response = await supabase.functions.invoke('accept-team-invitation', {
+      const { data, error } = await supabase.functions.invoke('fetch-invitation', {
         body: { token },
       });
-
-      const apiError = response.data?.error;
-      if (apiError || response.error) {
-        throw new Error(apiError || response.error?.message || 'Onbekende fout');
+      if (error || !data || data.error) {
+        setState({ kind: 'not_found' });
+        return;
       }
-
-      toast({
-        title: 'Uitnodiging geaccepteerd!',
-        description: `Je bent nu lid van ${response.data.tenantName}`,
-      });
-
-      navigate('/admin');
-    } catch (error: any) {
-      toast({
-        title: 'Fout bij accepteren',
-        description: error.message || 'Er ging iets mis. Probeer opnieuw.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAccepting(false);
+      const invite: InviteData = {
+        email: data.email,
+        role: data.role,
+        tenantName: data.tenantName ?? 'Onbekende winkel',
+        tenantId: data.tenantId,
+        expiresAt: data.expiresAt,
+        accountExists: !!data.accountExists,
+        alreadyMember: !!data.alreadyMember,
+        invitedByName: data.invitedByName ?? null,
+      };
+      switch (data.status) {
+        case 'accepted':
+          setState({ kind: 'already_accepted' });
+          return;
+        case 'expired':
+          setState({ kind: 'expired', expiresAt: invite.expiresAt });
+          return;
+        case 'revoked':
+        case 'rejected':
+          setState({ kind: 'revoked' });
+          return;
+      }
+      if (invite.alreadyMember) {
+        setState({ kind: 'already_member', tenantId: invite.tenantId, tenantName: invite.tenantName });
+        return;
+      }
+      // status pending / valid
+      if (!user) {
+        setState(invite.accountExists
+          ? { kind: 'login_required', invite }
+          : { kind: 'otp_request', invite });
+        return;
+      }
+      if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
+        setState({ kind: 'one_click_accept', invite });
+      } else {
+        setState({ kind: 'wrong_account', currentEmail: user.email || '', invite });
+      }
+    } catch (e: any) {
+      setState({ kind: 'error', message: e?.message || 'Onbekende fout' });
     }
-  };
+  }, [token, user, authLoading]);
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!invitation) return;
+  useEffect(() => {
+    // Re-resolve when token or auth-user changes
+    const key = `${token}:${user?.id ?? ''}`;
+    if (resolvedTokenRef.current === key) return;
+    resolvedTokenRef.current = key;
+    resolveFlow();
+  }, [token, user?.id, authLoading, resolveFlow]);
 
-    setIsSubmitting(true);
+  // Auto-invoke accept once we're in "accepting"
+  const doAccept = useCallback(async (invite: InviteData) => {
+    if (acceptedRef.current) return;
+    acceptedRef.current = true;
     try {
-      const { error } = await supabase.auth.signUp({
-        email: invitation.email,
-        password,
-        options: {
-          emailRedirectTo: window.location.href,
-          data: { full_name: fullName },
-        },
+      const { data, error } = await supabase.functions.invoke('accept-team-invitation', {
+        body: { token },
       });
-
-      if (error) {
-        const msg = (error.message || '').toLowerCase();
-        // Account bestaat al → schakel naar login-flow met dit e-mailadres
-        if (
-          msg.includes('already registered') ||
-          msg.includes('user already') ||
-          msg.includes('already exists')
-        ) {
-          setEmail(invitation.email);
-          setPassword('');
-          setShowRegister(false);
-          toast({
-            title: 'Account bestaat al',
-            description: 'Log in met je bestaande wachtwoord om de uitnodiging te accepteren.',
-          });
+      const apiError = data?.error || error?.message;
+      const code = data?.code;
+      if (apiError) {
+        if (code === 'EMAIL_MISMATCH') {
+          setState({ kind: 'wrong_account', currentEmail: user?.email || '', invite });
+          acceptedRef.current = false;
           return;
         }
-        throw error;
+        const msg = (apiError as string).toLowerCase();
+        if (msg.includes('reeds geaccepteerd') || msg.includes('al lid')) {
+          setState({ kind: 'already_member', tenantId: invite.tenantId, tenantName: invite.tenantName });
+          return;
+        }
+        if (msg.includes('verlopen')) {
+          setState({ kind: 'expired', expiresAt: invite.expiresAt });
+          return;
+        }
+        if (msg.includes('ingetrokken')) {
+          setState({ kind: 'revoked' });
+          return;
+        }
+        setState({ kind: 'error', message: apiError as string });
+        return;
       }
-
-      // Try auto sign-in (works if email confirmation is disabled)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: invitation.email,
-        password,
+      setState({
+        kind: 'success',
+        tenantId: data?.tenantId || invite.tenantId,
+        tenantName: data?.tenantName || invite.tenantName,
+        role: (data?.role as Role) || invite.role,
       });
-
-      if (signInError) {
-        // Email confirmation required — show confirmation message
-        setEmailConfirmationSent(true);
-      }
-      // If sign-in succeeded, the auth state change will trigger handleAccept
-    } catch (error: any) {
-      toast({
-        title: 'Registratie mislukt',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
+    } catch (e: any) {
+      acceptedRef.current = false;
+      setState({ kind: 'error', message: e?.message || 'Kon uitnodiging niet accepteren' });
     }
-  };
+  }, [token, user?.email]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (state.kind === 'accepting') {
+      doAccept(state.invite);
+    }
+  }, [state, doAccept]);
+
+  // Auto-redirect after success
+  useEffect(() => {
+    if (state.kind !== 'success') return;
+    const t = setTimeout(() => navigate('/admin'), 3000);
+    return () => clearTimeout(t);
+  }, [state, navigate]);
+
+  // -------- Action handlers --------
+
+  const handleLogin = async (invite: InviteData, e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
+    setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: invite.email,
+        password: loginPassword,
       });
-
       if (error) throw error;
-      // Auth state change will handle the rest
+      // useEffect re-resolves and we'll land in one_click_accept; auto-promote
+      setState({ kind: 'accepting', invite });
     } catch (error: any) {
+      const msg = error?.message || '';
       toast({
         title: 'Inloggen mislukt',
-        description: error.message,
+        description: /invalid login/i.test(msg)
+          ? 'Wachtwoord onjuist. Probeer opnieuw of gebruik "Wachtwoord vergeten".'
+          : msg,
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      setBusy(false);
     }
   };
 
-  // NOTE: no silent auto-accept on mount. Re-joining a team (after being
-  // removed earlier) must be an explicit, conscious action by the user.
-
-  const handleSwitchAccount = async () => {
-    await signOut();
-    acceptAttemptedRef.current = false;
-    setShowRegister(false);
-    setEmail(invitation?.email || '');
-    setPassword('');
-  };
-
-  const handleForgotPassword = async () => {
-    if (!invitation?.email) return;
-    setIsSendingReset(true);
+  const handleForgotPassword = async (invite: InviteData) => {
+    setBusy(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(invitation.email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(invite.email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast({
-        title: 'Reset-mail verzonden',
-        description: `We hebben een wachtwoord-reset link gestuurd naar ${invitation.email}.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Kon reset-mail niet versturen',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Reset-mail verzonden', description: `Naar ${invite.email}` });
+    } catch (e: any) {
+      toast({ title: 'Reset-mail mislukte', description: e.message, variant: 'destructive' });
     } finally {
-      setIsSendingReset(false);
+      setBusy(false);
     }
   };
 
-  if (authLoading || status === 'loading') {
+  const handleSendOtp = async (invite: InviteData) => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: invite.email,
+        options: { shouldCreateUser: true, emailRedirectTo: window.location.href },
+      });
+      if (error) throw error;
+      toast({ title: 'Code verzonden', description: `Naar ${maskEmail(invite.email)}` });
+      setOtpCode('');
+      setResendCooldown(30);
+      setState({ kind: 'otp_verify', invite });
+    } catch (e: any) {
+      toast({ title: 'Versturen mislukt', description: e.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVerifyOtp = async (invite: InviteData) => {
+    if (otpCode.length !== 6) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: invite.email,
+        token: otpCode,
+        type: 'email',
+      });
+      if (error) throw error;
+      setState({ kind: 'set_password', invite });
+    } catch (e: any) {
+      toast({ title: 'Onjuiste code', description: 'Probeer opnieuw.', variant: 'destructive' });
+      setOtpCode('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSetPassword = async (invite: InviteData, e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      toast({ title: 'Wachtwoord te kort', description: 'Minimum 8 tekens.', variant: 'destructive' });
+      return;
+    }
+    if (password !== passwordConfirm) {
+      toast({ title: 'Wachtwoorden komen niet overeen', variant: 'destructive' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setState({ kind: 'accepting', invite });
+    } catch (e: any) {
+      toast({ title: 'Wachtwoord instellen mislukt', description: e.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSwitchAccount = async (invite: InviteData) => {
+    setBusy(true);
+    await signOut();
+    acceptedRef.current = false;
+    resolvedTokenRef.current = null;
+    setBusy(false);
+    // resolveFlow will re-run via user?.id dependency
+  };
+
+  // ----------------- RENDER -----------------
+
+  const roleLabel = useMemo(() => (s: FlowState): string | null => {
+    if ('invite' in (s as any) && (s as any).invite) {
+      return roleLabels[(s as any).invite.role] ?? (s as any).invite.role;
+    }
+    return null;
+  }, []);
+
+  if (state.kind === 'loading' || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Uitnodiging laden...</p>
-        </div>
-      </div>
+      <Shell>
+        <Card>
+          <CardContent className="py-10 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+            <p className="text-muted-foreground">Uitnodiging laden...</p>
+          </CardContent>
+        </Card>
+      </Shell>
     );
   }
 
-  if (status === 'not_found') {
+  if (state.kind === 'not_found') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="max-w-md w-full">
+      <Shell>
+        <Card>
           <CardHeader className="text-center">
             <XCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
             <CardTitle>Uitnodiging niet gevonden</CardTitle>
-            <CardDescription>
-              Deze uitnodiging bestaat niet of is verwijderd.
-            </CardDescription>
+            <CardDescription>Deze uitnodiging bestaat niet of is verwijderd.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild>
-              <Link to="/">Naar homepage</Link>
-            </Button>
+            <Button asChild><Link to="/">Naar homepage</Link></Button>
           </CardContent>
         </Card>
-      </div>
+      </Shell>
     );
   }
 
-  if (status === 'expired') {
+  if (state.kind === 'expired') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="max-w-md w-full">
+      <Shell>
+        <Card>
           <CardHeader className="text-center">
-            <XCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
             <CardTitle>Uitnodiging verlopen</CardTitle>
             <CardDescription>
-              Deze uitnodiging is niet meer geldig. Vraag de beheerder om een nieuwe uitnodiging te versturen.
+              Deze uitnodiging is verlopen{state.expiresAt ? ` op ${new Date(state.expiresAt).toLocaleDateString('nl-NL')}` : ''}.
+              Vraag de tenant-beheerder om een nieuwe uitnodiging.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild>
-              <Link to="/">Naar homepage</Link>
-            </Button>
+            <Button asChild><Link to="/auth/login">Naar login</Link></Button>
           </CardContent>
         </Card>
-      </div>
+      </Shell>
     );
   }
 
-  if (status === 'accepted') {
+  if (state.kind === 'revoked') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="max-w-md w-full">
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <XCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+            <CardTitle>Uitnodiging ingetrokken</CardTitle>
+            <CardDescription>
+              Deze uitnodiging is ingetrokken. Neem contact op met de uitnodiger voor een nieuwe link.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button asChild variant="outline"><Link to="/auth/login">Naar login</Link></Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'already_accepted') {
+    return (
+      <Shell>
+        <Card>
           <CardHeader className="text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
             <CardTitle>Al geaccepteerd</CardTitle>
-            <CardDescription>
-              Deze uitnodiging is al geaccepteerd.
-            </CardDescription>
+            <CardDescription>Deze uitnodiging is al geaccepteerd.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild>
-              <Link to="/admin">Naar dashboard</Link>
-            </Button>
+            <Button asChild><Link to="/auth/login">Naar login</Link></Button>
           </CardContent>
         </Card>
-      </div>
+      </Shell>
     );
   }
 
-  if (status === 'already_member') {
+  if (state.kind === 'already_member') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="max-w-md w-full">
+      <Shell>
+        <Card>
           <CardHeader className="text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-            <CardTitle>Je bent al lid</CardTitle>
-            <CardDescription>
-              Je hebt al toegang tot <strong>{invitation?.tenantName}</strong>. Log in om verder te gaan.
-            </CardDescription>
+            <CardTitle>Je bent al lid van {state.tenantName}</CardTitle>
+            <CardDescription>Geen actie nodig.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild>
-              <Link to="/admin">Naar dashboard</Link>
+            <Button onClick={() => navigate('/admin')}>Naar dashboard</Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'wrong_account') {
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-2" />
+            <CardTitle>Verkeerd account ingelogd</CardTitle>
+            <CardDescription>
+              Je bent ingelogd als <strong>{state.currentEmail}</strong>, maar deze uitnodiging is voor{' '}
+              <strong>{state.invite.email}</strong>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" disabled={busy} onClick={() => handleSwitchAccount(state.invite)}>
+              {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Uitloggen en doorgaan als {state.invite.email}
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </Shell>
     );
   }
 
-  // Email confirmation sent — show waiting screen
-  if (emailConfirmationSent) {
+  if (state.kind === 'login_required') {
+    const { invite } = state;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <SellqoLogo variant="full" width={160} className="mx-auto mb-4" />
-          </div>
-          <Card>
-            <CardHeader className="text-center">
-              <Mail className="h-12 w-12 text-primary mx-auto mb-2" />
-              <CardTitle>Bevestig je e-mailadres</CardTitle>
-              <CardDescription>
-                Je account is aangemaakt! We hebben een bevestigingsmail gestuurd naar <strong>{invitation?.email}</strong>.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                Klik op de link in de e-mail om je account te bevestigen. Daarna word je automatisch gekoppeld aan <strong>{invitation?.tenantName}</strong>.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Geen e-mail ontvangen? Controleer je spamfolder.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>Welkom terug!</CardTitle>
+            <CardDescription>
+              Log in om <strong>{invite.tenantName}</strong> als <strong>{roleLabels[invite.role]}</strong> te accepteren.
+              {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e) => handleLogin(invite, e)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={invite.email} disabled className="pl-10 bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pw">Wachtwoord</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="pw"
+                    type="password"
+                    className="pl-10"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={busy || !loginPassword}>
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inloggen...</> : 'Inloggen en accepteren'}
+              </Button>
+              <Button type="button" variant="link" className="w-full h-auto p-0 text-xs"
+                onClick={() => handleForgotPassword(invite)} disabled={busy}>
+                Wachtwoord vergeten?
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </Shell>
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <SellqoLogo variant="full" width={160} className="mx-auto mb-4" />
-        </div>
+  if (state.kind === 'otp_request') {
+    const { invite } = state;
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
+            <CardTitle>Welkom bij {invite.tenantName}!</CardTitle>
+            <CardDescription>
+              We sturen je een 6-cijferige code per e-mail om je identiteit te bevestigen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input value={invite.email} disabled className="bg-muted" />
+            </div>
+            <Button className="w-full" disabled={busy} onClick={() => handleSendOtp(invite)}>
+              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Versturen...</> : 'Verstuur code'}
+            </Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
 
+  if (state.kind === 'otp_verify') {
+    const { invite } = state;
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <Mail className="h-12 w-12 text-primary mx-auto mb-2" />
+            <CardTitle>Voer de code in</CardTitle>
+            <CardDescription>
+              We hebben een 6-cijferige code gestuurd naar <strong>{maskEmail(invite.email)}</strong>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                <InputOTPGroup>
+                  {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button className="w-full" disabled={busy || otpCode.length !== 6}
+              onClick={() => handleVerifyOtp(invite)}>
+              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Bevestigen...</> : 'Bevestigen'}
+            </Button>
+            <Button type="button" variant="link" className="w-full h-auto p-0 text-xs"
+              disabled={busy || resendCooldown > 0}
+              onClick={() => handleSendOtp(invite)}>
+              {resendCooldown > 0
+                ? `Code opnieuw versturen (${resendCooldown}s)`
+                : 'Code opnieuw versturen'}
+            </Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'set_password') {
+    const { invite } = state;
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <CardTitle>E-mail bevestigd!</CardTitle>
+            <CardDescription>Kies een wachtwoord voor je account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e) => handleSetPassword(invite, e)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="np">Nieuw wachtwoord</Label>
+                <Input id="np" type="password" minLength={8}
+                  value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="np2">Wachtwoord bevestigen</Label>
+                <Input id="np2" type="password" minLength={8}
+                  value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opslaan...</> : 'Wachtwoord opslaan'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'one_click_accept') {
+    const { invite } = state;
+    return (
+      <Shell>
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Teamuitnodiging</CardTitle>
             <CardDescription>
-              Je bent uitgenodigd voor <strong>{invitation?.tenantName}</strong>
+              Welkom <strong>{user?.email}</strong>! Klik om <strong>{invite.tenantName}</strong> als{' '}
+              <strong>{roleLabels[invite.role]}</strong> te accepteren.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted/50 rounded-lg p-4 mb-6 text-center">
-              <p className="text-sm text-muted-foreground mb-1">Jouw rol:</p>
-              <p className="font-semibold text-lg">
-                {roleLabels[invitation?.role || ''] || invitation?.role}
-              </p>
-            </div>
-
-            {user ? (
-              user.email?.toLowerCase() === invitation?.email.toLowerCase() ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-center text-muted-foreground">
-                    Ingelogd als <strong>{user.email}</strong>
-                  </p>
-                  <Button
-                    className="w-full"
-                    onClick={handleAccept}
-                    disabled={isAccepting}
-                  >
-                    {isAccepting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Accepteren...
-                      </>
-                    ) : (
-                      'Uitnodiging accepteren'
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                      <div className="space-y-1">
-                        <p className="font-medium">Verkeerd account</p>
-                        <p className="text-muted-foreground">
-                          Je bent ingelogd als <strong>{user.email}</strong>, maar deze uitnodiging is voor <strong>{invitation?.email}</strong>.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button className="w-full" onClick={handleSwitchAccount}>
-                    Uitloggen en doorgaan als {invitation?.email}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate('/admin')}
-                  >
-                    Naar mijn dashboard
-                  </Button>
-                </div>
-              )
-            ) : showRegister ? (
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Naam</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="Je volledige naam"
-                      className="pl-10"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={invitation?.email || ''}
-                      disabled
-                      className="pl-10 bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Nieuw wachtwoord</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Kies een wachtwoord"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Account aanmaken...
-                    </>
-                  ) : (
-                    'Account aanmaken en accepteren'
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setShowRegister(false)}
-                >
-                  Ik heb al een account
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Wachtwoord</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Je wachtwoord"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Inloggen...
-                    </>
-                  ) : (
-                    'Inloggen en accepteren'
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full h-auto p-0 text-xs"
-                  onClick={handleForgotPassword}
-                  disabled={isSendingReset}
-                >
-                  {isSendingReset ? 'Reset-mail versturen...' : 'Wachtwoord vergeten?'}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setShowRegister(true)}
-                >
-                  Nog geen account? Registreren
-                </Button>
-              </form>
-            )}
+            <Button className="w-full" onClick={() => setState({ kind: 'accepting', invite })}>
+              Accepteer uitnodiging
+            </Button>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'accepting') {
+    return (
+      <Shell>
+        <Card>
+          <CardContent className="py-10 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+            <p className="text-muted-foreground">Uitnodiging accepteren...</p>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'success') {
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <CardTitle>Welkom bij {state.tenantName}!</CardTitle>
+            <CardDescription>
+              Je bent nu lid als <strong>{roleLabels[state.role] ?? state.role}</strong>.
+              Je wordt automatisch doorgestuurd...
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => navigate('/admin')}>Ga naar dashboard</Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  // error
+  return (
+    <Shell>
+      <Card>
+        <CardHeader className="text-center">
+          <XCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+          <CardTitle>Er ging iets mis</CardTitle>
+          <CardDescription>{state.kind === 'error' ? state.message : 'Onbekende fout'}</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center space-y-2">
+          <Button onClick={() => { acceptedRef.current = false; resolvedTokenRef.current = null; resolveFlow(); }}>
+            Probeer opnieuw
+          </Button>
+          <Button asChild variant="link" className="text-xs">
+            <Link to="/">Contact ondersteuning</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </Shell>
   );
 }

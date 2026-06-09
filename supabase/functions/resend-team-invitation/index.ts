@@ -65,14 +65,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (invitation.status === "revoked") {
-      return new Response(
-        JSON.stringify({
-          error: "Uitnodiging is ingetrokken — maak een nieuwe uitnodiging aan",
-        }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Revoked, expired, rejected en pending mogen allemaal worden gereactiveerd:
+    // we resetten status naar 'pending' en verlengen expires_at.
 
     const previousExpires = invitation.expires_at;
     const newExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();

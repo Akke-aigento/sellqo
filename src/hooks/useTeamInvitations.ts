@@ -3,7 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 
-export type InvitationRole = 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer' | 'marketing';
+export type InvitationRole =
+  | 'tenant_admin'
+  | 'staff'
+  | 'accountant'
+  | 'warehouse'
+  | 'viewer'
+  | 'marketing';
+
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked' | 'rejected';
 
 export interface TeamInvitation {
   id: string;
@@ -14,10 +22,20 @@ export interface TeamInvitation {
   token: string;
   expires_at: string;
   accepted_at: string | null;
+  status: InvitationStatus;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  last_reminder_sent_at: string | null;
   created_at: string;
 }
 
-export function useTeamInvitations() {
+export interface UseTeamInvitationsOptions {
+  /** Filter by status. 'all' returns every invitation. */
+  statusFilter?: InvitationStatus | 'all';
+}
+
+export function useTeamInvitations(options: UseTeamInvitationsOptions = {}) {
+  const { statusFilter = 'pending' } = options;
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { currentTenant } = useTenant();
@@ -32,13 +50,17 @@ export function useTeamInvitations() {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('team_invitations')
         .select('*')
         .eq('tenant_id', currentTenant.id)
-        .is('accepted_at', null)
         .order('created_at', { ascending: false });
 
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setInvitations((data || []) as TeamInvitation[]);
     } catch (error) {
@@ -46,13 +68,12 @@ export function useTeamInvitations() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.id, statusFilter]);
 
   useEffect(() => {
     fetchInvitations();
   }, [fetchInvitations]);
 
-  // Realtime: auto-refresh when invitations change for this tenant
   useEffect(() => {
     if (!currentTenant?.id) return;
     const channel = supabase
@@ -65,9 +86,7 @@ export function useTeamInvitations() {
           table: 'team_invitations',
           filter: `tenant_id=eq.${currentTenant.id}`,
         },
-        () => {
-          fetchInvitations();
-        }
+        () => fetchInvitations(),
       )
       .subscribe();
 
@@ -78,92 +97,72 @@ export function useTeamInvitations() {
 
   const sendInvitation = async (email: string, role: InvitationRole) => {
     if (!currentTenant?.id) {
-      toast({
-        title: 'Fout',
-        description: 'Geen winkel geselecteerd',
-        variant: 'destructive',
-      });
+      toast({ title: 'Fout', description: 'Geen winkel geselecteerd', variant: 'destructive' });
       return false;
     }
-
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) throw new Error('Niet ingelogd');
-
       const response = await supabase.functions.invoke('send-team-invitation', {
-        body: {
-          email,
-          role,
-          tenantId: currentTenant.id,
-        },
+        body: { email, role, tenantId: currentTenant.id },
       });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-
-      toast({
-        title: 'Uitnodiging verzonden',
-        description: `Een uitnodiging is verzonden naar ${email}`,
-      });
-
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast({ title: 'Uitnodiging verzonden', description: `Verzonden naar ${email}` });
       await fetchInvitations();
       return true;
     } catch (error: any) {
-      toast({
-        title: 'Fout bij verzenden',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Fout bij verzenden', description: error.message, variant: 'destructive' });
       return false;
     }
   };
 
-  const cancelInvitation = async (invitationId: string) => {
+  const revokeInvitation = async (invitationId: string) => {
+    // Optimistic update
+    const previous = invitations;
+    setInvitations((prev) =>
+      prev.map((i) => (i.id === invitationId ? { ...i, status: 'revoked' as InvitationStatus } : i)),
+    );
     try {
-      const { error } = await supabase
-        .from('team_invitations')
-        .delete()
-        .eq('id', invitationId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Uitnodiging geannuleerd',
-        description: 'De uitnodiging is verwijderd',
+      const { data, error } = await supabase.functions.invoke('revoke-team-invitation', {
+        body: { invitation_id: invitationId },
       });
-
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Uitnodiging ingetrokken' });
       await fetchInvitations();
       return true;
     } catch (error: any) {
-      toast({
-        title: 'Fout',
-        description: error.message,
-        variant: 'destructive',
-      });
+      setInvitations(previous);
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
       return false;
     }
   };
 
   const resendInvitation = async (invitationId: string) => {
-    const invitation = invitations.find(i => i.id === invitationId);
-    if (!invitation) return false;
-
-    // Delete old and create new
-    await cancelInvitation(invitationId);
-    return sendInvitation(invitation.email, invitation.role);
+    try {
+      const { data, error } = await supabase.functions.invoke('resend-team-invitation', {
+        body: { invitation_id: invitationId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Uitnodiging opnieuw verzonden' });
+      await fetchInvitations();
+      return true;
+    } catch (error: any) {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      return false;
+    }
   };
+
+  /** @deprecated use revokeInvitation. Kept for backwards compat with TeamSettings. */
+  const cancelInvitation = revokeInvitation;
 
   return {
     invitations,
     isLoading,
     sendInvitation,
-    cancelInvitation,
+    revokeInvitation,
     resendInvitation,
+    cancelInvitation,
     refetch: fetchInvitations,
   };
 }
