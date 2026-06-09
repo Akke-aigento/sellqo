@@ -331,13 +331,15 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => onDelete(order)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Verwijderen
-            </DropdownMenuItem>
+            {canWriteOrders && (
+              <DropdownMenuItem 
+                onClick={() => onDelete(order)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Verwijderen
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -421,13 +423,15 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => onDelete(order)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Verwijderen
-              </DropdownMenuItem>
+              {canWriteOrders && (
+                <DropdownMenuItem 
+                  onClick={() => onDelete(order)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Verwijderen
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
