@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
+import type { Resource } from '@/hooks/useCan';
 
 export interface NavItem {
   id: string;
@@ -56,6 +57,12 @@ export interface NavItem {
   excludeRoles?: AppRole[]; // Which roles CANNOT see this item
   badge?: boolean; // Show dynamic badge (e.g., unread count)
   disabled?: boolean; // Show as grayed out with "soon" badge
+  /**
+   * H4a — whitelist via permissie-matrix. Als gevuld, dan moet de huidige
+   * rol minstens `read` rechten hebben op deze resource om het item te
+   * zien. Heeft voorrang op legacy allowedRoles/excludeRoles.
+   */
+  requireRead?: Resource;
 }
 
 export interface NavGroup {
@@ -93,43 +100,45 @@ export const MARKETING_ALLOWED_ITEMS = [
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { id: 'inbox', title: 'Inbox', url: '/admin/messages', icon: MessageSquare, badge: true },
+  { id: 'inbox', title: 'Inbox', url: '/admin/messages', icon: MessageSquare, badge: true, requireRead: 'inbox' },
   {
     id: 'orders',
     title: 'Bestellingen',
     url: '/admin/orders',
     icon: ShoppingCart,
+    requireRead: 'orders',
     children: [
-      { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders' },
-      { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'] },
-      { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'] },
-      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'] },
-      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'] },
+      { id: 'orders-all', title: 'Alle bestellingen', url: '/admin/orders', requireRead: 'orders' },
+      { id: 'orders-fulfillment', title: 'Fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'], requireRead: 'orders' },
+      { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
+      { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
+      { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
     ],
   },
-  { id: 'products', title: 'Producten', url: '/admin/products', icon: Package },
-  { id: 'customers', title: 'Klanten', url: '/admin/customers', icon: Users, excludeRoles: ['warehouse'] },
+  { id: 'products', title: 'Producten', url: '/admin/products', icon: Package, requireRead: 'products' },
+  { id: 'customers', title: 'Klanten', url: '/admin/customers', icon: Users, excludeRoles: ['warehouse'], requireRead: 'customers' },
 ];
 
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
-  { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'] },
-  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'] },
-  { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'] },
+  { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
+  { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
+  { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
     id: 'ads',
     title: 'Ads',
     url: '/admin/ads',
     icon: MegaphoneIcon,
     featureKey: 'social_commerce',
+    requireRead: 'ads',
     children: [
-      { id: 'ads-overview', title: 'Overzicht', url: '/admin/ads' },
-      { id: 'ads-bolcom', title: 'Bol.com', url: '/admin/ads/bolcom' },
-      { id: 'ads-products', title: 'Product Mapping', url: '/admin/ads/products' },
+      { id: 'ads-overview', title: 'Overzicht', url: '/admin/ads', requireRead: 'ads' },
+      { id: 'ads-bolcom', title: 'Bol.com', url: '/admin/ads/bolcom', requireRead: 'ads' },
+      { id: 'ads-products', title: 'Product Mapping', url: '/admin/ads/products', requireRead: 'ads' },
       { id: 'ads-amazon', title: 'Amazon', url: '/admin/ads/amazon', disabled: true },
       { id: 'ads-google', title: 'Google', url: '/admin/ads/google', disabled: true },
       { id: 'ads-meta', title: 'Meta', url: '/admin/ads/meta', disabled: true },
-      { id: 'ads-ai', title: 'AI Regels', url: '/admin/ads/ai', badge: true },
+      { id: 'ads-ai', title: 'AI Regels', url: '/admin/ads/ai', badge: true, requireRead: 'ads' },
     ],
   },
   {
@@ -137,51 +146,54 @@ const salesItems: NavItem[] = [
     title: 'Promoties',
     url: '/admin/promotions',
     icon: Percent,
+    requireRead: 'discount_codes',
     children: [
-      { id: 'promo-codes', title: 'Kortingscodes', url: '/admin/promotions' },
-      { id: 'promo-bundles', title: 'Bundels', url: '/admin/promotions/bundles', featureKey: 'promo_bundles' },
-      { id: 'promo-bogo', title: 'BOGO acties', url: '/admin/promotions/bogo', featureKey: 'promo_bogo' },
-      { id: 'promo-volume', title: 'Staffelkorting', url: '/admin/promotions/volume', featureKey: 'promo_volume' },
-      { id: 'promo-auto', title: 'Auto-kortingen', url: '/admin/promotions/auto' },
-      { id: 'promo-gifts', title: 'Cadeauacties', url: '/admin/promotions/gifts' },
-      { id: 'promo-loyalty', title: 'Loyaliteit', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program' },
-      { id: 'promo-groups', title: 'Klantgroepen', url: '/admin/promotions/customer-groups' },
-      { id: 'promo-giftcards', title: 'Cadeaubonnen', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards' },
+      { id: 'promo-codes', title: 'Kortingscodes', url: '/admin/promotions', requireRead: 'discount_codes' },
+      { id: 'promo-bundles', title: 'Bundels', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
+      { id: 'promo-bogo', title: 'BOGO acties', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
+      { id: 'promo-volume', title: 'Staffelkorting', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
+      { id: 'promo-auto', title: 'Auto-kortingen', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
+      { id: 'promo-gifts', title: 'Cadeauacties', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
+      { id: 'promo-loyalty', title: 'Loyaliteit', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
+      { id: 'promo-groups', title: 'Klantgroepen', url: '/admin/promotions/customer-groups', requireRead: 'customers' },
+      { id: 'promo-giftcards', title: 'Cadeaubonnen', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
     ],
   },
 ];
 
 // MARKETING - Campagnes en content
 const marketingItems: NavItem[] = [
-  { id: 'campaigns', title: 'Campagnes', url: '/admin/marketing', icon: Megaphone },
+  { id: 'campaigns', title: 'Campagnes', url: '/admin/marketing', icon: Megaphone, requireRead: 'marketing' },
   {
     id: 'ai-tools',
     title: 'AI Tools',
     url: '/admin/marketing/ai',
     icon: Sparkles,
     featureKey: 'ai_marketing',
+    requireRead: 'ai_assistant',
     children: [
-      { id: 'ai-content', title: 'AI Content Hub', url: '/admin/marketing/ai', featureKey: 'ai_marketing' },
-      { id: 'ai-actions', title: 'AI Actie Centrum', url: '/admin/marketing/ai-center', featureKey: 'ai_coach' },
+      { id: 'ai-content', title: 'AI Content Hub', url: '/admin/marketing/ai', featureKey: 'ai_marketing', requireRead: 'ai_assistant' },
+      { id: 'ai-actions', title: 'AI Actie Centrum', url: '/admin/marketing/ai-center', featureKey: 'ai_coach', requireRead: 'ai_coach' },
     ],
   },
-  { id: 'seo', title: 'SEO', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo' },
+  { id: 'seo', title: 'SEO', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
 ];
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
-  { id: 'categories', title: 'Categorieën', url: '/admin/categories', icon: FolderTree, excludeRoles: ['marketing'] },
-  { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe },
+  { id: 'categories', title: 'Categorieën', url: '/admin/categories', icon: FolderTree, excludeRoles: ['marketing'], requireRead: 'products' },
+  { id: 'translations', title: 'Vertalingen', url: '/admin/marketing/translations', icon: Globe, requireRead: 'cms' },
   {
     id: 'purchasing',
     title: 'Inkoop',
     url: '/admin/suppliers',
     icon: Factory,
     excludeRoles: ['marketing'],
+    requireRead: 'suppliers',
     children: [
-      { id: 'suppliers', title: 'Leveranciers', url: '/admin/suppliers' },
-      { id: 'purchase-orders', title: 'Inkooporders', url: '/admin/purchase-orders' },
-      { id: 'supplier-docs', title: 'Documenten', url: '/admin/supplier-documents' },
+      { id: 'suppliers', title: 'Leveranciers', url: '/admin/suppliers', requireRead: 'suppliers' },
+      { id: 'purchase-orders', title: 'Inkooporders', url: '/admin/purchase-orders', requireRead: 'suppliers' },
+      { id: 'supplier-docs', title: 'Documenten', url: '/admin/supplier-documents', requireRead: 'suppliers' },
     ],
   },
   {
@@ -189,9 +201,10 @@ const managementItems: NavItem[] = [
     title: 'Rapporten',
     url: '/admin/reports',
     icon: FileSpreadsheet,
+    requireRead: 'reports',
     children: [
-      { id: 'reports-overview', title: 'Overzicht', url: '/admin/reports' },
-      { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics' },
+      { id: 'reports-overview', title: 'Overzicht', url: '/admin/reports', requireRead: 'reports' },
+      { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics', requireRead: 'reports' },
     ],
   },
   { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },
@@ -199,7 +212,7 @@ const managementItems: NavItem[] = [
 
 // SYSTEEM - Instellingen en integraties
 const systemItems: NavItem[] = [
-  { id: 'notifications', title: 'Notificaties', url: '/admin/notifications', icon: BellRing, excludeRoles: ['marketing'] },
+  { id: 'notifications', title: 'Notificaties', url: '/admin/notifications', icon: BellRing, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   {
     id: 'integrations',
     title: 'SellQo Connect',
@@ -207,13 +220,14 @@ const systemItems: NavItem[] = [
     icon: Cable,
     featureKey: 'apiAccess',
     excludeRoles: ['marketing'],
+    requireRead: 'integrations',
     children: [
-      { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect' },
-      { id: 'integrations-import', title: 'Importeren', url: '/admin/import' },
+      { id: 'integrations-connect', title: 'SellQo Connect', url: '/admin/connect', requireRead: 'integrations' },
+      { id: 'integrations-import', title: 'Importeren', url: '/admin/import', requireRead: 'integrations' },
     ],
   },
-  { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'] },
-  { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'] },
+  { id: 'billing', title: 'Abonnement', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
+  { id: 'settings', title: 'Instellingen', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   { id: 'help', title: 'Help', url: '/admin/help', icon: HelpCircle },
 ];
 
