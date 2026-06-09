@@ -2305,3 +2305,62 @@ Bestaande entries (`send-test-email`, `send-campaign-batch`, `ai-product-promo-k
 - Bulk-bars in Orders en Products renderen alle acties (admin bypass via `useCan`).
 - Geen console-warnings na render.
 - Geen gewijzigde business-logic — alle handlers blijven identiek; alleen render-conditions zijn aangepast.
+
+---
+
+## Hoofdstuk 4d — TODO-afsluiting + tab-level + field-level
+Datum: 2026-06-09
+
+### 1. OrderDetail.tsx — inline write-acties
+Verifieerd: deze pagina bevat geen `Verwijderen`/`Annuleren`/`Refund` knoppen. Status-correctie (3-puntjes) is reeds gegated via `useCan('correct', 'order_status')` (`canCorrectStatus`, regel 64). Een `CreateReturnDialog` trigger zit op de pagina; refund-flow loopt via Returns waar `refunds` write reeds via `<PermissionGate>` in `OrderCreditNotesSection` is afgedekt (H4b). Geen wijzigingen nodig.
+
+### 2. Invoices.tsx — Peppol-acties
+- `src/pages/admin/Invoices.tsx`:
+  - `buildCombinedActions` (Alle-tab): Peppol "Markeer als verzonden" en "Opnieuw versturen" alleen geappend wanneer `canWriteInvoices = useCan('write','invoices')` true is.
+  - Facturen-tab desktop-acties + mobile-card-acties: identieke gating toegepast.
+- Resultaat: marketing/viewer/warehouse zien geen Peppol-write of resend-knop. Download PDF/UBL en creditnota-aanmaken blijven beschikbaar (read + eigen `<PermissionGate>` op credit_notes).
+
+### 3. Inventory.tsx — n/a in huidige codebase
+Er bestaat geen dedicated `Inventory.tsx`-pagina. Voorraadcorrecties leven in `PurchaseOrders.tsx` (suppliers-flow) en de stock-cellen in `Products.tsx`/`ProductForm.tsx`. De ProductForm en Products bulk-actie zijn al via `'products'` write gegated (H4b/H4c). Voorraad-bewerking via PurchaseOrders volgt het `suppliers` resource-pad (tenant_admin + warehouse-read). Geen extra gating nodig; volledige stock-bewerking matrix-conform afgedekt.
+
+### 4. CustomerDetail.tsx — tab-level gating
+Verifieerd: huidige tabs zijn `orders`, `conversations`, `activity`, `details`. Er zijn **geen** "Notities", "Segmenten" of "GDPR-verzoeken" tabs in deze pagina. Tab-level gating dus n/a voor H4d. Wanneer deze tabs later worden toegevoegd, dan wrappen met `<PermissionGate action="read" resource="customer_notes">` (notes) / `'marketing'` (segments) / `'settings_financial'` (gdpr).
+
+### 5. BolCampaignEditForm — budget-velden
+- `src/components/admin/ads/BolCampaignEditForm.tsx`:
+  - Nieuwe `useCan('write','ad_budgets')` check als `canWriteBudget`.
+  - `daily-budget` en `total-budget` `<Input>` velden krijgen `disabled={!canWriteBudget}` + `title={TOOLTIP_NO_ACCESS_SHORT}`.
+  - Andere velden (naam, targeting, datums, neg-keywords) blijven editable voor `marketing` rol (matrix `ads` write).
+- Beslispunt **H4-7** bevestigd: budget = disable+tooltip (transparantie), niet hide.
+
+### 6. Marketing / Discounts / Campaigns row-actions
+- `src/components/admin/DiscountCodeCard.tsx`: dropdown-items `Bewerken` + `Verwijderen` gegated met `useCan('write','discount_codes')` — verbergt voor viewer/warehouse/staff (matrix: write = tenant_admin + marketing).
+- `src/components/admin/ads/CampaignCard.tsx`: alle write-acties in dropdown (`Bewerken`, `Push naar Bol`, `Repush`, `Pauzeren`/`Hervatten`, `Verwijderen`) gegated met `useCan('write','ads')`. Separators worden ook conditioneel gerenderd zodat een gestripte menu geen losse hr's toont.
+- SEO/CMS row-actions: `KeywordResearchPanel.onDeleteKeyword` is een verplichte prop; granulair gaten vereist refactor of wrapper-no-op. Geparkeerd voor H4e — page-level route-guard (`requireRead='seo'`) blokkeert reeds viewer-only rollen op storefront niveau, maar SEO write is matrix-breed (`tenant_admin + staff + marketing`) dus weinig praktisch risico.
+- CMS pages: geen dedicated `pages/admin/Cms.tsx` aanwezig; CMS-edits lopen via Themes/Storefront — gating volgt themes-resource (al via route-guard afgedekt).
+
+### 7. Fulfillment.tsx bulk-bar
+- `src/components/admin/FulfillmentBulkActions.tsx`: comment-annotatie toegevoegd dat warehouse + staff + tenant_admin allen `orders` write hebben en deze bulk-bar bewust ongated blijft. Route-guard `/admin/fulfillment` is de daadwerkelijke poortwachter.
+
+### Componenten-telling H4d (delta t.o.v. H4c)
+- Nieuwe `useCan`-checks: 4 (`Invoices` canWriteInvoices, `BolCampaignEditForm` canWriteBudget, `DiscountCodeCard` canWrite, `CampaignCard` canWriteAds).
+- Dropdown-items hidden via boolean: 9 (Discount ×2, CampaignCard ×7 incl. separators).
+- `disabled` + tooltip op input-fields: 2 (daily_budget, total_budget).
+- Action-builder if-gates: 6 (Invoices 3× per render-pad × 2 tabs).
+- Comment-annotaties (intentioneel ongated): 1 (`FulfillmentBulkActions`).
+
+### Bevestigde beslispunten
+- **H4-1** (dropdown actions = hide): consistent toegepast in `DiscountCodeCard` en `CampaignCard`.
+- **H4-7** (field-level): `ad_budgets` = **disable+tooltip** (transparantie over wat beschikbaar zou zijn); `cost_price` blijft **hide** (privacy → geen indicatie dat het veld bestaat).
+- **H4-3** (tooltip-constant): `TOOLTIP_NO_ACCESS_SHORT` hergebruikt in BolCampaignEditForm.
+
+### Resterend voor H4e (regressie-pass)
+- SEO `KeywordResearchPanel` row-delete granulariteit (refactor `onDeleteKeyword` naar optioneel of `useCan` intern).
+- Wanneer `Inventory`/`CMS`/CustomerDetail-tabs/Notes/Segments worden toegevoegd: bijbehorende gating per matrix.
+- Integratie-regressietest: simuleer marketing/viewer/warehouse rol in productie, doorloop Discounts, Campaigns, Invoices, BolCampaign-edit — verifieer dat geen write-CTA klikbaar/zichtbaar is.
+
+### Productie-test (platform_admin bypass)
+- Alle dropdowns in Discounts en Campaigns renderen alle items.
+- BolCampaignEditForm budget-inputs zijn editable.
+- Invoices Peppol "Markeer als verzonden" en "Opnieuw versturen" zichtbaar in beide tabs.
+- Geen console-warnings of render-errors.
