@@ -10,6 +10,13 @@ interface AcceptRequest {
   token: string;
 }
 
+function jsonResponse(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,42 +30,46 @@ serve(async (req) => {
     // Verify auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return jsonResponse(401, { error: "Niet ingelogd" });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
     if (authError || !user) {
-      throw new Error("Unauthorized");
+      return jsonResponse(401, { error: "Ongeldige of verlopen sessie" });
     }
 
     const { token }: AcceptRequest = await req.json();
+    if (!token) return jsonResponse(400, { error: "Token ontbreekt" });
 
-    // Get invitation
+    // Re-fetch invitation server-side (don't trust client)
     const { data: invitation, error: invError } = await supabase
       .from("team_invitations")
-      .select("*, tenants(name)")
+      .select("id, tenant_id, email, role, accepted_at, expires_at, status, tenants(name)")
       .eq("token", token)
-      .single();
+      .maybeSingle();
 
     if (invError || !invitation) {
-      throw new Error("Uitnodiging niet gevonden");
+      return jsonResponse(404, { error: "Uitnodiging niet gevonden" });
     }
 
-    // Check if already accepted
+    // Status checks (defensive, in order of severity)
     if (invitation.accepted_at) {
-      throw new Error("Deze uitnodiging is al geaccepteerd");
+      return jsonResponse(409, { error: "Deze uitnodiging is reeds geaccepteerd" });
     }
-
-    // Check if expired
+    if (invitation.status === "revoked" || invitation.status === "rejected") {
+      return jsonResponse(410, { error: "Deze uitnodiging is ingetrokken" });
+    }
     if (new Date(invitation.expires_at) < new Date()) {
-      throw new Error("Deze uitnodiging is verlopen");
+      return jsonResponse(410, { error: "Deze uitnodiging is verlopen" });
     }
 
-    // Verify email matches (case insensitive)
+    // KRITIEK — defensieve email-match (server-side)
     if (user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
-      throw new Error("Deze uitnodiging is voor een ander e-mailadres");
+      return jsonResponse(403, {
+        error: "Deze uitnodiging is voor een ander e-mailadres",
+        code: "EMAIL_MISMATCH",
+      });
     }
 
     // Check if user already has a role in this tenant
@@ -70,7 +81,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingRole) {
-      throw new Error("Je bent al lid van dit team");
+      return jsonResponse(409, { error: "Je bent al lid van dit team" });
     }
 
     // Add user role
@@ -86,32 +97,37 @@ serve(async (req) => {
       throw new Error("Kon rol niet toewijzen: " + roleError.message);
     }
 
-    // Mark invitation as accepted
+    // Mark invitation as accepted (incl. status)
     await supabase
       .from("team_invitations")
-      .update({ accepted_at: new Date().toISOString() })
+      .update({
+        accepted_at: new Date().toISOString(),
+        status: "accepted",
+      })
       .eq("id", invitation.id);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        tenantId: invitation.tenant_id,
-        tenantName: invitation.tenants?.name,
-        role: invitation.role,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    // Audit log: 'accepted'
+    try {
+      await supabase.from("invite_audit_log").insert({
+        invitation_id: invitation.id,
+        tenant_id: invitation.tenant_id,
+        event_type: "accepted",
+        actor_user_id: user.id,
+        actor_email: user.email ?? null,
+        metadata: { role: invitation.role, tenant_id: invitation.tenant_id },
+      });
+    } catch (auditErr) {
+      console.warn("audit log insert failed (accepted)", auditErr);
+    }
+
+    return jsonResponse(200, {
+      success: true,
+      tenantId: invitation.tenant_id,
+      tenantName: (invitation.tenants as any)?.name,
+      role: invitation.role,
+    });
   } catch (error: any) {
     console.error("Error accepting invitation:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return jsonResponse(500, { error: error.message || "Onbekende fout" });
   }
 });

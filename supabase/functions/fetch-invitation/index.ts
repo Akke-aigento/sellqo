@@ -24,7 +24,7 @@ serve(async (req) => {
 
     const { data, error } = await supabase
       .from("team_invitations")
-      .select("email, role, expires_at, accepted_at, tenant_id, tenants(name)")
+      .select("id, email, role, expires_at, accepted_at, tenant_id, invited_by, tenants(name)")
       .eq("token", token)
       .single();
 
@@ -35,12 +35,19 @@ serve(async (req) => {
       );
     }
 
-    // Determine status
-    let status = "valid";
-    if (data.accepted_at) {
-      status = "accepted";
-    } else if (new Date(data.expires_at) < new Date()) {
-      status = "expired";
+    // Determine status via helper (covers revoked/rejected too)
+    let status: string = "pending";
+    try {
+      const { data: effective, error: effErr } = await supabase.rpc(
+        "get_invitation_effective_status",
+        { inv_id: (data as any).id }
+      );
+      if (effErr) throw effErr;
+      status = (effective as string) || "pending";
+    } catch (rpcErr) {
+      console.warn("effective_status RPC failed, falling back", rpcErr);
+      if (data.accepted_at) status = "accepted";
+      else if (new Date(data.expires_at) < new Date()) status = "expired";
     }
 
     // Detect whether this email already has an auth account, and
@@ -69,15 +76,33 @@ serve(async (req) => {
       console.warn("account lookup failed", lookupErr);
     }
 
+    // Inviter display name (optional)
+    let invitedByName: string | null = null;
+    if ((data as any).invited_by) {
+      try {
+        const { data: inviter } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", (data as any).invited_by)
+          .maybeSingle();
+        invitedByName = inviter?.full_name || inviter?.email || null;
+      } catch (_e) {
+        // non-fatal
+      }
+    }
+
     return new Response(
       JSON.stringify({
         status,
         email: data.email,
         role: data.role,
         tenantName: (data.tenants as any)?.name || "Onbekende winkel",
+        tenantId: data.tenant_id,
         expiresAt: data.expires_at,
         accountExists,
+        mailboxConfirmed: accountExists,
         alreadyMember,
+        invitedByName,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
