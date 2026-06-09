@@ -2435,3 +2435,42 @@ Frontend gating is volledig in lijn met de matrix:
 - Verificatie-scripts + manuele checklist + dev-simulator + style-guide leveren een herhaalbare maintenance-loop.
 
 Volgende stap (Hoofdstuk 5): edge-function `assertRole()` audit + RLS-policy-coverage cross-check tegen dezelfde matrix.
+
+---
+
+## Pre-2D security-quickfix (2026-06-09)
+
+Bron: bevindingen uit `docs/fase2-batch-2d-recon.md` § Kritieke lekken.
+
+### LEK 1 — platform-gift-month edge function
+- `supabase/functions/platform-gift-month/index.ts` overgezet op shared
+  `authenticateRequest()` + harde `auth.is_platform_admin` gate.
+- Service-role bypass blijft werken via `_shared/auth.ts`.
+- Eerdere ad-hoc `user_roles`-lookup verwijderd; `performed_by` neemt nu
+  `auth.user_id`.
+
+### LEK 2 — vat_validations INSERT-policies
+- Twee bestaande INSERT-policies samengevoegd tot één
+  `vat_validations_insert` met expliciete `WITH CHECK`:
+  `is_platform_admin OR (tenant in tenants AND has_tenant_role(tenant_id, [tenant_admin,accountant]))`.
+- Cross-tenant write definitief geblokkeerd.
+
+### LEK 3 — Tenant-blind ALL-policies opgesplitst per command
+Vijf tabellen kregen role-aware per-cmd policies (select/insert/update/delete)
+met platform_admin bypass en `has_tenant_role` write-gate:
+
+| Tabel | Write/Delete-rollen |
+|---|---|
+| `vat_returns` | `tenant_admin`, `accountant` |
+| `subscriptions` | `tenant_admin` |
+| `subscription_invoices` | INSERT alleen via service_role / platform_admin; UPDATE/DELETE = `tenant_admin` (via subscription→tenant join) |
+| `tenant_return_settings` | `tenant_admin` |
+| `translation_settings` | `tenant_admin`, `staff`, `marketing` |
+
+SELECT bleef tenant-scoped (geen rol-filter) zodat read-flows niet breken.
+
+### Productie-validatie
+Uitgevoerd als platform_admin (bypass overal van toepassing) — geen
+regressies verwacht in VAT-aangifte-, subscription-zelfservice- of
+translation-flows.
+
