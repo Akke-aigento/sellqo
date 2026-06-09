@@ -905,6 +905,66 @@ Voor elk van de 12 dormant clusters: als/wanneer de feature live gaat voor een t
 
 Overweeg een herhaal-pentest na Fase 2 — gericht op cross-rol-privilege-escalatie binnen één tenant, frontend-gating-bypass, en edge-function-authorization-checks.
 
+## Hoofdstuk 3 — Uitrol-status (afgesloten 2026-06-08)
+
+### Voltooid
+
+| Batch | Inhoud | Status |
+|---|---|---|
+| Pre-Fase 2 | Schema-sync | ✅ |
+| Foundation | has_tenant_role, AuthResult, requireRole, useCan, PermissionGate | ✅ |
+| 2A DROP-batch | Cross-tenant has_role sweep van fiscale tabellen | ✅ |
+| 2A0 | update-order-fulfillment-status edge | ✅ |
+| 2A1 | Orders + 10 sub-tabellen RLS (32 policies) | ✅ |
+| 2A2a | Credit_notes/invoices/quotes/proforma RLS (13 tabellen, 39 calls) | ✅ |
+| 2A2b | Refund/invoice/quote edge-functions requireRole | ✅ |
+| 2B1a | Integrations RLS (8 tabellen, 32 policies) | ✅ |
+| 2B1b | Integration edge-functions requireRole + Stripe-disconnect tenant_admin | ✅ |
+| 2B2a | Customer-cluster RLS + cross-tenant sweep (576 regels, 20+ tabellen) | ✅ |
+| 2B2b | Customer-cluster edge-functions requireRole | ✅ |
+| 2C1a-i/ii/iii | Catalog RLS in 3 splits (core/suppliers-PO/UGC) | ✅ |
+| 2C1b | Catalog edge-functions (10 functies) | ✅ |
+| 2C2a-i | Email marketing RLS (10 tabellen, 54 calls) | ✅ |
+| 2C2a-ii | Discount/loyalty/gift RLS (11 tabellen, 53 calls) | ✅ |
+| 2C2a-iii | Ads RLS (7 tabellen, 34 calls) | ✅ |
+| 2C2a-iv | CMS/SEO/Theme/Social/A-B/Notif RLS (21 tabellen, 82 calls) | ✅ |
+| 2C2b | Marketing/Ads edge-function role-checks (16 functies) | ✅ |
+| 2C2c | Social-tabellen consolidatie | ✅ (no-op — verschillende domeinen) |
+
+### Marketing-rol uitgerold
+
+- app_role enum uitgebreid met 'marketing'
+- useCan matrix met marketing-kolom
+- Sidebar gating
+- Backward-compatible
+
+### Geparkeerd in backlog (docs/fase2-backlog.md)
+
+- 2C1c: Anon-INSERT pad voor external_reviews via edge function met rate-limit
+- 2C1d: Column-masking cost_price (views products_safe + product_variants_safe)
+- 2C2d: Column-masking ads-budget + tracking_events tenant-binding audit
+
+### Aanvullend werk vandaag (buiten masterplan scope)
+
+- Credit-note feature volledig: PDF, Peppol UBL, email, auto-trigger retour→CN
+- Odoo B2C dummy aggregator (UI klaar, untested geen Odoo-conn)
+- Storefront-api cart_create idempotency (unique index, race-fix)
+- Storefront-api cartAddItem variant-aware stock check
+- VanXcel checkout naam-fix (first_name/last_name in JSONB)
+- Storefront-api customer find-or-create smartere update flow
+- admin_actions_log kolom-mismatch fix in CN-functies
+- Customer-data backfill voor orphan-orders zonder customer_id
+- Stripe-disconnect type-to-confirm hardening (StripeDisconnectDialog)
+- 5 config.toml verify_jwt entries (CORS-preflight fix)
+- Marketing-rol toegevoegd zonder RLS-rework
+
+### Statistiek-overzicht
+
+- Migraties: ~14 in totaal vandaag
+- Edge functions met requireRole: ~70
+- RLS-policies herzien: ~250+
+- 0 legacy has_role(auth.uid()) overgebleven na sweep
+
 ---
 
 ## Bijlage A — Patronen-cheatsheet

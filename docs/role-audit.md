@@ -1,3 +1,15 @@
+# Fase 2 — Uitrol-status (laatst bijgewerkt: 2026-06-08)
+
+**Hoofdstuk 3 (uitrol-batches): voltooid behalve geparkeerde items in 
+docs/fase2-backlog.md.**
+
+Volgende stap: Hoofdstuk 4 (frontend gating) — useCan/PermissionGate 
+uitrol over admin-UI.
+
+Voor batch-detail per dag/cluster: zie secties hieronder.
+
+---
+
 # SellQo Role Audit — Index
 
 Living document tracking the role-aware RLS / hardening work across phases.
@@ -8,6 +20,7 @@ Related documents:
 - `docs/role-audit-phase1-classification.md` — Phase 1 table classification
 - `docs/role-audit-phase1d-triage.md` — Phase 1D triage + Fase 2A DROP batch
 - `docs/sellqo-fase2-masterplan.md` — Fase 2 masterplan (role-aware RLS)
+- `docs/fase2-backlog.md` — Geparkeerde post-Fase-2 items
 - `docs/sql/fase2-pre-schema-sync.sql` — Pre-Fase 2 schema dump (40 tables)
 
 ---
