@@ -3473,3 +3473,12 @@ en cross-client rendering hebben.
 - Documentatie: `docs/email-design-system.md` met architecture-overview,
   building-block-tabel, color-tokens, dark-mode strategie en
   developer-guide.
+- **Logo URL gemigreerd** van `sellqo.lovable.app/email-logo.png` naar
+  `sellqo.app/email-logo.png` (asset bestaat in `public/email-logo.png`
+  en wordt mee-gebuild). Geen handmatige asset-upload nodig.
+- Meta-tags `color-scheme` + `supported-color-schemes` aanwezig in
+  `emailBaseLayout` voor Gmail-iOS / Apple Mail dark-mode detectie.
+- Plain-text fallback bevestigd in alle 3 Stream A functies
+  (`send-team-invitation`, `send-trial-expiry-warning`,
+  `create-notification`) via `htmlToPlainText(html)` als `text`-parameter
+  aan `resend.emails.send()`.
