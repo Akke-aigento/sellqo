@@ -6785,6 +6785,61 @@ export type Database = {
           },
         ]
       }
+      invite_audit_log: {
+        Row: {
+          actor_email: string | null
+          actor_user_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          invitation_id: string
+          metadata: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          invitation_id: string
+          metadata?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          invitation_id?: string
+          metadata?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_audit_log_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "team_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_archive: {
         Row: {
           archived_at: string
@@ -14740,7 +14795,11 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string | null
+          last_reminder_sent_at: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invite_status"]
           tenant_id: string
           token: string
         }
@@ -14751,7 +14810,11 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          last_reminder_sent_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
           tenant_id: string
           token?: string
         }
@@ -14762,7 +14825,11 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          last_reminder_sent_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
           tenant_id?: string
           token?: string
         }
@@ -17798,6 +17865,10 @@ export type Database = {
         Returns: number
       }
       get_current_user_email: { Args: never; Returns: string }
+      get_invitation_effective_status: {
+        Args: { inv_id: string }
+        Returns: Database["public"]["Enums"]["invite_status"]
+      }
       get_order_return_tag: { Args: { _order_id: string }; Returns: string }
       get_order_returnable_items: {
         Args: { _order_id: string }
@@ -18058,6 +18129,7 @@ export type Database = {
         | "identified"
         | "monitoring"
         | "resolved"
+      invite_status: "pending" | "accepted" | "expired" | "revoked" | "rejected"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
       notification_category:
         | "orders"
@@ -18358,6 +18430,7 @@ export const Constants = {
         "monitoring",
         "resolved",
       ],
+      invite_status: ["pending", "accepted", "expired", "revoked", "rejected"],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
       notification_category: [
         "orders",
