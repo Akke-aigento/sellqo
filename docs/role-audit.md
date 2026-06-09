@@ -1,5 +1,14 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## Invite-flow bug-fix: remove-cleanup + route + recently_revoked detection (2026-06-09)
+
+- **FIX 1** — `supabase/functions/remove-team-member/index.ts`: bij verwijderen van een teamlid worden alle `team_invitations` voor (tenant, email) nu gemarkeerd als `status='revoked'` met `revoked_at` + `revoked_by` (was: hard DELETE van enkel pending invites). Voor elke geraakte invite wordt een entry in `invite_audit_log` geschreven met `event_type='revoked'` en `metadata.reason='team_member_removed'`. History blijft behouden, re-invite blijft mogelijk via een nieuwe rij.
+- **FIX 2** — `src/pages/AcceptInvitation.tsx`: 3× `<Link to="/auth/login">` vervangen door `<Link to="/auth">` (route `/auth/login` bestaat niet in `App.tsx`, leidde tot 404 vanaf de expired/revoked/already_accepted schermen).
+- **FIX 3** — `supabase/functions/check-invite-email/index.ts`: response bevat nu `recentlyRevoked` (boolean) die `true` is wanneer er voor (tenant, email) een revoked invite bestaat in het 7-daagse venster.
+- **FIX 4** — `src/components/admin/settings/InviteTeamMemberDialog.tsx`: nieuwe info-banner (blauw) tussen `hasPendingInvite` en `accountExists` die toont "Deze persoon was eerder verwijderd uit het team. Een nieuwe uitnodiging maakt een schone start." Verstuur-knop blijft enabled.
+
+Datum: 2026-06-09
+
 Alle hoofdstukken voltooid. Voor scope + statistiek:
 `docs/fase2-eindrapport.md`.
 
