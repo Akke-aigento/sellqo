@@ -2648,3 +2648,85 @@ SELECT/INSERT/UPDATE/DELETE die separaat is gedefinieerd).
 ### Vervolg
 - 2D-iii — Platform-billing strict lockdown
 - 2D-iv — Edge-function role-checks voor export-pipeline
+
+---
+
+## Batch 2D-iii — Platform-billing strict lockdown
+
+**Datum:** 2026-06-09
+**Bron:** docs/fase2-batch-2d-recon.md §5f + bevestigde beslispunten OB2
+(tenant_admin zelfservice voor platform_invoices) en OB9 (accountant mag
+SaaS-subscription zien, niet wijzigen).
+
+### Tabellen-scan
+| Tabel | Bestaat? | Actie |
+| --- | --- | --- |
+| `platform_invoices` | ja | SELECT tenant-zelfservice aangescherpt naar `tenant_admin` only |
+| `pending_platform_payments` | ja | SELECT tenant-zelfservice aangescherpt naar `tenant_admin` only |
+| `subscriptions` | ja | SELECT → `tenant_admin` + `accountant`; UPDATE → `tenant_admin`; INSERT/DELETE → platform_admin |
+| `subscription_invoices` | ja | SELECT → `tenant_admin` + `accountant`; INSERT/UPDATE/DELETE → platform_admin (was: tenant_admin kon UPDATE/DELETE) |
+| `subscription_lines` | ja | SELECT → `tenant_admin` + `accountant`; writes → platform_admin (was: any tenant member ALL) |
+| `subscription_notifications` | ja | SELECT → `tenant_admin` + `accountant`; writes → platform_admin (was: any tenant member ALL) |
+| `tenant_feature_overrides` | ja | reeds `platform_admin` ALL — onveranderd |
+| `admin_actions_log` | ja | reeds `platform_admin` only — onveranderd |
+| `admin_billing_actions` | ja | reeds `platform_admin` ALL — onveranderd |
+| `platform_changelogs` | ja | reeds `platform_admin` ALL — onveranderd |
+| `platform_coupons` + `platform_coupon_redemptions` | ja | reeds `platform_admin` ALL — onveranderd |
+| `platform_health_metrics` | ja | reeds `platform_admin` SELECT — onveranderd |
+| `platform_incidents` | ja | reeds `platform_admin` ALL — onveranderd |
+| `platform_quick_actions` | ja | reeds `platform_admin` ALL — onveranderd |
+| `platform_settings` | ja | reeds `platform_admin` SELECT/UPDATE — onveranderd |
+| `platform_subscriptions` | nee | overgeslagen — niet aanwezig (SaaS-subs zitten in `subscriptions`) |
+| `platform_usage_metrics` | nee | overgeslagen — `platform_health_metrics` dekt het deel |
+| `platform_credits` / `platform_credit_transactions` | nee | overgeslagen — niet aanwezig (AI-credits zitten in `tenant_ai_credits`) |
+| `platform_promotions` / `platform_discount_codes` | nee | overgeslagen — `platform_coupons` dekt het |
+
+### Nieuwe policies (kerngeval-samenvatting)
+
+**Tenant-zelfservice SELECT (OB2):**
+- `platform_invoices`: tenant_admin van eigen tenant
+- `pending_platform_payments`: tenant_admin van eigen tenant
+- `subscriptions`: tenant_admin + accountant van eigen tenant
+- `subscription_invoices` / `_lines` / `_notifications`: via subscription→tenant_id, tenant_admin + accountant
+
+**Tenant write toegestaan:**
+- `subscriptions` UPDATE: tenant_admin (upgrade/downgrade zelfservice). Geen accountant — wijzigen is bestuur.
+
+**Platform-admin only writes:**
+- `platform_invoices`, `pending_platform_payments`, `subscriptions` (INSERT/DELETE), `subscription_invoices` (alle writes), `subscription_lines`/`_notifications` (alle writes).
+
+### Stripe-webhook & billing-runner pad
+Alle wijzigingen werken via `authenticated`-role policies. De
+service-role (gebruikt door `stripe-webhook`, `platform-billing-runner`,
+`generate-subscription-invoice` edge functies) behoudt impliciete
+BYPASS RLS — geen functionele regressie te verwachten.
+
+### Bevestigde beslispunten
+- **OB2:** `platform_invoices` + `pending_platform_payments` zelfservice
+  beperkt tot `tenant_admin`. Staff/viewer/marketing/warehouse/accountant
+  hebben geen SELECT.
+- **OB9:** `subscriptions` + `subscription_invoices` SELECT open voor
+  `accountant` (voor budgettering). UPDATE blijft `tenant_admin`-only.
+
+### UI-gating opvolg (voor latere H4-iteratie, geen code hier)
+- `/admin/billing` route guard verificatie: resource-mapping in
+  `useCan` matrix (`platform_billing`) staat al op `tenant_admin` +
+  `accountant` voor read, `tenant_admin` only voor write. Dit lijnt met
+  de nieuwe RLS-policies. Geen extra wijziging nodig.
+- Wanneer accountant /admin/billing opent zal subscriptions zichtbaar
+  zijn (SELECT toegestaan) maar de upgrade-knop moet via PermissionGate
+  `write platform_billing` worden verborgen — al gehandled in H4b/c.
+
+### Verificatie
+```sql
+SELECT tablename, cmd, COUNT(*) AS n
+FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('platform_invoices','pending_platform_payments',
+                    'subscriptions','subscription_invoices',
+                    'subscription_lines','subscription_notifications')
+GROUP BY tablename, cmd ORDER BY tablename, cmd;
+```
+
+### Vervolg
+- 2D-iv — Edge-function role-checks voor export-pipeline + admin acties
