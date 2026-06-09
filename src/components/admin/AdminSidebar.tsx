@@ -11,6 +11,7 @@ import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { canWithRoles, type Resource } from '@/hooks/useCan';
 import { InboxBadge } from './sidebar/InboxBadge';
 import { AdsAiBadge } from './sidebar/AdsAiBadge';
 import {
@@ -46,13 +47,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSidebar() {
   const location = useLocation();
-  const { user, signOut, isPlatformAdmin, userRole, isWarehouse } = useAuth();
+  const { user, signOut, isPlatformAdmin, userRole, isWarehouse, roles } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { isItemHidden, hiddenItems } = useSidebarPreferences();
   const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  // H4a — whitelist via permissie-matrix.
+  // Filter rollen per-tenant (matcht useCan H4-5 hardening) en evalueer
+  // `requireRead` per item.
+  const scopedRoles = (roles ?? [])
+    .filter((r) => {
+      if (r.role === 'platform_admin') return true;
+      if (r.tenant_id == null) return true;
+      if (!currentTenant?.id) return false;
+      return r.tenant_id === currentTenant.id;
+    })
+    .map((r) => r.role as AppRole);
+
+  const isResourceHidden = (resource?: Resource): boolean => {
+    if (!resource) return false;
+    return !canWithRoles(scopedRoles, 'read', resource);
+  };
 
   // Check if item should be hidden based on subscription features
   const isItemFeatureHidden = (item: NavItem): boolean => {
@@ -114,7 +132,13 @@ export function AdminSidebar() {
 
   // Combined check for preference, role, feature, AND page override hiding
   const shouldHideItem = (item: NavItem): boolean => {
-    return isItemHidden(item.id) || isItemRoleHidden(item) || isItemFeatureHidden(item) || isItemPageOverridden(item);
+    return (
+      isItemHidden(item.id) ||
+      isResourceHidden(item.requireRead) ||
+      isItemRoleHidden(item) ||
+      isItemFeatureHidden(item) ||
+      isItemPageOverridden(item)
+    );
   };
 
   const isActive = (path: string) => {

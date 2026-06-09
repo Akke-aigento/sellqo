@@ -10,6 +10,93 @@ Voor batch-detail per dag/cluster: zie secties hieronder.
 
 ---
 
+## Hoofdstuk 4a — Sidebar + Route-guards (2026-06-09)
+
+### H4-5 verificatie — multi-tenant rol-binding
+
+**Bevinding: GAT bevestigd.** `useAuth().roles` returnt alle
+`user_roles`-records van de ingelogde user — niet gefilterd op
+`currentTenant.id`. Een user met `tenant_admin@A` + `viewer@B` zag
+effectief `tenant_admin`-permissies in tenant B via `useCan`.
+
+**Fix locatie: `src/hooks/useCan.ts`.** `useCan` leest nu `TenantContext`
+(via `useContext`) en filtert `roles` op `r.tenant_id === currentTenant.id`
+(plus `tenant_id IS NULL` voor platform-rollen). `platform_admin` blijft
+globaal bypassen. `useAuth` zelf is bewust ongewijzigd zodat tenant-
+switcher en role-priority logic gelijk blijven.
+
+Dezelfde scoping is toegepast in `AdminSidebar.tsx` voor de whitelist-
+evaluatie.
+
+### Sidebar whitelist-conversie
+
+- `NavItem.requireRead?: Resource` toegevoegd in
+  `src/components/admin/sidebar/sidebarConfig.ts`.
+- Alle dagelijkse / verkoop / marketing / beheer / systeem items hebben
+  nu een `requireRead`-mapping naar de bestaande permissie-matrix in
+  `src/hooks/useCan.ts`. Items zonder duidelijke resource (Dashboard,
+  Help, Shipping, Categorieën-subpaden zonder eigen resource) blijven
+  op legacy `excludeRoles`.
+- `AdminSidebar.shouldHideItem` honoreert `requireRead` als hoogste
+  prioriteit; legacy `allowedRoles` / `excludeRoles` blijven werkend
+  als fallback.
+
+### Route-guards
+
+- `src/components/admin/RouteGuard.tsx` toegevoegd. Props:
+  `requireRead?: Resource`, `requireWrite?: Resource`,
+  `requireRole?: AppRole[]`. Bij 403 → `Navigate to="/no-access?from=…"`.
+- `src/App.tsx` admin-routes ge-wrapped (hotspot-eerst):
+  | Route | Guard |
+  |---|---|
+  | `/admin/orders` + `/orders/:id` | read `orders` |
+  | `/admin/fulfillment` | read `orders` |
+  | `/admin/returns` (+ `:id`) | read `returns` |
+  | `/admin/orders/invoices` | read `invoices` |
+  | `/admin/orders/discounts` | read `discount_codes` |
+  | `/admin/promotions` | read `discount_codes` |
+  | `/admin/products` | read `products` |
+  | `/admin/products/new` + `:id/edit` | write `products` |
+  | `/admin/customers` (+ detail) | read `customers` |
+  | `/admin/payments` | read `payments` |
+  | `/admin/billing` | read `platform_billing` |
+  | `/admin/settings` | read `settings_general` |
+  | `/admin/notifications` | read `settings_general` |
+  | `/admin/connect` (+ subpaden) | read `integrations` |
+  | `/admin/import` | read `integrations` |
+  | `/admin/marketing` | read `marketing` |
+  | `/admin/marketing/ai` | read `ai_assistant` |
+  | `/admin/marketing/ai-center` | read `ai_coach` |
+  | `/admin/marketing/seo` | read `seo` |
+  | `/admin/marketing/translations` | read `cms` |
+  | `/admin/reports` + `/analytics` | read `reports` |
+  | `/admin/suppliers` + `purchase-orders` + `supplier-documents` | read `suppliers` |
+  | `/admin/pos` | read `pos` |
+  | `/admin/storefront` | read `themes` |
+  | `/admin/ads` (+ bolcom/ai/products) | read `ads` |
+
+  Platform-only routes (`/admin/platform/**`) blijven via bestaande
+  `ProtectedRoute requirePlatformAdmin`.
+
+### /no-access pagina — context-aware
+
+- `src/pages/NoAccess.tsx` leest `?from=` query, humanizeert via een
+  vaste route-label-map, en toont `"Geen toegang tot {Label}"` in de H1.
+- Knoppen: "Naar dashboard" (default) + "Vraag toegang aan" (mailto naar
+  `currentTenant.owner_email` met geprefilled subject/body, alleen
+  zichtbaar wanneer `TenantContext` beschikbaar is — page werkt ook
+  buiten provider zonder te crashen).
+
+### Tooltip-constanten
+
+- `src/lib/permissions/constants.ts` toegevoegd met
+  `TOOLTIP_NO_ACCESS_LONG` + `TOOLTIP_NO_ACCESS_SHORT`. Wordt in H4b
+  toegepast op `GatedButton` en disabled write-acties.
+
+Datum: 2026-06-09.
+
+---
+
 # SellQo Role Audit — Index
 
 Living document tracking the role-aware RLS / hardening work across phases.
