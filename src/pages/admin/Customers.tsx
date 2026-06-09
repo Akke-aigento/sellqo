@@ -20,6 +20,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import type { Customer } from '@/types/order';
+import { PermissionGate } from '@/components/PermissionGate';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 
 interface UnifiedCustomer {
   id: string;
@@ -121,17 +123,22 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Klanten</h1>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            Klanten
+            <ReadOnlyBadge resource="customers" />
+          </h1>
           <p className="text-muted-foreground">Beheer je klantenbestand</p>
         </div>
-        <CustomerFormDialog 
-          onSubmit={async (data) => {
-            const result = await enforceLimit('customers');
-            if (!result.allowed) return;
-            createCustomer.mutate(data);
-          }}
-          isLoading={createCustomer.isPending}
-        />
+        <PermissionGate action="write" resource="customers">
+          <CustomerFormDialog 
+            onSubmit={async (data) => {
+              const result = await enforceLimit('customers');
+              if (!result.allowed) return;
+              createCustomer.mutate(data);
+            }}
+            isLoading={createCustomer.isPending}
+          />
+        </PermissionGate>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

@@ -26,6 +26,8 @@ import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCred
 import { CreditNotesTable } from '@/components/admin/CreditNotesTable';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
+import { PermissionGate } from '@/components/PermissionGate';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -240,12 +242,17 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Facturen & creditnota's</h1>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            Facturen &amp; creditnota's
+            <ReadOnlyBadge resource="invoices" />
+          </h1>
           <p className="text-muted-foreground">
             Beheer en bekijk alle facturen en creditnota's
           </p>
         </div>
-        <ManualInvoiceDialog onSuccess={() => refetch()} />
+        <PermissionGate action="write" resource="invoices">
+          <ManualInvoiceDialog onSuccess={() => refetch()} />
+        </PermissionGate>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
