@@ -5,6 +5,78 @@ docs/fase2-backlog.md.**
 
 ---
 
+## Batch 2F-iv — Customer/Product/AI/Uncategorized dormant lockdown (2026-06-09)
+
+### RLS-aanscherping (1 migration) — LAATSTE 2F split
+
+| Tabel | Bestaat | SELECT | INSERT | UPDATE | DELETE |
+|-------|---------|--------|--------|--------|--------|
+| storefront_favorites | ✓ | tenant-scope alle rollen | service_role | — | tenant_admin |
+| ai_help_conversations | ✓ | tenant-scope alle rollen | service_role | tenant_admin | tenant_admin |
+| ai_help_unanswered | ✓ | tenant-scope alle rollen | service_role | tenant_admin | tenant_admin |
+| ai_knowledge_index | ✓ | tenant-scope alle rollen | service_role | tenant_admin | tenant_admin |
+
+`storefront_favorites` had RLS-aan zonder policies (effectief locked); nu rol-bewust open
+via service-role schrijfpad (anon storefront → storefront-api edge function). `tenant_id`
+kolom aanwezig, geen EXISTS-join via `customers` nodig (OB-2F-3 N/A op deze tabel).
+
+AI-tabellen volgen read-only-UI patroon (OB-2F-2): alle ingelogde teamleden in de
+tenant kunnen `ai_help_*` raadplegen, alleen de AI-engine (service-role) schrijft
+conversations + knowledge index, tenant_admin mag corrigeren/annoteren/verwijderen.
+`ai_knowledge_index` recursieve `user_roles` lookup vervangen door
+`get_user_tenant_ids(auth.uid())` + `has_tenant_role` patroon.
+
+Service-role expliciet via `FOR ALL TO service_role USING(true)` op alle 4 tabellen.
+`is_platform_admin(auth.uid())` bypass overal toegevoegd.
+
+### Niet-bestaande masterplan-tabellen (geen actie)
+
+`customer_referrals`, `referral_rewards`, `customer_gdpr_requests`,
+`gdpr_requests`, `gdpr_consents`, `product_recommendations`,
+`product_compatibility`, `product_compatibility_map`, `product_search_logs`
+— bestaan niet in huidig schema.
+
+### Reeds gehard (geen actie)
+
+- `email_unsubscribes` (tenant_id kolom aanwezig; reeds rol-bewust gehard met
+  `tenant_admin/staff/marketing/accountant` SELECT en `tenant_admin` write).
+- Overige `customer_*` tabellen → Batch 2B2.
+- Overige `product_*` tabellen → Batch 2C1a-i/ii/iii.
+- Overige `ai_*` tabellen (`ai_user_behavior_log`, `ai_user_learning_patterns`,
+  `ai_usage_log`, `ai_generated_*`, `ai_assistant_config`, `ai_coach_settings`,
+  `ai_feedback`, `ai_action_suggestions`, `ai_reply_suggestions`,
+  `ai_prompt_favorites`, `ai_chatbot_conversations`, `ai_content_edits`,
+  `ai_credit_purchases`, `ai_learning_patterns`) volgen reeds AI read-only-UI
+  patroon of zijn rol-bewust gehard in eerdere batches.
+
+### Uncategorized
+
+Geen overgebleven uncategorized tabellen in scope na sweep — OB-2F-1 default
+(allow-tenant-scope-read) niet geactiveerd in deze split.
+
+### Beslispunten bevestigd
+
+- **OB-2F-1** (uncategorized default): niet van toepassing — geen restantsweep nodig.
+- **OB-2F-2** (AI-engine behouden): bevestigd, read-only-UI patroon toegepast op
+  `ai_help_conversations`, `ai_help_unanswered`, `ai_knowledge_index`.
+- **OB-2F-3** (geen tenant_id scope via customers join): niet van toepassing —
+  `storefront_favorites` blijkt wél een `tenant_id` kolom te hebben en
+  `email_unsubscribes` is reeds gehard met `tenant_id`. Geen EXISTS-joins
+  nodig.
+
+### Service-role pad behouden
+
+- AI-engine edge functions (`ai-help`, `ai-knowledge-indexer`) blijven schrijven
+  via `SUPABASE_SERVICE_ROLE_KEY`.
+- Storefront favorites worden geschreven via `storefront-api` (service-role).
+- Anon endpoints raken geen van deze tabellen direct.
+
+### STATUS: Heel 2F (i + ii + iii + iv) AFGESLOTEN
+
+Alle dormant-cluster lockdown migrations toegepast. Geen openstaande 2F-items.
+
+---
+
 ## Batch 2F-iii — Ads-restant + Analytics/Tracking dormant lockdown (2026-06-09)
 
 ### RLS-aanscherping (1 migration)
