@@ -540,26 +540,28 @@ export default function ProductsPage() {
               {selectedIds.size} geselecteerd
             </span>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
-                <Settings2 className="mr-2 h-4 w-4" />
-                Bewerken
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleBulkActivate}>
-                <Eye className="mr-2 h-4 w-4" />
-                Activeren
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
-                <EyeOff className="mr-2 h-4 w-4" />
-                Deactiveren
-              </Button>
-              <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Verwijderen
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                AI Genereer
-              </Button>
+              <PermissionGate action="write" resource="products">
+                <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Bewerken
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleBulkActivate}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Activeren
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Deactiveren
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Verwijderen
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI Genereer
+                </Button>
+              </PermissionGate>
             </div>
           </div>
         </div>
@@ -624,11 +626,13 @@ export default function ProductsPage() {
                           Bewerken
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Verwijderen
-                      </DropdownMenuItem>
+                      <PermissionGate action="write" resource="products">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Verwijderen
+                        </DropdownMenuItem>
+                      </PermissionGate>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -787,6 +791,7 @@ export default function ProductsPage() {
                               Bewerken
                             </Link>
                           </DropdownMenuItem>
+                        <PermissionGate action="write" resource="products">
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
@@ -795,6 +800,7 @@ export default function ProductsPage() {
                             <Trash2 className="mr-2 h-4 w-4" />
                             Verwijderen
                           </DropdownMenuItem>
+                        </PermissionGate>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

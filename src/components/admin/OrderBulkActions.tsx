@@ -44,6 +44,7 @@ import {
 import { PDFDocument } from 'pdf-lib';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import type { Order, OrderStatus, PaymentStatus } from '@/types/order';
+import { useCan } from '@/hooks/useCan';
 
 interface OrderBulkActionsProps {
   selectedOrderIds: string[];
@@ -65,6 +66,9 @@ export function OrderBulkActions({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [batchPrintOpen, setBatchPrintOpen] = useState(false);
+  // H4c — permissions: delete is tenant_admin-only; export gated to accountant/admin.
+  const canWriteOrders = useCan('write', 'orders');
+  const canReadReports = useCan('read', 'reports');
 
   const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
 
@@ -319,18 +323,23 @@ export function OrderBulkActions({
                 <Printer className="h-4 w-4 mr-2" /> Labels printen
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={handleExportCsv}>
-                <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
-              </DropdownMenuItem>
+              {canReadReports && (
+                <DropdownMenuItem onClick={handleExportCsv}>
+                  <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
+                </DropdownMenuItem>
+              )}
 
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => setDeleteDialogOpen(true)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Verwijderen
-              </DropdownMenuItem>
+              {canWriteOrders && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Verwijderen
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
