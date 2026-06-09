@@ -3,6 +3,82 @@
 **Hoofdstuk 3 (uitrol-batches): voltooid behalve geparkeerde items in 
 docs/fase2-backlog.md.**
 
+---
+
+## Batch 2E — POS RLS + edge-function role-checks (2026-06-09)
+
+### RLS-aanscherping (1 migration)
+
+Alle 8 actieve POS-tabellen tenant-blind policies gedropt en vervangen door
+rol-bewuste per-cmd policies + service-role bypass. Resultaat: 5 policies per
+tabel (SELECT/INSERT/UPDATE/DELETE auth + ALL service_role), geen
+tenant-blind ALL meer.
+
+| Tabel | Bestaat | SELECT | INSERT/UPDATE | DELETE |
+|-------|---------|--------|---------------|--------|
+| pos_sessions | ✓ | tenant_admin/staff/accountant | tenant_admin/staff | tenant_admin |
+| pos_transactions | ✓ | tenant_admin/staff/accountant | tenant_admin/staff | tenant_admin |
+| pos_cash_movements | ✓ | tenant_admin/staff/accountant | tenant_admin/staff | tenant_admin |
+| pos_parked_carts | ✓ | tenant_admin/staff/accountant | tenant_admin/staff | tenant_admin |
+| pos_offline_queue | ✓ | tenant_admin/staff/accountant | tenant_admin/staff | tenant_admin |
+| pos_cashiers | ✓ | tenant_admin/staff | tenant_admin | tenant_admin |
+| pos_terminals | ✓ | tenant_admin/staff | tenant_admin | tenant_admin |
+| pos_quick_buttons | ✓ | tenant-scope alle rollen | tenant_admin/staff/marketing | tenant_admin/staff/marketing |
+
+Service-role + `is_platform_admin(auth.uid())` overal expliciet als bypass.
+
+### Niet-bestaande masterplan-tabellen (geen actie)
+
+`pos_transaction_lines`, `pos_payments`, `pos_tabs`, `pos_tab_items`,
+`pos_cash_drawers`, `pos_devices`, `pos_settings`, `pos_receipts`,
+`pos_receipt_templates`, `pos_discounts_applied`, `pos_categories`,
+`pos_collab_menus`, `pos_collab_menu_items`, `pos_shift_reports`,
+`pos_z_reports`, `pos_x_reports`, `pos_device_pairings` — bestaan niet in
+huidig schema, gedocumenteerd in `docs/fase2-batch-2e-recon.md`.
+
+### Edge-function role-checks
+
+| Function | Wijziging | Allowed roles |
+|----------|-----------|---------------|
+| `pos-create-payment-intent` | + authenticateRequest + requireRole | tenant_admin, staff |
+| `pos-process-payment` | + authenticateRequest + requireRole | tenant_admin, staff |
+| `pos-manage-reader` | + authenticateRequest + requireRole (OB-2E-6) | tenant_admin |
+| `pos-refund-payment` | reeds gehard in 2A2b, ongewijzigd geverifieerd | tenant_admin |
+
+`supabase/config.toml`: `verify_jwt = false` toegevoegd voor de 3 nieuw
+geharde functies (consistent met andere admin-functions die in-code auth
+doen via shared helper).
+
+### Beslispunten bevestigd
+
+- **OB-2E-1**: accountant SELECT op operationele POS-tabellen (BTW-aansluiting).
+- **OB-2E-2**: marketing beheert `pos_quick_buttons` (UI-content).
+- **OB-2E-3**: staff mag `pos_cashiers` SELECT (shift-overdracht).
+- **OB-2E-4**: DELETE op operationele/fiscale tabellen alleen tenant_admin.
+- **OB-2E-5**: service-role behoudt impliciete bypass voor webhooks/runners.
+- **OB-2E-6**: `pos-manage-reader` (terminal pairing) is tenant_admin only.
+- **OB-2E-7**: platform_admin bypass via `is_platform_admin(auth.uid())` overal expliciet.
+- **OB-2E-8**: PIN-beheer (`pos_cashiers` INSERT/UPDATE/DELETE) is admin-only.
+
+### Pre-flight De Fiere Margriet
+
+`SELECT role, COUNT(*) FROM user_roles WHERE tenant_id = DFM` → **0 rijen**.
+Geen actieve POS-gebruikers, geen productie-impact verwacht. Toog draait
+elders, SellQo native POS is leeg in DFM-tenant.
+
+### Verificatie
+
+```
+SELECT tablename, cmd, COUNT(*) FROM pg_policies
+WHERE schemaname='public' AND tablename LIKE 'pos_%'
+GROUP BY tablename, cmd ORDER BY tablename, cmd;
+```
+Resultaat: 8 tabellen × 5 policies (ALL=service_role + 4 per-cmd auth) = 40 rijen.
+
+Datum: 2026-06-09
+
+---
+
 Volgende stap: Hoofdstuk 4 (frontend gating) — useCan/PermissionGate 
 uitrol over admin-UI.
 
