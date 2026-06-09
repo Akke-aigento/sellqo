@@ -10,6 +10,8 @@ import { Loader2, Settings2, Wallet, CalendarDays, Ban, Plus, X } from 'lucide-r
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useCan } from '@/hooks/useCan';
+import { TOOLTIP_NO_ACCESS_SHORT } from '@/lib/permissions/constants';
 
 interface BolCampaign {
   id: string;
@@ -38,6 +40,9 @@ interface Props {
 export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
+  // H4-7: budget-velden = disable+tooltip voor non-tenant_admin (transparantie).
+  // Andere campaign-velden blijven gating op 'ads' resource (marketing kan dit).
+  const canWriteBudget = useCan('write', 'ad_budgets');
 
   const [name, setName] = useState(campaign.name);
   const [targetingType, setTargetingType] = useState(campaign.targeting_type || 'AUTO');
@@ -173,6 +178,8 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
               placeholder="Bijv. 10.00"
               value={dailyBudget}
               onChange={e => setDailyBudget(e.target.value)}
+              disabled={!canWriteBudget}
+              title={!canWriteBudget ? TOOLTIP_NO_ACCESS_SHORT : undefined}
             />
           </div>
           <div className="space-y-2">
@@ -185,6 +192,8 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
               placeholder="Optioneel"
               value={totalBudget}
               onChange={e => setTotalBudget(e.target.value)}
+              disabled={!canWriteBudget}
+              title={!canWriteBudget ? TOOLTIP_NO_ACCESS_SHORT : undefined}
             />
             <p className="text-xs text-muted-foreground">Laat leeg voor onbeperkt</p>
           </div>

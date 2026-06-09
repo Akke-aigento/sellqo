@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import type { DiscountCode } from '@/types/discount';
 import { useToast } from '@/hooks/use-toast';
+import { useCan } from '@/hooks/useCan';
 
 interface DiscountCodeCardProps {
   discountCode: DiscountCode;
@@ -21,6 +22,9 @@ interface DiscountCodeCardProps {
 
 export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCodeCardProps) {
   const { toast } = useToast();
+  // H4d: row-action gating in dropdown — hide voor non-write rollen
+  // (matrix: discount_codes write = tenant_admin + marketing).
+  const canWrite = useCan('write', 'discount_codes');
   
   const now = new Date();
   const isExpired = discountCode.valid_until && new Date(discountCode.valid_until) < now;
@@ -138,17 +142,21 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={() => onEdit(discountCode)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Bewerken
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => onDelete(discountCode.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Verwijderen
-              </DropdownMenuItem>
+              {canWrite && (
+                <DropdownMenuItem onClick={() => onEdit(discountCode)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Bewerken
+                </DropdownMenuItem>
+              )}
+              {canWrite && (
+                <DropdownMenuItem
+                  onClick={() => onDelete(discountCode.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Verwijderen
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
