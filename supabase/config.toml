@@ -389,3 +389,6 @@ verify_jwt = false
 
 [functions.update-odoo-product]
 verify_jwt = false
+
+[functions.auth-email-hook]
+verify_jwt = false
