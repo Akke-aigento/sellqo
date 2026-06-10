@@ -3583,3 +3583,28 @@ Totaal: ~600r HTML duplicate verwijderd; alle 8 functies leveren nu
 - **Test-verwachting:** incognito invite-link toont binnen ~1s juiste state (login_required of otp_request); ingelogde user toont one_click_accept zonder hangende spinner; hard-refresh tijdens fetch blijft niet hangen.
 
 Datum: 2026-06-10
+
+---
+
+## Auth Email Hook — custom Resend route
+
+**Datum:** 2026-06-10
+
+Optie B gekozen (custom Resend-route i.p.v. Lovable Cloud email-domain delegatie) zodat alle 6 Supabase auth-emails consistent via `no-reply@sellqo.app` lopen — gelijk aan bestaande Stream A senders in `_shared/emailSenders.ts`. Geen DNS-werk, geen `LOVABLE_API_KEY`, geen email-domain provisioning.
+
+**Geleverd:**
+- `supabase/functions/_shared/email-templates/index.ts` — 6 NL-templates (magic-link, signup, recovery, invite, email-change, reauthentication) bovenop bestaande `renderSellqoEmail()` building blocks (SellQo branding + dark-mode CSS + bulletproof MSO buttons + plain-text fallback via `htmlToPlainText`).
+  - *Implementatie-nuance:* `.ts` i.p.v. `.tsx` — de SellQo email-stack is string-based (geen React Email), dus geen JSX nodig. Consistent met `sellqoEmail.ts` / `tenantEmail.ts`.
+- `supabase/functions/auth-email-hook/index.ts` — verifieert Standard-Webhooks signature van Supabase Auth (`svix-id` / `svix-timestamp` / `svix-signature` headers) via `standardwebhooks@1.0.0`, rendert template, en verstuurt via Resend SDK met `EMAIL_SENDERS.noReply.from` (`SellQo <no-reply@sellqo.app>`).
+- `supabase/config.toml` — `[functions.auth-email-hook] verify_jwt = false` (Supabase Auth roept zelf aan; auth-check gebeurt via hook-secret, niet via JWT).
+- Secret `AUTH_EMAIL_HOOK_SECRET` aangemaakt en in env beschikbaar voor de hook.
+  - *Naamgeving:* niet `SUPABASE_AUTH_HOOK_SECRET` — `SUPABASE_*` prefix is gereserveerd door Lovable Cloud voor managed secrets.
+
+**Activatie (handmatige stap door operator, buiten code):**
+1. Kopieer de hook-URL: `https://<project-ref>.supabase.co/functions/v1/auth-email-hook`
+2. Auth → Hooks → "Send Email Hook" → URL + de hook-secret invullen (zelfde waarde als `AUTH_EMAIL_HOOK_SECRET`).
+3. Vanaf dat moment lopen alle 6 auth-emails via SellQo-branded templates met sender `no-reply@sellqo.app` (was: `no-reply@auth.lovable.cloud`).
+
+**Architectuur-consistentie:**
+- Geen breaking changes nodig aan `docs/email-architecture.md`: Stream A blijft `no-reply@sellqo.app` voor platform→tenant-user communicatie. Auth-emails vallen nu netjes binnen die scope.
+- Hergebruikt bestaande `RESEND_API_KEY` en `EMAIL_SENDERS` registry; geen aparte sender-pool.
