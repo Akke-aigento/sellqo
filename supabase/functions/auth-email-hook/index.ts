@@ -4,7 +4,7 @@
 
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { PUBLIC_CORS_HEADERS as corsHeaders } from "../_shared/cors.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import {
   renderAuthEmail,
