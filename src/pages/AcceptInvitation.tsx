@@ -98,7 +98,6 @@ export default function AcceptInvitation() {
       setState({ kind: 'not_found' });
       return;
     }
-    if (authLoading) return;
     setState({ kind: 'loading' });
     try {
       const { data, error } = await supabase.functions.invoke('fetch-invitation', {
@@ -149,10 +148,15 @@ export default function AcceptInvitation() {
     } catch (e: any) {
       setState({ kind: 'error', message: e?.message || 'Onbekende fout' });
     }
-  }, [token, user, authLoading]);
+  }, [token, user]);
 
   useEffect(() => {
     // Re-resolve when token or auth-user changes
+
+    // Wait until auth has finished loading — anders raken we de ref-cache
+    // op een nog-niet-resolved key en blijft de spinner hangen.
+    if (authLoading) return;
+
     const key = `${token}:${user?.id ?? ''}`;
     if (resolvedTokenRef.current === key) return;
     resolvedTokenRef.current = key;
