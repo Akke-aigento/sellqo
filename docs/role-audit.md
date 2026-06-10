@@ -3572,3 +3572,14 @@ Totaal: ~600r HTML duplicate verwijderd; alle 8 functies leveren nu
 
 - `docs/email-design-system.md`: Stream B sectie toegevoegd met
   fallback-tabel, helper-overzicht, i18n-strategie en edge-cases.
+
+---
+
+## Bug-fix: invite-spinner hangt oneindig (2026-06-10)
+
+- Race-condition tussen `authLoading` + `resolvedTokenRef` cache opgelost in `src/pages/AcceptInvitation.tsx`.
+- `useEffect` wacht nu op `authLoading === false` vóór het zetten van `resolvedTokenRef.current = key`. Hierdoor wordt de ref nooit geprimeerd met een "user=null tijdens laden"-key, wat er voor zorgde dat de spinner oneindig bleef staan wanneer auth pas later resolved.
+- Overbodige `if (authLoading) return;` verwijderd uit `resolveFlow` (afgeschaft in het callback zelf; de guard zit nu in de enige call-site, het `useEffect`).
+- **Test-verwachting:** incognito invite-link toont binnen ~1s juiste state (login_required of otp_request); ingelogde user toont one_click_accept zonder hangende spinner; hard-refresh tijdens fetch blijft niet hangen.
+
+Datum: 2026-06-10
