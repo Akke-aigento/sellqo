@@ -1,5 +1,21 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## Orphan cleanup + banner verduidelijking + root-cause doc (2026-06-10)
+
+- **Cleanup migration** `cleanup_orphan_spoof_user_and_link_sander.sql`: orphan spoof-user `aaron.mercken@hotmail.com` (UUID `d020b521-0ab1-40cc-a13c-614cb879ae6d`) verwijderd uit `auth.users` (cascade naar `profiles`) en uit `user_roles` op Mancini Milano. Sander (`info@mancinimilano.com`, UUID `a183cd15-...`) gekoppeld als `tenant_admin` op Mancini (`2606c5b9-...`). Pending VanXcel-invite voor de spoof-email gerevoked met audit-log entry (`reason='orphan_spoof_cleanup_2026_06_10'`). `tenants.owner_email` van Mancini bijgewerkt naar `info@mancinimilano.com` om herhaling via `repair-tenant-access` te voorkomen.
+- Mancini ownership volledig hersteld via Sander's bestaande account — geen actie nodig van Sander zelf. Stripe-reconnect blijft een aparte taak.
+- **InviteTeamMemberDialog banner-teksten verduidelijkt** (`src/components/admin/settings/InviteTeamMemberDialog.tsx`) voor multi-tenant context:
+  - `alreadyMember` → "Deze persoon is al lid van jouw team voor deze webshop."
+  - `hasPendingInvite` → ongewijzigd (oranje + Verzend opnieuw)
+  - `recentlyRevoked` → "Deze persoon was eerder verwijderd uit jouw team. Een nieuwe uitnodiging maakt een schone start."
+  - `accountExists` → "Deze persoon heeft al een SellQo-account voor een andere webshop op het platform. Bij accepteren wordt jouw team toegevoegd aan hun bestaande account."
+  - geen account → "Deze persoon heeft nog geen SellQo-account. Ze krijgen een uitnodiging om er één aan te maken via een bevestigingscode per e-mail."
+- **Root-cause documentatie** geschreven in `docs/root-cause-mancini-orphan-role.md`: smoking gun = `repair-tenant-access` edge function, die `tenant_admin` toekent puur op basis van `auth.users.email == tenants.owner_email`. Trigger `trigger_assign_tenant_admin_on_insert` is uitgesloten (geen recent INSERT op Mancini). 0 triggers op `user_roles`. Hardening-voorstellen + "Sander's missing role mystery" op backlog gezet.
+
+Datum: 2026-06-10
+
+---
+
 ## Invite-flow bug-fix: remove-cleanup + route + recently_revoked detection (2026-06-09)
 
 - **FIX 1** — `supabase/functions/remove-team-member/index.ts`: bij verwijderen van een teamlid worden alle `team_invitations` voor (tenant, email) nu gemarkeerd als `status='revoked'` met `revoked_at` + `revoked_by` (was: hard DELETE van enkel pending invites). Voor elke geraakte invite wordt een entry in `invite_audit_log` geschreven met `event_type='revoked'` en `metadata.reason='team_member_removed'`. History blijft behouden, re-invite blijft mogelijk via een nieuwe rij.
