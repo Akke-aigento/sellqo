@@ -39,9 +39,9 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  const hookSecret = Deno.env.get("SUPABASE_AUTH_HOOK_SECRET");
+  const hookSecret = Deno.env.get("AUTH_EMAIL_HOOK_SECRET");
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!hookSecret) return json({ error: "SUPABASE_AUTH_HOOK_SECRET missing" }, 500);
+  if (!hookSecret) return json({ error: "AUTH_EMAIL_HOOK_SECRET missing" }, 500);
   if (!resendKey) return json({ error: "RESEND_API_KEY missing" }, 500);
 
   const rawBody = await req.text();
