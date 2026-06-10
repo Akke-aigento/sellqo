@@ -1,7 +1,7 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-import { Body, Head, Html, Preview } from 'npm:@react-email/components@0.0.22'
+import { Body, Head, Html, Preview, Section } from 'npm:@react-email/components@0.0.22'
 import {
   Button,
   Container,
@@ -66,5 +66,3 @@ export const SignupEmail = ({
 )
 
 export default SignupEmail
-
-import { Section } from 'npm:@react-email/components@0.0.22'
