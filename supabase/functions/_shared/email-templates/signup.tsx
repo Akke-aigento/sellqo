@@ -1,18 +1,23 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-
+import { Body, Head, Html, Preview } from 'npm:@react-email/components@0.0.22'
 import {
-  Body,
   Button,
   Container,
-  Head,
+  Footer,
+  Header,
   Heading,
-  Html,
   Link,
-  Preview,
   Text,
-} from 'npm:@react-email/components@0.0.22'
+  button,
+  container,
+  h1Style,
+  linkStyle,
+  main,
+  mutedParagraph,
+  paragraph,
+} from './_brand.tsx'
 
 interface SignupEmailProps {
   siteName: string
@@ -22,37 +27,39 @@ interface SignupEmailProps {
 }
 
 export const SignupEmail = ({
-  siteName,
-  siteUrl,
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Bevestig je e-mailadres voor SellQo</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
-        <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
-        </Text>
-        <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
+        <Header />
+        <Heading style={h1Style}>Welkom bij SellQo 👋</Heading>
+        <Text style={paragraph}>
+          Bedankt voor je aanmelding. Bevestig je e-mailadres{' '}
+          <Link href={`mailto:${recipient}`} style={linkStyle}>
             {recipient}
+          </Link>{' '}
+          om je account te activeren en aan de slag te gaan met je webshop.
+        </Text>
+        <Section style={{ textAlign: 'center', margin: '24px 0' }}>
+          <Button style={button} href={confirmationUrl}>
+            Bevestig e-mailadres
+          </Button>
+        </Section>
+        <Text style={mutedParagraph}>
+          Werkt de knop niet? Kopieer en plak deze link in je browser:
+          <br />
+          <Link href={confirmationUrl} style={linkStyle}>
+            {confirmationUrl}
           </Link>
-          ) by clicking the button below:
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Verify Email
-        </Button>
-        <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+        <Text style={mutedParagraph}>
+          Heb je geen account aangemaakt? Dan kun je deze e-mail negeren.
         </Text>
+        <Footer />
       </Container>
     </Body>
   </Html>
@@ -60,27 +67,4 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+import { Section } from 'npm:@react-email/components@0.0.22'
