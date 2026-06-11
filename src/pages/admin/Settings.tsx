@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -14,6 +14,7 @@ import {
   Network, 
   Bell,
   ChevronRight,
+  ChevronLeft,
   Share2,
   Mail,
   Globe,
@@ -27,6 +28,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
@@ -144,11 +146,15 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);
+  // On mobile: drill-down navigation. Menu visible by default, content shown
+  // only after a section is picked. Deep-link (?section=...) opens content directly.
+  const [mobileShowContent, setMobileShowContent] = useState(
+    !!searchParams.get('section')
+  );
   const { roles } = useAuth();
   const { isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const isMobile = useIsMobile();
-  const contentRef = useRef<HTMLElement>(null);
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   const isAdminView = isPlatformAdmin && sessionStorage.getItem('admin_view_mode') === 'true';
@@ -181,36 +187,65 @@ export default function SettingsPage() {
     setActiveSection(sectionId);
     setSearchParams({ section: sectionId });
     if (isMobile) {
-      setTimeout(() => {
-        // The real scroll container is the AdminLayout <main> with overflow-y-auto,
-        // not the window. scrollIntoView doesn't work on a nested overflow container,
-        // so scroll that container to the top directly.
-        const scrollContainer = document.querySelector(
-          'main.overflow-y-auto'
-        ) as HTMLElement | null;
-        if (scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 100);
+      setMobileShowContent(true);
+      // Reset outer scroll container so content starts at top.
+      requestAnimationFrame(() => {
+        const scrollContainer =
+          (document.querySelector('main.overflow-y-auto') as HTMLElement | null) ||
+          (document.querySelector('main') as HTMLElement | null);
+        scrollContainer?.scrollTo({ top: 0, behavior: 'auto' });
+      });
     }
+  };
+
+  const handleBackToMenu = () => {
+    setMobileShowContent(false);
+    setSearchParams({});
   };
 
   const ActiveComponent = allGroups
     .flatMap(g => g.sections)
     .find(s => s.id === activeSection)?.component;
 
+  const activeSectionMeta = allGroups
+    .flatMap(g => g.sections)
+    .find(s => s.id === activeSection);
+
+  const showMenu = !isMobile || !mobileShowContent;
+  const showContent = !isMobile || mobileShowContent;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Instellingen</h1>
-        <p className="text-muted-foreground">
-          Beheer je account, winkel en betalingsconfiguratie
-        </p>
-      </div>
+      {showMenu && (
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Instellingen</h1>
+          <p className="text-muted-foreground">
+            Beheer je account, winkel en betalingsconfiguratie
+          </p>
+        </div>
+      )}
+
+      {isMobile && mobileShowContent && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackToMenu}
+            className="-ml-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Instellingen
+          </Button>
+          {activeSectionMeta && (
+            <h2 className="text-lg font-semibold truncate">
+              {activeSectionMeta.title}
+            </h2>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
+        {showMenu && (
         <aside className="lg:w-64 flex-shrink-0">
           <Card>
             <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
@@ -260,10 +295,13 @@ export default function SettingsPage() {
             </ScrollArea>
           </Card>
         </aside>
+        )}
 
-        <main ref={contentRef} className="flex-1 min-w-0 scroll-mt-16">
-          {ActiveComponent && <ActiveComponent />}
-        </main>
+        {showContent && (
+          <main className="flex-1 min-w-0">
+            {ActiveComponent && <ActiveComponent />}
+          </main>
+        )}
       </div>
     </div>
   );
