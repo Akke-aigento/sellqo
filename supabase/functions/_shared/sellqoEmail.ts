@@ -37,9 +37,9 @@ export function emailHeader(opts: { logo?: string; tenantName?: string } = {}): 
   const logo = opts.logo || LOGO_URL;
   return `
   <tr>
-    <td align="center" style="padding:0 0 24px;">
+    <td align="center" style="padding:8px 0 28px;text-align:center;">
       <a href="https://sellqo.app" target="_blank" style="text-decoration:none;color:${BRAND.primary};">
-        <img src="${logo}" alt="${opts.tenantName ? escapeAttr(opts.tenantName) : "SellQo"}" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
+        <img src="${logo}" alt="${opts.tenantName ? escapeAttr(opts.tenantName) : "SellQo"}" height="40" style="height:40px;width:auto;max-width:200px;display:inline-block;border:0;outline:none;text-decoration:none;vertical-align:middle;" />
       </a>
       ${opts.tenantName ? `<p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:${BRAND.muted};">${escapeHtml(opts.tenantName)}</p>` : ""}
     </td>
@@ -53,9 +53,12 @@ export function emailFooter(opts: {
   extraLinks?: { label: string; url: string }[];
   supportEmail?: string;
   prependNote?: string;
+  /** Optional alignment override. Default: left. */
+  align?: "left" | "center";
 }): string {
   const legal = opts.legal || `© ${new Date().getFullYear()} SellQo. Alle rechten voorbehouden.`;
   const supportEmail = opts.supportEmail || "support@sellqo.app";
+  const align = opts.align || "left";
   const links: string[] = [];
   if (opts.extraLinks?.length) {
     for (const l of opts.extraLinks) {
@@ -67,12 +70,12 @@ export function emailFooter(opts: {
   }
 
   const prepend = opts.prependNote
-    ? `<p style="margin:0 0 12px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">${opts.prependNote}</p>`
+    ? `<p style="margin:0 0 12px;font-size:12px;color:${BRAND.footerText};line-height:1.6;text-align:${align};">${opts.prependNote}</p>`
     : "";
 
   return `
   <tr>
-    <td class="sq-footer" style="padding:24px 24px 8px;font-family:${SANS};">
+    <td class="sq-footer" align="${align}" style="padding:28px 24px 8px;font-family:${SANS};text-align:${align};">
       ${prepend}
       <p style="margin:0 0 6px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">
         Verzonden door <a href="https://sellqo.app" style="color:${BRAND.footerText};text-decoration:underline;">SellQo</a> &middot; Jouw webshop. Simpel online.
@@ -81,7 +84,7 @@ export function emailFooter(opts: {
         Vragen? Mail ons op <a href="mailto:${escapeAttr(supportEmail)}" style="color:${BRAND.footerText};text-decoration:underline;">${escapeHtml(supportEmail)}</a>.
       </p>
       ${links.length ? `<p style="margin:0 0 6px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">${links.join(" &middot; ")}</p>` : ""}
-      <p style="margin:0;font-size:11px;color:${BRAND.footerText};line-height:1.5;">${escapeHtml(legal)}</p>
+      <p style="margin:8px 0 0;font-size:11px;color:${BRAND.footerText};line-height:1.5;">${escapeHtml(legal)}</p>
     </td>
   </tr>`;
 }
