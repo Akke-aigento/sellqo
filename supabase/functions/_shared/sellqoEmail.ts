@@ -37,9 +37,9 @@ export function emailHeader(opts: { logo?: string; tenantName?: string } = {}): 
   const logo = opts.logo || LOGO_URL;
   return `
   <tr>
-    <td align="center" style="padding:0 0 24px;">
+    <td align="center" style="padding:8px 0 28px;text-align:center;">
       <a href="https://sellqo.app" target="_blank" style="text-decoration:none;color:${BRAND.primary};">
-        <img src="${logo}" alt="${opts.tenantName ? escapeAttr(opts.tenantName) : "SellQo"}" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
+        <img src="${logo}" alt="${opts.tenantName ? escapeAttr(opts.tenantName) : "SellQo"}" height="40" style="height:40px;width:auto;max-width:200px;display:inline-block;border:0;outline:none;text-decoration:none;vertical-align:middle;" />
       </a>
       ${opts.tenantName ? `<p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:${BRAND.muted};">${escapeHtml(opts.tenantName)}</p>` : ""}
     </td>
@@ -53,9 +53,12 @@ export function emailFooter(opts: {
   extraLinks?: { label: string; url: string }[];
   supportEmail?: string;
   prependNote?: string;
+  /** Optional alignment override. Default: left. */
+  align?: "left" | "center";
 }): string {
   const legal = opts.legal || `© ${new Date().getFullYear()} SellQo. Alle rechten voorbehouden.`;
   const supportEmail = opts.supportEmail || "support@sellqo.app";
+  const align = opts.align || "left";
   const links: string[] = [];
   if (opts.extraLinks?.length) {
     for (const l of opts.extraLinks) {
@@ -67,12 +70,12 @@ export function emailFooter(opts: {
   }
 
   const prepend = opts.prependNote
-    ? `<p style="margin:0 0 12px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">${opts.prependNote}</p>`
+    ? `<p style="margin:0 0 12px;font-size:12px;color:${BRAND.footerText};line-height:1.6;text-align:${align};">${opts.prependNote}</p>`
     : "";
 
   return `
   <tr>
-    <td class="sq-footer" style="padding:24px 24px 8px;font-family:${SANS};">
+    <td class="sq-footer" align="${align}" style="padding:28px 24px 8px;font-family:${SANS};text-align:${align};">
       ${prepend}
       <p style="margin:0 0 6px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">
         Verzonden door <a href="https://sellqo.app" style="color:${BRAND.footerText};text-decoration:underline;">SellQo</a> &middot; Jouw webshop. Simpel online.
@@ -81,7 +84,7 @@ export function emailFooter(opts: {
         Vragen? Mail ons op <a href="mailto:${escapeAttr(supportEmail)}" style="color:${BRAND.footerText};text-decoration:underline;">${escapeHtml(supportEmail)}</a>.
       </p>
       ${links.length ? `<p style="margin:0 0 6px;font-size:12px;color:${BRAND.footerText};line-height:1.6;">${links.join(" &middot; ")}</p>` : ""}
-      <p style="margin:0;font-size:11px;color:${BRAND.footerText};line-height:1.5;">${escapeHtml(legal)}</p>
+      <p style="margin:8px 0 0;font-size:11px;color:${BRAND.footerText};line-height:1.5;">${escapeHtml(legal)}</p>
     </td>
   </tr>`;
 }
@@ -355,18 +358,20 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     ? `<p class="sq-muted" style="margin:20px 0 0;font-family:${SANS};font-size:13px;color:${BRAND.muted};text-align:center;line-height:1.6;">${ctaNote}</p>`
     : "";
 
+  // Airy auth-mail style: transparent card, centered heading, generous whitespace.
+  // Keeps `sq-card` class so existing dark-mode CSS still applies.
   const content = `
   <tr>
-    <td class="sq-card" style="background-color:${BRAND.card};border:1px solid ${BRAND.border};border-radius:12px;padding:40px;">
-      <h1 style="margin:0 0 16px;font-family:${SANS};font-size:22px;line-height:1.3;font-weight:700;color:${BRAND.text};">
+    <td class="sq-card" style="background-color:#ffffff;padding:8px 32px 32px;">
+      <h1 style="margin:0 0 20px;font-family:${SANS};font-size:24px;line-height:1.3;font-weight:700;color:${BRAND.text};text-align:center;">
         ${heading}
       </h1>
-      <div style="font-family:${SANS};font-size:15px;line-height:1.65;color:${BRAND.text};">
+      <div style="font-family:${SANS};font-size:15px;line-height:1.65;color:${BRAND.text};text-align:center;">
         ${intro}
       </div>
       ${infoBoxHtml}
-      ${ctaHtml}
-      ${secondaryHtml}
+      <div style="text-align:center;margin-top:8px;">${ctaHtml}</div>
+      ${secondaryHtml ? `<div style="text-align:center;">${secondaryHtml}</div>` : ""}
       ${ctaNoteHtml}
     </td>
   </tr>`;
@@ -375,6 +380,7 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     supportEmail,
     unsubscribeUrl,
     prependNote: footerNote,
+    align: "center",
   });
 
   return emailBaseLayout({
@@ -382,6 +388,8 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     content,
     footer,
     darkMode,
+    // Airy white canvas — only applies to Stream A; Stream B passes its own brand.
+    brand: { bg: "#ffffff" },
   });
 }
 
