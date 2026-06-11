@@ -3608,3 +3608,16 @@ Optie B gekozen (custom Resend-route i.p.v. Lovable Cloud email-domain delegatie
 **Architectuur-consistentie:**
 - Geen breaking changes nodig aan `docs/email-architecture.md`: Stream A blijft `no-reply@sellqo.app` voor platform→tenant-user communicatie. Auth-emails vallen nu netjes binnen die scope.
 - Hergebruikt bestaande `RESEND_API_KEY` en `EMAIL_SENDERS` registry; geen aparte sender-pool.
+
+## Auth Email Templates — Lovable Managed via auth.sellqo.app
+Datum: 2026-06-11
+
+- Custom auth-email-hook (Optie B) niet activeerbaar: Lovable Cloud blokkeert Supabase Auth Hooks UI voor end-users. Overgestapt naar Optie A1: Lovable Managed via subdomein-delegatie.
+- DNS (Cloudflare, zone sellqo.app): NS auth → ns3+ns4.lovable.cloud, TXT _lovable-email (verify-token). Lovable's voorgestelde _dmarc (p=none, rua naar lovable.dev) initieel bewust overgeslagen: tweede DMARC-record zou invalid zijn en de dekking voor alle 14 Resend-mailboxes breken.
+- Root cause langdurige "Pending"-status (24u+): dode provisioning-job aan Lovable-zijde. Zone-serial bevroren op 2406600055 ondanks correcte DNS en meerdere reconcile-triggers. _dmarc-mismatch als oorzaak gefalsifieerd via tijdelijke exact-match test (geen effect). Opgelost via domein verwijderen + opnieuw toevoegen met Entri/Cloudflare-autorisatie → verse provisioning-job, serial 2406649578, zone gevuld.
+- Stream C draait op Mailgun EU via Lovable — derde gescheiden mail-infra naast Migadu (mailboxen) en Resend (Stream A+B).
+- Sender-display: toggle "Show as sent from @sellqo.app" actief, niet aanpasbaar. Outlook toont "namens"-notatie (noreply=sellqo.app@auth.sellqo.app namens noreply@sellqo.app). Cosmetisch, geaccepteerd; backlog-item aangemaakt.
+- DMARC na verificatie teruggedraaid naar p=quarantine (rua=mailto:dmarc@sellqo.app). Hertest 11/6 ±11u50: badge verified gebleven + OTP-flow succesvol — quarantine-policy en Lovable Managed zijn compatibel (relaxed alignment, default).
+- Team-invites blijven bewust Stream A (invite@sellqo.app via Resend): custom flow met team_invitations-tabel, geen Supabase auth-email. One-click accept bij actieve sessie is correct INV-gedrag.
+- Cleanup uitgevoerd: supabase/functions/auth-email-hook/ verwijderd, [functions.auth-email-hook] uit config.toml verwijderd, secrets AUTH_EMAIL_HOOK_SECRET + SUPABASE_AUTH_HOOK_SECRET verwijderd. _shared/email-templates/index.ts behouden als referentie.
+- Pre-flight Mancini reconnect: info@mancinimilano.com = tenant_admin op 2606c5b9; tenants.stripe_account_id = NULL, onboarding_complete = false. Stripe-reconnect-mail naar Sander verstuurd op 2026-06-11.

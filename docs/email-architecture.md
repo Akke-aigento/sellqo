@@ -43,6 +43,16 @@ Communicatie van een tenant naar diens klanten. **Sender-naam = tenantnaam**, ad
 
 `reply_to` voor Stream B → `tenant.support_email || tenant.owner_email || support@sellqo.app`.
 
+## Stream C — Auth (Lovable Managed)
+
+Supabase auth-emails (magic-link, signup confirmation, password recovery, invite, email-change, reauthentication) lopen via Lovable Managed templates op Mailgun EU. Templates in SellQo-branding, NL-copy.
+
+| Address | Beheer | Notes |
+|---|---|---|
+| noreply@auth.sellqo.app | Lovable Managed (NS-delegatie auth.sellqo.app naar ns3+ns4.lovable.cloud) | Display-From @sellqo.app via toggle (Outlook toont "namens"); SPF/MX Mailgun EU in delegated zone; relaxed alignment met apex-DMARC (p=quarantine) |
+
+Stream C staat volledig los van Resend: eigen subdomein, eigen DKIM/SPF, eigen reputatie. Team-invites blijven bewust Stream A (invite@sellqo.app via Resend) — custom flow, geen Supabase auth-email. De apex _dmarc blijft eigendom van SellQo (p=quarantine, rapporten naar dmarc@sellqo.app).
+
 ## Inbound
 
 `inbox@sellqo.app` blijft de inbound-route die door `storefront-api` / `storefront-customer-api` wordt verwerkt voor klant-replies. Niet gewijzigd.
@@ -83,3 +93,5 @@ const orderSender = EMAIL_SENDERS.orders(tenant.name, tenant.support_email);
 - **Per-stream open-rate / bounce tracking** per address (Resend Analytics + `email_send_log`).
 - **DMARC report parsing** om reputation per address te monitoren.
 - **`security@`-flow**: implementatie van password-reset & suspicious-login wanneer auth-hardening op de roadmap komt.
+- **Auth-email sender display Outlook ("namens"-notatie)** — wachten op editbare toggle bij Lovable
+- **Deliverability monitoring Outlook/Hotmail** (evt. aanmelden Microsoft SNDS); invite@sellqo.app als veilige afzender op testaccounts
