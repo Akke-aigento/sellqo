@@ -182,7 +182,17 @@ export default function SettingsPage() {
     setSearchParams({ section: sectionId });
     if (isMobile) {
       setTimeout(() => {
-        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // The real scroll container is the AdminLayout <main> with overflow-y-auto,
+        // not the window. scrollIntoView doesn't work on a nested overflow container,
+        // so scroll that container to the top directly.
+        const scrollContainer = document.querySelector(
+          'main.overflow-y-auto'
+        ) as HTMLElement | null;
+        if (scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }, 100);
     }
   };
