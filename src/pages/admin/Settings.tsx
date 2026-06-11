@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { 
   User, 
@@ -146,6 +147,8 @@ export default function SettingsPage() {
   const { roles } = useAuth();
   const { isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
+  const isMobile = useIsMobile();
+  const contentRef = useRef<HTMLElement>(null);
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   const isAdminView = isPlatformAdmin && sessionStorage.getItem('admin_view_mode') === 'true';
@@ -177,6 +180,11 @@ export default function SettingsPage() {
   const handleSectionChange = (sectionId: string) => {
     setActiveSection(sectionId);
     setSearchParams({ section: sectionId });
+    if (isMobile) {
+      setTimeout(() => {
+        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   const ActiveComponent = allGroups
@@ -243,7 +251,7 @@ export default function SettingsPage() {
           </Card>
         </aside>
 
-        <main className="flex-1 min-w-0">
+        <main ref={contentRef} className="flex-1 min-w-0 scroll-mt-16">
           {ActiveComponent && <ActiveComponent />}
         </main>
       </div>
