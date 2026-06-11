@@ -21,13 +21,12 @@ function AdminLayoutContent() {
   const location = useLocation();
   const isDashboard = location.pathname === '/admin' || location.pathname === '/admin/dashboard';
   const { currentTenant } = useTenant();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { setOpenMobile } = useSidebar();
 
-  // Auto-close mobile sidebar on navigation
+  // Auto-close mobile sidebar on navigation. Always call setOpenMobile(false)
+  // because it only affects the mobile Sheet state; desktop is unaffected.
   useEffect(() => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
+    setOpenMobile(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
