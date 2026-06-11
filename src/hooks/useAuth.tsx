@@ -54,6 +54,14 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /**
+   * True until the initial user_roles fetch resolves after sign-in /
+   * session restore. RouteGuard / useCan must wait for this before
+   * deciding "no access", otherwise authenticated users see a flash of
+   * /no-access while roles are still loading (e.g. when returning from
+   * Stripe Connect onboarding via return_url).
+   */
+  rolesLoading: boolean;
   roles: UserRole[];
   isPlatformAdmin: boolean;
   userRole: AppRole | null;
@@ -90,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchUserRoles = async (userId: string) => {
@@ -110,10 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {
       setRoles([]);
+      setRolesLoading(false);
       return [];
     }
+    setRolesLoading(true);
     const fresh = await fetchUserRoles(currentUser.id);
     setRoles(fresh);
+    setRolesLoading(false);
     return fresh;
   }, []);
 
@@ -129,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setUser(null);
           setRoles([]);
+          setRolesLoading(false);
           setLoading(false);
           return;
         }
@@ -137,8 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentSession?.user) {
           setSession(currentSession);
           setUser(currentSession.user);
+          setRolesLoading(true);
           setTimeout(() => {
-            fetchUserRoles(currentSession.user.id).then(setRoles);
+            fetchUserRoles(currentSession.user.id).then((r) => {
+              setRoles(r);
+              setRolesLoading(false);
+            });
           }, 0);
         } else if (hasStaleAuthStorage()) {
           // No session but storage exists = corrupt/expired state
@@ -148,10 +165,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setUser(null);
           setRoles([]);
+          setRolesLoading(false);
         } else {
           setSession(null);
           setUser(null);
           setRoles([]);
+          setRolesLoading(false);
         }
         
         setLoading(false);
@@ -173,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
         setRoles([]);
+        setRolesLoading(false);
         setLoading(false);
         return;
       }
@@ -180,12 +200,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingSession?.user) {
         setSession(existingSession);
         setUser(existingSession.user);
-        fetchUserRoles(existingSession.user.id).then(setRoles);
+        setRolesLoading(true);
+        fetchUserRoles(existingSession.user.id).then((r) => {
+          setRoles(r);
+          setRolesLoading(false);
+        });
       } else if (hasStaleAuthStorage()) {
         // No session but we have storage = corrupt state
         console.warn('[Auth] No session but stale storage exists, cleaning up...');
         clearAuthStorage();
         await supabase.auth.signOut();
+        setRolesLoading(false);
+      } else {
+        setRolesLoading(false);
       }
       
       setLoading(false);
@@ -416,6 +443,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         loading,
+        rolesLoading,
         roles,
         isPlatformAdmin,
         userRole,
