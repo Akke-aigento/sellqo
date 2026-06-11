@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Bevestig je SellQo-account',
+  invite: 'Je bent uitgenodigd voor SellQo',
+  magiclink: 'Je inloglink voor SellQo',
+  recovery: 'Wachtwoord opnieuw instellen',
+  email_change: 'Bevestig je nieuwe e-mailadres',
+  reauthentication: 'Je SellQo verificatiecode',
 }
 
 // Template mapping
