@@ -26,10 +26,7 @@ interface SignupEmailProps {
   confirmationUrl: string
 }
 
-export const SignupEmail = ({
-  recipient,
-  confirmationUrl,
-}: SignupEmailProps) => (
+export const SignupEmail = ({ recipient, confirmationUrl }: SignupEmailProps) => (
   <Html lang="nl" dir="ltr">
     <Head />
     <Preview>Bevestig je e-mailadres voor SellQo</Preview>
@@ -39,22 +36,16 @@ export const SignupEmail = ({
         <Heading style={h1Style}>Welkom bij SellQo 👋</Heading>
         <Text style={paragraph}>
           Bedankt voor je aanmelding. Bevestig je e-mailadres{' '}
-          <Link href={`mailto:${recipient}`} style={linkStyle}>
-            {recipient}
-          </Link>{' '}
+          <Link href={`mailto:${recipient}`} style={linkStyle}>{recipient}</Link>{' '}
           om je account te activeren en aan de slag te gaan met je webshop.
         </Text>
         <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button style={button} href={confirmationUrl}>
-            Bevestig e-mailadres
-          </Button>
+          <Button style={button} href={confirmationUrl}>Bevestig e-mailadres</Button>
         </Section>
         <Text style={mutedParagraph}>
           Werkt de knop niet? Kopieer en plak deze link in je browser:
           <br />
-          <Link href={confirmationUrl} style={linkStyle}>
-            {confirmationUrl}
-          </Link>
+          <Link href={confirmationUrl} style={linkStyle}>{confirmationUrl}</Link>
         </Text>
         <Text style={mutedParagraph}>
           Heb je geen account aangemaakt? Dan kun je deze e-mail negeren.

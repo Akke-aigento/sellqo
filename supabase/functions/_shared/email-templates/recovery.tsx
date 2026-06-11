@@ -37,16 +37,12 @@ export const RecoveryEmail = ({ confirmationUrl }: RecoveryEmailProps) => (
           stellen. Klik op de knop hieronder om een nieuw wachtwoord te kiezen.
         </Text>
         <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button style={button} href={confirmationUrl}>
-            Nieuw wachtwoord instellen
-          </Button>
+          <Button style={button} href={confirmationUrl}>Nieuw wachtwoord instellen</Button>
         </Section>
         <Text style={mutedParagraph}>
           Werkt de knop niet? Kopieer en plak deze link in je browser:
           <br />
-          <Link href={confirmationUrl} style={linkStyle}>
-            {confirmationUrl}
-          </Link>
+          <Link href={confirmationUrl} style={linkStyle}>{confirmationUrl}</Link>
         </Text>
         <Text style={mutedParagraph}>
           Heb je dit verzoek niet gedaan? Dan kun je deze e-mail veilig

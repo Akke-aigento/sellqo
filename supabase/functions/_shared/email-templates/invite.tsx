@@ -38,16 +38,12 @@ export const InviteEmail = ({ confirmationUrl }: InviteEmailProps) => (
           hieronder om de uitnodiging te accepteren en je account aan te maken.
         </Text>
         <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button style={button} href={confirmationUrl}>
-            Uitnodiging accepteren
-          </Button>
+          <Button style={button} href={confirmationUrl}>Uitnodiging accepteren</Button>
         </Section>
         <Text style={mutedParagraph}>
           Werkt de knop niet? Kopieer en plak deze link in je browser:
           <br />
-          <Link href={confirmationUrl} style={linkStyle}>
-            {confirmationUrl}
-          </Link>
+          <Link href={confirmationUrl} style={linkStyle}>{confirmationUrl}</Link>
         </Text>
         <Text style={mutedParagraph}>
           Verwachtte je deze uitnodiging niet? Dan kun je deze e-mail negeren.

@@ -37,16 +37,12 @@ export const MagicLinkEmail = ({ confirmationUrl }: MagicLinkEmailProps) => (
           verloopt binnen korte tijd.
         </Text>
         <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button style={button} href={confirmationUrl}>
-            Inloggen bij SellQo
-          </Button>
+          <Button style={button} href={confirmationUrl}>Inloggen bij SellQo</Button>
         </Section>
         <Text style={mutedParagraph}>
           Werkt de knop niet? Kopieer en plak deze link in je browser:
           <br />
-          <Link href={confirmationUrl} style={linkStyle}>
-            {confirmationUrl}
-          </Link>
+          <Link href={confirmationUrl} style={linkStyle}>{confirmationUrl}</Link>
         </Text>
         <Text style={mutedParagraph}>
           Heb je deze link niet aangevraagd? Negeer deze e-mail dan — er gebeurt
