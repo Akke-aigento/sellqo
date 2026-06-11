@@ -18,9 +18,9 @@ export function ProtectedRoute({
   requirePlatformAdmin = false,
   requires,
 }: ProtectedRouteProps) {
-  const { user, loading, isPlatformAdmin, roles } = useAuth();
+  const { user, loading, rolesLoading, isPlatformAdmin, roles } = useAuth();
 
-  if (loading) {
+  if (loading || (user && rolesLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

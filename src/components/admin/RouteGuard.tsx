@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useCan, type Resource } from '@/hooks/useCan';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
   children: ReactNode;
@@ -22,7 +23,7 @@ export function RouteGuard({
   requireRole,
 }: RouteGuardProps) {
   const location = useLocation();
-  const { loading, roles, isPlatformAdmin } = useAuth();
+  const { loading, rolesLoading, user, roles, isPlatformAdmin } = useAuth();
 
   // Hooks moeten onvoorwaardelijk gerund worden — geef een dummy resource
   // mee als er geen check nodig is en negeer het resultaat.
@@ -31,7 +32,17 @@ export function RouteGuard({
   const readOk = !requireRead || readResult;
   const writeOk = !requireWrite || writeResult;
 
-  if (loading) return null;
+  // Wait for both the auth session AND the initial user_roles fetch to
+  // settle before deciding "no access". Without this we get a flash of
+  // /no-access when returning to the app via an external redirect
+  // (Stripe Connect onboarding return_url, hard refresh, deep-link).
+  if (loading || (user && rolesLoading)) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const roleOk = requireRole && requireRole.length > 0
     ? isPlatformAdmin ||
