@@ -1,6 +1,6 @@
 # Email Design System
 
-_Last updated: 2026-06-09_
+_Last updated: 2026-06-11_
 
 SellQo emails worden gebouwd met een gedeelde set building blocks in
 `supabase/functions/_shared/sellqoEmail.ts`. Doel: één bron-van-waarheid
@@ -16,6 +16,27 @@ Outlook, mobiele clients).
 
 Sender-mapping: zie `docs/email-architecture.md`.
 
+## Stream A visuele richting (auth-mail stijl)
+
+Sinds batch EMAIL-3 volgt Stream A (`renderSellqoEmail`) de stijl van de
+Lovable Managed auth-templates:
+
+- Witte body-canvas (`#ffffff`) i.p.v. licht-grijze achtergrond.
+- Logo gecentreerd bovenaan, `height="40"` HTML-attribuut + inline-block
+  zodat Outlook en Gmail dezelfde grootte renderen (fix legacy
+  logo-rendering-issue).
+- Card is transparant (geen border/radius), `padding: 8px 32px 32px`,
+  meer witruimte tussen blokken.
+- Heading 24px, gecentreerd, emoji toegestaan
+  (bv. `Je bent uitgenodigd voor VanXcel 👋`).
+- CTA-knop blijft donker `BRAND.primary` (`#1d3a5f`) — bulletproof MSO.
+- Footer gecentreerd, lichter ritme: "Verzonden door SellQo", support,
+  © year. `emailFooter({ align: 'center' })`.
+
+Stream B (`emailBaseLayout` rechtstreeks via `tenantEmail.ts`) is
+onaangetast: tenant brand-overrides (`getTenantBrand`) blijven hun eigen
+`backgroundColor` / `primaryColor` / logo gebruiken.
+
 ## Building blocks
 
 Alle helpers zijn pure functies die HTML-strings teruggeven.
@@ -24,6 +45,7 @@ Alle helpers zijn pure functies die HTML-strings teruggeven.
 | --------------------- | ---------------------------------------------------------- |
 | `emailHeader`         | Header met logo + optionele tenantnaam                     |
 | `emailFooter`         | Legal, support-link, unsubscribe, extra links              |
+|                       | + `align: 'left' \| 'center'` (default `left`)             |
 | `emailButton`         | Bulletproof MSO + non-MSO knop (`primary` / `secondary`)   |
 | `emailInfoBox`        | Highlighted box met `info`/`success`/`warning`/`danger`    |
 | `emailDivider`        | Horizontale lijn                                           |
