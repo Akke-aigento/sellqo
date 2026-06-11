@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { useEffect } from 'react';
+import { SidebarProvider, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { TenantProvider } from '@/hooks/useTenant';
@@ -20,6 +21,15 @@ function AdminLayoutContent() {
   const location = useLocation();
   const isDashboard = location.pathname === '/admin' || location.pathname === '/admin/dashboard';
   const { currentTenant } = useTenant();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // Auto-close mobile sidebar on navigation
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   return (
     <>
