@@ -358,18 +358,20 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     ? `<p class="sq-muted" style="margin:20px 0 0;font-family:${SANS};font-size:13px;color:${BRAND.muted};text-align:center;line-height:1.6;">${ctaNote}</p>`
     : "";
 
+  // Airy auth-mail style: transparent card, centered heading, generous whitespace.
+  // Keeps `sq-card` class so existing dark-mode CSS still applies.
   const content = `
   <tr>
-    <td class="sq-card" style="background-color:${BRAND.card};border:1px solid ${BRAND.border};border-radius:12px;padding:40px;">
-      <h1 style="margin:0 0 16px;font-family:${SANS};font-size:22px;line-height:1.3;font-weight:700;color:${BRAND.text};">
+    <td class="sq-card" style="background-color:#ffffff;padding:8px 32px 32px;">
+      <h1 style="margin:0 0 20px;font-family:${SANS};font-size:24px;line-height:1.3;font-weight:700;color:${BRAND.text};text-align:center;">
         ${heading}
       </h1>
-      <div style="font-family:${SANS};font-size:15px;line-height:1.65;color:${BRAND.text};">
+      <div style="font-family:${SANS};font-size:15px;line-height:1.65;color:${BRAND.text};text-align:center;">
         ${intro}
       </div>
       ${infoBoxHtml}
-      ${ctaHtml}
-      ${secondaryHtml}
+      <div style="text-align:center;margin-top:8px;">${ctaHtml}</div>
+      ${secondaryHtml ? `<div style="text-align:center;">${secondaryHtml}</div>` : ""}
       ${ctaNoteHtml}
     </td>
   </tr>`;
@@ -378,6 +380,7 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     supportEmail,
     unsubscribeUrl,
     prependNote: footerNote,
+    align: "center",
   });
 
   return emailBaseLayout({
@@ -385,6 +388,8 @@ export function renderSellqoEmail(opts: SellqoEmailOptions): string {
     content,
     footer,
     darkMode,
+    // Airy white canvas — only applies to Stream A; Stream B passes its own brand.
+    brand: { bg: "#ffffff" },
   });
 }
 
