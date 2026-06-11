@@ -2,6 +2,24 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * Opens an external URL reliably across desktop and mobile.
+ * - Mobile browsers block window.open() outside direct user-gesture async chains,
+ *   so we navigate the current tab (Stripe handles return_url back to us).
+ * - Desktop keeps the new-tab UX, with a same-tab fallback for popup blockers.
+ */
+const openExternalUrl = (url: string) => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = url;
+    return;
+  }
+  const win = window.open(url, '_blank');
+  if (!win) {
+    window.location.href = url;
+  }
+};
+
 interface PayoutSchedule {
   interval: string;
   delay_days: number;
@@ -135,8 +153,8 @@ export function useStripeConnect(tenantId: string | undefined) {
       }
 
       if (data.url) {
-        // Open Stripe onboarding in new tab
-        window.open(data.url, '_blank');
+        // Open Stripe onboarding (new tab on desktop, same tab on mobile)
+        openExternalUrl(data.url);
         toast({
           title: 'Stripe onboarding geopend',
           description: 'Rond de onboarding af in het nieuwe tabblad en klik daarna op "Status vernieuwen".',
@@ -184,7 +202,7 @@ export function useStripeConnect(tenantId: string | undefined) {
       if (error) throw error;
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        openExternalUrl(data.url);
       }
     } catch (error: any) {
       console.error('Error opening Stripe dashboard:', error);
