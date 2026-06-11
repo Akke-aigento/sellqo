@@ -250,7 +250,7 @@ export function canWithRoles(
  * Geeft `false` zolang auth nog laadt of er geen user is.
  */
 export function useCan(action: PermissionAction, resource: Resource): boolean {
-  const { roles, loading, user } = useAuth();
+  const { roles, loading, rolesLoading, user } = useAuth();
   const tenantCtx = useContext(TenantContext);
   const currentTenantId = tenantCtx?.currentTenant?.id ?? null;
   // H4e DEV-only: rol-simulator override. Alleen actief in dev-builds én
@@ -260,7 +260,7 @@ export function useCan(action: PermissionAction, resource: Resource): boolean {
   if (import.meta.env.DEV && sim?.role) {
     return canWithRoles([sim.role], action, resource);
   }
-  if (loading || !user) return false;
+  if (loading || !user || rolesLoading) return false;
   // H4-5: filter per-tenant zodat cross-tenant rollen niet lekken.
   // platform_admin blijft globaal (bypass in canWithRoles).
   const scoped = (roles ?? []).filter((r) => {
