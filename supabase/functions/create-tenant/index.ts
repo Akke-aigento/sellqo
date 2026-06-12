@@ -55,6 +55,7 @@ type TenantPayload = {
   billing_email?: string | null;
   billing_company_name?: string | null;
   selected_plan_id?: string | null; // Plan selected during onboarding
+  allow_additional?: boolean; // true = bewust extra tenant aanmaken naast bestaande
 };
 
 serve(async (req) => {
@@ -112,23 +113,29 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: ownerEmail });
 
-    // If a tenant already exists for this owner email, return it.
-    const { data: existing } = await supabase
-      .from("tenants")
-      .select("*")
-      .eq("owner_email", ownerEmail)
-      .limit(1);
-    if (existing && existing.length > 0) {
-      logStep("Existing tenant found", { tenantId: existing[0].id });
-      return new Response(JSON.stringify(existing[0]), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Idempotency voor de standaard onboarding-flow: bestaande tenant teruggeven
+    // bij retry. MAAR: met allow_additional=true maakt de gebruiker bewust een
+    // extra tenant aan en slaan we deze guard over.
+    if (body.allow_additional !== true) {
+      const { data: existing } = await supabase
+        .from("tenants")
+        .select("*")
+        .eq("owner_email", ownerEmail)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        logStep("Existing tenant found (idempotent return)", { tenantId: existing[0].id });
+        return new Response(JSON.stringify(existing[0]), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      logStep("allow_additional=true: creating extra tenant for existing owner");
     }
 
     // Preserve the same business rule as RLS (but executed server-side).
     const { data: canCreate, error: canCreateError } = await supabase.rpc(
-      "can_create_first_tenant",
+      "can_create_tenant",
       { _user_id: user.id, _owner_email: ownerEmail }
     );
     if (canCreateError) {
