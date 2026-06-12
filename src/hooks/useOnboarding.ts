@@ -6,7 +6,7 @@ import { createTenantViaFunction, SlugConflictError } from '@/integrations/backe
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export interface OnboardingData {
   // Step 1: Welcome
@@ -78,7 +78,9 @@ export function useOnboarding() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
-  
+  const [searchParams] = useSearchParams();
+  const isNewTenantFlow = searchParams.get('new') === '1';
+
   const [state, setState] = useState<OnboardingState>({
     currentStep: 1,
     totalSteps: TOTAL_STEPS,
@@ -125,7 +127,9 @@ export function useOnboarding() {
     }
 
     // If user already has access to tenants, skip onboarding entirely
-    if (tenants && tenants.length > 0) {
+    // Bypass deze guard wanneer ?new=1 in URL staat: bestaande tenant_admin
+    // mag dan bewust de onboarding doorlopen voor een extra winkel.
+    if (tenants && tenants.length > 0 && !isNewTenantFlow) {
       await supabase
         .from('profiles')
         .update({ onboarding_completed: true })
@@ -213,7 +217,7 @@ export function useOnboarding() {
   // FIX 2: Remove tenants and currentTenant from dependencies
   // These were causing re-runs after refreshTenants() which flipped the step back
   // Refs: Console log analyse - onboarding step flip (step 1 <-> step 4)
-  }, [user, tenantsLoading]);
+  }, [user, tenantsLoading, isNewTenantFlow, tenants]);
 
   // FIX 2: Debounce the status check to prevent rapid re-runs
   // Refs: Console log analyse - multiple rapid checkOnboardingStatus calls
@@ -460,17 +464,22 @@ export function useOnboarding() {
     };
 
     const attemptCreate = async () => {
-      // First check if tenant already exists (using authed client)
-      console.log('[Onboarding] createTenant: checking for existing tenant...');
-      const { data: existingCheck } = await authedDb
-        .from('tenants')
-        .select('id, name')
-        .eq('owner_email', loginEmail)
-        .limit(1);
-      
-      if (existingCheck && existingCheck.length > 0) {
-        console.log('[Onboarding] createTenant: existing tenant found, using it');
-        return { tenant: existingCheck[0], tenantError: null, wasExisting: true };
+      // First check if tenant already exists (using authed client) — skip in
+      // ?new=1 flow want daar willen we bewust een extra tenant aanmaken.
+      if (!isNewTenantFlow) {
+        console.log('[Onboarding] createTenant: checking for existing tenant...');
+        const { data: existingCheck } = await authedDb
+          .from('tenants')
+          .select('id, name')
+          .eq('owner_email', loginEmail)
+          .limit(1);
+
+        if (existingCheck && existingCheck.length > 0) {
+          console.log('[Onboarding] createTenant: existing tenant found, using it');
+          return { tenant: existingCheck[0], tenantError: null, wasExisting: true };
+        }
+      } else {
+        console.log('[Onboarding] createTenant: ?new=1 flow — skipping existing-tenant check');
       }
 
       // ============================================
@@ -497,6 +506,7 @@ export function useOnboarding() {
       const functionPayload = {
         ...tenantInsertPayload,
         selected_plan_id: selectedPlanId, // Only for Edge Function, which handles tenant_subscriptions
+        ...(isNewTenantFlow ? { allow_additional: true } : {}),
       };
 
       // ============================================
