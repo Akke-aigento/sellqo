@@ -686,7 +686,7 @@ export function useOnboarding() {
       
       throw error;
     }
-  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, toast]);
+  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, toast, isNewTenantFlow]);
 
   // Update tenant with logo
   const updateTenantLogo = useCallback(async (logoUrl: string) => {
