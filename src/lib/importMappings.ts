@@ -444,6 +444,9 @@ export function getDefaultMapping(platform: string, dataType: string): FieldMapp
       products: WOOCOMMERCE_PRODUCT_MAPPING,
       categories: WOOCOMMERCE_CATEGORY_MAPPING,
     },
+    csv: {
+      products: CSV_PRODUCT_MAPPING,
+    },
   };
   
   return mappings[platform]?.[dataType] || {};
@@ -537,6 +540,11 @@ export const TRANSFORMERS: Record<string, (value: string, key?: string) => unkno
   tagArray: (v) => {
     if (!v) return [];
     return v.split(',').map(t => t.trim()).filter(Boolean);
+  },
+
+  pipeArray: (v) => {
+    if (!v) return [];
+    return v.split('|').map(t => t.trim()).filter(Boolean);
   },
   
   html: (v) => {
