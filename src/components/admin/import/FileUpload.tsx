@@ -253,6 +253,16 @@ export function FileUpload({
           </p>
         </Card>
       )}
+
+      {platform === 'csv' && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            💡 <strong>Tip:</strong> Download eerst de template hierboven. Verplichte
+            kolommen zijn <code>name</code>, <code>sku</code> en <code>price</code>.
+            Meerdere tags of images scheid je met een pipe-teken (<code>|</code>).
+          </p>
+        </Card>
+      )}
     </div>
   );
 }
