@@ -172,6 +172,60 @@ export async function parseCSV(file: File): Promise<{
   headers: string[];
   rows: Record<string, string>[];
 }> {
+  // XLSX branch: parse binary spreadsheet via SheetJS
+  if (file.name.toLowerCase().endsWith('.xlsx')) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: 'array' });
+          // Prefer a sheet whose header row contains "name"; otherwise last sheet
+          let chosen: string | undefined;
+          for (const sheetName of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json<string[]>(wb.Sheets[sheetName], {
+              header: 1,
+              raw: false,
+              defval: '',
+            });
+            const headerRow = (rows[0] || []).map((h) => String(h).trim().toLowerCase());
+            if (headerRow.includes('name')) {
+              chosen = sheetName;
+              break;
+            }
+          }
+          const sheetName = chosen || wb.SheetNames[wb.SheetNames.length - 1];
+          const sheet = wb.Sheets[sheetName];
+          const aoa = XLSX.utils.sheet_to_json<string[]>(sheet, {
+            header: 1,
+            raw: false,
+            defval: '',
+          });
+          if (aoa.length < 2) {
+            reject(new Error('File must have at least a header row and one data row'));
+            return;
+          }
+          const headers = (aoa[0] || []).map((h) => String(h).trim());
+          const rows: Record<string, string>[] = [];
+          for (let i = 1; i < aoa.length; i++) {
+            const values = aoa[i] || [];
+            if (!values.some((v) => String(v ?? '').trim() !== '')) continue;
+            const row: Record<string, string> = {};
+            headers.forEach((h, idx) => {
+              row[h] = values[idx] != null ? String(values[idx]) : '';
+            });
+            rows.push(row);
+          }
+          resolve({ headers, rows });
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
