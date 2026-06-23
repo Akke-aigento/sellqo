@@ -431,6 +431,28 @@ export function detectPlatform(headers: string[]): string {
 // ============================================================================
 // GET DEFAULT MAPPING - Now includes orders
 // ============================================================================
+export const CSV_PRODUCT_MAPPING: FieldMapping = {
+  name: { target: 'name', required: true },
+  sku: { target: 'sku' },
+  price: { target: 'price', transform: 'decimal', required: true },
+  compare_at_price: { target: 'compare_at_price', transform: 'decimal' },
+  cost_price: { target: 'cost_price', transform: 'decimal' },
+  barcode: { target: 'barcode' },
+  stock: { target: 'stock', transform: 'number' },
+  category: { target: 'original_category_value' },
+  description: { target: 'description' },
+  short_description: { target: 'short_description' },
+  tags: { target: 'tags', transform: 'pipeArray' },
+  images: { target: 'images', transform: 'pipeArray' },
+  featured_image: { target: 'featured_image' },
+  vendor: { target: 'vendor' },
+  weight: { target: 'weight', transform: 'decimal' },
+  meta_title: { target: 'meta_title' },
+  meta_description: { target: 'meta_description' },
+  is_active: { target: 'is_active', transform: 'boolean' },
+  track_inventory: { target: 'track_inventory', transform: 'boolean' },
+};
+
 export function getDefaultMapping(platform: string, dataType: string): FieldMapping {
   const mappings: Record<string, Record<string, FieldMapping>> = {
     shopify: {
