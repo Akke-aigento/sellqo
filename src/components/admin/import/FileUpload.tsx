@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseCSV } from '@/hooks/useImport';
 import { detectPlatform, consolidateShopifyProductRows } from '@/lib/importMappings';
+import * as XLSX from 'xlsx';
 import type { ImportPlatform, ImportDataType, UploadedFile } from '@/types/import';
 
 interface FileUploadProps {
@@ -90,8 +91,77 @@ export function FileUpload({
     window.location.reload();
   };
 
+  const TEMPLATE_HEADERS = [
+    'name','sku','price','compare_at_price','cost_price','barcode','stock','category',
+    'description','short_description','tags','images','featured_image','vendor','weight',
+    'meta_title','meta_description','is_active','track_inventory',
+  ];
+  const TEMPLATE_EXAMPLE = [
+    'Voorbeeld Product','SKU-001','19.99','24.99','8.00','8711234567890','10','Voorbeeldcategorie',
+    '<p>Volledige productomschrijving.</p>','Korte omschrijving','tag1|tag2',
+    'https://cdn.example.com/img1.jpg|https://cdn.example.com/img2.jpg','',
+    'Voorbeeld Merk','0.50','Voorbeeld Product','SEO meta omschrijving.','true','true',
+  ];
+
+  const downloadExcelTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    const instructions = [
+      ['SellQo product-import template'],
+      [],
+      ['Vul het tabblad "Producten" in. Verplichte kolommen: name, sku, price.'],
+      ['Scheid meerdere tags of images met een pipe-teken (|).'],
+      ['is_active en track_inventory accepteren true/false of yes/no.'],
+      [],
+      ['Kolom', 'Omschrijving'],
+      ...TEMPLATE_HEADERS.map((h) => [h, '']),
+    ];
+    const wsI = XLSX.utils.aoa_to_sheet(instructions);
+    XLSX.utils.book_append_sheet(wb, wsI, 'Instructies');
+    const wsP = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, TEMPLATE_EXAMPLE]);
+    XLSX.utils.book_append_sheet(wb, wsP, 'Producten');
+    XLSX.writeFile(wb, 'sellqo-product-import-template.xlsx');
+  };
+
+  const downloadCsvTemplate = () => {
+    const escape = (v: string) => {
+      if (/[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    };
+    const csv =
+      '\uFEFF' +
+      [TEMPLATE_HEADERS.join(','), TEMPLATE_EXAMPLE.map(escape).join(',')].join('\n');
+    const blob = new Blob([csv], { type: 'application/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sellqo-product-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
+      {platform === 'csv' && (
+        <Card className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-muted/40">
+          <div className="flex-1">
+            <p className="font-medium">Download een template</p>
+            <p className="text-sm text-muted-foreground">
+              Gebruik de juiste kolomnamen — dan wordt alles automatisch gemapt.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={downloadExcelTemplate}>
+              <Download className="h-4 w-4 mr-2" />
+              Excel-template
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={downloadCsvTemplate}>
+              <Download className="h-4 w-4 mr-2" />
+              CSV-template
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {dataTypes.map((dataType) => {
         const uploaded = uploadedFiles.get(dataType);
         const error = errors.get(dataType);
@@ -180,6 +250,16 @@ export function FileUpload({
           <p className="text-sm text-blue-800 dark:text-blue-200">
             💡 <strong>{t('import.platform_tip', { platform: platform.charAt(0).toUpperCase() + platform.slice(1) })}:</strong>{' '}
             {t(`import.${platform}_export_tip`)}
+          </p>
+        </Card>
+      )}
+
+      {platform === 'csv' && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            💡 <strong>Tip:</strong> Download eerst de template hierboven. Verplichte
+            kolommen zijn <code>name</code>, <code>sku</code> en <code>price</code>.
+            Meerdere tags of images scheid je met een pipe-teken (<code>|</code>).
           </p>
         </Card>
       )}
