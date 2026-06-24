@@ -5,6 +5,21 @@ import { useToast } from './use-toast';
 
 type BucketName = 'product-images' | 'tenant-logos' | 'invoices' | 'ai-images' | 'marketing-assets';
 
+const IMAGE_EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+};
+
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB — modern phone photos can be 5-15MB
+
 export function useImageUpload() {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
@@ -21,23 +36,30 @@ export function useImageUpload() {
       return null;
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      toast({ 
-        title: 'Ongeldig bestandstype', 
-        description: 'Alleen JPG, PNG, WebP en GIF zijn toegestaan', 
-        variant: 'destructive' 
+    // Validate file type — Android often returns file.type === '' for content:// URIs,
+    // so we fall back to the extension. Reject only when clearly non-image.
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const extMime = IMAGE_EXT_MIME[ext];
+    const isImageMime = file.type.startsWith('image/');
+    const isAcceptable = isImageMime || (file.type === '' && !!extMime);
+    if (!isAcceptable) {
+      toast({
+        title: 'Ongeldig bestandstype',
+        description: `${file.name}: alleen afbeeldingen (JPG, PNG, WebP, HEIC, GIF, AVIF) zijn toegestaan.`,
+        variant: 'destructive',
+        duration: 8000,
       });
       return null;
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ 
-        title: 'Bestand te groot', 
-        description: 'Maximum bestandsgrootte is 5MB', 
-        variant: 'destructive' 
+    // Validate file size (20MB)
+    if (file.size > MAX_IMAGE_BYTES) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      toast({
+        title: 'Bestand te groot',
+        description: `${file.name} is ${mb} MB. Maximum is 20 MB — verklein de foto en probeer opnieuw.`,
+        variant: 'destructive',
+        duration: 8000,
       });
       return null;
     }
@@ -51,11 +73,17 @@ export function useImageUpload() {
         ? `${customPath}.${fileExt}`
         : `${currentTenant.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      // Android often delivers file.type === '' — provide an explicit contentType
+      // so Supabase Storage doesn't store the object as application/octet-stream
+      // (which breaks <img src> rendering downstream).
+      const contentType = file.type || extMime || 'application/octet-stream';
+
       const { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true, // Allow overwriting for logos
+          contentType,
         });
 
       if (uploadError) throw uploadError;
@@ -70,8 +98,9 @@ export function useImageUpload() {
       console.error('Upload error:', error);
       toast({ 
         title: 'Upload mislukt', 
-        description: error instanceof Error ? error.message : 'Onbekende fout', 
-        variant: 'destructive' 
+        description: `${file.name}: ${error instanceof Error ? error.message : 'Onbekende fout'}`,
+        variant: 'destructive',
+        duration: 8000,
       });
       return null;
     } finally {
