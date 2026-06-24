@@ -400,6 +400,8 @@ export default function ProductForm() {
     const files = e.target.files;
     if (!files) return;
     const currentImages = form.getValues('images') || [];
+    const beforeCount = currentImages.length;
+    const attempted = files.length;
     for (const file of Array.from(files)) {
       const url = await uploadImage(file);
       if (url) {
@@ -410,6 +412,14 @@ export default function ProductForm() {
       }
     }
     form.setValue('images', currentImages, { shouldDirty: true });
+    // Fallback feedback: if nothing made it through, show a clear summary
+    // (Android pickers can silently drop files past the per-file toasts).
+    if (attempted > 0 && currentImages.length === beforeCount) {
+      toast.error('Geen van de geselecteerde foto\'s kon worden geüpload', {
+        description: 'Controleer bestandstype en grootte (max 20 MB per foto).',
+        duration: 8000,
+      });
+    }
     e.target.value = '';
   };
 
