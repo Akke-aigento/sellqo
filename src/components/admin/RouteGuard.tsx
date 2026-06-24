@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useCan, type Resource } from '@/hooks/useCan';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { useTenant } from '@/hooks/useTenant';
 import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
@@ -24,6 +25,7 @@ export function RouteGuard({
 }: RouteGuardProps) {
   const location = useLocation();
   const { loading, rolesLoading, user, roles, isPlatformAdmin } = useAuth();
+  const { loading: tenantLoading } = useTenant();
 
   // Hooks moeten onvoorwaardelijk gerund worden — geef een dummy resource
   // mee als er geen check nodig is en negeer het resultaat.
@@ -36,7 +38,7 @@ export function RouteGuard({
   // settle before deciding "no access". Without this we get a flash of
   // /no-access when returning to the app via an external redirect
   // (Stripe Connect onboarding return_url, hard refresh, deep-link).
-  if (loading || (user && rolesLoading)) {
+  if (loading || (user && rolesLoading) || (user && tenantLoading)) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
