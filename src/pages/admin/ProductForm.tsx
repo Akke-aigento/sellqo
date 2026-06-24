@@ -1554,7 +1554,7 @@ export default function ProductForm() {
                                 </>
                               )}
                             </div>
-                            <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={handleImageUpload} disabled={uploading} />
+                            <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
                           </label>
                         </div>
                         {form.watch('images').length > 0 && (
