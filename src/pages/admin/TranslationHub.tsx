@@ -459,7 +459,7 @@ export default function TranslationHub() {
                 {ENTITY_TYPE_LABELS[selectedEntityType]}
               </CardTitle>
               <CardDescription>
-                Bekijk en beheer vertalingen per item
+                Dekking per item — een item is 100% wanneer alle velden in alle doeltalen vertaald zijn
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
