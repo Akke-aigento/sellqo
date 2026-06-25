@@ -658,13 +658,20 @@ export default function TranslationHub() {
                     ))
                   ) : allEntities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Geen {ENTITY_TYPE_LABELS[selectedEntityType].toLowerCase()} gevonden
                       </TableCell>
                     </TableRow>
                   ) : (
                     allEntities.map(item => (
                       <TableRow key={item.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={currentSelected.has(item.id)}
+                            onCheckedChange={() => toggleSelected(item.id)}
+                            aria-label={`Selecteer ${item.name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
