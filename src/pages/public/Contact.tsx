@@ -28,15 +28,15 @@ const contactMethods = [
   {
     icon: MessageSquare,
     title: 'WhatsApp',
-    value: '+32 123 45 67 89',
-    href: 'https://wa.me/3212345678',
+    value: '+32 490 39 75 44',
+    href: 'https://wa.me/32490397544',
     description: 'Snelle antwoorden',
   },
   {
     icon: Phone,
     title: 'Telefoon',
-    value: '+32 123 45 67 89',
-    href: 'tel:+3212345678',
+    value: '+32 490 39 75 44',
+    href: 'tel:+32490397544',
     description: 'Ma-Vr 9:00-17:00',
   },
 ];
