@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, 
@@ -47,16 +47,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { 
   TRANSLATION_LANGUAGES, 
@@ -96,6 +95,39 @@ export default function TranslationHub() {
   const [selectedEntityType, setSelectedEntityType] = useState<TranslatableEntityType>('product');
   const [selectedLanguage, setSelectedLanguage] = useState<TranslationLanguage>('en');
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Record<TranslatableEntityType, Set<string>>>({
+    product: new Set(),
+    category: new Set(),
+    email_template: new Set(),
+    page: new Set(),
+  });
+  const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
+  const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
+  const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
+
+  // Initialise bulk language selection from tenant settings (once they load)
+  useEffect(() => {
+    if (bulkLanguages.length === 0 && settings?.target_languages?.length) {
+      setBulkLanguages(settings.target_languages as TranslationLanguage[]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.target_languages?.join(',')]);
+
+  const currentSelected = selectedIds[selectedEntityType];
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev[selectedEntityType]);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return { ...prev, [selectedEntityType]: next };
+    });
+  };
+
+  const toggleLang = (code: TranslationLanguage) => {
+    setBulkLanguages(prev =>
+      prev.includes(code) ? prev.filter(l => l !== code) : [...prev, code]
+    );
+  };
 
   if (!currentTenant) {
     return (
@@ -112,32 +144,35 @@ export default function TranslationHub() {
     email_template: 0,
     page: 0,
   };
-  const targetLangsForBulk = settings?.target_languages || ['en', 'de', 'fr'];
-  const bulkEntityCount =
-    selectedEntityType === 'product'
-      ? (pendingEntities?.products.length || 0)
-      : selectedEntityType === 'category'
-        ? (pendingEntities?.categories.length || 0)
-        : 0;
   const perCreditCost = getCreditCost('translation');
-  const bulkCost =
-    bulkEntityCount *
-    FIELDS_PER_ENTITY[selectedEntityType] *
-    targetLangsForBulk.length *
-    perCreditCost;
   const perEntityCost =
     FIELDS_PER_ENTITY[selectedEntityType] * 1 * perCreditCost; // 1 entity × 1 lang via dropdown
   const availableCredits = credits?.available || 0;
-  const canAffordBulk = isUnlimited || hasCredits(bulkCost);
 
   const handleBulkTranslate = async () => {
+    if (!bulkLanguages.length) {
+      toast.error('Kies minstens één doeltaal');
+      return;
+    }
+    const ids =
+      bulkScope === 'selected'
+        ? Array.from(currentSelected)
+        : bulkScope === 'missing'
+          ? entitiesForScope.filter(e => e.coverage < 100).map(e => e.id)
+          : entitiesForScope.map(e => e.id);
+    if (!ids.length) {
+      toast.error('Geen items om te vertalen in deze scope');
+      return;
+    }
     try {
       await startBulkTranslation.mutateAsync({
         entityTypes: [selectedEntityType],
-        targetLanguages: settings?.target_languages || ['en', 'de', 'fr'],
-        mode: 'missing',
+        targetLanguages: bulkLanguages,
+        mode: bulkMode,
+        entityIds: ids,
       });
       setBulkDialogOpen(false);
+      setSelectedIds(prev => ({ ...prev, [selectedEntityType]: new Set() }));
       toast.success('Bulk vertaling gestart');
     } catch {
       // Error toast (including insufficient-credits CTA) is handled by the hook's onError.
@@ -188,27 +223,61 @@ export default function TranslationHub() {
   // All entities (not just pending)
   const getAllEntities = () => {
     if (selectedEntityType === 'product') {
-      return products.map(p => ({
+      return products.map(p => {
+        const pe = pendingEntities?.products.find(x => x.id === p.id);
+        return {
         id: p.id,
         name: p.name,
         entity_type: 'product' as const,
-        coverage: pendingEntities?.products.find(pe => pe.id === p.id)?.coverage ?? 100,
-        missing: pendingEntities?.products.find(pe => pe.id === p.id)?.missing ?? 0,
-      }));
+        coverage: pe?.coverage ?? 0,
+        missing: pe?.missing ?? 0,
+        missingByLang: pe?.missingByLang ?? {},
+      };});
     }
     if (selectedEntityType === 'category') {
-      return categories.map(c => ({
+      return categories.map(c => {
+        const pe = pendingEntities?.categories.find(x => x.id === c.id);
+        return {
         id: c.id,
         name: c.name,
         entity_type: 'category' as const,
-        coverage: pendingEntities?.categories.find(pe => pe.id === c.id)?.coverage ?? 100,
-        missing: pendingEntities?.categories.find(pe => pe.id === c.id)?.missing ?? 0,
-      }));
+        coverage: pe?.coverage ?? 0,
+        missing: pe?.missing ?? 0,
+        missingByLang: pe?.missingByLang ?? {},
+      };});
     }
     return [];
   };
 
   const allEntities = getAllEntities();
+  const entitiesForScope = allEntities;
+  const incompleteEntities = allEntities.filter(e => e.coverage < 100);
+
+  // Compute bulk cost based on current dialog selections
+  const fieldsPerItem = FIELDS_PER_ENTITY[selectedEntityType];
+  const scopeEntities =
+    bulkScope === 'selected'
+      ? allEntities.filter(e => currentSelected.has(e.id))
+      : bulkScope === 'missing'
+        ? incompleteEntities
+        : allEntities;
+
+  const bulkCost = (() => {
+    if (!bulkLanguages.length || !fieldsPerItem) return 0;
+    if (bulkMode === 'all') {
+      return scopeEntities.length * fieldsPerItem * bulkLanguages.length * perCreditCost;
+    }
+    // 'missing' — sum per-entity missingByLang for the chosen languages
+    let total = 0;
+    for (const e of scopeEntities) {
+      for (const lang of bulkLanguages) {
+        total += e.missingByLang?.[lang] ?? 0;
+      }
+    }
+    return total * perCreditCost;
+  })();
+
+  const canAffordBulk = isUnlimited || hasCredits(bulkCost);
 
   return (
     <div className="space-y-6">
@@ -225,31 +294,101 @@ export default function TranslationHub() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <AICreditsBadge variant="compact" onUpgrade={() => setPurchaseOpen(true)} />
-          <AlertDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button>
-                <Languages className="mr-2 h-4 w-4" />
-                Bulk Vertalen
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Bulk vertaling starten</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Dit zal alle {ENTITY_TYPE_LABELS[selectedEntityType].toLowerCase()} vertalen naar de geselecteerde talen. 
-                  Bestaande niet-vergrendelde vertalingen worden overschreven.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="py-4">
-                <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
-                    <Badge key={lang.code} variant="secondary" className="text-sm">
-                      {lang.flag} {lang.label}
-                    </Badge>
-                  ))}
+          <Button onClick={() => setBulkDialogOpen(true)}>
+            <Languages className="mr-2 h-4 w-4" />
+            Bulk Vertalen
+            {currentSelected.size > 0 && (
+              <Badge variant="secondary" className="ml-2">{currentSelected.size}</Badge>
+            )}
+          </Button>
+          <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Bulk vertaling starten</DialogTitle>
+                <DialogDescription>
+                  Kies wat je wil vertalen, in welke talen en op welke manier.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 py-2">
+                {/* Scope */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Welke items?</Label>
+                  <RadioGroup
+                    value={bulkScope}
+                    onValueChange={(v) => setBulkScope(v as 'all' | 'missing' | 'selected')}
+                    className="space-y-2"
+                  >
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="missing" id="scope-missing" />
+                      <span>Alleen onvolledige ({incompleteEntities.length})</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="all" id="scope-all" />
+                      <span>Alle ({allEntities.length})</span>
+                    </label>
+                    <label className={`flex items-center gap-2 ${currentSelected.size === 0 ? 'opacity-50' : 'cursor-pointer'}`}>
+                      <RadioGroupItem value="selected" id="scope-selected" disabled={currentSelected.size === 0} />
+                      <span>Geselecteerde ({currentSelected.size})</span>
+                    </label>
+                  </RadioGroup>
                 </div>
-                <div className="mt-4 rounded-md border bg-muted/40 p-3 text-sm">
+
+                {/* Languages */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => {
+                      const active = bulkLanguages.includes(lang.code as TranslationLanguage);
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => toggleLang(lang.code as TranslationLanguage)}
+                          className={`px-3 py-1 rounded-full border text-sm transition-colors ${
+                            active
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          {lang.flag} {lang.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Mode */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Modus</Label>
+                  <RadioGroup
+                    value={bulkMode}
+                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all')}
+                    className="space-y-2"
+                  >
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="missing" id="mode-missing" className="mt-1" />
+                      <div>
+                        <div>Alleen ontbrekende velden</div>
+                        <div className="text-xs text-muted-foreground">
+                          Bestaande vertalingen blijven staan — goedkoopst.
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="all" id="mode-all" className="mt-1" />
+                      <div>
+                        <div>Alles opnieuw vertalen</div>
+                        <div className="text-xs text-muted-foreground">
+                          Overschrijft bestaande, niet-vergrendelde vertalingen.
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
+
+                {/* Cost */}
+                <div className="rounded-md border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
                     Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}
                   </p>
@@ -258,7 +397,7 @@ export default function TranslationHub() {
                       ? 'Je hebt onbeperkte credits (platform admin).'
                       : `Je hebt ${availableCredits} credits beschikbaar.`}
                   </p>
-                  {!canAffordBulk && (
+                  {!canAffordBulk && !isUnlimited && (
                     <button
                       type="button"
                       onClick={() => {
@@ -272,18 +411,26 @@ export default function TranslationHub() {
                   )}
                 </div>
               </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>
+                  Annuleren
+                </Button>
+                <Button
                   onClick={handleBulkTranslate}
-                  disabled={startBulkTranslation.isPending || !canAffordBulk}
+                  disabled={
+                    startBulkTranslation.isPending ||
+                    !canAffordBulk ||
+                    bulkLanguages.length === 0 ||
+                    scopeEntities.length === 0
+                  }
                 >
                   {startBulkTranslation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Start Vertaling
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -321,7 +468,7 @@ export default function TranslationHub() {
               <>
                 <div className="text-2xl font-bold">{stats?.products || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {pendingEntities?.products.length || 0} nog te vertalen
+                  {(pendingEntities?.products.filter(p => p.coverage < 100).length) || 0} nog te vertalen
                 </p>
               </>
             )}
@@ -340,7 +487,7 @@ export default function TranslationHub() {
               <>
                 <div className="text-2xl font-bold">{stats?.categories || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {pendingEntities?.categories.length || 0} nog te vertalen
+                  {(pendingEntities?.categories.filter(c => c.coverage < 100).length) || 0} nog te vertalen
                 </p>
               </>
             )}
@@ -464,6 +611,23 @@ export default function TranslationHub() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={
+                          allEntities.length > 0 &&
+                          allEntities.every(e => currentSelected.has(e.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          setSelectedIds(prev => ({
+                            ...prev,
+                            [selectedEntityType]: checked
+                              ? new Set(allEntities.map(e => e.id))
+                              : new Set(),
+                          }));
+                        }}
+                        aria-label="Selecteer alles"
+                      />
+                    </TableHead>
                     <TableHead>Naam</TableHead>
                     <TableHead>Dekking</TableHead>
                     <TableHead>Status</TableHead>
@@ -474,6 +638,7 @@ export default function TranslationHub() {
                   {pendingLoading ? (
                     [...Array(5)].map((_, i) => (
                       <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -482,13 +647,20 @@ export default function TranslationHub() {
                     ))
                   ) : allEntities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Geen {ENTITY_TYPE_LABELS[selectedEntityType].toLowerCase()} gevonden
                       </TableCell>
                     </TableRow>
                   ) : (
                     allEntities.map(item => (
                       <TableRow key={item.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={currentSelected.has(item.id)}
+                            onCheckedChange={() => toggleSelected(item.id)}
+                            aria-label={`Selecteer ${item.name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
