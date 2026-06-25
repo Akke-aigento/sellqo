@@ -212,13 +212,19 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         ) || [];
         const totalNeeded = productFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
+        const missingByLang: Record<string, number> = {};
+        for (const lang of targetLangs) {
+          const done = entityTranslations.filter(t => t.translated_content && t.target_language === lang).length;
+          missingByLang[lang] = Math.max(0, productFields.length - done);
+        }
         return {
           ...p,
           entity_type: 'product' as const,
           coverage: totalNeeded > 0 ? Math.round((completed / totalNeeded) * 100) : 100,
           missing: totalNeeded - completed,
+          missingByLang,
         };
-      }).filter(p => p.coverage < 100);
+      });
 
       const categoriesWithCoverage = (categories || []).map(c => {
         const entityTranslations = translations?.filter(t => 
@@ -226,13 +232,19 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         ) || [];
         const totalNeeded = categoryFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
+        const missingByLang: Record<string, number> = {};
+        for (const lang of targetLangs) {
+          const done = entityTranslations.filter(t => t.translated_content && t.target_language === lang).length;
+          missingByLang[lang] = Math.max(0, categoryFields.length - done);
+        }
         return {
           ...c,
           entity_type: 'category' as const,
           coverage: totalNeeded > 0 ? Math.round((completed / totalNeeded) * 100) : 100,
           missing: totalNeeded - completed,
+          missingByLang,
         };
-      }).filter(c => c.coverage < 100);
+      });
 
       return {
         products: productsWithCoverage,
@@ -347,6 +359,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
       entityTypes: TranslatableEntityType[];
       targetLanguages: TranslationLanguage[];
       mode: 'all' | 'missing' | 'outdated';
+      entityIds?: string[];
     }) => {
       if (!tenantId) throw new Error('No tenant');
 
@@ -356,6 +369,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
           entityTypes: params.entityTypes,
           targetLanguages: params.targetLanguages,
           mode: params.mode,
+          entityIds: params.entityIds,
         },
       });
 
