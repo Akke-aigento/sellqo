@@ -479,7 +479,7 @@ export default function TranslationHub() {
               <>
                 <div className="text-2xl font-bold">{stats?.products || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {pendingEntities?.products.length || 0} nog te vertalen
+                  {(pendingEntities?.products.filter(p => p.coverage < 100).length) || 0} nog te vertalen
                 </p>
               </>
             )}
@@ -498,7 +498,7 @@ export default function TranslationHub() {
               <>
                 <div className="text-2xl font-bold">{stats?.categories || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {pendingEntities?.categories.length || 0} nog te vertalen
+                  {(pendingEntities?.categories.filter(c => c.coverage < 100).length) || 0} nog te vertalen
                 </p>
               </>
             )}
