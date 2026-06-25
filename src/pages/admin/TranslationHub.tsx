@@ -305,31 +305,101 @@ export default function TranslationHub() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <AICreditsBadge variant="compact" onUpgrade={() => setPurchaseOpen(true)} />
-          <AlertDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button>
-                <Languages className="mr-2 h-4 w-4" />
-                Bulk Vertalen
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Bulk vertaling starten</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Dit zal alle {ENTITY_TYPE_LABELS[selectedEntityType].toLowerCase()} vertalen naar de geselecteerde talen. 
-                  Bestaande niet-vergrendelde vertalingen worden overschreven.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="py-4">
-                <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
-                    <Badge key={lang.code} variant="secondary" className="text-sm">
-                      {lang.flag} {lang.label}
-                    </Badge>
-                  ))}
+          <Button onClick={() => setBulkDialogOpen(true)}>
+            <Languages className="mr-2 h-4 w-4" />
+            Bulk Vertalen
+            {currentSelected.size > 0 && (
+              <Badge variant="secondary" className="ml-2">{currentSelected.size}</Badge>
+            )}
+          </Button>
+          <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Bulk vertaling starten</DialogTitle>
+                <DialogDescription>
+                  Kies wat je wil vertalen, in welke talen en op welke manier.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 py-2">
+                {/* Scope */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Welke items?</Label>
+                  <RadioGroup
+                    value={bulkScope}
+                    onValueChange={(v) => setBulkScope(v as 'all' | 'missing' | 'selected')}
+                    className="space-y-2"
+                  >
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="missing" id="scope-missing" />
+                      <span>Alleen onvolledige ({incompleteEntities.length})</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="all" id="scope-all" />
+                      <span>Alle ({allEntities.length})</span>
+                    </label>
+                    <label className={`flex items-center gap-2 ${currentSelected.size === 0 ? 'opacity-50' : 'cursor-pointer'}`}>
+                      <RadioGroupItem value="selected" id="scope-selected" disabled={currentSelected.size === 0} />
+                      <span>Geselecteerde ({currentSelected.size})</span>
+                    </label>
+                  </RadioGroup>
                 </div>
-                <div className="mt-4 rounded-md border bg-muted/40 p-3 text-sm">
+
+                {/* Languages */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => {
+                      const active = bulkLanguages.includes(lang.code as TranslationLanguage);
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => toggleLang(lang.code as TranslationLanguage)}
+                          className={`px-3 py-1 rounded-full border text-sm transition-colors ${
+                            active
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          {lang.flag} {lang.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Mode */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Modus</Label>
+                  <RadioGroup
+                    value={bulkMode}
+                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all')}
+                    className="space-y-2"
+                  >
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="missing" id="mode-missing" className="mt-1" />
+                      <div>
+                        <div>Alleen ontbrekende velden</div>
+                        <div className="text-xs text-muted-foreground">
+                          Bestaande vertalingen blijven staan — goedkoopst.
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="all" id="mode-all" className="mt-1" />
+                      <div>
+                        <div>Alles opnieuw vertalen</div>
+                        <div className="text-xs text-muted-foreground">
+                          Overschrijft bestaande, niet-vergrendelde vertalingen.
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
+
+                {/* Cost */}
+                <div className="rounded-md border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
                     Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}
                   </p>
@@ -338,7 +408,7 @@ export default function TranslationHub() {
                       ? 'Je hebt onbeperkte credits (platform admin).'
                       : `Je hebt ${availableCredits} credits beschikbaar.`}
                   </p>
-                  {!canAffordBulk && (
+                  {!canAffordBulk && !isUnlimited && (
                     <button
                       type="button"
                       onClick={() => {
@@ -352,18 +422,26 @@ export default function TranslationHub() {
                   )}
                 </div>
               </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>
+                  Annuleren
+                </Button>
+                <Button
                   onClick={handleBulkTranslate}
-                  disabled={startBulkTranslation.isPending || !canAffordBulk}
+                  disabled={
+                    startBulkTranslation.isPending ||
+                    !canAffordBulk ||
+                    bulkLanguages.length === 0 ||
+                    scopeEntities.length === 0
+                  }
                 >
                   {startBulkTranslation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Start Vertaling
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
