@@ -98,7 +98,8 @@ serve(async (req) => {
       }
     }
 
-    // When mode === 'missing', skip fields that already have a translation for the target lang
+    // When mode === 'missing', look up existing translations so we can skip already-translated combos
+    let existingSet = new Set<string>();
     if (mode === 'missing' && entitiesToTranslate.length > 0) {
       const ids = entitiesToTranslate.map(e => e.id);
       const { data: existing } = await supabase
@@ -106,14 +107,11 @@ serve(async (req) => {
         .select('entity_id, entity_type, field_name, target_language, translated_content')
         .eq('tenant_id', tenantId)
         .in('entity_id', ids);
-      const existingSet = new Set(
+      existingSet = new Set(
         (existing || [])
           .filter((t: any) => t.translated_content)
           .map((t: any) => `${t.entity_type}:${t.entity_id}:${t.field_name}:${t.target_language}`)
       );
-      // We can't easily prune per-lang here (loop handles all langs together);
-      // instead reduce creditsNeeded estimate below by counting only missing combos.
-      (entitiesToTranslate as any)._missingMap = existingSet;
     }
 
     if (entitiesToTranslate.length === 0) {
@@ -122,7 +120,19 @@ serve(async (req) => {
     }
 
     let creditsNeeded = 0;
-    for (const e of entitiesToTranslate) creditsNeeded += Object.keys(e.fields).length * targetLanguages.length;
+    for (const e of entitiesToTranslate) {
+      for (const field of Object.keys(e.fields)) {
+        for (const lang of targetLanguages) {
+          if (mode === 'missing' && existingSet.has(`${e.type}:${e.id}:${field}:${lang}`)) continue;
+          creditsNeeded++;
+        }
+      }
+    }
+
+    if (creditsNeeded === 0) {
+      return new Response(JSON.stringify({ success: true, translationsCreated: 0, creditsUsed: 0, itemsQueued: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (!auth.is_platform_admin) {
       const { data: creditResult } = await supabase.rpc('use_ai_credits', {
@@ -142,7 +152,10 @@ serve(async (req) => {
 
     for (const entity of entitiesToTranslate) {
       for (const targetLang of targetLanguages) {
-        const fieldsToTranslate = Object.entries(entity.fields);
+        const fieldsToTranslate = Object.entries(entity.fields).filter(
+          ([field]) => mode !== 'missing' || !existingSet.has(`${entity.type}:${entity.id}:${field}:${targetLang}`)
+        );
+        if (fieldsToTranslate.length === 0) continue;
         
         const systemPrompt = `You are a professional translator. Translate from ${LANGUAGE_NAMES[sourceLanguage]} to ${LANGUAGE_NAMES[targetLang]}. Return JSON with same keys.`;
         const userPrompt = `Translate: ${JSON.stringify(Object.fromEntries(fieldsToTranslate))}`;
