@@ -107,12 +107,23 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
 
       const { data: translations } = await supabase
         .from('content_translations')
-        .select('entity_type, target_language, translated_content')
+        .select('entity_type, entity_id, field_name, target_language, translated_content')
         .eq('tenant_id', tenantId);
 
       const productCount = products?.length || 0;
       const categoryCount = categories?.length || 0;
-      const translationCount = translations?.filter(t => t.translated_content).length || 0;
+
+      const activeProductIds = new Set((products || []).map((p: any) => p.id));
+      const activeCategoryIds = new Set((categories || []).map((c: any) => c.id));
+      const PRODUCT_FIELDS = ['name', 'description', 'short_description', 'meta_title', 'meta_description'];
+      const CATEGORY_FIELDS = ['name', 'description', 'meta_title', 'meta_description'];
+
+      const inScope = (t: any) =>
+        !!t.translated_content &&
+        ((t.entity_type === 'product' && activeProductIds.has(t.entity_id) && PRODUCT_FIELDS.includes(t.field_name)) ||
+         (t.entity_type === 'category' && activeCategoryIds.has(t.entity_id) && CATEGORY_FIELDS.includes(t.field_name)));
+
+      const translationCount = translations?.filter(inScope).length || 0;
 
       // Calculate coverage per language
       const targetLangs = settings?.target_languages || ['en', 'de', 'fr'];
@@ -126,16 +137,16 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         categories: categoryCount,
         totalTranslations: translationCount,
         totalNeeded,
-        coverage: totalNeeded > 0 ? Math.round((translationCount / totalNeeded) * 100) : 100,
+        coverage: totalNeeded > 0 ? Math.min(100, Math.round((translationCount / totalNeeded) * 100)) : 100,
         byLanguage: targetLangs.reduce((acc, lang) => {
-          const langTranslations = translations?.filter(t => 
-            t.target_language === lang && t.translated_content
+          const langTranslations = translations?.filter((t: any) =>
+            inScope(t) && t.target_language === lang
           ).length || 0;
           const langNeeded = (productCount * fieldsPerProduct + categoryCount * fieldsPerCategory);
           acc[lang] = {
             completed: langTranslations,
             total: langNeeded,
-            coverage: langNeeded > 0 ? Math.round((langTranslations / langNeeded) * 100) : 100,
+            coverage: langNeeded > 0 ? Math.min(100, Math.round((langTranslations / langNeeded) * 100)) : 100,
           };
           return acc;
         }, {} as Record<string, { completed: number; total: number; coverage: number }>),
