@@ -15,6 +15,7 @@ interface TranslationRequest {
   entityIds?: string[];
   targetLanguages: string[];
   mode?: 'all' | 'missing' | 'outdated';
+  fields?: string[];
 }
 
 const FIELD_CONFIGS: Record<string, string[]> = {
@@ -32,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, entityType, entityId, entityTypes, entityIds, targetLanguages, mode = 'missing' } =
+    const { tenantId, entityType, entityId, entityTypes, entityIds, targetLanguages, mode = 'missing', fields: requestedFields } =
       await req.json() as TranslationRequest;
 
 
@@ -56,7 +57,10 @@ serve(async (req) => {
 
     if (entityId && entityType) {
       const table = entityType === 'product' ? 'products' : 'categories';
-      const fields = FIELD_CONFIGS[entityType] || [];
+      const allFields = FIELD_CONFIGS[entityType] || [];
+      const fields = requestedFields?.length
+        ? allFields.filter(f => requestedFields.includes(f))
+        : allFields;
       
       const { data: entity } = await supabase.from(table).select('*').eq('id', entityId).single();
 
@@ -73,7 +77,10 @@ serve(async (req) => {
     } else if (entityTypes?.length) {
       for (const type of entityTypes) {
         const table = type === 'product' ? 'products' : 'categories';
-        const fields = FIELD_CONFIGS[type] || [];
+        const allFields = FIELD_CONFIGS[type] || [];
+        const fields = requestedFields?.length
+          ? allFields.filter(f => requestedFields.includes(f))
+          : allFields;
 
         let query = supabase.from(table).select('*')
           .eq('tenant_id', tenantId).eq('is_active', true);
