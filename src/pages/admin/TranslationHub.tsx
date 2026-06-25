@@ -657,6 +657,8 @@ export default function TranslationHub() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <CreditPurchaseDialog open={purchaseOpen} onOpenChange={setPurchaseOpen} />
     </div>
   );
 }
