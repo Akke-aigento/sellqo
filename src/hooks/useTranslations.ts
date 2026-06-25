@@ -187,15 +187,13 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         .from('products')
         .select('id, name')
         .eq('tenant_id', tenantId)
-        .eq('is_active', true)
-        .limit(100);
+        .eq('is_active', true);
 
       const { data: categories } = await supabase
         .from('categories')
         .select('id, name')
         .eq('tenant_id', tenantId)
-        .eq('is_active', true)
-        .limit(100);
+        .eq('is_active', true);
 
       const { data: translations } = await supabase
         .from('content_translations')

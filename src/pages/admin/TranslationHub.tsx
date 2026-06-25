@@ -243,6 +243,7 @@ export default function TranslationHub() {
         coverage: pe?.coverage ?? 0,
         missing: pe?.missing ?? 0,
         missingByLang: pe?.missingByLang ?? {},
+        missingByLangByField: pe?.missingByLangByField ?? {},
       };});
     }
     if (selectedEntityType === 'category') {
@@ -255,6 +256,7 @@ export default function TranslationHub() {
         coverage: pe?.coverage ?? 0,
         missing: pe?.missing ?? 0,
         missingByLang: pe?.missingByLang ?? {},
+        missingByLangByField: pe?.missingByLangByField ?? {},
       };});
     }
     return [];
@@ -286,9 +288,10 @@ export default function TranslationHub() {
         if (byField?.[lang]) {
           total += byField[lang].filter(f => selectedFieldSet.has(f)).length;
         } else {
-          // Fallback: approximate via missing count scaled by selection ratio
-          const all = availableFields.length || 1;
-          total += Math.round(((e.missingByLang?.[lang] ?? 0) * bulkFields.length) / all);
+          // Fallback: if we have no per-field data for this entity/lang,
+          // assume all selected fields are missing (worst case, avoids the
+          // misleading "~0 credits" when data hasn't hydrated yet).
+          total += bulkFields.length;
         }
       }
     }
