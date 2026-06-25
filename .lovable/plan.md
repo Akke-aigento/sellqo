@@ -1,38 +1,28 @@
-
-# Vertaal Hub — per-veld selectie in bulk-dialog
-
 ## Probleem
-De bulk-dialog vertaalt nu altijd álle vertaalbare velden van een entity (bij producten: naam, beschrijving, korte beschrijving, meta-titel, meta-beschrijving). Je kan niet kiezen om bv. enkel SEO-velden of enkel de beschrijving te (her)vertalen. Dat is duur én niet altijd gewenst (vaak wil je naam ongemoeid laten).
+De geschatte kost toont `~0 credits` ook wanneer er duidelijk velden ontbreken (1 geselecteerd item × 3 talen × 5 velden zou in missing-mode > 0 moeten zijn).
 
-## Gewenst gedrag
-Vierde sectie in de bulk-dialog: **Welke velden?**
-- Multi-select chips per veld van het gekozen entity-type (uit `ENTITY_TRANSLATABLE_FIELDS`).
-- Quick-presets: "Alles", "Alleen SEO" (meta_title + meta_description), "Alleen content" (name + description + short_description).
-- Default = alle velden aangevinkt (huidige gedrag blijft de standaard).
-- Kost-preview rekent live met `geselecteerde velden` i.p.v. alle velden.
-- "Start" disabled als geen veld geselecteerd.
+## Root cause (twee bugs)
 
-## Wijzigingen
+**Bug 1 — `missingByLangByField` wordt niet doorgegeven.**
+In `TranslationHub.getAllEntities()` mappen we producten/categorieën uit `useProducts()` / `useCategories()` en mergen alleen `coverage`, `missing` en `missingByLang` uit `pendingEntities`. Het nieuwe `missingByLangByField` blijft achter → in `bulkCost` is `byField` altijd `undefined` → de fallback berekent met `missingByLang[lang]` die óók niet meegekomen is voor entities buiten `pendingEntities`.
 
-### `supabase/functions/ai-translate-content/index.ts`
-- Nieuwe optionele payload `fields?: string[]`.
-- Als meegegeven: filter `FIELD_CONFIGS[type]` op die lijst vóór het opbouwen van `entityFields` (zowel single- als bulk-pad).
-- Credits-berekening en `missing`-skip-logica werken automatisch correct door de gefilterde fields.
+**Bug 2 — `pendingEntities` is gecapt op 100.**
+De queries `from('products').select(...).limit(100)` en hetzelfde voor categories. Voor de geselecteerde rij die buiten die 100 valt (sortering kan verschillen t.o.v. `useProducts`) is `pe === undefined` → `coverage: 0`, `missingByLang: {}`, `missingByLangByField: {}` → cost `0`.
+
+## Fix
 
 ### `src/hooks/useTranslations.ts`
-- `startBulkTranslation` payload uitbreiden met `fields?: TranslatableField[]` en doorgeven aan edge function.
-- `missingByLang` per entity uitsplitsen naar `missingByLangByField` (map `lang -> Set<field>`) zodat de UI per (taal × veld) kan tellen voor accurate `missing`-mode preview. Bestaande `missingByLang` blijft voor backwards-compat.
+- In de `pending-translations` queryFn: verwijder `.limit(100)` op zowel `products` als `categories` (we filteren al op `tenant_id` + `is_active`; tellingen voor dekking moeten volledig zijn).
 
 ### `src/pages/admin/TranslationHub.tsx`
-- Nieuwe sectie "Velden" in de bulk-dialog met toggle-badges per veld (labels uit `FIELD_LABELS`) en 3 preset-knoppen (Alles / Alleen SEO / Alleen content).
-- State `selectedFields: TranslatableField[]` reset bij wijziging van `selectedEntityType`.
-- Kost-formule: `items × selectedFields.length × selectedLanguages.length` (mode `all`), of som van `missingByLangByField[lang][field]` over selectie (mode `missing`).
-- Disabled-state uitbreiden: ook als `selectedFields.length === 0`.
-- Mutatie-call krijgt `fields: selectedFields`.
+- In `getAllEntities()` (zowel product- als category-tak): voeg `missingByLangByField: pe?.missingByLangByField ?? {}` toe aan het returned object.
+- In `bulkCost`-berekening (missing-mode): wanneer `byField?.[lang]` ontbreekt én de entity coverage 0 is én er géén translations bekend zijn, val terug op `bulkFields.length` (alle geselecteerde velden ontbreken) i.p.v. `0`. Concreet: als `missingByLang[lang]` undefined is, behandel het als `availableFields.length` zodat een onbekende entity niet stilletjes als "alles vertaald" geldt.
+
+## Verificatie
+- Selecteer 1 onvertaald product, 3 talen, alle 5 velden, mode `missing` → kost = `1 × 5 × 3 × perCreditCost` (bv. 15 credits).
+- Wissel mode naar `all` → zelfde getal.
+- Vink "Meta titel" en "Meta beschrijving" uit → kost zakt naar `1 × 3 × 3` = 9.
+- Selecteer een product dat al 100% vertaald is → kost blijft 0 in `missing`-mode (correct).
 
 ## Buiten scope
-- Per-veld overrides per entity (bv. "vertaal beschrijving van product X maar naam van product Y") — overkill, niet gevraagd.
-- Field-level lock UI in de tabel zelf — bestaat al via `is_locked` per translation-row.
-
-## Open vraag
-Default veld-selectie: **alle velden aangevinkt** (huidige gedrag) of liever **alleen content-velden** (name + description + short_description) zodat SEO een bewuste extra keuze is? Ik ga voor "alle aangevinkt" tenzij je anders zegt.
+- Refactor van de hele cost-engine of server-side preview-endpoint — overkill voor deze fix.
