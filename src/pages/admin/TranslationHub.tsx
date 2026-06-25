@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useTenant } from '@/hooks/useTenant';
-import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -75,7 +74,6 @@ const ENTITY_ICONS: Record<TranslatableEntityType, React.ElementType> = {
 
 export default function TranslationHub() {
   const { currentTenant } = useTenant();
-  const { isPlatformAdmin } = useAuth();
   const { credits, hasCredits, getCreditCost, isUnlimited } = useAICredits();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const { 
