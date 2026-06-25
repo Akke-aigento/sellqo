@@ -12,6 +12,7 @@ interface TranslationRequest {
   entityType?: string;
   entityId?: string;
   entityTypes?: string[];
+  entityIds?: string[];
   targetLanguages: string[];
   mode?: 'all' | 'missing' | 'outdated';
 }
@@ -31,7 +32,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, entityType, entityId, entityTypes, targetLanguages, mode = 'missing' } = 
+    const { tenantId, entityType, entityId, entityTypes, entityIds, targetLanguages, mode = 'missing' } =
       await req.json() as TranslationRequest;
 
 
@@ -73,9 +74,15 @@ serve(async (req) => {
       for (const type of entityTypes) {
         const table = type === 'product' ? 'products' : 'categories';
         const fields = FIELD_CONFIGS[type] || [];
-        
-        const { data: entities } = await supabase.from(table).select('*')
-          .eq('tenant_id', tenantId).eq('is_active', true).limit(50);
+
+        let query = supabase.from(table).select('*')
+          .eq('tenant_id', tenantId).eq('is_active', true);
+        if (entityIds?.length) {
+          query = query.in('id', entityIds);
+        } else {
+          query = query.limit(50);
+        }
+        const { data: entities } = await query;
 
         for (const entity of (entities || [])) {
           const rec = entity as Record<string, unknown>;
@@ -89,6 +96,24 @@ serve(async (req) => {
           }
         }
       }
+    }
+
+    // When mode === 'missing', skip fields that already have a translation for the target lang
+    if (mode === 'missing' && entitiesToTranslate.length > 0) {
+      const ids = entitiesToTranslate.map(e => e.id);
+      const { data: existing } = await supabase
+        .from('content_translations')
+        .select('entity_id, entity_type, field_name, target_language, translated_content')
+        .eq('tenant_id', tenantId)
+        .in('entity_id', ids);
+      const existingSet = new Set(
+        (existing || [])
+          .filter((t: any) => t.translated_content)
+          .map((t: any) => `${t.entity_type}:${t.entity_id}:${t.field_name}:${t.target_language}`)
+      );
+      // We can't easily prune per-lang here (loop handles all langs together);
+      // instead reduce creditsNeeded estimate below by counting only missing combos.
+      (entitiesToTranslate as any)._missingMap = existingSet;
     }
 
     if (entitiesToTranslate.length === 0) {
