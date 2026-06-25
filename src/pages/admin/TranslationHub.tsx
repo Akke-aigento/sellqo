@@ -264,11 +264,6 @@ export default function TranslationHub() {
   const entitiesForScope = allEntities;
   const incompleteEntities = allEntities.filter(e => e.coverage < 100);
 
-  // Default-init bulk languages from settings the first time settings load
-  if (bulkLanguages.length === 0 && settings?.target_languages?.length) {
-    // best-effort init via state setter outside render is not allowed; use effect would be cleaner.
-  }
-
   // Compute bulk cost based on current dialog selections
   const fieldsPerItem = FIELDS_PER_ENTITY[selectedEntityType];
   const scopeEntities =
