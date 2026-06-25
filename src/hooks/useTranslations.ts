@@ -213,9 +213,16 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         const totalNeeded = productFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
         const missingByLang: Record<string, number> = {};
+        const missingByLangByField: Record<string, string[]> = {};
         for (const lang of targetLangs) {
           const done = entityTranslations.filter(t => t.translated_content && t.target_language === lang).length;
           missingByLang[lang] = Math.max(0, productFields.length - done);
+          const doneFields = new Set(
+            entityTranslations
+              .filter(t => t.translated_content && t.target_language === lang)
+              .map(t => t.field_name)
+          );
+          missingByLangByField[lang] = productFields.filter(f => !doneFields.has(f));
         }
         return {
           ...p,
@@ -223,6 +230,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
           coverage: totalNeeded > 0 ? Math.round((completed / totalNeeded) * 100) : 100,
           missing: totalNeeded - completed,
           missingByLang,
+          missingByLangByField,
         };
       });
 
@@ -233,9 +241,16 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         const totalNeeded = categoryFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
         const missingByLang: Record<string, number> = {};
+        const missingByLangByField: Record<string, string[]> = {};
         for (const lang of targetLangs) {
           const done = entityTranslations.filter(t => t.translated_content && t.target_language === lang).length;
           missingByLang[lang] = Math.max(0, categoryFields.length - done);
+          const doneFields = new Set(
+            entityTranslations
+              .filter(t => t.translated_content && t.target_language === lang)
+              .map(t => t.field_name)
+          );
+          missingByLangByField[lang] = categoryFields.filter(f => !doneFields.has(f));
         }
         return {
           ...c,
@@ -243,6 +258,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
           coverage: totalNeeded > 0 ? Math.round((completed / totalNeeded) * 100) : 100,
           missing: totalNeeded - completed,
           missingByLang,
+          missingByLangByField,
         };
       });
 
@@ -360,6 +376,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
       targetLanguages: TranslationLanguage[];
       mode: 'all' | 'missing' | 'outdated';
       entityIds?: string[];
+      fields?: TranslatableField[];
     }) => {
       if (!tenantId) throw new Error('No tenant');
 
@@ -370,6 +387,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
           targetLanguages: params.targetLanguages,
           mode: params.mode,
           entityIds: params.entityIds,
+          fields: params.fields,
         },
       });
 
