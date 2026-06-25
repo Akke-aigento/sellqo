@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
+import { useAuth } from './useAuth';
 
 interface AICredits {
   id: string;
@@ -14,9 +15,10 @@ interface AICredits {
 
 export function useAICredits() {
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
 
-  // Platform owner (is_internal_tenant) has unlimited credits
-  const isUnlimited = currentTenant?.is_internal_tenant === true;
+  // Platform admins en internal tenants hebben onbeperkte credits
+  const isUnlimited = currentTenant?.is_internal_tenant === true || isPlatformAdmin;
 
   const { data: credits, isLoading, refetch } = useQuery({
     queryKey: ['ai-credits', currentTenant?.id],
@@ -91,6 +93,7 @@ export function useAICredits() {
       image_generation: 5,
       image_enhancement: 2,
       campaign_suggestion: 1,
+      translation: 1,
     };
     return costs[feature] || 1;
   };
