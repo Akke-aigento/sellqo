@@ -3621,3 +3621,34 @@ Datum: 2026-06-11
 - Team-invites blijven bewust Stream A (invite@sellqo.app via Resend): custom flow met team_invitations-tabel, geen Supabase auth-email. One-click accept bij actieve sessie is correct INV-gedrag.
 - Cleanup uitgevoerd: supabase/functions/auth-email-hook/ verwijderd, [functions.auth-email-hook] uit config.toml verwijderd, secrets AUTH_EMAIL_HOOK_SECRET + SUPABASE_AUTH_HOOK_SECRET verwijderd. _shared/email-templates/index.ts behouden als referentie.
 - Pre-flight Mancini reconnect: info@mancinimilano.com = tenant_admin op 2606c5b9; tenants.stripe_account_id = NULL, onboarding_complete = false. Stripe-reconnect-mail naar Sander verstuurd op 2026-06-11.
+
+---
+
+## AI-vertaalknop fix: credits-bypass + transparantie + coverage-stats (2026-06-25)
+
+### Root cause
+
+AI-vertaalknop faalde met generieke toast "Fout bij vertalen". Network-tab: POST naar ai-translate-content gaf 402 (Payment Required) — function draaide wél, use_ai_credits gaf false. DB-check VanXcel (54f6b480): available=275, is_internal_tenant=false; bulk vereiste tot 705 credits (47 producten × 5 velden × 3 talen). Twee oorzaken: (1) platform_admin viel onder de tenant-credit-limiet omdat de check tenant- i.p.v. rol-gebaseerd is, en is_internal_tenant nergens geseed is naar true (dode "platform owner onbeperkt"-logica); (2) geen transparantie — credits/kosten nergens zichtbaar vóór de actie.
+
+### Wijzigingen
+
+- supabase/functions/ai-translate-content/index.ts: auth-result opgevangen; credit-check + 402 gewikkeld in `if (!auth.is_platform_admin)`; 402 geeft nu gestructureerde body `{ error: "insufficient_credits", message, creditsNeeded }`. Bypass bewust op edge-niveau (RPC draait service-role, kent auth.uid() niet).
+- src/hooks/useAICredits.ts: isUnlimited = is_internal_tenant === true || isPlatformAdmin (via useAuth); translation:1 toegevoegd aan getCreditCost.
+- src/hooks/useTranslations.ts: 402-detectie → onInsufficientCredits callback i.p.v. harde navigate; stats-query filtert op is_active=true. Coverage teller/noemer scope gelijkgetrokken: teller telt nu alleen translated_content van ACTIEVE product/category-entiteiten binnen de FIELD_CONFIGS-velden (inScope-helper); coverage defensief gecapt op 100 (totaal + per taal).
+- src/pages/admin/TranslationHub.tsx: AICreditsBadge naast Bulk Vertalen; kostpreview in bulk-confirm (formule velden × talen × cost, matcht edge function exact) met disabled bevestiger + koop-link bij onvoldoende credits; per-entity knop disabled + tooltip met kost; bovenste card → "Totale dekking (alle content)", tabel → "Dekking per item"; CreditPurchaseDialog gerenderd; CTA-route /admin/marketing/ai?purchase=open.
+
+### Test-verwachting
+
+- Als platform_admin: vertaalknop werkt zonder credit-aftrek, badge toont onbeperkt.
+- Als tenant zonder genoeg credits: duidelijke "Onvoldoende AI credits"-toast + "Credits kopen"-CTA die de purchase-dialog opent; bulk-bevestiger disabled met kostpreview.
+- Coverage bovenbalk en per-item dekking blijven consistent, ook na deactiveren/verwijderen van producten (geen >100% meer).
+
+### Status
+
+Live. Geverifieerd via shallow clone post-flight (commit "Credits preview toegevoegd").
+
+### Backlog (rest-schuld, niet blokkerend)
+
+- .limit(50) in edge-function bulk: tenants met >50 actieve producten bereiken nooit 100% in één run (nu n.v.t., VanXcel=47). Bulk in batches splitsen.
+- Dubbele use_ai_credits overload (2-arg + 5-arg) blijft bestaan — latente PostgREST-ambiguïteit, opruimen in aparte batch.
+- is_internal_tenant nooit geseed: per-rol bypass dekt platform_admin, maar een tenant écht onbeperkt maken (bv. Loveke) vereist expliciete vlag.
