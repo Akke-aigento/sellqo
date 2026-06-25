@@ -622,6 +622,23 @@ export default function TranslationHub() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={
+                          allEntities.length > 0 &&
+                          allEntities.every(e => currentSelected.has(e.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          setSelectedIds(prev => ({
+                            ...prev,
+                            [selectedEntityType]: checked
+                              ? new Set(allEntities.map(e => e.id))
+                              : new Set(),
+                          }));
+                        }}
+                        aria-label="Selecteer alles"
+                      />
+                    </TableHead>
                     <TableHead>Naam</TableHead>
                     <TableHead>Dekking</TableHead>
                     <TableHead>Status</TableHead>
@@ -632,6 +649,7 @@ export default function TranslationHub() {
                   {pendingLoading ? (
                     [...Array(5)].map((_, i) => (
                       <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
