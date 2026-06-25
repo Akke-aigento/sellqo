@@ -60,8 +60,11 @@ import { toast } from 'sonner';
 import { 
   TRANSLATION_LANGUAGES, 
   ENTITY_TYPE_LABELS,
+  ENTITY_TRANSLATABLE_FIELDS,
+  FIELD_LABELS,
   type TranslatableEntityType, 
-  type TranslationLanguage 
+  type TranslationLanguage,
+  type TranslatableField,
 } from '@/types/translation';
 
 const ENTITY_ICONS: Record<TranslatableEntityType, React.ElementType> = {
@@ -104,6 +107,12 @@ export default function TranslationHub() {
   const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
   const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
+  const [bulkFields, setBulkFields] = useState<TranslatableField[]>([]);
+
+  // Reset field selection to all fields when entity type changes
+  useEffect(() => {
+    setBulkFields(ENTITY_TRANSLATABLE_FIELDS[selectedEntityType] ?? []);
+  }, [selectedEntityType]);
 
   // Initialise bulk language selection from tenant settings (once they load)
   useEffect(() => {
@@ -129,6 +138,12 @@ export default function TranslationHub() {
     );
   };
 
+  const toggleField = (field: TranslatableField) => {
+    setBulkFields(prev =>
+      prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
+    );
+  };
+
   if (!currentTenant) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -137,16 +152,10 @@ export default function TranslationHub() {
     );
   }
 
-  // Field counts must match the edge function FIELD_CONFIGS exactly.
-  const FIELDS_PER_ENTITY: Record<TranslatableEntityType, number> = {
-    product: 5,
-    category: 4,
-    email_template: 0,
-    page: 0,
-  };
+  const availableFields = ENTITY_TRANSLATABLE_FIELDS[selectedEntityType] ?? [];
+  const SEO_FIELDS: TranslatableField[] = ['meta_title', 'meta_description'];
+  const CONTENT_FIELDS: TranslatableField[] = ['name', 'description', 'short_description'];
   const perCreditCost = getCreditCost('translation');
-  const perEntityCost =
-    FIELDS_PER_ENTITY[selectedEntityType] * 1 * perCreditCost; // 1 entity × 1 lang via dropdown
   const availableCredits = credits?.available || 0;
 
   const handleBulkTranslate = async () => {
@@ -170,6 +179,7 @@ export default function TranslationHub() {
         targetLanguages: bulkLanguages,
         mode: bulkMode,
         entityIds: ids,
+        fields: bulkFields,
       });
       setBulkDialogOpen(false);
       setSelectedIds(prev => ({ ...prev, [selectedEntityType]: new Set() }));
@@ -254,7 +264,6 @@ export default function TranslationHub() {
   const incompleteEntities = allEntities.filter(e => e.coverage < 100);
 
   // Compute bulk cost based on current dialog selections
-  const fieldsPerItem = FIELDS_PER_ENTITY[selectedEntityType];
   const scopeEntities =
     bulkScope === 'selected'
       ? allEntities.filter(e => currentSelected.has(e.id))
@@ -263,15 +272,23 @@ export default function TranslationHub() {
         : allEntities;
 
   const bulkCost = (() => {
-    if (!bulkLanguages.length || !fieldsPerItem) return 0;
+    if (!bulkLanguages.length || !bulkFields.length) return 0;
     if (bulkMode === 'all') {
-      return scopeEntities.length * fieldsPerItem * bulkLanguages.length * perCreditCost;
+      return scopeEntities.length * bulkFields.length * bulkLanguages.length * perCreditCost;
     }
-    // 'missing' — sum per-entity missingByLang for the chosen languages
+    // 'missing' — sum per-entity missing fields intersected with selected fields & languages
     let total = 0;
+    const selectedFieldSet = new Set<string>(bulkFields);
     for (const e of scopeEntities) {
+      const byField = (e as any).missingByLangByField as Record<string, string[]> | undefined;
       for (const lang of bulkLanguages) {
-        total += e.missingByLang?.[lang] ?? 0;
+        if (byField?.[lang]) {
+          total += byField[lang].filter(f => selectedFieldSet.has(f)).length;
+        } else {
+          // Fallback: approximate via missing count scaled by selection ratio
+          const all = availableFields.length || 1;
+          total += Math.round(((e.missingByLang?.[lang] ?? 0) * bulkFields.length) / all);
+        }
       }
     }
     return total * perCreditCost;
@@ -387,6 +404,57 @@ export default function TranslationHub() {
                   </RadioGroup>
                 </div>
 
+                {/* Fields */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium">Welke velden?</Label>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setBulkFields(availableFields)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Alles
+                      </button>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <button
+                        type="button"
+                        onClick={() => setBulkFields(availableFields.filter(f => CONTENT_FIELDS.includes(f)))}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Content
+                      </button>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <button
+                        type="button"
+                        onClick={() => setBulkFields(availableFields.filter(f => SEO_FIELDS.includes(f)))}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        SEO
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableFields.map(field => {
+                      const active = bulkFields.includes(field);
+                      return (
+                        <button
+                          key={field}
+                          type="button"
+                          onClick={() => toggleField(field)}
+                          className={`px-3 py-1 rounded-full border text-sm transition-colors ${
+                            active
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          {FIELD_LABELS[field]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Cost */}
                 <div className="rounded-md border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
@@ -422,6 +490,7 @@ export default function TranslationHub() {
                     startBulkTranslation.isPending ||
                     !canAffordBulk ||
                     bulkLanguages.length === 0 ||
+                    bulkFields.length === 0 ||
                     scopeEntities.length === 0
                   }
                 >
