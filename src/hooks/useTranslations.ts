@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import type {
   ContentTranslation,
@@ -15,10 +14,13 @@ import type {
   ENTITY_TRANSLATABLE_FIELDS,
 } from '@/types/translation';
 
-export function useTranslations() {
+interface UseTranslationsOptions {
+  onInsufficientCredits?: () => void;
+}
+
+export function useTranslations(options: UseTranslationsOptions = {}) {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const tenantId = currentTenant?.id;
 
   // Detect insufficient-credit responses (402) from the edge function and
@@ -34,7 +36,7 @@ export function useTranslations() {
           description: 'Je hebt niet genoeg credits om deze vertaling uit te voeren.',
           action: {
             label: 'Credits kopen',
-            onClick: () => navigate('/admin/marketing/ai?purchase=open'),
+            onClick: () => options.onInsufficientCredits?.(),
           },
         });
         return true;
@@ -94,12 +96,14 @@ export function useTranslations() {
       const { data: products } = await supabase
         .from('products')
         .select('id', { count: 'exact' })
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true);
 
       const { data: categories } = await supabase
         .from('categories')
         .select('id', { count: 'exact' })
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true);
 
       const { data: translations } = await supabase
         .from('content_translations')
