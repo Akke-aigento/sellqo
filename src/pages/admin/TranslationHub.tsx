@@ -156,6 +156,7 @@ export default function TranslationHub() {
   const SEO_FIELDS: TranslatableField[] = ['meta_title', 'meta_description'];
   const CONTENT_FIELDS: TranslatableField[] = ['name', 'description', 'short_description'];
   const perCreditCost = getCreditCost('translation');
+  const perEntityCost = availableFields.length * 1 * perCreditCost; // 1 entity × 1 lang via dropdown
   const availableCredits = credits?.available || 0;
 
   const handleBulkTranslate = async () => {
