@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, 
@@ -115,6 +115,14 @@ export default function TranslationHub() {
   const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
   const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
+
+  // Initialise bulk language selection from tenant settings (once they load)
+  useEffect(() => {
+    if (bulkLanguages.length === 0 && settings?.target_languages?.length) {
+      setBulkLanguages(settings.target_languages as TranslationLanguage[]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.target_languages?.join(',')]);
 
   const currentSelected = selectedIds[selectedEntityType];
 
