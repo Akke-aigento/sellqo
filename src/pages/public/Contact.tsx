@@ -21,8 +21,8 @@ const contactMethods = [
   {
     icon: Mail,
     title: 'E-mail',
-    value: 'hello@sellqo.app',
-    href: 'mailto:hello@sellqo.app',
+    value: 'info@sellqo.app',
+    href: 'mailto:info@sellqo.app',
     description: 'Voor algemene vragen',
   },
   {
