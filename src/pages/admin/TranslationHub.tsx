@@ -153,13 +153,29 @@ export default function TranslationHub() {
   const availableCredits = credits?.available || 0;
 
   const handleBulkTranslate = async () => {
+    if (!bulkLanguages.length) {
+      toast.error('Kies minstens één doeltaal');
+      return;
+    }
+    const ids =
+      bulkScope === 'selected'
+        ? Array.from(currentSelected)
+        : bulkScope === 'missing'
+          ? entitiesForScope.filter(e => e.coverage < 100).map(e => e.id)
+          : entitiesForScope.map(e => e.id);
+    if (!ids.length) {
+      toast.error('Geen items om te vertalen in deze scope');
+      return;
+    }
     try {
       await startBulkTranslation.mutateAsync({
         entityTypes: [selectedEntityType],
-        targetLanguages: settings?.target_languages || ['en', 'de', 'fr'],
-        mode: 'missing',
+        targetLanguages: bulkLanguages,
+        mode: bulkMode,
+        entityIds: ids,
       });
       setBulkDialogOpen(false);
+      setSelectedIds(prev => ({ ...prev, [selectedEntityType]: new Set() }));
       toast.success('Bulk vertaling gestart');
     } catch {
       // Error toast (including insufficient-credits CTA) is handled by the hook's onError.
@@ -210,27 +226,66 @@ export default function TranslationHub() {
   // All entities (not just pending)
   const getAllEntities = () => {
     if (selectedEntityType === 'product') {
-      return products.map(p => ({
+      return products.map(p => {
+        const pe = pendingEntities?.products.find(x => x.id === p.id);
+        return {
         id: p.id,
         name: p.name,
         entity_type: 'product' as const,
-        coverage: pendingEntities?.products.find(pe => pe.id === p.id)?.coverage ?? 100,
-        missing: pendingEntities?.products.find(pe => pe.id === p.id)?.missing ?? 0,
-      }));
+        coverage: pe?.coverage ?? 0,
+        missing: pe?.missing ?? 0,
+        missingByLang: pe?.missingByLang ?? {},
+      };});
     }
     if (selectedEntityType === 'category') {
-      return categories.map(c => ({
+      return categories.map(c => {
+        const pe = pendingEntities?.categories.find(x => x.id === c.id);
+        return {
         id: c.id,
         name: c.name,
         entity_type: 'category' as const,
-        coverage: pendingEntities?.categories.find(pe => pe.id === c.id)?.coverage ?? 100,
-        missing: pendingEntities?.categories.find(pe => pe.id === c.id)?.missing ?? 0,
-      }));
+        coverage: pe?.coverage ?? 0,
+        missing: pe?.missing ?? 0,
+        missingByLang: pe?.missingByLang ?? {},
+      };});
     }
     return [];
   };
 
   const allEntities = getAllEntities();
+  const entitiesForScope = allEntities;
+  const incompleteEntities = allEntities.filter(e => e.coverage < 100);
+
+  // Default-init bulk languages from settings the first time settings load
+  if (bulkLanguages.length === 0 && settings?.target_languages?.length) {
+    // best-effort init via state setter outside render is not allowed; use effect would be cleaner.
+  }
+
+  // Compute bulk cost based on current dialog selections
+  const fieldsPerItem = FIELDS_PER_ENTITY[selectedEntityType];
+  const scopeEntities =
+    bulkScope === 'selected'
+      ? allEntities.filter(e => currentSelected.has(e.id))
+      : bulkScope === 'missing'
+        ? incompleteEntities
+        : allEntities;
+
+  const bulkCost = (() => {
+    if (!bulkLanguages.length || !fieldsPerItem) return 0;
+    if (bulkMode === 'all') {
+      return scopeEntities.length * fieldsPerItem * bulkLanguages.length * perCreditCost;
+    }
+    // 'missing' — sum per-entity missingByLang for the chosen languages
+    let total = 0;
+    for (const e of scopeEntities) {
+      for (const lang of bulkLanguages) {
+        total += e.missingByLang?.[lang] ?? 0;
+      }
+    }
+    return total * perCreditCost;
+  })();
+
+  const canAffordBulk = isUnlimited || hasCredits(bulkCost);
 
   return (
     <div className="space-y-6">
