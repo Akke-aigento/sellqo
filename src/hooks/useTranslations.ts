@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import type {
   ContentTranslation,
   TranslationSettings,
@@ -16,7 +18,32 @@ import type {
 export function useTranslations() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const tenantId = currentTenant?.id;
+
+  // Detect insufficient-credit responses (402) from the edge function and
+  // surface a dedicated toast with a buy-credits CTA. Returns true when the
+  // error was handled, so callers can skip the generic toast.
+  const handleCreditError = async (error: unknown): Promise<boolean> => {
+    if (!(error instanceof FunctionsHttpError)) return false;
+    try {
+      const body = await error.context.json();
+      const status = error.context?.status;
+      if (status === 402 || body?.error === 'insufficient_credits') {
+        toast.error('Onvoldoende AI credits', {
+          description: 'Je hebt niet genoeg credits om deze vertaling uit te voeren.',
+          action: {
+            label: 'Credits kopen',
+            onClick: () => navigate('/admin/marketing/ai?purchase=open'),
+          },
+        });
+        return true;
+      }
+    } catch {
+      // body wasn't JSON — fall through
+    }
+    return false;
+  };
 
   // Fetch translation settings
   const { data: settings, isLoading: settingsLoading } = useQuery({
@@ -317,7 +344,7 @@ export function useTranslations() {
         },
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw response.error;
       return response.data;
     },
     onSuccess: (data) => {
@@ -328,7 +355,8 @@ export function useTranslations() {
         description: `${data.creditsUsed} credits gebruikt`,
       });
     },
-    onError: (error) => {
+    onError: async (error: Error) => {
+      if (await handleCreditError(error)) return;
       toast.error('Fout bij starten vertaling', { description: error.message });
     },
   });
@@ -351,7 +379,7 @@ export function useTranslations() {
         },
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw response.error;
       return response.data;
     },
     onSuccess: (data, variables) => {
@@ -364,7 +392,8 @@ export function useTranslations() {
         description: `${data.translationsCreated} vertalingen gemaakt`,
       });
     },
-    onError: (error) => {
+    onError: async (error: Error) => {
+      if (await handleCreditError(error)) return;
       toast.error('Fout bij vertalen', { description: error.message });
     },
   });

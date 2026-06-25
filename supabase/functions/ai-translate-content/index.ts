@@ -35,7 +35,7 @@ serve(async (req) => {
       await req.json() as TranslationRequest;
 
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
     if (!tenantId || !targetLanguages?.length) {
       return new Response(JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -99,10 +99,18 @@ serve(async (req) => {
     let creditsNeeded = 0;
     for (const e of entitiesToTranslate) creditsNeeded += Object.keys(e.fields).length * targetLanguages.length;
 
-    const { data: creditResult } = await supabase.rpc('use_ai_credits', { p_tenant_id: tenantId, p_credits_needed: creditsNeeded });
-    if (!creditResult) {
-      return new Response(JSON.stringify({ error: "Onvoldoende AI credits" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!auth.is_platform_admin) {
+      const { data: creditResult } = await supabase.rpc('use_ai_credits', {
+        p_tenant_id: tenantId,
+        p_credits_needed: creditsNeeded,
+      });
+      if (!creditResult) {
+        return new Response(JSON.stringify({
+          error: "insufficient_credits",
+          message: "Onvoldoende AI credits",
+          creditsNeeded,
+        }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     let translationsCreated = 0;

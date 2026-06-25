@@ -109,8 +109,8 @@ export default function TranslationHub() {
       });
       setBulkDialogOpen(false);
       toast.success('Bulk vertaling gestart');
-    } catch (error) {
-      toast.error('Fout bij starten vertaling');
+    } catch {
+      // Error toast (including insufficient-credits CTA) is handled by the hook's onError.
     }
   };
 
@@ -122,8 +122,8 @@ export default function TranslationHub() {
         targetLanguages: [selectedLanguage],
       });
       toast.success('Vertaling voltooid');
-    } catch (error) {
-      toast.error('Fout bij vertalen');
+    } catch {
+      // Error toast (including insufficient-credits CTA) is handled by the hook's onError.
     }
   };
 
