@@ -18,8 +18,12 @@ import {
 } from 'lucide-react';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
+import { useAICredits } from '@/hooks/useAICredits';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { AICreditsBadge } from '@/components/admin/marketing/AICreditsBadge';
+import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +75,9 @@ const ENTITY_ICONS: Record<TranslatableEntityType, React.ElementType> = {
 
 export default function TranslationHub() {
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
+  const { credits, hasCredits, getCreditCost, isUnlimited } = useAICredits();
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const { 
     settings, 
     settingsLoading,
@@ -84,7 +91,7 @@ export default function TranslationHub() {
     toggleLock,
     startBulkTranslation,
     translateEntity,
-  } = useTranslations();
+  } = useTranslations({ onInsufficientCredits: () => setPurchaseOpen(true) });
   const { products } = useProducts();
   const { categories } = useCategories();
 
@@ -99,6 +106,31 @@ export default function TranslationHub() {
       </div>
     );
   }
+
+  // Field counts must match the edge function FIELD_CONFIGS exactly.
+  const FIELDS_PER_ENTITY: Record<TranslatableEntityType, number> = {
+    product: 5,
+    category: 4,
+    email_template: 0,
+    page: 0,
+  };
+  const targetLangsForBulk = settings?.target_languages || ['en', 'de', 'fr'];
+  const bulkEntityCount =
+    selectedEntityType === 'product'
+      ? (pendingEntities?.products.length || 0)
+      : selectedEntityType === 'category'
+        ? (pendingEntities?.categories.length || 0)
+        : 0;
+  const perCreditCost = getCreditCost('translation');
+  const bulkCost =
+    bulkEntityCount *
+    FIELDS_PER_ENTITY[selectedEntityType] *
+    targetLangsForBulk.length *
+    perCreditCost;
+  const perEntityCost =
+    FIELDS_PER_ENTITY[selectedEntityType] * 1 * perCreditCost; // 1 entity × 1 lang via dropdown
+  const availableCredits = credits?.available || 0;
+  const canAffordBulk = isUnlimited || hasCredits(bulkCost);
 
   const handleBulkTranslate = async () => {
     try {
@@ -193,7 +225,8 @@ export default function TranslationHub() {
             Beheer vertalingen voor al je content met AI
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <AICreditsBadge variant="compact" onUpgrade={() => setPurchaseOpen(true)} />
           <AlertDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button>
@@ -218,10 +251,35 @@ export default function TranslationHub() {
                     </Badge>
                   ))}
                 </div>
+                <div className="mt-4 rounded-md border bg-muted/40 p-3 text-sm">
+                  <p className="font-medium">
+                    Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    {isUnlimited
+                      ? 'Je hebt onbeperkte credits (platform admin).'
+                      : `Je hebt ${availableCredits} credits beschikbaar.`}
+                  </p>
+                  {!canAffordBulk && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBulkDialogOpen(false);
+                        setPurchaseOpen(true);
+                      }}
+                      className="mt-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      Onvoldoende credits — koop bij
+                    </button>
+                  )}
+                </div>
               </div>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkTranslate} disabled={startBulkTranslation.isPending}>
+                <AlertDialogAction
+                  onClick={handleBulkTranslate}
+                  disabled={startBulkTranslation.isPending || !canAffordBulk}
+                >
                   {startBulkTranslation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Start Vertaling
                 </AlertDialogAction>
@@ -235,7 +293,7 @@ export default function TranslationHub() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Voortgang</CardTitle>
+            <CardTitle className="text-sm font-medium">Totale dekking (alle content)</CardTitle>
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -460,7 +518,8 @@ export default function TranslationHub() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleTranslateEntity(selectedEntityType, item.id)}
-                                disabled={translateEntity.isPending}
+                                disabled={translateEntity.isPending || (!isUnlimited && !hasCredits(perEntityCost))}
+                                title={`Kost ~${perEntityCost} credits`}
                               >
                                 {translateEntity.isPending ? (
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
