@@ -106,6 +106,31 @@ export default function TranslationHub() {
   const [selectedEntityType, setSelectedEntityType] = useState<TranslatableEntityType>('product');
   const [selectedLanguage, setSelectedLanguage] = useState<TranslationLanguage>('en');
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Record<TranslatableEntityType, Set<string>>>({
+    product: new Set(),
+    category: new Set(),
+    email_template: new Set(),
+    page: new Set(),
+  });
+  const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
+  const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
+  const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
+
+  const currentSelected = selectedIds[selectedEntityType];
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev[selectedEntityType]);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return { ...prev, [selectedEntityType]: next };
+    });
+  };
+
+  const toggleLang = (code: TranslationLanguage) => {
+    setBulkLanguages(prev =>
+      prev.includes(code) ? prev.filter(l => l !== code) : [...prev, code]
+    );
+  };
 
   if (!currentTenant) {
     return (
@@ -122,23 +147,10 @@ export default function TranslationHub() {
     email_template: 0,
     page: 0,
   };
-  const targetLangsForBulk = settings?.target_languages || ['en', 'de', 'fr'];
-  const bulkEntityCount =
-    selectedEntityType === 'product'
-      ? (pendingEntities?.products.length || 0)
-      : selectedEntityType === 'category'
-        ? (pendingEntities?.categories.length || 0)
-        : 0;
   const perCreditCost = getCreditCost('translation');
-  const bulkCost =
-    bulkEntityCount *
-    FIELDS_PER_ENTITY[selectedEntityType] *
-    targetLangsForBulk.length *
-    perCreditCost;
   const perEntityCost =
     FIELDS_PER_ENTITY[selectedEntityType] * 1 * perCreditCost; // 1 entity × 1 lang via dropdown
   const availableCredits = credits?.available || 0;
-  const canAffordBulk = isUnlimited || hasCredits(bulkCost);
 
   const handleBulkTranslate = async () => {
     try {
