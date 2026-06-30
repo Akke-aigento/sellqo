@@ -1,42 +1,39 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type CellValueType = boolean | string | 'partial';
 
-const comparisonData: Array<{
-  feature: string;
-  sellqo: CellValueType;
-  shopify: CellValueType;
-  lightspeed: CellValueType;
-  custom: CellValueType;
-}> = [
-  { feature: 'Setup tijd', sellqo: '5 minuten', shopify: '1-2 uur', lightspeed: '2-4 uur', custom: 'Weken' },
-  { feature: 'Maandelijkse kosten', sellqo: 'Vanaf €29', shopify: 'Vanaf €36', lightspeed: 'Vanaf €59', custom: 'Variabel' },
-  { feature: 'Transactiekosten SellQo', sellqo: '€0 (bank QR)', shopify: 'N/A', lightspeed: 'N/A', custom: 'N/A' },
-  { feature: 'Shop Health Score', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Proactieve AI Coach', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'AI SEO Dashboard', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'AI Chatbot 24/7', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
-  { feature: 'Unified Inbox (Email + WhatsApp)', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Odoo ERP Integratie', sellqo: true, shopify: false, lightspeed: false, custom: 'partial' },
-  { feature: 'Bol.com Sponsored Ads', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Meta Ads Manager', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
-  { feature: 'Live Activity Feed', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Multi-channel management', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
-  { feature: 'Voorraadsync', sellqo: true, shopify: 'partial', lightspeed: true, custom: false },
-  { feature: 'AI Marketing Tools', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'AI Productbeschrijvingen', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'AI Vertalingen (EN/DE/FR)', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { feature: 'Ingebouwde Webshop Builder', sellqo: true, shopify: true, lightspeed: false, custom: true },
-  { feature: 'POS Kassasysteem', sellqo: true, shopify: true, lightspeed: true, custom: false },
-  { feature: 'Loyaliteitsprogramma', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
-  { feature: 'Cadeaubonnen systeem', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
-  { feature: 'BTW/OSS compliance', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
-  { feature: 'Peppol e-invoicing (coming soon)', sellqo: 'partial', shopify: false, lightspeed: false, custom: 'partial' },
-  { feature: 'WhatsApp Business', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
-  { feature: 'Nederlandse support', sellqo: true, shopify: false, lightspeed: true, custom: 'partial' },
-  { feature: 'Gratis migratie', sellqo: true, shopify: false, lightspeed: false, custom: false },
+type Row = { key: string; sellqo: CellValueType; shopify: CellValueType; lightspeed: CellValueType; custom: CellValueType };
+
+const comparisonData: Row[] = [
+  { key: 'setup', sellqo: 'setup_sq', shopify: 'setup_sh', lightspeed: 'setup_ls', custom: 'setup_cu' },
+  { key: 'monthly', sellqo: 'mo_sq', shopify: 'mo_sh', lightspeed: 'mo_ls', custom: 'mo_cu' },
+  { key: 'tx', sellqo: 'tx_sq', shopify: 'N/A', lightspeed: 'N/A', custom: 'N/A' },
+  { key: 'health', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'coach', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'seo', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'chatbot', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
+  { key: 'inbox', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'odoo', sellqo: true, shopify: false, lightspeed: false, custom: 'partial' },
+  { key: 'bolAds', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'metaAds', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
+  { key: 'feed', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'multi', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'stock', sellqo: true, shopify: 'partial', lightspeed: true, custom: false },
+  { key: 'aiTools', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'aiDesc', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'aiTrans', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'builder', sellqo: true, shopify: true, lightspeed: false, custom: true },
+  { key: 'pos', sellqo: true, shopify: true, lightspeed: true, custom: false },
+  { key: 'loyalty', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'giftcards', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'vat', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'peppol', sellqo: 'partial', shopify: false, lightspeed: false, custom: 'partial' },
+  { key: 'whatsapp', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
+  { key: 'dutchSupport', sellqo: true, shopify: false, lightspeed: true, custom: 'partial' },
+  { key: 'freeMigration', sellqo: true, shopify: false, lightspeed: false, custom: false },
 ];
 
 const platforms = [
@@ -47,11 +44,12 @@ const platforms = [
 ];
 
 function CellValue({ value }: { value: CellValueType }) {
+  const { t } = useTranslation();
   if (value === 'partial') {
     return (
       <div className="flex flex-col items-center">
         <Check className="w-5 h-5 text-amber-500" />
-        <span className="text-xs text-amber-600">(via app)</span>
+        <span className="text-xs text-amber-600">{t('landing.comparison.viaApp')}</span>
       </div>
     );
   }
@@ -62,11 +60,15 @@ function CellValue({ value }: { value: CellValueType }) {
       <X className="w-5 h-5 text-red-400 mx-auto" />
     );
   }
-  return <span>{value}</span>;
+  // String value — may be an i18n value key under landing.comparison.values, else literal
+  const tryKey = `landing.comparison.values.${value}`;
+  const translated = t(tryKey);
+  return <span>{translated === tryKey ? value : translated}</span>;
 }
 
 export function ComparisonSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
 
   return (
     <section className="py-20 md:py-28 bg-secondary/20">
@@ -79,13 +81,13 @@ export function ComparisonSection() {
           )}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            SellQo vs De Rest
+            {t('landing.comparison.heading')}
           </h2>
         </div>
 
         {/* Scroll hint for mobile */}
         <div className="flex items-center justify-end gap-2 mb-2 md:hidden">
-          <span className="text-xs text-muted-foreground">Scroll →</span>
+          <span className="text-xs text-muted-foreground">{t('landing.comparison.scrollHint')}</span>
         </div>
 
         <div
@@ -98,7 +100,7 @@ export function ComparisonSection() {
           <table className="w-full min-w-[640px] bg-card rounded-2xl border border-border shadow-sellqo overflow-hidden">
             <thead>
               <tr className="border-b border-border">
-                <th className="p-4 text-left text-foreground font-semibold sticky left-0 bg-card z-10 min-w-[140px]">Feature</th>
+                <th className="p-4 text-left text-foreground font-semibold sticky left-0 bg-card z-10 min-w-[140px]">{t('landing.comparison.featureCol')}</th>
                 {platforms.map((platform) => (
                   <th
                     key={platform.key}
@@ -109,7 +111,7 @@ export function ComparisonSection() {
                   >
                     {platform.name}
                     {platform.highlight && (
-                      <span className="block text-xs font-normal mt-1">⭐ Aanbevolen</span>
+                      <span className="block text-xs font-normal mt-1">⭐ {t('landing.comparison.recommended')}</span>
                     )}
                   </th>
                 ))}
@@ -118,7 +120,7 @@ export function ComparisonSection() {
             <tbody>
               {comparisonData.map((row, index) => (
                 <tr key={index} className="border-b border-border last:border-0">
-                  <td className="p-4 text-foreground sticky left-0 bg-card z-10 text-sm">{row.feature}</td>
+                  <td className="p-4 text-foreground sticky left-0 bg-card z-10 text-sm">{t(`landing.comparison.rows.${row.key}`)}</td>
                   {platforms.map((platform) => (
                     <td
                       key={platform.key}
@@ -146,15 +148,15 @@ export function ComparisonSection() {
         >
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-green-500" />
-            <span className="text-muted-foreground">Inbegrepen</span>
+            <span className="text-muted-foreground">{t('landing.comparison.legend.included')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-amber-500" />
-            <span className="text-muted-foreground">Via betaalde app</span>
+            <span className="text-muted-foreground">{t('landing.comparison.legend.viaApp')}</span>
           </div>
           <div className="flex items-center gap-2">
             <X className="w-4 h-4 text-red-400" />
-            <span className="text-muted-foreground">Niet beschikbaar</span>
+            <span className="text-muted-foreground">{t('landing.comparison.legend.notAvailable')}</span>
           </div>
         </div>
       </div>
