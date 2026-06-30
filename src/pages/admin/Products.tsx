@@ -811,6 +811,13 @@ export default function ProductsPage() {
                             </Link>
                           </DropdownMenuItem>
                         <PermissionGate action="write" resource="products">
+                          <DropdownMenuItem
+                            onClick={() => handleDuplicate(product.id)}
+                            disabled={duplicateProduct.isPending}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliceren
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
