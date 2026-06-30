@@ -1,67 +1,70 @@
-# Plan: Producten dupliceren
+## Root cause
 
-Voeg een "Dupliceer" actie toe aan elk product in de admin, die een volledige kopie maakt incl. alle gerelateerde data — als concept (inactief) zodat de gebruiker rustig kan aanpassen voor publicatie.
+Astra Sleep heeft nog **geen rij** in `tenant_theme_settings` (verified via DB: `updated_at = NULL`, `use_custom_frontend = NULL`). Andere tenants waar je het al getest hebt, hadden die rij wel.
 
-## Scope: wat wordt gekopieerd
+De RLS-policies op `tenant_theme_settings` zijn momenteel:
 
-Uit `products` (alle kolommen) + gerelateerde tabellen:
-- `product_variants` + `product_variant_options` (varianten incl. eigen prijs, stock, SKU, barcode, gewicht, afbeelding)
-- `product_categories` (junction — alle gekoppelde categorieën)
-- `product_specifications` + `product_custom_specs`
-- `product_files` (digitale bestanden — referentie naar zelfde storage objects, geen file-kopie)
-- `content_translations` (alle taalvarianten van naam/beschrijving/SEO)
-- `images[]` / `featured_image` (URLs hergebruiken — geen storage duplicatie nodig)
-- `tags`, `social_channels`, `meta_*`, `shopify_optimized_*`, BTW, kostprijs, gewicht, etc.
+| cmd | check |
+|---|---|
+| SELECT | `tenant_id IN get_user_tenant_ids(...) OR is_platform_admin(auth.uid())` |
+| INSERT | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
+| UPDATE | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
+| DELETE | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
 
-## Wat NIET wordt gekopieerd (bewust)
+Jij bent platform_admin en geen `tenant_admin` van Astra Sleep, dus:
+- `StorefrontSettings` → `saveThemeSettings.mutate` → `useStorefront.ts:172-189`
+- `SELECT id` slaagt (platform-admin bypass aanwezig), levert geen rij → tak gaat naar `INSERT`
+- INSERT wordt geblokkeerd door RLS (`WITH CHECK` faalt) → mutation gooit error, toggle springt terug naar `false`.
 
-- `id`, `created_at`, `updated_at`
-- `sku` / `barcode` op parent en varianten → leeg of suffix `-copy` (uniciteit + voorkomt marketplace conflicts)
-- Marketplace-koppelingen: `shopify_product_id`, `shopify_variant_id`, `shopify_listing_status`, `shopify_last_synced_at`, `bol_*`, idem voor andere kanalen → `null` (anders sync-collisions)
-- `is_active` → `false` (start als concept)
-- `slug` → gegenereerd op basis van naam + suffix om unique-constraint te respecteren
-- Statistieken/aggregaten (views, sales count e.d.) → 0/null
-- Orders, reviews, sync-logs (geen historische data)
+Bij tenants waar de rij al bestaat, gaat de tak naar `UPDATE` — die faalt óók (zelfde gat), maar als je daar wel tenant_admin van bent slaagt het wel. Dat verklaart perfect waarom Astra Sleep faalt en jouw andere tenants niet.
 
-## Naamgeving
+Dit is consistent met het patroon "Platform admins bypass RLS" dat de codebase elders gebruikt (memory `auth/platform-admin-unrestricted-access-policy`), maar dat patroon ontbreekt op deze tabel.
 
-Default: `"<originele naam> (kopie)"`. Slug krijgt random suffix om uniek te zijn binnen tenant.
+## Fix
 
-## Technische uitvoering
+Eén migratie die de drie mutatie-policies op `public.tenant_theme_settings` herschrijft zodat `is_platform_admin(auth.uid())` ook write-toegang krijgt — analoog aan de bestaande SELECT-policy:
 
-1. **Edge Function `duplicate-product`** (JWT-auth via `authenticateRequest`, tenant-scoped):
-   - Input: `{ product_id }`
-   - Verifieert dat product tot caller's tenant behoort
-   - Leest origineel + alle relaties in één batch
-   - Maakt nieuwe rij in `products` met geschoonde velden
-   - Kopieert relaties met nieuwe `product_id` (en bij varianten: nieuwe variant-id mapping voor `product_variant_options`)
-   - Wrappen in try/catch; bij mislukken: rollback via DELETE op nieuwe product_id (geen DB transactie mogelijk in PostgREST, dus compensatie)
-   - Output: `{ id: nieuwProductId }`
+```sql
+DROP POLICY tenant_theme_settings_insert_admin ON public.tenant_theme_settings;
+DROP POLICY tenant_theme_settings_update_admin ON public.tenant_theme_settings;
+DROP POLICY tenant_theme_settings_delete_admin ON public.tenant_theme_settings;
 
-2. **Hook `useDuplicateProduct`** in `src/hooks/useProducts.ts`:
-   - `useMutation` die de edge function aanroept
-   - Bij succes: invalidate `products` query + toast + return id
+CREATE POLICY tenant_theme_settings_insert_admin
+  ON public.tenant_theme_settings FOR INSERT TO authenticated
+  WITH CHECK (
+    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
+    OR is_platform_admin(auth.uid())
+  );
 
-3. **UI in `src/pages/admin/Products.tsx`**:
-   - Nieuwe `DropdownMenuItem` "Dupliceren" met `Copy` icoon in beide dropdowns (grid- en list-view, rond regels 616 en 781)
-   - Tussen "Bewerken" en delete
-   - Loading state per rij; bij succes navigeer naar `/admin/products/<nieuwId>` zodat de gebruiker direct kan finetunen
+CREATE POLICY tenant_theme_settings_update_admin
+  ON public.tenant_theme_settings FOR UPDATE TO authenticated
+  USING (
+    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
+    OR is_platform_admin(auth.uid())
+  )
+  WITH CHECK (
+    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
+    OR is_platform_admin(auth.uid())
+  );
 
-4. **Permissies**: gebruik bestaande `useCan('products', 'create')` om het menu-item te tonen — dupliceren = aanmaken.
+CREATE POLICY tenant_theme_settings_delete_admin
+  ON public.tenant_theme_settings FOR DELETE TO authenticated
+  USING (
+    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
+    OR is_platform_admin(auth.uid())
+  );
+```
 
-## Edge cases
+Geen frontend-wijzigingen nodig — de mutation-flow is correct, alleen de policy gate blokkeerde hem.
 
-- Product zonder varianten: skip varianten-stap zonder error
-- Product met digitale levering (`product_files`): kopieer alleen rij-referenties; bestanden in storage blijven gedeeld (zelfde URL)
-- Tenant-isolatie: alle inserts expliciet met `tenant_id` van de caller
-- Unieke constraints (slug, SKU): retry slug met extra suffix; SKU's leegmaken zodat user ze invult
-- Multi-language translations: `content_translations` rijen krijgen nieuwe `entity_id`
+## Verificatie
 
-## Bestanden
+1. Open Astra Sleep storefront-instellingen, zet "Gebruik Custom Frontend" aan, vul URL in, opslaan.
+2. DB-check: `SELECT use_custom_frontend, custom_frontend_url FROM tenant_theme_settings WHERE tenant_id = '169cf7b9-b22a-4a94-87d1-fb4b9cc948f9';` moet de waarden tonen.
+3. Toggle uit/aan en bevestig dat dirty-state en FloatingSaveBar correct doorgaan.
 
-- nieuw: `supabase/functions/duplicate-product/index.ts`
-- update: `supabase/config.toml` (functie registreren met JWT verify)
-- update: `src/hooks/useProducts.ts` (hook + export)
-- update: `src/pages/admin/Products.tsx` (menu items + handler)
+## Scope-guardrails
 
-Geen DB-migraties nodig.
+- Geen wijzigingen aan tenant_admin-rechten of cross-tenant isolatie — alleen platform-admin krijgt expliciet wat hij elders al heeft.
+- Geen frontend-aanrakingen.
+- Geen wijzigingen aan andere tenants' bestaande rijen.
