@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -21,6 +21,7 @@ import {
   XCircle,
   X,
   ImageIcon,
+  Copy,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -82,10 +83,21 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  const handleDuplicate = (productId: string) => {
+    duplicateProduct.mutate(productId, {
+      onSuccess: (newId) => {
+        navigate(`/admin/products/${newId}/edit`);
+      },
+    });
+  };
+
   const { 
     products, 
     isLoading, 
     deleteProduct, 
+    duplicateProduct,
     bulkUpdateProducts, 
     bulkDeleteProducts,
     bulkAdjustPrices,
@@ -627,6 +639,13 @@ export default function ProductsPage() {
                         </Link>
                       </DropdownMenuItem>
                       <PermissionGate action="write" resource="products">
+                        <DropdownMenuItem
+                          onClick={() => handleDuplicate(product.id)}
+                          disabled={duplicateProduct.isPending}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Dupliceren
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -792,6 +811,13 @@ export default function ProductsPage() {
                             </Link>
                           </DropdownMenuItem>
                         <PermissionGate action="write" resource="products">
+                          <DropdownMenuItem
+                            onClick={() => handleDuplicate(product.id)}
+                            disabled={duplicateProduct.isPending}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliceren
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
