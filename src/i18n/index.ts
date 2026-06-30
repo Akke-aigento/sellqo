@@ -5,6 +5,10 @@ import nl from './locales/nl.json';
 import en from './locales/en.json';
 import de from './locales/de.json';
 import fr from './locales/fr.json';
+import landingNl from './locales/landing.nl.json';
+import landingEn from './locales/landing.en.json';
+import landingDe from './locales/landing.de.json';
+import landingFr from './locales/landing.fr.json';
 
 // Get stored language or detect from browser
 const getInitialLanguage = (): string => {
@@ -27,10 +31,10 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      nl: { translation: nl },
-      en: { translation: en },
-      de: { translation: de },
-      fr: { translation: fr },
+      nl: { translation: { ...nl, ...landingNl } },
+      en: { translation: { ...en, ...landingEn } },
+      de: { translation: { ...de, ...landingDe } },
+      fr: { translation: { ...fr, ...landingFr } },
     },
     lng: getInitialLanguage(),
     fallbackLng: 'nl',

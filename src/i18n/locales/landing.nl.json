@@ -1,0 +1,240 @@
+{
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Prijzen",
+      "why": "Waarom SellQo?",
+      "faq": "FAQ",
+      "login": "Inloggen",
+      "start": "Gratis Starten"
+    },
+    "hero": {
+      "title1": "Jouw Online Imperium,",
+      "title2": "Volledig Onder Controle",
+      "subtitle": "Het complete e-commerce platform dat verkopen, voorraad, financiën en groei samenbrengt. Speciaal gebouwd voor ondernemers in België en Nederland.",
+      "ctaPrimary": "Start 14 Dagen Gratis",
+      "ctaSecondary": "Bekijk Live Demo",
+      "trust": {
+        "noCard": "Geen creditcard nodig",
+        "trial": "14 dagen gratis proberen",
+        "setup": "In 5 minuten live",
+        "support": "Nederlandse support"
+      },
+      "float": {
+        "sync": "Live data sync",
+        "conversion": "+23% conversie",
+        "invoicing": "Auto facturatie"
+      }
+    },
+    "social": {
+      "entrepreneurs": "Actieve Ondernemers",
+      "revenue": "Verwerkte Omzet",
+      "uptime": "Uptime Garantie"
+    },
+    "problem": {
+      "heading": "Herken Je Dit?",
+      "items": [
+        { "title": "Constant schakelen tussen 5+ platforms", "desc": "Shopify voor je webshop, Excel voor voorraad, QuickBooks voor facturen, Mailchimp voor marketing..." },
+        { "title": "Geen idee wat je echte winst is", "desc": "Verkoopkosten, retouren, verzending... Je weet het allemaal wel ongeveer, maar niet exact." },
+        { "title": "Uren kwijt aan administratie", "desc": "Handmatig bestellingen invoeren, voorraad bijwerken, facturen maken... tijd die je niet hebt." }
+      ]
+    },
+    "solution": {
+      "heading": "SellQo Maakt Het Anders",
+      "subheading": "Eén platform dat alles combineert wat je nodig hebt om te groeien.",
+      "items": [
+        { "title": "Alles In Één Dashboard", "desc": "Bol, Amazon, Shopify, Odoo — alles op één plek." },
+        { "title": "Live In 5 Minuten", "desc": "Setup wizard importeert je producten automatisch." },
+        { "title": "AI Die Meedenkt", "desc": "SEO, content, vertalingen, chatbot — allemaal AI-powered." },
+        { "title": "Gebouwd Voor EU", "desc": "Peppol, BTW/OSS, GDPR, lokale betaalmethoden ingebakken." }
+      ]
+    },
+    "integrations": {
+      "badge": "SellQo Connect",
+      "heading": "Verkoop Overal. Beheer Het Hier.",
+      "subheading": "SellQo Connect koppelt je webshop aan Bol.com, Amazon, eBay en sociale kanalen — vanuit één dashboard.",
+      "comingSoon": "Binnenkort",
+      "missing": "Mis je een integratie?",
+      "missingCta": "Laat het ons weten",
+      "missingSuffix": " — we bouwen het voor je.",
+      "cats": {
+        "ecommerce": "E-commerce & ERP",
+        "ads": "Advertenties",
+        "social": "Social Commerce & Messaging",
+        "ops": "Operations & Payments"
+      },
+      "badges": { "new": "Nieuw", "vvb": "VVB Labels", "comingSoon": "Coming Soon" }
+    },
+    "unique": {
+      "badge": "Wat ons uniek maakt",
+      "heading": "Functies Die Je Nergens Anders Vindt",
+      "subheading": "Dit is waarom slimme ondernemers kiezen voor SellQo boven Shopify of Lightspeed.",
+      "items": [
+        { "title": "5-Minuten Setup", "desc": "Geen developer nodig. Onze wizard helpt je stap voor stap. Binnen 5 minuten is je eerste product online.", "highlight": "Geen technische kennis vereist" },
+        { "title": "Shop Health Score", "desc": "Real-time gezondheidscheck van je shop: voorraadniveaus, winstmarges, SEO-score, alles op één blik.", "highlight": "Exclusief bij SellQo" },
+        { "title": "Proactieve AI Coach", "desc": "Krijg advies VOORDAT er problemen ontstaan. \"Je voorraad van X raakt op\", \"Tijd voor een actie op Y\".", "highlight": "AI die meedenkt" },
+        { "title": "AI Chatbot 24/7", "desc": "Je webshop heeft een slimme chatbot die vragen beantwoordt op basis van je producten, FAQ en policies.", "highlight": "Klantenservice op automatische piloot" },
+        { "title": "€0 Transactiekosten", "desc": "Met Bank Transfer QR-codes betalen klanten direct via iDEAL/Bancontact zonder Stripe fees.", "highlight": "Bespaar honderden euro's" },
+        { "title": "Unified Inbox", "desc": "Email, WhatsApp, Facebook Messenger, Instagram DMs én marketplace berichten in één inbox. AI stelt antwoorden voor.", "highlight": "Alle kanalen op één plek" }
+      ]
+    },
+    "features": {
+      "heading": "Alles Wat Je Nodig Hebt, Op Één Plek",
+      "subheading": "Geen losse puzzelstukjes meer. SellQo is het complete platform voor jouw e-commerce business.",
+      "items": [
+        { "subtitle": "Multi-Channel Verkoop", "title": "Verkoop Overal, Beheer Centraal", "desc": "SellQo Connect koppelt je webshop aan Bol.com, Amazon, eBay en sociale kanalen — vanuit één dashboard.", "badge": "SellQo Connect" },
+        { "subtitle": "Real-Time Voorraadsync", "title": "Nooit Meer Uitverkocht", "desc": "Automatische sync tussen al je kanalen. Verkoop je iets op Amazon? Je Bol.com en webshop worden direct bijgewerkt." },
+        { "subtitle": "Content, SEO & Campagnes", "title": "Complete AI Marketing Suite", "desc": "Genereer social posts, productbeschrijvingen, email content én afbeeldingen. Plan advertenties op Bol.com en Meta.", "badge": "AI-powered", "list": ["AI Content Hub met agenda", "Automatisch posten naar social media", "Bol.com & Meta Ads manager"] },
+        { "subtitle": "Gevonden Worden", "title": "AI SEO & Vertalingen", "desc": "SEO Dashboard met Quick Wins, technische checks en AI Search optimalisatie. Bulk-vertaal naar EN/DE/FR met één klik.", "badge": "Exclusief" },
+        { "subtitle": "Kortingen & Loyaliteit", "title": "8 Promotietypen", "desc": "Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen, klantgroepen en een compleet loyaliteitsprogramma.", "list": ["Cadeaubonnen met QR-codes", "Stapelbare kortingen met regels", "VIP tiers met punten multipliers"] },
+        { "subtitle": "Facturen & BTW", "title": "Slimme Financiën", "desc": "Factur-X PDF's in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B (coming soon).", "badge": "Peppol Coming Soon" },
+        { "subtitle": "Alle Communicatie Op Één Plek", "title": "Unified Inbox", "desc": "Email, WhatsApp, Facebook Messenger én Instagram DMs in één inbox. Marketplace berichten automatisch gerouteerd.", "badge": "Social Messaging" },
+        { "subtitle": "Geen Code Nodig", "title": "Webshop Builder", "desc": "Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek." },
+        { "subtitle": "Data & Fysieke Verkoop", "title": "Groei-Insights & POS", "desc": "Real-time inzicht in omzet, winstmarges per product. Plus een volledig POS kassasysteem voor je winkel.", "badge": "Omnichannel" }
+      ]
+    },
+    "comparison": {
+      "heading": "SellQo vs De Rest",
+      "recommended": "Aanbevolen",
+      "scrollHint": "Scroll →",
+      "featureCol": "Feature",
+      "legend": { "included": "Inbegrepen", "viaApp": "Via betaalde app", "notAvailable": "Niet beschikbaar" },
+      "viaApp": "(via app)",
+      "rows": {
+        "setup": "Setup tijd",
+        "monthly": "Maandelijkse kosten",
+        "tx": "Transactiekosten SellQo",
+        "health": "Shop Health Score",
+        "coach": "Proactieve AI Coach",
+        "seo": "AI SEO Dashboard",
+        "chatbot": "AI Chatbot 24/7",
+        "inbox": "Unified Inbox (Email + WhatsApp)",
+        "odoo": "Odoo ERP Integratie",
+        "bolAds": "Bol.com Sponsored Ads",
+        "metaAds": "Meta Ads Manager",
+        "feed": "Live Activity Feed",
+        "multi": "Multi-channel management",
+        "stock": "Voorraadsync",
+        "aiTools": "AI Marketing Tools",
+        "aiDesc": "AI Productbeschrijvingen",
+        "aiTrans": "AI Vertalingen (EN/DE/FR)",
+        "builder": "Ingebouwde Webshop Builder",
+        "pos": "POS Kassasysteem",
+        "loyalty": "Loyaliteitsprogramma",
+        "giftcards": "Cadeaubonnen systeem",
+        "vat": "BTW/OSS compliance",
+        "peppol": "Peppol e-invoicing (coming soon)",
+        "whatsapp": "WhatsApp Business",
+        "dutchSupport": "Nederlandse support",
+        "freeMigration": "Gratis migratie"
+      },
+      "values": {
+        "setup_sq": "5 minuten", "setup_sh": "1-2 uur", "setup_ls": "2-4 uur", "setup_cu": "Weken",
+        "mo_sq": "Vanaf €29", "mo_sh": "Vanaf €36", "mo_ls": "Vanaf €59", "mo_cu": "Variabel",
+        "tx_sq": "€0 (bank QR)"
+      }
+    },
+    "testimonials": {
+      "heading": "Dit Zeggen Onze Klanten",
+      "items": [
+        { "quote": "SellQo heeft ons €500/maand bespaard aan apptarieven en ik heb eindelijk overzicht over onze winstmarges. Game changer.", "name": "Sarah van Berg", "company": "Founder, Nordic Living" },
+        { "quote": "De unified inbox en automatische BTW/OSS berekening besparen me uren per week. Mijn boekhouder is er ook blij mee.", "name": "Thomas Hermans", "company": "CEO, TechGear België" },
+        { "quote": "Binnen 2 uur gemigreerd van Shopify naar SellQo. De support is next level — ze denken met je mee.", "name": "Lisa Janssen", "company": "Owner, BabyBoutique.nl" }
+      ]
+    },
+    "pricing": {
+      "heading": "Transparante Prijzen, Schaalbaar Met Jouw Groei",
+      "subheading": "Begin gratis, upgrade wanneer je wilt. Geen verborgen kosten.",
+      "monthly": "Maandelijks",
+      "yearly": "Jaarlijks",
+      "save2months": "Bespaar 2 maanden",
+      "perMonth": "/maand",
+      "perYear": "/jaar",
+      "free": "Gratis",
+      "yearlyHint": "€{{price}} per jaar (bespaar 2 maanden)",
+      "availableAddons": "Beschikbare add-ons:",
+      "boostHeading": "Boost Je Plan Met Add-ons",
+      "freeAtPro": "Gratis bij Pro",
+      "atPro": "€{{price}}/maand bij Pro",
+      "availableFor": "Beschikbaar voor: {{tier}}",
+      "footnoteTrial": "Alle plannen: <strong>14 dagen gratis</strong> • Geen creditcard nodig • Maandelijks opzegbaar",
+      "footnoteTipTitle": "Bespaar op transactiekosten:",
+      "footnoteTipBody": "Met onze Bank Transfer QR-codes betalen je klanten direct via hun bank app — €0 transactiekosten voor jou!",
+      "footnoteStripe": "Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)",
+      "footnoteVat": "Alle prijzen zijn inclusief BTW",
+      "plans": {
+        "free": {
+          "name": "Free", "badge": "Om te starten", "cta": "Start Gratis",
+          "features": ["25 producten", "50 bestellingen/maand", "100 klanten", "Handmatige facturen", "Kortingscodes", "Community support"],
+          "limitations": ["Geen webshop", "Geen AI", "Geen POS", "Geen SellQo Connect", "SellQo watermerk"]
+        },
+        "starter": {
+          "name": "Starter", "badge": "Perfect voor starters", "cta": "Start Gratis",
+          "features": ["250 producten", "500 bestellingen/maand", "1.000 klanten", "3 teamleden", "✨ 50 AI credits/maand", "🛒 Webshop Builder", "Factur-X e-facturen", "Kortingscodes", "Shop Health Score", "Gamification & Badges", "Email support", "Eigen domein", "🔗 SellQo Connect Lite — 1 kanaal"],
+          "addons": ["POS Kassa"]
+        },
+        "pro": {
+          "name": "Pro", "badge": "Meest gekozen", "cta": "Start Gratis",
+          "features": ["2.500 producten", "5.000 bestellingen/maand", "10.000 klanten", "10 teamleden", "✨ 500 AI credits/maand", "🛒 Webshop Builder + Visual Editor", "💳 POS Kassa inclusief", "🤖 AI Business Coach", "🔗 SellQo Connect — alle kanalen", "Peppol e-invoicing (coming soon)", "Multi-warehouse", "Live Activity Feed", "Loyaliteitsprogramma", "Priority support"]
+        },
+        "enterprise": {
+          "name": "Enterprise", "badge": "Voor schaalbare businesses", "cta": "Neem Contact Op",
+          "features": ["Onbeperkte producten", "Onbeperkte bestellingen", "50 teamleden", "✨ 5.000 AI credits/maand", "🛒 Alle premium themes", "🔗 SellQo Connect — alle kanalen + custom", "White-label opties", "Dedicated account manager", "Phone support (NL/BE)", "Gratis migratie (€2.000 waarde)", "SLA 99.9%"]
+        }
+      },
+      "addons": {
+        "ai": { "name": "AI Credit Pack", "desc": "500 extra AI credits/maand", "features": ["Productbeschrijvingen", "Social content", "Afbeelding generatie"], "for": "Starter+" },
+        "pos": { "name": "POS Kassa", "desc": "Verkoop in je winkel", "features": ["Touch interface", "Barcode scanning", "Stripe Terminal"], "for": "Starter (Pro: gratis)" },
+        "peppol": { "name": "Peppol e-Invoicing", "desc": "Binnenkort beschikbaar — verplicht vanaf 2026 in BE", "features": ["Officiële Peppol koppeling", "Automatische verzending", "Ontvangstbevestigingen", "B2B compliance"], "for": "Starter (Pro: gratis)", "urgency": "🔜 Coming Soon — Verplicht 2026" },
+        "marketplace": { "name": "Extra Marketplace", "desc": "Per extra kanaal", "features": ["Amazon, eBay, etc.", "Order sync", "Voorraad sync"], "for": "Pro+" }
+      }
+    },
+    "faq": {
+      "heading": "Veelgestelde Vragen",
+      "items": [
+        { "q": "Hoe werkt de gratis trial?", "a": "14 dagen volledig gratis, alle features beschikbaar. Geen creditcard nodig. Je kiest je plan tijdens onboarding, maar betaalt pas na 14 dagen. Je kunt op elk moment upgraden naar een betaald plan." },
+        { "q": "Wat gebeurt er na de 14 dagen trial?", "a": "Na 14 dagen word je gevraagd een plan te kiezen. Tot die tijd blijft je account actief maar worden nieuwe functies geblokkeerd. Je data blijft veilig behouden en je kunt op elk moment upgraden." },
+        { "q": "Hoe werkt het onboarding proces?", "a": "Bij registratie doorloop je een 7-stappen wizard: winkelnaam, plan selectie, bedrijfsgegevens, logo upload, eerste product, betalingen en lancering. Je kunt stappen overslaan en later voltooien via je instellingen." },
+        { "q": "Wat is de Shop Health Score?", "a": "Een realtime score (0-100%) die de gezondheid van je shop meet op 6 gebieden: fulfillment, voorraad, klantenservice, financiën, SEO en compliance. Je krijgt dagelijks gepersonaliseerde tips om je score te verbeteren." },
+        { "q": "Kan ik later van plan wisselen?", "a": "Ja! Je kunt op elk moment upgraden of downgraden via Instellingen → Abonnement. Upgrades zijn direct actief, downgrades gaan in bij de volgende facturatieperiode. Geen verborgen kosten." },
+        { "q": "Welke talen ondersteunt SellQo?", "a": "Nederlands, Engels, Frans en Duits. Zowel de admin interface als je webshop zijn volledig vertaalbaar. AI vertalingen zijn beschikbaar voor productbeschrijvingen en marketing content." },
+        { "q": "Kan ik mijn bestaande webshop migreren?", "a": "Ja! We hebben import tools voor Shopify, WooCommerce en andere platforms. Enterprise plan klanten krijgen gratis migratie hulp ter waarde van €2000." },
+        { "q": "Welke betaalmethoden worden ondersteund?", "a": "Via Stripe Connect ondersteun je iDEAL, Bancontact, creditcards, Apple Pay, Google Pay en 40+ andere methoden. Jouw klanten betalen direct op jouw Stripe account." },
+        { "q": "Is SellQo geschikt voor B2B verkoop?", "a": "Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-invoicing voor zakelijke klanten (binnenkort beschikbaar)." },
+        { "q": "Hoe werken de AI credits?", "a": "AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise 5.000 credits/maand. Extra credits kun je bijkopen voor €19 per 500 credits." },
+        { "q": "Kan ik ook fysiek verkopen met SellQo?", "a": "Ja! Met onze POS module heb je een complete kassa met touch-interface, barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Beschikbaar als add-on voor €29/maand of €15/maand bij Pro." },
+        { "q": "Welke promoties kan ik instellen?", "a": "SellQo ondersteunt 8 promotietypen: kortingscodes, staffelkorting, BOGO (buy one get one), productbundels, klantgroepen met speciale prijzen, automatische kortingen, cadeaubonnen en een compleet loyaliteitsprogramma met punten." },
+        { "q": "Hoe bouw ik mijn eigen webshop?", "a": "Met de ingebouwde Webshop Builder kies je een theme, pas je secties aan via drag & drop, en koppel je je eigen domein. Starter krijgt basis themes, Pro krijgt 1 premium theme, Enterprise alle themes." },
+        { "q": "Zijn er extra kosten bovenop het abonnement?", "a": "Nee. Het enige wat je betaalt zijn de standaard Stripe betaalkosten (1,5% + €0,25 per transactie). Wij rekenen geen extra transactiekosten. Add-ons zoals POS zijn optioneel." },
+        { "q": "Wat is Peppol en waarom is het belangrijk?", "a": "Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. Onze Peppol-integratie is in ontwikkeling en wordt vóór de deadline gelanceerd, zodat jij op tijd compliant bent." },
+        { "q": "Wat gebeurt er met mijn data als ik stop?", "a": "Je data blijft van jou. Je kunt alles exporteren (producten, klanten, bestellingen) in CSV, Excel of via API. We verwijderen je data pas 30 dagen na opzegging." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Klaar Om Je E-commerce Naar Het Volgende Level Te Tillen?",
+      "subheading": "Sluit je aan bij 500+ ondernemers die hun business laten groeien met SellQo",
+      "cta": "Start Je Gratis Proefperiode",
+      "trust": "Geen creditcard nodig • 14 dagen volledig gratis • Annuleer wanneer je wilt",
+      "ssl": "SSL Beveiligd",
+      "gdpr": "GDPR Compliant"
+    },
+    "footer": {
+      "tagline": "E-commerce management, zoals het hoort.",
+      "product": "Product",
+      "company": "Bedrijf",
+      "support": "Support",
+      "links": {
+        "features": "Features", "pricing": "Prijzen", "integrations": "Integraties", "apiDocs": "API Docs", "changelog": "Changelog",
+        "about": "Over Ons", "blog": "Blog", "contact": "Contact", "careers": "Careers", "partners": "Partners",
+        "help": "Help Center", "faq": "FAQ", "status": "Status Page", "contactUs": "Neem Contact Op",
+        "privacy": "Privacy Policy", "terms": "Algemene Voorwaarden", "cookies": "Cookie Policy"
+      },
+      "legalEntity": "Legal entity",
+      "legalLine1": "SellQo is a product of Nomadix BV",
+      "legalLine2": "Beekstraat 49, 3051 Oud-Heverlee, Belgium",
+      "legalLine3": "VAT / Company number: BE 1017.500.207",
+      "contact": "Contact:",
+      "copyright": "© {{year}} Nomadix BV. All rights reserved."
+    }
+  }
+}

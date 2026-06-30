@@ -1,29 +1,8 @@
 import { Link } from 'react-router-dom';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Linkedin, Twitter, Facebook } from 'lucide-react';
-
-const productLinks = [
-  { label: 'Features', href: '#features', isAnchor: true },
-  { label: 'Prijzen', href: '#pricing', isAnchor: true },
-  { label: 'Integraties', href: '/integrations', isAnchor: false },
-  { label: 'API Docs', href: '/api-docs', isAnchor: false },
-  { label: 'Changelog', href: '/changelog', isAnchor: false },
-];
-
-const companyLinks = [
-  { label: 'Over Ons', href: '/about' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Contact', href: '/contact' },
-  { label: 'Careers', href: '/careers' },
-  { label: 'Partners', href: '/partners' },
-];
-
-const supportLinks = [
-  { label: 'Help Center', href: '/help', isAnchor: false },
-  { label: 'FAQ', href: '#faq', isAnchor: true },
-  { label: 'Status Page', href: '/status', isAnchor: false },
-  { label: 'Neem Contact Op', href: '/contact', isAnchor: false },
-];
+import { useTranslation } from 'react-i18next';
+import { LandingLanguageSwitcher } from './LandingLanguageSwitcher';
 
 const socialLinks = [
   { icon: Linkedin, href: '#', label: 'LinkedIn' },
@@ -31,13 +10,38 @@ const socialLinks = [
   { icon: Facebook, href: '#', label: 'Facebook' },
 ];
 
-const legalLinks = [
-  { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Algemene Voorwaarden', href: '/terms' },
-  { label: 'Cookie Policy', href: '/cookies' },
-];
-
 export function LandingFooter() {
+  const { t } = useTranslation();
+
+  const productLinks = [
+    { label: t('landing.footer.links.features'), href: '#features', isAnchor: true },
+    { label: t('landing.footer.links.pricing'), href: '#pricing', isAnchor: true },
+    { label: t('landing.footer.links.integrations'), href: '/integrations', isAnchor: false },
+    { label: t('landing.footer.links.apiDocs'), href: '/api-docs', isAnchor: false },
+    { label: t('landing.footer.links.changelog'), href: '/changelog', isAnchor: false },
+  ];
+
+  const companyLinks = [
+    { label: t('landing.footer.links.about'), href: '/about' },
+    { label: t('landing.footer.links.blog'), href: '/blog' },
+    { label: t('landing.footer.links.contact'), href: '/contact' },
+    { label: t('landing.footer.links.careers'), href: '/careers' },
+    { label: t('landing.footer.links.partners'), href: '/partners' },
+  ];
+
+  const supportLinks = [
+    { label: t('landing.footer.links.help'), href: '/help', isAnchor: false },
+    { label: t('landing.footer.links.faq'), href: '#faq', isAnchor: true },
+    { label: t('landing.footer.links.status'), href: '/status', isAnchor: false },
+    { label: t('landing.footer.links.contactUs'), href: '/contact', isAnchor: false },
+  ];
+
+  const legalLinks = [
+    { label: t('landing.footer.links.privacy'), href: '/privacy' },
+    { label: t('landing.footer.links.terms'), href: '/terms' },
+    { label: t('landing.footer.links.cookies'), href: '/cookies' },
+  ];
+
   const handleAnchorClick = (href: string) => {
     if (href.startsWith('#')) {
       const element = document.querySelector(href);
@@ -55,7 +59,7 @@ export function LandingFooter() {
           <div>
             <SellqoLogo variant="tagline" className="mb-4 w-full max-w-[200px] md:max-w-[280px]" />
             <p className="text-muted-foreground text-sm mb-6">
-              E-commerce management, zoals het hoort.
+              {t('landing.footer.tagline')}
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
@@ -73,7 +77,7 @@ export function LandingFooter() {
 
           {/* Product column */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Product</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('landing.footer.product')}</h4>
             <ul className="space-y-3">
               {productLinks.map((link) => (
                 <li key={link.label}>
@@ -99,7 +103,7 @@ export function LandingFooter() {
 
           {/* Company column */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Bedrijf</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('landing.footer.company')}</h4>
             <ul className="space-y-3">
               {companyLinks.map((link) => (
                 <li key={link.label}>
@@ -116,7 +120,7 @@ export function LandingFooter() {
 
           {/* Support column */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Support</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('landing.footer.support')}</h4>
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.label}>
@@ -145,14 +149,14 @@ export function LandingFooter() {
         <div className="pt-8 border-t border-border">
           <div className="bg-secondary/40 rounded-lg p-5 md:p-6 mb-6">
             <h4 className="font-semibold text-foreground mb-2 text-sm uppercase tracking-wide">
-              Legal entity
+              {t('landing.footer.legalEntity')}
             </h4>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p className="text-foreground font-medium">SellQo is a product of Nomadix BV</p>
-              <p>Beekstraat 49, 3051 Oud-Heverlee, Belgium</p>
-              <p>VAT / Company number: BE 1017.500.207</p>
+              <p className="text-foreground font-medium">{t('landing.footer.legalLine1')}</p>
+              <p>{t('landing.footer.legalLine2')}</p>
+              <p>{t('landing.footer.legalLine3')}</p>
               <p>
-                Contact:{' '}
+                {t('landing.footer.contact')}{' '}
                 <a href="mailto:info@sellqo.app" className="hover:text-foreground transition-colors underline">
                   info@sellqo.app
                 </a>
@@ -162,7 +166,7 @@ export function LandingFooter() {
 
           <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground text-center lg:text-left">
-              © {new Date().getFullYear()} Nomadix BV. All rights reserved.
+              {t('landing.footer.copyright', { year: new Date().getFullYear() })}
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-6">
@@ -175,24 +179,10 @@ export function LandingFooter() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                to="/contact"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Contact
-              </Link>
             </div>
 
             {/* Language selector */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <button className="hover:text-foreground transition-colors">🇳🇱 NL</button>
-              <span>|</span>
-              <button className="hover:text-foreground transition-colors">🇬🇧 EN</button>
-              <span>|</span>
-              <button className="hover:text-foreground transition-colors">🇫🇷 FR</button>
-              <span>|</span>
-              <button className="hover:text-foreground transition-colors">🇩🇪 DE</button>
-            </div>
+            <LandingLanguageSwitcher />
           </div>
         </div>
       </div>

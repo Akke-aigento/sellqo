@@ -2,54 +2,15 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Zap, Activity, Bot, MessageSquare, Wallet, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 
-const advantages = [
-  {
-    icon: Zap,
-    emoji: '⚡',
-    title: '5-Minuten Setup',
-    description: 'Geen developer nodig. Onze wizard helpt je stap voor stap. Binnen 5 minuten is je eerste product online.',
-    highlight: 'Geen technische kennis vereist',
-  },
-  {
-    icon: Activity,
-    emoji: '📊',
-    title: 'Shop Health Score',
-    description: 'Real-time gezondheidscheck van je shop: voorraadniveaus, winstmarges, SEO-score, alles op één blik.',
-    highlight: 'Exclusief bij SellQo',
-  },
-  {
-    icon: Bot,
-    emoji: '🤖',
-    title: 'Proactieve AI Coach',
-    description: 'Krijg advies VOORDAT er problemen ontstaan. "Je voorraad van X raakt op", "Tijd voor een actie op Y".',
-    highlight: 'AI die meedenkt',
-  },
-  {
-    icon: MessageSquare,
-    emoji: '💬',
-    title: 'AI Chatbot 24/7',
-    description: 'Je webshop heeft een slimme chatbot die vragen beantwoordt op basis van je producten, FAQ en policies.',
-    highlight: 'Klantenservice op automatische piloot',
-  },
-  {
-    icon: Wallet,
-    emoji: '💸',
-    title: '€0 Transactiekosten',
-    description: 'Met Bank Transfer QR-codes betalen klanten direct via iDEAL/Bancontact zonder Stripe fees.',
-    highlight: 'Bespaar honderden euro\'s',
-  },
-  {
-    icon: Inbox,
-    emoji: '📬',
-    title: 'Unified Inbox',
-    description: 'Email, WhatsApp, Facebook Messenger, Instagram DMs én marketplace berichten in één inbox. AI stelt antwoorden voor.',
-    highlight: 'Alle kanalen op één plek',
-  },
-];
+const icons = [Zap, Activity, Bot, MessageSquare, Wallet, Inbox];
+const emojis = ['⚡', '📊', '🤖', '💬', '💸', '📬'];
 
 export function UniqueAdvantagesSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
+  const items = t('landing.unique.items', { returnObjects: true }) as Array<{ title: string; desc: string; highlight: string }>;
 
   return (
     <section id="why-sellqo" className="py-20 md:py-28 bg-secondary/20">
@@ -62,18 +23,20 @@ export function UniqueAdvantagesSection() {
           )}
         >
           <Badge variant="secondary" className="mb-4 bg-accent/10 text-accent border-accent/20">
-            Wat ons uniek maakt
+            {t('landing.unique.badge')}
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Functies Die Je Nergens Anders Vindt
+            {t('landing.unique.heading')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Dit is waarom slimme ondernemers kiezen voor SellQo boven Shopify of Lightspeed.
+            {t('landing.unique.subheading')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
-          {advantages.map((advantage, index) => (
+          {items.map((advantage, index) => {
+            const Icon = icons[index];
+            return (
             <div
               key={index}
               className={cn(
@@ -85,19 +48,20 @@ export function UniqueAdvantagesSection() {
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <advantage.icon className="w-6 h-6 text-primary" />
+                  <Icon className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-2xl">{advantage.emoji}</span>
+                <span className="text-2xl">{emojis[index]}</span>
               </div>
               
               <h3 className="text-xl font-bold text-foreground mb-3">{advantage.title}</h3>
-              <p className="text-muted-foreground mb-4">{advantage.description}</p>
+              <p className="text-muted-foreground mb-4">{advantage.desc}</p>
               
               <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
                 {advantage.highlight}
               </Badge>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

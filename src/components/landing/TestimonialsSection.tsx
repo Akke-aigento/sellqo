@@ -1,33 +1,18 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Quote } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const testimonials = [
-  {
-    quote: 'SellQo heeft ons €500/maand bespaard aan apptarieven en ik heb eindelijk overzicht over onze winstmarges. Game changer.',
-    name: 'Sarah van Berg',
-    company: 'Founder, Nordic Living',
-    initials: 'SB',
-    color: 'bg-primary',
-  },
-  {
-    quote: 'De unified inbox en automatische BTW/OSS berekening besparen me uren per week. Mijn boekhouder is er ook blij mee.',
-    name: 'Thomas Hermans',
-    company: 'CEO, TechGear België',
-    initials: 'TH',
-    color: 'bg-accent',
-  },
-  {
-    quote: 'Binnen 2 uur gemigreerd van Shopify naar SellQo. De support is next level - ze denken met je mee.',
-    name: 'Lisa Janssen',
-    company: 'Owner, BabyBoutique.nl',
-    initials: 'LJ',
-    color: 'bg-green-500',
-  },
+const meta = [
+  { initials: 'SB', color: 'bg-primary' },
+  { initials: 'TH', color: 'bg-accent' },
+  { initials: 'LJ', color: 'bg-green-500' },
 ];
 
 export function TestimonialsSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
+  const testimonials = t('landing.testimonials.items', { returnObjects: true }) as Array<{ quote: string; name: string; company: string }>;
 
   return (
     <section className="pt-12 pb-20 md:pt-16 md:pb-28 bg-secondary/20">
@@ -40,12 +25,14 @@ export function TestimonialsSection() {
           )}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Dit Zeggen Onze Klanten
+            {t('landing.testimonials.heading')}
           </h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-          {testimonials.map((testimonial, index) => (
+          {testimonials.map((testimonial, index) => {
+            const m = meta[index];
+            return (
             <div
               key={index}
               className={cn(
@@ -61,9 +48,9 @@ export function TestimonialsSection() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   'w-12 h-12 rounded-full flex items-center justify-center text-white font-bold',
-                  testimonial.color
+                  m.color
                 )}>
-                  {testimonial.initials}
+                  {m.initials}
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">{testimonial.name}</p>
@@ -71,7 +58,8 @@ export function TestimonialsSection() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

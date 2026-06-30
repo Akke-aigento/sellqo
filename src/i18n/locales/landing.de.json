@@ -1,0 +1,240 @@
+{
+  "landing": {
+    "nav": {
+      "features": "Funktionen",
+      "pricing": "Preise",
+      "why": "Warum SellQo?",
+      "faq": "FAQ",
+      "login": "Anmelden",
+      "start": "Kostenlos starten"
+    },
+    "hero": {
+      "title1": "Dein Online-Imperium,",
+      "title2": "Komplett unter Kontrolle",
+      "subtitle": "Die komplette E-Commerce-Plattform, die Verkauf, Lager, Finanzen und Wachstum vereint. Speziell für Unternehmer in Belgien und den Niederlanden gebaut.",
+      "ctaPrimary": "14 Tage kostenlos testen",
+      "ctaSecondary": "Live-Demo ansehen",
+      "trust": {
+        "noCard": "Keine Kreditkarte nötig",
+        "trial": "14 Tage gratis testen",
+        "setup": "In 5 Minuten live",
+        "support": "Niederländischer Support"
+      },
+      "float": {
+        "sync": "Live-Daten-Sync",
+        "conversion": "+23% Conversion",
+        "invoicing": "Auto-Rechnung"
+      }
+    },
+    "social": {
+      "entrepreneurs": "Aktive Unternehmer",
+      "revenue": "Verarbeiteter Umsatz",
+      "uptime": "Uptime-Garantie"
+    },
+    "problem": {
+      "heading": "Kennst Du Das?",
+      "items": [
+        { "title": "Ständig zwischen 5+ Plattformen wechseln", "desc": "Shopify für den Shop, Excel fürs Lager, QuickBooks für Rechnungen, Mailchimp fürs Marketing..." },
+        { "title": "Keine Ahnung, wie hoch Dein echter Gewinn ist", "desc": "Verkaufskosten, Retouren, Versand... Du weißt es ungefähr, aber nicht genau." },
+        { "title": "Stunden für Admin verloren", "desc": "Bestellungen manuell eingeben, Lager aktualisieren, Rechnungen erstellen... Zeit, die Du nicht hast." }
+      ]
+    },
+    "solution": {
+      "heading": "SellQo macht es anders",
+      "subheading": "Eine Plattform, die alles vereint, was Du zum Wachsen brauchst.",
+      "items": [
+        { "title": "Alles in einem Dashboard", "desc": "Bol, Amazon, Shopify, Odoo — alles an einem Ort." },
+        { "title": "Live in 5 Minuten", "desc": "Setup-Assistent importiert Deine Produkte automatisch." },
+        { "title": "KI, die mitdenkt", "desc": "SEO, Content, Übersetzungen, Chatbot — alles KI-gestützt." },
+        { "title": "Für die EU gebaut", "desc": "Peppol, MwSt./OSS, DSGVO, lokale Zahlungsmethoden eingebaut." }
+      ]
+    },
+    "integrations": {
+      "badge": "SellQo Connect",
+      "heading": "Verkaufe überall. Verwalte hier.",
+      "subheading": "SellQo Connect verbindet Deinen Shop mit Bol.com, Amazon, eBay und sozialen Kanälen — aus einem Dashboard.",
+      "comingSoon": "Bald verfügbar",
+      "missing": "Fehlt eine Integration?",
+      "missingCta": "Lass es uns wissen",
+      "missingSuffix": " — wir bauen sie für Dich.",
+      "cats": {
+        "ecommerce": "E-Commerce & ERP",
+        "ads": "Werbung",
+        "social": "Social Commerce & Messaging",
+        "ops": "Operations & Zahlungen"
+      },
+      "badges": { "new": "Neu", "vvb": "VVB Labels", "comingSoon": "Coming Soon" }
+    },
+    "unique": {
+      "badge": "Was uns einzigartig macht",
+      "heading": "Funktionen, die Du nirgendwo sonst findest",
+      "subheading": "Deshalb wählen clevere Unternehmer SellQo statt Shopify oder Lightspeed.",
+      "items": [
+        { "title": "5-Minuten-Setup", "desc": "Kein Entwickler nötig. Unser Assistent führt Dich Schritt für Schritt. In 5 Minuten ist Dein erstes Produkt online.", "highlight": "Keine technischen Kenntnisse nötig" },
+        { "title": "Shop Health Score", "desc": "Echtzeit-Gesundheitscheck Deines Shops: Lagerbestand, Margen, SEO-Score — alles auf einen Blick.", "highlight": "Exklusiv bei SellQo" },
+        { "title": "Proaktiver KI-Coach", "desc": "Bekomme Tipps, BEVOR Probleme entstehen. \"Lager von X wird knapp\", \"Zeit für eine Aktion bei Y\".", "highlight": "KI, die mitdenkt" },
+        { "title": "KI-Chatbot 24/7", "desc": "Dein Shop hat einen smarten Chatbot, der Fragen anhand Deiner Produkte, FAQ und Richtlinien beantwortet.", "highlight": "Kundenservice auf Autopilot" },
+        { "title": "€0 Transaktionsgebühren", "desc": "Mit Banküberweisungs-QR-Codes zahlen Kunden direkt per iDEAL/Bancontact — ohne Stripe-Gebühren.", "highlight": "Spare hunderte Euros" },
+        { "title": "Unified Inbox", "desc": "E-Mail, WhatsApp, Facebook Messenger, Instagram DMs und Marketplace-Nachrichten in einer Inbox. KI schlägt Antworten vor.", "highlight": "Alle Kanäle an einem Ort" }
+      ]
+    },
+    "features": {
+      "heading": "Alles, was Du brauchst, an einem Ort",
+      "subheading": "Keine verstreuten Tools mehr. SellQo ist die komplette Plattform für Dein E-Commerce-Business.",
+      "items": [
+        { "subtitle": "Multi-Channel-Verkauf", "title": "Überall verkaufen, zentral verwalten", "desc": "SellQo Connect verbindet Deinen Shop mit Bol.com, Amazon, eBay und sozialen Kanälen — aus einem Dashboard.", "badge": "SellQo Connect" },
+        { "subtitle": "Echtzeit-Lagersync", "title": "Nie wieder ausverkauft", "desc": "Automatische Synchronisierung über alle Kanäle. Etwas auf Amazon verkauft? Bol.com und Shop werden sofort aktualisiert." },
+        { "subtitle": "Content, SEO & Kampagnen", "title": "Komplette KI-Marketing-Suite", "desc": "Erstelle Social Posts, Produktbeschreibungen, E-Mail-Content und Bilder. Plane Anzeigen auf Bol.com und Meta.", "badge": "KI-gestützt", "list": ["KI-Content-Hub mit Kalender", "Automatisch in Social Media posten", "Bol.com & Meta Ads Manager"] },
+        { "subtitle": "Gefunden werden", "title": "KI-SEO & Übersetzungen", "desc": "SEO-Dashboard mit Quick Wins, technischen Checks und KI-Search-Optimierung. Bulk-Übersetzung nach EN/DE/FR per Klick.", "badge": "Exklusiv" },
+        { "subtitle": "Rabatte & Loyalität", "title": "8 Aktionstypen", "desc": "Rabattcodes, BOGO, Bundles, Staffelrabatte, Gutscheine, Kundengruppen und ein komplettes Treueprogramm.", "list": ["Gutscheine mit QR-Codes", "Stapelbare Rabatte mit Regeln", "VIP-Stufen mit Punktemultiplikatoren"] },
+        { "subtitle": "Rechnungen & MwSt.", "title": "Smarte Finanzen", "desc": "Factur-X PDFs in 4 Sprachen, automatische MwSt./OSS-Berechnung, Gutschriften und Peppol-E-Invoicing für B2B (bald).", "badge": "Peppol Coming Soon" },
+        { "subtitle": "Alle Kommunikation an einem Ort", "title": "Unified Inbox", "desc": "E-Mail, WhatsApp, Facebook Messenger und Instagram DMs in einer Inbox. Marketplace-Nachrichten automatisch weitergeleitet.", "badge": "Social Messaging" },
+        { "subtitle": "Kein Code nötig", "title": "Webshop Builder", "desc": "Wähle ein Theme, passe Farben an, baue Deine Homepage visuell. Bewertungen von Google, Trustpilot und mehr an einem Ort." },
+        { "subtitle": "Daten & Ladenverkauf", "title": "Wachstums-Insights & POS", "desc": "Echtzeit-Einblick in Umsatz und Margen pro Produkt. Plus ein komplettes POS-Kassensystem für Deinen Laden.", "badge": "Omnichannel" }
+      ]
+    },
+    "comparison": {
+      "heading": "SellQo vs Der Rest",
+      "recommended": "Empfohlen",
+      "scrollHint": "Scrollen →",
+      "featureCol": "Funktion",
+      "legend": { "included": "Inklusive", "viaApp": "Über bezahlte App", "notAvailable": "Nicht verfügbar" },
+      "viaApp": "(per App)",
+      "rows": {
+        "setup": "Setup-Zeit",
+        "monthly": "Monatliche Kosten",
+        "tx": "SellQo Transaktionsgebühren",
+        "health": "Shop Health Score",
+        "coach": "Proaktiver KI-Coach",
+        "seo": "KI-SEO-Dashboard",
+        "chatbot": "KI-Chatbot 24/7",
+        "inbox": "Unified Inbox (E-Mail + WhatsApp)",
+        "odoo": "Odoo-ERP-Integration",
+        "bolAds": "Bol.com Sponsored Ads",
+        "metaAds": "Meta Ads Manager",
+        "feed": "Live Activity Feed",
+        "multi": "Multi-Channel-Management",
+        "stock": "Lager-Sync",
+        "aiTools": "KI-Marketing-Tools",
+        "aiDesc": "KI-Produktbeschreibungen",
+        "aiTrans": "KI-Übersetzungen (EN/DE/FR)",
+        "builder": "Eingebauter Webshop Builder",
+        "pos": "POS-Kassensystem",
+        "loyalty": "Treueprogramm",
+        "giftcards": "Gutscheinsystem",
+        "vat": "MwSt./OSS-Compliance",
+        "peppol": "Peppol-E-Invoicing (bald)",
+        "whatsapp": "WhatsApp Business",
+        "dutchSupport": "Niederländischer Support",
+        "freeMigration": "Gratis Migration"
+      },
+      "values": {
+        "setup_sq": "5 Minuten", "setup_sh": "1-2 Stunden", "setup_ls": "2-4 Stunden", "setup_cu": "Wochen",
+        "mo_sq": "Ab €29", "mo_sh": "Ab €36", "mo_ls": "Ab €59", "mo_cu": "Variabel",
+        "tx_sq": "€0 (Bank-QR)"
+      }
+    },
+    "testimonials": {
+      "heading": "Das sagen unsere Kunden",
+      "items": [
+        { "quote": "SellQo hat uns €500/Monat an App-Gebühren erspart und ich habe endlich Übersicht über unsere Margen. Game Changer.", "name": "Sarah van Berg", "company": "Founder, Nordic Living" },
+        { "quote": "Die Unified Inbox und automatische MwSt./OSS-Berechnung sparen mir Stunden pro Woche. Mein Buchhalter ist auch begeistert.", "name": "Thomas Hermans", "company": "CEO, TechGear Belgien" },
+        { "quote": "In 2 Stunden von Shopify zu SellQo migriert. Der Support ist next level — die denken wirklich mit.", "name": "Lisa Janssen", "company": "Owner, BabyBoutique.nl" }
+      ]
+    },
+    "pricing": {
+      "heading": "Transparente Preise, skalierbar mit Deinem Wachstum",
+      "subheading": "Starte kostenlos, upgrade jederzeit. Keine versteckten Kosten.",
+      "monthly": "Monatlich",
+      "yearly": "Jährlich",
+      "save2months": "Spare 2 Monate",
+      "perMonth": "/Monat",
+      "perYear": "/Jahr",
+      "free": "Kostenlos",
+      "yearlyHint": "€{{price}} pro Jahr (spare 2 Monate)",
+      "availableAddons": "Verfügbare Add-ons:",
+      "boostHeading": "Boost Deinen Plan mit Add-ons",
+      "freeAtPro": "Kostenlos bei Pro",
+      "atPro": "€{{price}}/Monat bei Pro",
+      "availableFor": "Verfügbar für: {{tier}}",
+      "footnoteTrial": "Alle Pläne: <strong>14 Tage gratis</strong> • Keine Kreditkarte nötig • Monatlich kündbar",
+      "footnoteTipTitle": "Spare bei Transaktionsgebühren:",
+      "footnoteTipBody": "Mit unseren Banküberweisungs-QR-Codes zahlen Kunden direkt aus ihrer Bank-App — €0 Transaktionsgebühren für Dich!",
+      "footnoteStripe": "Stripe-Zahlungen: 1,5% + €0,25 pro Transaktion (Standard-Stripe-Tarife)",
+      "footnoteVat": "Alle Preise inkl. MwSt.",
+      "plans": {
+        "free": {
+          "name": "Free", "badge": "Zum Starten", "cta": "Kostenlos starten",
+          "features": ["25 Produkte", "50 Bestellungen/Monat", "100 Kunden", "Manuelle Rechnungen", "Rabattcodes", "Community Support"],
+          "limitations": ["Kein Webshop", "Keine KI", "Kein POS", "Kein SellQo Connect", "SellQo-Wasserzeichen"]
+        },
+        "starter": {
+          "name": "Starter", "badge": "Perfekt für Einsteiger", "cta": "Kostenlos starten",
+          "features": ["250 Produkte", "500 Bestellungen/Monat", "1.000 Kunden", "3 Teammitglieder", "✨ 50 KI-Credits/Monat", "🛒 Webshop Builder", "Factur-X E-Rechnungen", "Rabattcodes", "Shop Health Score", "Gamification & Badges", "E-Mail-Support", "Eigene Domain", "🔗 SellQo Connect Lite — 1 Kanal"],
+          "addons": ["POS Kasse"]
+        },
+        "pro": {
+          "name": "Pro", "badge": "Beliebteste Wahl", "cta": "Kostenlos starten",
+          "features": ["2.500 Produkte", "5.000 Bestellungen/Monat", "10.000 Kunden", "10 Teammitglieder", "✨ 500 KI-Credits/Monat", "🛒 Webshop Builder + Visual Editor", "💳 POS Kasse inklusive", "🤖 KI Business Coach", "🔗 SellQo Connect — alle Kanäle", "Peppol-E-Invoicing (bald)", "Multi-Warehouse", "Live Activity Feed", "Treueprogramm", "Priority Support"]
+        },
+        "enterprise": {
+          "name": "Enterprise", "badge": "Für skalierende Unternehmen", "cta": "Kontaktieren",
+          "features": ["Unbegrenzte Produkte", "Unbegrenzte Bestellungen", "50 Teammitglieder", "✨ 5.000 KI-Credits/Monat", "🛒 Alle Premium-Themes", "🔗 SellQo Connect — alle Kanäle + custom", "White-Label-Optionen", "Dedicated Account Manager", "Telefon-Support (NL/BE)", "Gratis Migration (€2.000 Wert)", "SLA 99,9%"]
+        }
+      },
+      "addons": {
+        "ai": { "name": "KI Credit Pack", "desc": "500 extra KI-Credits/Monat", "features": ["Produktbeschreibungen", "Social Content", "Bildgenerierung"], "for": "Starter+" },
+        "pos": { "name": "POS Kasse", "desc": "Verkaufe in Deinem Laden", "features": ["Touch-Interface", "Barcode-Scanning", "Stripe Terminal"], "for": "Starter (Pro: gratis)" },
+        "peppol": { "name": "Peppol E-Invoicing", "desc": "Bald verfügbar — Pflicht ab 2026 in BE", "features": ["Offizielle Peppol-Anbindung", "Automatischer Versand", "Empfangsbestätigungen", "B2B-Compliance"], "for": "Starter (Pro: gratis)", "urgency": "🔜 Coming Soon — Pflicht 2026" },
+        "marketplace": { "name": "Extra Marketplace", "desc": "Pro zusätzlichem Kanal", "features": ["Amazon, eBay, etc.", "Bestellsync", "Lagersync"], "for": "Pro+" }
+      }
+    },
+    "faq": {
+      "heading": "Häufig gestellte Fragen",
+      "items": [
+        { "q": "Wie funktioniert die kostenlose Testphase?", "a": "14 Tage komplett kostenlos, alle Funktionen verfügbar. Keine Kreditkarte nötig. Du wählst Deinen Plan beim Onboarding, zahlst aber erst nach 14 Tagen. Du kannst jederzeit auf einen kostenpflichtigen Plan upgraden." },
+        { "q": "Was passiert nach den 14 Tagen?", "a": "Nach 14 Tagen wirst Du gebeten, einen Plan zu wählen. Bis dahin bleibt Dein Konto aktiv, aber neue Funktionen werden blockiert. Deine Daten bleiben sicher und Du kannst jederzeit upgraden." },
+        { "q": "Wie läuft das Onboarding ab?", "a": "Bei der Registrierung durchläufst Du einen 7-Schritte-Assistenten: Shopname, Planauswahl, Unternehmensdaten, Logo-Upload, erstes Produkt, Zahlungen und Launch. Schritte sind überspringbar und später in den Einstellungen abschließbar." },
+        { "q": "Was ist der Shop Health Score?", "a": "Ein Echtzeit-Score (0-100%), der die Gesundheit Deines Shops in 6 Bereichen misst: Fulfillment, Lager, Kundenservice, Finanzen, SEO und Compliance. Du bekommst täglich personalisierte Tipps zur Verbesserung." },
+        { "q": "Kann ich später den Plan wechseln?", "a": "Ja! Du kannst jederzeit über Einstellungen → Abo upgraden oder downgraden. Upgrades sind sofort aktiv, Downgrades zur nächsten Abrechnungsperiode. Keine versteckten Kosten." },
+        { "q": "Welche Sprachen unterstützt SellQo?", "a": "Niederländisch, Englisch, Französisch und Deutsch. Sowohl das Admin-Interface als auch Dein Shop sind vollständig übersetzbar. KI-Übersetzungen für Produktbeschreibungen und Marketing-Content verfügbar." },
+        { "q": "Kann ich meinen bestehenden Shop migrieren?", "a": "Ja! Wir haben Import-Tools für Shopify, WooCommerce und andere. Enterprise-Kunden bekommen kostenlose Migrationshilfe im Wert von €2.000." },
+        { "q": "Welche Zahlungsmethoden werden unterstützt?", "a": "Über Stripe Connect unterstützt Du iDEAL, Bancontact, Kreditkarten, Apple Pay, Google Pay und 40+ weitere Methoden. Deine Kunden zahlen direkt auf Dein Stripe-Konto." },
+        { "q": "Ist SellQo für B2B geeignet?", "a": "Absolut! Wir unterstützen MwSt.-befreite Transaktionen, Nettopreise, kundenspezifische Preise und automatische Peppol-E-Invoicing für Geschäftskunden (bald)." },
+        { "q": "Wie funktionieren KI-Credits?", "a": "KI-Credits werden für Content-Erstellung wie Social Posts, E-Mails und Produktbeschreibungen genutzt. Pro bekommt 500/Monat, Enterprise 5.000/Monat. Extra-Credits für €19 pro 500 Credits." },
+        { "q": "Kann ich auch im Laden mit SellQo verkaufen?", "a": "Ja! Unser POS-Modul ist eine komplette Kasse mit Touch-Interface, Barcode-Scanner, Gutscheinverkauf und Stripe Terminal. Als Add-on für €29/Monat oder €15/Monat bei Pro." },
+        { "q": "Welche Aktionen kann ich einrichten?", "a": "SellQo unterstützt 8 Aktionstypen: Rabattcodes, Staffelrabatte, BOGO, Produktbundles, Kundengruppen mit Sonderpreisen, automatische Rabatte, Gutscheine und ein komplettes Treueprogramm mit Punkten." },
+        { "q": "Wie baue ich meinen eigenen Webshop?", "a": "Mit dem eingebauten Webshop Builder wählst Du ein Theme, passt Sektionen per Drag & Drop an und verbindest Deine eigene Domain. Starter erhält Basis-Themes, Pro 1 Premium-Theme, Enterprise alle." },
+        { "q": "Gibt es Zusatzkosten zum Abo?", "a": "Nein. Du zahlst nur die Standard-Stripe-Gebühren (1,5% + €0,25 pro Transaktion). Wir berechnen keine extra Transaktionsgebühren. Add-ons wie POS sind optional." },
+        { "q": "Was ist Peppol und warum ist es wichtig?", "a": "Ab 2026 ist elektronische Rechnungsstellung über Peppol für alle B2B-Transaktionen in Belgien Pflicht. Unsere Peppol-Integration ist in Entwicklung und wird rechtzeitig launchen, damit Du compliant bist." },
+        { "q": "Was passiert mit meinen Daten bei Kündigung?", "a": "Deine Daten gehören Dir. Du kannst alles (Produkte, Kunden, Bestellungen) als CSV, Excel oder per API exportieren. Wir löschen Deine Daten erst 30 Tage nach Kündigung." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Bereit, Dein E-Commerce auf das nächste Level zu bringen?",
+      "subheading": "Schließe Dich 500+ Unternehmern an, die ihr Business mit SellQo wachsen lassen",
+      "cta": "Kostenlose Testphase starten",
+      "trust": "Keine Kreditkarte nötig • 14 Tage komplett gratis • Jederzeit kündbar",
+      "ssl": "SSL-gesichert",
+      "gdpr": "DSGVO-konform"
+    },
+    "footer": {
+      "tagline": "E-Commerce-Management, so wie es sein sollte.",
+      "product": "Produkt",
+      "company": "Unternehmen",
+      "support": "Support",
+      "links": {
+        "features": "Funktionen", "pricing": "Preise", "integrations": "Integrationen", "apiDocs": "API-Docs", "changelog": "Changelog",
+        "about": "Über uns", "blog": "Blog", "contact": "Kontakt", "careers": "Karriere", "partners": "Partner",
+        "help": "Hilfe-Center", "faq": "FAQ", "status": "Status-Seite", "contactUs": "Kontakt aufnehmen",
+        "privacy": "Datenschutz", "terms": "AGB", "cookies": "Cookie-Richtlinie"
+      },
+      "legalEntity": "Anbieter",
+      "legalLine1": "SellQo ist ein Produkt von Nomadix BV",
+      "legalLine2": "Beekstraat 49, 3051 Oud-Heverlee, Belgien",
+      "legalLine3": "USt./Firmennummer: BE 1017.500.207",
+      "contact": "Kontakt:",
+      "copyright": "© {{year}} Nomadix BV. Alle Rechte vorbehalten."
+    }
+  }
+}

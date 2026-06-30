@@ -3,9 +3,11 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { Sparkles, Shield, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export function FinalCtaSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
 
   return (
     <section className="py-20 md:py-28 bg-gradient-to-br from-primary to-[hsl(200,50%,30%)] relative overflow-hidden">
@@ -25,11 +27,11 @@ export function FinalCtaSection() {
           )}
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
-            Klaar Om Je E-commerce Naar Het Volgende Level Te Tillen?
+            {t('landing.finalCta.heading')}
           </h2>
           
           <p className="text-lg md:text-xl text-white/80 mb-10">
-            Sluit je aan bij 500+ ondernemers die hun business laten groeien met SellQo
+            {t('landing.finalCta.subheading')}
           </p>
 
           <Button
@@ -39,23 +41,23 @@ export function FinalCtaSection() {
           >
             <Link to="/auth?mode=register" className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Start Je Gratis Proefperiode
+              {t('landing.finalCta.cta')}
             </Link>
           </Button>
 
           <p className="text-white/60 mt-6 text-sm">
-            Geen creditcard nodig • 14 dagen volledig gratis • Annuleer wanneer je wilt
+            {t('landing.finalCta.trust')}
           </p>
 
           {/* Trust badges */}
           <div className="flex justify-center gap-6 mt-10">
             <div className="flex items-center gap-2 text-white/60 text-sm">
               <Shield className="w-4 h-4" />
-              <span>SSL Beveiligd</span>
+              <span>{t('landing.finalCta.ssl')}</span>
             </div>
             <div className="flex items-center gap-2 text-white/60 text-sm">
               <Lock className="w-4 h-4" />
-              <span>GDPR Compliant</span>
+              <span>{t('landing.finalCta.gdpr')}</span>
             </div>
           </div>
         </div>

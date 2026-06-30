@@ -16,35 +16,36 @@ import {
   FileText
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Integration {
   name: string;
   icon: LucideIcon;
   status: 'live' | 'coming-soon';
-  badge?: string;
+  badgeKey?: 'new' | 'vvb' | 'comingSoon';
 }
 
 interface IntegrationCategory {
-  title: string;
+  titleKey: 'ecommerce' | 'ads' | 'social' | 'ops';
   icon: LucideIcon;
   integrations: Integration[];
 }
 
 const categories: IntegrationCategory[] = [
   {
-    title: 'E-commerce & ERP',
+    titleKey: 'ecommerce',
     icon: Store,
     integrations: [
-      { name: 'Bol.com', icon: ShoppingBag, status: 'live', badge: 'VVB Labels' },
+      { name: 'Bol.com', icon: ShoppingBag, status: 'live', badgeKey: 'vvb' },
       { name: 'Amazon', icon: Package, status: 'live' },
       { name: 'Shopify', icon: Store, status: 'live' },
       { name: 'WooCommerce', icon: Store, status: 'live' },
-      { name: 'Odoo', icon: Globe, status: 'live', badge: 'Nieuw' },
+      { name: 'Odoo', icon: Globe, status: 'live', badgeKey: 'new' },
       { name: 'eBay', icon: ShoppingBag, status: 'live' },
     ],
   },
   {
-    title: 'Advertenties',
+    titleKey: 'ads',
     icon: Megaphone,
     integrations: [
       { name: 'Bol.com Sponsored', icon: ShoppingBag, status: 'live' },
@@ -54,26 +55,26 @@ const categories: IntegrationCategory[] = [
     ],
   },
   {
-    title: 'Social Commerce & Messaging',
+    titleKey: 'social',
     icon: Share2,
     integrations: [
       { name: 'Facebook Shop', icon: Share2, status: 'live' },
       { name: 'Instagram Shopping', icon: Instagram, status: 'live' },
-      { name: 'Facebook Messenger', icon: MessageCircle, status: 'live', badge: 'Nieuw' },
-      { name: 'Instagram DMs', icon: Instagram, status: 'live', badge: 'Nieuw' },
+      { name: 'Facebook Messenger', icon: MessageCircle, status: 'live', badgeKey: 'new' },
+      { name: 'Instagram DMs', icon: Instagram, status: 'live', badgeKey: 'new' },
       { name: 'WhatsApp Business', icon: MessageCircle, status: 'live' },
       { name: 'Google Shopping', icon: Globe, status: 'live' },
     ],
   },
   {
-    title: 'Operations & Payments',
+    titleKey: 'ops',
     icon: Truck,
     integrations: [
       { name: 'PostNL', icon: Truck, status: 'live' },
       { name: 'DHL', icon: Truck, status: 'live' },
       { name: 'Sendcloud', icon: Package, status: 'live' },
       { name: 'Stripe', icon: CreditCard, status: 'live' },
-      { name: 'Peppol', icon: FileText, status: 'coming-soon', badge: 'Coming Soon' },
+      { name: 'Peppol', icon: FileText, status: 'coming-soon', badgeKey: 'comingSoon' },
       { name: 'Resend', icon: Mail, status: 'live' },
     ],
   },
@@ -82,6 +83,7 @@ const categories: IntegrationCategory[] = [
 function IntegrationChip({ integration }: { integration: Integration }) {
   const Icon = integration.icon;
   const isComingSoon = integration.status === 'coming-soon';
+  const { t } = useTranslation();
   
   return (
     <div
@@ -96,12 +98,12 @@ function IntegrationChip({ integration }: { integration: Integration }) {
       <span className={cn('text-sm font-medium', isComingSoon && 'text-muted-foreground')}>
         {integration.name}
       </span>
-      {integration.badge && (
+      {integration.badgeKey && (
         <Badge 
           variant="secondary" 
           className="text-[10px] px-1.5 py-0 bg-accent/10 text-accent border-accent/20"
         >
-          {integration.badge}
+          {t(`landing.integrations.badges.${integration.badgeKey}`)}
         </Badge>
       )}
       {isComingSoon && (
@@ -109,7 +111,7 @@ function IntegrationChip({ integration }: { integration: Integration }) {
           variant="outline" 
           className="text-[10px] px-1.5 py-0 text-muted-foreground"
         >
-          Binnenkort
+          {t('landing.integrations.comingSoon')}
         </Badge>
       )}
     </div>
@@ -122,6 +124,7 @@ function CategoryRow({ category, index, isIntersecting }: {
   isIntersecting: boolean;
 }) {
   const CategoryIcon = category.icon;
+  const { t } = useTranslation();
   
   return (
     <div
@@ -133,7 +136,7 @@ function CategoryRow({ category, index, isIntersecting }: {
     >
       <div className="flex items-center gap-2">
         <CategoryIcon className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-foreground">{category.title}</h3>
+        <h3 className="font-semibold text-foreground">{t(`landing.integrations.cats.${category.titleKey}`)}</h3>
       </div>
       <div className="flex flex-wrap gap-2">
         {category.integrations.map((integration) => (
@@ -146,6 +149,7 @@ function CategoryRow({ category, index, isIntersecting }: {
 
 export function IntegrationsShowcaseSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
 
   return (
     <section className="py-16 md:py-20 bg-background">
@@ -158,20 +162,20 @@ export function IntegrationsShowcaseSection() {
           )}
         >
           <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
-            SellQo Connect
+            {t('landing.integrations.badge')}
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Verkoop Overal. Beheer Het Hier.
+            {t('landing.integrations.heading')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            SellQo Connect koppelt je webshop aan Bol.com, Amazon, eBay en sociale kanalen — vanuit één dashboard.
+            {t('landing.integrations.subheading')}
           </p>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-8">
           {categories.map((category, index) => (
             <CategoryRow 
-              key={category.title} 
+              key={category.titleKey} 
               category={category} 
               index={index}
               isIntersecting={isIntersecting}
@@ -187,7 +191,7 @@ export function IntegrationsShowcaseSection() {
           style={{ animationDelay: '0.6s' }}
         >
           <p className="text-sm text-muted-foreground">
-            Mis je een integratie? <span className="text-primary font-medium">Laat het ons weten</span> - we bouwen het voor je.
+            {t('landing.integrations.missing')} <span className="text-primary font-medium">{t('landing.integrations.missingCta')}</span>{t('landing.integrations.missingSuffix')}
           </p>
         </div>
       </div>
