@@ -18,6 +18,20 @@ const IMAGE_EXT_MIME: Record<string, string> = {
   svg: 'image/svg+xml',
 };
 
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/pjpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/avif': 'avif',
+  'image/bmp': 'bmp',
+  'image/svg+xml': 'svg',
+};
+
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB — modern phone photos can be 5-15MB
 
 export function useImageUpload() {
@@ -36,12 +50,18 @@ export function useImageUpload() {
       return null;
     }
 
-    // Validate file type — Android often returns file.type === '' for content:// URIs,
-    // so we fall back to the extension. Reject only when clearly non-image.
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    const extMime = IMAGE_EXT_MIME[ext];
+    // Validate file type — Android often returns file.type === '' for content:// URIs
+    // and/or a filename without an extension (e.g. "image", "1000001234"). Be lenient:
+    // accept if EITHER the MIME OR the extension says image, and if NEITHER is present
+    // (camera content://) we still accept and assume jpeg, since the file picker was
+    // restricted to image/* via the input's accept attribute.
+    const rawName = file.name || '';
+    const dotIdx = rawName.lastIndexOf('.');
+    const rawExt = dotIdx > 0 ? rawName.slice(dotIdx + 1).toLowerCase() : '';
+    const extMime = IMAGE_EXT_MIME[rawExt];
     const isImageMime = file.type.startsWith('image/');
-    const isAcceptable = isImageMime || (file.type === '' && !!extMime);
+    const hasNoTypeInfo = !file.type && !rawExt;
+    const isAcceptable = isImageMime || !!extMime || hasNoTypeInfo;
     if (!isAcceptable) {
       toast({
         title: 'Ongeldig bestandstype',
@@ -68,15 +88,17 @@ export function useImageUpload() {
     setProgress(0);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = customPath 
+      // Resolve content-type first (MIME wins, then extension, else jpeg fallback for
+      // Android camera blobs that arrive with no type and no extension).
+      const contentType = file.type || extMime || (hasNoTypeInfo ? 'image/jpeg' : 'application/octet-stream');
+      // Derive a SAFE file extension. If the filename had no real extension (Android
+      // often omits it), fall back to the one implied by the content-type. Without
+      // this, the storage path would end in ".<filename>" and Supabase would serve
+      // the object as octet-stream, breaking <img src> previews.
+      const fileExt = rawExt || MIME_TO_EXT[contentType] || 'jpg';
+      const fileName = customPath
         ? `${customPath}.${fileExt}`
         : `${currentTenant.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      // Android often delivers file.type === '' — provide an explicit contentType
-      // so Supabase Storage doesn't store the object as application/octet-stream
-      // (which breaks <img src> rendering downstream).
-      const contentType = file.type || extMime || 'application/octet-stream';
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
