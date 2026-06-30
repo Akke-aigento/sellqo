@@ -1,70 +1,32 @@
-## Root cause
+## Bevinding
 
-Astra Sleep heeft nog **geen rij** in `tenant_theme_settings` (verified via DB: `updated_at = NULL`, `use_custom_frontend = NULL`). Andere tenants waar je het al getest hebt, hadden die rij wel.
+De backend-policy fix staat actief: platform admins mogen nu `tenant_theme_settings` inserten/updaten/deleten. Voor Astra Sleep bestaat er echter nog steeds geen `tenant_theme_settings`-rij.
 
-De RLS-policies op `tenant_theme_settings` zijn momenteel:
+De huidige UI heeft daardoor nog een tweede bug: `StorefrontSettings` toont de FloatingSaveBar alleen als `themeSettings` bestaat. Bij tenants zonder theme settings row wordt de toggle lokaal wel aangepast, maar `isDirty` blijft altijd `false`, dus er verschijnt geen “Opslaan”-bar en er wordt niets gesaved.
 
-| cmd | check |
-|---|---|
-| SELECT | `tenant_id IN get_user_tenant_ids(...) OR is_platform_admin(auth.uid())` |
-| INSERT | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
-| UPDATE | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
-| DELETE | `has_tenant_role(tenant_id, ['tenant_admin'])` — **geen platform-admin bypass** |
+Nieuwe tenants zullen hierdoor niet betrouwbaar direct werken, zolang er nog geen theme settings row is aangemaakt. De backend mag het nu wel, maar de UI geeft bij lege rows geen save-knop.
 
-Jij bent platform_admin en geen `tenant_admin` van Astra Sleep, dus:
-- `StorefrontSettings` → `saveThemeSettings.mutate` → `useStorefront.ts:172-189`
-- `SELECT id` slaagt (platform-admin bypass aanwezig), levert geen rij → tak gaat naar `INSERT`
-- INSERT wordt geblokkeerd door RLS (`WITH CHECK` faalt) → mutation gooit error, toggle springt terug naar `false`.
+## Plan
 
-Bij tenants waar de rij al bestaat, gaat de tak naar `UPDATE` — die faalt óók (zelfde gat), maar als je daar wel tenant_admin van bent slaagt het wel. Dat verklaart perfect waarom Astra Sleep faalt en jouw andere tenants niet.
+1. **Fix `StorefrontSettings` dirty-state voor lege settings**
+   - Voeg een `initialFormData` fallback toe voor tenants zonder `themeSettings`.
+   - Laat `isDirty` vergelijken tegen die fallback, niet alleen tegen bestaande `themeSettings`.
+   - Hierdoor verschijnt “Onopgeslagen wijzigingen” zodra je de custom frontend toggle aanzet, ook bij Astra Sleep/nieuwe tenants.
 
-Dit is consistent met het patroon "Platform admins bypass RLS" dat de codebase elders gebruikt (memory `auth/platform-admin-unrestricted-access-policy`), maar dat patroon ontbreekt op deze tabel.
+2. **Maak reset/cancel robuust**
+   - `Annuleren` zet terug naar de huidige opgeslagen waarden als die bestaan.
+   - Als er geen row bestaat, reset naar defaults: custom frontend uit, URL leeg, scripts leeg.
 
-## Fix
+3. **Maak save-flow duidelijker**
+   - Gebruik `mutateAsync` zodat de UI pas als opgeslagen beschouwd wordt na succesvolle backend-save.
+   - Na succes wordt de query invalidated zoals nu, en de bestaande toast “Instellingen opgeslagen” blijft behouden.
 
-Eén migratie die de drie mutatie-policies op `public.tenant_theme_settings` herschrijft zodat `is_platform_admin(auth.uid())` ook write-toegang krijgt — analoog aan de bestaande SELECT-policy:
+4. **Geen impact op andere tenants**
+   - Geen wijzigingen aan tenant data.
+   - Geen wijzigingen aan tenant branding of Stream B.
+   - Alleen frontend-state in `src/components/admin/storefront/StorefrontSettings.tsx`; backend policy blijft zoals ze nu is.
 
-```sql
-DROP POLICY tenant_theme_settings_insert_admin ON public.tenant_theme_settings;
-DROP POLICY tenant_theme_settings_update_admin ON public.tenant_theme_settings;
-DROP POLICY tenant_theme_settings_delete_admin ON public.tenant_theme_settings;
-
-CREATE POLICY tenant_theme_settings_insert_admin
-  ON public.tenant_theme_settings FOR INSERT TO authenticated
-  WITH CHECK (
-    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
-    OR is_platform_admin(auth.uid())
-  );
-
-CREATE POLICY tenant_theme_settings_update_admin
-  ON public.tenant_theme_settings FOR UPDATE TO authenticated
-  USING (
-    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
-    OR is_platform_admin(auth.uid())
-  )
-  WITH CHECK (
-    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
-    OR is_platform_admin(auth.uid())
-  );
-
-CREATE POLICY tenant_theme_settings_delete_admin
-  ON public.tenant_theme_settings FOR DELETE TO authenticated
-  USING (
-    has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role])
-    OR is_platform_admin(auth.uid())
-  );
-```
-
-Geen frontend-wijzigingen nodig — de mutation-flow is correct, alleen de policy gate blokkeerde hem.
-
-## Verificatie
-
-1. Open Astra Sleep storefront-instellingen, zet "Gebruik Custom Frontend" aan, vul URL in, opslaan.
-2. DB-check: `SELECT use_custom_frontend, custom_frontend_url FROM tenant_theme_settings WHERE tenant_id = '169cf7b9-b22a-4a94-87d1-fb4b9cc948f9';` moet de waarden tonen.
-3. Toggle uit/aan en bevestig dat dirty-state en FloatingSaveBar correct doorgaan.
-
-## Scope-guardrails
-
-- Geen wijzigingen aan tenant_admin-rechten of cross-tenant isolatie — alleen platform-admin krijgt expliciet wat hij elders al heeft.
-- Geen frontend-aanrakingen.
-- Geen wijzigingen aan andere tenants' bestaande rijen.
+5. **Verificatie**
+   - Check Astra Sleep: toggle aan → FloatingSaveBar verschijnt → opslaan → row wordt aangemaakt.
+   - Check bestaande tenant: toggle/URL wijzigen → FloatingSaveBar blijft werken zoals voordien.
+   - Optioneel DB-check dat Astra Sleep daarna `use_custom_frontend=true` bevat.
