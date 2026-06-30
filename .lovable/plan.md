@@ -1,32 +1,28 @@
-## Bevinding
+## Probleem
 
-De backend-policy fix staat actief: platform admins mogen nu `tenant_theme_settings` inserten/updaten/deleten. Voor Astra Sleep bestaat er echter nog steeds geen `tenant_theme_settings`-rij.
+API keys voor Astra Sleep worden correct aangemaakt (7 rijen aanwezig in DB), maar de UI toont "Nog geen API keys aangemaakt". De 4 RLS-policies op `storefront_api_keys` scopen via `user_roles.tenant_id`, en een platform_admin heeft geen `user_roles`-rij voor andere tenants. INSERT slaagt nog doordat de edge function service-role gebruikt, maar SELECT/UPDATE/DELETE in de UI falen stilletjes voor cross-tenant beheer.
 
-De huidige UI heeft daardoor nog een tweede bug: `StorefrontSettings` toont de FloatingSaveBar alleen als `themeSettings` bestaat. Bij tenants zonder theme settings row wordt de toggle lokaal wel aangepast, maar `isDirty` blijft altijd `false`, dus er verschijnt geen “Opslaan”-bar en er wordt niets gesaved.
+## Fix
 
-Nieuwe tenants zullen hierdoor niet betrouwbaar direct werken, zolang er nog geen theme settings row is aangemaakt. De backend mag het nu wel, maar de UI geeft bij lege rows geen save-knop.
+Eén migratie die de 4 policies op `public.storefront_api_keys` vervangt door versies met `public.is_platform_admin(auth.uid())` bypass — exact hetzelfde patroon dat eerder op `tenant_theme_settings` is toegepast.
 
-## Plan
+```text
+SELECT  → tenant member  OR is_platform_admin
+INSERT  → tenant_admin    OR is_platform_admin
+UPDATE  → tenant_admin    OR is_platform_admin
+DELETE  → tenant_admin    OR is_platform_admin
+```
 
-1. **Fix `StorefrontSettings` dirty-state voor lege settings**
-   - Voeg een `initialFormData` fallback toe voor tenants zonder `themeSettings`.
-   - Laat `isDirty` vergelijken tegen die fallback, niet alleen tegen bestaande `themeSettings`.
-   - Hierdoor verschijnt “Onopgeslagen wijzigingen” zodra je de custom frontend toggle aanzet, ook bij Astra Sleep/nieuwe tenants.
+Gedrag voor tenant-admins / leden van de tenant zelf blijft ongewijzigd.
 
-2. **Maak reset/cancel robuust**
-   - `Annuleren` zet terug naar de huidige opgeslagen waarden als die bestaan.
-   - Als er geen row bestaat, reset naar defaults: custom frontend uit, URL leeg, scripts leeg.
+## Verificatie
 
-3. **Maak save-flow duidelijker**
-   - Gebruik `mutateAsync` zodat de UI pas als opgeslagen beschouwd wordt na succesvolle backend-save.
-   - Na succes wordt de query invalidated zoals nu, en de bestaande toast “Instellingen opgeslagen” blijft behouden.
+- Na migratie: in Astra Sleep moeten de 7 bestaande keys zichtbaar worden in de StorefrontApiKeysManager.
+- Toggle/delete vanuit platform-admin-context moet werken.
+- Niets aanraken aan de `generate-storefront-api-key` edge function — die werkt al correct.
+- Geen wijzigingen aan UI-componenten.
 
-4. **Geen impact op andere tenants**
-   - Geen wijzigingen aan tenant data.
-   - Geen wijzigingen aan tenant branding of Stream B.
-   - Alleen frontend-state in `src/components/admin/storefront/StorefrontSettings.tsx`; backend policy blijft zoals ze nu is.
+## Scope-guardrails
 
-5. **Verificatie**
-   - Check Astra Sleep: toggle aan → FloatingSaveBar verschijnt → opslaan → row wordt aangemaakt.
-   - Check bestaande tenant: toggle/URL wijzigen → FloatingSaveBar blijft werken zoals voordien.
-   - Optioneel DB-check dat Astra Sleep daarna `use_custom_frontend=true` bevat.
+- Géén wijziging aan andere tenant_id-gescopete tabellen in deze batch.
+- Géén wijziging aan de keys/hash-flow.
