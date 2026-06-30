@@ -1,28 +1,28 @@
-## Probleem
+## Doel
+Vergelijkingsprijs (`compare_at_price`) en kostprijs (`cost_price`) ook bewerkbaar maken per variant — in lijn met wat al kan op het hoofdproduct.
 
-API keys voor Astra Sleep worden correct aangemaakt (7 rijen aanwezig in DB), maar de UI toont "Nog geen API keys aangemaakt". De 4 RLS-policies op `storefront_api_keys` scopen via `user_roles.tenant_id`, en een platform_admin heeft geen `user_roles`-rij voor andere tenants. INSERT slaagt nog doordat de edge function service-role gebruikt, maar SELECT/UPDATE/DELETE in de UI falen stilletjes voor cross-tenant beheer.
+## Status van de stack
+- DB-kolommen bestaan al op `product_variants` (`compare_at_price`, `cost_price`).
+- `VariantFormData` in `useProductVariants.ts` heeft beide velden al → backend mutatie is al klaar.
+- Alleen de UI in `ProductVariantsTab.tsx` toont/edit ze nog niet (en `startEditVariant` neemt `cost_price` nog niet mee in de edit-state).
 
-## Fix
+## Wijzigingen (alleen `src/components/admin/products/ProductVariantsTab.tsx`)
 
-Eén migratie die de 4 policies op `public.storefront_api_keys` vervangt door versies met `public.is_platform_admin(auth.uid())` bypass — exact hetzelfde patroon dat eerder op `tenant_theme_settings` is toegepast.
+1. **Edit-state uitbreiden** in `startEditVariant`: ook `compare_at_price` en `cost_price` van de variant in `editVariantData` zetten.
 
-```text
-SELECT  → tenant member  OR is_platform_admin
-INSERT  → tenant_admin    OR is_platform_admin
-UPDATE  → tenant_admin    OR is_platform_admin
-DELETE  → tenant_admin    OR is_platform_admin
-```
+2. **Card-layout (mobile/smal, <900px)**
+   - Edit-modus: extra inputs "Van-prijs" en "Kostprijs" toevoegen aan de 2-koloms grid (naast Prijs).
+   - Read-modus: van 4-koloms grid naar compactere weergave die Van-prijs en Kostprijs toont onder Prijs (doorstreept tonen `compare_at_price` zoals al elders in de app), met `—` als ze leeg zijn.
 
-Gedrag voor tenant-admins / leden van de tenant zelf blijft ongewijzigd.
+3. **Tabel-layout (desktop, ≥900px)**
+   - Twee nieuwe kolommen toevoegen aan de tabel-header: "Van-prijs" en "Kostprijs", direct na "Prijs".
+   - Per rij: in edit-modus een `Input type="number" step="0.01"` voor beide velden; in read-modus `€xx.xx` of `—`. Kostprijs in gedempte tekst (`text-muted-foreground`) om subtieler te zijn.
 
-## Verificatie
+## Guardrails
+- Geen DB-migraties, geen wijzigingen aan `useProductVariants.ts`, types of andere componenten.
+- Leeg invullen ⇒ `null` (zelfde patroon als de bestaande `price`-input).
+- Geen invloed op bulk-edit, grid-view of het hoofdproduct-formulier.
+- Bestaande layout-breakpoint (900px) blijft staan — door 2 extra kolommen wordt de tabel iets voller, maar dat is acceptabel; geen nieuwe breakpoint nodig.
 
-- Na migratie: in Astra Sleep moeten de 7 bestaande keys zichtbaar worden in de StorefrontApiKeysManager.
-- Toggle/delete vanuit platform-admin-context moet werken.
-- Niets aanraken aan de `generate-storefront-api-key` edge function — die werkt al correct.
-- Geen wijzigingen aan UI-componenten.
-
-## Scope-guardrails
-
-- Géén wijziging aan andere tenant_id-gescopete tabellen in deze batch.
-- Géén wijziging aan de keys/hash-flow.
+## Test
+Open een product met varianten → variant bewerken → Van-prijs & Kostprijs invullen → opslaan → herladen → waarden blijven en tonen correct in zowel kaart- als tabel-weergave.
