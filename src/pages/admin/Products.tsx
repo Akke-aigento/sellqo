@@ -83,6 +83,16 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  const handleDuplicate = (productId: string) => {
+    duplicateProduct.mutate(productId, {
+      onSuccess: (newId) => {
+        navigate(`/admin/products/${newId}/edit`);
+      },
+    });
+  };
+
   const { 
     products, 
     isLoading, 
