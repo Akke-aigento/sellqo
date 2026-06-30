@@ -21,6 +21,7 @@ import {
   XCircle,
   X,
   ImageIcon,
+  Copy,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -86,6 +87,7 @@ export default function ProductsPage() {
     products, 
     isLoading, 
     deleteProduct, 
+    duplicateProduct,
     bulkUpdateProducts, 
     bulkDeleteProducts,
     bulkAdjustPrices,
