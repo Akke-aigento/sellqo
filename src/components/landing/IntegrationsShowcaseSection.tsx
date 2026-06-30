@@ -175,7 +175,7 @@ export function IntegrationsShowcaseSection() {
         <div className="max-w-4xl mx-auto space-y-8">
           {categories.map((category, index) => (
             <CategoryRow 
-              key={category.title} 
+              key={category.titleKey} 
               category={category} 
               index={index}
               isIntersecting={isIntersecting}
