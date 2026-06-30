@@ -169,6 +169,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
     setEditVariantData({
       price: variant.price,
       compare_at_price: variant.compare_at_price,
+      cost_price: variant.cost_price,
       stock: variant.stock,
       sku: variant.sku,
       is_active: variant.is_active,
@@ -458,6 +459,14 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           <Label className="text-xs text-muted-foreground">Prijs</Label>
                           <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Van-prijs</Label>
+                          <Input type="number" step="0.01" value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Kostprijs</Label>
+                          <Input type="number" step="0.01" value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                        </div>
                         {trackInventory && (
                         <div>
                           <Label className="text-xs text-muted-foreground">Voorraad</Label>
@@ -470,14 +479,23 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-4 gap-2 text-sm">
+                      <div className="grid grid-cols-3 gap-2 text-sm">
                         <div>
                           <span className="text-xs text-muted-foreground block">SKU</span>
                           <span>{variant.sku || '—'}</span>
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Prijs</span>
-                          <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
+                          <span>
+                            {variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}
+                            {variant.compare_at_price != null && (
+                              <span className="ml-1 text-xs text-muted-foreground line-through">€{variant.compare_at_price.toFixed(2)}</span>
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">Kostprijs</span>
+                          <span className="text-muted-foreground">{variant.cost_price != null ? `€${variant.cost_price.toFixed(2)}` : '—'}</span>
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Voorraad</span>
@@ -526,6 +544,8 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                       <TableHead className="min-w-0">Variant</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Prijs</TableHead>
+                      <TableHead>Van-prijs</TableHead>
+                      <TableHead>Kostprijs</TableHead>
                       <TableHead>Voorraad</TableHead>
                       <TableHead>Actief</TableHead>
                       <TableHead className="min-w-0">Gekoppeld</TableHead>
@@ -603,6 +623,20 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
                           ) : (
                             <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Input type="number" step="0.01" value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                          ) : (
+                            <span className="text-sm text-muted-foreground line-through">{variant.compare_at_price != null ? `€${variant.compare_at_price.toFixed(2)}` : '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingVariantId === variant.id ? (
+                            <Input type="number" step="0.01" value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                          ) : (
+                            <span className="text-sm text-muted-foreground">{variant.cost_price != null ? `€${variant.cost_price.toFixed(2)}` : '—'}</span>
                           )}
                         </TableCell>
                         <TableCell>
