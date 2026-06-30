@@ -1,28 +1,67 @@
-## Probleem
-De geschatte kost toont `~0 credits` ook wanneer er duidelijk velden ontbreken (1 geselecteerd item × 3 talen × 5 velden zou in missing-mode > 0 moeten zijn).
+# Plan: Producten dupliceren
 
-## Root cause (twee bugs)
+Voeg een "Dupliceer" actie toe aan elk product in de admin, die een volledige kopie maakt incl. alle gerelateerde data — als concept (inactief) zodat de gebruiker rustig kan aanpassen voor publicatie.
 
-**Bug 1 — `missingByLangByField` wordt niet doorgegeven.**
-In `TranslationHub.getAllEntities()` mappen we producten/categorieën uit `useProducts()` / `useCategories()` en mergen alleen `coverage`, `missing` en `missingByLang` uit `pendingEntities`. Het nieuwe `missingByLangByField` blijft achter → in `bulkCost` is `byField` altijd `undefined` → de fallback berekent met `missingByLang[lang]` die óók niet meegekomen is voor entities buiten `pendingEntities`.
+## Scope: wat wordt gekopieerd
 
-**Bug 2 — `pendingEntities` is gecapt op 100.**
-De queries `from('products').select(...).limit(100)` en hetzelfde voor categories. Voor de geselecteerde rij die buiten die 100 valt (sortering kan verschillen t.o.v. `useProducts`) is `pe === undefined` → `coverage: 0`, `missingByLang: {}`, `missingByLangByField: {}` → cost `0`.
+Uit `products` (alle kolommen) + gerelateerde tabellen:
+- `product_variants` + `product_variant_options` (varianten incl. eigen prijs, stock, SKU, barcode, gewicht, afbeelding)
+- `product_categories` (junction — alle gekoppelde categorieën)
+- `product_specifications` + `product_custom_specs`
+- `product_files` (digitale bestanden — referentie naar zelfde storage objects, geen file-kopie)
+- `content_translations` (alle taalvarianten van naam/beschrijving/SEO)
+- `images[]` / `featured_image` (URLs hergebruiken — geen storage duplicatie nodig)
+- `tags`, `social_channels`, `meta_*`, `shopify_optimized_*`, BTW, kostprijs, gewicht, etc.
 
-## Fix
+## Wat NIET wordt gekopieerd (bewust)
 
-### `src/hooks/useTranslations.ts`
-- In de `pending-translations` queryFn: verwijder `.limit(100)` op zowel `products` als `categories` (we filteren al op `tenant_id` + `is_active`; tellingen voor dekking moeten volledig zijn).
+- `id`, `created_at`, `updated_at`
+- `sku` / `barcode` op parent en varianten → leeg of suffix `-copy` (uniciteit + voorkomt marketplace conflicts)
+- Marketplace-koppelingen: `shopify_product_id`, `shopify_variant_id`, `shopify_listing_status`, `shopify_last_synced_at`, `bol_*`, idem voor andere kanalen → `null` (anders sync-collisions)
+- `is_active` → `false` (start als concept)
+- `slug` → gegenereerd op basis van naam + suffix om unique-constraint te respecteren
+- Statistieken/aggregaten (views, sales count e.d.) → 0/null
+- Orders, reviews, sync-logs (geen historische data)
 
-### `src/pages/admin/TranslationHub.tsx`
-- In `getAllEntities()` (zowel product- als category-tak): voeg `missingByLangByField: pe?.missingByLangByField ?? {}` toe aan het returned object.
-- In `bulkCost`-berekening (missing-mode): wanneer `byField?.[lang]` ontbreekt én de entity coverage 0 is én er géén translations bekend zijn, val terug op `bulkFields.length` (alle geselecteerde velden ontbreken) i.p.v. `0`. Concreet: als `missingByLang[lang]` undefined is, behandel het als `availableFields.length` zodat een onbekende entity niet stilletjes als "alles vertaald" geldt.
+## Naamgeving
 
-## Verificatie
-- Selecteer 1 onvertaald product, 3 talen, alle 5 velden, mode `missing` → kost = `1 × 5 × 3 × perCreditCost` (bv. 15 credits).
-- Wissel mode naar `all` → zelfde getal.
-- Vink "Meta titel" en "Meta beschrijving" uit → kost zakt naar `1 × 3 × 3` = 9.
-- Selecteer een product dat al 100% vertaald is → kost blijft 0 in `missing`-mode (correct).
+Default: `"<originele naam> (kopie)"`. Slug krijgt random suffix om uniek te zijn binnen tenant.
 
-## Buiten scope
-- Refactor van de hele cost-engine of server-side preview-endpoint — overkill voor deze fix.
+## Technische uitvoering
+
+1. **Edge Function `duplicate-product`** (JWT-auth via `authenticateRequest`, tenant-scoped):
+   - Input: `{ product_id }`
+   - Verifieert dat product tot caller's tenant behoort
+   - Leest origineel + alle relaties in één batch
+   - Maakt nieuwe rij in `products` met geschoonde velden
+   - Kopieert relaties met nieuwe `product_id` (en bij varianten: nieuwe variant-id mapping voor `product_variant_options`)
+   - Wrappen in try/catch; bij mislukken: rollback via DELETE op nieuwe product_id (geen DB transactie mogelijk in PostgREST, dus compensatie)
+   - Output: `{ id: nieuwProductId }`
+
+2. **Hook `useDuplicateProduct`** in `src/hooks/useProducts.ts`:
+   - `useMutation` die de edge function aanroept
+   - Bij succes: invalidate `products` query + toast + return id
+
+3. **UI in `src/pages/admin/Products.tsx`**:
+   - Nieuwe `DropdownMenuItem` "Dupliceren" met `Copy` icoon in beide dropdowns (grid- en list-view, rond regels 616 en 781)
+   - Tussen "Bewerken" en delete
+   - Loading state per rij; bij succes navigeer naar `/admin/products/<nieuwId>` zodat de gebruiker direct kan finetunen
+
+4. **Permissies**: gebruik bestaande `useCan('products', 'create')` om het menu-item te tonen — dupliceren = aanmaken.
+
+## Edge cases
+
+- Product zonder varianten: skip varianten-stap zonder error
+- Product met digitale levering (`product_files`): kopieer alleen rij-referenties; bestanden in storage blijven gedeeld (zelfde URL)
+- Tenant-isolatie: alle inserts expliciet met `tenant_id` van de caller
+- Unieke constraints (slug, SKU): retry slug met extra suffix; SKU's leegmaken zodat user ze invult
+- Multi-language translations: `content_translations` rijen krijgen nieuwe `entity_id`
+
+## Bestanden
+
+- nieuw: `supabase/functions/duplicate-product/index.ts`
+- update: `supabase/config.toml` (functie registreren met JWT verify)
+- update: `src/hooks/useProducts.ts` (hook + export)
+- update: `src/pages/admin/Products.tsx` (menu items + handler)
+
+Geen DB-migraties nodig.
