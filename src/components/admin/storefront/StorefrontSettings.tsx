@@ -24,30 +24,43 @@ import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { toast } from 'sonner';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
+const DEFAULT_FORM_DATA = {
+  use_custom_frontend: false,
+  custom_frontend_url: '',
+  custom_head_scripts: '',
+};
+
 export function StorefrontSettings() {
   const { currentTenant } = useTenant();
   const { themeSettings, saveThemeSettings } = useStorefront();
   const { domains, canonicalDomain } = useTenantDomains();
   const [copied, setCopied] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
-    use_custom_frontend: false,
-    custom_frontend_url: '',
-    custom_head_scripts: '',
-  });
+  const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
+  const [initialFormData, setInitialFormData] = useState(DEFAULT_FORM_DATA);
 
   useEffect(() => {
-    if (themeSettings) {
-      setFormData({
-        use_custom_frontend: themeSettings.use_custom_frontend,
-        custom_frontend_url: themeSettings.custom_frontend_url || '',
-        custom_head_scripts: themeSettings.custom_head_scripts || '',
-      });
-    }
-  }, [themeSettings]);
+    const nextFormData = themeSettings
+      ? {
+          use_custom_frontend: themeSettings.use_custom_frontend,
+          custom_frontend_url: themeSettings.custom_frontend_url || '',
+          custom_head_scripts: themeSettings.custom_head_scripts || '',
+        }
+      : DEFAULT_FORM_DATA;
 
-  const handleSave = () => {
-    saveThemeSettings.mutate(formData);
+    setFormData(nextFormData);
+    setInitialFormData(nextFormData);
+  }, [themeSettings, currentTenant?.id]);
+
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormData);
+
+  const handleSave = async () => {
+    await saveThemeSettings.mutateAsync(formData);
+    setInitialFormData(formData);
+  };
+
+  const handleCancel = () => {
+    setFormData(initialFormData);
   };
 
   const copyToClipboard = (text: string, key: string) => {
@@ -282,24 +295,10 @@ export function StorefrontSettings() {
       </Card>
 
       <FloatingSaveBar
-        isDirty={
-          themeSettings ? (
-            formData.use_custom_frontend !== themeSettings.use_custom_frontend ||
-            formData.custom_frontend_url !== (themeSettings.custom_frontend_url || '') ||
-            formData.custom_head_scripts !== (themeSettings.custom_head_scripts || '')
-          ) : false
-        }
+        isDirty={isDirty}
         isSaving={saveThemeSettings.isPending}
         onSave={handleSave}
-        onCancel={() => {
-          if (themeSettings) {
-            setFormData({
-              use_custom_frontend: themeSettings.use_custom_frontend,
-              custom_frontend_url: themeSettings.custom_frontend_url || '',
-              custom_head_scripts: themeSettings.custom_head_scripts || '',
-            });
-          }
-        }}
+        onCancel={handleCancel}
       />
     </div>
   );
