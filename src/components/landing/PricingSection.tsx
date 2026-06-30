@@ -6,137 +6,48 @@ import { Check, Star, Sparkles, Monitor, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
 
-const plans = [
+const planMeta = [
   {
-    name: 'Free',
+    key: 'free',
     price: 0,
     yearlyPrice: 0,
-    badge: 'Om te starten',
-    features: [
-      '25 producten',
-      '50 bestellingen/maand',
-      '100 klanten',
-      'Handmatige facturen',
-      'Kortingscodes',
-      'Community support',
-    ],
-    limitations: ['Geen webshop', 'Geen AI', 'Geen POS', 'Geen SellQo Connect', 'SellQo watermerk'],
-    cta: 'Start Gratis',
+    hasLimitations: true,
     highlighted: false,
   },
   {
-    name: 'Starter',
+    key: 'starter',
     price: 29,
     yearlyPrice: 290,
-    badge: 'Perfect voor starters',
-    features: [
-      '250 producten',
-      '500 bestellingen/maand',
-      '1.000 klanten',
-      '3 teamleden',
-      '✨ 50 AI credits/maand',
-      '🛒 Webshop Builder',
-      'Factur-X e-facturen',
-      'Kortingscodes',
-      'Shop Health Score',
-      'Gamification & Badges',
-      'Email support',
-      'Eigen domein',
-      '🔗 SellQo Connect Lite — 1 kanaal',
-    ],
-    addons: ['POS Kassa'],
-    cta: 'Start Gratis',
+    hasAddons: true,
     highlighted: false,
   },
   {
-    name: 'Pro',
+    key: 'pro',
     price: 79,
     yearlyPrice: 790,
-    badge: 'Meest gekozen',
-    features: [
-      '2.500 producten',
-      '5.000 bestellingen/maand',
-      '10.000 klanten',
-      '10 teamleden',
-      '✨ 500 AI credits/maand',
-      '🛒 Webshop Builder + Visual Editor',
-      '💳 POS Kassa inclusief',
-      '🤖 AI Business Coach',
-      '🔗 SellQo Connect — alle kanalen',
-      'Peppol e-invoicing (coming soon)',
-      'Multi-warehouse',
-      'Live Activity Feed',
-      'Loyaliteitsprogramma',
-      'Priority support',
-    ],
-    cta: 'Start Gratis',
     highlighted: true,
   },
   {
-    name: 'Enterprise',
+    key: 'enterprise',
     price: 199,
     yearlyPrice: 1990,
-    badge: 'Voor schaalbare businesses',
-    features: [
-      'Onbeperkte producten',
-      'Onbeperkte bestellingen',
-      '50 teamleden',
-      '✨ 5.000 AI credits/maand',
-      '🛒 Alle premium themes',
-      '🔗 SellQo Connect — alle kanalen + custom',
-      'White-label opties',
-      'Dedicated account manager',
-      'Phone support (NL/BE)',
-      'Gratis migratie (€2.000 waarde)',
-      'SLA 99.9%',
-    ],
-    cta: 'Neem Contact Op',
     highlighted: false,
   },
 ];
 
-const addons = [
-  {
-    icon: Sparkles,
-    name: 'AI Credit Pack',
-    price: 19,
-    description: '500 extra AI credits/maand',
-    features: ['Productbeschrijvingen', 'Social content', 'Afbeelding generatie'],
-    availableFor: 'Starter+',
-  },
-  {
-    icon: Monitor,
-    name: 'POS Kassa',
-    price: 29,
-    proPricing: 0,
-    description: 'Verkoop in je winkel',
-    features: ['Touch interface', 'Barcode scanning', 'Stripe Terminal'],
-    availableFor: 'Starter (Pro: gratis)',
-  },
-  {
-    icon: FileText,
-    name: 'Peppol e-Invoicing',
-    price: 12,
-    proPricing: 0,
-    description: 'Binnenkort beschikbaar — verplicht vanaf 2026 in BE',
-    features: ['Officiële Peppol koppeling', 'Automatische verzending', 'Ontvangstbevestigingen', 'B2B compliance'],
-    availableFor: 'Starter (Pro: gratis)',
-    urgencyBadge: '🔜 Coming Soon — Verplicht 2026',
-  },
-  {
-    icon: Plus,
-    name: 'Extra Marketplace',
-    price: 15,
-    description: 'Per extra kanaal',
-    features: ['Amazon, eBay, etc.', 'Order sync', 'Voorraad sync'],
-    availableFor: 'Pro+',
-  },
+const addonMeta = [
+  { icon: Sparkles, key: 'ai', price: 19 },
+  { icon: Monitor, key: 'pos', price: 29, proPricing: 0 },
+  { icon: FileText, key: 'peppol', price: 12, proPricing: 0, hasUrgency: true },
+  { icon: Plus, key: 'marketplace', price: 15 },
 ];
 
 export function PricingSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
   const [isYearly, setIsYearly] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <section id="pricing" className="py-20 md:py-28 bg-background">
@@ -149,10 +60,10 @@ export function PricingSection() {
           )}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Transparante Prijzen, Schaalbaar Met Jouw Groei
+            {t('landing.pricing.heading')}
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Begin gratis, upgrade wanneer je wilt. Geen verborgen kosten.
+            {t('landing.pricing.subheading')}
           </p>
           
           {/* Monthly/Yearly Toggle */}
@@ -161,7 +72,7 @@ export function PricingSection() {
               'text-sm font-medium transition-colors',
               !isYearly ? 'text-foreground' : 'text-muted-foreground'
             )}>
-              Maandelijks
+              {t('landing.pricing.monthly')}
             </span>
             <Switch
               checked={isYearly}
@@ -172,18 +83,29 @@ export function PricingSection() {
               'text-sm font-medium transition-colors',
               isYearly ? 'text-foreground' : 'text-muted-foreground'
             )}>
-              Jaarlijks
+              {t('landing.pricing.yearly')}
             </span>
             {isYearly && (
               <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                Bespaar 2 maanden
+                {t('landing.pricing.save2months')}
               </Badge>
             )}
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-16 items-stretch">
-          {plans.map((plan, index) => (
+          {planMeta.map((plan, index) => {
+            const name = t(`landing.pricing.plans.${plan.key}.name`);
+            const badge = t(`landing.pricing.plans.${plan.key}.badge`);
+            const cta = t(`landing.pricing.plans.${plan.key}.cta`);
+            const features = t(`landing.pricing.plans.${plan.key}.features`, { returnObjects: true }) as string[];
+            const limitations = plan.hasLimitations
+              ? (t(`landing.pricing.plans.${plan.key}.limitations`, { returnObjects: true }) as string[])
+              : null;
+            const addons = plan.hasAddons
+              ? (t(`landing.pricing.plans.${plan.key}.addons`, { returnObjects: true }) as string[])
+              : null;
+            return (
             <div
               key={index}
               className={cn(
@@ -199,15 +121,15 @@ export function PricingSection() {
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-accent text-accent-foreground px-4 py-1">
                     <Star className="w-3 h-3 mr-1 inline" />
-                    {plan.badge}
+                    {badge}
                   </Badge>
                 </div>
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-foreground mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-foreground mb-2">{name}</h3>
                 {!plan.highlighted && (
-                  <Badge variant="secondary" className="mb-4">{plan.badge}</Badge>
+                  <Badge variant="secondary" className="mb-4">{badge}</Badge>
                 )}
                 <div className="mb-2">
                   {isYearly && plan.yearlyPrice > 0 ? (
@@ -215,20 +137,20 @@ export function PricingSection() {
                       <span className="text-4xl font-bold text-foreground">
                         €{plan.yearlyPrice}
                       </span>
-                      <span className="text-muted-foreground">/jaar</span>
+                      <span className="text-muted-foreground">{t('landing.pricing.perYear')}</span>
                     </>
                   ) : (
                     <>
                       <span className="text-4xl font-bold text-foreground">
-                        {plan.price === 0 ? 'Gratis' : `€${plan.price}`}
+                        {plan.price === 0 ? t('landing.pricing.free') : `€${plan.price}`}
                       </span>
-                      {plan.price > 0 && <span className="text-muted-foreground">/maand</span>}
+                      {plan.price > 0 && <span className="text-muted-foreground">{t('landing.pricing.perMonth')}</span>}
                     </>
                   )}
                 </div>
                 {!isYearly && plan.yearlyPrice > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    €{plan.yearlyPrice} per jaar (bespaar 2 maanden)
+                    {t('landing.pricing.yearlyHint', { price: plan.yearlyPrice })}
                   </p>
                 )}
               </div>
@@ -236,7 +158,7 @@ export function PricingSection() {
               {/* Features list with flex-grow to push button to bottom */}
               <div className="flex-grow">
                 <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, i) => (
+                  {features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       <span className="text-foreground">{feature}</span>
@@ -244,9 +166,9 @@ export function PricingSection() {
                   ))}
                 </ul>
 
-                {plan.limitations && (
+                {limitations && (
                   <ul className="space-y-2 mb-6 pt-4 border-t border-border">
-                    {plan.limitations.map((limitation, i) => (
+                    {limitations.map((limitation, i) => (
                       <li key={i} className="text-sm text-muted-foreground">
                         {limitation}
                       </li>
@@ -254,11 +176,11 @@ export function PricingSection() {
                   </ul>
                 )}
 
-                {'addons' in plan && plan.addons && (
+                {addons && (
                   <div className="pt-4 border-t border-border mb-6">
-                    <p className="text-xs text-muted-foreground mb-2">Beschikbare add-ons:</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t('landing.pricing.availableAddons')}</p>
                     <div className="flex flex-wrap gap-1">
-                      {plan.addons.map((addon, i) => (
+                      {addons.map((addon, i) => (
                         <span key={i} className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded">
                           +{addon}
                         </span>
@@ -281,13 +203,14 @@ export function PricingSection() {
                   variant={plan.highlighted ? 'default' : 'outline'}
                   size="lg"
                 >
-                  <Link to={plan.name === 'Enterprise' ? '/contact' : '/auth?mode=register'}>
-                    {plan.cta}
+                  <Link to={plan.key === 'enterprise' ? '/contact' : '/auth?mode=register'}>
+                    {cta}
                   </Link>
                 </Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Add-ons Section */}
@@ -299,47 +222,52 @@ export function PricingSection() {
           style={{ animationDelay: '0.5s' }}
         >
           <h3 className="text-2xl font-bold text-foreground text-center mb-8">
-            Boost Je Plan Met Add-ons
+            {t('landing.pricing.boostHeading')}
           </h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {addons.map((addon, index) => (
+            {addonMeta.map((addon, index) => {
+              const Icon = addon.icon;
+              const name = t(`landing.pricing.addons.${addon.key}.name`);
+              const desc = t(`landing.pricing.addons.${addon.key}.desc`);
+              const features = t(`landing.pricing.addons.${addon.key}.features`, { returnObjects: true }) as string[];
+              const forTier = t(`landing.pricing.addons.${addon.key}.for`);
+              const urgency = addon.hasUrgency ? t(`landing.pricing.addons.${addon.key}.urgency`) : null;
+              return (
               <div
                 key={index}
                 className="p-6 bg-card rounded-xl border border-border hover:border-accent/50 transition-colors"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <addon.icon className="w-5 h-5 text-accent" />
+                    <Icon className="w-5 h-5 text-accent" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-foreground">{addon.name}</h4>
-                      {'urgencyBadge' in addon && addon.urgencyBadge && (
+                      <h4 className="font-semibold text-foreground">{name}</h4>
+                      {urgency && (
                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
-                          {addon.urgencyBadge}
+                          {urgency}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{addon.description}</p>
+                    <p className="text-sm text-muted-foreground">{desc}</p>
                   </div>
                 </div>
                 <div className="mb-4">
                   <span className="text-2xl font-bold text-foreground">€{addon.price}</span>
-                  <span className="text-muted-foreground">/maand</span>
+                  <span className="text-muted-foreground">{t('landing.pricing.perMonth')}</span>
                   {addon.proPricing === 0 && (
-                    <p className="text-xs text-green-600 mt-1">Gratis bij Pro</p>
+                    <p className="text-xs text-green-600 mt-1">{t('landing.pricing.freeAtPro')}</p>
                   )}
                   {addon.proPricing && addon.proPricing > 0 && (
-                    <p className="text-xs text-accent mt-1">€{addon.proPricing}/maand bij Pro</p>
+                    <p className="text-xs text-accent mt-1">{t('landing.pricing.atPro', { price: addon.proPricing })}</p>
                   )}
                 </div>
-                {'availableFor' in addon && (
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Beschikbaar voor: {addon.availableFor}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t('landing.pricing.availableFor', { tier: forTier })}
+                </p>
                 <ul className="space-y-2">
-                  {addon.features.map((feature, i) => (
+                  {features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Check className="w-3 h-3 text-green-500" />
                       {feature}
@@ -347,24 +275,26 @@ export function PricingSection() {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         <div className="text-center mt-12 space-y-4">
-          <p className="text-muted-foreground">
-            Alle plannen: <strong>14 dagen gratis</strong> • Geen creditcard nodig • Maandelijks opzegbaar
-          </p>
+          <p
+            className="text-muted-foreground"
+            dangerouslySetInnerHTML={{ __html: t('landing.pricing.footnoteTrial') }}
+          />
           <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 max-w-2xl mx-auto">
             <p className="text-sm text-green-700 dark:text-green-400">
-              💡 <strong>Bespaar op transactiekosten:</strong> Met onze Bank Transfer QR-codes betalen je klanten direct via hun bank app - €0 transactiekosten voor jou!
+              💡 <strong>{t('landing.pricing.footnoteTipTitle')}</strong> {t('landing.pricing.footnoteTipBody')}
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)
+            {t('landing.pricing.footnoteStripe')}
           </p>
           <p className="text-sm text-muted-foreground font-medium">
-            Alle prijzen zijn inclusief BTW
+            {t('landing.pricing.footnoteVat')}
           </p>
         </div>
       </div>
