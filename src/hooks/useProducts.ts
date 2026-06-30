@@ -245,6 +245,27 @@ export function useProducts() {
     },
   });
 
+  const duplicateProduct = useMutation({
+    mutationFn: async (productId: string) => {
+      const { data, error } = await supabase.functions.invoke('duplicate-product', {
+        body: { product_id: productId },
+      });
+      if (error) throw error;
+      if (!data?.id) throw new Error(data?.error || 'Duplicatie mislukt');
+      return data.id as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      toast({
+        title: 'Product gedupliceerd',
+        description: 'De kopie staat klaar als concept (inactief).',
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout bij dupliceren', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     products: productsQuery.data || [],
     isLoading: productsQuery.isLoading,
@@ -252,6 +273,7 @@ export function useProducts() {
     createProduct,
     updateProduct,
     deleteProduct,
+    duplicateProduct,
     bulkUpdateProducts,
     bulkDeleteProducts,
     bulkAdjustPrices,
