@@ -2,12 +2,7 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { TrendingUp, Users, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-const stats = [
-  { icon: Users, value: 500, suffix: '+', label: 'Actieve Ondernemers' },
-  { icon: TrendingUp, value: 2400000, prefix: '€', suffix: '+', label: 'Verwerkte Omzet' },
-  { icon: Shield, value: 99.9, suffix: '%', label: 'Uptime Garantie' },
-];
+import { useTranslation } from 'react-i18next';
 
 function AnimatedCounter({ value, prefix = '', suffix = '' }: { value: number; prefix?: string; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -53,6 +48,13 @@ function AnimatedCounter({ value, prefix = '', suffix = '' }: { value: number; p
 
 export function SocialProofSection() {
   const { ref, isIntersecting } = useIntersectionObserver();
+  const { t } = useTranslation();
+
+  const stats = [
+    { icon: Users, value: 500, suffix: '+', label: t('landing.social.entrepreneurs') },
+    { icon: TrendingUp, value: 2400000, prefix: '€', suffix: '+', label: t('landing.social.revenue') },
+    { icon: Shield, value: 99.9, suffix: '%', label: t('landing.social.uptime') },
+  ];
 
   return (
     <section className="py-12 md:py-16 bg-secondary/30">

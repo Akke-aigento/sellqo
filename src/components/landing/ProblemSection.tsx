@@ -1,43 +1,34 @@
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { ArrowDown, RefreshCw, BarChart3, Clock } from 'lucide-react';
-const problems = [{
-  icon: RefreshCw,
-  emoji: '🔄',
-  title: 'Constant schakelen tussen 5+ platforms',
-  description: 'Shopify voor je webshop, Excel voor voorraad, QuickBooks voor facturen, Mailchimp voor marketing...'
-}, {
-  icon: BarChart3,
-  emoji: '📊',
-  title: 'Geen idee wat je echte winst is',
-  description: 'Verkoopkosten, retouren, verzending... Je weet het allemaal wel ongeveer, maar niet exact.'
-}, {
-  icon: Clock,
-  emoji: '⏰',
-  title: 'Uren kwijt aan administratie',
-  description: 'Handmatig bestellingen invoeren, voorraad bijwerken, facturen maken... tijd die je niet hebt.'
-}];
+import { useTranslation } from 'react-i18next';
+
+const emojis = ['🔄', '📊', '⏰'];
+const icons = [RefreshCw, BarChart3, Clock];
+
 export function ProblemSection() {
   const {
     ref,
     isIntersecting
   } = useIntersectionObserver();
+  const { t } = useTranslation();
+  const items = t('landing.problem.items', { returnObjects: true }) as Array<{ title: string; desc: string }>;
   return <section className="pt-20 md:pt-28 pb-8 md:pb-12 bg-background">
       <div className="container mx-auto px-4">
         <div ref={ref} className={cn('text-center mb-16', isIntersecting ? 'animate-fade-in-up' : 'opacity-0')}>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Herken Je Dit? <span className="inline-block">😫</span>
+            {t('landing.problem.heading')} <span className="inline-block">😫</span>
           </h2>
         </div>
 
         {/* Problem cards */}
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-16">
-          {problems.map((problem, index) => <div key={index} className={cn('p-6 md:p-8 bg-card rounded-2xl border border-border shadow-sellqo hover:shadow-sellqo-lg transition-all duration-300 hover:-translate-y-1', isIntersecting ? 'animate-fade-in-up' : 'opacity-0')} style={{
+          {items.map((problem, index) => <div key={index} className={cn('p-6 md:p-8 bg-card rounded-2xl border border-border shadow-sellqo hover:shadow-sellqo-lg transition-all duration-300 hover:-translate-y-1', isIntersecting ? 'animate-fade-in-up' : 'opacity-0')} style={{
           animationDelay: `${index * 0.1}s`
         }}>
-              <div className="text-4xl mb-4">{problem.emoji}</div>
+              <div className="text-4xl mb-4">{emojis[index]}</div>
               <h3 className="text-xl font-bold text-foreground mb-3">{problem.title}</h3>
-              <p className="text-muted-foreground">{problem.description}</p>
+              <p className="text-muted-foreground">{problem.desc}</p>
             </div>)}
         </div>
 

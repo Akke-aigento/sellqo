@@ -4,22 +4,24 @@ import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
 import { HeroDashboardMockup } from './HeroDashboardMockup';
-
-const trustBadges = [
-  { icon: Check, text: 'Geen creditcard nodig' },
-  { icon: Check, text: '14 dagen gratis proberen' },
-  { icon: Check, text: 'In 5 minuten live' },
-  { icon: Check, text: 'Nederlandse support' },
-];
-
-const floatingCards = [
-  { icon: Zap, text: 'Live data sync', color: 'bg-blue-500' },
-  { icon: TrendingUp, text: '+23% conversie', color: 'bg-green-500' },
-  { icon: FileText, text: 'Auto facturatie', color: 'bg-accent' },
-];
+import { useTranslation } from 'react-i18next';
 
 export function HeroSection() {
   const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
+  const { t } = useTranslation();
+
+  const trustBadges = [
+    { icon: Check, text: t('landing.hero.trust.noCard') },
+    { icon: Check, text: t('landing.hero.trust.trial') },
+    { icon: Check, text: t('landing.hero.trust.setup') },
+    { icon: Check, text: t('landing.hero.trust.support') },
+  ];
+
+  const floatingCards = [
+    { icon: Zap, text: t('landing.hero.float.sync'), color: 'bg-blue-500' },
+    { icon: TrendingUp, text: t('landing.hero.float.conversion'), color: 'bg-green-500' },
+    { icon: FileText, text: t('landing.hero.float.invoicing'), color: 'bg-accent' },
+  ];
 
   const handleDemoScroll = () => {
     document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' });
@@ -45,14 +47,13 @@ export function HeroSection() {
           {/* Left column - Text content */}
           <div className="text-center lg:text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-tight mb-6">
-              <span className="gradient-text">Jouw Online Imperium,</span>
+              <span className="gradient-text">{t('landing.hero.title1')}</span>
               <br />
-              <span className="text-foreground">Volledig Onder Controle</span>
+              <span className="text-foreground">{t('landing.hero.title2')}</span>
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Het complete e-commerce platform dat verkopen, voorraad, financiën en groei samenbrengt. 
-              Speciaal gebouwd voor ondernemers in België en Nederland.
+              {t('landing.hero.subtitle')}
             </p>
 
             {/* CTA Buttons */}
@@ -63,7 +64,7 @@ export function HeroSection() {
                 className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-4 px-8 h-auto min-h-[44px] shadow-lg hover:shadow-xl hover:brightness-110 transition-all rounded-lg"
               >
                 <Link to="/auth?mode=register" className="flex items-center gap-2">
-                  Start 14 Dagen Gratis
+                  {t('landing.hero.ctaPrimary')}
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </Button>
@@ -74,7 +75,7 @@ export function HeroSection() {
                 className="text-lg py-4 px-8 h-auto min-h-[44px] border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all rounded-lg"
               >
                 <Play className="w-5 h-5 mr-2" />
-                Bekijk Live Demo
+                {t('landing.hero.ctaSecondary')}
               </Button>
             </div>
 

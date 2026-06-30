@@ -4,17 +4,20 @@ import { Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { cn } from '@/lib/utils';
-
-const navLinks = [
-  { href: '#features', label: 'Features' },
-  { href: '#pricing', label: 'Prijzen' },
-  { href: '#why-sellqo', label: 'Waarom SellQo?' },
-  { href: '#faq', label: 'FAQ' },
-];
+import { useTranslation } from 'react-i18next';
+import { LandingLanguageSwitcher } from './LandingLanguageSwitcher';
 
 export function LandingNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
+
+  const navLinks = [
+    { href: '#features', label: t('landing.nav.features') },
+    { href: '#pricing', label: t('landing.nav.pricing') },
+    { href: '#why-sellqo', label: t('landing.nav.why') },
+    { href: '#faq', label: t('landing.nav.faq') },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,12 +66,13 @@ export function LandingNavbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
+            <LandingLanguageSwitcher variant="compact" className="mr-2" />
             <Button variant="outline" asChild>
-              <Link to="/auth">Inloggen</Link>
+              <Link to="/auth">{t('landing.nav.login')}</Link>
             </Button>
             <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
               <Link to="/auth?mode=register" className="flex items-center gap-2">
-                Gratis Starten
+                {t('landing.nav.start')}
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
@@ -103,11 +107,12 @@ export function LandingNavbar() {
             </button>
           ))}
           <div className="flex flex-col gap-2 pt-4 border-t border-border">
+            <LandingLanguageSwitcher className="justify-center mb-2" />
             <Button variant="outline" asChild className="w-full">
-              <Link to="/auth">Inloggen</Link>
+              <Link to="/auth">{t('landing.nav.login')}</Link>
             </Button>
             <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link to="/auth?mode=register">Gratis Starten</Link>
+              <Link to="/auth?mode=register">{t('landing.nav.start')}</Link>
             </Button>
           </div>
         </div>
