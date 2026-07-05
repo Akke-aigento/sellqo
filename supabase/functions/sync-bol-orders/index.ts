@@ -822,6 +822,38 @@ Deno.serve(async (req) => {
 
         // VVB Retry: find accepted orders that are missing a shipping label
         const vvbEnabled = settings.vvbEnabled as boolean
+
+        // === STUCK-LABEL-CLEANUP: unblock labels stuck in pending without external_id ===
+        // If the process-status poll timed out during creation, the label row has
+        // status 'pending' and external_id NULL. Every retry selector requires
+        // external_id, and VVB-RETRY skips orders with an active label — deadlock.
+        // Mark such labels (older than 15 min) as error so VVB-RETRY recreates them.
+        if (vvbEnabled) {
+          try {
+            const { data: stuck } = await supabase
+              .from('shipping_labels')
+              .select('id, order_id')
+              .eq('provider', 'bol_vvb')
+              .eq('status', 'pending')
+              .is('external_id', null)
+              .lt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+
+            if (stuck && stuck.length > 0) {
+              console.warn(`[STUCK-LABEL-CLEANUP] Releasing ${stuck.length} stuck pending label(s) without external_id`)
+              for (const s of stuck) {
+                await supabase.from('shipping_labels')
+                  .update({
+                    status: 'error',
+                    error_message: 'No transporterLabelId obtained (process-status poll timeout) — released for auto-recreate',
+                  })
+                  .eq('id', s.id)
+              }
+            }
+          } catch (stuckErr) {
+            console.error('[STUCK-LABEL-CLEANUP] Error:', stuckErr)
+          }
+        }
+
         if (vvbEnabled) {
           try {
             console.log(`[VVB-RETRY] Checking for accepted orders without VVB label (connection: ${connection.id})...`)
@@ -998,6 +1030,59 @@ Deno.serve(async (req) => {
             }
           } catch (labelRetryErr) {
             console.error('[LABEL-PDF-RETRY] Error:', labelRetryErr)
+          }
+        }
+
+        // === TRACKING-BACKFILL: fetch T&T for labels that have a PDF but no tracking ===
+        // bpost assigns the track & trace code asynchronously, often minutes after
+        // label creation. Labels with label_url but tracking_number NULL were never
+        // re-checked before this block existed.
+        if (vvbEnabled) {
+          try {
+            console.log(`[TRACKING-BACKFILL] Checking labels without tracking (connection: ${connection.id})...`)
+            const { data: untracked } = await supabase
+              .from('shipping_labels')
+              .select('id, order_id, external_id, carrier, orders!inner(order_number, tracking_number, tenant_id)')
+              .eq('provider', 'bol_vvb')
+              .is('tracking_number', null)
+              .not('external_id', 'is', null)
+              .not('status', 'in', '("error","cancelled")')
+              .gte('created_at', new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString())
+
+            if (untracked && untracked.length > 0) {
+              console.log(`[TRACKING-BACKFILL] Found ${untracked.length} labels without tracking`)
+              const toProcess = untracked.slice(0, 10) // rate-limit guard
+              for (const label of toProcess) {
+                try {
+                  const headRes = await fetch(`https://api.bol.com/retailer/shipping-labels/${label.external_id}`, {
+                    method: 'HEAD',
+                    headers: {
+                      'Authorization': `Bearer ${accessToken}`,
+                      'Accept': 'application/vnd.retailer.v10+pdf',
+                    },
+                  })
+                  const tracking = headRes.headers.get('X-Track-And-Trace-Code')
+                  if (tracking) {
+                    console.log(`[TRACKING-BACKFILL] Got tracking ${tracking} for label ${label.id}`)
+                    await supabase.from('shipping_labels')
+                      .update({ tracking_number: tracking })
+                      .eq('id', label.id)
+                    await supabase.from('orders')
+                      .update({ tracking_number: tracking, carrier: label.carrier })
+                      .eq('id', label.order_id)
+                  } else {
+                    console.log(`[TRACKING-BACKFILL] No tracking yet for label ${label.id} (HEAD ${headRes.status})`)
+                  }
+                } catch (tbErr) {
+                  console.error(`[TRACKING-BACKFILL] Error for label ${label.id}:`, tbErr)
+                }
+                await rateLimitDelay(1000)
+              }
+            } else {
+              console.log(`[TRACKING-BACKFILL] All recent labels have tracking`)
+            }
+          } catch (tbLookupErr) {
+            console.error('[TRACKING-BACKFILL] Lookup error:', tbLookupErr)
           }
         }
 

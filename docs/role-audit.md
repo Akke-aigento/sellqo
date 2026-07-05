@@ -3652,3 +3652,22 @@ Live. Geverifieerd via shallow clone post-flight (commit "Credits preview toegev
 - .limit(50) in edge-function bulk: tenants met >50 actieve producten bereiken nooit 100% in één run (nu n.v.t., VanXcel=47). Bulk in batches splitsen.
 - Dubbele use_ai_credits overload (2-arg + 5-arg) blijft bestaan — latente PostgREST-ambiguïteit, opruimen in aparte batch.
 - is_internal_tenant nooit geseed: per-rol bypass dekt platform_admin, maar een tenant écht onbeperkt maken (bv. Loveke) vereist expliciete vlag.
+
+## Bol VVB — labelcrop hersteld + track & trace backfill — 2026-07-04
+
+### Root cause
+1. **Labelcrop schaalde volledige bronpagina.** `cropToLabel()` in `create-bol-vvb-label` nam de hele A4 bron (bpost: 842×595pt landscape, label in top-left ±404×284pt) en scale-to-fitte die op het doelformaat → mini-label. `dymo_lw_4xl` stond bovendien op 102×210mm (289×595pt) i.p.v. de werkelijke Dymo S0904980 rol (104×159mm).
+2. **T&T-backfill sloot te veel uit.** `LABEL-PDF-RETRY` selecteerde enkel labels zonder `label_url`, en `create-bol-vvb-label` retry-mode early-returnde zodra `label_url` bestond → labels mét PDF maar zonder tracking werden nooit gehercheckt. bpost wijst `X-Track-And-Trace-Code` echter vaak minuten ná labelcreatie toe.
+3. **Deadlock op process-status timeout.** Als de 45s poll timeoutte bleef het label `pending` + `external_id NULL`; elke retry-selector vereiste `external_id`, en VVB-RETRY sloeg de order over omdat er al een actief label bestond → order permanent stuck.
+
+### Fixes
+- `cropToLabel` cropt nu naar top-left labelzone (430×310pt voor landscape bpost, halve pagina + marge voor portrait PostNL), roteert 90° als dat het doel beter vult, en centreert. Vector, geen kwaliteitsverlies. `dymo_lw_4xl` = 294.8×450.7pt (104×159mm).
+- Retry-mode in `create-bol-vvb-label`: early-return alleen als zowel `label_url` als `tracking_number` bestaan; PDF-fetch overgeslagen (`needsPdf`-guard) wanneer PDF er al is, maar de HEAD-tracking-lookup blijft draaien.
+- `sync-bol-orders`: nieuw `TRACKING-BACKFILL` blok (HEAD per label, max 10/cycle, 14 dagen window) vult ontbrekende T&T-codes en synct naar `orders.tracking_number`.
+- `sync-bol-orders`: nieuw `STUCK-LABEL-CLEANUP` blok markeert `pending`-labels ouder dan 15 min zonder `external_id` als `error`, waarna VVB-RETRY hetzelfde cycle een vers label aanmaakt. Zodra dat vers label een `transporterLabelId` krijgt, zet de bestaande code de order op `shipped` en confirmt bij Bol.
+
+### Verificatie
+- Recrop `dymo_lw_4xl` op order C0008RNFFX: label vult 104mm rolbreedte, barcode CD124283919BE + datamatrix scherp en volledig.
+- Recrop `a6`: label vult A6, niets geclipt.
+- Handmatige sync-run: `[TRACKING-BACKFILL]` en `[STUCK-LABEL-CLEANUP]` logs verschijnen; tracking wordt bijgewerkt op `shipping_labels` én `orders`.
+- Regressie: nieuwe VVB-labels via UI doorlopen normale flow (label + tracking + shipped + Bol confirm).
