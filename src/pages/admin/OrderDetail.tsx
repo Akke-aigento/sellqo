@@ -200,9 +200,9 @@ export default function OrderDetailPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{item.product_name}</div>
+                      <div className="font-medium text-sm break-words">{item.product_name}</div>
                       {item.product_sku && (
-                        <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                        <div className="text-xs text-muted-foreground break-all">SKU: {item.product_sku}</div>
                       )}
                       <div className="text-sm text-muted-foreground mt-0.5">
                         {item.quantity} × {formatCurrency(Number(item.unit_price))}
@@ -708,10 +708,10 @@ function TimelineItem({ icon, title, subtitle, date, completed, variant = 'defau
       }`}>
         {icon}
       </div>
-      <div className="flex-1">
-        <div className="font-medium">{title}</div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium break-words">{title}</div>
         {subtitle && (
-          <div className="text-xs text-muted-foreground font-mono">{subtitle}</div>
+          <div className="text-xs text-muted-foreground font-mono break-all">{subtitle}</div>
         )}
         <div className="text-sm text-muted-foreground">
           {format(new Date(date), "d MMM yyyy 'om' HH:mm", { locale: nl })}
