@@ -3,10 +3,12 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "
 
 // LAZY IMPORT: pdf-lib only when needed (heavy library, can crash isolate on boot)
 let PDFDocument: any = null;
+let degrees: any = null;
 async function loadPdfLib() {
   if (!PDFDocument) {
     const module = await import("https://esm.sh/pdf-lib@1.17.1?bundle");
     PDFDocument = module.PDFDocument;
+    degrees = module.degrees;
   }
   return PDFDocument;
 }
@@ -38,7 +40,7 @@ const FORMAT_DIMENSIONS: Record<LabelFormat, { w: number; h: number } | null> = 
   a5: { w: 420, h: 595 }, // 148×210 mm
   a4_original: null, // no crop
   brother_62mm: { w: 175, h: 350 }, // 62 mm continuous roll
-  dymo_lw_4xl: { w: 289, h: 595 }, // 102×210 mm — Dymo LW 4XL S0904980
+  dymo_lw_4xl: { w: 294.8, h: 450.7 }, // 104×159 mm — Dymo LW 4XL S0904980
 };
 
 const FORMAT_SUFFIX: Record<LabelFormat, string> = {
@@ -50,14 +52,17 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
   dymo_lw_4xl: "-dymo4xl",
 };
 
-// Fit the printable label area onto the requested paper format.
+// Fit the actual label area onto the requested paper format.
 //
-// Bol/bpost render the actual label in the top-left of the source page, but
-// the right-hand barcode strip and info column can extend well past A5 width.
-// Earlier versions capped the captured area at A5 (420pt wide) and silently
-// clipped wider labels. We now take the FULL source page as the content area
-// and scale-to-fit on the target paper. Worst case we get whitespace; we
-// never clip the barcode anymore.
+// Bol carriers anchor the label top-left on the source page:
+//   - bpost VVB:  A4 landscape (≈842×595pt), label ≈404×284pt top-left
+//   - PostNL VVB: A4 portrait, label in top-left quadrant
+//   - some sources are already label-sized → use full page
+//
+// We crop a fixed top-left window per source layout (window includes margin,
+// so we never clip barcodes), then rotate 90° if that yields a larger scale
+// on the target paper (landscape label on a portrait thermal roll), then
+// scale-to-fit and center. Everything stays vector — no quality loss.
 async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<Uint8Array> {
   const dims = FORMAT_DIMENSIONS[format];
   if (!dims) {
@@ -70,34 +75,57 @@ async function cropToLabel(pdfBytes: ArrayBuffer, format: LabelFormat): Promise<
   const srcPage = srcDoc.getPages()[0];
   const { width: srcW, height: srcH } = srcPage.getSize();
 
-  // Use the full source page. Bol/bpost anchors the label top-left, so any
-  // unused area on the source is on the bottom/right and becomes harmless
-  // whitespace after scale-to-fit.
-  const contentW = srcW;
-  const contentH = srcH;
+  // Determine content window (top-left anchored)
+  let contentW = srcW;
+  let contentH = srcH;
+  if (srcW > srcH && srcW > 700) {
+    // A4 landscape source (bpost VVB): label ≈404×284pt + margin
+    contentW = Math.min(srcW, 430);
+    contentH = Math.min(srcH, 310);
+  } else if (srcH > srcW && srcH > 700) {
+    // A4 portrait source (PostNL VVB): label in top-left quadrant + margin
+    contentW = Math.min(srcW, srcW / 2 + 20);
+    contentH = Math.min(srcH, srcH / 2 + 20);
+  }
+  // else: source is already label-sized → keep full page
 
   const newDoc = await PDFDoc.create();
   const embeddedPage = await newDoc.embedPage(srcPage, {
     left: 0,
-    bottom: 0,
+    bottom: srcH - contentH,
     right: contentW,
-    top: contentH,
+    top: srcH,
   });
 
-  // Scale to fit while preserving aspect ratio (no distortion, no clipping).
-  const scale = Math.min(dims.w / contentW, dims.h / contentH);
-  const drawW = contentW * scale;
-  const drawH = contentH * scale;
-  const offsetX = 0; // anchor to left so the label stays in the top-left corner
-  const offsetY = dims.h - drawH; // anchor to top of paper
+  // Rotate 90° if that fills the target better (no distortion, no clipping)
+  const scaleNoRot = Math.min(dims.w / contentW, dims.h / contentH);
+  const scaleRot = Math.min(dims.w / contentH, dims.h / contentW);
+  const rotate = scaleRot > scaleNoRot;
+  const scale = rotate ? scaleRot : scaleNoRot;
 
   const page = newDoc.addPage([dims.w, dims.h]);
-  page.drawPage(embeddedPage, {
-    x: offsetX,
-    y: offsetY,
-    width: drawW,
-    height: drawH,
-  });
+  if (rotate) {
+    const drawW = contentH * scale; // footprint width after 90° rotation
+    const drawH = contentW * scale; // footprint height after 90° rotation
+    const offsetX = (dims.w - drawW) / 2;
+    const offsetY = (dims.h - drawH) / 2;
+    page.drawPage(embeddedPage, {
+      x: offsetX + drawW, // rotation anchor: 90° CCW around (x, y)
+      y: offsetY,
+      width: contentW * scale,
+      height: contentH * scale,
+      rotate: degrees(90),
+    });
+  } else {
+    const drawW = contentW * scale;
+    const drawH = contentH * scale;
+    page.drawPage(embeddedPage, {
+      x: (dims.w - drawW) / 2,
+      y: (dims.h - drawH) / 2,
+      width: drawW,
+      height: drawH,
+    });
+  }
 
   return await newDoc.save();
 }
