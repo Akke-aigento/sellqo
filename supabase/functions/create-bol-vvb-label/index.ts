@@ -618,7 +618,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({
           success: true,
-          label_url: retryPdfUrl,
+          label_url: retryPdfUrl || existingLabel.label_url,
           tracking_number: retryTracking,
           retried: true,
         }),
