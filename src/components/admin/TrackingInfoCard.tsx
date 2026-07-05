@@ -65,6 +65,10 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
 
   const carrierInfo = getCarrierById(carrier);
   const hasTrackingInfo = order.tracking_number && order.carrier;
+  const normalizedCarrier = (order.carrier || carrier || '').toLowerCase().replace(/_be$/, '');
+  const trackingLink = order.tracking_number
+    ? order.tracking_url || generateTrackingUrl(normalizedCarrier, order.tracking_number, postalCode)
+    : null;
 
   // Display mode - show existing tracking info
   if (!isEditing && hasTrackingInfo) {
@@ -77,9 +81,9 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
           </div>
           <div className="flex justify-between items-center gap-2">
             <span className="text-muted-foreground">Tracknummer</span>
-            {order.tracking_url ? (
+            {trackingLink ? (
               <a
-                href={order.tracking_url}
+                href={trackingLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-xs text-primary hover:underline break-all inline-flex items-center gap-1"
@@ -95,12 +99,12 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
         </div>
         
         <div className="flex gap-2">
-          {order.tracking_url && (
+          {trackingLink && (
             <Button
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => window.open(order.tracking_url!, '_blank')}
+              onClick={() => window.open(trackingLink, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Track & Trace
