@@ -822,6 +822,38 @@ Deno.serve(async (req) => {
 
         // VVB Retry: find accepted orders that are missing a shipping label
         const vvbEnabled = settings.vvbEnabled as boolean
+
+        // === STUCK-LABEL-CLEANUP: unblock labels stuck in pending without external_id ===
+        // If the process-status poll timed out during creation, the label row has
+        // status 'pending' and external_id NULL. Every retry selector requires
+        // external_id, and VVB-RETRY skips orders with an active label — deadlock.
+        // Mark such labels (older than 15 min) as error so VVB-RETRY recreates them.
+        if (vvbEnabled) {
+          try {
+            const { data: stuck } = await supabase
+              .from('shipping_labels')
+              .select('id, order_id')
+              .eq('provider', 'bol_vvb')
+              .eq('status', 'pending')
+              .is('external_id', null)
+              .lt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+
+            if (stuck && stuck.length > 0) {
+              console.warn(`[STUCK-LABEL-CLEANUP] Releasing ${stuck.length} stuck pending label(s) without external_id`)
+              for (const s of stuck) {
+                await supabase.from('shipping_labels')
+                  .update({
+                    status: 'error',
+                    error_message: 'No transporterLabelId obtained (process-status poll timeout) — released for auto-recreate',
+                  })
+                  .eq('id', s.id)
+              }
+            }
+          } catch (stuckErr) {
+            console.error('[STUCK-LABEL-CLEANUP] Error:', stuckErr)
+          }
+        }
+
         if (vvbEnabled) {
           try {
             console.log(`[VVB-RETRY] Checking for accepted orders without VVB label (connection: ${connection.id})...`)
