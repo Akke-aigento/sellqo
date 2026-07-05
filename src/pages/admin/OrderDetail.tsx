@@ -123,14 +123,14 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/orders')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{order.order_number}</h1>
               <OrderMarketplaceBadge source={order.marketplace_source} />
@@ -138,11 +138,11 @@ export default function OrderDetailPage() {
               <PaymentStatusBadge status={order.payment_status} />
               <OrderReturnTag orderId={order.id} />
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground break-words">
               {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: nl })}
               {order.marketplace_order_id && (
                 <span className="ml-2 text-xs">
-                  • Marketplace ID: <span className="font-mono">{order.marketplace_order_id}</span>
+                  • Marketplace ID: <span className="font-mono break-all">{order.marketplace_order_id}</span>
                 </span>
               )}
             </p>
@@ -172,9 +172,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 min-w-0">
         {/* Left Column - Order Items */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           {/* Order Items */}
           <Card>
             <CardHeader>
@@ -200,9 +200,9 @@ export default function OrderDetailPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{item.product_name}</div>
+                      <div className="font-medium text-sm break-words">{item.product_name}</div>
                       {item.product_sku && (
-                        <div className="text-xs text-muted-foreground">SKU: {item.product_sku}</div>
+                        <div className="text-xs text-muted-foreground break-all">SKU: {item.product_sku}</div>
                       )}
                       <div className="text-sm text-muted-foreground mt-0.5">
                         {item.quantity} × {formatCurrency(Number(item.unit_price))}
@@ -349,7 +349,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Right Column - Consolidated */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {/* Card 1: Acties & Status */}
           <Card>
             <CardHeader className="pb-3">
@@ -708,10 +708,10 @@ function TimelineItem({ icon, title, subtitle, date, completed, variant = 'defau
       }`}>
         {icon}
       </div>
-      <div className="flex-1">
-        <div className="font-medium">{title}</div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium break-words">{title}</div>
         {subtitle && (
-          <div className="text-xs text-muted-foreground font-mono">{subtitle}</div>
+          <div className="text-xs text-muted-foreground font-mono break-all">{subtitle}</div>
         )}
         <div className="text-sm text-muted-foreground">
           {format(new Date(date), "d MMM yyyy 'om' HH:mm", { locale: nl })}
