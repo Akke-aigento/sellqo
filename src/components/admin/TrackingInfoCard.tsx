@@ -75,9 +75,22 @@ export function TrackingInfoCard({ order, embedded = false }: TrackingInfoCardPr
             <span className="text-muted-foreground">Carrier</span>
             <span className="font-medium">{carrierInfo?.name || order.carrier}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center gap-2">
             <span className="text-muted-foreground">Tracknummer</span>
-            <span className="font-mono text-xs">{order.tracking_number}</span>
+            {order.tracking_url ? (
+              <a
+                href={order.tracking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs text-primary hover:underline break-all inline-flex items-center gap-1"
+                title="Open track & trace bij vervoerder"
+              >
+                {order.tracking_number}
+                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              </a>
+            ) : (
+              <span className="font-mono text-xs break-all">{order.tracking_number}</span>
+            )}
           </div>
         </div>
         
