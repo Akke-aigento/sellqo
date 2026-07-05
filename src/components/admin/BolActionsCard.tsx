@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLabelPrinter } from '@/hooks/useLabelPrinter';
 import { FetchExternalLabelDialog } from '@/components/admin/FetchExternalLabelDialog';
+import { generateTrackingUrl } from '@/lib/carrierPatterns';
 import type { Order } from '@/types/order';
 
 interface BolActionsCardProps {
@@ -69,6 +70,9 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   const vvbLabels = labels?.filter(l => l.provider === 'bol_vvb') || [];
   const hasVvbLabel = vvbLabels.length > 0;
   const latestLabel = vvbLabels[0];
+  const vvbTrackingUrl = latestLabel?.tracking_number
+    ? order.tracking_url || generateTrackingUrl((latestLabel.carrier || order.carrier || '').toLowerCase().replace(/_be$/, ''), latestLabel.tracking_number)
+    : null;
 
   // Manual confirmation to Bol.com
   const confirmToBol = useMutation({
@@ -228,7 +232,21 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
           </div>
           {latestLabel.tracking_number && (
             <div className="text-xs text-muted-foreground">
-              Track: <span className="font-mono">{latestLabel.tracking_number}</span>
+              Track:{' '}
+              {vvbTrackingUrl ? (
+                <a
+                  href={vvbTrackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-primary hover:underline inline-flex items-center gap-1 break-all"
+                  title="Open track & trace bij vervoerder"
+                >
+                  {latestLabel.tracking_number}
+                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                </a>
+              ) : (
+                <span className="font-mono break-all">{latestLabel.tracking_number}</span>
+              )}
             </div>
           )}
           {latestLabel.label_url && (
