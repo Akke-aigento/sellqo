@@ -429,8 +429,8 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Race condition guard: if label already has a URL, another instance already fetched it
-      if (existingLabel.label_url && !recrop) {
+      // Race condition guard: if label already has a URL AND tracking, another instance fully finished
+      if (existingLabel.label_url && existingLabel.tracking_number && !recrop) {
         console.log("Label already has a URL, returning existing data");
         return new Response(
           JSON.stringify({
@@ -450,6 +450,10 @@ const handler = async (req: Request): Promise<Response> => {
       let retryPdfUrl: string | null = null;
       let retryTracking: string | null = existingLabel.tracking_number;
 
+      // If label already has a PDF and we're not recropping, skip PDF fetch and
+      // fall through to the HEAD-based tracking-only backfill below.
+      const needsPdf = !existingLabel.label_url || recrop;
+      if (needsPdf) {
       // Fetch PDF from Bol.com with timeout
       try {
         console.log("Fetching PDF from Bol.com, labelId:", retryLabelId);
@@ -559,6 +563,7 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      } // end needsPdf
 
       // Get tracking via HEAD (with timeout)
       if (!retryTracking) {
