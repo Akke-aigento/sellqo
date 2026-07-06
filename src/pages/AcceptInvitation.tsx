@@ -20,6 +20,7 @@ interface InviteData {
   tenantId: string;
   expiresAt: string;
   accountExists: boolean;
+  hasUsablePassword: boolean;
   alreadyMember: boolean;
   invitedByName: string | null;
 }
@@ -39,7 +40,7 @@ type FlowState =
   | { kind: 'set_password'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'otp' | 'verify' | 'set_password' | 'accept'; context?: Record<string, any> };
 
 const roleLabels: Record<string, string> = {
   tenant_admin: 'Admin',
@@ -114,6 +115,7 @@ export default function AcceptInvitation() {
         tenantId: data.tenantId,
         expiresAt: data.expiresAt,
         accountExists: !!data.accountExists,
+        hasUsablePassword: data.hasUsablePassword !== false, // default true als veld niet aanwezig
         alreadyMember: !!data.alreadyMember,
         invitedByName: data.invitedByName ?? null,
       };
@@ -135,7 +137,10 @@ export default function AcceptInvitation() {
       }
       // status pending / valid
       if (!user) {
-        setState(invite.accountExists
+        // Account bestaat + heeft echt een wachtwoord → login-flow.
+        // Account bestaat maar GEEN wachtwoord (shell auth-user) → OTP + set_password.
+        // Geen account → OTP + set_password.
+        setState(invite.accountExists && invite.hasUsablePassword
           ? { kind: 'login_required', invite }
           : { kind: 'otp_request', invite });
         return;
@@ -146,7 +151,8 @@ export default function AcceptInvitation() {
         setState({ kind: 'wrong_account', currentEmail: user.email || '', invite });
       }
     } catch (e: any) {
-      setState({ kind: 'error', message: e?.message || 'Onbekende fout' });
+      console.error('[AcceptInvitation/fetch]', e);
+      setState({ kind: 'error', message: e?.message || 'Onbekende fout', phase: 'fetch' });
     }
   }, [token, user]);
 
@@ -168,12 +174,20 @@ export default function AcceptInvitation() {
     if (acceptedRef.current) return;
     acceptedRef.current = true;
     try {
+      // Guard: wacht max ~600ms tot AuthProvider de user gehydrateerd heeft,
+      // anders kan accept-team-invitation net ná signIn de JWT missen.
+      for (let i = 0; i < 3; i++) {
+        const { data: sess } = await supabase.auth.getSession();
+        if (sess.session?.access_token) break;
+        await new Promise((r) => setTimeout(r, 200));
+      }
       const { data, error } = await supabase.functions.invoke('accept-team-invitation', {
         body: { token },
       });
       const apiError = data?.error || error?.message;
       const code = data?.code;
       if (apiError) {
+        console.error('[AcceptInvitation/accept]', { apiError, code, invite });
         if (code === 'EMAIL_MISMATCH') {
           setState({ kind: 'wrong_account', currentEmail: user?.email || '', invite });
           acceptedRef.current = false;
@@ -192,7 +206,12 @@ export default function AcceptInvitation() {
           setState({ kind: 'revoked' });
           return;
         }
-        setState({ kind: 'error', message: apiError as string });
+        setState({
+          kind: 'error',
+          message: apiError as string,
+          phase: 'accept',
+          context: { tenantName: invite.tenantName, email: invite.email, tenantId: invite.tenantId, code },
+        });
         return;
       }
       setState({
@@ -202,8 +221,14 @@ export default function AcceptInvitation() {
         role: (data?.role as Role) || invite.role,
       });
     } catch (e: any) {
+      console.error('[AcceptInvitation/accept] exception', e);
       acceptedRef.current = false;
-      setState({ kind: 'error', message: e?.message || 'Kon uitnodiging niet accepteren' });
+      setState({
+        kind: 'error',
+        message: e?.message || 'Kon uitnodiging niet accepteren',
+        phase: 'accept',
+        context: { tenantName: invite.tenantName, email: invite.email },
+      });
     }
   }, [token, user?.email]);
 
@@ -250,10 +275,14 @@ export default function AcceptInvitation() {
         password: loginPassword,
       });
       if (error) throw error;
-      // useEffect re-resolves and we'll land in one_click_accept; auto-promote
+      // Wacht kort tot AuthProvider de user heeft — voorkomt race met doAccept
+      // en met de post-success refetchRoles/redirect.
+      await new Promise((r) => setTimeout(r, 150));
+      try { await supabase.auth.refreshSession(); } catch { /* non-fatal */ }
       setState({ kind: 'accepting', invite });
     } catch (error: any) {
       const msg = error?.message || '';
+      console.error('[AcceptInvitation/login]', error);
       toast({
         title: 'Inloggen mislukt',
         description: /invalid login/i.test(msg)
@@ -275,6 +304,7 @@ export default function AcceptInvitation() {
       if (error) throw error;
       toast({ title: 'Reset-mail verzonden', description: `Naar ${invite.email}` });
     } catch (e: any) {
+      console.error('[AcceptInvitation/forgot-password]', e);
       toast({ title: 'Reset-mail mislukte', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
@@ -294,6 +324,7 @@ export default function AcceptInvitation() {
       setResendCooldown(30);
       setState({ kind: 'otp_verify', invite });
     } catch (e: any) {
+      console.error('[AcceptInvitation/otp-send]', e);
       toast({ title: 'Versturen mislukt', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
@@ -312,6 +343,7 @@ export default function AcceptInvitation() {
       if (error) throw error;
       setState({ kind: 'set_password', invite });
     } catch (e: any) {
+      console.error('[AcceptInvitation/otp-verify]', e);
       toast({ title: 'Onjuiste code', description: 'Probeer opnieuw.', variant: 'destructive' });
       setOtpCode('');
     } finally {
@@ -333,8 +365,11 @@ export default function AcceptInvitation() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      await new Promise((r) => setTimeout(r, 150));
+      try { await supabase.auth.refreshSession(); } catch { /* non-fatal */ }
       setState({ kind: 'accepting', invite });
     } catch (e: any) {
+      console.error('[AcceptInvitation/set-password]', e);
       toast({ title: 'Wachtwoord instellen mislukt', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
