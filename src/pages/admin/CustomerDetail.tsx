@@ -402,6 +402,30 @@ export default function CustomerDetailPage() {
                     </div>
                   </div>
                 )}
+                <div className="pt-2 border-t">
+                  <Label className="text-sm text-muted-foreground">Voorkeurstaal</Label>
+                  <Select
+                    value={(customer as any).preferred_language || 'none'}
+                    onValueChange={(val) => {
+                      if (!customerId) return;
+                      updateCustomer.mutate({
+                        customerId,
+                        data: { preferred_language: val === 'none' ? null : val } as any,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Geen voorkeur (tenant-standaard)</SelectItem>
+                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                      <SelectItem value="en">🇬🇧 English</SelectItem>
+                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 
