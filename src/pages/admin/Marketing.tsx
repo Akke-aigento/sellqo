@@ -276,10 +276,19 @@ export default function MarketingPage() {
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold">Geen templates</h3>
                 <p className="text-muted-foreground mb-4">Maak herbruikbare email templates</p>
-                <Button onClick={() => setTemplateDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nieuwe template
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={() => setTemplateDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nieuwe template
+                  </Button>
+                  <Button variant="outline" onClick={handleSeedTemplates} disabled={seeding || !currentTenant?.id}>
+                    <SparklesIcon className="mr-2 h-4 w-4" />
+                    {seeding ? 'Bezig...' : 'Starterstemplates genereren'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 max-w-md text-center">
+                  Genereert 4 templates (Nieuwsbrief, Welkomstmail, Promotie, Winback) met uw logo en merkkleuren.
+                </p>
               </CardContent>
             </Card>
           ) : (
