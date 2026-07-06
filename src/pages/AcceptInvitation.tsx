@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Loader2, CheckCircle, XCircle, Mail, Lock, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Mail, Lock, AlertTriangle, Clock } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,12 +34,10 @@ type FlowState =
   | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
   | { kind: 'one_click_accept'; invite: InviteData }
   | { kind: 'login_required'; invite: InviteData }
-  | { kind: 'otp_request'; invite: InviteData }
-  | { kind: 'otp_verify'; invite: InviteData }
-  | { kind: 'set_password'; invite: InviteData }
+  | { kind: 'new_account_setup'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
-  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'otp' | 'verify' | 'set_password' | 'accept'; context?: Record<string, any> };
+  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'signup' | 'accept'; context?: Record<string, any> };
 
 const roleLabels: Record<string, string> = {
   tenant_admin: 'Admin',
@@ -50,13 +47,6 @@ const roleLabels: Record<string, string> = {
   viewer: 'Kijker',
   marketing: 'Marketing',
 };
-
-function maskEmail(email: string) {
-  const [local, domain] = email.split('@');
-  if (!domain) return email;
-  const visible = local.slice(0, 2);
-  return `${visible}${'•'.repeat(Math.max(local.length - 2, 1))}@${domain}`;
-}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -82,17 +72,8 @@ export default function AcceptInvitation() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
   const acceptedRef = useRef(false);
   const resolvedTokenRef = useRef<string | null>(null);
-
-  // Resend cooldown countdown
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
 
   const resolveFlow = useCallback(async () => {
     if (!token) {
@@ -137,12 +118,11 @@ export default function AcceptInvitation() {
       }
       // status pending / valid
       if (!user) {
-        // Account bestaat + heeft echt een wachtwoord → login-flow.
-        // Account bestaat maar GEEN wachtwoord (shell auth-user) → OTP + set_password.
-        // Geen account → OTP + set_password.
+        // Account bestaat + heeft wachtwoord → login-flow.
+        // Anders → direct account-setup (één klik, geen tussenmail).
         setState(invite.accountExists && invite.hasUsablePassword
           ? { kind: 'login_required', invite }
-          : { kind: 'otp_request', invite });
+          : { kind: 'new_account_setup', invite });
         return;
       }
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
@@ -311,47 +291,7 @@ export default function AcceptInvitation() {
     }
   };
 
-  const handleSendOtp = async (invite: InviteData) => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: invite.email,
-        options: { shouldCreateUser: true, emailRedirectTo: window.location.href },
-      });
-      if (error) throw error;
-      toast({ title: 'Code verzonden', description: `Naar ${maskEmail(invite.email)}` });
-      setOtpCode('');
-      setResendCooldown(30);
-      setState({ kind: 'otp_verify', invite });
-    } catch (e: any) {
-      console.error('[AcceptInvitation/otp-send]', e);
-      toast({ title: 'Versturen mislukt', description: e.message, variant: 'destructive' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleVerifyOtp = async (invite: InviteData) => {
-    if (otpCode.length !== 6) return;
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: invite.email,
-        token: otpCode,
-        type: 'email',
-      });
-      if (error) throw error;
-      setState({ kind: 'set_password', invite });
-    } catch (e: any) {
-      console.error('[AcceptInvitation/otp-verify]', e);
-      toast({ title: 'Onjuiste code', description: 'Probeer opnieuw.', variant: 'destructive' });
-      setOtpCode('');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSetPassword = async (invite: InviteData, e: React.FormEvent) => {
+  const handleCreateAccount = async (invite: InviteData, e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
       toast({ title: 'Wachtwoord te kort', description: 'Minimum 8 tekens.', variant: 'destructive' });
@@ -363,14 +303,35 @@ export default function AcceptInvitation() {
     }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      // Server-side: maak account aan (of update wachtwoord van shell auth-user)
+      // met email_confirm=true. Invite-token is bewijs dat gebruiker de mailbox
+      // bezit — geen tussenmail nodig.
+      const { data, error } = await supabase.functions.invoke('create-invite-account', {
+        body: { token, password },
+      });
+      const apiError = data?.error || error?.message;
+      if (apiError) {
+        console.error('[AcceptInvitation/signup]', apiError);
+        setState({
+          kind: 'error',
+          message: apiError as string,
+          phase: 'signup',
+          context: { tenantName: invite.tenantName, email: invite.email },
+        });
+        return;
+      }
+      // Log in met het zojuist gezette wachtwoord
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: invite.email,
+        password,
+      });
+      if (signInErr) throw signInErr;
       await new Promise((r) => setTimeout(r, 150));
       try { await supabase.auth.refreshSession(); } catch { /* non-fatal */ }
       setState({ kind: 'accepting', invite });
     } catch (e: any) {
-      console.error('[AcceptInvitation/set-password]', e);
-      toast({ title: 'Wachtwoord instellen mislukt', description: e.message, variant: 'destructive' });
+      console.error('[AcceptInvitation/signup]', e);
+      toast({ title: 'Account aanmaken mislukt', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -569,83 +530,31 @@ export default function AcceptInvitation() {
     );
   }
 
-  if (state.kind === 'otp_request') {
+  if (state.kind === 'new_account_setup') {
     const { invite } = state;
     return (
       <Shell>
         <Card>
           <CardHeader className="text-center">
-            <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
+            <Lock className="h-12 w-12 text-primary mx-auto mb-2" />
             <CardTitle>Welkom bij {invite.tenantName}!</CardTitle>
             <CardDescription>
-              We sturen je een 6-cijferige code per e-mail om je identiteit te bevestigen.
+              Kies een wachtwoord om je account aan te maken als{' '}
+              <strong>{roleLabels[invite.role]}</strong>.
+              {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
             </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input value={invite.email} disabled className="bg-muted" />
-            </div>
-            <Button className="w-full" disabled={busy} onClick={() => handleSendOtp(invite)}>
-              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Versturen...</> : 'Verstuur code'}
-            </Button>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
-  if (state.kind === 'otp_verify') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <Mail className="h-12 w-12 text-primary mx-auto mb-2" />
-            <CardTitle>Voer de code in</CardTitle>
-            <CardDescription>
-              We hebben een 6-cijferige code gestuurd naar <strong>{maskEmail(invite.email)}</strong>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-center">
-              <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                <InputOTPGroup>
-                  {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            <Button className="w-full" disabled={busy || otpCode.length !== 6}
-              onClick={() => handleVerifyOtp(invite)}>
-              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Bevestigen...</> : 'Bevestigen'}
-            </Button>
-            <Button type="button" variant="link" className="w-full h-auto p-0 text-xs"
-              disabled={busy || resendCooldown > 0}
-              onClick={() => handleSendOtp(invite)}>
-              {resendCooldown > 0
-                ? `Code opnieuw versturen (${resendCooldown}s)`
-                : 'Code opnieuw versturen'}
-            </Button>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
-  if (state.kind === 'set_password') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-            <CardTitle>E-mail bevestigd!</CardTitle>
-            <CardDescription>Kies een wachtwoord voor je account.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => handleSetPassword(invite, e)} className="space-y-4">
+            <form onSubmit={(e) => handleCreateAccount(invite, e)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="np">Nieuw wachtwoord</Label>
+                <Label>E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={invite.email} disabled className="pl-10 bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="np">Wachtwoord (min. 8 tekens)</Label>
                 <Input id="np" type="password" minLength={8}
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
@@ -655,7 +564,7 @@ export default function AcceptInvitation() {
                   value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opslaan...</> : 'Wachtwoord opslaan'}
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Account aanmaken...</> : 'Account aanmaken en accepteren'}
               </Button>
             </form>
           </CardContent>
