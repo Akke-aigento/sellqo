@@ -1,23 +1,18 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-import { Body, Head, Html, Preview, Section } from 'npm:@react-email/components@0.0.22'
+
 import {
+  Body,
   Button,
   Container,
-  Footer,
-  Header,
+  Head,
   Heading,
+  Html,
   Link,
+  Preview,
   Text,
-  button,
-  container,
-  h1Style,
-  linkStyle,
-  main,
-  mutedParagraph,
-  paragraph,
-} from './_brand.tsx'
+} from 'npm:@react-email/components@0.0.22'
 
 interface InviteEmailProps {
   siteName: string
@@ -25,33 +20,60 @@ interface InviteEmailProps {
   confirmationUrl: string
 }
 
-export const InviteEmail = ({ confirmationUrl }: InviteEmailProps) => (
+export const InviteEmail = ({
+  siteName,
+  siteUrl,
+  confirmationUrl,
+}: InviteEmailProps) => (
   <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>Je bent uitgenodigd voor SellQo</Preview>
+    <Preview>Je bent uitgenodigd voor {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Header />
-        <Heading style={h1Style}>Je bent uitgenodigd 🎉</Heading>
-        <Text style={paragraph}>
-          Je bent uitgenodigd om mee te werken in SellQo. Klik op de knop
-          hieronder om de uitnodiging te accepteren en je account aan te maken.
+        <Heading style={h1}>Je bent uitgenodigd</Heading>
+        <Text style={text}>
+          Je hebt een uitnodiging ontvangen om deel te nemen aan{' '}
+          <Link href={siteUrl} style={link}>
+            <strong>{siteName}</strong>
+          </Link>
+          . Klik op de knop hieronder om de uitnodiging te accepteren en je
+          account te activeren.
         </Text>
-        <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button style={button} href={confirmationUrl}>Uitnodiging accepteren</Button>
-        </Section>
-        <Text style={mutedParagraph}>
-          Werkt de knop niet? Kopieer en plak deze link in je browser:
-          <br />
-          <Link href={confirmationUrl} style={linkStyle}>{confirmationUrl}</Link>
+        <Button style={button} href={confirmationUrl}>
+          Uitnodiging accepteren
+        </Button>
+        <Text style={footer}>
+          Heb je deze uitnodiging niet verwacht? Dan mag je deze e-mail veilig
+          negeren.
         </Text>
-        <Text style={mutedParagraph}>
-          Verwachtte je deze uitnodiging niet? Dan kun je deze e-mail negeren.
-        </Text>
-        <Footer />
       </Container>
     </Body>
   </Html>
 )
 
 export default InviteEmail
+
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: 'hsl(212, 52%, 24%)',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const link = { color: 'inherit', textDecoration: 'underline' }
+const button = {
+  backgroundColor: 'hsl(212, 52%, 24%)',
+  color: '#ffffff',
+  fontSize: '14px',
+  borderRadius: '0.5rem',
+  padding: '12px 20px',
+  textDecoration: 'none',
+}
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
