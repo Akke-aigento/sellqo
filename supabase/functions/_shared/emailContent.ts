@@ -58,6 +58,16 @@ export interface VarCampaign {
   subject: string;
 }
 
+function localeTag(locale?: string): string {
+  switch ((locale || 'nl').toLowerCase()) {
+    case 'fr': return 'fr-BE';
+    case 'de': return 'de-DE';
+    case 'en': return 'en-GB';
+    case 'nl':
+    default: return 'nl-BE';
+  }
+}
+
 function fmtCurrency(v: number | null | undefined, locale = 'nl-BE'): string {
   const n = typeof v === 'number' ? v : 0;
   try {
@@ -75,6 +85,20 @@ function fmtDate(locale = 'nl-BE'): string {
   }
 }
 
+function esc(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+export interface VarTenantBrand {
+  tenantName?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  headingFont?: string;
+}
+
 /**
  * Build the complete replacement map for every variable advertised in
  * VariableInserter. Never leaves undefined entries — missing values become
@@ -85,8 +109,11 @@ export function buildVariableMap(
   tenant: VarTenant | null | undefined,
   campaign: VarCampaign,
   unsubscribeUrl: string,
+  brand?: VarTenantBrand | null,
+  language?: string | null,
 ): Record<string, string> {
   const t = tenant ?? {};
+  const loc = localeTag(language || undefined);
   const firstName = recipient.first_name ?? '';
   const lastName = recipient.last_name ?? '';
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
@@ -101,6 +128,13 @@ export function buildVariableMap(
 
   const website = t.custom_domain ? `https://${t.custom_domain}` : '';
 
+  const b = brand ?? {};
+  const logoUrl = b.logoUrl ?? '';
+  const brandName = b.tenantName ?? (t.name ?? '');
+  const logoImg = logoUrl
+    ? `<img src="${esc(logoUrl)}" alt="${esc(brandName)}" style="height:44px;width:auto;display:block;border:0;outline:none;" />`
+    : '';
+
   return {
     // Customer
     customer_name: fullName,
@@ -113,7 +147,7 @@ export function buildVariableMap(
     customer_city: recipient.billing_city ?? '',
     customer_country: recipient.billing_country ?? '',
     total_orders: String(recipient.total_orders ?? 0),
-    total_spent: fmtCurrency(recipient.total_spent),
+    total_spent: fmtCurrency(recipient.total_spent, loc),
 
     // Company / tenant
     company_name: t.name ?? '',
@@ -123,8 +157,15 @@ export function buildVariableMap(
     company_address: companyAddress,
     company_iban: t.iban ?? '',
 
+    // Brand
+    tenant_logo: logoImg,
+    tenant_logo_url: logoUrl,
+    brand_primary_color: b.primaryColor ?? '',
+    brand_accent_color: b.accentColor ?? '',
+    brand_heading_font: b.headingFont ?? '',
+
     // System
-    current_date: fmtDate(),
+    current_date: fmtDate(loc),
     subject: campaign.subject ?? '',
     unsubscribe_url: unsubscribeUrl,
   };
