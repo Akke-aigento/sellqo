@@ -18,16 +18,42 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { buildSeedTemplates } from '@/lib/seedEmailTemplates';
+import { useTenant } from '@/hooks/useTenant';
+import { useTenantBrand } from '@/hooks/useTenantBrand';
+import { useToast } from '@/hooks/use-toast';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 
 export default function MarketingPage() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [seeding, setSeeding] = useState(false);
+  const { currentTenant } = useTenant();
+  const { data: brand } = useTenantBrand();
+  const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
   const { templates, isLoading: templatesLoading, createTemplate, deleteTemplate } = useEmailTemplates();
+
+  const handleSeedTemplates = async () => {
+    if (!currentTenant?.id) return;
+    const language = brand?.defaultLocale || 'nl';
+    setSeeding(true);
+    try {
+      const seeds = buildSeedTemplates(currentTenant.id, language);
+      for (const s of seeds) {
+        await createTemplate.mutateAsync(s as any);
+      }
+      toast({ title: '4 starterstemplates aangemaakt' });
+    } catch (e: any) {
+      toast({ title: 'Kon templates niet aanmaken', description: e?.message, variant: 'destructive' });
+    } finally {
+      setSeeding(false);
+    }
+  };
   const { segments, isLoading: segmentsLoading, createSegment, deleteSegment } = useCustomerSegments();
 
   const defaultStats = {
