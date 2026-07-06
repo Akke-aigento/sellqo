@@ -27,31 +27,31 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Bevestig je e-mailadres voor {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>Welkom bij {siteName}</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          Bedankt voor je registratie bij{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
           !
         </Text>
         <Text style={text}>
-          Please confirm your email address (
+          Bevestig je e-mailadres (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) door op de knop hieronder te klikken:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Account bevestigen
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          Heb je geen account aangemaakt? Dan kun je deze e-mail veilig negeren.
         </Text>
       </Container>
     </Body>
@@ -65,7 +65,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: 'hsl(212, 52%, 24%)',
   margin: '0 0 20px',
 }
 const text = {
@@ -76,10 +76,10 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: 'hsl(212, 52%, 24%)',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
+  borderRadius: '0.5rem',
   padding: '12px 20px',
   textDecoration: 'none',
 }
