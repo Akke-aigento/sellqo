@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/hooks/useTenant';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
+import { extractEmailBody } from '@/lib/emailContent';
 import { VariableInserter } from './VariableInserter';
 import type { EmailTemplate } from '@/types/marketing';
 
@@ -38,13 +39,7 @@ const categoryLabels = {
   newsletter: 'Nieuwsbrief',
 };
 
-function extractBodyFromHtml(html: string): string {
-  const tdMatch = html.match(/<td[^>]*style="padding: 40px 30px;"[^>]*>([\s\S]*?)<\/td>/);
-  if (tdMatch) return tdMatch[1].trim();
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  if (bodyMatch) return bodyMatch[1].trim();
-  return html;
-}
+const extractBodyFromHtml = extractEmailBody;
 
 export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading }: TemplateDialogProps) {
   const { currentTenant } = useTenant();
@@ -60,13 +55,15 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
       name: template?.name || '',
       subject: template?.subject || '',
       category: (template?.category as TemplateFormData['category']) || 'general',
-      html_content: template?.html_content || wrapInEmailTemplate(richContent),
+      html_content: template?.html_content
+        ? extractBodyFromHtml(template.html_content)
+        : richContent,
     },
   });
 
   const handleRichContentChange = (html: string) => {
     setRichContent(html);
-    form.setValue('html_content', wrapInEmailTemplate(html), { shouldValidate: true });
+    form.setValue('html_content', html, { shouldValidate: true });
   };
 
   const handleModeChange = (mode: string) => {
@@ -74,7 +71,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
       const currentHtml = form.getValues('html_content');
       setRichContent(extractBodyFromHtml(currentHtml));
     } else if (mode === 'html' && editorMode === 'visual') {
-      form.setValue('html_content', wrapInEmailTemplate(richContent));
+      form.setValue('html_content', richContent);
     }
     setEditorMode(mode as 'visual' | 'html');
   };
@@ -88,7 +85,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
     });
   };
 
-  const currentHtml = form.watch('html_content');
+  const currentHtml = wrapInEmailTemplate(form.watch('html_content') || '');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -4,6 +4,7 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
+import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
     // Get tenant info for email personalization
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("name, email, owner_email, street, city, postal_code, country")
+      .select("name, email, owner_email, phone, custom_domain, iban, street, city, postal_code, country")
       .eq("id", campaign.tenant_id)
       .single();
     const marketingSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.email || (tenant as any)?.owner_email);
@@ -61,24 +62,54 @@ Deno.serve(async (req) => {
     // Build recipient query
     let recipientQuery = supabase
       .from("customers")
-      .select("id, email, first_name, last_name, company_name")
+      .select("id, email, first_name, last_name, company_name, phone, vat_number, billing_city, billing_country, total_orders, total_spent, tags, created_at")
       .eq("tenant_id", campaign.tenant_id)
       .eq("email_subscribed", true);
 
     // Apply segment filters if segment exists
     if (campaign.segment?.filter_rules) {
-      const rules = campaign.segment.filter_rules;
+      const rules = campaign.segment.filter_rules as Record<string, unknown>;
       if (rules.customer_type && rules.customer_type !== "all") {
-        recipientQuery = recipientQuery.eq("customer_type", rules.customer_type);
+        recipientQuery = recipientQuery.eq("customer_type", rules.customer_type as string);
       }
-      if (rules.countries?.length) {
-        recipientQuery = recipientQuery.in("billing_country", rules.countries);
+      if (Array.isArray(rules.countries) && rules.countries.length) {
+        recipientQuery = recipientQuery.in("billing_country", rules.countries as string[]);
       }
-      if (rules.min_orders) {
+      if (typeof rules.min_orders === "number") {
         recipientQuery = recipientQuery.gte("total_orders", rules.min_orders);
       }
-      if (rules.min_total_spent) {
+      if (typeof rules.max_orders === "number") {
+        recipientQuery = recipientQuery.lte("total_orders", rules.max_orders);
+      }
+      if (typeof rules.min_total_spent === "number") {
         recipientQuery = recipientQuery.gte("total_spent", rules.min_total_spent);
+      }
+      if (typeof rules.max_total_spent === "number") {
+        recipientQuery = recipientQuery.lte("total_spent", rules.max_total_spent);
+      }
+      if (rules.email_subscribed === false) {
+        // Anti-spam law: never send to unsubscribed users. Ignore this rule
+        // and keep the base .eq("email_subscribed", true) guard.
+        console.warn(`Campaign ${campaign_id}: segment rule email_subscribed=false ignored (base guard enforced)`);
+      }
+      if (Array.isArray(rules.tags) && rules.tags.length) {
+        const tagsMatch = rules.tags_match === "all" ? "contains" : "overlaps";
+        if (tagsMatch === "contains") {
+          recipientQuery = recipientQuery.contains("tags", rules.tags as string[]);
+        } else {
+          recipientQuery = recipientQuery.overlaps("tags", rules.tags as string[]);
+        }
+      }
+      if (typeof rules.created_after === "string") {
+        recipientQuery = recipientQuery.gte("created_at", rules.created_after);
+      }
+      if (typeof rules.created_before === "string") {
+        recipientQuery = recipientQuery.lte("created_at", rules.created_before);
+      }
+      if (rules.last_order_days_ago !== undefined || rules.no_order_since_days !== undefined || rules.min_engagement_score !== undefined) {
+        // No column available on customers for these rules; the segment
+        // preview also skips them, so parity is maintained.
+        console.warn(`Campaign ${campaign_id}: unsupported filter fields skipped`);
       }
     }
 
@@ -116,25 +147,24 @@ Deno.serve(async (req) => {
       .eq("id", campaign_id);
 
     let sentCount = 0;
-    const companyAddress = tenant ? `${tenant.street || ""}, ${tenant.postal_code || ""} ${tenant.city || ""}` : "";
 
     for (const recipient of validRecipients) {
-      const customerName = recipient.first_name || recipient.company_name || "Klant";
-      
-      // Replace template variables
-      let htmlContent = campaign.html_content
-        .replace(/\{\{customer_name\}\}/g, customerName)
-        .replace(/\{\{customer_email\}\}/g, recipient.email)
-        .replace(/\{\{company_name\}\}/g, tenant?.name || "")
-        .replace(/\{\{company_address\}\}/g, companyAddress)
-        .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`);
-
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
+      const vars = buildVariableMap(recipient, tenant, { subject: campaign.subject }, unsubscribeUrl);
+      const customerName = vars.customer_name;
+
+      // Backwards compat: legacy campaigns stored full HTML documents with a
+      // built-in unsubscribe footer. Extract the body so we don't double-wrap
+      // or double-render the footer.
+      const rawBody = extractEmailBody(campaign.html_content || "");
+      const htmlContent = applyVariables(rawBody, vars);
+      const renderedSubject = applyVariables(campaign.subject || "", vars);
+
       const { html: wrappedHtml, text: wrappedText } = renderTenantEmail({
         tenantBrand: brand,
         locale,
-        preheader: campaign.subject,
-        heading: campaign.subject,
+        preheader: renderedSubject,
+        heading: renderedSubject,
         intro: htmlContent,
         unsubscribeUrl, // MANDATORY for marketing (anti-spam law)
         poweredByLabel: t(locale, 'campaign.poweredBy'),
@@ -145,7 +175,7 @@ Deno.serve(async (req) => {
           from: marketingSender.from,
           reply_to: marketingSender.replyTo,
           to: [recipient.email],
-          subject: campaign.subject.replace(/\{\{customer_name\}\}/g, customerName),
+          subject: renderedSubject,
           html: wrappedHtml,
           text: wrappedText,
           headers: {
