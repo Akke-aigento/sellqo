@@ -289,6 +289,34 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
             placeholder="0"
           />
         </div>
+
+        {/* Preferred language */}
+        <div className="space-y-2">
+          <Label>Voorkeurstaal klant</Label>
+          <Select
+            value={filterRules.preferred_language || 'any'}
+            onValueChange={(value) => {
+              if (value === 'any') {
+                const r = { ...filterRules };
+                delete r.preferred_language;
+                onChange(r);
+              } else {
+                updateRule('preferred_language', value);
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Alle talen</SelectItem>
+              <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+              <SelectItem value="en">🇬🇧 English</SelectItem>
+              <SelectItem value="fr">🇫🇷 Français</SelectItem>
+              <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
