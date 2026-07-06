@@ -4694,6 +4694,7 @@ export type Database = {
           original_created_at: string | null
           peppol_id: string | null
           phone: string | null
+          preferred_language: string | null
           province: string | null
           province_code: string | null
           raw_import_data: Json | null
@@ -4755,6 +4756,7 @@ export type Database = {
           original_created_at?: string | null
           peppol_id?: string | null
           phone?: string | null
+          preferred_language?: string | null
           province?: string | null
           province_code?: string | null
           raw_import_data?: Json | null
@@ -4816,6 +4818,7 @@ export type Database = {
           original_created_at?: string | null
           peppol_id?: string | null
           phone?: string | null
+          preferred_language?: string | null
           province?: string | null
           province_code?: string | null
           raw_import_data?: Json | null
@@ -5435,7 +5438,9 @@ export type Database = {
           html_content: string
           id: string
           is_ab_test: boolean | null
+          language: string | null
           name: string
+          preset_key: string | null
           preview_text: string | null
           scheduled_at: string | null
           segment_id: string | null
@@ -5464,7 +5469,9 @@ export type Database = {
           html_content: string
           id?: string
           is_ab_test?: boolean | null
+          language?: string | null
           name: string
+          preset_key?: string | null
           preview_text?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
@@ -5493,7 +5500,9 @@ export type Database = {
           html_content?: string
           id?: string
           is_ab_test?: boolean | null
+          language?: string | null
           name?: string
+          preset_key?: string | null
           preview_text?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
@@ -5784,6 +5793,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           json_content: Json | null
+          language: string
           name: string
           subject: string
           tenant_id: string
@@ -5797,6 +5807,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           json_content?: Json | null
+          language?: string
           name: string
           subject: string
           tenant_id: string
@@ -5810,6 +5821,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           json_content?: Json | null
+          language?: string
           name?: string
           subject?: string
           tenant_id?: string
