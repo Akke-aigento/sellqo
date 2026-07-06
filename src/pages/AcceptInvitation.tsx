@@ -530,83 +530,31 @@ export default function AcceptInvitation() {
     );
   }
 
-  if (state.kind === 'otp_request') {
+  if (state.kind === 'new_account_setup') {
     const { invite } = state;
     return (
       <Shell>
         <Card>
           <CardHeader className="text-center">
-            <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
+            <Lock className="h-12 w-12 text-primary mx-auto mb-2" />
             <CardTitle>Welkom bij {invite.tenantName}!</CardTitle>
             <CardDescription>
-              We sturen je een 6-cijferige code per e-mail om je identiteit te bevestigen.
+              Kies een wachtwoord om je account aan te maken als{' '}
+              <strong>{roleLabels[invite.role]}</strong>.
+              {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
             </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input value={invite.email} disabled className="bg-muted" />
-            </div>
-            <Button className="w-full" disabled={busy} onClick={() => handleSendOtp(invite)}>
-              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Versturen...</> : 'Verstuur code'}
-            </Button>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
-  if (state.kind === 'otp_verify') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <Mail className="h-12 w-12 text-primary mx-auto mb-2" />
-            <CardTitle>Voer de code in</CardTitle>
-            <CardDescription>
-              We hebben een 6-cijferige code gestuurd naar <strong>{maskEmail(invite.email)}</strong>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-center">
-              <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                <InputOTPGroup>
-                  {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            <Button className="w-full" disabled={busy || otpCode.length !== 6}
-              onClick={() => handleVerifyOtp(invite)}>
-              {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Bevestigen...</> : 'Bevestigen'}
-            </Button>
-            <Button type="button" variant="link" className="w-full h-auto p-0 text-xs"
-              disabled={busy || resendCooldown > 0}
-              onClick={() => handleSendOtp(invite)}>
-              {resendCooldown > 0
-                ? `Code opnieuw versturen (${resendCooldown}s)`
-                : 'Code opnieuw versturen'}
-            </Button>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
-  if (state.kind === 'set_password') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-            <CardTitle>E-mail bevestigd!</CardTitle>
-            <CardDescription>Kies een wachtwoord voor je account.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => handleSetPassword(invite, e)} className="space-y-4">
+            <form onSubmit={(e) => handleCreateAccount(invite, e)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="np">Nieuw wachtwoord</Label>
+                <Label>E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={invite.email} disabled className="pl-10 bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="np">Wachtwoord (min. 8 tekens)</Label>
                 <Input id="np" type="password" minLength={8}
                   value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
@@ -616,7 +564,7 @@ export default function AcceptInvitation() {
                   value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opslaan...</> : 'Wachtwoord opslaan'}
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Account aanmaken...</> : 'Account aanmaken en accepteren'}
               </Button>
             </form>
           </CardContent>
