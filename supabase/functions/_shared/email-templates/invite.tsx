@@ -25,26 +25,26 @@ export const InviteEmail = ({
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>Je bent uitgenodigd voor {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
+        <Heading style={h1}>Je bent uitgenodigd</Heading>
         <Text style={text}>
-          You've been invited to join{' '}
+          Je hebt een uitnodiging ontvangen om deel te nemen aan{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          . Klik op de knop hieronder om de uitnodiging te accepteren en je
+          account te activeren.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Accept Invitation
+          Uitnodiging accepteren
         </Button>
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          Heb je deze uitnodiging niet verwacht? Dan mag je deze e-mail veilig
+          negeren.
         </Text>
       </Container>
     </Body>
@@ -58,7 +58,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: 'hsl(212, 52%, 24%)',
   margin: '0 0 20px',
 }
 const text = {
@@ -69,10 +69,10 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: 'hsl(212, 52%, 24%)',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
+  borderRadius: '0.5rem',
   padding: '12px 20px',
   textDecoration: 'none',
 }
