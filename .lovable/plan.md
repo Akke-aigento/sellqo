@@ -1,127 +1,106 @@
-## Wat er écht gebeurd is met Sander (reconstructie uit DB)
+## Diagnose
 
-Chronologisch:
+De huidige "OTP-flow" voor nieuwe gebruikers is dubbelop en verwarrend:
 
 ```text
-12:50:16  revocation rij aangemaakt op Zona Dorata voor sander.mancini@hotmail.be
-          → jij had hem al eens toegevoegd + verwijderd (test)
-13:04:01  invite verstuurd naar Zona Dorata      (invitation_id 9c68826a...)
-13:04:34  invite verstuurd naar Mancini Milano   (invitation_id 7c2efa80...)
-13:38     Sander logt succesvol in (auth log toont 'Login' event)
-??:??     accept-team-invitation is nooit uitgevoerd (geen 'accepted' audit-rij)
+Klik "Uitnodiging accepteren" in mail
+   ↓
+Landt op /invite/<token>  (geen account → we tonen "Verstuur code" scherm)
+   ↓
+Klik "Verstuur code"
+   ↓  supabase.auth.signInWithOtp({ shouldCreateUser: true })
+   ↓  → Supabase stuurt magic-link mail MET klikbare knop EN 6-cijferige code
+   ↓
+Wij tonen OTP-invulscherm  ← nutteloos, want:
+   ↓
+Gebruiker klikt in mail op de KNOP (niet op code)
+   ↓
+Magic link autologin + redirect naar /invite/<token>
+   ↓
+useEffect re-runt resolveFlow → user matcht → one_click_accept
+   ↓
+Nog eens klikken op "Accepteer uitnodiging"
+   ↓
+Success
 ```
 
-**Diagnose:** Sander heeft wél een werkend account (wachtwoord aanwezig, ingelogd vandaag). Zijn error zat dus **niet** in sign-in, maar in de acceptance-stap ná login. Beide invites staan nog `pending`, 0 user_roles.
+Twee UX-fouten: (1) OTP-scherm belooft een code-actie die overbodig is, (2) dubbele klik ("Accepteer" in mail én "Accepteer" op de site) voor iemand die überhaupt nooit een account had.
 
-De meest waarschijnlijke oorzaak: hij landde op de invite-pagina zonder ingelogd te zijn → login-formulier → succesvol ingelogd → maar de `useEffect` die naar `kind: 'accepting'` overspringt heeft mogelijk een race met de useAuth-hydratie, of hij landde na login op `/admin` i.p.v. terug op de invite-pagina (omdat de sign-in flow niet weet dat er een invite-context is).
+## Beoogde flow — één klik = klaar
 
----
-
-## Audit — bevindingen in de huidige flow
-
-### KRITIEK — moet gefixed voor vrijdag
-
-**F1. `send-team-invitation` ruimt `tenant_access_revocations` niet op**  
-Wanneer je iemand opnieuw uitnodigt na eerdere verwijdering, blijft de revocation rij staan. Dat blokkeert auto-repair paden (`repair-tenant-access`) en is een landmijn. Fix: na `insert` van invite ook `DELETE FROM tenant_access_revocations WHERE tenant_id=... AND email=...`.
-
-**F2. Post-login jump in `AcceptInvitation.tsx` heeft race met AuthProvider**  
-Regel 254: direct na `signInWithPassword` staat `setState({ kind: 'accepting', invite })`. De `doAccept` useEffect vuurt dan meteen `supabase.functions.invoke('accept-team-invitation')`. De supabase-client heeft z'n sessie wél al, dus de call zelf lukt — maar als de call slaagt, doet stap 219–239 een `refreshSession` + `refetchRoles` + navigate. Als `useAuth` net op dat moment een nieuwe fetch triggert, kan er een korte flicker naar `/no-access` optreden. Fix: kleine `await new Promise(r => setTimeout(r, 100))` na signIn + expliciete null-check op sessie voor `accepting`.
-
-**F3. `AcceptInvitation` foutstate te generiek**  
-Bij een error krijgt Sander alleen "Er ging iets mis" + `state.message`. Geen fase-info (login? otp? accept?), geen support-context. Voor vrijdag: elke fase moet z'n eigen error-toast + logging via console.error hebben, plus een "Kopieer diagnose" knop met tenant/email/invite-id.
-
-### AANDACHTSPUNTEN — niet kritiek voor vrijdag maar goed om te weten
-
-**A1.** `fetch-invitation` bepaalt `accountExists` via `profiles` tabel. Als een user wél in `auth.users` staat maar geen `profiles` row (legacy), zou hij in OTP-flow belanden en dan via `updateUser({password})` z'n eigen wachtwoord overschrijven. Voor Sander niet relevant (heeft profile), maar in het plan wil ik dit hardenen door tegen `auth.admin.getUserById` te checken.
-
-**A2.** `send-team-invitation` gebruikt `RESEND_API_KEY` direct — geen queue, geen retry. Als Resend even hikt, faalt het versturen. Voor vrijdag: als de email niet aankomt, kan je hem opnieuw versturen via de UI (auto-replace).
-
-**A3.** In `AcceptInvitation.tsx` regel 289 `signInWithOtp({ shouldCreateUser: true })` — de `shouldCreateUser: true` is correct voor nieuwe users, maar we vertrouwen `accountExists=false` uit fetch-invitation. Combinatie met A1 = risico.
-
----
-
-## Plan
-
-### Stap 1 — Soft-reset voor Sander (behoudt zijn account + wachtwoord)
-
-Via `supabase--insert`:
-```sql
--- Wis stale revocation rij op Zona Dorata
-DELETE FROM public.tenant_access_revocations
-WHERE email ILIKE 'sander.mancini@hotmail.be';
-
--- Wis beide pending invites zodat we vrijdag verse verzenden
-DELETE FROM public.team_invitations
-WHERE email ILIKE 'sander.mancini@hotmail.be'
-  AND status = 'pending';
+```text
+Klik "Uitnodiging accepteren" in mail
+   ↓
+Landt op /invite/<token>  (geen account)
+   ↓
+Toon: "Welkom! Kies een wachtwoord om je account aan te maken."
+   ↓  (formulier: wachtwoord + bevestig, gebaseerd op email uit invite-token)
+Klik "Account aanmaken en accepteren"
+   ↓  supabase.auth.signUp({ email, password })  — email al pre-verified via invite-token
+   ↓  → account aangemaakt, sessie actief
+   ↓
+Auto-accept invite (bestaande doAccept-flow)
+   ↓
+Success → /admin
 ```
-Auth-user, profile, wachtwoord blijven staan. Audit-log rijen behouden.
 
-### Stap 2 — Fix F1: `send-team-invitation` ruimt revocations op
+Geen tweede mail, geen OTP-code, geen magic link, geen dubbele klik. De invite-token is zelf al het "bewijs" dat deze email adres eigenaar is (want alleen de eigenaar van de mailbox kan die link ontvangen hebben).
 
-Na de `INSERT` van de nieuwe invitation, best-effort delete:
-```ts
-await supabase
-  .from("tenant_access_revocations")
-  .delete()
-  .eq("tenant_id", tenantId)
-  .ilike("email", email);
-```
-Deploy: `send-team-invitation`.
+## Wijzigingen
 
-### Stap 3 — Fix F2: race na login in `AcceptInvitation.tsx`
+### 1. `AcceptInvitation.tsx` — vervang OTP-tak door direct-signup
 
-In `handleLogin`:
-- na succesvolle `signInWithPassword`, wacht 150ms + refresh session, DAN pas `setState('accepting')`
-- expliciete guard in `doAccept`: als `user?.id` nog niet gezet is, wait-and-retry (max 3× 200ms) voordat `functions.invoke` gedaan wordt
+- **Verwijder** `FlowState` varianten: `otp_request`, `otp_verify`
+- **Vervang** door één nieuwe state: `new_account_setup` (was `set_password`, hergebruiken)
+- **Verwijder** handlers: `handleSendOtp`, `handleVerifyOtp`
+- **Nieuwe handler** `handleCreateAccount(invite, password)`:
+  1. `supabase.auth.signUp({ email: invite.email, password, options: { emailRedirectTo: window.location.href } })`
+  2. Als Supabase weigert wegens "already registered" (edge case: profile-lookup zei nee maar auth zei ja) → fallback naar login-required state met toast
+  3. Wacht 150ms + `refreshSession` (zelfde pattern als handleLogin)
+  4. `setState({ kind: 'accepting', invite })`
+- **Verwijder** state `otpCode`, `resendCooldown` + de countdown-useEffect
+- **Verwijder** `InputOTP` imports
 
-### Stap 4 — Fix F3: betere error handling in AcceptInvitation
+### 2. Beslissings-logica in `resolveFlow` blijft hetzelfde
 
-- Elke handler (`handleLogin`, `handleSendOtp`, `handleVerifyOtp`, `handleSetPassword`, `doAccept`) logt naar console met een fase-prefix `[AcceptInvitation/<fase>]`
-- Bij `state.kind === 'error'`: toon `phase`, `message`, `invite.tenantName`, `invite.email`, en een "Kopieer diagnose" knop die deze info + timestamp naar clipboard schrijft
-- Extra: `AcceptInvitation` state uitbreiden met `errorPhase?: 'fetch' | 'login' | 'otp' | 'set_password' | 'accept'`
+`accountExists && hasUsablePassword` → `login_required`, anders → **nieuwe** `new_account_setup` state (i.p.v. `otp_request`).
 
-### Stap 5 — Hardening (Aandachtspunt A1) — quick win
+### 3. Auth email-confirmatie
 
-In `fetch-invitation`: als `profiles` een hit geeft, extra check via `supabase.auth.admin.getUserById(profile.id)` en response verrijken met `hasUsablePassword` boolean. AcceptInvitation gebruikt dat: als bestaand account maar geen password → forceer OTP → set_password i.p.v. login-required.
+Twee mogelijkheden:
+- **Optie A (aanbevolen):** Zet `email_confirm=false` mee in `signUp` via edge function met service-role (email is al bewezen via invite-token). Simpelste voor de gebruiker: één klik en klaar.
+- **Optie B:** Laat Supabase een confirmation mail sturen; gebruiker moet die nog bevestigen. Slechtere UX.
 
-Deploy: `fetch-invitation`.
+Ik ga voor A: nieuwe edge function `create-invite-account` (of uitbreiding van `accept-team-invitation`) die met service-role:
+1. Valideert invite-token (pending, niet expired, niet revoked)
+2. `supabase.auth.admin.createUser({ email, password, email_confirm: true })` — email meteen bevestigd
+3. Geeft succes terug; frontend doet `signInWithPassword` en dan bestaande accept-flow
 
-### Stap 6 — Testplan vrijdag (verificatie live)
+Nieuwe edge function `create-invite-account` (verify_jwt=false, want gebruiker heeft nog geen JWT), input: `{ token, password }`, validates + creates user + returns success.
 
-Voer in deze volgorde uit, met Sander:
+### 4. Screens
 
-1. Jij (Akke) opent Zona Dorata → Team → uitnodigen `sander.mancini@hotmail.be` als Admin  
-   ✅ Verifieer: email arriveert bij Sander, invite-rij `pending` in DB, revocation rij weg.
-2. Sander klikt link → landt op `/invite/<token>` → ziet **login_required** (want account bestaat)  
-   ✅ Verifieer: card toont tenantnaam + rol + inviter-naam.
-3. Sander logt in met bestaand wachtwoord → auto-accept  
-   ✅ Verifieer: success-card verschijnt, redirect naar `/admin`, `user_roles` heeft 1 rij, audit-log heeft `accepted` event.
-4. Sander ziet Zona Dorata in de sidebar (single tenant, geen switcher zichtbaar).
-5. Jij switcht naar Mancini Milano → Team → uitnodigen zelfde email als Admin  
-   ✅ Verifieer: 2e email arriveert.
-6. Sander klikt 2e link → **one_click_accept** (want al ingelogd, email matcht)  
-   ✅ Verifieer: 1 klik = success, `user_roles` heeft 2 rijen.
-7. Sander refresht → sidebar toont **tenant-switcher** (want `tenants.length === 2`).
-8. Sander wisselt tussen beide tenants → `currentTenant` blijft correct in localStorage.
+- **`new_account_setup` screen:** "Welkom bij {tenantName}! Kies een wachtwoord om je account aan te maken." + wachtwoord + bevestig + submit. Geen "verstuur code" tussenstap meer.
 
-### Rollback
+## Bestanden
 
-Als iets stukloopt tijdens de call vrijdag: `DELETE FROM user_roles WHERE user_id=<sander>`; `DELETE FROM team_invitations WHERE email='sander.mancini@hotmail.be'`; en herstart vanaf stap 1. Zijn auth-account raken we niet aan.
+- `src/pages/AcceptInvitation.tsx` — flow simplificatie (OTP weg, direct signup)
+- `supabase/functions/create-invite-account/index.ts` — **nieuw**, service-role account creation
+- Deploy: `create-invite-account`
 
----
+## Wat blijft ongewijzigd
 
-## Bestanden die wijzigen
+- Bestaande gebruikers met wachtwoord: nog steeds `login_required` → login → auto-accept (fix F2 uit vorig plan blijft)
+- Bestaande gebruikers zonder wachtwoord (shell auth-users): vallen ook in `new_account_setup`, `create-invite-account` detecteert bestaand account en doet `admin.updateUserById({ password })` i.p.v. `createUser`
+- Ingelogde gebruikers: `one_click_accept` blijft
+- `accept-team-invitation`, `send-team-invitation`, `fetch-invitation` — geen wijzigingen
 
-- `supabase/functions/send-team-invitation/index.ts` — revocation cleanup (F1)
-- `supabase/functions/fetch-invitation/index.ts` — `hasUsablePassword` toevoegen (A1)
-- `src/pages/AcceptInvitation.tsx` — race fix (F2), betere errors (F3), gebruikt `hasUsablePassword`
-- Deploy: `send-team-invitation`, `fetch-invitation`
+## Testcases
 
-**Niet aangeraakt:**
-- `accept-team-invitation` (al hardened met revocation-cleanup)
-- `repair-tenant-access` (guards zijn goed)
-- `check-invite-email`, `resend-team-invitation`, `revoke-team-invitation`, `remove-team-member`
-- Beide tenants' owner_email of teams
+1. **Nieuwe user, geen account:** klik in mail → wachtwoord kiezen → 1 klik → in dashboard
+2. **Bestaande user, geen wachtwoord:** identiek aan (1), maar server-side doet update i.p.v. create
+3. **Bestaande user, met wachtwoord:** ongewijzigde login-flow (Sander vrijdag)
+4. **Al ingelogd, email matcht:** ongewijzigde one_click_accept
+5. **Al ingelogd, andere email:** ongewijzigde wrong_account
 
-Akkoord met dit plan, dan zet ik het om vrijdagochtend in werking (of nu al, jij zegt het maar)?
+Akkoord?
