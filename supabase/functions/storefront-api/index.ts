@@ -2778,6 +2778,8 @@ async function submitContactForm(supabase: any, tenantId: string, params: Record
 async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
   const firstName = (params.first_name as string) || undefined;
   const source = (params.source as string) || 'storefront_api';
+  const rawLang = typeof params.language === 'string' ? params.language.toLowerCase().slice(0, 2) : '';
+  const language = ['nl', 'en', 'fr', 'de'].includes(rawLang) ? rawLang : undefined;
 
   if (!email) throw new Error('email is required');
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2811,7 +2813,7 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
   try {
     const { data: existingCustomer } = await supabase
       .from('customers')
-      .select('id, tags, customer_type')
+      .select('id, tags, customer_type, preferred_language')
       .eq('tenant_id', tenantId)
       .eq('email', email)
       .maybeSingle();
@@ -2824,6 +2826,11 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
       };
       if (!currentTags.includes('subscribed')) {
         updates.tags = [...currentTags, 'subscribed'];
+      }
+      // Only set preferred_language when provided AND not already set — never
+      // overwrite an existing non-null preference with a different value or null.
+      if (language && !existingCustomer.preferred_language) {
+        updates.preferred_language = language;
       }
       const { error: updateErr } = await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
       if (updateErr) {
@@ -2840,6 +2847,7 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         tags: ['subscribed'],
         email_subscribed: true,
         email_subscribed_at: new Date().toISOString(),
+        preferred_language: language || null,
       });
       if (insertErr) {
         console.error('Customer insert failed:', JSON.stringify(insertErr));
