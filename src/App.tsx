@@ -116,7 +116,22 @@ import ShopWishlist from "./pages/storefront/ShopWishlist";
 import ShopQRPayment from "./pages/storefront/ShopQRPayment";
 import { SimulatedRoleProvider, RoleSimulator } from "@/components/dev/RoleSimulator";
 
-const queryClient = new QueryClient();
+// Global react-query defaults.
+// - `refetchOnWindowFocus: false` voorkomt dat data (en formulieren die op
+//   die data steunen) opnieuw laden zodra de gebruiker terugkeert naar de
+//   tab. Dit was o.a. hinderlijk in de nieuwsbrief/campagne editor.
+// - `staleTime` van 30s dempt onnodige refetches bij re-mounts.
+// Security niet geraakt: auth-tokens en RLS blijven ongewijzigd; individuele
+// queries kunnen dit nog altijd overschrijven waar realtime nodig is.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 30_000,
+    },
+  },
+});
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
