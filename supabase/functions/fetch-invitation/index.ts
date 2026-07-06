@@ -54,6 +54,7 @@ serve(async (req) => {
     // whether the matching user is already a member of this tenant.
     let accountExists = false;
     let alreadyMember = false;
+    let hasUsablePassword = false;
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -63,6 +64,27 @@ serve(async (req) => {
 
       if (profile?.id) {
         accountExists = true;
+        // Check whether the auth user has a usable password. If not, we
+        // must NOT send them to the password-login screen (they'd be
+        // stuck). The frontend falls back to OTP + set_password instead.
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          const u: any = authUser?.user;
+          // encrypted_password isn't exposed through the admin API, but
+          // Supabase surfaces it indirectly: users created via
+          // signUp/updateUser({password}) have `identities[].provider === 'email'`
+          // with `identity_data.email` AND `last_sign_in_at` gets set on
+          // any successful signInWithPassword.
+          const emailIdentity = (u?.identities || []).find(
+            (i: any) => i.provider === "email"
+          );
+          hasUsablePassword = !!emailIdentity && !!u?.last_sign_in_at;
+        } catch (authLookupErr) {
+          console.warn("auth user lookup failed", authLookupErr);
+          // Fail safe: assume password exists (login-required path); worst
+          // case user clicks "wachtwoord vergeten".
+          hasUsablePassword = true;
+        }
         const { data: existingRole } = await supabase
           .from("user_roles")
           .select("id")
@@ -100,6 +122,7 @@ serve(async (req) => {
         tenantId: data.tenant_id,
         expiresAt: data.expires_at,
         accountExists,
+        hasUsablePassword,
         mailboxConfirmed: accountExists,
         alreadyMember,
         invitedByName,
