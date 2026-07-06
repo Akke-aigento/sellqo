@@ -36,6 +36,8 @@ import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
 import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
 import type { Customer } from '@/types/order';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 export default function CustomerDetailPage() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -46,7 +48,7 @@ export default function CustomerDetailPage() {
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const { createCustomer } = useCustomers();
+  const { createCustomer, updateCustomer } = useCustomers();
 
   // Query customer_messages for from_email when customer not found
   const { data: messageData } = useQuery({
