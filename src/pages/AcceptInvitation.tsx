@@ -118,12 +118,11 @@ export default function AcceptInvitation() {
       }
       // status pending / valid
       if (!user) {
-        // Account bestaat + heeft echt een wachtwoord → login-flow.
-        // Account bestaat maar GEEN wachtwoord (shell auth-user) → OTP + set_password.
-        // Geen account → OTP + set_password.
+        // Account bestaat + heeft wachtwoord → login-flow.
+        // Anders → direct account-setup (één klik, geen tussenmail).
         setState(invite.accountExists && invite.hasUsablePassword
           ? { kind: 'login_required', invite }
-          : { kind: 'otp_request', invite });
+          : { kind: 'new_account_setup', invite });
         return;
       }
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
@@ -292,47 +291,7 @@ export default function AcceptInvitation() {
     }
   };
 
-  const handleSendOtp = async (invite: InviteData) => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: invite.email,
-        options: { shouldCreateUser: true, emailRedirectTo: window.location.href },
-      });
-      if (error) throw error;
-      toast({ title: 'Code verzonden', description: `Naar ${maskEmail(invite.email)}` });
-      setOtpCode('');
-      setResendCooldown(30);
-      setState({ kind: 'otp_verify', invite });
-    } catch (e: any) {
-      console.error('[AcceptInvitation/otp-send]', e);
-      toast({ title: 'Versturen mislukt', description: e.message, variant: 'destructive' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleVerifyOtp = async (invite: InviteData) => {
-    if (otpCode.length !== 6) return;
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: invite.email,
-        token: otpCode,
-        type: 'email',
-      });
-      if (error) throw error;
-      setState({ kind: 'set_password', invite });
-    } catch (e: any) {
-      console.error('[AcceptInvitation/otp-verify]', e);
-      toast({ title: 'Onjuiste code', description: 'Probeer opnieuw.', variant: 'destructive' });
-      setOtpCode('');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSetPassword = async (invite: InviteData, e: React.FormEvent) => {
+  const handleCreateAccount = async (invite: InviteData, e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
       toast({ title: 'Wachtwoord te kort', description: 'Minimum 8 tekens.', variant: 'destructive' });
@@ -344,14 +303,35 @@ export default function AcceptInvitation() {
     }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      // Server-side: maak account aan (of update wachtwoord van shell auth-user)
+      // met email_confirm=true. Invite-token is bewijs dat gebruiker de mailbox
+      // bezit — geen tussenmail nodig.
+      const { data, error } = await supabase.functions.invoke('create-invite-account', {
+        body: { token, password },
+      });
+      const apiError = data?.error || error?.message;
+      if (apiError) {
+        console.error('[AcceptInvitation/signup]', apiError);
+        setState({
+          kind: 'error',
+          message: apiError as string,
+          phase: 'signup',
+          context: { tenantName: invite.tenantName, email: invite.email },
+        });
+        return;
+      }
+      // Log in met het zojuist gezette wachtwoord
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: invite.email,
+        password,
+      });
+      if (signInErr) throw signInErr;
       await new Promise((r) => setTimeout(r, 150));
       try { await supabase.auth.refreshSession(); } catch { /* non-fatal */ }
       setState({ kind: 'accepting', invite });
     } catch (e: any) {
-      console.error('[AcceptInvitation/set-password]', e);
-      toast({ title: 'Wachtwoord instellen mislukt', description: e.message, variant: 'destructive' });
+      console.error('[AcceptInvitation/signup]', e);
+      toast({ title: 'Account aanmaken mislukt', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
     }
