@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Loader2, CheckCircle, XCircle, Mail, Lock, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Mail, Lock, AlertTriangle, Clock } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,12 +34,10 @@ type FlowState =
   | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
   | { kind: 'one_click_accept'; invite: InviteData }
   | { kind: 'login_required'; invite: InviteData }
-  | { kind: 'otp_request'; invite: InviteData }
-  | { kind: 'otp_verify'; invite: InviteData }
-  | { kind: 'set_password'; invite: InviteData }
+  | { kind: 'new_account_setup'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
-  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'otp' | 'verify' | 'set_password' | 'accept'; context?: Record<string, any> };
+  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'signup' | 'accept'; context?: Record<string, any> };
 
 const roleLabels: Record<string, string> = {
   tenant_admin: 'Admin',
@@ -50,13 +47,6 @@ const roleLabels: Record<string, string> = {
   viewer: 'Kijker',
   marketing: 'Marketing',
 };
-
-function maskEmail(email: string) {
-  const [local, domain] = email.split('@');
-  if (!domain) return email;
-  const visible = local.slice(0, 2);
-  return `${visible}${'•'.repeat(Math.max(local.length - 2, 1))}@${domain}`;
-}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -82,17 +72,8 @@ export default function AcceptInvitation() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
   const acceptedRef = useRef(false);
   const resolvedTokenRef = useRef<string | null>(null);
-
-  // Resend cooldown countdown
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
 
   const resolveFlow = useCallback(async () => {
     if (!token) {
