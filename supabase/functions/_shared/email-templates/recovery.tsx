@@ -22,22 +22,23 @@ export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Stel je wachtwoord opnieuw in voor {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
+        <Heading style={h1}>Wachtwoord opnieuw instellen</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          We ontvingen een verzoek om je wachtwoord voor {siteName} opnieuw in te
+          stellen. Klik op de knop hieronder om een nieuw wachtwoord te kiezen.
+          De link is 1 uur geldig.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Reset Password
+          Nieuw wachtwoord instellen
         </Button>
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          Heb je dit verzoek niet gedaan? Negeer deze e-mail — je wachtwoord
+          blijft ongewijzigd.
         </Text>
       </Container>
     </Body>
@@ -51,7 +52,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: 'hsl(212, 52%, 24%)',
   margin: '0 0 20px',
 }
 const text = {
@@ -61,10 +62,10 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: 'hsl(212, 52%, 24%)',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
+  borderRadius: '0.5rem',
   padding: '12px 20px',
   textDecoration: 'none',
 }
