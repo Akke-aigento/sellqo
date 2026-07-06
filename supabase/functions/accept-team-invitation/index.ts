@@ -120,6 +120,18 @@ serve(async (req) => {
       console.warn("audit log insert failed (accepted)", auditErr);
     }
 
+    // Self-heal: clear any stale revocation for this (tenant, email) pair,
+    // since the user is now explicitly re-granted access via invite.
+    try {
+      await supabase
+        .from("tenant_access_revocations")
+        .delete()
+        .eq("tenant_id", invitation.tenant_id)
+        .ilike("email", invitation.email);
+    } catch (revErr) {
+      console.warn("tenant_access_revocations cleanup failed", revErr);
+    }
+
     return jsonResponse(200, {
       success: true,
       tenantId: invitation.tenant_id,
