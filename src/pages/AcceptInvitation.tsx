@@ -729,9 +729,38 @@ export default function AcceptInvitation() {
           <CardDescription>{state.kind === 'error' ? state.message : 'Onbekende fout'}</CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-2">
+          {state.kind === 'error' && (state.phase || state.context) ? (
+            <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 text-left space-y-1">
+              {state.phase ? <div><strong>Fase:</strong> {state.phase}</div> : null}
+              {state.context?.tenantName ? <div><strong>Tenant:</strong> {state.context.tenantName}</div> : null}
+              {state.context?.email ? <div><strong>E-mail:</strong> {state.context.email}</div> : null}
+              {state.context?.code ? <div><strong>Code:</strong> {state.context.code}</div> : null}
+            </div>
+          ) : null}
           <Button onClick={() => { acceptedRef.current = false; resolvedTokenRef.current = null; resolveFlow(); }}>
             Probeer opnieuw
           </Button>
+          {state.kind === 'error' ? (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const payload = {
+                  phase: state.phase,
+                  message: state.message,
+                  context: state.context,
+                  token,
+                  timestamp: new Date().toISOString(),
+                  userAgent: navigator.userAgent,
+                };
+                navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+                  .then(() => toast({ title: 'Diagnose gekopieerd', description: 'Plak dit in een support-bericht.' }))
+                  .catch(() => toast({ title: 'Kopiëren mislukt', variant: 'destructive' }));
+              }}
+            >
+              Kopieer diagnose
+            </Button>
+          ) : null}
           <Button asChild variant="link" className="text-xs">
             <Link to="/">Contact ondersteuning</Link>
           </Button>
