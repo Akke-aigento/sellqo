@@ -23,6 +23,8 @@ import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { VariableInserter } from './VariableInserter';
 import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
+import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
+import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
 const campaignSchema = z.object({
@@ -31,6 +33,8 @@ const campaignSchema = z.object({
   preview_text: z.string().optional(),
   segment_id: z.string().optional(),
   template_id: z.string().optional(),
+  language: z.enum(['any', 'nl', 'en', 'fr', 'de']).default('any'),
+  preset_key: z.string().optional(),
   html_content: z.string().min(1, 'Content is verplicht'),
 });
 
@@ -85,6 +89,7 @@ export function CampaignDialog({
   const { currentTenant } = useTenant();
   const { templates } = useEmailTemplates();
   const { segments } = useCustomerSegments();
+  const { data: brand } = useTenantBrand();
 
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [richContent, setRichContent] = useState(defaultRichContent);
@@ -103,6 +108,8 @@ export function CampaignDialog({
       preview_text: '',
       segment_id: '',
       template_id: '',
+      language: 'any',
+      preset_key: '',
       html_content: defaultHtmlContent,
     },
   });
@@ -118,6 +125,8 @@ export function CampaignDialog({
           preview_text: campaign.preview_text || '',
           segment_id: campaign.segment_id || '',
           template_id: campaign.template_id || '',
+          language: (campaign.language as any) || 'any',
+          preset_key: campaign.preset_key || '',
           html_content: body || defaultHtmlContent,
         });
         // Existing campaigns open in HTML mode; keep richContent in sync so a
@@ -138,6 +147,8 @@ export function CampaignDialog({
           preview_text: defaultValues.preview_text || '',
           segment_id: defaultValues.segment_id || '',
           template_id: '',
+          language: 'any',
+          preset_key: '',
           html_content: body || defaultHtmlContent,
         });
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
@@ -150,6 +161,8 @@ export function CampaignDialog({
           preview_text: '',
           segment_id: '',
           template_id: '',
+          language: 'any',
+          preset_key: '',
           html_content: defaultHtmlContent,
         });
         setEditorMode('visual');
@@ -217,18 +230,37 @@ export function CampaignDialog({
       dt.setHours(hours, minutes, 0, 0);
       scheduled_at = dt.toISOString();
     }
-    
-    onSave({
+
+    // Presets and segments are mutually exclusive; strip empties for DB.
+    const payload: any = {
       ...data,
+      language: data.language === 'any' ? null : data.language,
+      preset_key: data.preset_key || null,
+      segment_id: data.preset_key ? null : (data.segment_id || null),
       tenant_id: currentTenant.id,
       status,
       scheduled_at,
-    });
+    };
+    onSave(payload);
   };
 
   const previewHtml = wrapInEmailTemplate(
-    editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+    applyPreviewVariables(
+      editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+      brand,
+    ),
   );
+
+  const campaignLanguage = form.watch('language');
+  // Sort templates: language-matching first, then divider, then rest.
+  const sortedTemplates = (() => {
+    if (!campaignLanguage || campaignLanguage === 'any') {
+      return { match: templates, other: [] as typeof templates };
+    }
+    const match = templates.filter((t) => (t as any).language === campaignLanguage);
+    const other = templates.filter((t) => (t as any).language !== campaignLanguage);
+    return { match, other };
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,11 +314,21 @@ export function CampaignDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="none">Geen template</SelectItem>
-                        {templates.map((template) => (
+                        {sortedTemplates.match.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
                             {template.name}
                           </SelectItem>
                         ))}
+                        {sortedTemplates.other.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground border-t mt-1">Andere talen</div>
+                            {sortedTemplates.other.map((template) => (
+                              <SelectItem key={template.id} value={template.id}>
+                                {template.name}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -300,7 +342,21 @@ export function CampaignDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Doelgroep</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(val === "all" ? "" : val)} value={field.value || "all"}>
+                    <Select
+                      onValueChange={(val) => {
+                        if (val === 'all') {
+                          field.onChange('');
+                          form.setValue('preset_key', '');
+                        } else if (val.startsWith('preset:')) {
+                          form.setValue('preset_key', val);
+                          field.onChange('');
+                        } else {
+                          form.setValue('preset_key', '');
+                          field.onChange(val);
+                        }
+                      }}
+                      value={form.watch('preset_key') || field.value || 'all'}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Alle klanten" />
@@ -308,6 +364,13 @@ export function CampaignDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="all">Alle geabonneerde klanten</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">Snelle doelgroepen</div>
+                        {AUDIENCE_PRESETS.map((p) => (
+                          <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                        ))}
+                        {segments.length > 0 && (
+                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">Opgeslagen segmenten</div>
+                        )}
                         {segments.map((segment) => (
                           <SelectItem key={segment.id} value={segment.id}>
                             {segment.name} ({segment.member_count} klanten)
@@ -320,11 +383,44 @@ export function CampaignDialog({
                         {selectedSegment.member_count} ontvangers in dit segment
                       </p>
                     )}
+                    {form.watch('preset_key') && (
+                      <p className="text-xs text-muted-foreground">
+                        {getAudiencePreset(form.watch('preset_key'))?.description}
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="language"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Taal</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-[260px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="any">Alle talen</SelectItem>
+                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                      <SelectItem value="en">🇬🇧 English</SelectItem>
+                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Bij "Alle talen" ontvangen alle klanten deze campagne. Anders gaan enkel klanten met deze voorkeurstaal (of geen voorkeur bij tenant-taal) naar de mail.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

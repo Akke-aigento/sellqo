@@ -5,6 +5,7 @@ import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
+import { resolvePresetRules } from "../_shared/audiencePresets.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,19 +53,39 @@ Deno.serve(async (req) => {
     // Get tenant info for email personalization
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("name, email, owner_email, phone, custom_domain, iban, street, city, postal_code, country")
+      .select("name, email, owner_email, phone, custom_domain, iban, street, city, postal_code, country, language")
       .eq("id", campaign.tenant_id)
       .single();
     const marketingSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.email || (tenant as any)?.owner_email);
     const brand = await getTenantBrand(supabase, campaign.tenant_id);
-    const locale = brand.defaultLocale;
+    const tenantLocale = brand.defaultLocale;
+    // Campaign language wins over tenant default for wrapper chrome + formatting.
+    const locale = (campaign.language as any) || tenantLocale;
 
     // Build recipient query
     let recipientQuery = supabase
       .from("customers")
-      .select("id, email, first_name, last_name, company_name, phone, vat_number, billing_city, billing_country, total_orders, total_spent, tags, created_at")
+      .select("id, email, first_name, last_name, company_name, phone, vat_number, billing_city, billing_country, total_orders, total_spent, tags, created_at, preferred_language")
       .eq("tenant_id", campaign.tenant_id)
       .eq("email_subscribed", true);
+
+    // Apply preset rules first (evaluated at SEND time so relative dates are fresh).
+    const presetRules = resolvePresetRules(campaign.preset_key);
+    if (presetRules) {
+      if (presetRules.customer_type) {
+        recipientQuery = recipientQuery.eq("customer_type", presetRules.customer_type);
+      }
+      if (typeof presetRules.min_orders === "number") {
+        recipientQuery = recipientQuery.gte("total_orders", presetRules.min_orders);
+      }
+      if (typeof presetRules.max_orders === "number") {
+        recipientQuery = recipientQuery.lte("total_orders", presetRules.max_orders);
+      }
+      if (typeof presetRules.created_after === "string") {
+        recipientQuery = recipientQuery.gte("created_at", presetRules.created_after);
+      }
+      // no_order_since_days has no column; documented parity with SegmentBuilder.
+    }
 
     // Apply segment filters if segment exists
     if (campaign.segment?.filter_rules) {
@@ -106,10 +127,25 @@ Deno.serve(async (req) => {
       if (typeof rules.created_before === "string") {
         recipientQuery = recipientQuery.lte("created_at", rules.created_before);
       }
+      if (typeof rules.preferred_language === "string" && rules.preferred_language) {
+        recipientQuery = recipientQuery.eq("preferred_language", rules.preferred_language as string);
+      }
       if (rules.last_order_days_ago !== undefined || rules.no_order_since_days !== undefined || rules.min_engagement_score !== undefined) {
         // No column available on customers for these rules; the segment
         // preview also skips them, so parity is maintained.
         console.warn(`Campaign ${campaign_id}: unsupported filter fields skipped`);
+      }
+    }
+
+    // Multilingual audience: filter recipients to the campaign language.
+    // preferred_language IS NULL belongs to the tenant-default-language audience.
+    if (campaign.language) {
+      if (campaign.language === tenantLocale) {
+        recipientQuery = recipientQuery.or(
+          `preferred_language.eq.${campaign.language},preferred_language.is.null`,
+        );
+      } else {
+        recipientQuery = recipientQuery.eq("preferred_language", campaign.language);
       }
     }
 
@@ -150,7 +186,20 @@ Deno.serve(async (req) => {
 
     for (const recipient of validRecipients) {
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
-      const vars = buildVariableMap(recipient, tenant, { subject: campaign.subject }, unsubscribeUrl);
+      const vars = buildVariableMap(
+        recipient,
+        tenant,
+        { subject: campaign.subject },
+        unsubscribeUrl,
+        {
+          tenantName: brand.tenantName,
+          logoUrl: brand.logoUrl,
+          primaryColor: brand.primaryColor,
+          accentColor: brand.accentColor,
+          headingFont: brand.headingFont,
+        },
+        locale,
+      );
       const customerName = vars.customer_name;
 
       // Backwards compat: legacy campaigns stored full HTML documents with a

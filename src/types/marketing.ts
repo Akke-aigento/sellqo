@@ -9,6 +9,7 @@ export interface EmailTemplate {
   category: 'general' | 'promotional' | 'transactional' | 'newsletter';
   thumbnail_url?: string;
   is_default: boolean;
+  language?: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,8 @@ export interface SegmentFilterRules {
   tags_match?: 'any' | 'all';
   created_after?: string;
   created_before?: string;
+  /** Customer preferred_language filter ('nl' | 'en' | 'fr' | 'de'). */
+  preferred_language?: string;
 }
 
 // Customer Segment Types
@@ -75,6 +78,10 @@ export interface EmailCampaign {
   html_content: string;
   template_id?: string;
   segment_id?: string;
+  /** Campaign language ('nl' | 'en' | 'fr' | 'de' | null). NULL = all languages. */
+  language?: string | null;
+  /** Audience quick-preset key (e.g. 'preset:new_customers'). */
+  preset_key?: string | null;
   status: CampaignStatus;
   scheduled_at?: string;
   sent_at?: string;

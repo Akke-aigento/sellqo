@@ -37,6 +37,16 @@ const variableGroups: VariableGroup[] = [
     ],
   },
   {
+    label: 'Merk',
+    variables: [
+      { key: '{{tenant_logo}}', label: 'Logo (afbeelding)' },
+      { key: '{{tenant_logo_url}}', label: 'Logo URL' },
+      { key: '{{brand_primary_color}}', label: 'Primaire kleur' },
+      { key: '{{brand_accent_color}}', label: 'Accentkleur' },
+      { key: '{{brand_heading_font}}', label: 'Titel-lettertype' },
+    ],
+  },
+  {
     label: 'Systeem',
     variables: [
       { key: '{{current_date}}', label: 'Huidige datum' },

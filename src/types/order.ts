@@ -53,6 +53,7 @@ export interface Customer {
   sms_marketing_level: string | null;
   original_created_at: string | null;
   import_source: string | null;
+  preferred_language?: string | null;
 }
 
 export interface OrderItem {

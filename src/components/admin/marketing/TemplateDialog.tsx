@@ -13,12 +13,14 @@ import { useTenant } from '@/hooks/useTenant';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { extractEmailBody } from '@/lib/emailContent';
 import { VariableInserter } from './VariableInserter';
+import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import type { EmailTemplate } from '@/types/marketing';
 
 const templateSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   subject: z.string().min(1, 'Onderwerp is verplicht'),
   category: z.enum(['general', 'promotional', 'transactional', 'newsletter']),
+  language: z.enum(['nl', 'en', 'fr', 'de']),
   html_content: z.string().min(1, 'Content is verplicht'),
 });
 
@@ -43,6 +45,7 @@ const extractBodyFromHtml = extractEmailBody;
 
 export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading }: TemplateDialogProps) {
   const { currentTenant } = useTenant();
+  const { data: brand } = useTenantBrand();
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [richContent, setRichContent] = useState(() => {
     if (template?.html_content) return extractBodyFromHtml(template.html_content);
@@ -55,6 +58,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
       name: template?.name || '',
       subject: template?.subject || '',
       category: (template?.category as TemplateFormData['category']) || 'general',
+      language: ((template?.language as TemplateFormData['language']) || brand?.defaultLocale || 'nl'),
       html_content: template?.html_content
         ? extractBodyFromHtml(template.html_content)
         : richContent,
@@ -85,7 +89,9 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
     });
   };
 
-  const currentHtml = wrapInEmailTemplate(form.watch('html_content') || '');
+  const currentHtml = wrapInEmailTemplate(
+    applyPreviewVariables(form.watch('html_content') || '', brand),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -136,6 +142,30 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="language"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Taal</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                      <SelectItem value="en">🇬🇧 English</SelectItem>
+                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

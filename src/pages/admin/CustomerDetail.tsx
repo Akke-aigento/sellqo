@@ -36,6 +36,8 @@ import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
 import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
 import type { Customer } from '@/types/order';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 export default function CustomerDetailPage() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -46,7 +48,7 @@ export default function CustomerDetailPage() {
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const { createCustomer } = useCustomers();
+  const { createCustomer, updateCustomer } = useCustomers();
 
   // Query customer_messages for from_email when customer not found
   const { data: messageData } = useQuery({
@@ -400,6 +402,30 @@ export default function CustomerDetailPage() {
                     </div>
                   </div>
                 )}
+                <div className="pt-2 border-t">
+                  <Label className="text-sm text-muted-foreground">Voorkeurstaal</Label>
+                  <Select
+                    value={(customer as any).preferred_language || 'none'}
+                    onValueChange={(val) => {
+                      if (!customerId) return;
+                      updateCustomer.mutate({
+                        customerId,
+                        data: { preferred_language: val === 'none' ? null : val } as any,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Geen voorkeur (tenant-standaard)</SelectItem>
+                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                      <SelectItem value="en">🇬🇧 English</SelectItem>
+                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 
