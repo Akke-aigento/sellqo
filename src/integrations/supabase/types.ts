@@ -14961,6 +14961,48 @@ export type Database = {
           },
         ]
       }
+      tenant_access_revocations: {
+        Row: {
+          email: string
+          id: string
+          reason: string | null
+          revoked_at: string
+          revoked_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string
+          revoked_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string
+          revoked_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_access_revocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_access_revocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_addons: {
         Row: {
           activated_at: string | null
