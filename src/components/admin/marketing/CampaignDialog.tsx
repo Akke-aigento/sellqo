@@ -22,6 +22,7 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { VariableInserter } from './VariableInserter';
+import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
 const campaignSchema = z.object({
@@ -68,38 +69,9 @@ interface CampaignDialogProps {
   isAIGenerated?: boolean;
 }
 
-const defaultHtmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-    <tr>
-      <td style="padding: 40px 30px;">
-        <h1 style="margin: 0 0 20px; color: #333333;">Hallo {{customer_name}},</h1>
-        <p style="margin: 0 0 20px; color: #666666; line-height: 1.6;">
-          Uw bericht hier...
-        </p>
-        <p style="margin: 0; color: #666666;">
-          Met vriendelijke groet,<br>
-          {{company_name}}
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 20px 30px; background-color: #f8f8f8; text-align: center; font-size: 12px; color: #999999;">
-        <p style="margin: 0;">
-          <a href="{{unsubscribe_url}}" style="color: #999999;">Uitschrijven</a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-const defaultRichContent = '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
+const defaultRichContent =
+  '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
+const defaultHtmlContent = defaultRichContent;
 
 export function CampaignDialog({ 
   open, 
@@ -139,15 +111,18 @@ export function CampaignDialog({
     if (open) {
       setShowPreview(false);
       if (campaign) {
+        const body = extractEmailBody(campaign.html_content || '');
         form.reset({
           name: campaign.name || '',
           subject: campaign.subject || '',
           preview_text: campaign.preview_text || '',
           segment_id: campaign.segment_id || '',
           template_id: campaign.template_id || '',
-          html_content: campaign.html_content || defaultHtmlContent,
+          html_content: body || defaultHtmlContent,
         });
-        // Determine editor mode based on existing content
+        // Existing campaigns open in HTML mode; keep richContent in sync so a
+        // toggle to visual doesn't clobber the current body.
+        setRichContent(body || defaultRichContent);
         setEditorMode('html');
         setSendMode(campaign.scheduled_at ? 'scheduled' : 'now');
         if (campaign.scheduled_at) {
@@ -156,16 +131,17 @@ export function CampaignDialog({
           setScheduledTime(format(d, 'HH:mm'));
         }
       } else if (defaultValues) {
+        const body = extractEmailBody(defaultValues.html_content || '');
         form.reset({
           name: defaultValues.name || '',
           subject: defaultValues.subject || '',
           preview_text: defaultValues.preview_text || '',
           segment_id: defaultValues.segment_id || '',
           template_id: '',
-          html_content: defaultValues.html_content || defaultHtmlContent,
+          html_content: body || defaultHtmlContent,
         });
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
-        setRichContent(defaultRichContent);
+        setRichContent(body || defaultRichContent);
         setSendMode('now');
       } else {
         form.reset({
@@ -194,28 +170,38 @@ export function CampaignDialog({
     form.setValue('template_id', templateId);
     const template = templates.find(t => t.id === templateId);
     if (template) {
+      const body = extractEmailBody(template.html_content || '');
       form.setValue('subject', template.subject);
-      form.setValue('html_content', template.html_content);
+      form.setValue('html_content', body);
+      setRichContent(body || defaultRichContent);
       setEditorMode('html');
     }
   };
 
   const handleEditorModeToggle = () => {
     if (editorMode === 'visual') {
-      // Switch to HTML: wrap rich content in email template
-      const wrapped = wrapInEmailTemplate(richContent);
-      form.setValue('html_content', wrapped);
+      // Switch to HTML: expose the raw body HTML (no document wrapping).
+      form.setValue('html_content', richContent);
       setEditorMode('html');
     } else {
-      // Switch to visual: keep what's in rich editor
+      // Switch to visual: hydrate the rich editor from current HTML.
+      const current = form.getValues('html_content') || '';
+      const body = extractEmailBody(current);
+      if (isComplexHtml(body)) {
+        const ok = window.confirm(
+          'Deze HTML bevat opmaak (tabellen/inline styles) die de visuele editor kan vereenvoudigen. Overschakelen?',
+        );
+        if (!ok) return;
+      }
+      setRichContent(body || defaultRichContent);
       setEditorMode('visual');
     }
   };
 
   const handleRichContentChange = (html: string) => {
     setRichContent(html);
-    // Store wrapped version in form
-    form.setValue('html_content', wrapInEmailTemplate(html));
+    // Store raw body HTML; the sender wraps it in the tenant template.
+    form.setValue('html_content', html);
   };
 
   const handleSubmit = (data: CampaignFormData) => {
@@ -240,9 +226,9 @@ export function CampaignDialog({
     });
   };
 
-  const previewHtml = editorMode === 'visual' 
-    ? wrapInEmailTemplate(richContent) 
-    : form.getValues('html_content');
+  const previewHtml = wrapInEmailTemplate(
+    editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
