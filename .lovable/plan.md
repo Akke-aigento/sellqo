@@ -1,62 +1,59 @@
-# Fix — OTP-mail komt niet aan bij invite (structureel)
+# Zona Dorata definitief loskoppelen van Sander
 
-## Nieuwe observaties uit de DB
+## Situatie
 
-- **Invitation** `48edba58-bcc8-48cb-98df-01b40a938772` → `aaron-mercken@hotmail.com`, tenant `05b419c3-…`, aangemaakt 11:43:53, nog niet accepted, verloopt 13 juli.
-- **auth.users row** is aangemaakt om 11:45:35 (`8e4cf41a-…`) met `email_confirmed_at` direct gezet — dat betekent dat de "Nieuw account aanmaken"-flow op de invite-pagina de user al heeft aangemaakt en een `recovery`/OTP heeft aangevraagd om de session te openen.
-- **Auth-log**: `user_recovery_requested` returnde 200 via Lovable's managed hook.
-- **`email_send_log`**: geen enkele row voor dit adres, geen row überhaupt sinds 11 juni. Dus de managed default hook logt niets meer in `email_send_log` en de queue wordt niet aangeraakt.
-- **`suppressed_emails`**: niks — geen bounce/complaint geregistreerd.
+- **user_roles**: Sander (`72e2de50-…` / `sander.mancini@hotmail.be`) staat nergens meer als teamlid → verwijdering uit Zona Dorata is correct doorgevoerd.
+- **Nieuwe admin actief**: `aaron-mercken@hotmail.com` (jij) is `tenant_admin` op Zona Dorata sinds 6 jul 2026.
+- **Openstaand risico**: `tenants.owner_email` van Zona Dorata (`05b419c3-d9a4-4ad8-bbf0-2d1c672e266f`) staat nog op `sander.mancini@hotmail.be`. De `repair-tenant-access` edge function wordt door `useTenant.tsx` aangeroepen op elke login waar de user 0 tenants ziet, en inserted dan een `tenant_admin` op basis van deze `owner_email`. Bij Sanders volgende login op sellqo.app krijgt hij automatisch terug admin-rechten.
 
-Conclusie: de auth-mail wordt door Lovable's default managed path niet betrouwbaar naar Hotmail bezorgd, en we hebben geen enkel forensisch spoor. Dat moet fixed worden vóór je klanten uitnodigt.
+## Wijzigingen
 
-## Root cause
+### 1. `owner_email` van Zona Dorata wijzigen
 
-Er is **geen `supabase/functions/auth-email-hook/`** in dit project — nooit gescaffold. Alle auth-mails leunen dus op Lovable's default managed sender zonder queue, zonder retry, zonder log, zonder suppression-check. In `_shared/email-templates/` staan wel al SellQo-branded NL templates klaar (`magic-link.tsx`, `index.ts` met signup/recovery/invite/etc.), maar zonder hook worden die niet gebruikt.
+`UPDATE public.tenants SET owner_email = 'aaron-mercken@hotmail.com' WHERE id = '05b419c3-d9a4-4ad8-bbf0-2d1c672e266f'`
 
-## Plan (build mode)
+Dit sluit de spoof-vector: `repair-tenant-access` kan Sander niet meer matchen op deze tenant. Jij bent zowel Admin (via `user_roles`) als officiële owner (via `owner_email`).
 
-### 1. Stale invite + user opruimen zodat retest schoon is
-Migratie die het volgende doet voor `email = 'aaron-mercken@hotmail.com'` (zonder de June-account met punt aan te raken):
+### 2. `repair-tenant-access` hardenen (aanbevolen)
 
-- `DELETE FROM team_invitations WHERE id = '48edba58-bcc8-48cb-98df-01b40a938772';`
-- `DELETE FROM invite_audit_log WHERE invitation_id = '48edba58-…';` (om FK-cascade te voorkomen indien nodig — anders vóór de delete)
-- `DELETE FROM auth.users WHERE id = '8e4cf41a-9546-4754-b902-aa6d404e4601';` (cascade ruimt profiles/user_roles op)
+Om te voorkomen dat dit patroon opnieuw ontstaat bij toekomstige verwijderingen, twee guards toevoegen aan `supabase/functions/repair-tenant-access/index.ts`:
 
-Zo kan dezelfde uitnodiging opnieuw verstuurd worden zonder "gebruiker bestaat al"/"invitation exists".
+- **Guard A** — weiger als `auth.users.email_confirmed_at IS NULL` of user < 24u oud is (voorkomt fresh-signup spoof).
+- **Guard B** — expliciete revoke-check op nieuwe tabel `tenant_access_revocations(tenant_id, email)`. `remove-team-member` schrijft daar automatisch een rij bij verwijdering; `repair-tenant-access` weigert als er een match is.
 
-### 2. Custom `auth-email-hook` scaffolden + deployen
+**Migratie**:
+```sql
+CREATE TABLE public.tenant_access_revocations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  revoked_at timestamptz NOT NULL DEFAULT now(),
+  revoked_by uuid,
+  reason text
+);
+CREATE UNIQUE INDEX ON public.tenant_access_revocations (tenant_id, lower(email));
+GRANT SELECT ON public.tenant_access_revocations TO authenticated;
+GRANT ALL ON public.tenant_access_revocations TO service_role;
+ALTER TABLE public.tenant_access_revocations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant admins view revocations"
+  ON public.tenant_access_revocations FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'platform_admin')
+      OR tenant_id = ANY(public.get_user_tenant_ids()));
+```
 
-- `email_domain--scaffold_auth_email_templates` met `confirm_overwrite: true`.
-- De scaffold genereert nieuwe React-Email `.tsx` templates + de `auth-email-hook/index.ts` die naar `enqueue_email` (queue `auth_emails`) schrijft.
-- **SellQo-branding porten**: onze bestaande NL-copy en huisstijl uit `_shared/email-templates/index.ts` (magicLinkTemplate, recoveryTemplate, inviteTemplate, signupTemplate, emailChangeTemplate, reauthenticationTemplate — allemaal in NL, met support@sellqo.app, SellQo-tone, `renderSellqoEmail`) porten naar de nieuwe scaffold-templates. Kleuren/logo/footer identiek houden zoals nu.
-- `supabase--deploy_edge_functions` met `["auth-email-hook"]`.
+**Backfill**: één rij invoegen voor Sander @ Zona Dorata als extra vangnet.
 
-Resultaat: elke invite-recovery/magiclink/signup gaat via `q_auth_emails` → `process-email-queue` (cron 5s) → provider. Dus:
-- `email_send_log` krijgt `status='sent'` of `failed` + `error_message`.
-- Bij Hotmail-bounce: row in `suppressed_emails`.
-- Automatische retry tot 5 pogingen / DLQ na TTL.
+**Edge-function edits**:
+- `repair-tenant-access/index.ts`: extra `SELECT` op `tenant_access_revocations` en `auth.users.created_at` check vóór de bestaande insert.
+- `remove-team-member/index.ts`: na succesvolle role-verwijdering → `INSERT ... ON CONFLICT DO NOTHING` in revocations.
 
-### 3. Verificatie
+## Optioneel
 
-Na deploy verstuur ik opnieuw een invite naar `aaron-mercken@hotmail.com`:
-- Auth-log toont `user_recovery_requested` → hook 200.
-- Rij in `email_send_log` met `template_name='recovery'` en `status='sent'` binnen ~10s.
-- Queue-worker log toont delivery.
-- Als Hotmail alsnog dropt zien we dat nu direct in `error_message` of `suppressed_emails` (i.p.v. de huidige stilte).
+Als je liever géén nieuwe tabel wilt en de fix minimaal wilt houden: alleen stap 1 (`owner_email` updaten) is genoeg om Sander concreet buiten Zona Dorata te houden. Stap 2 is preventief voor toekomstige verwijderingen op andere tenants.
 
-## Wat ik NIET aanraak
+## Niet aangeraakt
 
-- Niet de bestaande invite-frontend (`/invite/:token`), niet `send-team-invitation`, niet `fetch-invitation`, niet de `team_invitations` schema.
-- Niet de DNS-delegatie van `auth.sellqo.app` (blijft verified via Lovable NS).
-- Niet de June-account `aaron.mercken@hotmail.com` (met punt) en zijn invitations/tenant.
-- Geen externe mail-provider (Resend/SendGrid).
-
-## Technische details
-
-- **Deletes** gebeuren via SQL-migratie (idempotent met `WHERE id = …`), niet via psql.
-- **Scaffold overwrite** overschrijft `_shared/email-templates/*.tsx` en `auth-email-hook/index.ts`. De bestaande `_shared/email-templates/index.ts` (SellQo-strings) wordt **niet** overschreven door scaffold (andere bestandsnaam-pattern), maar we hergebruiken de copy erin voor de nieuwe React templates.
-- Scaffold gebruikt `LOVABLE_API_KEY` (auto-provisioned), geen extra secrets nodig.
-- DNS is al verified → emails activeren direct na deploy, geen wachttijd.
-
-Akkoord om dit uit te voeren?
+- Jouw huidige admin-role op Zona Dorata.
+- `accept-team-invitation` (invites blijven werken zoals nu).
+- `useTenant.tsx` frontend-flow.
+- Andere tenants of teamleden.

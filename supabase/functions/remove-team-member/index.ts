@@ -110,6 +110,23 @@ serve(async (req) => {
       .eq("tenant_id", tenantId);
     if (deleteErr) throw deleteErr;
 
+    // 1b) Record explicit revocation so auto-repair (repair-tenant-access)
+    //     will never silently re-grant this user access via owner_email match.
+    if (profile?.email) {
+      try {
+        await supabase
+          .from("tenant_access_revocations")
+          .insert({
+            tenant_id: tenantId,
+            email: profile.email.toLowerCase(),
+            revoked_by: callerId,
+            reason: "team_member_removed",
+          });
+      } catch (revErr) {
+        console.warn("tenant_access_revocations insert failed (likely duplicate)", revErr);
+      }
+    }
+
     // 2) Mark ALL invitations (pending + accepted + expired) as revoked,
     //    so a fresh re-invite later behaves like a clean slate while
     //    history remains intact via the audit log.

@@ -49,6 +49,26 @@ serve(async (req) => {
     const userEmail = (user.email || "").trim().toLowerCase();
     logStep("Checking for orphaned tenant", { userId: user.id, email: userEmail });
 
+    // Guard A: reject if auth user is too fresh (< 24h) or unconfirmed.
+    // Prevents fresh-signup spoofers from grabbing tenant_admin via owner_email match.
+    const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+    const ageMs = Date.now() - createdAt;
+    const MIN_AGE_MS = 24 * 60 * 60 * 1000;
+    if (!user.email_confirmed_at) {
+      logStep("Rejected: email not confirmed");
+      return new Response(JSON.stringify({ repaired: false, reason: "email_not_confirmed" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (ageMs < MIN_AGE_MS) {
+      logStep("Rejected: user too new", { ageMs });
+      return new Response(JSON.stringify({ repaired: false, reason: "user_too_new" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Find tenant by owner_email
     const { data: tenant } = await supabase
       .from("tenants")
@@ -66,6 +86,21 @@ serve(async (req) => {
     }
 
     logStep("Found tenant", { tenantId: tenant.id, name: tenant.name });
+
+    // Guard B: reject if this email was explicitly revoked from this tenant.
+    const { data: revocation } = await supabase
+      .from("tenant_access_revocations")
+      .select("id")
+      .eq("tenant_id", tenant.id)
+      .ilike("email", userEmail)
+      .maybeSingle();
+    if (revocation) {
+      logStep("Rejected: access explicitly revoked", { tenantId: tenant.id });
+      return new Response(JSON.stringify({ repaired: false, reason: "revoked" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if role already exists
     const { data: existingRole } = await supabase
