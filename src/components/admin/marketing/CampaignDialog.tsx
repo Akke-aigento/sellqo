@@ -23,6 +23,8 @@ import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { VariableInserter } from './VariableInserter';
 import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
+import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
+import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
 const campaignSchema = z.object({
@@ -31,6 +33,8 @@ const campaignSchema = z.object({
   preview_text: z.string().optional(),
   segment_id: z.string().optional(),
   template_id: z.string().optional(),
+  language: z.enum(['any', 'nl', 'en', 'fr', 'de']).default('any'),
+  preset_key: z.string().optional(),
   html_content: z.string().min(1, 'Content is verplicht'),
 });
 
@@ -85,6 +89,7 @@ export function CampaignDialog({
   const { currentTenant } = useTenant();
   const { templates } = useEmailTemplates();
   const { segments } = useCustomerSegments();
+  const { data: brand } = useTenantBrand();
 
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [richContent, setRichContent] = useState(defaultRichContent);
@@ -103,6 +108,8 @@ export function CampaignDialog({
       preview_text: '',
       segment_id: '',
       template_id: '',
+      language: 'any',
+      preset_key: '',
       html_content: defaultHtmlContent,
     },
   });
@@ -118,6 +125,8 @@ export function CampaignDialog({
           preview_text: campaign.preview_text || '',
           segment_id: campaign.segment_id || '',
           template_id: campaign.template_id || '',
+          language: (campaign.language as any) || 'any',
+          preset_key: campaign.preset_key || '',
           html_content: body || defaultHtmlContent,
         });
         // Existing campaigns open in HTML mode; keep richContent in sync so a
@@ -138,6 +147,8 @@ export function CampaignDialog({
           preview_text: defaultValues.preview_text || '',
           segment_id: defaultValues.segment_id || '',
           template_id: '',
+          language: 'any',
+          preset_key: '',
           html_content: body || defaultHtmlContent,
         });
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
@@ -150,6 +161,8 @@ export function CampaignDialog({
           preview_text: '',
           segment_id: '',
           template_id: '',
+          language: 'any',
+          preset_key: '',
           html_content: defaultHtmlContent,
         });
         setEditorMode('visual');
@@ -217,18 +230,37 @@ export function CampaignDialog({
       dt.setHours(hours, minutes, 0, 0);
       scheduled_at = dt.toISOString();
     }
-    
-    onSave({
+
+    // Presets and segments are mutually exclusive; strip empties for DB.
+    const payload: any = {
       ...data,
+      language: data.language === 'any' ? null : data.language,
+      preset_key: data.preset_key || null,
+      segment_id: data.preset_key ? null : (data.segment_id || null),
       tenant_id: currentTenant.id,
       status,
       scheduled_at,
-    });
+    };
+    onSave(payload);
   };
 
   const previewHtml = wrapInEmailTemplate(
-    editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+    applyPreviewVariables(
+      editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+      brand,
+    ),
   );
+
+  const campaignLanguage = form.watch('language');
+  // Sort templates: language-matching first, then divider, then rest.
+  const sortedTemplates = (() => {
+    if (!campaignLanguage || campaignLanguage === 'any') {
+      return { match: templates, other: [] as typeof templates };
+    }
+    const match = templates.filter((t) => (t as any).language === campaignLanguage);
+    const other = templates.filter((t) => (t as any).language !== campaignLanguage);
+    return { match, other };
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
