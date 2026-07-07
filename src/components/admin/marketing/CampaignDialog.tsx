@@ -269,15 +269,38 @@ export function CampaignDialog({
     }
 
     // Presets and segments are mutually exclusive; strip empties for DB.
+    const langs = (data.available_languages || ['nl']) as CampaignLang[];
+    const isMulti = langs.length > 1;
+    // Only keep translations for selected non-NL languages, and drop empty entries.
+    const cleanedTranslations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> = {};
+    for (const lang of langs) {
+      if (lang === 'nl') continue;
+      const entry = (data.translations as any)?.[lang];
+      if (entry && (entry.subject || entry.preview_text || entry.html_content)) {
+        cleanedTranslations[lang] = {
+          subject: entry.subject || data.subject,
+          preview_text: entry.preview_text || data.preview_text,
+          html_content: entry.html_content || data.html_content,
+        };
+      }
+    }
+
     const payload: any = {
       ...data,
-      language: data.language === 'any' ? null : data.language,
+      // In multi-language mode the campaign has no single "language"; the
+      // engine routes per recipient. In single-language mode the existing
+      // filter still applies.
+      language: isMulti ? null : (langs[0] === 'nl' && data.language === 'any' ? null : langs[0]),
       preset_key: data.preset_key || null,
       segment_id: data.preset_key ? null : (data.segment_id || null),
+      available_languages: langs,
+      translations: cleanedTranslations,
       tenant_id: currentTenant.id,
       status,
       scheduled_at,
     };
+    // Drop UI-only enum from payload.
+    delete payload.language === undefined; // no-op guard
     onSave(payload);
   };
 
