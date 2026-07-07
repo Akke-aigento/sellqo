@@ -155,6 +155,9 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
             
+            {/* Password reset landing (from Supabase reset email) */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
             
