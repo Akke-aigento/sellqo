@@ -18,6 +18,34 @@ function json(status: number, body: Record<string, unknown>) {
   });
 }
 
+async function findAuthUserIdByEmail(supabase: ReturnType<typeof createClient>, email: string): Promise<string | null> {
+  const normalized = email.toLowerCase();
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", normalized)
+    .maybeSingle();
+
+  if (existingProfile?.id) return existingProfile.id;
+
+  // Defensive fallback for orphaned auth users without a profiles row.
+  // This avoids a dead-end where createUser returns "already registered"
+  // but we cannot update the password through the profile lookup.
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) {
+      console.warn("listUsers fallback failed", error);
+      return null;
+    }
+    const match = data.users.find((u) => u.email?.toLowerCase() === normalized);
+    if (match?.id) return match.id;
+    if (data.users.length < 1000) break;
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -51,14 +79,9 @@ serve(async (req) => {
 
     const email = invitation.email.toLowerCase();
 
-    // 2. Check if auth-user bestaat via profiles
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("email", email)
-      .maybeSingle();
-
-    let userId: string | null = existingProfile?.id ?? null;
+    // 2. Check of auth-user bestaat. Prefer profiles, maar val terug op
+    // Auth Admin lookup zodat orphaned users zonder profiel ook werken.
+    let userId: string | null = await findAuthUserIdByEmail(supabase, email);
     let created = false;
 
     if (userId) {
@@ -79,11 +102,24 @@ serve(async (req) => {
         email_confirm: true,
       });
       if (createErr || !newUser?.user) {
-        console.error("createUser failed", createErr);
-        return json(500, { error: "Kon account niet aanmaken: " + (createErr?.message ?? "unknown") });
+        const retryUserId = await findAuthUserIdByEmail(supabase, email);
+        if (!retryUserId) {
+          console.error("createUser failed", createErr);
+          return json(500, { error: "Kon account niet aanmaken: " + (createErr?.message ?? "unknown") });
+        }
+        const { error: updErr } = await supabase.auth.admin.updateUserById(retryUserId, {
+          password,
+          email_confirm: true,
+        });
+        if (updErr) {
+          console.error("updateUserById after create conflict failed", updErr);
+          return json(500, { error: "Kon wachtwoord niet instellen: " + updErr.message });
+        }
+        userId = retryUserId;
+      } else {
+        userId = newUser.user.id;
+        created = true;
       }
-      userId = newUser.user.id;
-      created = true;
     }
 
     return json(200, { success: true, created, email });
