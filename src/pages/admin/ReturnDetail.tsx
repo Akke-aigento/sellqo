@@ -337,9 +337,13 @@ export default function ReturnDetailPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium">Track &amp; Trace</Label>
-                    {returnRecord.label_tracking_number && (
+                    {returnRecord.label_last_event_at ? (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                        Auto {returnRecord.label_last_status ? `· ${returnRecord.label_last_status}` : ''} · {format(new Date(returnRecord.label_last_event_at), 'dd MMM HH:mm', { locale: nl })}
+                      </Badge>
+                    ) : returnRecord.label_tracking_number ? (
                       <Badge variant="outline" className="text-[10px]">Ingevuld</Badge>
-                    )}
+                    ) : null}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
