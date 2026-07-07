@@ -62,6 +62,15 @@ Deno.serve(async (req) => {
     // Campaign language wins over tenant default for wrapper chrome + formatting.
     const locale = (campaign.language as any) || tenantLocale;
 
+    // Multi-language campaign detection. When multiple languages are offered,
+    // each recipient gets their preferred_language variant (falling back to NL).
+    const translations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> =
+      (campaign.translations as any) || {};
+    const availableLanguages: string[] = Array.isArray(campaign.available_languages) && campaign.available_languages.length
+      ? (campaign.available_languages as string[])
+      : ['nl'];
+    const isMultiLang = availableLanguages.length > 1;
+
     // Build recipient query
     let recipientQuery = supabase
       .from("customers")
@@ -137,9 +146,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Multilingual audience: filter recipients to the campaign language.
-    // preferred_language IS NULL belongs to the tenant-default-language audience.
-    if (campaign.language) {
+    // Multilingual audience: for single-language campaigns, filter recipients
+    // to the campaign language. Multi-language campaigns skip this filter and
+    // route per-recipient below.
+    if (campaign.language && !isMultiLang) {
       if (campaign.language === tenantLocale) {
         recipientQuery = recipientQuery.or(
           `preferred_language.eq.${campaign.language},preferred_language.is.null`,
@@ -186,10 +196,27 @@ Deno.serve(async (req) => {
 
     for (const recipient of validRecipients) {
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
+      // Pick per-recipient language variant.
+      let recipientLocale: string = locale;
+      let variantSubject = campaign.subject || "";
+      let variantPreview = campaign.preview_text || "";
+      let variantBody = campaign.html_content || "";
+      if (isMultiLang) {
+        const pref = (recipient.preferred_language as string) || 'nl';
+        const chosen = availableLanguages.includes(pref) ? pref : 'nl';
+        recipientLocale = chosen as any;
+        if (chosen !== 'nl' && translations[chosen]) {
+          const v = translations[chosen];
+          if (v.subject) variantSubject = v.subject;
+          if (v.preview_text) variantPreview = v.preview_text;
+          if (v.html_content) variantBody = v.html_content;
+        }
+      }
+
       const vars = buildVariableMap(
         recipient,
         tenant,
-        { subject: campaign.subject },
+        { subject: variantSubject },
         unsubscribeUrl,
         {
           tenantName: brand.tenantName,
@@ -198,20 +225,20 @@ Deno.serve(async (req) => {
           accentColor: brand.accentColor,
           headingFont: brand.headingFont,
         },
-        locale,
+        recipientLocale,
       );
       const customerName = vars.customer_name;
 
       // Backwards compat: legacy campaigns stored full HTML documents with a
       // built-in unsubscribe footer. Extract the body so we don't double-wrap
       // or double-render the footer.
-      const rawBody = extractEmailBody(campaign.html_content || "");
+      const rawBody = extractEmailBody(variantBody || "");
       const htmlContent = applyVariables(rawBody, vars);
-      const renderedSubject = applyVariables(campaign.subject || "", vars);
+      const renderedSubject = applyVariables(variantSubject || "", vars);
 
       const { html: wrappedHtml, text: wrappedText } = renderTenantEmail({
         tenantBrand: brand,
-        locale,
+        locale: recipientLocale,
         preheader: renderedSubject,
         heading: renderedSubject,
         intro: htmlContent,
