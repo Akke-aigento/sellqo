@@ -105,6 +105,74 @@ const defaultRichContent =
   '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
 const defaultHtmlContent = defaultRichContent;
 
+// Renders subject + preview inputs bound to the correct field for a language.
+// NL uses the top-level columns; other languages use translations.<lang>.*.
+function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnType<typeof useForm<CampaignFormData>> }) {
+  if (lang === 'nl') {
+    return (
+      <>
+        <FormField
+          control={form.control}
+          name="subject"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Onderwerp (Nederlands)</FormLabel>
+              <FormControl>
+                <Input placeholder="Email onderwerp..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="preview_text"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Preview tekst (optioneel)</FormLabel>
+              <FormControl>
+                <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </>
+    );
+  }
+  const meta = CAMPAIGN_LANGS.find((l) => l.value === lang);
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name={`translations.${lang}.subject` as any}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Onderwerp ({meta?.label})</FormLabel>
+            <FormControl>
+              <Input placeholder="Email onderwerp..." {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={`translations.${lang}.preview_text` as any}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Preview tekst (optioneel)</FormLabel>
+            <FormControl>
+              <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
+
 export function CampaignDialog({ 
   open, 
   onOpenChange, 
