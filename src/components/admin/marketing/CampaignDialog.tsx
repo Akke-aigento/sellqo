@@ -477,64 +477,92 @@ export function CampaignDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Taal</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-[260px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="any">Alle talen</SelectItem>
-                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Bij "Alle talen" ontvangen alle klanten deze campagne. Anders gaan enkel klanten met deze voorkeurstaal (of geen voorkeur bij tenant-taal) naar de mail.
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Language selector: multi-select. NL is always required (default fallback). */}
+            <FormItem>
+              <FormLabel>Talen</FormLabel>
+              <ToggleGroup
+                type="multiple"
+                value={availableLangs}
+                onValueChange={(vals) => {
+                  // NL is always required as fallback.
+                  const next = (vals.length ? vals : ['nl']).includes('nl') ? vals : [...vals, 'nl'];
+                  form.setValue('available_languages', next as any, { shouldDirty: true });
+                }}
+                className="justify-start flex-wrap"
+              >
+                {CAMPAIGN_LANGS.map((l) => (
+                  <ToggleGroupItem
+                    key={l.value}
+                    value={l.value}
+                    disabled={l.value === 'nl'}
+                    aria-label={l.label}
+                    className="gap-1.5"
+                  >
+                    <span>{l.flag}</span>
+                    <span className="text-xs">{l.label}</span>
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground">
+                {isMultiLang
+                  ? 'Elke klant krijgt automatisch de mail in zijn voorkeurstaal. Klanten zonder voorkeur krijgen de Nederlandse versie.'
+                  : 'Alleen Nederlands. Voeg extra talen toe om per taal een variant op te maken; elke klant krijgt dan zijn eigen taalversie.'}
+              </p>
+            </FormItem>
 
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Onderwerp</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Email onderwerp..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="preview_text"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preview tekst (optioneel)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Tekst die na het onderwerp wordt getoond in de inbox..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Per-language content tabs. Single-language mode renders inline (no tabs). */}
+            {isMultiLang ? (
+              <Tabs value={activeLangTab} onValueChange={(v) => setActiveLangTab(v as CampaignLang)}>
+                <TabsList>
+                  {availableLangs.map((lang) => {
+                    const meta = CAMPAIGN_LANGS.find((l) => l.value === lang)!;
+                    return (
+                      <TabsTrigger key={lang} value={lang} className="gap-1">
+                        <span>{meta.flag}</span>
+                        <span className="text-xs">{meta.label}</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+                {availableLangs.map((lang) => (
+                  <TabsContent key={lang} value={lang} className="space-y-4 pt-4">
+                    <LangSubjectPreview lang={lang} form={form} />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Onderwerp</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email onderwerp..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="preview_text"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preview tekst (optioneel)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Tekst die na het onderwerp wordt getoond in de inbox..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             {/* Editor mode toggle + preview */}
             <div>
