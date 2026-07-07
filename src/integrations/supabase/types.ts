@@ -12121,7 +12121,10 @@ export type Database = {
           internal_notes: string | null
           items: Json | null
           label_carrier: string | null
+          label_last_event_at: string | null
+          label_last_status: string | null
           label_sent_at: string | null
+          label_tracking_events: Json | null
           label_tracking_number: string | null
           label_url: string | null
           marketplace_connection_id: string | null
@@ -12168,7 +12171,10 @@ export type Database = {
           internal_notes?: string | null
           items?: Json | null
           label_carrier?: string | null
+          label_last_event_at?: string | null
+          label_last_status?: string | null
           label_sent_at?: string | null
+          label_tracking_events?: Json | null
           label_tracking_number?: string | null
           label_url?: string | null
           marketplace_connection_id?: string | null
@@ -12215,7 +12221,10 @@ export type Database = {
           internal_notes?: string | null
           items?: Json | null
           label_carrier?: string | null
+          label_last_event_at?: string | null
+          label_last_status?: string | null
           label_sent_at?: string | null
+          label_tracking_events?: Json | null
           label_tracking_number?: string | null
           label_url?: string | null
           marketplace_connection_id?: string | null
