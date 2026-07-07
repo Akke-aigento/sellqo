@@ -299,8 +299,6 @@ export function CampaignDialog({
       status,
       scheduled_at,
     };
-    // Drop UI-only enum from payload.
-    delete payload.language === undefined; // no-op guard
     onSave(payload);
   };
 
