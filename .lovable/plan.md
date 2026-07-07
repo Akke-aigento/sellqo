@@ -1,106 +1,99 @@
-## Diagnose
 
-De huidige "OTP-flow" voor nieuwe gebruikers is dubbelop en verwarrend:
+## Probleem
 
-```text
-Klik "Uitnodiging accepteren" in mail
-   ↓
-Landt op /invite/<token>  (geen account → we tonen "Verstuur code" scherm)
-   ↓
-Klik "Verstuur code"
-   ↓  supabase.auth.signInWithOtp({ shouldCreateUser: true })
-   ↓  → Supabase stuurt magic-link mail MET klikbare knop EN 6-cijferige code
-   ↓
-Wij tonen OTP-invulscherm  ← nutteloos, want:
-   ↓
-Gebruiker klikt in mail op de KNOP (niet op code)
-   ↓
-Magic link autologin + redirect naar /invite/<token>
-   ↓
-useEffect re-runt resolveFlow → user matcht → one_click_accept
-   ↓
-Nog eens klikken op "Accepteer uitnodiging"
-   ↓
-Success
-```
+De invite-flow van een eerder verwijderd teamlid loopt op drie plekken vast:
 
-Twee UX-fouten: (1) OTP-scherm belooft een code-actie die overbodig is, (2) dubbele klik ("Accepteer" in mail én "Accepteer" op de site) voor iemand die überhaupt nooit een account had.
+1. **Login-scherm i.p.v. "nieuw wachtwoord"**  
+   `fetch-invitation` markeert de auth-user als `hasUsablePassword=true` zodra
+   `last_sign_in_at` gezet is. Voor een eerder verwijderde gebruiker die zijn
+   oude wachtwoord niet meer weet is dat een dead-end: hij komt op het
+   password-login-scherm en niet op "kies een nieuw wachtwoord".
 
-## Beoogde flow — één klik = klaar
+2. **`/reset-password` bestaat niet → 404**  
+   `handleForgotPassword` stuurt de user via `resetPasswordForEmail` naar
+   `${origin}/reset-password`, maar die route staat NIET in `src/App.tsx`.
+   Vandaar de 404 na klikken op de reset-mail.
 
-```text
-Klik "Uitnodiging accepteren" in mail
-   ↓
-Landt op /invite/<token>  (geen account)
-   ↓
-Toon: "Welkom! Kies een wachtwoord om je account aan te maken."
-   ↓  (formulier: wachtwoord + bevestig, gebaseerd op email uit invite-token)
-Klik "Account aanmaken en accepteren"
-   ↓  supabase.auth.signUp({ email, password })  — email al pre-verified via invite-token
-   ↓  → account aangemaakt, sessie actief
-   ↓
-Auto-accept invite (bestaande doAccept-flow)
-   ↓
-Success → /admin
-```
+3. **`wrong_account`-scherm blijft hangen na uitloggen**  
+   Na "Uitloggen en opnieuw beginnen" verandert `user` maar de key-guard
+   `resolvedTokenRef` re-resolvet correct — behalve dat de fallback dan alsnog
+   in `login_required` belandt (zie punt 1) i.p.v. `new_account_setup`.
 
-Geen tweede mail, geen OTP-code, geen magic link, geen dubbele klik. De invite-token is zelf al het "bewijs" dat deze email adres eigenaar is (want alleen de eigenaar van de mailbox kan die link ontvangen hebben).
+## Oplossing (alleen team-invite / auth — géén andere modules)
 
-## Wijzigingen
+### A. Nieuwe route + pagina `/reset-password`
 
-### 1. `AcceptInvitation.tsx` — vervang OTP-tak door direct-signup
+- `src/pages/ResetPassword.tsx` (nieuw):
+  - Publieke route, Shell-styling gelijk aan `AcceptInvitation`.
+  - Detecteert Supabase recovery-sessie: reageert op `onAuthStateChange`
+    event `PASSWORD_RECOVERY` (Supabase v2 pattern) én controleert
+    `getSession()` fallback.
+  - Als geen recovery-sessie: toont "Deze link is verlopen of ongeldig,
+    vraag een nieuwe reset aan" met link naar `/auth`.
+  - Als recovery-sessie actief: formulier met `password` +
+    `passwordConfirm` (min 8 tekens, match), submit doet
+    `supabase.auth.updateUser({ password })`.
+  - Bij succes: toast + redirect naar `/admin` (of `/auth` als er geen
+    role is — bestaande ProtectedRoute regelt dat verder).
+- `src/App.tsx`: `<Route path="/reset-password" element={<ResetPassword />} />`
+  toevoegen bij de andere public auth-routes (naast `/auth`).
 
-- **Verwijder** `FlowState` varianten: `otp_request`, `otp_verify`
-- **Vervang** door één nieuwe state: `new_account_setup` (was `set_password`, hergebruiken)
-- **Verwijder** handlers: `handleSendOtp`, `handleVerifyOtp`
-- **Nieuwe handler** `handleCreateAccount(invite, password)`:
-  1. `supabase.auth.signUp({ email: invite.email, password, options: { emailRedirectTo: window.location.href } })`
-  2. Als Supabase weigert wegens "already registered" (edge case: profile-lookup zei nee maar auth zei ja) → fallback naar login-required state met toast
-  3. Wacht 150ms + `refreshSession` (zelfde pattern als handleLogin)
-  4. `setState({ kind: 'accepting', invite })`
-- **Verwijder** state `otpCode`, `resendCooldown` + de countdown-useEffect
-- **Verwijder** `InputOTP` imports
+### B. Re-invite van verwijderde user → altijd "nieuw wachtwoord"-pad
 
-### 2. Beslissings-logica in `resolveFlow` blijft hetzelfde
+Twee kleine, defensieve wijzigingen samen:
 
-`accountExists && hasUsablePassword` → `login_required`, anders → **nieuwe** `new_account_setup` state (i.p.v. `otp_request`).
+1. **`send-team-invitation` (edge function)** — wanneer bij het versturen
+   van een nieuwe invite een matching `tenant_access_revocations`-rij
+   bestaat voor `(tenant_id, email)` ("verse start"):
+   - Zoek de auth-user via `profiles.email`.
+   - Als die bestaat en `email` matcht: roep
+     `supabase.auth.admin.updateUserById(userId, { password: <random 32-byte>, email_confirm: true })`
+     aan. Dit invalideert het oude wachtwoord zonder de user te verwijderen.
+   - Log als audit-event `password_reset_on_reinvite` in
+     `invite_audit_log` (metadata: `{ reason: 'revocation_present' }`).
+   - Idempotent: als er geen auth-user of geen revocation is, skip.
 
-### 3. Auth email-confirmatie
+2. **`fetch-invitation`** — als er een `tenant_access_revocations`-rij
+   bestaat voor de invite-`(tenant_id, email)` combinatie, forceer
+   `hasUsablePassword = false` in het response. Zo landt zowel een niet-
+   ingelogde als een ingelogde-verkeerde user na uitloggen op
+   `new_account_setup` (die pakt `create-invite-account` en zet meteen
+   het nieuwe wachtwoord). Bestaande accept-team-invitation opruimt de
+   revocation-rij al bij success.
 
-Twee mogelijkheden:
-- **Optie A (aanbevolen):** Zet `email_confirm=false` mee in `signUp` via edge function met service-role (email is al bewezen via invite-token). Simpelste voor de gebruiker: één klik en klaar.
-- **Optie B:** Laat Supabase een confirmation mail sturen; gebruiker moet die nog bevestigen. Slechtere UX.
+Deze twee samen sluiten de race: zelfs als iemand nog een oude sessie
+in localStorage heeft, of Supabase toch `last_sign_in_at` teruggeeft,
+volgt de UI het correcte "kies-nieuw-wachtwoord"-pad.
 
-Ik ga voor A: nieuwe edge function `create-invite-account` (of uitbreiding van `accept-team-invitation`) die met service-role:
-1. Valideert invite-token (pending, niet expired, niet revoked)
-2. `supabase.auth.admin.createUser({ email, password, email_confirm: true })` — email meteen bevestigd
-3. Geeft succes terug; frontend doet `signInWithPassword` en dan bestaande accept-flow
+### C. `wrong_account` copy + auto re-resolve
 
-Nieuwe edge function `create-invite-account` (verify_jwt=false, want gebruiker heeft nog geen JWT), input: `{ token, password }`, validates + creates user + returns success.
+Kleine UX-fix in `src/pages/AcceptInvitation.tsx`:
 
-### 4. Screens
+- Bij klik op "Uitloggen": na `signOut()` expliciet
+  `resolvedTokenRef.current = null` zetten zodat `resolveFlow` opnieuw
+  draait. Nu blijft de state soms hangen tot de auth-listener tikt.
+- Copy in `wrong_account`-card verduidelijken: "Log uit en ga verder
+  als {invite.email}" (was ambigu — leek te suggereren dat de user
+  het oude wachtwoord moet invoeren).
 
-- **`new_account_setup` screen:** "Welkom bij {tenantName}! Kies een wachtwoord om je account aan te maken." + wachtwoord + bevestig + submit. Geen "verstuur code" tussenstap meer.
+## Files
 
-## Bestanden
+- **Nieuw**: `src/pages/ResetPassword.tsx`
+- **Edit**: `src/App.tsx` (route toevoegen), `src/pages/AcceptInvitation.tsx` (2× kleine tweak)
+- **Edit edge**: `supabase/functions/send-team-invitation/index.ts`, `supabase/functions/fetch-invitation/index.ts`
+- Redeploy: beide edge functions
 
-- `src/pages/AcceptInvitation.tsx` — flow simplificatie (OTP weg, direct signup)
-- `supabase/functions/create-invite-account/index.ts` — **nieuw**, service-role account creation
-- Deploy: `create-invite-account`
+## Niet in scope
 
-## Wat blijft ongewijzigd
+- Auth email templates / branding
+- Andere modules (marketing, storefront, promoties)
+- OTP-flow refactor (blijft zoals in `docs/team-invite-eindrapport.md`)
 
-- Bestaande gebruikers met wachtwoord: nog steeds `login_required` → login → auto-accept (fix F2 uit vorig plan blijft)
-- Bestaande gebruikers zonder wachtwoord (shell auth-users): vallen ook in `new_account_setup`, `create-invite-account` detecteert bestaand account en doet `admin.updateUserById({ password })` i.p.v. `createUser`
-- Ingelogde gebruikers: `one_click_accept` blijft
-- `accept-team-invitation`, `send-team-invitation`, `fetch-invitation` — geen wijzigingen
+## Acceptance
 
-## Testcases
-
-1. **Nieuwe user, geen account:** klik in mail → wachtwoord kiezen → 1 klik → in dashboard
-2. **Bestaande user, geen wachtwoord:** identiek aan (1), maar server-side doet update i.p.v. create
-3. **Bestaande user, met wachtwoord:** ongewijzigde login-flow (Sander vrijdag)
-4. **Al ingelogd, email matcht:** ongewijzigde one_click_accept
-5. **Al ingelogd, andere email:** ongewijzigde wrong_account
-
-Akkoord?
+1. Verwijder teamlid → re-invite → klik accept-link (uitgelogd of andere user):
+   krijgt "Kies wachtwoord" (min 8), niet het login-scherm. Na submit direct ingelogd + toegevoegd.
+2. Als de user tóch op login-scherm zou landen en op "Wachtwoord vergeten" klikt:
+   reset-mail werkt, klikken opent `/reset-password`, formulier zet nieuw wachtwoord,
+   redirect naar `/admin`.
+3. Normale (nieuwe) invites en bestaande accepted invites blijven ongewijzigd werken.

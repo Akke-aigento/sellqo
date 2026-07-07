@@ -63,6 +63,7 @@ import SuppliersPage from "./pages/admin/Suppliers";
 import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
 import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import ResetPassword from "./pages/ResetPassword";
 import ShopifyCallback from "./pages/ShopifyCallback";
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
@@ -154,6 +155,9 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
             
+            {/* Password reset landing (from Supabase reset email) */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
             
