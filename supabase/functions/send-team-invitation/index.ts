@@ -128,17 +128,11 @@ serve(async (req) => {
       throw new Error("Kon uitnodiging niet aanmaken: " + insertError.message);
     }
 
-    // Best-effort: wis stale access-revocations voor deze email + tenant,
-    // zodat een eerder verwijderde gebruiker straks proper kan accepteren.
-    try {
-      await supabase
-        .from("tenant_access_revocations")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .ilike("email", email);
-    } catch (revErr) {
-      console.warn("revocation cleanup failed (non-fatal)", revErr);
-    }
+    // NB: we DO NOT delete tenant_access_revocations here anymore. The row
+    // is our signal to fetch-invitation that this user was previously in
+    // this tenant, so the UI must show the "kies nieuw wachtwoord" flow
+    // instead of asking for their old (forgotten) password.
+    // accept-team-invitation opruimt de rij na een succesvolle acceptatie.
 
     // Fetch inviter display name for email + audit metadata
     let invitedByName: string | null = null;
