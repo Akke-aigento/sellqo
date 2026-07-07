@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -177,19 +179,16 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
             <div className={cn(
               'max-w-[85%] rounded-lg px-3 py-2 text-sm',
               msg.role === 'user'
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-primary text-primary-foreground whitespace-pre-wrap'
                 : 'bg-muted text-foreground'
             )}>
-              <div
-                className="prose prose-sm max-w-none dark:prose-invert [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1"
-                dangerouslySetInnerHTML={{
-                  __html: msg.content
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/`(.*?)`/g, '<code>$1</code>')
-                    .replace(/\n/g, '<br />')
-                }}
-              />
+              {msg.role === 'assistant' ? (
+                <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-background/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-a:text-primary">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}
