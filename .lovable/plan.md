@@ -1,37 +1,68 @@
-## Plan: invite-flow rechtzetten zonder security te verzwakken
+## 1. Trigger-uitleg (info-tooltip)
 
-### Wat verandert er voor de gebruiker
-- Bij een geldige teamuitnodiging wordt niet meer gevraagd naar het oude wachtwoord als de invite-email nog geen lid is van die tenant.
-- De standaard flow wordt: **wachtwoord kiezen + bevestigen → accepteren → klaar**.
-- Alleen wanneer iemand al met exact het juiste e-mailadres is ingelogd, blijft de veilige één-klik acceptatie bestaan.
-- Wanneer iemand met een ander account is ingelogd, blijft de bescherming bestaan: eerst uitloggen, daarna komt die invite-email op het nieuw-wachtwoord-scherm.
+In `src/components/admin/marketing/CampaignDialog.tsx`, bij het "Automatische trigger" gedeelte:
 
-### Concrete wijzigingen
-1. **Frontend: `src/pages/AcceptInvitation.tsx`**
-   - Verwijder de login-dead-end uit de invite-flow voor niet-ingelogde gebruikers.
-   - `login_required` wordt niet langer gekozen op basis van `accountExists` / `hasUsablePassword`.
-   - Niet-ingelogd + niet reeds tenant-lid = altijd `new_account_setup`.
-   - Copy aanpassen van “account aanmaken” naar neutraal “wachtwoord instellen”, zodat dit klopt voor zowel bestaande als nieuwe auth-gebruikers.
-   - De knop wordt “Wachtwoord instellen en uitnodiging accepteren”.
+- Voeg een info-icoon (lucide `Info`) toe naast het label "Automatische trigger" (radio-optie) met een `Tooltip`/`HoverCard` die het verschil tussen doelgroep en trigger uitlegt:
+  > *Doelgroep bepaalt wie de mail krijgt bij een eenmalige verzending. Een trigger stuurt de mail automatisch op elk moment dat een klant een gebeurtenis triggert (inschrijving, aankoop, verjaardag, …). "Welkomstmail — nieuwe klant" vuurt bij een nieuwe subscriber.*
+- Voeg per triggeroptie in de dropdown een subtiele beschrijving toe (subline onder elk label):
+  - Welkomstmail: "Bij nieuwe inschrijving op de nieuwsbrief"
+  - Verlaten winkelmandje: "Wanneer een klant een winkelmandje niet afrondt"
+  - Na aankoop: "X uur nadat een bestelling betaald is"
+  - Verjaardag: "Op de verjaardag van de klant"
+  - Heractivering — inactieve klant: "Wanneer een klant X dagen niets kocht"
 
-2. **Backend lookup: `supabase/functions/fetch-invitation/index.ts`**
-   - `alreadyMember` blijft server-side bepaald via `user_roles` en blijft leidend.
-   - `hasUsablePassword` wordt niet meer gebruikt om de UI naar een login-scherm te sturen.
-   - Response blijft backwards-compatible, maar voor invite-flow mag “geen tenant-link” de nieuw-wachtwoord-flow afdwingen.
+Geen data-model of edge-function wijzigingen.
 
-3. **Backend action: `supabase/functions/create-invite-account/index.ts`**
-   - Bestaande gebruiker: wachtwoord server-side updaten voor exact de invite-email.
-   - Nieuwe gebruiker: account aanmaken met dat wachtwoord.
-   - Daarna logt de frontend in met dat nieuwe wachtwoord en roept `accept-team-invitation` aan.
-   - Security blijft: het invite-token bepaalt alleen welk e-mailadres/tenant/rol mag worden verwerkt; `accept-team-invitation` controleert daarna nog steeds dat de ingelogde gebruiker exact dezelfde email heeft.
+## 2. Multi-taal campagne editor (4 tabs, auto-routing)
 
-4. **Geen wijzigingen buiten scope**
-   - Geen marketing, storefront, promotions, checkout of automation wijzigingen.
-   - Geen afzwakking van tenant-isolatie of email-match checks.
+### Data-model (migratie)
 
-### Validatie na implementatie
-- Re-invite van verwijderd lid: komt direct op wachtwoord + bevestiging, niet op login.
-- Bestaande auth-user zonder tenant-link: komt ook direct op wachtwoord + bevestiging.
-- Nieuwe email zonder account: zelfde flow.
-- Verkeerd ingelogde gebruiker: eerst uitloggen, daarna wachtwoord instellen voor invite-email.
-- Al lid van tenant: blijft “je bent al lid”, geen reset of nieuwe rol.
+Nieuwe kolom op `email_campaigns`:
+
+```sql
+ALTER TABLE public.email_campaigns
+  ADD COLUMN translations jsonb NOT NULL DEFAULT '{}'::jsonb;
+-- shape: { "en": { subject, preview_text, html_content }, "fr": {...}, "de": {...} }
+```
+
+De bestaande kolommen `subject`, `preview_text`, `html_content` blijven de **default / NL versie**. Bij verzenden pakt de engine per klant `translations[preferred_language]` en valt terug op de defaults als die niet bestaat.
+
+Nieuwe kolom (optioneel maar handig voor filtering):
+```sql
+ALTER TABLE public.email_campaigns
+  ADD COLUMN available_languages text[] NOT NULL DEFAULT ARRAY['nl'];
+```
+
+Geen extra GRANT nodig (bestaande tabel).
+
+### UI (`CampaignDialog.tsx`)
+
+- Vervang de single-select "Taal" dropdown door een **multi-select toggle-groep** met NL/EN/FR/DE. NL is altijd verplicht (default fallback).
+- Wanneer 2+ talen aangevinkt zijn: het "Onderwerp / Preview / Email content" blok wordt omhuld door een `<Tabs>` met één tab per geselecteerde taal. Elke tab bevat een eigen `subject`, `preview_text` en HTML/rich editor.
+- Als slechts 1 taal aangevinkt is: geen tabs, gedraagt zich zoals nu.
+- Bij opslaan: NL-inhoud → hoofdkolommen; overige talen → `translations` jsonb; `available_languages` → geselecteerde talen; `language` (bestaand veld) → `null` (want multi-lingual).
+
+### Verzendlogica (`supabase/functions/send-campaign-batch/index.ts`)
+
+- Als `available_languages.length > 1` (of `translations` niet leeg):
+  - Skip de bestaande `campaign.language` recipient-filter (want we willen álle talen bereiken).
+  - Per recipient: kies `recipient.preferred_language` als die in `available_languages` staat, anders de default (NL / hoofdkolommen).
+  - Render onderwerp, preview en HTML uit `translations[lang]` of default.
+- Bestaand gedrag voor single-language campagnes blijft ongewijzigd.
+
+### Types
+
+- Update `src/types/marketing.ts`: `EmailCampaign` krijgt `translations?: Record<'en'|'fr'|'de', { subject: string; preview_text?: string; html_content: string }>` en `available_languages?: string[]`.
+
+## 3. Buiten scope
+
+- AI-autovertaling knop (kan later als aparte feature).
+- Per-taal aparte templates selecteren (voor nu deelt de campagne één basis-template; taal-tabs overschrijven de content).
+- Analytics per taal (open/click uitsplitsing per taal).
+
+## Technische details
+
+- Migratie 1 losse call; front-end en edge function pas na goedkeuring.
+- Edge function moet redeployed worden na wijziging (`send-campaign-batch`).
+- Fallback-ketting bij render: `translations[preferred_language]` → `translations['nl']` (indien default niet NL) → hoofdkolommen.
+- Bestaande campagnes blijven werken (translations = `{}`, `available_languages = ['nl']` via default).
