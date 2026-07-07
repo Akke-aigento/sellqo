@@ -82,6 +82,10 @@ export interface EmailCampaign {
   language?: string | null;
   /** Audience quick-preset key (e.g. 'preset:new_customers'). */
   preset_key?: string | null;
+  /** Per-language overrides for subject / preview / body. NL always lives in the top-level columns. */
+  translations?: Record<string, { subject?: string; preview_text?: string; html_content?: string }> | null;
+  /** Languages offered by this campaign. Default ['nl']. Multi-lang when length > 1. */
+  available_languages?: string[] | null;
   status: CampaignStatus;
   scheduled_at?: string;
   sent_at?: string;

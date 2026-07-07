@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Sparkles, CalendarIcon, Clock, Code, Eye, Type } from 'lucide-react';
+import { Sparkles, CalendarIcon, Clock, Code, Eye, Type, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
@@ -27,6 +30,21 @@ import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
+type CampaignLang = 'nl' | 'en' | 'fr' | 'de';
+
+const CAMPAIGN_LANGS: { value: CampaignLang; label: string; flag: string }[] = [
+  { value: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+  { value: 'fr', label: 'Français', flag: '🇫🇷' },
+  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
+];
+
+const translationSchema = z.object({
+  subject: z.string().optional(),
+  preview_text: z.string().optional(),
+  html_content: z.string().optional(),
+});
+
 const campaignSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   subject: z.string().min(1, 'Onderwerp is verplicht'),
@@ -36,6 +54,8 @@ const campaignSchema = z.object({
   language: z.enum(['any', 'nl', 'en', 'fr', 'de']).default('any'),
   preset_key: z.string().optional(),
   html_content: z.string().min(1, 'Content is verplicht'),
+  available_languages: z.array(z.enum(['nl', 'en', 'fr', 'de'])).min(1).default(['nl']),
+  translations: z.record(translationSchema).default({}),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -48,6 +68,14 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   post_purchase: 'Na aankoop',
   birthday: 'Verjaardag',
   reactivation: 'Heractivering — inactieve klant',
+};
+
+const triggerDescriptions: Record<AutomationTrigger, string> = {
+  welcome: 'Bij nieuwe inschrijving op de nieuwsbrief',
+  abandoned_cart: 'Wanneer een klant een winkelmandje niet afrondt',
+  post_purchase: 'X uur nadat een bestelling betaald is',
+  birthday: 'Op de verjaardag van de klant',
+  reactivation: 'Wanneer een klant X dagen niets kocht',
 };
 
 interface CampaignDefaultValues {
@@ -77,6 +105,74 @@ const defaultRichContent =
   '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
 const defaultHtmlContent = defaultRichContent;
 
+// Renders subject + preview inputs bound to the correct field for a language.
+// NL uses the top-level columns; other languages use translations.<lang>.*.
+function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnType<typeof useForm<CampaignFormData>> }) {
+  if (lang === 'nl') {
+    return (
+      <>
+        <FormField
+          control={form.control}
+          name="subject"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Onderwerp (Nederlands)</FormLabel>
+              <FormControl>
+                <Input placeholder="Email onderwerp..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="preview_text"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Preview tekst (optioneel)</FormLabel>
+              <FormControl>
+                <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </>
+    );
+  }
+  const meta = CAMPAIGN_LANGS.find((l) => l.value === lang);
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name={`translations.${lang}.subject` as any}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Onderwerp ({meta?.label})</FormLabel>
+            <FormControl>
+              <Input placeholder="Email onderwerp..." {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={`translations.${lang}.preview_text` as any}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Preview tekst (optioneel)</FormLabel>
+            <FormControl>
+              <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
+
 export function CampaignDialog({ 
   open, 
   onOpenChange, 
@@ -99,6 +195,7 @@ export function CampaignDialog({
   const [selectedTrigger, setSelectedTrigger] = useState<AutomationTrigger>('welcome');
   const [triggerDelayHours, setTriggerDelayHours] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
+  const [activeLangTab, setActiveLangTab] = useState<CampaignLang>('nl');
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -111,6 +208,8 @@ export function CampaignDialog({
       language: 'any',
       preset_key: '',
       html_content: defaultHtmlContent,
+      available_languages: ['nl'],
+      translations: {},
     },
   });
 
@@ -128,6 +227,8 @@ export function CampaignDialog({
           language: (campaign.language as any) || 'any',
           preset_key: campaign.preset_key || '',
           html_content: body || defaultHtmlContent,
+          available_languages: (campaign.available_languages as any) || ['nl'],
+          translations: (campaign.translations as any) || {},
         });
         // Existing campaigns open in HTML mode; keep richContent in sync so a
         // toggle to visual doesn't clobber the current body.
@@ -150,6 +251,8 @@ export function CampaignDialog({
           language: 'any',
           preset_key: '',
           html_content: body || defaultHtmlContent,
+          available_languages: ['nl'],
+          translations: {},
         });
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
         setRichContent(body || defaultRichContent);
@@ -164,6 +267,8 @@ export function CampaignDialog({
           language: 'any',
           preset_key: '',
           html_content: defaultHtmlContent,
+          available_languages: ['nl'],
+          translations: {},
         });
         setEditorMode('visual');
         setRichContent(defaultRichContent);
@@ -178,6 +283,25 @@ export function CampaignDialog({
 
   const selectedSegmentId = form.watch('segment_id');
   const selectedSegment = segments.find(s => s.id === selectedSegmentId);
+  const availableLangs = (form.watch('available_languages') || ['nl']) as CampaignLang[];
+  const isMultiLang = availableLangs.length > 1;
+
+  // When switching language tabs, hydrate the rich editor from that tab's content.
+  useEffect(() => {
+    if (!open) return;
+    const html = activeLangTab === 'nl'
+      ? (form.getValues('html_content') || '')
+      : (((form.getValues('translations') as any)?.[activeLangTab]?.html_content) || form.getValues('html_content') || '');
+    const body = extractEmailBody(html);
+    setRichContent(body || defaultRichContent);
+  }, [activeLangTab, open]);
+
+  // If the active tab was removed from selection, reset to NL.
+  useEffect(() => {
+    if (!availableLangs.includes(activeLangTab)) {
+      setActiveLangTab('nl');
+    }
+  }, [availableLangs, activeLangTab]);
 
   const handleTemplateChange = (templateId: string) => {
     form.setValue('template_id', templateId);
@@ -214,7 +338,13 @@ export function CampaignDialog({
   const handleRichContentChange = (html: string) => {
     setRichContent(html);
     // Store raw body HTML; the sender wraps it in the tenant template.
-    form.setValue('html_content', html);
+    // Route writes to the active language tab so multi-language editing
+    // persists per-language HTML.
+    if (activeLangTab === 'nl') {
+      form.setValue('html_content', html);
+    } else {
+      form.setValue(`translations.${activeLangTab}.html_content` as any, html);
+    }
   };
 
   const handleSubmit = (data: CampaignFormData) => {
@@ -232,11 +362,32 @@ export function CampaignDialog({
     }
 
     // Presets and segments are mutually exclusive; strip empties for DB.
+    const langs = (data.available_languages || ['nl']) as CampaignLang[];
+    const isMulti = langs.length > 1;
+    // Only keep translations for selected non-NL languages, and drop empty entries.
+    const cleanedTranslations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> = {};
+    for (const lang of langs) {
+      if (lang === 'nl') continue;
+      const entry = (data.translations as any)?.[lang];
+      if (entry && (entry.subject || entry.preview_text || entry.html_content)) {
+        cleanedTranslations[lang] = {
+          subject: entry.subject || data.subject,
+          preview_text: entry.preview_text || data.preview_text,
+          html_content: entry.html_content || data.html_content,
+        };
+      }
+    }
+
     const payload: any = {
       ...data,
-      language: data.language === 'any' ? null : data.language,
+      // In multi-language mode the campaign has no single "language"; the
+      // engine routes per recipient. In single-language mode the existing
+      // filter still applies.
+      language: isMulti ? null : (langs[0] === 'nl' && data.language === 'any' ? null : langs[0]),
       preset_key: data.preset_key || null,
       segment_id: data.preset_key ? null : (data.segment_id || null),
+      available_languages: langs,
+      translations: cleanedTranslations,
       tenant_id: currentTenant.id,
       status,
       scheduled_at,
@@ -394,69 +545,104 @@ export function CampaignDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Taal</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-[260px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="any">Alle talen</SelectItem>
-                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Bij "Alle talen" ontvangen alle klanten deze campagne. Anders gaan enkel klanten met deze voorkeurstaal (of geen voorkeur bij tenant-taal) naar de mail.
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Language selector: multi-select. NL is always required (default fallback). */}
+            <FormItem>
+              <FormLabel>Talen</FormLabel>
+              <ToggleGroup
+                type="multiple"
+                value={availableLangs}
+                onValueChange={(vals) => {
+                  // NL is always required as fallback.
+                  const next = (vals.length ? vals : ['nl']).includes('nl') ? vals : [...vals, 'nl'];
+                  form.setValue('available_languages', next as any, { shouldDirty: true });
+                }}
+                className="justify-start flex-wrap"
+              >
+                {CAMPAIGN_LANGS.map((l) => (
+                  <ToggleGroupItem
+                    key={l.value}
+                    value={l.value}
+                    disabled={l.value === 'nl'}
+                    aria-label={l.label}
+                    className="gap-1.5"
+                  >
+                    <span>{l.flag}</span>
+                    <span className="text-xs">{l.label}</span>
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground">
+                {isMultiLang
+                  ? 'Elke klant krijgt automatisch de mail in zijn voorkeurstaal. Klanten zonder voorkeur krijgen de Nederlandse versie.'
+                  : 'Alleen Nederlands. Voeg extra talen toe om per taal een variant op te maken; elke klant krijgt dan zijn eigen taalversie.'}
+              </p>
+            </FormItem>
 
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Onderwerp</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Email onderwerp..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="preview_text"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preview tekst (optioneel)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Tekst die na het onderwerp wordt getoond in de inbox..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Per-language content tabs. Single-language mode renders inline (no tabs). */}
+            {isMultiLang ? (
+              <Tabs value={activeLangTab} onValueChange={(v) => setActiveLangTab(v as CampaignLang)}>
+                <TabsList>
+                  {availableLangs.map((lang) => {
+                    const meta = CAMPAIGN_LANGS.find((l) => l.value === lang)!;
+                    return (
+                      <TabsTrigger key={lang} value={lang} className="gap-1">
+                        <span>{meta.flag}</span>
+                        <span className="text-xs">{meta.label}</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+                {availableLangs.map((lang) => (
+                  <TabsContent key={lang} value={lang} className="space-y-4 pt-4">
+                    <LangSubjectPreview lang={lang} form={form} />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Onderwerp</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email onderwerp..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="preview_text"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preview tekst (optioneel)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Tekst die na het onderwerp wordt getoond in de inbox..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             {/* Editor mode toggle + preview */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel>Email Content</FormLabel>
+                <FormLabel>
+                  Email Content
+                  {isMultiLang && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      · {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.flag} {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.label}
+                    </span>
+                  )}
+                </FormLabel>
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"
@@ -508,28 +694,41 @@ export function CampaignDialog({
                   </div>
                 </div>
               ) : (
-                <FormField
-                  control={form.control}
-                  name="html_content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea 
-                          className="font-mono text-sm min-h-[250px]"
-                          placeholder="HTML email content..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <div className="mt-1">
-                        <VariableInserter onInsert={(v) => {
-                          const current = form.getValues('html_content');
-                          form.setValue('html_content', current + v, { shouldValidate: true });
-                        }} />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormItem>
+                  <FormControl>
+                    <Textarea
+                      className="font-mono text-sm min-h-[250px]"
+                      placeholder="HTML email content..."
+                      value={
+                        activeLangTab === 'nl'
+                          ? (form.watch('html_content') || '')
+                          : (((form.watch('translations') as any)?.[activeLangTab]?.html_content)
+                            ?? form.watch('html_content')
+                            ?? '')
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (activeLangTab === 'nl') {
+                          form.setValue('html_content', v, { shouldValidate: true });
+                        } else {
+                          form.setValue(`translations.${activeLangTab}.html_content` as any, v, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <div className="mt-1">
+                    <VariableInserter onInsert={(v) => {
+                      if (activeLangTab === 'nl') {
+                        const current = form.getValues('html_content') || '';
+                        form.setValue('html_content', current + v, { shouldValidate: true });
+                      } else {
+                        const current = ((form.getValues('translations') as any)?.[activeLangTab]?.html_content)
+                          ?? form.getValues('html_content') ?? '';
+                        form.setValue(`translations.${activeLangTab}.html_content` as any, current + v, { shouldValidate: true });
+                      }
+                    }} />
+                  </div>
+                </FormItem>
               )}
             </div>
 
@@ -548,6 +747,19 @@ export function CampaignDialog({
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="trigger" id="send-trigger" />
                   <Label htmlFor="send-trigger" className="font-normal cursor-pointer">Automatische trigger</Label>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Wat is een trigger?">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                        <p className="mb-1"><strong>Doelgroep</strong> bepaalt wie de mail krijgt bij een eenmalige verzending.</p>
+                        <p><strong>Trigger</strong> stuurt de mail automatisch elke keer dat een klant een gebeurtenis triggert (inschrijving, aankoop, verjaardag …). "Welkomstmail — nieuwe klant" vuurt bij een nieuwe subscriber.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </RadioGroup>
 
@@ -598,7 +810,12 @@ export function CampaignDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {(Object.entries(triggerLabels) as [AutomationTrigger, string][]).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                        <SelectItem key={value} value={value}>
+                          <div className="flex flex-col">
+                            <span>{label}</span>
+                            <span className="text-xs text-muted-foreground">{triggerDescriptions[value]}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
