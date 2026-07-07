@@ -112,6 +112,7 @@ export default function ReturnDetailPage() {
   const [denyReason, setDenyReason] = useState('');
   const [failReason, setFailReason] = useState('');
   const [inspectionData, setInspectionData] = useState<Record<string, { qty: number; notes: string }>>({});
+  const [trackingDraft, setTrackingDraft] = useState<{ number: string; carrier: string; url: string } | null>(null);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('nl-NL', { style: 'currency', currency: currentTenant?.currency || 'EUR' }).format(amount);
