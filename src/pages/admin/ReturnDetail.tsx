@@ -95,7 +95,7 @@ export default function ReturnDetailPage() {
   const { settings } = useReturnSettings();
   const {
     updateReturnStatus, updateReturnRefundStatus, closeReturn,
-    updateReturnNotes, inspectReturnItem, addStatusNote, executeRefund,
+    updateReturnNotes, updateReturnTracking, inspectReturnItem, addStatusNote, executeRefund,
   } = useReturnMutations();
 
   const [notes, setNotes] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function ReturnDetailPage() {
 
   const getMarketplaceUrl = () => {
     if (returnRecord.refund_method === 'bolcom' || returnRecord.refund_method === 'bol_com')
-      return { label: 'Open Bol.com', url: 'https://partner.bol.com' };
+      return { label: 'Open Bol.com Partner Platform', url: 'https://login.bol.com/wsp/login' };
     if (returnRecord.refund_method === 'amazon')
       return { label: 'Open Amazon', url: 'https://sellercentral.amazon.com' };
     return null;
