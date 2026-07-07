@@ -191,7 +191,6 @@ Deno.serve(async (req) => {
       }
 
       // Append tracking event to jsonb history
-      await supabase.rpc('exec' /* noop */).catch(() => {});
       const { data: currentEvents } = await supabase
         .from('returns')
         .select('label_tracking_events')
