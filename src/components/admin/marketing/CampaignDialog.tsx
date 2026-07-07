@@ -139,6 +139,8 @@ export function CampaignDialog({
       language: 'any',
       preset_key: '',
       html_content: defaultHtmlContent,
+      available_languages: ['nl'],
+      translations: {},
     },
   });
 
@@ -156,6 +158,8 @@ export function CampaignDialog({
           language: (campaign.language as any) || 'any',
           preset_key: campaign.preset_key || '',
           html_content: body || defaultHtmlContent,
+          available_languages: (campaign.available_languages as any) || ['nl'],
+          translations: (campaign.translations as any) || {},
         });
         // Existing campaigns open in HTML mode; keep richContent in sync so a
         // toggle to visual doesn't clobber the current body.
@@ -178,6 +182,8 @@ export function CampaignDialog({
           language: 'any',
           preset_key: '',
           html_content: body || defaultHtmlContent,
+          available_languages: ['nl'],
+          translations: {},
         });
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
         setRichContent(body || defaultRichContent);
@@ -192,6 +198,8 @@ export function CampaignDialog({
           language: 'any',
           preset_key: '',
           html_content: defaultHtmlContent,
+          available_languages: ['nl'],
+          translations: {},
         });
         setEditorMode('visual');
         setRichContent(defaultRichContent);
