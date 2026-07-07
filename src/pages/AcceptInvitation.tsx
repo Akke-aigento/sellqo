@@ -30,7 +30,6 @@ type FlowState =
   | { kind: 'already_accepted' }
   | { kind: 'already_member'; tenantId: string; tenantName: string }
   | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
-  | { kind: 'one_click_accept'; invite: InviteData }
   | { kind: 'new_account_setup'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
@@ -119,7 +118,7 @@ export default function AcceptInvitation() {
         return;
       }
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
-        setState({ kind: 'one_click_accept', invite });
+        setState({ kind: 'new_account_setup', invite });
       } else {
         setState({ kind: 'wrong_account', currentEmail: user.email || '', invite });
       }
@@ -280,7 +279,7 @@ export default function AcceptInvitation() {
       setState({ kind: 'accepting', invite });
     } catch (e: any) {
       console.error('[AcceptInvitation/signup]', e);
-      toast({ title: 'Account aanmaken mislukt', description: e.message, variant: 'destructive' });
+      toast({ title: 'Wachtwoord instellen mislukt', description: e.message, variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -467,28 +466,6 @@ export default function AcceptInvitation() {
                 {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Instellen...</> : 'Wachtwoord instellen en uitnodiging accepteren'}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
-  if (state.kind === 'one_click_accept') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle>Teamuitnodiging</CardTitle>
-            <CardDescription>
-              Welkom <strong>{user?.email}</strong>! Klik om <strong>{invite.tenantName}</strong> als{' '}
-              <strong>{roleLabels[invite.role]}</strong> te accepteren.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => setState({ kind: 'accepting', invite })}>
-              Accepteer uitnodiging
-            </Button>
           </CardContent>
         </Card>
       </Shell>
