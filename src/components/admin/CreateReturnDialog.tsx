@@ -363,13 +363,14 @@ export function CreateReturnDialog({
 
                   return (
                     <div key={index} className="border rounded-md">
-                      <div className="flex items-center gap-3 p-3">
+                      <div className="flex items-start gap-3 p-3">
                         <Checkbox
                           checked={item.selected}
                           onCheckedChange={(checked) => updateItem(index, { selected: !!checked, expanded: !!checked })}
+                          className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{oi.product_name}</p>
+                          <p className="text-sm font-medium break-words">{oi.product_name}</p>
                           {oi.variant_name && <p className="text-xs text-muted-foreground">{oi.variant_name}</p>}
                           <div className="flex items-center gap-1">
                             {pricesDiffer ? (
