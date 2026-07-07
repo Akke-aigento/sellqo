@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Sparkles, CalendarIcon, Clock, Code, Eye, Type } from 'lucide-react';
+import { Sparkles, CalendarIcon, Clock, Code, Eye, Type, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
@@ -27,6 +30,21 @@ import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
 
+type CampaignLang = 'nl' | 'en' | 'fr' | 'de';
+
+const CAMPAIGN_LANGS: { value: CampaignLang; label: string; flag: string }[] = [
+  { value: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+  { value: 'fr', label: 'Français', flag: '🇫🇷' },
+  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
+];
+
+const translationSchema = z.object({
+  subject: z.string().optional(),
+  preview_text: z.string().optional(),
+  html_content: z.string().optional(),
+});
+
 const campaignSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   subject: z.string().min(1, 'Onderwerp is verplicht'),
@@ -36,6 +54,8 @@ const campaignSchema = z.object({
   language: z.enum(['any', 'nl', 'en', 'fr', 'de']).default('any'),
   preset_key: z.string().optional(),
   html_content: z.string().min(1, 'Content is verplicht'),
+  available_languages: z.array(z.enum(['nl', 'en', 'fr', 'de'])).min(1).default(['nl']),
+  translations: z.record(translationSchema).default({}),
 });
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
@@ -48,6 +68,14 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   post_purchase: 'Na aankoop',
   birthday: 'Verjaardag',
   reactivation: 'Heractivering — inactieve klant',
+};
+
+const triggerDescriptions: Record<AutomationTrigger, string> = {
+  welcome: 'Bij nieuwe inschrijving op de nieuwsbrief',
+  abandoned_cart: 'Wanneer een klant een winkelmandje niet afrondt',
+  post_purchase: 'X uur nadat een bestelling betaald is',
+  birthday: 'Op de verjaardag van de klant',
+  reactivation: 'Wanneer een klant X dagen niets kocht',
 };
 
 interface CampaignDefaultValues {
