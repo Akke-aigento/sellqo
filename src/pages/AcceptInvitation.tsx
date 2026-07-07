@@ -18,8 +18,6 @@ interface InviteData {
   tenantName: string;
   tenantId: string;
   expiresAt: string;
-  accountExists: boolean;
-  hasUsablePassword: boolean;
   alreadyMember: boolean;
   invitedByName: string | null;
 }
@@ -33,11 +31,10 @@ type FlowState =
   | { kind: 'already_member'; tenantId: string; tenantName: string }
   | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
   | { kind: 'one_click_accept'; invite: InviteData }
-  | { kind: 'login_required'; invite: InviteData }
   | { kind: 'new_account_setup'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
-  | { kind: 'error'; message: string; phase?: 'fetch' | 'login' | 'signup' | 'accept'; context?: Record<string, any> };
+  | { kind: 'error'; message: string; phase?: 'fetch' | 'signup' | 'accept'; context?: Record<string, any> };
 
 const roleLabels: Record<string, string> = {
   tenant_admin: 'Admin',
@@ -71,7 +68,6 @@ export default function AcceptInvitation() {
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
   const acceptedRef = useRef(false);
   const resolvedTokenRef = useRef<string | null>(null);
 
@@ -95,8 +91,6 @@ export default function AcceptInvitation() {
         tenantName: data.tenantName ?? 'Onbekende winkel',
         tenantId: data.tenantId,
         expiresAt: data.expiresAt,
-        accountExists: !!data.accountExists,
-        hasUsablePassword: data.hasUsablePassword !== false, // default true als veld niet aanwezig
         alreadyMember: !!data.alreadyMember,
         invitedByName: data.invitedByName ?? null,
       };
@@ -118,11 +112,10 @@ export default function AcceptInvitation() {
       }
       // status pending / valid
       if (!user) {
-        // Account bestaat + heeft wachtwoord → login-flow.
-        // Anders → direct account-setup (één klik, geen tussenmail).
-        setState(invite.accountExists && invite.hasUsablePassword
-          ? { kind: 'login_required', invite }
-          : { kind: 'new_account_setup', invite });
+        // Als de invite-email nog geen tenant-link heeft, is dit altijd de
+        // veilige standaardflow: wachtwoord instellen + daarna accepteren.
+        // Geen oud-wachtwoord-login dead-end meer.
+        setState({ kind: 'new_account_setup', invite });
         return;
       }
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
@@ -246,51 +239,6 @@ export default function AcceptInvitation() {
 
   // -------- Action handlers --------
 
-  const handleLogin = async (invite: InviteData, e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: invite.email,
-        password: loginPassword,
-      });
-      if (error) throw error;
-      // Wacht kort tot AuthProvider de user heeft — voorkomt race met doAccept
-      // en met de post-success refetchRoles/redirect.
-      await new Promise((r) => setTimeout(r, 150));
-      try { await supabase.auth.refreshSession(); } catch { /* non-fatal */ }
-      setState({ kind: 'accepting', invite });
-    } catch (error: any) {
-      const msg = error?.message || '';
-      console.error('[AcceptInvitation/login]', error);
-      toast({
-        title: 'Inloggen mislukt',
-        description: /invalid login/i.test(msg)
-          ? 'Wachtwoord onjuist. Probeer opnieuw of gebruik "Wachtwoord vergeten".'
-          : msg,
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleForgotPassword = async (invite: InviteData) => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(invite.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast({ title: 'Reset-mail verzonden', description: `Naar ${invite.email}` });
-    } catch (e: any) {
-      console.error('[AcceptInvitation/forgot-password]', e);
-      toast({ title: 'Reset-mail mislukte', description: e.message, variant: 'destructive' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleCreateAccount = async (invite: InviteData, e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
@@ -303,9 +251,10 @@ export default function AcceptInvitation() {
     }
     setBusy(true);
     try {
-      // Server-side: maak account aan (of update wachtwoord van shell auth-user)
-      // met email_confirm=true. Invite-token is bewijs dat gebruiker de mailbox
-      // bezit — geen tussenmail nodig.
+      // Server-side: maak account aan of update het wachtwoord van de
+      // bestaande auth-user voor exact deze invite-email. Het invite-token
+      // bepaalt tenant/email/rol; accept-team-invitation controleert daarna
+      // nogmaals server-side dat de ingelogde email exact matcht.
       const { data, error } = await supabase.functions.invoke('create-invite-account', {
         body: { token, password },
       });
@@ -481,55 +430,6 @@ export default function AcceptInvitation() {
     );
   }
 
-  if (state.kind === 'login_required') {
-    const { invite } = state;
-    return (
-      <Shell>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle>Welkom terug!</CardTitle>
-            <CardDescription>
-              Log in om <strong>{invite.tenantName}</strong> als <strong>{roleLabels[invite.role]}</strong> te accepteren.
-              {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => handleLogin(invite, e)} className="space-y-4">
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input value={invite.email} disabled className="pl-10 bg-muted" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pw">Wachtwoord</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="pw"
-                    type="password"
-                    className="pl-10"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={busy || !loginPassword}>
-                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inloggen...</> : 'Inloggen en accepteren'}
-              </Button>
-              <Button type="button" variant="link" className="w-full h-auto p-0 text-xs"
-                onClick={() => handleForgotPassword(invite)} disabled={busy}>
-                Wachtwoord vergeten?
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </Shell>
-    );
-  }
-
   if (state.kind === 'new_account_setup') {
     const { invite } = state;
     return (
@@ -539,7 +439,7 @@ export default function AcceptInvitation() {
             <Lock className="h-12 w-12 text-primary mx-auto mb-2" />
             <CardTitle>Welkom bij {invite.tenantName}!</CardTitle>
             <CardDescription>
-              Kies een wachtwoord om je account aan te maken als{' '}
+              Stel een wachtwoord in om de uitnodiging te accepteren als{' '}
               <strong>{roleLabels[invite.role]}</strong>.
               {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
             </CardDescription>
@@ -564,7 +464,7 @@ export default function AcceptInvitation() {
                   value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Account aanmaken...</> : 'Account aanmaken en accepteren'}
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Instellen...</> : 'Wachtwoord instellen en uitnodiging accepteren'}
               </Button>
             </form>
           </CardContent>
