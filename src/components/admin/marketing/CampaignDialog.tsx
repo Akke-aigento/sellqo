@@ -251,7 +251,13 @@ export function CampaignDialog({
   const handleRichContentChange = (html: string) => {
     setRichContent(html);
     // Store raw body HTML; the sender wraps it in the tenant template.
-    form.setValue('html_content', html);
+    // Route writes to the active language tab so multi-language editing
+    // persists per-language HTML.
+    if (activeLangTab === 'nl') {
+      form.setValue('html_content', html);
+    } else {
+      form.setValue(`translations.${activeLangTab}.html_content` as any, html);
+    }
   };
 
   const handleSubmit = (data: CampaignFormData) => {
