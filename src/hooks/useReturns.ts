@@ -111,6 +111,9 @@ export interface ReturnRecord {
   label_tracking_number: string | null;
   label_carrier: string | null;
   label_sent_at: string | null;
+  label_last_status: string | null;
+  label_last_event_at: string | null;
+  label_tracking_events: any[] | null;
   created_at: string;
   updated_at: string;
   orders?: {
