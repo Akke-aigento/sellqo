@@ -310,7 +310,7 @@ export function CreateReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetDialog(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5" />
@@ -363,13 +363,14 @@ export function CreateReturnDialog({
 
                   return (
                     <div key={index} className="border rounded-md">
-                      <div className="flex items-center gap-3 p-3">
+                      <div className="flex items-start gap-3 p-3">
                         <Checkbox
                           checked={item.selected}
                           onCheckedChange={(checked) => updateItem(index, { selected: !!checked, expanded: !!checked })}
+                          className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{oi.product_name}</p>
+                          <p className="text-sm font-medium break-words">{oi.product_name}</p>
                           {oi.variant_name && <p className="text-xs text-muted-foreground">{oi.variant_name}</p>}
                           <div className="flex items-center gap-1">
                             {pricesDiffer ? (
