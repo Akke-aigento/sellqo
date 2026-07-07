@@ -55,6 +55,23 @@ serve(async (req) => {
     let accountExists = false;
     let alreadyMember = false;
     let hasUsablePassword = false;
+    let freshStart = false;
+
+    // Fresh-start signal: an unresolved revocation for this (tenant, email)
+    // means the user was previously removed from this tenant. In that case
+    // we ALWAYS route them through the "kies nieuw wachtwoord" flow, since
+    // the old password is either forgotten or intentionally invalidated.
+    try {
+      const { data: rev } = await supabase
+        .from("tenant_access_revocations")
+        .select("id")
+        .eq("tenant_id", data.tenant_id)
+        .ilike("email", data.email)
+        .maybeSingle();
+      freshStart = !!rev;
+    } catch (revErr) {
+      console.warn("revocation lookup failed", revErr);
+    }
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -98,6 +115,11 @@ serve(async (req) => {
       console.warn("account lookup failed", lookupErr);
     }
 
+    // Fresh-start overrides: force new-account-setup flow.
+    if (freshStart) {
+      hasUsablePassword = false;
+    }
+
     // Inviter display name (optional)
     let invitedByName: string | null = null;
     if ((data as any).invited_by) {
@@ -125,6 +147,7 @@ serve(async (req) => {
         hasUsablePassword,
         mailboxConfirmed: accountExists,
         alreadyMember,
+        freshStart,
         invitedByName,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
