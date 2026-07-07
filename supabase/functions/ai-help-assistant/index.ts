@@ -52,7 +52,7 @@ serve(async (req) => {
     const { message, conversation_history = [], current_route = "" } = await req.json();
 
 
-    await authenticateRequest(req, tenant_id);
+    await authenticateRequest(req, tenantId);
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: "Message required" }), { status: 400, headers: corsHeaders });
     }
