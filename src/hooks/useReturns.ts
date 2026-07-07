@@ -495,6 +495,38 @@ export function useReturnMutations() {
     },
   });
 
+  const updateReturnTracking = useMutation({
+    mutationFn: async ({
+      returnId,
+      trackingNumber,
+      carrier,
+      trackingUrl,
+    }: {
+      returnId: string;
+      trackingNumber: string | null;
+      carrier: string | null;
+      trackingUrl?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('returns')
+        .update({
+          label_tracking_number: trackingNumber,
+          label_carrier: carrier,
+          label_url: trackingUrl ?? null,
+        })
+        .eq('id', returnId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['return'] });
+      queryClient.invalidateQueries({ queryKey: ['returns'] });
+      toast.success('Track & trace opgeslagen');
+    },
+    onError: (error) => {
+      toast.error('Opslaan mislukt: ' + (error as Error).message);
+    },
+  });
+
   const inspectReturnItem = useMutation({
     mutationFn: async ({ itemId, receivedQuantity, inspectionNotes }: {
       itemId: string;
