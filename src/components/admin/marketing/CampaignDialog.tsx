@@ -386,6 +386,9 @@ export function CampaignDialog({
       language: isMulti ? null : (langs[0] === 'nl' && data.language === 'any' ? null : langs[0]),
       preset_key: data.preset_key || null,
       segment_id: data.preset_key ? null : (data.segment_id || null),
+      template_id: (data as any).template_id || null,
+      automation_id: (data as any).automation_id || null,
+      ab_variant_of: (data as any).ab_variant_of || null,
       available_languages: langs,
       translations: cleanedTranslations,
       tenant_id: currentTenant.id,
@@ -395,9 +398,14 @@ export function CampaignDialog({
     onSave(payload);
   };
 
+  const activeHtml = activeLangTab === 'nl'
+    ? (form.watch('html_content') || '')
+    : ((form.watch(`translations.${activeLangTab}.html_content` as any) as string | undefined)
+        || form.watch('html_content')
+        || '');
   const previewHtml = wrapInEmailTemplate(
     applyPreviewVariables(
-      editorMode === 'visual' ? richContent : (form.watch('html_content') || ''),
+      editorMode === 'visual' ? richContent : activeHtml,
       brand,
     ),
   );
