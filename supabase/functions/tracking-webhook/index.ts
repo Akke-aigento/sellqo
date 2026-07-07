@@ -50,7 +50,9 @@ function normalizeCarrier(carrier: string): string {
 
 interface TrackingPayload {
   api_key: string;
-  order_reference: string;
+  order_reference?: string;
+  entity_type?: 'order' | 'return';
+  return_reference?: string;
   carrier?: string;
   tracking_number: string;
   tracking_url?: string;
@@ -73,13 +75,6 @@ Deno.serve(async (req) => {
     // Validate required fields
     if (!payload.api_key) {
       return new Response(JSON.stringify({ error: 'api_key is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (!payload.order_reference) {
-      return new Response(JSON.stringify({ error: 'order_reference is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -124,6 +119,143 @@ Deno.serve(async (req) => {
       });
     }
 
+    const normalizedCarrierEarly = normalizeCarrier(payload.carrier || 'other');
+    const nowIso = new Date().toISOString();
+
+    // ============ RETURN branch ============
+    // Try returns first if explicitly requested, OR fall back to returns if no order match.
+    const wantsReturn = payload.entity_type === 'return' || !!payload.return_reference;
+
+    async function updateReturnByTracking(): Promise<Response | null> {
+      // Locate return by rma_number (return_reference) or by tracking_number
+      let returnRow: { id: string; status: string | null; label_tracking_number: string | null; label_carrier: string | null; label_url: string | null } | null = null;
+
+      if (payload.return_reference) {
+        const { data } = await supabase
+          .from('returns')
+          .select('id, status, label_tracking_number, label_carrier, label_url')
+          .eq('tenant_id', tenantId)
+          .eq('rma_number', payload.return_reference)
+          .maybeSingle();
+        returnRow = data as any;
+      }
+      if (!returnRow) {
+        const { data } = await supabase
+          .from('returns')
+          .select('id, status, label_tracking_number, label_carrier, label_url')
+          .eq('tenant_id', tenantId)
+          .eq('label_tracking_number', payload.tracking_number)
+          .maybeSingle();
+        returnRow = data as any;
+      }
+      if (!returnRow) return null;
+
+      // Map carrier status to return status
+      const carrierStatus = payload.status || 'in_transit';
+      const returnStatusMap: Record<string, string> = {
+        shipped: 'shipped',
+        in_transit: 'shipped',
+        out_for_delivery: 'shipped',
+        delivered: 'received',
+        exception: returnRow.status || 'shipped',
+      };
+      const nextStatus = returnStatusMap[carrierStatus] || returnRow.status || 'shipped';
+
+      const updateReturn: Record<string, unknown> = {
+        label_carrier: returnRow.label_carrier || normalizedCarrierEarly,
+        label_tracking_number: payload.tracking_number,
+        label_last_status: carrierStatus,
+        label_last_event_at: nowIso,
+      };
+      if (payload.tracking_url && !returnRow.label_url) {
+        updateReturn.label_url = payload.tracking_url;
+      }
+
+      // Only advance status, never rewind past 'received'/'inspecting'/'inspected'/'closed'
+      const terminal = ['received', 'inspecting', 'inspected', 'closed', 'completed', 'refunded', 'rejected'];
+      if (!terminal.includes(returnRow.status || '')) {
+        updateReturn.status = nextStatus;
+      }
+
+      const { error: retUpdateError } = await supabase
+        .from('returns')
+        .update(updateReturn)
+        .eq('id', returnRow.id);
+
+      if (retUpdateError) {
+        console.error('Return update error:', retUpdateError);
+        return new Response(JSON.stringify({ error: 'Failed to update return' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Append tracking event to jsonb history
+      const { data: currentEvents } = await supabase
+        .from('returns')
+        .select('label_tracking_events')
+        .eq('id', returnRow.id)
+        .single();
+      const events: any[] = Array.isArray((currentEvents as any)?.label_tracking_events)
+        ? (currentEvents as any).label_tracking_events
+        : [];
+      events.push({
+        at: nowIso,
+        status: carrierStatus,
+        carrier: normalizedCarrierEarly,
+        tracking_number: payload.tracking_number,
+        source: 'tracking-webhook',
+      });
+      await supabase
+        .from('returns')
+        .update({ label_tracking_events: events })
+        .eq('id', returnRow.id);
+
+      // Log to return_status_history if status changed
+      if (updateReturn.status && updateReturn.status !== returnRow.status) {
+        await supabase.from('return_status_history').insert({
+          return_id: returnRow.id,
+          from_status: returnRow.status,
+          to_status: updateReturn.status,
+          notes: `Automatisch bijgewerkt via tracking-webhook (${normalizedCarrierEarly}, ${carrierStatus})`,
+          flow_type: 'logistics',
+        });
+      }
+
+      // Update API key last used
+      await supabase
+        .from('fulfillment_api_keys')
+        .update({ last_used_at: nowIso })
+        .eq('api_key', payload.api_key);
+
+      return new Response(JSON.stringify({
+        success: true,
+        entity: 'return',
+        return_id: returnRow.id,
+        status: updateReturn.status || returnRow.status,
+        carrier_status: carrierStatus,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (wantsReturn) {
+      const resp = await updateReturnByTracking();
+      if (resp) return resp;
+      return new Response(JSON.stringify({ error: 'Return not found', return_reference: payload.return_reference, tracking_number: payload.tracking_number }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!payload.order_reference) {
+      return new Response(JSON.stringify({ error: 'order_reference is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Find order using multi-field lookup
     const { data: orderId, error: lookupError } = await supabase
       .rpc('find_order_by_reference', {
@@ -132,6 +264,10 @@ Deno.serve(async (req) => {
       });
 
     if (lookupError || !orderId) {
+      // Fallback: try to match a return by tracking number before failing
+      const resp = await updateReturnByTracking();
+      if (resp) return resp;
+
       // Log failed import
       await supabase.from('tracking_import_log').insert({
         tenant_id: tenantId,

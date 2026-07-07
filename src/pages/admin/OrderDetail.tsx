@@ -37,6 +37,7 @@ import { ActionsMenu } from '@/components/ui/actions-menu';
 import { useCan } from '@/hooks/useCan';
 import { AlertTriangle } from 'lucide-react';
 import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
+import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
 
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'In afwachting',
@@ -290,62 +291,8 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Tijdlijn
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <TimelineItem
-                  icon={<Package className="h-4 w-4" />}
-                  title="Bestelling geplaatst"
-                  date={order.created_at}
-                  completed
-                />
-                {order.status !== 'pending' && order.status !== 'cancelled' && (
-                  <TimelineItem
-                    icon={<Clock className="h-4 w-4" />}
-                    title="In behandeling genomen"
-                    date={order.updated_at}
-                    completed={['processing', 'shipped', 'delivered'].includes(order.status)}
-                  />
-                )}
-                {order.shipped_at && (
-                  <TimelineItem
-                    icon={<Truck className="h-4 w-4" />}
-                    title={order.tracking_number 
-                      ? `Verzonden via ${order.carrier || 'carrier'}`
-                      : "Verzonden"
-                    }
-                    subtitle={order.tracking_number ? `Track: ${order.tracking_number}` : undefined}
-                    date={order.shipped_at}
-                    completed
-                  />
-                )}
-                {order.delivered_at && (
-                  <TimelineItem
-                    icon={<CheckCircle className="h-4 w-4" />}
-                    title="Afgeleverd"
-                    date={order.delivered_at}
-                    completed
-                  />
-                )}
-                {order.cancelled_at && (
-                  <TimelineItem
-                    icon={<XCircle className="h-4 w-4" />}
-                    title="Geannuleerd"
-                    date={order.cancelled_at}
-                    completed
-                    variant="destructive"
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Unified Timeline (order + returns) */}
+          <OrderReturnTimeline order={order as any} />
         </div>
 
         {/* Right Column - Consolidated */}
