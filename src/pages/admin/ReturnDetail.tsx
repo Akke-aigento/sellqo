@@ -320,6 +320,88 @@ export default function ReturnDetailPage() {
 
             <Separator />
 
+            {/* Track & Trace */}
+            {['approved', 'label_sent', 'shipped', 'received', 'inspecting', 'inspected'].includes(logisticsStatus) && (() => {
+              const draft = trackingDraft ?? {
+                number: returnRecord.label_tracking_number || '',
+                carrier: returnRecord.label_carrier || '',
+                url: returnRecord.label_url || '',
+              };
+              const setDraft = (patch: Partial<typeof draft>) =>
+                setTrackingDraft({ ...draft, ...patch });
+              const isDirty =
+                draft.number !== (returnRecord.label_tracking_number || '') ||
+                draft.carrier !== (returnRecord.label_carrier || '') ||
+                draft.url !== (returnRecord.label_url || '');
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Track &amp; Trace</Label>
+                    {returnRecord.label_tracking_number && (
+                      <Badge variant="outline" className="text-[10px]">Ingevuld</Badge>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Vervoerder</Label>
+                      <Input
+                        value={draft.carrier}
+                        onChange={(e) => setDraft({ carrier: e.target.value })}
+                        placeholder="bpost, DHL, PostNL, …"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Trackingnummer</Label>
+                      <Input
+                        value={draft.number}
+                        onChange={(e) => setDraft({ number: e.target.value })}
+                        placeholder="Bijv. 323XXXXXXXX"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label className="text-[11px] text-muted-foreground">Tracking URL (optioneel)</Label>
+                      <Input
+                        value={draft.url}
+                        onChange={(e) => setDraft({ url: e.target.value })}
+                        placeholder="https://…"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        updateReturnTracking.mutate(
+                          {
+                            returnId: returnRecord.id,
+                            trackingNumber: draft.number.trim() || null,
+                            carrier: draft.carrier.trim() || null,
+                            trackingUrl: draft.url.trim() || null,
+                          },
+                          { onSuccess: () => setTrackingDraft(null) },
+                        )
+                      }
+                      disabled={!isDirty || updateReturnTracking.isPending}
+                    >
+                      Opslaan
+                    </Button>
+                    {returnRecord.label_url && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={returnRecord.label_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Track pakket
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <Separator />
+
             {/* Return items */}
             <div className="space-y-3">
               {itemsLoading ? (
