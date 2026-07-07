@@ -215,6 +215,25 @@ export function CampaignDialog({
 
   const selectedSegmentId = form.watch('segment_id');
   const selectedSegment = segments.find(s => s.id === selectedSegmentId);
+  const availableLangs = (form.watch('available_languages') || ['nl']) as CampaignLang[];
+  const isMultiLang = availableLangs.length > 1;
+
+  // When switching language tabs, hydrate the rich editor from that tab's content.
+  useEffect(() => {
+    if (!open) return;
+    const html = activeLangTab === 'nl'
+      ? (form.getValues('html_content') || '')
+      : (((form.getValues('translations') as any)?.[activeLangTab]?.html_content) || form.getValues('html_content') || '');
+    const body = extractEmailBody(html);
+    setRichContent(body || defaultRichContent);
+  }, [activeLangTab, open]);
+
+  // If the active tab was removed from selection, reset to NL.
+  useEffect(() => {
+    if (!availableLangs.includes(activeLangTab)) {
+      setActiveLangTab('nl');
+    }
+  }, [availableLangs, activeLangTab]);
 
   const handleTemplateChange = (templateId: string) => {
     form.setValue('template_id', templateId);
