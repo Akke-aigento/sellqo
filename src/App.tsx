@@ -63,6 +63,7 @@ import SuppliersPage from "./pages/admin/Suppliers";
 import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
 import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import ResetPassword from "./pages/ResetPassword";
 import ShopifyCallback from "./pages/ShopifyCallback";
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
