@@ -635,7 +635,14 @@ export function CampaignDialog({
             {/* Editor mode toggle + preview */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel>Email Content</FormLabel>
+                <FormLabel>
+                  Email Content
+                  {isMultiLang && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      · {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.flag} {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.label}
+                    </span>
+                  )}
+                </FormLabel>
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"
@@ -687,28 +694,41 @@ export function CampaignDialog({
                   </div>
                 </div>
               ) : (
-                <FormField
-                  control={form.control}
-                  name="html_content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea 
-                          className="font-mono text-sm min-h-[250px]"
-                          placeholder="HTML email content..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <div className="mt-1">
-                        <VariableInserter onInsert={(v) => {
-                          const current = form.getValues('html_content');
-                          form.setValue('html_content', current + v, { shouldValidate: true });
-                        }} />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormItem>
+                  <FormControl>
+                    <Textarea
+                      className="font-mono text-sm min-h-[250px]"
+                      placeholder="HTML email content..."
+                      value={
+                        activeLangTab === 'nl'
+                          ? (form.watch('html_content') || '')
+                          : (((form.watch('translations') as any)?.[activeLangTab]?.html_content)
+                            ?? form.watch('html_content')
+                            ?? '')
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (activeLangTab === 'nl') {
+                          form.setValue('html_content', v, { shouldValidate: true });
+                        } else {
+                          form.setValue(`translations.${activeLangTab}.html_content` as any, v, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <div className="mt-1">
+                    <VariableInserter onInsert={(v) => {
+                      if (activeLangTab === 'nl') {
+                        const current = form.getValues('html_content') || '';
+                        form.setValue('html_content', current + v, { shouldValidate: true });
+                      } else {
+                        const current = ((form.getValues('translations') as any)?.[activeLangTab]?.html_content)
+                          ?? form.getValues('html_content') ?? '';
+                        form.setValue(`translations.${activeLangTab}.html_content` as any, current + v, { shouldValidate: true });
+                      }
+                    }} />
+                  </div>
+                </FormItem>
               )}
             </div>
 
@@ -727,6 +747,19 @@ export function CampaignDialog({
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="trigger" id="send-trigger" />
                   <Label htmlFor="send-trigger" className="font-normal cursor-pointer">Automatische trigger</Label>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Wat is een trigger?">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                        <p className="mb-1"><strong>Doelgroep</strong> bepaalt wie de mail krijgt bij een eenmalige verzending.</p>
+                        <p><strong>Trigger</strong> stuurt de mail automatisch elke keer dat een klant een gebeurtenis triggert (inschrijving, aankoop, verjaardag …). "Welkomstmail — nieuwe klant" vuurt bij een nieuwe subscriber.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </RadioGroup>
 
@@ -777,7 +810,12 @@ export function CampaignDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {(Object.entries(triggerLabels) as [AutomationTrigger, string][]).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                        <SelectItem key={value} value={value}>
+                          <div className="flex flex-col">
+                            <span>{label}</span>
+                            <span className="text-xs text-muted-foreground">{triggerDescriptions[value]}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
