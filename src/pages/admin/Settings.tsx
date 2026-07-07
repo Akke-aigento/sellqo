@@ -26,6 +26,8 @@ import {
   Inbox,
   Undo2,
   Palette,
+  Sliders,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,6 +56,9 @@ import { AIAssistantSettings } from '@/components/admin/settings/AIAssistantSett
 import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSettings';
 import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
 import { ReturnSettingsPage } from '@/components/admin/settings/ReturnSettings';
+import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
+import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
+import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
@@ -88,12 +93,21 @@ const settingsGroups: SettingsGroup[] = [
   {
     id: 'business',
     title: 'Bedrijfsinformatie',
-    description: 'Bedrijfsgegevens en winkelinstellingen',
+    description: 'Bedrijfsgegevens, branding en domeinen',
     sections: [
       { id: 'company', title: 'Bedrijfsgegevens', icon: Building2, component: BusinessSettings },
       { id: 'branding', title: 'Branding', icon: Palette, component: BrandingSettings },
-      { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
       { id: 'domain', title: 'Domeinen', icon: Globe, component: MultiDomainSettings },
+    ],
+  },
+  {
+    id: 'webshop',
+    title: 'Webshop',
+    description: 'Frontend-modus, algemene webshop-instellingen en functies',
+    sections: [
+      { id: 'webshop-general', title: 'Webshop-instellingen', icon: Globe, component: StorefrontSettings },
+      { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
+      { id: 'webshop-features', title: 'Webshop-functies', icon: Sliders, component: StorefrontFeaturesSettings },
     ],
   },
   {
@@ -137,6 +151,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp' },
       { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter' },
       { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce' },
+      { id: 'reviews', title: 'Reviews', icon: Star, component: ReviewsHub },
       { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
     ],
   },

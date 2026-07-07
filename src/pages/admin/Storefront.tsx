@@ -1,30 +1,23 @@
 import { useState } from 'react';
-import { Globe, Paintbrush, LayoutDashboard, FileText, Settings, ExternalLink, Rocket, Sliders, Scale, Star, Share2 } from 'lucide-react';
+import { Globe, Paintbrush, LayoutDashboard, FileText, ExternalLink, Rocket, Scale, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
+import { useFrontendMode } from '@/hooks/useFrontendMode';
 import { ThemeWizard } from '@/components/admin/storefront/ThemeWizard';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
-import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
-import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
-import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
-import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { Card, CardContent } from '@/components/ui/card';
 
 const navItems = [
   { id: 'theme', label: 'Theme', icon: Paintbrush },
   { id: 'homepage', label: 'Homepage', icon: LayoutDashboard },
   { id: 'pages', label: "Pagina's", icon: FileText },
-  { id: 'reviews', label: 'Reviews', icon: Star },
-  { id: 'social', label: 'Social Media', icon: Share2 },
   { id: 'legal', label: 'Juridisch', icon: Scale },
-  { id: 'features', label: 'Functies', icon: Sliders },
-  { id: 'settings', label: 'Instellingen', icon: Settings },
 ];
 
 export default function StorefrontPage() {
@@ -32,6 +25,7 @@ export default function StorefrontPage() {
   const { themeSettings, publishStorefront } = useStorefront();
   const [activeTab, setActiveTab] = useState('theme');
   const { canonicalDomain } = useTenantDomains();
+  const { isCustomFrontend } = useFrontendMode();
 
   if (!currentTenant) {
     return (
@@ -55,11 +49,7 @@ export default function StorefrontPage() {
       case 'theme': return <ThemeWizard />;
       case 'homepage': return <HomepageBuilder />;
       case 'pages': return <StorefrontPagesManager />;
-      case 'reviews': return <ReviewsHub />;
-      case 'social': return <SocialMediaHub />;
       case 'legal': return <LegalPagesManager />;
-      case 'features': return <StorefrontFeaturesSettings />;
-      case 'settings': return <StorefrontSettings />;
       default: return null;
     }
   };
@@ -74,7 +64,7 @@ export default function StorefrontPage() {
             Webshop
           </h1>
           <p className="text-muted-foreground mt-1">
-            Beheer je online webshop: theme, homepage, pagina's en instellingen
+            Beheer de content van je SellQo-webshop: theme, homepage en pagina's
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -101,6 +91,20 @@ export default function StorefrontPage() {
           </Button>
         </div>
       </div>
+
+      {isCustomFrontend && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 p-3 text-sm">
+          <Info className="h-4 w-4 mt-0.5 text-amber-600 flex-shrink-0" />
+          <div className="text-amber-900 dark:text-amber-100">
+            <strong className="font-medium">Custom frontend actief.</strong>{' '}
+            Wijzigingen aan theme, homepage en pagina's beïnvloeden alleen de SellQo-frontend
+            en hebben geen effect op je live custom website. Frontend-modus beheren kan via{' '}
+            <a href="/admin/settings?section=webshop-general" className="underline font-medium">
+              Instellingen › Webshop
+            </a>.
+          </div>
+        </div>
+      )}
 
       {/* Mobile: horizontal scrollable nav */}
       <div className="md:hidden overflow-x-auto pb-2 -mx-1">
