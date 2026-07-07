@@ -5432,6 +5432,7 @@ export type Database = {
           ab_test_winner_selected_at: string | null
           ab_variant_of: string | null
           automation_id: string | null
+          available_languages: string[]
           completed_at: string | null
           created_at: string | null
           created_by: string | null
@@ -5456,6 +5457,7 @@ export type Database = {
           total_recipients: number | null
           total_sent: number | null
           total_unsubscribed: number | null
+          translations: Json
           updated_at: string | null
           variant_label: string | null
         }
@@ -5463,6 +5465,7 @@ export type Database = {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
           automation_id?: string | null
+          available_languages?: string[]
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5487,6 +5490,7 @@ export type Database = {
           total_recipients?: number | null
           total_sent?: number | null
           total_unsubscribed?: number | null
+          translations?: Json
           updated_at?: string | null
           variant_label?: string | null
         }
@@ -5494,6 +5498,7 @@ export type Database = {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
           automation_id?: string | null
+          available_languages?: string[]
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5518,6 +5523,7 @@ export type Database = {
           total_recipients?: number | null
           total_sent?: number | null
           total_unsubscribed?: number | null
+          translations?: Json
           updated_at?: string | null
           variant_label?: string | null
         }
