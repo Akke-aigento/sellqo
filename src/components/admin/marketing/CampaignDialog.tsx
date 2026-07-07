@@ -127,6 +127,7 @@ export function CampaignDialog({
   const [selectedTrigger, setSelectedTrigger] = useState<AutomationTrigger>('welcome');
   const [triggerDelayHours, setTriggerDelayHours] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
+  const [activeLangTab, setActiveLangTab] = useState<CampaignLang>('nl');
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
