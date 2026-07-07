@@ -1,58 +1,67 @@
-## Probleem
+## Doel
 
-De zijbalk verbergt items via `tenant_feature_overrides.hidden_pages` (zoals `pos`, `integrations`, `integrations-connect`, `ai-tools`), maar het **dashboard** houdt daar geen rekening mee. Widgets zoals POS-overzicht, Marketplace en AI Coach — en snelkoppelingen in Quick Actions — blijven zichtbaar en klikbaar, óók als de pagina in de zijbalk verborgen is. Alleen `requiredFeature` (abonnement) wordt gecheckt.
+Duidelijke scheiding tussen **Webshop = content voor de SellQo storefront** en **Instellingen = configuratie die geldt ongeacht welke frontend gebruikt wordt**. Rekening houden met tenants die `use_custom_frontend = true` hebben: die moeten alle relevante instellingen kunnen bereiken zonder in "Webshop" te zitten, én SellQo-frontend-only opties moeten dan visueel uitgegrijsd zijn.
 
-De bestaande logica die dit correct doet in de zijbalk: `isFeatureGranted` overrulet — dus als admin een feature expliciet grant, blijft alles zichtbaar. Diezelfde regel geldt automatisch omdat `hidden_pages` een aparte lijst is die admins beheren.
+## Nieuwe indeling
 
-## Oplossing
+### Webshop (alleen nog SellQo-frontend content)
+Enkel behouden wat *pure content/presentatie* voor de SellQo storefront is:
+- Theme
+- Homepage
+- Pagina's
+- Juridisch
 
-Dashboard-widgets en Quick Actions koppelen aan hun sidebar page-id en verbergen als die in `hiddenPages` staat. Platform admins in admin view zien alles (consistent met sidebar-gedrag).
+Hele module krijgt bovenaan een banner "Deze module bewerkt de SellQo-frontend. Je hebt een custom frontend actief — wijzigingen hier hebben geen effect op je live site" wanneer `use_custom_frontend = true`. Module blijft bereikbaar (content blijft nuttig als preview/fallback), maar de "Publiceren" en "Preview" knoppen worden gedimd/gewaarschuwd.
 
-### 1. `src/config/dashboardWidgets.ts`
-Nieuw optioneel veld `pageId?: string` (of `pageIds?: string[]`) toevoegen aan `DashboardWidgetDefinition`. Mapping invullen voor de relevante widgets:
+### Verhuizen naar Instellingen
+| Van (Webshop-tab) | Naar (Settings) |
+|---|---|
+| Social Media | **Verwijderen** — duplicaat van Settings › SellQo Connect › Social Media |
+| Reviews | Settings › SellQo Connect › **Reviews** (nieuwe sectie) — reviews werken op beide frontends |
+| Functies (`StorefrontFeaturesSettings`) | Nieuwe groep **Webshop** in Settings |
+| Instellingen (`StorefrontSettings`) | Nieuwe groep **Webshop** in Settings |
 
-- `pos-overview` → `pageId: 'pos'`
-- `marketplace` → `pageId: 'integrations'` (parent-groep; SellQo Connect zit hieronder)
-- `ai-marketing` → `pageId: 'ai-tools'`
+### Nieuwe Settings-groep "Webshop"
+Verplaats + voeg toe onder één groep, in deze volgorde:
+1. **Frontend-modus** (nieuw kaartje): keuze SellQo-frontend / Custom frontend, met URL. Bron van de `use_custom_frontend` toggle — dit wordt de duidelijke plek om te schakelen.
+2. **Winkelinstellingen** (verhuist uit "Bedrijfsinformatie" — component `StoreSettings`)
+3. **Webshop-instellingen** (verhuisd `StorefrontSettings`)
+4. **Webshop-functies** (verhuisd `StorefrontFeaturesSettings`)
 
-Health/Today/Quick-actions/Badges krijgen geen `pageId` (geen 1-op-1 pagina).
+### SellQo-frontend-only markering
+Nieuwe util `useFrontendMode()` die `use_custom_frontend` leest. Voor secties/velden die alleen SellQo-frontend betreffen:
+- Sectie krijgt een badge "Alleen SellQo-frontend"
+- Inputs krijgen `disabled` styling + tooltip "Actief bij custom frontend zonder effect"
+- Bereikbaar blijven (lezen/aanpassen mag), maar visueel duidelijk irrelevant
 
-### 2. `src/components/admin/DashboardGrid.tsx`
-- `useTenantPageOverrides()` importeren, `isPageHidden` gebruiken.
-- `usePlatformViewMode()` + `useAuth()` gebruiken voor de bypass (platform-admin + admin-view).
-- `visibleWidgets` filter uitbreiden:
-  ```ts
-  const visibleWidgets = widgetOrder.filter((id) => {
-    if (!isWidgetVisible(id)) return false;
-    const def = getWidgetById(id);
-    if (def?.pageId) {
-      const bypass = isPlatformAdmin && isAdminView;
-      if (!bypass && isPageHidden(def.pageId)) return false;
-    }
-    return true;
-  });
-  ```
+Toepassen op:
+- Alles onder de nieuwe groep Webshop, behalve Frontend-modus zelf en velden die ook custom-frontend beïnvloeden (bv. currency, tax display die via Storefront API worden gelezen — daar geen badge)
+- Header van de Webshop-module (Theme/Homepage/Pagina's/Juridisch): banner zoals hierboven
 
-### 3. `src/components/admin/widgets/QuickActionsWidget.tsx`
-Elke snelkoppeling koppelen aan een sidebar-id en filteren via `useTenantPageOverrides().isPageHidden` (met dezelfde platform-admin bypass):
+## Concrete wijzigingen
 
-- "Nieuw product" → `products`
-- "Bestellingen" → `orders` (parent) of `orders-all`
-- "Categorieën" → `categories`
+**Bestanden**
+- `src/pages/admin/Storefront.tsx` — verwijder tabs `social`, `reviews`, `features`, `settings` uit `NAV_ITEMS` + switch. Voeg headless-banner toe.
+- `src/pages/admin/Settings.tsx` — nieuwe groep `webshop` (volgorde na Bedrijfsinformatie). Verplaats `store` uit `business` naar `webshop`. Voeg secties `webshop-general`, `webshop-features`, `frontend-mode` toe. Voeg sectie `reviews` toe onder `channels` (SellQo Connect).
+- `src/hooks/useFrontendMode.ts` (nieuw) — leest `use_custom_frontend` uit `theme_settings`. Exporteert `{ isCustomFrontend, isSellqoFrontend }`.
+- `src/components/admin/settings/FrontendModeSettings.tsx` (nieuw) — kaartje met de toggle + URL-veld (herbruikt bestaande mutatie in `useStorefront`).
+- `src/components/admin/storefront/StorefrontFeaturesSettings.tsx` en `StorefrontSettings.tsx` — geen logica-wijziging, alleen ingekapseld in Settings-shell + `<SellqoOnlyBadge />` wrapper waar relevant.
+- `src/components/ui/SellqoOnlyBadge.tsx` (nieuw) — kleine badge + tooltip-component.
+- Sidebar `sidebarConfig.ts` — geen wijziging (Webshop en Instellingen blijven bestaan).
+- Diepe links (`?section=store`) blijven werken door zelfde `id`-waarden te behouden bij verplaatsing.
 
-Als een item verborgen is: knop niet renderen. Als álle knoppen verborgen zijn: hele widget-inhoud vervangen door een korte lege staat (of gewoon `null` render — de DashboardGrid toont dan simpelweg minder).
+**Geen wijzigingen**
+- Geen DB-migratie.
+- Geen edge functions.
+- Geen impact op RLS.
 
-### 4. `DashboardCustomizeDialog` (optioneel, klein)
-In het "verborgen widgets" overzicht een read-only "Verborgen door beheerder" label tonen als `pageId` in `hiddenPages` zit, zodat de gebruiker begrijpt waarom die widget niet aan te zetten is. Niet noodzakelijk voor de fix, maar voorkomt verwarring. Ik neem dit alleen mee als kleine polish.
+## Wat als een tenant `use_custom_frontend` aanzet?
 
-## Scope-notitie
+- Sidebar-item "Webshop" blijft zichtbaar (content-onderhoud blijft nuttig), maar krijgt een subtiele "SellQo-frontend" hint in de tooltip.
+- Alle winkelconfiguratie zit in Settings › Webshop en is 100% bereikbaar zonder Webshop-module te openen.
+- SellQo-frontend-only velden zijn uitgegrijsd met tooltip.
 
-Dit betreft alleen de **dashboardweergave** (zoals gevraagd). Directe URL-toegang tot `/admin/pos` etc. wordt niet geblokkeerd door `hidden_pages` — dat is een aparte laag (RouteGuard werkt op permissie-matrix, niet op `hidden_pages`). Laat het weten als je wilt dat ik dat ook doortrek naar RouteGuard.
+## Out of scope (later)
 
-## Bestanden
-
-- `src/config/dashboardWidgets.ts` — veld toevoegen + mapping
-- `src/components/admin/DashboardGrid.tsx` — filter uitbreiden
-- `src/components/admin/widgets/QuickActionsWidget.tsx` — per-actie filteren
-
-Geen DB-migratie, geen edge-functions.
+- Automatisch verbergen (via `hidden_pages`) van de Webshop-module bij custom frontend — niet doen, gebruiker kan dit nu al zelf via tenant page overrides regelen.
+- Reviews-module inhoudelijk verbouwen — enkel verplaatst.
