@@ -17,6 +17,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Settings, Check, X } from 'lucide-react';
 import { useDashboardPreferences } from '@/hooks/useDashboardPreferences';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
+import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
+import { useAuth } from '@/hooks/useAuth';
 import { DashboardWidgetWrapper } from './DashboardWidgetWrapper';
 import { DashboardLayoutSwitcher } from './DashboardLayoutSwitcher';
 import { DashboardCustomizeDialog } from './DashboardCustomizeDialog';
@@ -56,6 +59,10 @@ export function DashboardGrid() {
     updateWidgetOrder,
     isUpdating,
   } = useDashboardPreferences();
+  const { isPageHidden } = useTenantPageOverrides();
+  const { isAdminView } = usePlatformViewMode();
+  const { isPlatformAdmin } = useAuth();
+  const bypassTenantHidden = isPlatformAdmin && isAdminView;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -68,8 +75,16 @@ export function DashboardGrid() {
     })
   );
 
-  // Filter visible widgets
-  const visibleWidgets = widgetOrder.filter((id) => isWidgetVisible(id));
+  // Filter visible widgets — respecteer ook tenant-brede hidden_pages
+  // zodat verborgen zijbalk-items niet via het dashboard bereikbaar zijn.
+  const visibleWidgets = widgetOrder.filter((id) => {
+    if (!isWidgetVisible(id)) return false;
+    const def = getWidgetById(id);
+    if (def?.pageId && !bypassTenantHidden && isPageHidden(def.pageId)) {
+      return false;
+    }
+    return true;
+  });
 
   // Split into full-width and column widgets
   const fullWidgetIds = visibleWidgets.filter((id) => {

@@ -25,6 +25,12 @@ export interface DashboardWidgetDefinition {
   minSize: WidgetSize;
   category: WidgetCategory;
   requiredFeature?: string;
+  /**
+   * Optionele koppeling naar een sidebar page-id (`sidebarConfig`).
+   * Als de tenant deze page verborgen heeft via `hidden_pages`, wordt
+   * de widget ook op het dashboard verborgen.
+   */
+  pageId?: string;
   icon: LucideIcon;
 }
 
@@ -93,6 +99,7 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     minSize: 'sm',
     category: 'marketing',
     requiredFeature: 'ai_marketing',
+    pageId: 'ai-tools',
     icon: Zap,
   },
   {
@@ -103,6 +110,7 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     minSize: 'sm',
     category: 'pos',
     requiredFeature: 'pos',
+    pageId: 'pos',
     icon: Store,
   },
   {
@@ -113,6 +121,7 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     minSize: 'md',
     category: 'orders',
     requiredFeature: 'marketplaces',
+    pageId: 'integrations',
     icon: ShoppingCart,
   },
   {
