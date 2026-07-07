@@ -754,6 +754,7 @@ export function useReturnMutations() {
     updateReturnRefundStatus,
     closeReturn,
     updateReturnNotes,
+    updateReturnTracking,
     inspectReturnItem,
     addStatusNote,
     processRefund,
