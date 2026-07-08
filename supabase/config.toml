@@ -396,3 +396,6 @@ verify_jwt = true
 
 [functions.auth-email-hook]
 verify_jwt = false
+
+[functions.generate-subscription-invoices]
+verify_jwt = false
