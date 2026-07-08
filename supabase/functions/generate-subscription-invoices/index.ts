@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getStripeContext } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +57,10 @@ Deno.serve(async (req) => {
     created: 0,
     skipped_existing: 0,
     skipped_no_lines: 0,
+    charged: 0,
+    charge_processing: 0,
+    charge_failed: 0,
+    no_mandate: 0,
     failed: [] as Array<{ subscription_id: string; error: string }>,
   };
 
@@ -257,6 +262,89 @@ Deno.serve(async (req) => {
           period_start: periodStart,
           period_end: periodEnd,
         });
+
+        // ----------------------------------------------------------------
+        // SUB-2: off-session charge via active mandate (best-effort;
+        // failure never invalidates the invoice itself).
+        // ----------------------------------------------------------------
+        try {
+          const { data: mandate, error: mErr } = await supabase
+            .from("customer_payment_mandates")
+            .select("stripe_customer_id, stripe_payment_method_id, method_type, status")
+            .eq("tenant_id", sub.tenant_id)
+            .eq("customer_id", sub.customer_id)
+            .maybeSingle();
+          if (mErr) throw mErr;
+
+          if (!mandate || mandate.status !== "active") {
+            summary.no_mandate++;
+            log("No active mandate", { subscription_id: sub.id });
+          } else {
+            const { data: tenant, error: tErr } = await supabase
+              .from("tenants")
+              .select("id, is_demo, is_internal_tenant, stripe_account_id")
+              .eq("id", sub.tenant_id)
+              .maybeSingle();
+            if (tErr) throw tErr;
+            if (!tenant) throw new Error("Tenant not found for charge");
+
+            const ctx = getStripeContext(tenant);
+            const amountCents = Math.round(Number(total) * 100);
+
+            const intent = await ctx.stripe.paymentIntents.create(
+              {
+                amount: amountCents,
+                currency: "eur",
+                customer: mandate.stripe_customer_id,
+                payment_method: mandate.stripe_payment_method_id,
+                payment_method_types: [mandate.method_type],
+                confirm: true,
+                off_session: true,
+                metadata: {
+                  invoice_id: invoice.id,
+                  tenant_id: sub.tenant_id,
+                  subscription_id: sub.id,
+                },
+              },
+              ctx.requestOptions,
+            );
+
+            if (intent.status === "succeeded") {
+              await supabase
+                .from("invoices")
+                .update({ status: "paid", paid_at: new Date().toISOString() })
+                .eq("id", invoice.id);
+              summary.charged++;
+              log("Charge succeeded", { invoice_id: invoice.id, intent: intent.id });
+            } else if (intent.status === "processing") {
+              await supabase
+                .from("invoices")
+                .update({ status: "processing" })
+                .eq("id", invoice.id);
+              summary.charge_processing++;
+              log("Charge processing (SEPA)", { invoice_id: invoice.id, intent: intent.id });
+            } else {
+              // requires_action / requires_payment_method / canceled
+              await supabase
+                .from("invoices")
+                .update({ charge_attempts: 1 })
+                .eq("id", invoice.id);
+              summary.charge_failed++;
+              log("Charge not confirmed", { invoice_id: invoice.id, status: intent.status });
+            }
+          }
+        } catch (chargeErr) {
+          const chargeMessage =
+            chargeErr instanceof Error ? chargeErr.message : String(chargeErr);
+          console.error(
+            `[GEN-SUB-INVOICES] Charge failed for invoice ${invoice.id}: ${chargeMessage}`,
+          );
+          summary.charge_failed++;
+          await supabase
+            .from("invoices")
+            .update({ charge_attempts: 1 })
+            .eq("id", invoice.id);
+        }
 
         // Auto-send email (best-effort, do not fail invoice on email error)
         if (sub.auto_send) {

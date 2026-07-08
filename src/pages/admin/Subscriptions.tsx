@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, MoreHorizontal, Play, Pause, X, FileText, Calendar } from 'lucide-react';
+import { Plus, MoreHorizontal, Play, Pause, X, FileText, Calendar, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl, enUS, de, fr } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { useSubscriptions, useUpdateSubscriptionStatus, SubscriptionStatus } from '@/hooks/useSubscriptions';
 import { SubscriptionFormDialog } from '@/components/admin/SubscriptionFormDialog';
+import { useCustomerMandates, type CustomerMandate } from '@/hooks/useCustomerMandates';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -84,12 +85,17 @@ export default function SubscriptionsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [mandateLoadingId, setMandateLoadingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: subscriptions = [], isLoading } = useSubscriptions(
     statusFilter === 'all' ? undefined : { status: statusFilter }
   );
+  const { data: mandates = [] } = useCustomerMandates();
+  const mandateByCustomer = new Map<string, CustomerMandate>();
+  for (const m of mandates) mandateByCustomer.set(m.customer_id, m);
+
   const updateStatus = useUpdateSubscriptionStatus();
 
   const handleStatusChange = (id: string, status: SubscriptionStatus) => {
@@ -140,6 +146,58 @@ export default function SubscriptionsPage() {
       setGeneratingId(null);
     }
   };
+
+  const handleCreateMandateLink = async (customerId: string) => {
+    setMandateLoadingId(customerId);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-mandate-setup', {
+        body: { customer_id: customerId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? t('subscriptions.mandate.error'));
+      const url: string = data.url;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (_) {
+        // clipboard may fail on http; keep going
+      }
+      toast({
+        title: t('subscriptions.mandate.link_created'),
+        description: url,
+      });
+    } catch (err: any) {
+      toast({
+        title: t('subscriptions.mandate.error'),
+        description: err?.message ?? String(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setMandateLoadingId(null);
+    }
+  };
+
+  function renderMandateBadge(customerId: string | null | undefined) {
+    if (!customerId) return null;
+    const m = mandateByCustomer.get(customerId);
+    if (!m || m.status === 'revoked') {
+      return (
+        <Badge variant="outline" className="text-muted-foreground">
+          {t('subscriptions.mandate.badge.none')}
+        </Badge>
+      );
+    }
+    if (m.status === 'active') {
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
+          {t('subscriptions.mandate.badge.active')}
+        </Badge>
+      );
+    }
+    if (m.status === 'failed') {
+      return <Badge variant="destructive">{t('subscriptions.mandate.badge.failed')}</Badge>;
+    }
+    return <Badge variant="secondary">{t('subscriptions.mandate.badge.pending')}</Badge>;
+  }
 
   if (isLoading) {
     return (
@@ -200,6 +258,7 @@ export default function SubscriptionsPage() {
                 <TableHead>{t('common.total')}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t('subscriptions.billing_cycle')}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t('subscriptions.next_invoice')}</TableHead>
+                <TableHead className="hidden md:table-cell">{t('subscriptions.mandate.column')}</TableHead>
                 <TableHead>{t('common.status')}</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
@@ -207,7 +266,7 @@ export default function SubscriptionsPage() {
             <TableBody>
               {subscriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     {t('common.noResults')}
                   </TableCell>
                 </TableRow>
@@ -233,6 +292,9 @@ export default function SubscriptionsPage() {
                       ) : (
                         '-'
                       )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {renderMandateBadge(sub.customer_id)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(sub.status)}>
@@ -264,6 +326,22 @@ export default function SubscriptionsPage() {
                             )}
                             {t('subscriptions.actions.generate_now')}
                           </DropdownMenuItem>
+                          {sub.customer_id && (
+                            <DropdownMenuItem
+                              disabled={mandateLoadingId === sub.customer_id}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                handleCreateMandateLink(sub.customer_id!);
+                              }}
+                            >
+                              {mandateLoadingId === sub.customer_id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Link2 className="h-4 w-4 mr-2" />
+                              )}
+                              {t('subscriptions.mandate.create_link')}
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           {sub.status === 'active' && (
                             <DropdownMenuItem onClick={() => handleStatusChange(sub.id, 'paused')}>

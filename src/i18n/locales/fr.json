@@ -609,6 +609,37 @@
       "skipped_existing": "Une facture existe déjà pour cette période",
       "no_lines": "L'abonnement n'a pas de lignes",
       "error": "Une erreur s'est produite"
+    },
+    "mandate": {
+      "column": "Mandat",
+      "create_link": "Créer un lien d'autorisation",
+      "link_created": "Lien d'autorisation créé (copié dans le presse-papier)",
+      "error": "Impossible de créer le lien d'autorisation",
+      "badge": {
+        "active": "Actif",
+        "none": "Pas d'autorisation",
+        "failed": "Échec",
+        "pending": "En attente"
+      }
+    }
+  },
+  "mandate": {
+    "title": "Activer le paiement automatique",
+    "description": "Autorisez {{tenant}} à prélever automatiquement les factures d'abonnement.",
+    "loading": "Chargement…",
+    "authorize": "Confirmer l'autorisation",
+    "sepa_mandate_text": "En signant ce mandat, vous autorisez {{creditor}} et Stripe, notre prestataire de paiement, à envoyer des instructions à votre banque pour débiter votre compte, et votre banque à débiter votre compte conformément aux instructions de {{creditor}}. Vous avez droit au remboursement par votre banque selon les conditions de votre convention. Toute demande de remboursement doit être présentée dans les 8 semaines suivant la date de débit de votre compte.",
+    "errors": {
+      "title": "Autorisation invalide",
+      "generic": "Une erreur est survenue.",
+      "invalid_token": "Ce lien d'autorisation n'existe plus.",
+      "token_used": "Cette autorisation a déjà été activée.",
+      "token_expired": "Ce lien a expiré. Veuillez en demander un nouveau.",
+      "confirm_failed": "Les informations de paiement n'ont pas pu être confirmées."
+    },
+    "success": {
+      "title": "Autorisation activée",
+      "body": "Les futures factures d'abonnement de {{tenant}} seront prélevées automatiquement."
     }
   }
 }

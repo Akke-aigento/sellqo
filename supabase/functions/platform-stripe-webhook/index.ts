@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -109,6 +110,20 @@ serve(async (req) => {
     }
 
     logStep("Processing event", { type: event.type });
+
+    // SUB-2: intercept off-session subscription-invoice charges first.
+    if (
+      event.type === "payment_intent.succeeded" ||
+      event.type === "payment_intent.payment_failed"
+    ) {
+      const handled = await handleSubscriptionChargeWebhook(supabase, event);
+      if (handled) {
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
 
     switch (event.type) {
       // ============================================

@@ -399,3 +399,12 @@ verify_jwt = false
 
 [functions.generate-subscription-invoices]
 verify_jwt = false
+
+[functions.create-mandate-setup]
+verify_jwt = false
+
+[functions.mandate-setup-info]
+verify_jwt = false
+
+[functions.mandate-setup-complete]
+verify_jwt = false
