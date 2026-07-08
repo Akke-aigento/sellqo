@@ -1,0 +1,179 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { loadStripe, type Stripe as StripeJs } from '@stripe/stripe-js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+type Info = {
+  client_secret: string;
+  publishable_key: string;
+  stripe_account: string | null;
+  tenant: { id: string; name: string; primary_color?: string | null };
+  customer: { id: string; email: string | null; name: string };
+};
+
+function MandateForm({ token, info, onDone }: { token: string; info: Info; onDone: () => void }) {
+  const { t } = useTranslation();
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSubmitting(true);
+    setError(null);
+    const { error: confirmError, setupIntent } = await stripe.confirmSetup({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+        payment_method_data: {
+          billing_details: {
+            name: info.customer.name || undefined,
+            email: info.customer.email || undefined,
+          },
+        },
+      },
+      redirect: 'if_required',
+    });
+    if (confirmError) {
+      setError(confirmError.message ?? t('mandate.errors.confirm_failed'));
+      setSubmitting(false);
+      return;
+    }
+    if (!setupIntent) {
+      setError(t('mandate.errors.confirm_failed'));
+      setSubmitting(false);
+      return;
+    }
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('mandate-setup-complete', {
+        body: { token, setup_intent_id: setupIntent.id },
+      });
+      if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error ?? 'Activation failed');
+      onDone();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement options={{ layout: 'tabs', defaultValues: { billingDetails: { name: info.customer.name, email: info.customer.email ?? undefined } } }} />
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {t('mandate.sepa_mandate_text', { creditor: info.tenant.name })}
+      </p>
+      {error && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      <Button type="submit" disabled={!stripe || submitting} className="w-full">
+        {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {t('mandate.authorize')}
+      </Button>
+    </form>
+  );
+}
+
+export default function MandateActivation() {
+  const { t } = useTranslation();
+  const { token = '' } = useParams<{ token: string }>();
+  const [loading, setLoading] = useState(true);
+  const [info, setInfo] = useState<Info | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [stripePromise, setStripePromise] = useState<Promise<StripeJs | null> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('mandate-setup-info', {
+          body: { token },
+        });
+        if (!alive) return;
+        if (fnError) throw fnError;
+        if (!data?.success) throw new Error(data?.error ?? 'invalid_token');
+        const payload = data as Info & { success: true };
+        setInfo(payload);
+        setStripePromise(
+          loadStripe(payload.publishable_key, payload.stripe_account ? { stripeAccount: payload.stripe_account } : undefined),
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
+  const options = useMemo(
+    () => (info ? { clientSecret: info.client_secret, appearance: { theme: 'stripe' as const } } : null),
+    [info],
+  );
+
+  const errorLabel = (code: string | null) => {
+    if (!code) return t('mandate.errors.generic');
+    if (code === 'invalid_token') return t('mandate.errors.invalid_token');
+    if (code === 'token_used') return t('mandate.errors.token_used');
+    if (code === 'token_expired') return t('mandate.errors.token_expired');
+    return code;
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle>{t('mandate.title')}</CardTitle>
+          <CardDescription>
+            {info ? t('mandate.description', { tenant: info.tenant.name }) : t('mandate.loading')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!loading && error && (
+            <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-medium">{t('mandate.errors.title')}</p>
+                <p>{errorLabel(error)}</p>
+              </div>
+            </div>
+          )}
+          {!loading && !error && done && (
+            <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-medium">{t('mandate.success.title')}</p>
+                <p>{t('mandate.success.body', { tenant: info?.tenant.name ?? '' })}</p>
+              </div>
+            </div>
+          )}
+          {!loading && !error && !done && info && options && stripePromise && (
+            <Elements stripe={stripePromise} options={options}>
+              <MandateForm token={token} info={info} onDone={() => setDone(true)} />
+            </Elements>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
