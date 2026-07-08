@@ -620,6 +620,17 @@
         "none": "Keine Ermächtigung",
         "failed": "Fehlgeschlagen",
         "pending": "Ausstehend"
+      },
+      "dialog": {
+        "title": "Ermächtigungslink erstellt",
+        "description": "Senden Sie diesen einmaligen Link an den Kunden. Nach Genehmigung werden Abonnementrechnungen automatisch eingezogen.",
+        "copy": "Link kopieren",
+        "copied": "Kopiert",
+        "open": "Öffnen",
+        "email": "Per E-Mail senden",
+        "close": "Schließen",
+        "mail_subject": "Lastschrift-Ermächtigung",
+        "mail_body": "Hallo {{name}},\n\nBitte verwenden Sie den folgenden Link, um den automatischen Einzug Ihrer Abonnementrechnungen zu autorisieren:\n\n{{url}}\n\nMit freundlichen Grüßen."
       }
     }
   },
