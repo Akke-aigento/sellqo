@@ -2,7 +2,7 @@
 // Live tenants use STRIPE_SECRET_KEY. Demo (sandbox) tenants use STRIPE_TEST_SECRET_KEY.
 // If STRIPE_TEST_SECRET_KEY is not configured, demo tenants fall back to live key with a warning.
 
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 export interface StripeResolution {
   stripe: Stripe;
@@ -109,7 +109,7 @@ export async function getStripeForAccountId(
  */
 export interface StripeContext {
   stripe: Stripe;
-  requestOptions: { stripeAccount?: string };
+  requestOptions?: Stripe.RequestOptions;
   keyMode: 'live' | 'test';
   onPlatformAccount: boolean;
 }
@@ -128,7 +128,7 @@ export function getStripeContext(
   if (tenant.is_internal_tenant) {
     return {
       stripe: resolution.stripe,
-      requestOptions: {},
+      requestOptions: undefined,
       keyMode: resolution.keyMode,
       onPlatformAccount: true,
     };
