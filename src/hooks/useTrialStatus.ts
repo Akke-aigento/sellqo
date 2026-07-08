@@ -61,7 +61,7 @@ export function useTrialStatus() {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plans:plan_id (
+          pricing_plans!plan_id (
             id,
             name,
             slug,
