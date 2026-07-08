@@ -4610,6 +4610,50 @@ export type Database = {
           },
         ]
       }
+      customer_payment_mandates: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          method_type: string
+          status: string
+          stripe_customer_id: string
+          stripe_payment_method_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          method_type: string
+          status?: string
+          stripe_customer_id: string
+          stripe_payment_method_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          method_type?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_payment_method_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payment_mandates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_segments: {
         Row: {
           created_at: string | null
@@ -7203,6 +7247,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          charge_attempts: number
           created_at: string
           customer_id: string | null
           due_date: string | null
@@ -7242,6 +7287,7 @@ export type Database = {
           vat_rounding_strategy: string | null
         }
         Insert: {
+          charge_attempts?: number
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
@@ -7281,6 +7327,7 @@ export type Database = {
           vat_rounding_strategy?: string | null
         }
         Update: {
+          charge_attempts?: number
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
@@ -7677,6 +7724,44 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandate_setup_tokens: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at?: string
+          id?: string
+          tenant_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandate_setup_tokens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -18346,7 +18431,13 @@ export type Database = {
         | "monitoring"
         | "resolved"
       invite_status: "pending" | "accepted" | "expired" | "revoked" | "rejected"
-      invoice_status: "draft" | "sent" | "paid" | "cancelled"
+      invoice_status:
+        | "draft"
+        | "sent"
+        | "paid"
+        | "cancelled"
+        | "processing"
+        | "unpaid"
       notification_category:
         | "orders"
         | "invoices"
@@ -18647,7 +18738,14 @@ export const Constants = {
         "resolved",
       ],
       invite_status: ["pending", "accepted", "expired", "revoked", "rejected"],
-      invoice_status: ["draft", "sent", "paid", "cancelled"],
+      invoice_status: [
+        "draft",
+        "sent",
+        "paid",
+        "cancelled",
+        "processing",
+        "unpaid",
+      ],
       notification_category: [
         "orders",
         "invoices",
