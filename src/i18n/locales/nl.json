@@ -1,29 +1,14 @@
 {
   "common": {
-    "save": "Opslaan",
-    "cancel": "Annuleren",
-    "delete": "Verwijderen",
-    "edit": "Bewerken",
-    "loading": "Laden...",
-    "search": "Zoeken...",
-    "add": "Toevoegen",
-    "close": "Sluiten",
-    "confirm": "Bevestigen",
-    "back": "Terug",
-    "next": "Volgende",
-    "yes": "Ja",
-    "no": "Nee",
-    "actions": "Acties",
-    "status": "Status",
-    "name": "Naam",
-    "email": "E-mailadres",
-    "phone": "Telefoon",
-    "address": "Adres",
-    "description": "Beschrijving",
-    "price": "Prijs",
+    "all": "Alle",
     "total": "Totaal",
-    "date": "Datum",
-    "noResults": "Geen resultaten gevonden"
+    "status": "Status",
+    "noResults": "Geen resultaten",
+    "loading": "Laden...",
+    "edit": "Bewerken",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "price": "Prijs"
   },
   "auth": {
     "login": "Inloggen",
@@ -35,16 +20,7 @@
     "resetPassword": "Wachtwoord resetten"
   },
   "navigation": {
-    "dashboard": "Dashboard",
-    "products": "Producten",
-    "orders": "Bestellingen",
-    "customers": "Klanten",
-    "categories": "Categorieën",
-    "shipping": "Verzending",
-    "settings": "Instellingen",
-    "analytics": "Analytics",
-    "platform": "Platform",
-    "tenants": "Tenants"
+    "import": "Importeren"
   },
   "settings": {
     "title": "Instellingen",
@@ -110,7 +86,12 @@
       "intracom_services": "BTW verlegd naar afnemer - art. 196 BTW-richtlijn 2006/112/EG",
       "export": "Uitvoer vrijgesteld van BTW - art. 146 BTW-richtlijn 2006/112/EG",
       "oss_applied": "BTW berekend volgens OSS-regeling (One-Stop-Shop) - bestemmingsland tarief"
-    }
+    },
+    "vat_breakdown": "BTW-overzicht",
+    "taxable_amount": "Grondslag",
+    "vat_amount": "BTW",
+    "total_excl_vat": "Totaal excl. BTW",
+    "total_incl_vat": "Totaal incl. BTW"
   },
   "tax": {
     "invoiceTexts": {
@@ -302,20 +283,7 @@
     "pickup": "Afhalen in winkel",
     "vat_rate": "BTW-tarief"
   },
-  "invoice": {
-    "vat": {
-      "intracom_goods": "Intracommunautaire levering vrijgesteld van BTW - art. 138 BTW-richtlijn 2006/112/EG",
-      "intracom_services": "BTW verlegd naar afnemer - art. 196 BTW-richtlijn 2006/112/EG",
-      "export": "Uitvoer vrijgesteld van BTW - art. 146 BTW-richtlijn 2006/112/EG",
-      "oss_applied": "BTW berekend volgens OSS-regeling (One-Stop-Shop) - bestemmingsland tarief"
-    },
-    "vat_breakdown": "BTW-overzicht",
-    "taxable_amount": "Grondslag",
-    "vat_amount": "BTW",
-    "total_excl_vat": "Totaal excl. BTW",
-    "total_incl_vat": "Totaal incl. BTW"
-  },
-"archive": {
+  "archive": {
     "title": "Factuurarchief",
     "description": "Documenten worden 7 jaar bewaard conform Belgische wetgeving",
     "integrity_valid": "Integriteit OK",
@@ -439,7 +407,13 @@
       "generate_now": "Nu factureren"
     },
     "invoice_note": "Abonnement: {name} - Periode: {period}",
-    "history": "Factuurgeschiedenis"
+    "history": "Factuurgeschiedenis",
+    "generate_result": {
+      "created": "Factuur aangemaakt",
+      "skipped_existing": "Factuur voor deze periode bestaat al",
+      "no_lines": "Abonnement heeft geen regels",
+      "error": "Er ging iets mis"
+    }
   },
   "invoice_duplicate": {
     "title": "Duplicaat",
@@ -522,9 +496,6 @@
       "units_sold": "Verkocht",
       "revenue": "Omzet"
     }
-  },
-  "common": {
-    "all": "Alle"
   },
   "pricing": {
     "title": "Eenvoudige, transparante prijzen",
@@ -670,9 +641,6 @@
     "processing": "Bezig met importeren...",
     "duration": "Duur",
     "seconds": "seconden"
-  },
-  "navigation": {
-    "import": "Importeren"
   },
   "checkout": {
     "securePayment": "Veilig betalen met",

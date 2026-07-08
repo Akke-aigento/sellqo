@@ -23,7 +23,8 @@
     "price": "Preis",
     "total": "Gesamt",
     "date": "Datum",
-    "noResults": "Keine Ergebnisse gefunden"
+    "noResults": "Keine Ergebnisse gefunden",
+    "all": "Alle"
   },
   "auth": {
     "login": "Anmelden",
@@ -35,16 +36,7 @@
     "resetPassword": "Passwort zurücksetzen"
   },
   "navigation": {
-    "dashboard": "Dashboard",
-    "products": "Produkte",
-    "orders": "Bestellungen",
-    "customers": "Kunden",
-    "categories": "Kategorien",
-    "shipping": "Versand",
-    "settings": "Einstellungen",
-    "analytics": "Analytik",
-    "platform": "Plattform",
-    "tenants": "Mandanten"
+    "import": "Importieren"
   },
   "settings": {
     "title": "Einstellungen",
@@ -110,7 +102,12 @@
       "intracom_services": "Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG",
       "export": "Ausfuhr umsatzsteuerfrei - Art. 146 MwSt-Richtlinie 2006/112/EG",
       "oss_applied": "MwSt berechnet nach OSS-Regelung (One-Stop-Shop) - Steuersatz des Bestimmungslandes"
-    }
+    },
+    "vat_breakdown": "MwSt-Übersicht",
+    "taxable_amount": "Bemessungsgrundlage",
+    "vat_amount": "MwSt",
+    "total_excl_vat": "Gesamtbetrag exkl. MwSt",
+    "total_incl_vat": "Gesamtbetrag inkl. MwSt"
   },
   "tax": {
     "invoiceTexts": {
@@ -302,19 +299,6 @@
     "pickup": "Abholung im Geschäft",
     "vat_rate": "MwSt-Satz"
   },
-"invoice": {
-    "vat": {
-      "intracom_goods": "Innergemeinschaftliche Lieferung umsatzsteuerfrei - Art. 138 MwSt-Richtlinie 2006/112/EG",
-      "intracom_services": "Steuerschuldnerschaft des Leistungsempfängers - Art. 196 MwSt-Richtlinie 2006/112/EG",
-      "export": "Ausfuhr umsatzsteuerfrei - Art. 146 MwSt-Richtlinie 2006/112/EG",
-      "oss_applied": "MwSt berechnet nach OSS-Regelung (One-Stop-Shop) - Steuersatz des Bestimmungslandes"
-    },
-    "vat_breakdown": "MwSt-Übersicht",
-    "taxable_amount": "Bemessungsgrundlage",
-    "vat_amount": "MwSt",
-    "total_excl_vat": "Gesamtbetrag exkl. MwSt",
-    "total_incl_vat": "Gesamtbetrag inkl. MwSt"
-  },
   "archive": {
     "title": "Rechnungsarchiv",
     "description": "Dokumente werden gemäß belgischem Recht 7 Jahre aufbewahrt",
@@ -477,9 +461,6 @@
     "duration": "Dauer",
     "seconds": "Sekunden"
   },
-  "navigation": {
-    "import": "Importieren"
-  },
   "checkout": {
     "securePayment": "Sicher bezahlen mit",
     "searchAddress": "Adresse suchen...",
@@ -577,6 +558,57 @@
       "advanced": {
         "customCss": "Erweitert"
       }
+    }
+  },
+  "subscriptions": {
+    "title": "Abonnements",
+    "description": "Verwalten Sie wiederkehrende Rechnungen",
+    "create": "Abonnement erstellen",
+    "customer": "Kunde",
+    "name": "Name",
+    "billing_cycle": "Abrechnungszyklus",
+    "next_invoice": "Nächste Rechnung",
+    "active_count": "aktive Abonnements",
+    "status": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "cancelled": "Storniert",
+      "ended": "Beendet"
+    },
+    "interval": {
+      "weekly": "Woche",
+      "monthly": "Monat",
+      "quarterly": "Quartal",
+      "yearly": "Jahr"
+    },
+    "actions": {
+      "generate_now": "Jetzt Rechnung erstellen",
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "cancel": "Kündigen"
+    },
+    "add_line": "Zeile hinzufügen",
+    "auto_send": "Rechnung automatisch senden",
+    "days": "Tage",
+    "days_before_renewal": "Tage vor Verlängerung",
+    "edit": "Abonnement bearbeiten",
+    "end_date": "Enddatum",
+    "every": "Alle",
+    "form_description": "Konfigurieren Sie ein wiederkehrendes Abonnement",
+    "generate_days_before": "Rechnung generieren (Tage vorher)",
+    "lines": "Zeilen",
+    "name_placeholder": "z.B. Monatliches Abo",
+    "no_end_date": "Kein Enddatum",
+    "notify_customer": "Kunde vor Verlängerung benachrichtigen",
+    "payment_term": "Zahlungsfrist (Tage)",
+    "select_customer": "Kunde auswählen",
+    "settings": "Einstellungen",
+    "start_date": "Startdatum",
+    "generate_result": {
+      "created": "Rechnung erstellt",
+      "skipped_existing": "Für diesen Zeitraum existiert bereits eine Rechnung",
+      "no_lines": "Abonnement hat keine Zeilen",
+      "error": "Etwas ist schiefgelaufen"
     }
   }
 }

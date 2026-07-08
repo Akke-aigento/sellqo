@@ -62,10 +62,27 @@ Deno.serve(async (req) => {
   try {
     const today = new Date();
     const todayISO = toISODate(today);
-    log("Start", { today: todayISO });
+
+    // Optional body: { subscription_id } for manual single-run
+    let manualId: string | null = null;
+    try {
+      if (req.method === "POST") {
+        const text = await req.text();
+        if (text) {
+          const body = JSON.parse(text);
+          if (body && typeof body.subscription_id === "string") {
+            manualId = body.subscription_id;
+          }
+        }
+      }
+    } catch (_) {
+      // ignore malformed body — behave as full-run
+    }
+
+    log("Start", { today: todayISO, manualId });
 
     // Fetch active subscriptions with lines
-    const { data: subs, error: subsErr } = await supabase
+    let query = supabase
       .from("subscriptions")
       .select(`
         id, tenant_id, customer_id, name, interval, interval_count,
@@ -75,11 +92,31 @@ Deno.serve(async (req) => {
       `)
       .eq("status", "active")
       .not("next_invoice_date", "is", null);
+    if (manualId) {
+      query = supabase
+        .from("subscriptions")
+        .select(`
+          id, tenant_id, customer_id, name, interval, interval_count,
+          next_invoice_date, last_invoice_date, end_date, status,
+          auto_send, payment_term_days, generate_days_before,
+          subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
+        `)
+        .eq("status", "active")
+        .eq("id", manualId)
+        .not("next_invoice_date", "is", null);
+    }
+    const { data: subs, error: subsErr } = await query;
 
     if (subsErr) throw subsErr;
 
     const eligible = (subs ?? []).filter((s: any) => {
       if (!s.next_invoice_date) return false;
+      // Manual run bypasses the cutoff check but keeps end_date guard.
+      if (manualId) {
+        const nid = new Date(s.next_invoice_date + "T00:00:00Z");
+        if (s.end_date && new Date(s.end_date + "T00:00:00Z") < nid) return false;
+        return true;
+      }
       const daysBefore = Number(s.generate_days_before ?? 0);
       const cutoff = new Date(today);
       cutoff.setUTCDate(cutoff.getUTCDate() + daysBefore);

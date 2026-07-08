@@ -38,6 +38,10 @@ import {
 } from '@/components/ui/dialog';
 import { useSubscriptions, useUpdateSubscriptionStatus, SubscriptionStatus } from '@/hooks/useSubscriptions';
 import { SubscriptionFormDialog } from '@/components/admin/SubscriptionFormDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const dateLocales: Record<string, Locale> = { nl, en: enUS, de, fr };
 
@@ -79,6 +83,9 @@ export default function SubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: subscriptions = [], isLoading } = useSubscriptions(
     statusFilter === 'all' ? undefined : { status: statusFilter }
@@ -97,6 +104,41 @@ export default function SubscriptionsPage() {
   const handleClose = () => {
     setIsFormOpen(false);
     setEditingId(null);
+  };
+
+  const handleGenerateNow = async (id: string) => {
+    setGeneratingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'generate-subscription-invoices',
+        { body: { subscription_id: id } }
+      );
+      if (error) throw error;
+      const created = Number(data?.created ?? 0);
+      const skipped = Number(data?.skipped_existing ?? 0);
+      const noLines = Number(data?.skipped_no_lines ?? 0);
+      const failed = Array.isArray(data?.failed) ? data.failed.length : 0;
+      let description = '';
+      if (created > 0) description = t('subscriptions.generate_result.created');
+      else if (skipped > 0) description = t('subscriptions.generate_result.skipped_existing');
+      else if (noLines > 0) description = t('subscriptions.generate_result.no_lines');
+      else if (failed > 0) description = data.failed[0]?.error ?? t('subscriptions.generate_result.error');
+      else description = t('subscriptions.generate_result.skipped_existing');
+      toast({
+        title: t('subscriptions.actions.generate_now'),
+        description,
+        variant: failed > 0 ? 'destructive' : 'default',
+      });
+      await queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    } catch (err: any) {
+      toast({
+        title: t('subscriptions.actions.generate_now'),
+        description: err?.message ?? t('subscriptions.generate_result.error'),
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingId(null);
+    }
   };
 
   if (isLoading) {
@@ -208,8 +250,18 @@ export default function SubscriptionsPage() {
                           <DropdownMenuItem onClick={() => handleEdit(sub.id)}>
                             {t('common.edit')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <FileText className="h-4 w-4 mr-2" />
+                          <DropdownMenuItem
+                            disabled={generatingId === sub.id || sub.status !== 'active'}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              handleGenerateNow(sub.id);
+                            }}
+                          >
+                            {generatingId === sub.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <FileText className="h-4 w-4 mr-2" />
+                            )}
                             {t('subscriptions.actions.generate_now')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
