@@ -433,6 +433,17 @@
         "none": "No authorization",
         "failed": "Failed",
         "pending": "Pending"
+      },
+      "dialog": {
+        "title": "Authorization link created",
+        "description": "Send this one-time link to the customer. Once approved, subscription invoices will be collected automatically.",
+        "copy": "Copy link",
+        "copied": "Copied",
+        "open": "Open",
+        "email": "Email to customer",
+        "close": "Close",
+        "mail_subject": "Direct debit authorization",
+        "mail_body": "Hi {{name}},\n\nPlease use the link below to authorize automatic collection of your subscription invoices:\n\n{{url}}\n\nKind regards."
       }
     }
   },

@@ -39,6 +39,7 @@ import {
 import { useSubscriptions, useUpdateSubscriptionStatus, SubscriptionStatus } from '@/hooks/useSubscriptions';
 import { SubscriptionFormDialog } from '@/components/admin/SubscriptionFormDialog';
 import { useCustomerMandates, type CustomerMandate } from '@/hooks/useCustomerMandates';
+import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +88,11 @@ export default function SubscriptionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [mandateLoadingId, setMandateLoadingId] = useState<string | null>(null);
+  const [mandateDialog, setMandateDialog] = useState<{
+    url: string;
+    email?: string | null;
+    name?: string | null;
+  } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -148,7 +154,10 @@ export default function SubscriptionsPage() {
     }
   };
 
-  const handleCreateMandateLink = async (customerId: string) => {
+  const handleCreateMandateLink = async (
+    customerId: string,
+    customer?: { email?: string | null; first_name?: string | null; last_name?: string | null; company_name?: string | null } | null,
+  ) => {
     setMandateLoadingId(customerId);
     try {
       const data = await invokeWithErrorBody<{ success: boolean; url: string; error?: string }>(
@@ -158,15 +167,11 @@ export default function SubscriptionsPage() {
       );
       if (!data?.success) throw new Error(data?.error ?? t('subscriptions.mandate.error'));
       const url: string = data.url;
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch (_) {
-        // clipboard may fail on http; keep going
-      }
-      toast({
-        title: t('subscriptions.mandate.link_created'),
-        description: url,
-      });
+      const displayName =
+        customer?.company_name ||
+        [customer?.first_name, customer?.last_name].filter(Boolean).join(' ').trim() ||
+        null;
+      setMandateDialog({ url, email: customer?.email ?? null, name: displayName });
     } catch (err: any) {
       toast({
         title: t('subscriptions.mandate.error'),
@@ -301,7 +306,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                                handleCreateMandateLink(sub.customer_id!);
+                                handleCreateMandateLink(sub.customer_id!, sub.customer);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (
@@ -447,7 +452,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                                handleCreateMandateLink(sub.customer_id!);
+                              handleCreateMandateLink(sub.customer_id!, sub.customer);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (
@@ -496,6 +501,16 @@ export default function SubscriptionsPage() {
         open={isFormOpen}
         onOpenChange={handleClose}
         subscriptionId={editingId}
+      />
+
+      <MandateLinkDialog
+        open={mandateDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setMandateDialog(null);
+        }}
+        url={mandateDialog?.url ?? null}
+        customerEmail={mandateDialog?.email ?? null}
+        customerName={mandateDialog?.name ?? null}
       />
     </div>
   );

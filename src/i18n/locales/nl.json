@@ -424,6 +424,17 @@
         "none": "Geen machtiging",
         "failed": "Mislukt",
         "pending": "In afwachting"
+      },
+      "dialog": {
+        "title": "Machtigingslink aangemaakt",
+        "description": "Stuur deze eenmalige link naar de klant. Na goedkeuring worden abonnementsfacturen automatisch geïncasseerd.",
+        "copy": "Kopieer link",
+        "copied": "Gekopieerd",
+        "open": "Openen",
+        "email": "Mail naar klant",
+        "close": "Sluiten",
+        "mail_subject": "Machtiging automatische incasso",
+        "mail_body": "Beste {{name}},\n\nVia onderstaande link kunt u een eenmalige machtiging afgeven voor de automatische incasso van uw abonnementsfacturen:\n\n{{url}}\n\nMet vriendelijke groet."
       }
     }
   },
