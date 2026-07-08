@@ -23,7 +23,8 @@
     "price": "Prix",
     "total": "Total",
     "date": "Date",
-    "noResults": "Aucun résultat trouvé"
+    "noResults": "Aucun résultat trouvé",
+    "all": "Tous"
   },
   "auth": {
     "login": "Connexion",
@@ -35,16 +36,7 @@
     "resetPassword": "Réinitialiser le mot de passe"
   },
   "navigation": {
-    "dashboard": "Tableau de bord",
-    "products": "Produits",
-    "orders": "Commandes",
-    "customers": "Clients",
-    "categories": "Catégories",
-    "shipping": "Expédition",
-    "settings": "Paramètres",
-    "analytics": "Analytique",
-    "platform": "Plateforme",
-    "tenants": "Locataires"
+    "import": "Importer"
   },
   "settings": {
     "title": "Paramètres",
@@ -110,7 +102,12 @@
       "intracom_services": "TVA autoliquidée par le preneur - Art. 196 Directive TVA 2006/112/CE",
       "export": "Exportation exonérée de TVA - Art. 146 Directive TVA 2006/112/CE",
       "oss_applied": "TVA calculée selon le régime OSS (guichet unique) - taux du pays de destination"
-    }
+    },
+    "vat_breakdown": "Détail TVA",
+    "taxable_amount": "Base imposable",
+    "vat_amount": "TVA",
+    "total_excl_vat": "Total hors TVA",
+    "total_incl_vat": "Total TTC"
   },
   "tax": {
     "invoiceTexts": {
@@ -302,19 +299,6 @@
     "pickup": "Retrait en magasin",
     "vat_rate": "Taux de TVA"
   },
-"invoice": {
-    "vat": {
-      "intracom_goods": "Livraison intracommunautaire exonérée de TVA - Art. 138 Directive TVA 2006/112/CE",
-      "intracom_services": "TVA autoliquidée par le preneur - Art. 196 Directive TVA 2006/112/CE",
-      "export": "Exportation exonérée de TVA - Art. 146 Directive TVA 2006/112/CE",
-      "oss_applied": "TVA calculée selon le régime OSS (guichet unique) - taux du pays de destination"
-    },
-    "vat_breakdown": "Détail TVA",
-    "taxable_amount": "Base imposable",
-    "vat_amount": "TVA",
-    "total_excl_vat": "Total hors TVA",
-    "total_incl_vat": "Total TTC"
-  },
   "archive": {
     "title": "Archives de factures",
     "description": "Les documents sont conservés 7 ans conformément à la législation belge",
@@ -477,9 +461,6 @@
     "duration": "Durée",
     "seconds": "secondes"
   },
-  "navigation": {
-    "import": "Importer"
-  },
   "checkout": {
     "securePayment": "Payer en toute sécurité avec",
     "searchAddress": "Rechercher votre adresse...",
@@ -578,5 +559,50 @@
         "customCss": "Avancé"
       }
     }
+  },
+  "subscriptions": {
+    "title": "Abonnements",
+    "description": "Gérez vos factures récurrentes",
+    "create": "Créer un abonnement",
+    "customer": "Client",
+    "name": "Nom",
+    "billing_cycle": "Cycle de facturation",
+    "next_invoice": "Prochaine facture",
+    "active_count": "abonnements actifs",
+    "status": {
+      "active": "Actif",
+      "paused": "En pause",
+      "cancelled": "Annulé",
+      "ended": "Terminé"
+    },
+    "interval": {
+      "weekly": "semaine",
+      "monthly": "mois",
+      "quarterly": "trimestre",
+      "yearly": "an"
+    },
+    "actions": {
+      "generate_now": "Facturer maintenant",
+      "pause": "Mettre en pause",
+      "resume": "Reprendre",
+      "cancel": "Annuler"
+    },
+    "add_line": "Ajouter une ligne",
+    "auto_send": "Envoyer la facture automatiquement",
+    "days": "jours",
+    "days_before_renewal": "jours avant renouvellement",
+    "edit": "Modifier l'abonnement",
+    "end_date": "Date de fin",
+    "every": "Tous les",
+    "form_description": "Configurez un abonnement récurrent",
+    "generate_days_before": "Générer la facture (jours à l'avance)",
+    "lines": "Lignes",
+    "name_placeholder": "ex. Abonnement mensuel",
+    "no_end_date": "Pas de date de fin",
+    "notify_customer": "Notifier le client avant renouvellement",
+    "payment_term": "Délai de paiement (jours)",
+    "select_customer": "Sélectionner un client",
+    "settings": "Paramètres",
+    "start_date": "Date de début"
   }
 }

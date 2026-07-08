@@ -1,29 +1,14 @@
 {
   "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "loading": "Loading...",
-    "search": "Search...",
-    "add": "Add",
-    "close": "Close",
-    "confirm": "Confirm",
-    "back": "Back",
-    "next": "Next",
-    "yes": "Yes",
-    "no": "No",
-    "actions": "Actions",
-    "status": "Status",
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "address": "Address",
-    "description": "Description",
-    "price": "Price",
+    "all": "All",
     "total": "Total",
-    "date": "Date",
-    "noResults": "No results found"
+    "status": "Status",
+    "noResults": "No results",
+    "loading": "Loading...",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "price": "Price"
   },
   "auth": {
     "login": "Log in",
@@ -110,7 +95,12 @@
       "intracom_services": "VAT reverse charged to customer - Art. 196 VAT Directive 2006/112/EC",
       "export": "Export exempt from VAT - Art. 146 VAT Directive 2006/112/EC",
       "oss_applied": "VAT calculated under OSS scheme (One-Stop-Shop) - destination country rate"
-    }
+    },
+    "vat_breakdown": "VAT breakdown",
+    "taxable_amount": "Taxable amount",
+    "vat_amount": "VAT",
+    "total_excl_vat": "Total excl. VAT",
+    "total_incl_vat": "Total incl. VAT"
   },
   "tax": {
     "invoiceTexts": {
@@ -302,20 +292,7 @@
     "pickup": "Store pickup",
     "vat_rate": "VAT rate"
   },
-  "invoice": {
-    "vat": {
-      "intracom_goods": "Intra-Community supply exempt from VAT - Art. 138 VAT Directive 2006/112/EC",
-      "intracom_services": "VAT reverse charged to customer - Art. 196 VAT Directive 2006/112/EC",
-      "export": "Export exempt from VAT - Art. 146 VAT Directive 2006/112/EC",
-      "oss_applied": "VAT calculated under OSS scheme (One-Stop-Shop) - destination country rate"
-    },
-    "vat_breakdown": "VAT breakdown",
-    "taxable_amount": "Taxable amount",
-    "vat_amount": "VAT",
-    "total_excl_vat": "Total excl. VAT",
-    "total_incl_vat": "Total incl. VAT"
-  },
-"archive": {
+  "archive": {
     "title": "Invoice Archive",
     "description": "Documents are retained for 7 years in accordance with Belgian law",
     "integrity_valid": "Integrity OK",
@@ -522,9 +499,6 @@
       "units_sold": "Units sold",
       "revenue": "Revenue"
     }
-  },
-  "common": {
-    "all": "All"
   },
   "pricing": {
     "title": "Simple, transparent pricing",
