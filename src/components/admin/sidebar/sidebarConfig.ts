@@ -113,6 +113,7 @@ const dailyItems: NavItem[] = [
       { id: 'orders-returns', title: 'Retouren', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
       { id: 'orders-invoices', title: 'Facturen', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
       { id: 'orders-quotes', title: 'Offertes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
+      { id: 'orders-subscriptions', title: 'Abonnementen', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
     ],
   },
   { id: 'products', title: 'Producten', url: '/admin/products', icon: Package, requireRead: 'products' },
