@@ -1,4 +1,5 @@
 // SUB-2: Create a mandate setup link for a customer.
+// Deploy marker: 2026-07-08 re-deploy trigger.
 // Admin/staff triggers this; returns a URL the customer visits once to
 // authorize SEPA Direct Debit or card off-session charging.
 

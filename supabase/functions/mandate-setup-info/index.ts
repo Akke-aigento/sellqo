@@ -1,4 +1,5 @@
 // SUB-2: Public endpoint — returns SetupIntent client_secret + customer/tenant
+// Deploy marker: 2026-07-08 re-deploy trigger.
 // info for a mandate setup token. NO auth (customer clicks a link).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";

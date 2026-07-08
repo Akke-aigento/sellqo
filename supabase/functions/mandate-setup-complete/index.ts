@@ -1,4 +1,5 @@
 // SUB-2: Public endpoint — finalizes a mandate after Stripe Elements has
+// Deploy marker: 2026-07-08 re-deploy trigger.
 // confirmed the SetupIntent client-side. Upserts customer_payment_mandates
 // and marks the token used. NO auth.
 

@@ -249,7 +249,7 @@ export default function SubscriptionsPage() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
-          <div>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -258,7 +258,7 @@ export default function SubscriptionsPage() {
                 <TableHead>{t('common.total')}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t('subscriptions.billing_cycle')}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t('subscriptions.next_invoice')}</TableHead>
-                <TableHead className="hidden md:table-cell">{t('subscriptions.mandate.column')}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t('subscriptions.mandate.column')}</TableHead>
                 <TableHead>{t('common.status')}</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
@@ -273,12 +273,12 @@ export default function SubscriptionsPage() {
               ) : (
                 subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell className="font-medium max-w-[150px] truncate">
+                   <TableCell className="font-medium max-w-[120px] sm:max-w-[180px] truncate">
                       {sub.customer?.company_name || 
                         `${sub.customer?.first_name || ''} ${sub.customer?.last_name || ''}`.trim() ||
                         sub.customer?.email}
                     </TableCell>
-                    <TableCell className="max-w-[150px] truncate">{sub.name}</TableCell>
+                    <TableCell className="max-w-[120px] sm:max-w-[180px] truncate">{sub.name}</TableCell>
                     <TableCell>{formatCurrency(sub.total)}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {getIntervalLabel(sub.interval, sub.interval_count, t)}
@@ -293,7 +293,7 @@ export default function SubscriptionsPage() {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden lg:table-cell">
                       {renderMandateBadge(sub.customer_id)}
                     </TableCell>
                     <TableCell>
@@ -308,7 +308,7 @@ export default function SubscriptionsPage() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" side="bottom" collisionPadding={12}>
                           <DropdownMenuItem onClick={() => handleEdit(sub.id)}>
                             {t('common.edit')}
                           </DropdownMenuItem>
