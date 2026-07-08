@@ -96,3 +96,54 @@ export async function getStripeForAccountId(
 
   return getStripeLive(apiVersion);
 }
+
+/**
+ * SUB-2: Resolves the correct Stripe client + stripeAccount option for a tenant.
+ *
+ * - `is_internal_tenant = true` → platform account, no stripeAccount header.
+ * - Otherwise → connected account via `{ stripeAccount: tenant.stripe_account_id }`.
+ *   Throws when `stripe_account_id` is missing so callers fail loudly.
+ *
+ * Uses live/test key selection based on `is_demo` for consistency with
+ * `getStripeForTenant`.
+ */
+export interface StripeContext {
+  stripe: Stripe;
+  requestOptions: { stripeAccount?: string };
+  keyMode: 'live' | 'test';
+  onPlatformAccount: boolean;
+}
+
+export function getStripeContext(
+  tenant: {
+    id: string;
+    is_demo?: boolean | null;
+    is_internal_tenant?: boolean | null;
+    stripe_account_id?: string | null;
+  },
+  apiVersion: string = "2025-08-27.basil"
+): StripeContext {
+  const resolution = tenant.is_demo ? getStripeTest(apiVersion) : getStripeLive(apiVersion);
+
+  if (tenant.is_internal_tenant) {
+    return {
+      stripe: resolution.stripe,
+      requestOptions: {},
+      keyMode: resolution.keyMode,
+      onPlatformAccount: true,
+    };
+  }
+
+  if (!tenant.stripe_account_id) {
+    throw new Error(
+      `Tenant ${tenant.id} has no stripe_account_id and is not internal — cannot charge`,
+    );
+  }
+
+  return {
+    stripe: resolution.stripe,
+    requestOptions: { stripeAccount: tenant.stripe_account_id },
+    keyMode: resolution.keyMode,
+    onPlatformAccount: false,
+  };
+}
