@@ -620,6 +620,17 @@
         "none": "Pas d'autorisation",
         "failed": "Échec",
         "pending": "En attente"
+      },
+      "dialog": {
+        "title": "Lien d'autorisation créé",
+        "description": "Envoyez ce lien à usage unique au client. Après approbation, les factures d'abonnement seront prélevées automatiquement.",
+        "copy": "Copier le lien",
+        "copied": "Copié",
+        "open": "Ouvrir",
+        "email": "Envoyer par e-mail",
+        "close": "Fermer",
+        "mail_subject": "Autorisation de prélèvement automatique",
+        "mail_body": "Bonjour {{name}},\n\nVeuillez utiliser le lien ci-dessous pour autoriser le prélèvement automatique de vos factures d'abonnement :\n\n{{url}}\n\nCordialement."
       }
     }
   },
