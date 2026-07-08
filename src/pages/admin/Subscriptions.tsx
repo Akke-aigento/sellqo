@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 
 const dateLocales: Record<string, Locale> = { nl, en: enUS, de, fr };
 
@@ -150,10 +151,11 @@ export default function SubscriptionsPage() {
   const handleCreateMandateLink = async (customerId: string) => {
     setMandateLoadingId(customerId);
     try {
-      const { data, error } = await supabase.functions.invoke('create-mandate-setup', {
-        body: { customer_id: customerId },
-      });
-      if (error) throw error;
+      const data = await invokeWithErrorBody<{ success: boolean; url: string; error?: string }>(
+        'create-mandate-setup',
+        { body: { customer_id: customerId } },
+        t('subscriptions.mandate.error'),
+      );
       if (!data?.success) throw new Error(data?.error ?? t('subscriptions.mandate.error'));
       const url: string = data.url;
       try {
@@ -249,18 +251,132 @@ export default function SubscriptionsPage() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
-          <div className="overflow-x-auto">
-          <Table>
+          <div className="space-y-0 xl:hidden">
+            {subscriptions.length === 0 ? (
+              <div className="px-4 py-8 text-center text-muted-foreground sm:px-0">
+                {t('common.noResults')}
+              </div>
+            ) : (
+              subscriptions.map((sub) => (
+                <div key={sub.id} className="border-t px-4 py-4 sm:px-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate font-medium">
+                        {sub.customer?.company_name ||
+                          `${sub.customer?.first_name || ''} ${sub.customer?.last_name || ''}`.trim() ||
+                          sub.customer?.email}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{sub.name}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge variant={getStatusBadgeVariant(sub.status)}>
+                        {t(`subscriptions.status.${sub.status}`)}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={6} collisionPadding={16}>
+                          <DropdownMenuItem onClick={() => handleEdit(sub.id)}>
+                            {t('common.edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={generatingId === sub.id || sub.status !== 'active'}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              handleGenerateNow(sub.id);
+                            }}
+                          >
+                            {generatingId === sub.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <FileText className="h-4 w-4 mr-2" />
+                            )}
+                            {t('subscriptions.actions.generate_now')}
+                          </DropdownMenuItem>
+                          {sub.customer_id && (
+                            <DropdownMenuItem
+                              disabled={mandateLoadingId === sub.customer_id}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                handleCreateMandateLink(sub.customer_id!);
+                              }}
+                            >
+                              {mandateLoadingId === sub.customer_id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Link2 className="h-4 w-4 mr-2" />
+                              )}
+                              {t('subscriptions.mandate.create_link')}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          {sub.status === 'active' && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(sub.id, 'paused')}>
+                              <Pause className="h-4 w-4 mr-2" />
+                              {t('subscriptions.actions.pause')}
+                            </DropdownMenuItem>
+                          )}
+                          {sub.status === 'paused' && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(sub.id, 'active')}>
+                              <Play className="h-4 w-4 mr-2" />
+                              {t('subscriptions.actions.resume')}
+                            </DropdownMenuItem>
+                          )}
+                          {(sub.status === 'active' || sub.status === 'paused') && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleStatusChange(sub.id, 'cancelled')}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              {t('subscriptions.actions.cancel')}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">{t('common.total')}</p>
+                      <p className="font-medium">{formatCurrency(sub.total)}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">{t('subscriptions.billing_cycle')}</p>
+                      <p className="truncate font-medium">{getIntervalLabel(sub.interval, sub.interval_count, t)}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">{t('subscriptions.next_invoice')}</p>
+                      <p className="font-medium">
+                        {sub.next_invoice_date && sub.status === 'active'
+                          ? format(new Date(sub.next_invoice_date), 'dd MMM yyyy', { locale })
+                          : '-'}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">{t('subscriptions.mandate.column')}</p>
+                      <div className="mt-1">{renderMandateBadge(sub.customer_id)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto xl:block">
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t('subscriptions.customer')}</TableHead>
                 <TableHead>{t('subscriptions.name')}</TableHead>
                 <TableHead>{t('common.total')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('subscriptions.billing_cycle')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('subscriptions.next_invoice')}</TableHead>
-                <TableHead className="hidden lg:table-cell">{t('subscriptions.mandate.column')}</TableHead>
+                <TableHead>{t('subscriptions.billing_cycle')}</TableHead>
+                <TableHead>{t('subscriptions.next_invoice')}</TableHead>
+                <TableHead>{t('subscriptions.mandate.column')}</TableHead>
                 <TableHead>{t('common.status')}</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
+                <TableHead className="w-[56px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,17 +389,17 @@ export default function SubscriptionsPage() {
               ) : (
                 subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
-                   <TableCell className="font-medium max-w-[120px] sm:max-w-[180px] truncate">
+                    <TableCell className="font-medium max-w-[180px] truncate">
                       {sub.customer?.company_name || 
                         `${sub.customer?.first_name || ''} ${sub.customer?.last_name || ''}`.trim() ||
                         sub.customer?.email}
                     </TableCell>
-                    <TableCell className="max-w-[120px] sm:max-w-[180px] truncate">{sub.name}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{sub.name}</TableCell>
                     <TableCell>{formatCurrency(sub.total)}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                       {getIntervalLabel(sub.interval, sub.interval_count, t)}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                       {sub.next_invoice_date && sub.status === 'active' ? (
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -293,7 +409,7 @@ export default function SubscriptionsPage() {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell>
                       {renderMandateBadge(sub.customer_id)}
                     </TableCell>
                     <TableCell>
@@ -308,7 +424,7 @@ export default function SubscriptionsPage() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="bottom" collisionPadding={12}>
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={6} collisionPadding={16}>
                           <DropdownMenuItem onClick={() => handleEdit(sub.id)}>
                             {t('common.edit')}
                           </DropdownMenuItem>
