@@ -416,7 +416,13 @@
       "generate_now": "Generate invoice now"
     },
     "invoice_note": "Subscription: {name} - Period: {period}",
-    "history": "Invoice history"
+    "history": "Invoice history",
+    "generate_result": {
+      "created": "Invoice created",
+      "skipped_existing": "An invoice already exists for this period",
+      "no_lines": "Subscription has no lines",
+      "error": "Something went wrong"
+    }
   },
   "invoice_duplicate": {
     "title": "Duplicate",

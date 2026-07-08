@@ -603,6 +603,12 @@
     "payment_term": "Zahlungsfrist (Tage)",
     "select_customer": "Kunde auswählen",
     "settings": "Einstellungen",
-    "start_date": "Startdatum"
+    "start_date": "Startdatum",
+    "generate_result": {
+      "created": "Rechnung erstellt",
+      "skipped_existing": "Für diesen Zeitraum existiert bereits eine Rechnung",
+      "no_lines": "Abonnement hat keine Zeilen",
+      "error": "Etwas ist schiefgelaufen"
+    }
   }
 }

@@ -407,7 +407,13 @@
       "generate_now": "Nu factureren"
     },
     "invoice_note": "Abonnement: {name} - Periode: {period}",
-    "history": "Factuurgeschiedenis"
+    "history": "Factuurgeschiedenis",
+    "generate_result": {
+      "created": "Factuur aangemaakt",
+      "skipped_existing": "Factuur voor deze periode bestaat al",
+      "no_lines": "Abonnement heeft geen regels",
+      "error": "Er ging iets mis"
+    }
   },
   "invoice_duplicate": {
     "title": "Duplicaat",

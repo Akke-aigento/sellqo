@@ -603,6 +603,12 @@
     "payment_term": "Délai de paiement (jours)",
     "select_customer": "Sélectionner un client",
     "settings": "Paramètres",
-    "start_date": "Date de début"
+    "start_date": "Date de début",
+    "generate_result": {
+      "created": "Facture créée",
+      "skipped_existing": "Une facture existe déjà pour cette période",
+      "no_lines": "L'abonnement n'a pas de lignes",
+      "error": "Une erreur s'est produite"
+    }
   }
 }
