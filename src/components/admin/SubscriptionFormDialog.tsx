@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -98,6 +99,26 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
 
   const defaultVatRate = vatRates.find(r => r.is_default);
 
+  // Backfill the default VAT rate onto lines that still have no rate selected.
+  // Only applies in CREATE mode (no existing subscription loaded) so we never
+  // overwrite rates loaded from an existing subscription, and never overwrite
+  // a rate the user explicitly picked.
+  useEffect(() => {
+    if (existingSubscription) return;
+    if (!defaultVatRate) return;
+    setLines(prev => {
+      let changed = false;
+      const next = prev.map(l => {
+        if (l.vat_rate_id === null) {
+          changed = true;
+          return { ...l, vat_rate_id: defaultVatRate.id, vat_rate: defaultVatRate.rate };
+        }
+        return l;
+      });
+      return changed ? next : prev;
+    });
+  }, [defaultVatRate?.id, existingSubscription, open]);
+
   const addLine = () => {
     setLines([
       ...lines,
@@ -140,6 +161,11 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
 
   const handleSubmit = async () => {
     if (!customerId || !name || lines.some(l => !l.description)) return;
+
+    if (lines.some(l => !l.vat_rate_id)) {
+      toast.error(t('subscriptions.vat_required', 'Selecteer een BTW-tarief voor elke regel'));
+      return;
+    }
 
     await createSubscription.mutateAsync({
       customer_id: customerId,
