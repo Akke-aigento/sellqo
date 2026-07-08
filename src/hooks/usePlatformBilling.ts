@@ -17,7 +17,7 @@ export function usePlatformBilling() {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plans (*),
+          pricing_plans!plan_id (*),
           tenants (id, name, owner_email)
         `)
         .order('created_at', { ascending: false });
@@ -43,7 +43,7 @@ export function usePlatformBilling() {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plans (*)
+          pricing_plans!plan_id (*)
         `)
         .in('status', ['active', 'trialing']);
 
@@ -126,7 +126,7 @@ export function usePlatformBilling() {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plans (*),
+          pricing_plans!plan_id (*),
           tenants (id, name, owner_email)
         `)
         .eq('status', 'past_due')

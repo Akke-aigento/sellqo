@@ -22,7 +22,7 @@ export function useTenantSubscription() {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plans (*)
+          pricing_plans!plan_id (*)
         `)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();

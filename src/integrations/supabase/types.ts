@@ -15879,7 +15879,9 @@ export type Database = {
       }
       tenant_subscriptions: {
         Row: {
+          billing_customer_id: string | null
           billing_interval: string
+          billing_subscription_id: string | null
           cancel_at_period_end: boolean | null
           canceled_at: string | null
           created_at: string | null
@@ -15888,6 +15890,9 @@ export type Database = {
           id: string
           last_payment_amount: number | null
           last_payment_date: string | null
+          pending_effective_at: string | null
+          pending_interval: string | null
+          pending_plan_id: string | null
           plan_id: string | null
           status: string
           stripe_customer_id: string | null
@@ -15899,7 +15904,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          billing_customer_id?: string | null
           billing_interval?: string
+          billing_subscription_id?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
           created_at?: string | null
@@ -15908,6 +15915,9 @@ export type Database = {
           id?: string
           last_payment_amount?: number | null
           last_payment_date?: string | null
+          pending_effective_at?: string | null
+          pending_interval?: string | null
+          pending_plan_id?: string | null
           plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -15919,7 +15929,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          billing_customer_id?: string | null
           billing_interval?: string
+          billing_subscription_id?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
           created_at?: string | null
@@ -15928,6 +15940,9 @@ export type Database = {
           id?: string
           last_payment_amount?: number | null
           last_payment_date?: string | null
+          pending_effective_at?: string | null
+          pending_interval?: string | null
+          pending_plan_id?: string | null
           plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -15939,6 +15954,27 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_billing_customer_id_fkey"
+            columns: ["billing_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_billing_subscription_id_fkey"
+            columns: ["billing_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_pending_plan_id_fkey"
+            columns: ["pending_plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tenant_subscriptions_plan_id_fkey"
             columns: ["plan_id"]

@@ -27,7 +27,7 @@ export function useTransactionUsage(tenantId: string | undefined) {
         .from('tenant_subscriptions')
         .select(`
           *,
-          pricing_plan:pricing_plans(*)
+          pricing_plan:pricing_plans!plan_id(*)
         `)
         .eq('tenant_id', tenantId)
         .eq('status', 'active')
