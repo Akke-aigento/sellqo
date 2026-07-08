@@ -102,24 +102,9 @@ Deno.serve(async (req) => {
       tenant_id: tenant.id,
       customer_id: customer.id,
       token,
+      stripe_customer_id: stripeCustomerId,
     });
     if (tokErr) throw tokErr;
-
-    // Stash the pending stripe_customer_id in a placeholder mandate row so
-    // the completion step can reuse it without re-authenticating.
-    await supabase
-      .from("customer_payment_mandates")
-      .upsert(
-        {
-          tenant_id: tenant.id,
-          customer_id: customer.id,
-          stripe_customer_id: stripeCustomerId,
-          stripe_payment_method_id: existingMandate ? undefined : "pending",
-          method_type: "sepa_debit",
-          status: "pending",
-        },
-        { onConflict: "tenant_id,customer_id", ignoreDuplicates: true },
-      );
 
     const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/+$/, "") || "";
     const url = `${origin}/betaling/machtiging/${token}`;
