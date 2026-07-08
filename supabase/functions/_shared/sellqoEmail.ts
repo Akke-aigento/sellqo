@@ -260,6 +260,40 @@ export function emailBaseLayout(opts: BaseLayoutOptions): string {
       .sq-footer p, .sq-footer a { color:#94a3b8 !important; }
       .sq-muted { color:#94a3b8 !important; }
       .sq-divider { border-color:#283449 !important; }
+      /* Neutraliseer hardcoded lichte backgrounds in info/summary boxen */
+      .sq-card [style*="background:#f9fafb"],
+      .sq-card [style*="background-color:#f9fafb"],
+      .sq-card [style*="background:#f3f4f6"],
+      .sq-card [style*="background-color:#f3f4f6"],
+      .sq-card [style*="background:#f7f9fc"],
+      .sq-card [style*="background-color:#f7f9fc"],
+      .sq-card [style*="background:#f8fafc"],
+      .sq-card [style*="background-color:#f8fafc"],
+      .sq-card [style*="background:#ecfdf5"],
+      .sq-card [style*="background:#fffbeb"],
+      .sq-card [style*="background:#fef2f2"] {
+        background-color:#232f45 !important;
+        background:#232f45 !important;
+      }
+      /* Force leesbare tekstkleuren voor hardcoded grijstinten */
+      .sq-card [style*="color:#6b7280"],
+      .sq-card [style*="color:#4b5563"],
+      .sq-card [style*="color:#374151"],
+      .sq-card [style*="color:#5b6b7d"],
+      .sq-card [style*="color:#8a96a4"] {
+        color:#cbd5e1 !important;
+      }
+      .sq-card [style*="color:#1f2937"],
+      .sq-card [style*="color:#111827"],
+      .sq-card [style*="color:#1a2332"] {
+        color:#e8edf5 !important;
+      }
+      .sq-card [style*="border-color:#e5e7eb"],
+      .sq-card [style*="border-color:#e4e8ee"],
+      .sq-card [style*="border-bottom:1px solid #e5e7eb"],
+      .sq-card [style*="border-bottom:1px solid #e4e8ee"] {
+        border-color:#283449 !important;
+      }
     }`
     : "";
 
