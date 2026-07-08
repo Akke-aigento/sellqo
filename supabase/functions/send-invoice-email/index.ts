@@ -175,9 +175,31 @@ serve(async (req) => {
 
     const brand = await getTenantBrand(supabaseClient, invoice.tenant_id);
     const locale = brand.defaultLocale;
-    const emailSubject = tenant.invoice_email_subject ||
-      t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName });
-    const customBody = tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName });
+
+    // Auto-collected invoices (charged via active mandate) must NOT include
+    // payment instructions — the charge is already in flight or completed.
+    const isAutoCollected =
+      invoice.status === 'processing' || invoice.status === 'paid';
+    const autoVariant: 'processing' | 'paid' | null = isAutoCollected
+      ? (invoice.status === 'paid' ? 'paid' : 'processing')
+      : null;
+
+    const emailSubject = isAutoCollected
+      ? t(locale, 'invoice.autoCollectSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
+      : (tenant.invoice_email_subject ||
+          t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName }));
+
+    // For auto-collected invoices we intentionally IGNORE the tenant's
+    // custom invoice_email_body — it typically contains payment terms
+    // ("betaal binnen X dagen") which would mislead the customer into
+    // paying while the charge is already running.
+    const customBody = isAutoCollected
+      ? t(locale, 'invoice.autoCollectIntro', { customerName })
+      : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName }));
+
+    const attachedLine = isAutoCollected
+      ? t(locale, autoVariant === 'paid' ? 'invoice.autoCollectPaidNote' : 'invoice.autoCollectProcessingNote')
+      : t(locale, 'invoice.attached');
 
     const summary = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -186,7 +208,7 @@ serve(async (req) => {
       </table>
     </td></tr></table>
     ${attachmentsInfo.length ? `<div style="text-align:center;margin:24px 0;">${attachmentsInfo.join('<br/>')}</div>` : ''}
-    <p style="color:#4b5563;">${t(locale, 'invoice.attached')}</p>`;
+    <p style="color:#4b5563;">${attachedLine}</p>`;
 
     const { html: emailHtml, text: emailText } = renderTenantEmail({
       tenantBrand: brand,
@@ -243,13 +265,21 @@ serve(async (req) => {
       }
     }
 
-    // Update invoice status to sent
+    // Always record sent_at, but NEVER downgrade a 'processing' or 'paid'
+    // invoice back to 'sent'. Only transition to 'sent' from states where
+    // that is a semantic upgrade (draft/unpaid) or a no-op refresh (sent).
+    const sentAt = new Date().toISOString();
+    const canPromoteToSent =
+      invoice.status === 'draft' ||
+      invoice.status === 'unpaid' ||
+      invoice.status === 'sent';
     await supabaseClient
       .from("invoices")
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-      })
+      .update(
+        canPromoteToSent
+          ? { status: 'sent', sent_at: sentAt }
+          : { sent_at: sentAt },
+      )
       .eq("id", invoice_id);
 
     return new Response(JSON.stringify({ 
