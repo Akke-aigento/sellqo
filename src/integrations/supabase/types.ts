@@ -7734,6 +7734,7 @@ export type Database = {
           customer_id: string
           expires_at: string
           id: string
+          stripe_customer_id: string | null
           tenant_id: string
           token: string
           used_at: string | null
@@ -7743,6 +7744,7 @@ export type Database = {
           customer_id: string
           expires_at?: string
           id?: string
+          stripe_customer_id?: string | null
           tenant_id: string
           token: string
           used_at?: string | null
@@ -7752,6 +7754,7 @@ export type Database = {
           customer_id?: string
           expires_at?: string
           id?: string
+          stripe_customer_id?: string | null
           tenant_id?: string
           token?: string
           used_at?: string | null
