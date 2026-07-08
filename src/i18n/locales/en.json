@@ -422,6 +422,18 @@
       "skipped_existing": "An invoice already exists for this period",
       "no_lines": "Subscription has no lines",
       "error": "Something went wrong"
+    },
+    "mandate": {
+      "column": "Mandate",
+      "create_link": "Create authorization link",
+      "link_created": "Authorization link created (copied to clipboard)",
+      "error": "Could not create authorization link",
+      "badge": {
+        "active": "Active",
+        "none": "No authorization",
+        "failed": "Failed",
+        "pending": "Pending"
+      }
     }
   },
   "invoice_duplicate": {
@@ -726,6 +738,25 @@
       "advanced": {
         "customCss": "Advanced"
       }
+    }
+  },
+  "mandate": {
+    "title": "Activate automatic payment",
+    "description": "Authorize {{tenant}} to charge subscription invoices automatically.",
+    "loading": "Loading…",
+    "authorize": "Confirm authorization",
+    "sepa_mandate_text": "By signing this mandate form, you authorize {{creditor}} and Stripe, our payment service provider, to send instructions to your bank to debit your account, and your bank to debit your account in accordance with the instructions from {{creditor}}. You are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited.",
+    "errors": {
+      "title": "Authorization not valid",
+      "generic": "Something went wrong.",
+      "invalid_token": "This authorization link no longer exists.",
+      "token_used": "This authorization has already been activated.",
+      "token_expired": "This link has expired. Please request a new one.",
+      "confirm_failed": "The payment details could not be confirmed."
+    },
+    "success": {
+      "title": "Authorization activated",
+      "body": "Future subscription invoices from {{tenant}} will be charged automatically."
     }
   }
 }

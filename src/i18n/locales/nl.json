@@ -413,6 +413,18 @@
       "skipped_existing": "Factuur voor deze periode bestaat al",
       "no_lines": "Abonnement heeft geen regels",
       "error": "Er ging iets mis"
+    },
+    "mandate": {
+      "column": "Machtiging",
+      "create_link": "Machtigingslink aanmaken",
+      "link_created": "Machtigingslink aangemaakt (gekopieerd naar klembord)",
+      "error": "Kon geen machtigingslink aanmaken",
+      "badge": {
+        "active": "Actief",
+        "none": "Geen machtiging",
+        "failed": "Mislukt",
+        "pending": "In afwachting"
+      }
     }
   },
   "invoice_duplicate": {
@@ -739,6 +751,25 @@
       "advanced": {
         "customCss": "Geavanceerd"
       }
+    }
+  },
+  "mandate": {
+    "title": "Automatische betaling activeren",
+    "description": "Machtig {{tenant}} om abonnementsfacturen automatisch af te schrijven.",
+    "loading": "Bezig met laden…",
+    "authorize": "Machtiging bevestigen",
+    "sepa_mandate_text": "Door deze machtiging te ondertekenen geeft u toestemming aan {{creditor}} en aan Stripe, onze betaaldienstverlener, om instructies naar uw bank te sturen om uw rekening te debiteren, en aan uw bank om uw rekening te debiteren volgens de instructies van {{creditor}}. U heeft recht op terugbetaling door uw bank volgens de voorwaarden van uw overeenkomst met uw bank. Een terugbetaling moet binnen 8 weken na de datum van afschrijving worden aangevraagd.",
+    "errors": {
+      "title": "Machtiging niet geldig",
+      "generic": "Er is iets misgegaan.",
+      "invalid_token": "Deze machtigingslink bestaat niet meer.",
+      "token_used": "Deze machtiging is al geactiveerd.",
+      "token_expired": "Deze link is verlopen. Vraag een nieuwe aan.",
+      "confirm_failed": "De betaalgegevens konden niet worden bevestigd."
+    },
+    "success": {
+      "title": "Machtiging geactiveerd",
+      "body": "Toekomstige abonnementsfacturen van {{tenant}} worden automatisch afgeschreven."
     }
   }
 }

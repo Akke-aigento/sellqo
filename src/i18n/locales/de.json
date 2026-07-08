@@ -609,6 +609,37 @@
       "skipped_existing": "Für diesen Zeitraum existiert bereits eine Rechnung",
       "no_lines": "Abonnement hat keine Zeilen",
       "error": "Etwas ist schiefgelaufen"
+    },
+    "mandate": {
+      "column": "Mandat",
+      "create_link": "Ermächtigungslink erstellen",
+      "link_created": "Ermächtigungslink erstellt (in die Zwischenablage kopiert)",
+      "error": "Ermächtigungslink konnte nicht erstellt werden",
+      "badge": {
+        "active": "Aktiv",
+        "none": "Keine Ermächtigung",
+        "failed": "Fehlgeschlagen",
+        "pending": "Ausstehend"
+      }
+    }
+  },
+  "mandate": {
+    "title": "Automatische Zahlung aktivieren",
+    "description": "Ermächtigen Sie {{tenant}}, Abonnementrechnungen automatisch einzuziehen.",
+    "loading": "Wird geladen…",
+    "authorize": "Ermächtigung bestätigen",
+    "sepa_mandate_text": "Mit der Unterzeichnung dieses Mandats ermächtigen Sie {{creditor}} und Stripe, unseren Zahlungsdienstleister, Ihrer Bank Anweisungen zur Belastung Ihres Kontos zu erteilen, und Ihre Bank, Ihr Konto gemäß den Anweisungen von {{creditor}} zu belasten. Sie haben Anspruch auf eine Erstattung durch Ihre Bank gemäß den mit Ihrer Bank vereinbarten Bedingungen. Eine Erstattung muss innerhalb von 8 Wochen ab dem Datum der Belastung Ihres Kontos beantragt werden.",
+    "errors": {
+      "title": "Ermächtigung ungültig",
+      "generic": "Etwas ist schiefgelaufen.",
+      "invalid_token": "Dieser Ermächtigungslink existiert nicht mehr.",
+      "token_used": "Diese Ermächtigung wurde bereits aktiviert.",
+      "token_expired": "Dieser Link ist abgelaufen. Bitte fordern Sie einen neuen an.",
+      "confirm_failed": "Die Zahlungsdaten konnten nicht bestätigt werden."
+    },
+    "success": {
+      "title": "Ermächtigung aktiviert",
+      "body": "Zukünftige Abonnementrechnungen von {{tenant}} werden automatisch eingezogen."
     }
   }
 }
