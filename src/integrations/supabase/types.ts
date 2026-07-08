@@ -14161,18 +14161,24 @@ export type Database = {
           generated_at: string | null
           id: string
           invoice_id: string
+          period_end: string | null
+          period_start: string | null
           subscription_id: string
         }
         Insert: {
           generated_at?: string | null
           id?: string
           invoice_id: string
+          period_end?: string | null
+          period_start?: string | null
           subscription_id: string
         }
         Update: {
           generated_at?: string | null
           id?: string
           invoice_id?: string
+          period_end?: string | null
+          period_start?: string | null
           subscription_id?: string
         }
         Relationships: [
