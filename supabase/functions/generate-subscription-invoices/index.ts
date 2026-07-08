@@ -139,6 +139,132 @@ Deno.serve(async (req) => {
         const periodStart: string = sub.next_invoice_date;
         const periodEnd: string = advanceDate(periodStart, sub.interval, Number(sub.interval_count) || 1);
 
+        // ------------------------------------------------------------------
+        // ONBOARD-1: apply any pending downgrade / interval change on the
+        // linked tenant_subscription BEFORE generating this period's invoice.
+        // ------------------------------------------------------------------
+        try {
+          const { data: ts } = await supabase
+            .from("tenant_subscriptions")
+            .select("id, tenant_id, plan_id, billing_interval, pending_plan_id, pending_interval")
+            .eq("billing_subscription_id", sub.id)
+            .maybeSingle();
+          if (ts && ts.pending_plan_id) {
+            const newPlanId = ts.pending_plan_id as string;
+            const newInterval = (ts.pending_interval as string) || ts.billing_interval || sub.interval;
+            const { data: newPlan } = await supabase
+              .from("pricing_plans")
+              .select("id, name, slug, monthly_price, yearly_price")
+              .eq("id", newPlanId)
+              .maybeSingle();
+            if (newPlan) {
+              const isFree =
+                newPlan.slug === "free" || Number(newPlan.monthly_price) === 0;
+              if (isFree) {
+                // Cancel billing subscription at boundary; no line rewrite needed.
+                await supabase
+                  .from("subscriptions")
+                  .update({ status: "cancelled" })
+                  .eq("id", sub.id);
+                await supabase
+                  .from("tenant_subscriptions")
+                  .update({
+                    plan_id: "free",
+                    billing_interval: newInterval,
+                    status: "canceled",
+                    canceled_at: new Date().toISOString(),
+                    cancel_at_period_end: true,
+                    pending_plan_id: null,
+                    pending_interval: null,
+                    pending_effective_at: null,
+                  })
+                  .eq("id", ts.id);
+                log("Applied pending downgrade to free — cancelling", {
+                  subscription_id: sub.id,
+                  tenant_id: ts.tenant_id,
+                });
+                summary.skipped_no_lines++;
+                continue;
+              }
+              // Rewrite line + subscription
+              const unit =
+                newInterval === "yearly"
+                  ? Number(newPlan.yearly_price)
+                  : Number(newPlan.monthly_price);
+              const { data: existingLines } = await supabase
+                .from("subscription_lines")
+                .select("id")
+                .eq("subscription_id", sub.id)
+                .order("sort_order", { ascending: true });
+              if (existingLines && existingLines.length > 0) {
+                await supabase
+                  .from("subscription_lines")
+                  .update({
+                    description: `${newPlan.name} (${newInterval})`,
+                    quantity: 1,
+                    unit_price: unit,
+                    vat_rate: 21,
+                  })
+                  .eq("id", existingLines[0].id);
+                // Trim extra lines
+                for (const extra of existingLines.slice(1)) {
+                  await supabase.from("subscription_lines").delete().eq("id", extra.id);
+                }
+              } else {
+                await supabase.from("subscription_lines").insert({
+                  subscription_id: sub.id,
+                  description: `${newPlan.name} (${newInterval})`,
+                  quantity: 1,
+                  unit_price: unit,
+                  vat_rate: 21,
+                  sort_order: 0,
+                });
+              }
+              await supabase
+                .from("subscriptions")
+                .update({ interval: newInterval })
+                .eq("id", sub.id);
+              await supabase
+                .from("tenant_subscriptions")
+                .update({
+                  plan_id: newPlanId,
+                  billing_interval: newInterval,
+                  pending_plan_id: null,
+                  pending_interval: null,
+                  pending_effective_at: null,
+                })
+                .eq("id", ts.id);
+              // Refresh in-memory sub so downstream code sees the new interval + lines
+              sub.interval = newInterval;
+              sub.subscription_lines = [
+                {
+                  id: (existingLines && existingLines[0]?.id) || null,
+                  description: `${newPlan.name} (${newInterval})`,
+                  quantity: 1,
+                  unit_price: unit,
+                  vat_rate: 21,
+                  sort_order: 0,
+                },
+              ];
+              log("Applied pending plan change", {
+                subscription_id: sub.id,
+                new_plan: newPlanId,
+                new_interval: newInterval,
+              });
+            }
+          }
+        } catch (pendingErr) {
+          const pmsg = pendingErr instanceof Error ? pendingErr.message : String(pendingErr);
+          console.error(`[GEN-SUB-INVOICES] Pending-plan apply failed for ${sub.id}: ${pmsg}`);
+        }
+
+        // Recompute periodEnd in case interval changed
+        const periodEndAdj: string = advanceDate(
+          periodStart,
+          sub.interval,
+          Number(sub.interval_count) || 1,
+        );
+
         // Idempotency: existing invoice for same subscription + period_start?
         const { data: existing, error: existErr } = await supabase
           .from("subscription_invoices")
@@ -240,7 +366,7 @@ Deno.serve(async (req) => {
             subscription_id: sub.id,
             invoice_id: invoice.id,
             period_start: periodStart,
-            period_end: periodEnd,
+            period_end: periodEndAdj,
           });
         if (linkErr) throw linkErr;
 
@@ -249,7 +375,7 @@ Deno.serve(async (req) => {
           .from("subscriptions")
           .update({
             last_invoice_date: periodStart,
-            next_invoice_date: periodEnd,
+            next_invoice_date: periodEndAdj,
           })
           .eq("id", sub.id);
         if (updErr) throw updErr;
@@ -260,7 +386,7 @@ Deno.serve(async (req) => {
           invoice_id: invoice.id,
           invoice_number: invoiceNumber,
           period_start: periodStart,
-          period_end: periodEnd,
+          period_end: periodEndAdj,
         });
 
         // ----------------------------------------------------------------
