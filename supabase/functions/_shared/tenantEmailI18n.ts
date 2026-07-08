@@ -108,6 +108,10 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       cta: "Bekijk factuur",
       attached: "De factuur vind je als PDF in de bijlage.",
       poweredBy: "Mogelijk gemaakt door SellQo",
+      autoCollectSubject: "Factuur {invoiceNumber} — automatische incasso",
+      autoCollectIntro: "Beste {customerName}, hierbij ontvang je de factuur voor je abonnement. Je hoeft niets te doen: het bedrag wordt automatisch geïncasseerd via de door jou verstrekte machtiging.",
+      autoCollectProcessingNote: "Het bedrag wordt de komende dagen automatisch afgeschreven via SEPA-incasso of je opgeslagen betaalmethode. Geen actie nodig.",
+      autoCollectPaidNote: "Het bedrag is automatisch geïncasseerd via SEPA of je opgeslagen betaalmethode. Deze factuur is voldaan.",
     },
     creditNote: {
       subject: "Creditnota {creditNoteNumber} - {tenantName}",
@@ -169,6 +173,10 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       cta: "View invoice",
       attached: "Your invoice is attached as a PDF.",
       poweredBy: "Powered by SellQo",
+      autoCollectSubject: "Invoice {invoiceNumber} — automatic collection",
+      autoCollectIntro: "Dear {customerName}, please find your subscription invoice attached. No action is required: the amount will be collected automatically via the mandate you provided.",
+      autoCollectProcessingNote: "The amount will be charged automatically over the coming days via SEPA direct debit or your saved payment method. No action needed.",
+      autoCollectPaidNote: "The amount has been collected automatically via SEPA or your saved payment method. This invoice is paid in full.",
     },
     creditNote: {
       subject: "Credit note {creditNoteNumber} - {tenantName}",
@@ -230,6 +238,10 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       cta: "Voir la facture",
       attached: "La facture est jointe en PDF.",
       poweredBy: "Propulsé par SellQo",
+      autoCollectSubject: "Facture {invoiceNumber} — prélèvement automatique",
+      autoCollectIntro: "Cher/Chère {customerName}, veuillez trouver ci-joint la facture de votre abonnement. Aucune action requise : le montant sera prélevé automatiquement via le mandat que vous avez fourni.",
+      autoCollectProcessingNote: "Le montant sera prélevé automatiquement dans les prochains jours par SEPA ou via votre moyen de paiement enregistré. Aucune action nécessaire.",
+      autoCollectPaidNote: "Le montant a été prélevé automatiquement par SEPA ou via votre moyen de paiement enregistré. Cette facture est réglée.",
     },
     creditNote: {
       subject: "Note de crédit {creditNoteNumber} - {tenantName}",
@@ -291,6 +303,10 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       cta: "Rechnung ansehen",
       attached: "Die Rechnung finden Sie als PDF im Anhang.",
       poweredBy: "Bereitgestellt von SellQo",
+      autoCollectSubject: "Rechnung {invoiceNumber} — automatischer Einzug",
+      autoCollectIntro: "Sehr geehrte/r {customerName}, anbei erhalten Sie die Rechnung zu Ihrem Abonnement. Sie müssen nichts unternehmen: Der Betrag wird automatisch über das von Ihnen erteilte Mandat eingezogen.",
+      autoCollectProcessingNote: "Der Betrag wird in den nächsten Tagen automatisch per SEPA-Lastschrift oder über Ihre gespeicherte Zahlungsmethode eingezogen. Es ist keine Aktion erforderlich.",
+      autoCollectPaidNote: "Der Betrag wurde automatisch per SEPA oder über Ihre gespeicherte Zahlungsmethode eingezogen. Diese Rechnung ist beglichen.",
     },
     creditNote: {
       subject: "Gutschrift {creditNoteNumber} - {tenantName}",
