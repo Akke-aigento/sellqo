@@ -160,14 +160,25 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
   const total = subtotal + vatTotal;
 
   const handleSubmit = async () => {
-    if (!customerId || !name || lines.some(l => !l.description)) return;
-
+    if (!customerId) {
+      toast.error(t('subscriptions.customer_required', 'Selecteer een klant'));
+      return;
+    }
+    if (!name.trim()) {
+      toast.error(t('subscriptions.name_required', 'Vul een naam / omschrijving in'));
+      return;
+    }
+    if (lines.some(l => !l.description.trim())) {
+      toast.error(t('subscriptions.description_required', 'Vul een omschrijving in voor elke factuurregel'));
+      return;
+    }
     if (lines.some(l => !l.vat_rate_id)) {
       toast.error(t('subscriptions.vat_required', 'Selecteer een BTW-tarief voor elke regel'));
       return;
     }
 
-    await createSubscription.mutateAsync({
+    try {
+      await createSubscription.mutateAsync({
       customer_id: customerId,
       name,
       interval,
@@ -186,9 +197,11 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
         vat_rate_id: l.vat_rate_id,
         vat_rate: l.vat_rate,
       })),
-    });
-
-    onOpenChange(false);
+      });
+      onOpenChange(false);
+    } catch (err) {
+      // mutation hook toont al een toast; hier alleen voorkomen dat de dialog sluit
+    }
   };
 
   return (
@@ -207,7 +220,7 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
           {/* Customer & Name */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>{t('subscriptions.customer')}</Label>
+              <Label>{t('subscriptions.customer')} *</Label>
               <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('subscriptions.select_customer')} />
@@ -222,7 +235,7 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>{t('subscriptions.name')}</Label>
+              <Label>{t('subscriptions.name')} *</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -276,13 +289,19 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscriptionId }: S
                   onChange={(e) => updateLine(line.id, 'quantity', parseFloat(e.target.value) || 1)}
                   placeholder={t('packing_slip.quantity')}
                 />
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={line.unit_price}
-                  onChange={(e) => updateLine(line.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                  placeholder={t('common.price')}
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                    €
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={line.unit_price}
+                    onChange={(e) => updateLine(line.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                    placeholder={t('common.price')}
+                    className="pl-7"
+                  />
+                </div>
                 <Select
                   value={line.vat_rate_id || ''}
                   onValueChange={(v) => updateLine(line.id, 'vat_rate_id', v)}
