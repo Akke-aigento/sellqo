@@ -7248,15 +7248,21 @@ export type Database = {
       invoices: {
         Row: {
           charge_attempts: number
+          checkout_session_created_at: string | null
+          checkout_session_id: string | null
+          checkout_session_url: string | null
           created_at: string
           customer_id: string | null
           due_date: string | null
+          dunning_level: number
           id: string
           invoice_number: string
           is_b2b: boolean | null
           issue_date: string
+          last_charge_attempt_at: string | null
           last_reminder_at: string | null
           metadata: Json
+          next_action_at: string | null
           ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
@@ -7288,15 +7294,21 @@ export type Database = {
         }
         Insert: {
           charge_attempts?: number
+          checkout_session_created_at?: string | null
+          checkout_session_id?: string | null
+          checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
+          dunning_level?: number
           id?: string
           invoice_number: string
           is_b2b?: boolean | null
           issue_date?: string
+          last_charge_attempt_at?: string | null
           last_reminder_at?: string | null
           metadata?: Json
+          next_action_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -7328,15 +7340,21 @@ export type Database = {
         }
         Update: {
           charge_attempts?: number
+          checkout_session_created_at?: string | null
+          checkout_session_id?: string | null
+          checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
+          dunning_level?: number
           id?: string
           invoice_number?: string
           is_b2b?: boolean | null
           issue_date?: string
+          last_charge_attempt_at?: string | null
           last_reminder_at?: string | null
           metadata?: Json
+          next_action_at?: string | null
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
