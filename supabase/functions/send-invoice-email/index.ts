@@ -289,9 +289,11 @@ serve(async (req) => {
     // that is a semantic upgrade (draft/unpaid) or a no-op refresh (sent).
     const sentAt = new Date().toISOString();
     const canPromoteToSent =
-      invoice.status === 'draft' ||
-      invoice.status === 'unpaid' ||
-      invoice.status === 'sent';
+      !reminderLevel && (
+        invoice.status === 'draft' ||
+        invoice.status === 'unpaid' ||
+        invoice.status === 'sent'
+      );
     await supabaseClient
       .from("invoices")
       .update(
