@@ -106,6 +106,7 @@ export default function InvoicesPage() {
       ublUrl: i.ubl_url,
       peppolStatus: (i as any).peppol_status ?? null,
       language: (i as any).language ?? null,
+      dunning_level: (i as any).dunning_level ?? 0,
     }));
     const fromCNs: Combined[] = creditNotes.map((c: any) => ({
       kind: 'creditnote',
