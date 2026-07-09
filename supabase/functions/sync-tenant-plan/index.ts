@@ -29,6 +29,20 @@ interface SyncBody {
 const VAT_RATE = 21;
 const GENERATE_DAYS_BEFORE = 5;
 
+function errMsg(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (err && typeof err === "object") {
+    const anyErr = err as { message?: string };
+    if (anyErr.message) return anyErr.message;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+  return String(err);
+}
+
 function log(step: string, details?: unknown) {
   const suffix = details !== undefined ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[SYNC-TENANT-PLAN] ${step}${suffix}`);
@@ -143,7 +157,7 @@ Deno.serve(async (req) => {
 
     const { data: tenant, error: tenantErr } = await supabase
       .from("tenants")
-      .select("id, name, company_name, owner_email, contact_email, subscription_plan")
+      .select("id, name, billing_company_name, billing_email, owner_email, subscription_plan")
       .eq("id", tenantId)
       .maybeSingle();
     if (tenantErr) throw tenantErr;
@@ -176,11 +190,16 @@ Deno.serve(async (req) => {
     async function ensureBillingCustomer(existingCustomerId: string | null): Promise<string> {
       if (existingCustomerId) return existingCustomerId;
       const billingEmail =
-        (tenant.owner_email as string | null) ||
-        (tenant.contact_email as string | null) ||
-        `${tenant.id}@billing.sellqo.internal`;
+        ((tenant as any).billing_email as string | null) ||
+        ((tenant as any).owner_email as string | null) ||
+        "";
+      if (!billingEmail) {
+        throw new Error("Tenant has no billing email configured");
+      }
       const companyName =
-        (tenant.company_name as string | null) || (tenant.name as string) || "Tenant";
+        ((tenant as any).billing_company_name as string | null) ||
+        ((tenant as any).name as string) ||
+        "Tenant";
 
       // Try find by email within internal tenant
       const { data: existing, error: findErr } = await supabase
@@ -217,7 +236,7 @@ Deno.serve(async (req) => {
       startISO: string,
     ): Promise<{ id: string }> {
       const unit = priceForPlan(plan, iv);
-      const subName = `${tenant.company_name || tenant.name} — ${plan.name} (${iv})`;
+      const subName = `${(tenant as any).billing_company_name || tenant.name} — ${plan.name} (${iv})`;
       const { data: sub, error: subErr } = await supabase
         .from("subscriptions")
         .insert({
@@ -333,7 +352,7 @@ Deno.serve(async (req) => {
             start_date: todayISO,
             next_invoice_date: todayISO,
             status: "active",
-            name: `${tenant.company_name || tenant.name} — ${targetPlan.name} (${interval})`,
+            name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
           })
           .eq("id", billingSubId);
       }
@@ -371,7 +390,7 @@ Deno.serve(async (req) => {
         if (invErr) throw invErr;
         invoked = true;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = errMsg(e);
         console.error(`[SYNC-TENANT-PLAN] generate invoke failed: ${msg}`);
       }
 
@@ -505,7 +524,7 @@ Deno.serve(async (req) => {
         .from("subscriptions")
         .update({
           interval,
-          name: `${tenant.company_name || tenant.name} — ${targetPlan.name} (${interval})`,
+          name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
         })
         .eq("id", billingSubId);
 
@@ -618,7 +637,7 @@ Deno.serve(async (req) => {
             }
           }
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
+          const msg = errMsg(e);
           console.error(`[SYNC-TENANT-PLAN] Pro-rata charge failed: ${msg}`);
         }
       }
@@ -645,7 +664,7 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ success: false, error: "Unhandled action" }, 400);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errMsg(err);
     console.error(`[SYNC-TENANT-PLAN] ERROR: ${message}`);
     return jsonResponse({ success: false, error: message }, 500);
   }
