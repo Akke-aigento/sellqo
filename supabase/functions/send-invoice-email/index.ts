@@ -56,10 +56,14 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { invoice_id } = await req.json();
+    const { invoice_id, reminder_level, checkout_url } = await req.json();
     if (!invoice_id) {
       throw new Error("invoice_id is required");
     }
+    const reminderLevel: 1 | 2 | 3 | null =
+      reminder_level === 1 || reminder_level === 2 || reminder_level === 3
+        ? reminder_level
+        : null;
 
     logStep("Fetching invoice", { invoice_id });
 
@@ -184,22 +188,36 @@ serve(async (req) => {
       ? (invoice.status === 'paid' ? 'paid' : 'processing')
       : null;
 
-    const emailSubject = isAutoCollected
-      ? t(locale, 'invoice.autoCollectSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
-      : (tenant.invoice_email_subject ||
-          t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName }));
+    const emailSubject = reminderLevel
+      ? t(locale, `invoice.reminderSubject${reminderLevel}`, { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
+      : (isAutoCollected
+          ? t(locale, 'invoice.autoCollectSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
+          : (tenant.invoice_email_subject ||
+              t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })));
 
     // For auto-collected invoices we intentionally IGNORE the tenant's
     // custom invoice_email_body — it typically contains payment terms
     // ("betaal binnen X dagen") which would mislead the customer into
     // paying while the charge is already running.
-    const customBody = isAutoCollected
-      ? t(locale, 'invoice.autoCollectIntro', { customerName })
-      : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName }));
+    const customBody = reminderLevel
+      ? t(locale, `invoice.reminderIntro${reminderLevel}`, { customerName, invoiceNumber: invoice.invoice_number })
+      : (isAutoCollected
+          ? t(locale, 'invoice.autoCollectIntro', { customerName })
+          : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName })));
 
-    const attachedLine = isAutoCollected
-      ? t(locale, autoVariant === 'paid' ? 'invoice.autoCollectPaidNote' : 'invoice.autoCollectProcessingNote')
-      : t(locale, 'invoice.attached');
+    const attachedLine = reminderLevel
+      ? t(locale, 'invoice.attached')
+      : (isAutoCollected
+          ? t(locale, autoVariant === 'paid' ? 'invoice.autoCollectPaidNote' : 'invoice.autoCollectProcessingNote')
+          : t(locale, 'invoice.attached'));
+
+    const payNowBlock = reminderLevel && checkout_url
+      ? `<div style="text-align:center;margin:24px 0;">
+          <a href="${checkout_url}" style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">
+            ${t(locale, 'invoice.reminderPayNow')}
+          </a>
+        </div>`
+      : '';
 
     const summary = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -207,6 +225,7 @@ serve(async (req) => {
         <tr><td style="color:#6b7280;padding:5px 0;">Totaalbedrag:</td><td style="color:#1f2937;text-align:right;padding:5px 0;"><strong>${formatAmount(Number(invoice.total), currency, locale)}</strong></td></tr>
       </table>
     </td></tr></table>
+    ${payNowBlock}
     ${attachmentsInfo.length ? `<div style="text-align:center;margin:24px 0;">${attachmentsInfo.join('<br/>')}</div>` : ''}
     <p style="color:#4b5563;">${attachedLine}</p>`;
 
@@ -270,9 +289,11 @@ serve(async (req) => {
     // that is a semantic upgrade (draft/unpaid) or a no-op refresh (sent).
     const sentAt = new Date().toISOString();
     const canPromoteToSent =
-      invoice.status === 'draft' ||
-      invoice.status === 'unpaid' ||
-      invoice.status === 'sent';
+      !reminderLevel && (
+        invoice.status === 'draft' ||
+        invoice.status === 'unpaid' ||
+        invoice.status === 'sent'
+      );
     await supabaseClient
       .from("invoices")
       .update(

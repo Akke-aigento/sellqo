@@ -451,9 +451,16 @@ Deno.serve(async (req) => {
               log("Charge processing (SEPA)", { invoice_id: invoice.id, intent: intent.id });
             } else {
               // requires_action / requires_payment_method / canceled
+              const nowIso = new Date().toISOString();
+              const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
               await supabase
                 .from("invoices")
-                .update({ charge_attempts: 1 })
+                .update({
+                  status: "unpaid",
+                  charge_attempts: 1,
+                  last_charge_attempt_at: nowIso,
+                  next_action_at: nextAt,
+                })
                 .eq("id", invoice.id);
               summary.charge_failed++;
               log("Charge not confirmed", { invoice_id: invoice.id, status: intent.status });
@@ -466,9 +473,16 @@ Deno.serve(async (req) => {
             `[GEN-SUB-INVOICES] Charge failed for invoice ${invoice.id}: ${chargeMessage}`,
           );
           summary.charge_failed++;
+          const nowIso = new Date().toISOString();
+          const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
           await supabase
             .from("invoices")
-            .update({ charge_attempts: 1 })
+            .update({
+              status: "unpaid",
+              charge_attempts: 1,
+              last_charge_attempt_at: nowIso,
+              next_action_at: nextAt,
+            })
             .eq("id", invoice.id);
         }
 
