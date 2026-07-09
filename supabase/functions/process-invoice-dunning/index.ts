@@ -13,6 +13,20 @@ const log = (step: string, details?: unknown) => {
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : (typeof e === 'string' ? e : JSON.stringify(e)));
 
+// Safely await an async operation, logging failures without letting them
+// bubble out. Critical: many Supabase query builders are thenables that do
+// NOT expose a `.catch()` method — calling `.catch()` on them throws
+// synchronously and aborts the surrounding block. Always wrap Supabase
+// mutations here instead of using `.catch()`.
+async function safe<T>(label: string, op: () => Promise<T>): Promise<T | null> {
+  try {
+    return await op();
+  } catch (e) {
+    console.warn(`[DUNNING] ${label} failed:`, errMsg(e));
+    return null;
+  }
+}
+
 // Charge-retry interval by attempt number (attempt going from 1 -> 2 waits 3d, 2 -> 3 waits 7d)
 const CHARGE_RETRY_DAYS = [0, 3, 7];
 const MAX_CHARGE_ATTEMPTS = 3;
@@ -209,15 +223,20 @@ Deno.serve(async (req) => {
         // -------------------------------------------------------------------
         if (invoice.subscription_id && currentChargeAttempts >= MAX_CHARGE_ATTEMPTS && currentDunningLevel < 3) {
           const checkoutUrl = await ensureCheckoutUrl(supabase, invoice.id);
-          await supabase.functions.invoke('send-invoice-email', {
-            body: { invoice_id: invoice.id, reminder_level: 3, checkout_url: checkoutUrl },
-          }).catch((e) => log('Payment-request email failed', errMsg(e)));
+          await safe('Payment-request email', () =>
+            supabase.functions.invoke('send-invoice-email', {
+              body: { invoice_id: invoice.id, reminder_level: 3, checkout_url: checkoutUrl },
+            }),
+          );
 
-          await supabase.from('payment_reminders').insert({
-            invoice_id: invoice.id, level: 3, total_due_amount: invoice.total,
-          }).catch(() => { /* audit-only */ });
+          await safe('payment_reminders insert', () =>
+            supabase.from('payment_reminders').insert({
+              invoice_id: invoice.id, level: 3, total_due_amount: invoice.total,
+            }),
+          );
 
-          await supabase.from('notifications').insert({
+          await safe('notifications insert (charge exhausted)', () =>
+            supabase.from('notifications').insert({
             tenant_id: invoice.tenant_id,
             category: 'billing',
             type: 'invoice_charge_exhausted',
@@ -226,7 +245,8 @@ Deno.serve(async (req) => {
             priority: 'high',
             action_url: `/admin/invoices/${invoice.id}`,
             data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number },
-          }).catch(() => { /* non-blocking */ });
+            }),
+          );
 
           await supabase.from('invoices').update({
             dunning_level: 3, last_reminder_at: nowISO, reminder_level: 3, next_action_at: null,
@@ -274,13 +294,17 @@ Deno.serve(async (req) => {
 
         const checkoutUrl = await ensureCheckoutUrl(supabase, invoice.id);
 
-        await supabase.functions.invoke('send-invoice-email', {
-          body: { invoice_id: invoice.id, reminder_level: targetLevel, checkout_url: checkoutUrl },
-        }).catch((e) => log('Reminder email failed', errMsg(e)));
+        await safe('Reminder email', () =>
+          supabase.functions.invoke('send-invoice-email', {
+            body: { invoice_id: invoice.id, reminder_level: targetLevel, checkout_url: checkoutUrl },
+          }),
+        );
 
-        await supabase.from('payment_reminders').insert({
-          invoice_id: invoice.id, level: targetLevel, late_fee_amount: lateFee, total_due_amount: totalDue,
-        }).catch(() => { /* audit-only */ });
+        await safe('payment_reminders insert', () =>
+          supabase.from('payment_reminders').insert({
+            invoice_id: invoice.id, level: targetLevel, late_fee_amount: lateFee, total_due_amount: totalDue,
+          }),
+        );
 
         const updates: Record<string, unknown> = {
           dunning_level: targetLevel, reminder_level: targetLevel, last_reminder_at: nowISO,
@@ -296,7 +320,8 @@ Deno.serve(async (req) => {
         summary.reminder_sent++;
 
         if (targetLevel === 3) {
-          await supabase.from('notifications').insert({
+          await safe('notifications insert (final reminder)', () =>
+            supabase.from('notifications').insert({
             tenant_id: invoice.tenant_id,
             category: 'billing',
             type: 'invoice_final_reminder',
@@ -305,7 +330,8 @@ Deno.serve(async (req) => {
             priority: 'high',
             action_url: `/admin/invoices/${invoice.id}`,
             data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number, days_past_due: daysPastDue },
-          }).catch(() => { /* non-blocking */ });
+            }),
+          );
           summary.admin_notified++;
         }
       } catch (err) {
