@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
         if (invErr) throw invErr;
         invoked = true;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = errMsg(e);
         console.error(`[SYNC-TENANT-PLAN] generate invoke failed: ${msg}`);
       }
 
@@ -637,7 +637,7 @@ Deno.serve(async (req) => {
             }
           }
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
+          const msg = errMsg(e);
           console.error(`[SYNC-TENANT-PLAN] Pro-rata charge failed: ${msg}`);
         }
       }
@@ -664,7 +664,7 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ success: false, error: "Unhandled action" }, 400);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errMsg(err);
     console.error(`[SYNC-TENANT-PLAN] ERROR: ${message}`);
     return jsonResponse({ success: false, error: message }, 500);
   }
