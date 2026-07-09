@@ -333,7 +333,16 @@ export default function InvoicesPage() {
                   {
                     id: 'status',
                     header: 'Status',
-                    render: (r) => <Badge variant="secondary" className="whitespace-nowrap">{r.status}</Badge>,
+                    render: (r) => (
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        <Badge variant="secondary">{r.status}</Badge>
+                        {r.kind === 'invoice' && (r as any).dunning_level > 0 && (
+                          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                            H{(r as any).dunning_level}
+                          </Badge>
+                        )}
+                      </div>
+                    ),
                   },
                   {
                     id: 'actions',
