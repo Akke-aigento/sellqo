@@ -109,10 +109,17 @@ export function CreditNoteDialog({
     setSelectedLines(newSelected);
   };
 
+  // Gross (VAT-inclusive) per line. Reconstructing from unit_price*qty + vat_amount
+  // is authoritative because invoice_lines.line_total is stored inconsistently in
+  // the DB (sometimes net, sometimes gross); unit_price + vat_amount is always the
+  // exact per-line contribution to invoice.total.
+  const lineGross = (line: InvoiceLine) =>
+    Number(line.unit_price || 0) * Number(line.quantity || 0) + Number(line.vat_amount || 0);
+
   const getSelectedTotal = () => {
     return invoiceLines
       .filter((line) => selectedLines.has(line.id))
-      .reduce((sum, line) => sum + line.line_total + line.vat_amount, 0);
+      .reduce((sum, line) => sum + lineGross(line), 0);
   };
 
   const handleSubmit = async () => {
@@ -130,7 +137,8 @@ export function CreditNoteDialog({
         unit_price: line.unit_price,
         vat_rate: line.vat_rate,
         vat_amount: line.vat_amount,
-        line_total: line.line_total,
+        // Store NET on credit_note_lines so that subtotal + tax_amount = total.
+        line_total: Number(line.unit_price || 0) * Number(line.quantity || 0),
         line_type: line.line_type,
       }));
 
@@ -243,7 +251,7 @@ export function CreditNoteDialog({
                           {formatCurrency(line.unit_price)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(line.line_total + line.vat_amount)}
+                          {formatCurrency(lineGross(line))}
                         </TableCell>
                       </TableRow>
                     ))}
