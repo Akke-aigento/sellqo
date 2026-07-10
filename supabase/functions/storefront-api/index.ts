@@ -36,6 +36,11 @@ interface CartGift {
 
 // ============== PROMOTION UTILS ==============
 
+function isMobileUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false; // defensive: no UA → treat as desktop, show QR
+  return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
+}
+
 function isPromotionActive(isActive: boolean, validFrom: string | null, validUntil: string | null): boolean {
   if (!isActive) return false;
   const now = new Date();
@@ -1875,7 +1880,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
 
   // Get tenant info
   const { data: tenantData, error: tenantError } = await supabase
-    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled')
+    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled, bank_transfer_hide_qr_mobile')
     .eq('id', tenantId).single();
 
   if (tenantError || !tenantData) {
@@ -2047,6 +2052,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       "",                               // 12: Display text (leeg)
     ].join("\n");
 
+    const isMobile = isMobileUserAgent(params.user_agent as string | undefined);
+    const hideQrMobile = tenantData?.bank_transfer_hide_qr_mobile === true;
+    const suppressQr = isMobile && hideQrMobile;
+
     return {
       order_id: order.id,
       order_number: order.order_number,
@@ -2060,7 +2069,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         bic,
         reference: ref,
       },
-      qr_data: {
+      qr_data: suppressQr ? null : {
         payload: qrPayload,
         image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
       },
@@ -2639,6 +2648,7 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     payment_method_id: payment_method,
     success_url: success_url || (params.origin ? `${params.origin}/order-confirmation` : undefined),
     cancel_url: cancel_url || (params.origin ? `${params.origin}/checkout?cancelled=true` : undefined),
+    user_agent: (params.user_agent as string | undefined) ?? '',
   });
 
   // Add customer note if order was created (bank/qr)
@@ -2996,6 +3006,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
 
+    const userAgent = req.headers.get('user-agent') ?? '';
+
     let result: unknown;
     let cacheControl: string | null = null;
 
@@ -3030,7 +3042,7 @@ serve(async (req) => {
       case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
-      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;
       case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;
       case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
@@ -3045,8 +3057,8 @@ serve(async (req) => {
         result = await checkoutGetPaymentMethods(supabase, tenant_id, subtotal, ctry);
         break;
       }
-      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
-      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
+      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
+      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
       case 'get_order_confirmation': result = await getOrderConfirmation(supabase, tenant_id, params); break;
       case 'checkout_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;

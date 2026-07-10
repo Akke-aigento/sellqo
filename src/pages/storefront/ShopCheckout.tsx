@@ -368,6 +368,7 @@ export default function ShopCheckout() {
             total: result.total,
             currency: result.currency || 'EUR',
             bankDetails: result.bank_details,
+            qrData: result.qr_data,
           },
         });
       }
