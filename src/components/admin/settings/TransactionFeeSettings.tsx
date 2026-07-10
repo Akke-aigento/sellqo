@@ -498,6 +498,21 @@ export function TransactionFeeSettings() {
               disabled={!canEnableBankTransfer}
             />
           </div>
+
+          {config.payment_methods_enabled.includes('bank_transfer') && (
+            <div className="flex items-start justify-between gap-4 p-4 pl-6 border rounded-lg bg-muted/30">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm">QR-code verbergen op mobiel</div>
+                <div className="text-xs text-muted-foreground mt-1 max-w-2xl">
+                  Op smartphones kan een klant de QR-code niet scannen met hetzelfde toestel. Zet dit aan om op mobiel enkel de overschrijvingsgegevens te tonen. De QR blijft zichtbaar op desktop en tablet.
+                </div>
+              </div>
+              <Switch
+                checked={config.bank_transfer_hide_qr_mobile}
+                onCheckedChange={(checked) => setConfig(prev => ({ ...prev, bank_transfer_hide_qr_mobile: checked }))}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
