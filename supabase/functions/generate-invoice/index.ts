@@ -411,10 +411,10 @@ function generateCIIXml(data: {
         ${customer?.peppol_id ? `<ram:GlobalID schemeID="${customer.peppol_id.split(':')[0]}">${escapeXml(customer.peppol_id.split(':')[1] || customer.peppol_id)}</ram:GlobalID>` : ''}
         <ram:Name>${escapeXml(customerName)}</ram:Name>
         <ram:PostalTradeAddress>
-          ${order.billing_address?.street ? `<ram:LineOne>${escapeXml(order.billing_address.street)}</ram:LineOne>` : ''}
-          ${order.billing_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.billing_address.postal_code)}</ram:PostcodeCode>` : ''}
-          ${order.billing_address?.city ? `<ram:CityName>${escapeXml(order.billing_address.city)}</ram:CityName>` : ''}
-          <ram:CountryID>${order.billing_address?.country || 'NL'}</ram:CountryID>
+        ${order?.billing_address?.street ? `<ram:LineOne>${escapeXml(order.billing_address.street)}</ram:LineOne>` : ''}
+          ${order?.billing_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.billing_address.postal_code)}</ram:PostcodeCode>` : ''}
+          ${order?.billing_address?.city ? `<ram:CityName>${escapeXml(order.billing_address.city)}</ram:CityName>` : ''}
+          <ram:CountryID>${order?.billing_address?.country || 'NL'}</ram:CountryID>
         </ram:PostalTradeAddress>
         ${customer?.vat_number && vatCalculation.vatType === 'reverse_charge' ? `
         <ram:SpecifiedTaxRegistration>
@@ -422,7 +422,7 @@ function generateCIIXml(data: {
         </ram:SpecifiedTaxRegistration>` : ''}
         <ram:DefinedTradeContact>
           <ram:EmailURIUniversalCommunication>
-            <ram:URIID>${escapeXml(customer?.email || order.customer_email)}</ram:URIID>
+            <ram:URIID>${escapeXml(customer?.email || order?.customer_email || '')}</ram:URIID>
           </ram:EmailURIUniversalCommunication>
         </ram:DefinedTradeContact>
       </ram:BuyerTradeParty>
@@ -431,10 +431,10 @@ function generateCIIXml(data: {
       <ram:ShipToTradeParty>
         <ram:Name>${escapeXml(customerName)}</ram:Name>
         <ram:PostalTradeAddress>
-          ${order.shipping_address?.street ? `<ram:LineOne>${escapeXml(order.shipping_address.street)}</ram:LineOne>` : ''}
-          ${order.shipping_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.shipping_address.postal_code)}</ram:PostcodeCode>` : ''}
-          ${order.shipping_address?.city ? `<ram:CityName>${escapeXml(order.shipping_address.city)}</ram:CityName>` : ''}
-          <ram:CountryID>${order.shipping_address?.country || 'NL'}</ram:CountryID>
+          ${order?.shipping_address?.street ? `<ram:LineOne>${escapeXml(order.shipping_address.street)}</ram:LineOne>` : ''}
+          ${order?.shipping_address?.postal_code ? `<ram:PostcodeCode>${escapeXml(order.shipping_address.postal_code)}</ram:PostcodeCode>` : ''}
+          ${order?.shipping_address?.city ? `<ram:CityName>${escapeXml(order.shipping_address.city)}</ram:CityName>` : ''}
+          <ram:CountryID>${order?.shipping_address?.country || 'NL'}</ram:CountryID>
         </ram:PostalTradeAddress>
       </ram:ShipToTradeParty>
     </ram:ApplicableHeaderTradeDelivery>

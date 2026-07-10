@@ -3923,6 +3923,7 @@ export type Database = {
       }
       credit_notes: {
         Row: {
+          auto_generated: boolean
           created_at: string | null
           credit_note_number: string
           customer_id: string | null
@@ -3935,8 +3936,10 @@ export type Database = {
           peppol_required: boolean | null
           peppol_status: string | null
           reason: string
+          return_id: string | null
           sent_at: string | null
           status: string | null
+          stripe_refund_id: string | null
           subtotal: number
           tax_amount: number | null
           tenant_id: string
@@ -3946,6 +3949,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          auto_generated?: boolean
           created_at?: string | null
           credit_note_number: string
           customer_id?: string | null
@@ -3958,8 +3962,10 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_status?: string | null
           reason: string
+          return_id?: string | null
           sent_at?: string | null
           status?: string | null
+          stripe_refund_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id: string
@@ -3969,6 +3975,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          auto_generated?: boolean
           created_at?: string | null
           credit_note_number?: string
           customer_id?: string | null
@@ -3981,8 +3988,10 @@ export type Database = {
           peppol_required?: boolean | null
           peppol_status?: string | null
           reason?: string
+          return_id?: string | null
           sent_at?: string | null
           status?: string | null
+          stripe_refund_id?: string | null
           subtotal?: number
           tax_amount?: number | null
           tenant_id?: string
@@ -4004,6 +4013,13 @@ export type Database = {
             columns: ["original_invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
             referencedColumns: ["id"]
           },
           {
@@ -12219,6 +12235,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          credit_note_id: string | null
           customer_id: string | null
           customer_name: string | null
           expected_arrival_date: string | null
@@ -12269,6 +12286,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          credit_note_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
           expected_arrival_date?: string | null
@@ -12319,6 +12337,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          credit_note_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
           expected_arrival_date?: string | null
@@ -12366,6 +12385,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "returns_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "returns_customer_id_fkey"
             columns: ["customer_id"]

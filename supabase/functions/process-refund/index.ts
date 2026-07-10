@@ -19,6 +19,24 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
+  // CN-AUTO-1: safety-net auto credit note. Called after any successful
+  // refund path so that returns whose "approved" transition happened via
+  // SQL/DB (bypassing useReturns) still get a credit note. Idempotent —
+  // the target function short-circuits when a CN already exists.
+  const fireAutoCreditNote = async (returnId: string) => {
+    try {
+      const url = Deno.env.get("SUPABASE_URL") ?? "";
+      const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      await fetch(`${url}/functions/v1/create-credit-note-from-return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
+        body: JSON.stringify({ return_id: returnId, auto_send_email: true }),
+      });
+    } catch (e) {
+      console.warn("[process-refund] auto CN failed", e instanceof Error ? e.message : String(e));
+    }
+  };
+
   try {
     const auth = await authenticateRequest(req);
 
@@ -105,6 +123,8 @@ serve(async (req) => {
         })
         .eq("id", return_id);
 
+      await fireAutoCreditNote(return_id);
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -188,6 +208,8 @@ serve(async (req) => {
         })
         .eq("id", return_id);
 
+      await fireAutoCreditNote(return_id);
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -207,6 +229,8 @@ serve(async (req) => {
         refund_notes: "Handmatig als terugbetaald gemarkeerd",
       })
       .eq("id", return_id);
+
+    await fireAutoCreditNote(return_id);
 
     return new Response(
       JSON.stringify({ success: true, message: "Retour als terugbetaald gemarkeerd" }),

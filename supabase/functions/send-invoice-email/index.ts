@@ -205,11 +205,16 @@ serve(async (req) => {
           ? t(locale, 'invoice.autoCollectIntro', { customerName })
           : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName })));
 
+    // Defense: if the invoice has no PDF/UBL yet (document generation
+    // failed or is still pending), don't promise an attachment that isn't
+    // actually attached. Reminders and auto-collect variants keep their
+    // own copy — those talk about status, not attachments.
+    const hasAnyAttachment = emailAttachments.length > 0;
     const attachedLine = reminderLevel
       ? t(locale, 'invoice.attached')
       : (isAutoCollected
           ? t(locale, autoVariant === 'paid' ? 'invoice.autoCollectPaidNote' : 'invoice.autoCollectProcessingNote')
-          : t(locale, 'invoice.attached'));
+          : (hasAnyAttachment ? t(locale, 'invoice.attached') : ''));
 
     const payNowBlock = reminderLevel && checkout_url
       ? `<div style="text-align:center;margin:24px 0;">
@@ -227,7 +232,7 @@ serve(async (req) => {
     </td></tr></table>
     ${payNowBlock}
     ${attachmentsInfo.length ? `<div style="text-align:center;margin:24px 0;">${attachmentsInfo.join('<br/>')}</div>` : ''}
-    <p style="color:#4b5563;">${attachedLine}</p>`;
+    ${attachedLine ? `<p style="color:#4b5563;">${attachedLine}</p>` : ''}`;
 
     const { html: emailHtml, text: emailText } = renderTenantEmail({
       tenantBrand: brand,
