@@ -99,6 +99,7 @@ export interface Product {
     stock: number;
     track_inventory: boolean;
     is_active: boolean;
+    price?: number | null;
   }>;
   // Shopify listing fields
   shopify_product_id?: string | null;
