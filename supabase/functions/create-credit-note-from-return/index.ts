@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const { data: ret, error: retErr } = await admin
       .from("returns")
-      .select("id, tenant_id, order_id, customer_id, refund_amount, refund_reason, return_number, stripe_refund_id")
+      .select("id, tenant_id, order_id, customer_id, refund_amount, return_reason, rma_number, stripe_refund_id")
       .eq("id", return_id)
       .single();
     if (retErr || !ret) throw new Error(`Return not found: ${retErr?.message}`);
@@ -84,10 +84,12 @@ serve(async (req) => {
       });
     }
 
-    // Gather return items (drives the CN line breakdown).
+    // Gather return items (drives the CN line breakdown). We include
+    // `received_quantity` and `inspected_at` so the CN reflects the ACCEPTED
+    // items/quantities from inspection, not the originally requested ones.
     const { data: items } = await admin
       .from("return_items")
-      .select("product_name, quantity, unit_price, line_total, refund_amount")
+      .select("product_name, quantity, received_quantity, inspected_at, unit_price, line_total, refund_amount")
       .eq("return_id", return_id);
 
     // Determine credit-note lines. Use return_items when present; otherwise
@@ -116,17 +118,36 @@ serve(async (req) => {
 
     if (items && items.length > 0) {
       for (const it of items as any[]) {
-        const gross = Number(it.refund_amount ?? it.line_total ?? 0);
+        const requestedQty = Number(it.quantity || 0);
+        // After inspection, received_quantity is the accepted amount. Fall
+        // back to the requested quantity when the column is not yet populated
+        // (e.g. safety-net trigger from process-refund without inspection).
+        const acceptedQty =
+          it.received_quantity != null ? Number(it.received_quantity) : requestedQty;
+        if (acceptedQty <= 0) continue; // rejected line — no credit
+
+        const requestedGross = Number(it.refund_amount ?? it.line_total ?? 0);
+        // Pro-rate the requested gross by accepted/requested ratio so
+        // per-unit adjustments (restocking, discounts) are preserved.
+        const gross =
+          requestedQty > 0
+            ? +((requestedGross * acceptedQty) / requestedQty).toFixed(2)
+            : +requestedGross.toFixed(2);
         const net = approxVatRate > 0 ? gross / (1 + approxVatRate / 100) : gross;
         const vatAmount = +(gross - net).toFixed(2);
         lines.push({
           description: String(it.product_name || "Retour"),
-          quantity: Number(it.quantity || 1),
-          unit_price: +(net / Math.max(1, Number(it.quantity || 1))).toFixed(2),
+          quantity: acceptedQty,
+          unit_price: +(net / Math.max(1, acceptedQty)).toFixed(2),
           line_total: +net.toFixed(2),
           vat_rate: approxVatRate,
           vat_amount: vatAmount,
           line_type: "product",
+        });
+      }
+      if (lines.length === 0) {
+        return new Response(JSON.stringify({ success: false, error: "no accepted items after inspection — skipping", skipped: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     } else {
@@ -139,7 +160,7 @@ serve(async (req) => {
       const net = approxVatRate > 0 ? gross / (1 + approxVatRate / 100) : gross;
       const vatAmount = +(gross - net).toFixed(2);
       lines.push({
-        description: `Retour ${ret.return_number || ""}`.trim(),
+        description: `Retour ${ret.rma_number || ""}`.trim(),
         quantity: 1,
         unit_price: +net.toFixed(2),
         line_total: +net.toFixed(2),
@@ -170,7 +191,7 @@ serve(async (req) => {
         original_invoice_id: invoice.id,
         customer_id: invoice.customer_id || ret.customer_id || null,
         type: cnType,
-        reason: ret.refund_reason || `Retour ${ret.return_number || ""}`.trim() || "Retour goedgekeurd",
+        reason: ret.return_reason || `Retour ${ret.rma_number || ""}`.trim() || "Retour geïnspecteerd",
         subtotal,
         tax_amount: taxAmount,
         total,
