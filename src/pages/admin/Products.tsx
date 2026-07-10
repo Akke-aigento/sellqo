@@ -631,7 +631,14 @@ export default function ProductsPage() {
                       <Link to={`/admin/products/${product.id}/edit`} className="font-medium text-sm truncate hover:underline">
                         {product.name}
                       </Link>
-                      <span className="font-medium text-sm shrink-0">{formatPrice(product.price)}</span>
+                      {(() => {
+                        const dp = getDisplayPrice(product);
+                        return (
+                          <span className="font-medium text-sm shrink-0">
+                            {dp.fromVariant && 'vanaf '}{formatPrice(dp.price)}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {product.sku && <div className="text-xs text-muted-foreground mt-0.5">{product.sku}</div>}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -799,7 +806,10 @@ export default function ProductsPage() {
                         <span className="text-muted-foreground text-xs italic">Dynamisch</span>
                       ) : (
                         <>
-                          {formatPrice(product.price)}
+                       {(() => {
+                            const dp = getDisplayPrice(product);
+                            return <>{dp.fromVariant && 'vanaf '}{formatPrice(dp.price)}</>;
+                          })()}
                           {product.compare_at_price && (
                             <span className="ml-2 text-sm text-muted-foreground line-through">
                               {formatPrice(product.compare_at_price)}
