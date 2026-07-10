@@ -36,6 +36,11 @@ interface CartGift {
 
 // ============== PROMOTION UTILS ==============
 
+function isMobileUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false; // defensive: no UA → treat as desktop, show QR
+  return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
+}
+
 function isPromotionActive(isActive: boolean, validFrom: string | null, validUntil: string | null): boolean {
   if (!isActive) return false;
   const now = new Date();
