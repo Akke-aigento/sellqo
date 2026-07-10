@@ -16427,6 +16427,7 @@ export type Database = {
           auto_send_invoice_email: boolean | null
           auto_send_invoices: boolean | null
           bank_transfer_acknowledged_manual: boolean | null
+          bank_transfer_hide_qr_mobile: boolean
           bic: string | null
           billing_address: Json | null
           billing_company_name: string | null
@@ -16534,6 +16535,7 @@ export type Database = {
           auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
           bank_transfer_acknowledged_manual?: boolean | null
+          bank_transfer_hide_qr_mobile?: boolean
           bic?: string | null
           billing_address?: Json | null
           billing_company_name?: string | null
@@ -16641,6 +16643,7 @@ export type Database = {
           auto_send_invoice_email?: boolean | null
           auto_send_invoices?: boolean | null
           bank_transfer_acknowledged_manual?: boolean | null
+          bank_transfer_hide_qr_mobile?: boolean
           bic?: string | null
           billing_address?: Json | null
           billing_company_name?: string | null
