@@ -115,8 +115,13 @@ Deno.serve(async (req) => {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
             body: JSON.stringify({ invoice_id: (inv as any).id }),
           });
-          if (r.ok) summary.backfilled++;
-          else summary.documents_failed++;
+          const bodyText = await r.text().catch(() => "");
+          if (r.ok) {
+            summary.backfilled++;
+          } else {
+            summary.documents_failed++;
+            console.error(`[GEN-SUB-INVOICES] Backfill doc HTTP ${r.status} for ${(inv as any).id}: ${bodyText.slice(0, 500)}`);
+          }
         } catch (e) {
           summary.documents_failed++;
           console.error(`[GEN-SUB-INVOICES] Backfill doc failed for ${(inv as any).id}: ${e instanceof Error ? e.message : String(e)}`);
