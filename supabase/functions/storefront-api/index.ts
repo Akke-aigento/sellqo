@@ -1876,6 +1876,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   // Get tenant info
   const { data: tenantData, error: tenantError } = await supabase
     .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled')
+    .from('tenants').select('tax_percentage, stripe_account_id, iban, bic, name, currency, pass_transaction_fee_to_customer, transaction_fee_label, stripe_payment_methods, payment_methods_enabled, bank_transfer_hide_qr_mobile')
     .eq('id', tenantId).single();
 
   if (tenantError || !tenantData) {
