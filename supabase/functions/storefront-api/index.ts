@@ -2052,6 +2052,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       "",                               // 12: Display text (leeg)
     ].join("\n");
 
+    const isMobile = isMobileUserAgent(params.user_agent as string | undefined);
+    const hideQrMobile = tenantData?.bank_transfer_hide_qr_mobile === true;
+    const suppressQr = isMobile && hideQrMobile;
+
     return {
       order_id: order.id,
       order_number: order.order_number,
@@ -2065,7 +2069,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         bic,
         reference: ref,
       },
-      qr_data: {
+      qr_data: suppressQr ? null : {
         payload: qrPayload,
         image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
       },
