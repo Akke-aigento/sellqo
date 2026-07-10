@@ -3006,6 +3006,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
 
+    const userAgent = req.headers.get('user-agent') ?? '';
+
     let result: unknown;
     let cacheControl: string | null = null;
 
@@ -3040,7 +3042,7 @@ serve(async (req) => {
       case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
-      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, params); break;
+      case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;
       case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;
       case 'checkout_get_order': result = await checkoutGetOrder(supabase, tenant_id, params); break;
@@ -3055,8 +3057,8 @@ serve(async (req) => {
         result = await checkoutGetPaymentMethods(supabase, tenant_id, subtotal, ctry);
         break;
       }
-      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, params); break;
-      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, params); break;
+      case 'checkout_place_order': result = await checkoutPlaceOrder(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
+      case 'checkout_create_session': result = await checkoutCreateSession(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_get_confirmation': result = await checkoutGetConfirmation(supabase, tenant_id, params); break;
       case 'get_order_confirmation': result = await getOrderConfirmation(supabase, tenant_id, params); break;
       case 'checkout_discount': result = await checkoutApplyDiscount(supabase, tenant_id, params); break;
