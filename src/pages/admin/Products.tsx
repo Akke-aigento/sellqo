@@ -396,6 +396,20 @@ export default function ProductsPage() {
     }).format(price);
   };
 
+  // Toon laagste variantprijs wanneer hoofdprijs 0 is en varianten wél een prijs hebben.
+  const getDisplayPrice = (product: Product): { price: number; fromVariant: boolean } => {
+    const base = Number(product.price) || 0;
+    if (base > 0) return { price: base, fromVariant: false };
+    const variantPrices = (product.product_variants ?? [])
+      .filter((v: any) => v.is_active !== false)
+      .map((v: any) => Number(v.price))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (variantPrices.length > 0) {
+      return { price: Math.min(...variantPrices), fromVariant: true };
+    }
+    return { price: 0, fromVariant: false };
+  };
+
   if (!currentTenant) {
     return (
       <div className="flex items-center justify-center py-12">
