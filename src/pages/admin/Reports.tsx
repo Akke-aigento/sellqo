@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GlobalDateRangePicker, DateRange } from '@/components/admin/reports/GlobalDateRangePicker';
 import { ReportCard } from '@/components/admin/reports/ReportCard';
+import { OPEN_INVOICE_STATUSES } from '@/lib/invoiceStatuses';
 import {
   useAgingExport,
   useVatExport,
@@ -61,7 +62,7 @@ const Reports = () => {
           .from('invoices')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', currentTenant.id)
-          .eq('status', 'sent'),
+          .in('status', OPEN_INVOICE_STATUSES),
       ]);
       return {
         invoices: invoices.count || 0,
