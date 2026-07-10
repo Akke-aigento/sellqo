@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
+import {
+  ISSUED_INVOICE_STATUSES,
+  OPEN_INVOICE_STATUSES,
+} from '@/lib/invoiceStatuses';
 
 export interface RevenueData {
   period: string;
@@ -59,7 +63,7 @@ export function useRevenueReport(startDate: string, endDate: string, granularity
         .eq('tenant_id', tenantId)
         .gte('created_at', startDate)
         .lte('created_at', endDate + 'T23:59:59')
-        .in('status', ['sent', 'paid']);
+        .in('status', ISSUED_INVOICE_STATUSES);
 
       if (error) throw error;
 
@@ -117,7 +121,7 @@ export function useTopCustomersReport(startDate: string, endDate: string, limit:
         .eq('tenant_id', tenantId)
         .gte('created_at', startDate)
         .lte('created_at', endDate + 'T23:59:59')
-        .in('status', ['sent', 'paid']);
+        .in('status', ISSUED_INVOICE_STATUSES);
 
       if (error) throw error;
 
@@ -176,7 +180,7 @@ export function useAgingReport() {
           customer:customers(first_name, last_name, company_name)
         `)
         .eq('tenant_id', tenantId)
-        .eq('status', 'sent')
+        .in('status', OPEN_INVOICE_STATUSES)
         .is('paid_at', null);
 
       if (error) throw error;

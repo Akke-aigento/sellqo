@@ -14,6 +14,10 @@ import {
   ExportFormat 
 } from '@/lib/exportUtils';
 import { toast } from 'sonner';
+import {
+  ISSUED_INVOICE_STATUSES,
+  OPEN_INVOICE_STATUSES,
+} from '@/lib/invoiceStatuses';
 
 interface DateRange {
   from: Date;
@@ -260,7 +264,7 @@ export const useCustomerExport = () => {
           customers(id, first_name, last_name, company_name, email, customer_type, vat_number)
         `)
         .eq('tenant_id', currentTenant.id)
-        .eq('status', 'paid')
+        .in('status', ISSUED_INVOICE_STATUSES)
         .gte('issue_date', dateRange.from.toISOString())
         .lte('issue_date', dateRange.to.toISOString());
 
@@ -545,7 +549,7 @@ export const useAgingExport = () => {
           orders(customer_name, customer_email)
         `)
         .eq('tenant_id', currentTenant.id)
-        .in('status', ['sent']);
+        .in('status', OPEN_INVOICE_STATUSES);
 
       if (error) throw error;
 
@@ -1190,7 +1194,7 @@ export const useRevenueExport = () => {
         .from('invoices')
         .select('issue_date, subtotal, tax_amount, total, status')
         .eq('tenant_id', currentTenant.id)
-        .in('status', ['sent', 'paid'])
+        .in('status', ISSUED_INVOICE_STATUSES)
         .gte('issue_date', dateRange.from.toISOString().slice(0, 10))
         .lte('issue_date', endInclusive.toISOString().slice(0, 10))
         .order('issue_date');

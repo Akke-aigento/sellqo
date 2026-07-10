@@ -7,6 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
+import { ISSUED_INVOICE_STATUSES } from "../_shared/invoiceStatuses.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -100,7 +101,7 @@ export async function buildOdooZip(
     .eq("tenant_id", tenantId)
     .gte("issue_date", periodStart)
     .lte("issue_date", periodEnd)
-    .in("status", ["sent", "paid"])
+    .in("status", ISSUED_INVOICE_STATUSES as readonly string[])
     .order("issue_date", { ascending: true });
   if (invErr) throw new Error(`invoices query failed: ${invErr.message}`);
 

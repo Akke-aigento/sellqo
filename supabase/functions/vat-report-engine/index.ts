@@ -5,6 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
 import { aggregate } from "./aggregator.ts";
+import {
+  issuedInvoiceStatuses,
+  issuedCreditNoteStatuses,
+} from "../_shared/invoiceStatuses.ts";
 import type {
   DbCreditNote,
   DbCreditNoteLine,
@@ -104,9 +108,15 @@ serve(async (req) => {
       });
     }
 
-    // 2) Cold path — fetch tenant + invoices + credit_notes in parallel
-    const statuses = body.include_drafts ? ['draft', 'sent', 'paid'] : ['sent', 'paid'];
-    const cnStatuses = body.include_drafts ? null : ['sent', 'processed'];
+    // 2) Cold path — fetch tenant + invoices + credit_notes in parallel.
+    // "Issued" = every status where the document has been finalised and VAT
+    // is due. See supabase/functions/_shared/invoiceStatuses.ts. Filtering on
+    // ('sent','paid') alone silently drops 'processing' (charge in flight)
+    // and 'unpaid' (failed charge / dunning), which is a VAT compliance bug.
+    const statuses = issuedInvoiceStatuses(body.include_drafts === true);
+    const cnStatuses = body.include_drafts
+      ? null
+      : issuedCreditNoteStatuses(false);
     const tParallel = Date.now();
     const tenantP = supabase
       .from('tenants')

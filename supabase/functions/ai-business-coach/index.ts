@@ -462,7 +462,9 @@ serve(async (req) => {
         .from('invoices')
         .select('id, invoice_number, total, due_date, customer_id, customers(first_name, last_name, company_name)')
         .eq('tenant_id', tenantId)
-        .eq('status', 'sent')
+        // Any issued-but-unpaid state counts as overdue for the coach.
+        // 'processing' means a charge is currently in flight → not overdue.
+        .in('status', ['sent', 'unpaid'])
         .lt('due_date', sevenDaysAgo.toISOString())
         .limit(5);
 
