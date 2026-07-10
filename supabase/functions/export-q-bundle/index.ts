@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
+import { ISSUED_INVOICE_STATUSES } from "../_shared/invoiceStatuses.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -191,7 +192,7 @@ async function fetchInvoicePdfs(
     .eq("tenant_id", tenantId)
     .gte("issue_date", start)
     .lte("issue_date", end)
-    .in("status", ["sent", "paid"])
+    .in("status", ISSUED_INVOICE_STATUSES as readonly string[])
     .not("pdf_url", "is", null);
   if (error) throw new Error(`pdf_url query failed: ${error.message}`);
   const out: FetchedDoc[] = [];
