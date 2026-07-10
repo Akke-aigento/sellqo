@@ -386,6 +386,13 @@ export function useReturnMutations() {
       invalidateAll();
       if (variables.status === 'approved') {
         fireReturnEmail(variables.returnId, 'approved');
+        // CN-AUTO-1: automatic credit note. Idempotent — safe to fire even
+        // if a later refund path also triggers it.
+        supabase.functions
+          .invoke('create-credit-note-from-return', {
+            body: { return_id: variables.returnId, auto_send_email: true },
+          })
+          .catch((err) => console.warn('[useReturns] auto CN failed', err));
       } else if (variables.status === 'received') {
         fireReturnEmail(variables.returnId, 'package_received');
       }
