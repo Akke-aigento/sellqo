@@ -61,6 +61,9 @@ Deno.serve(async (req) => {
     charge_processing: 0,
     charge_failed: 0,
     no_mandate: 0,
+    documents_generated: 0,
+    documents_failed: 0,
+    backfilled: 0,
     failed: [] as Array<{ subscription_id: string; error: string }>,
   };
 
@@ -70,6 +73,7 @@ Deno.serve(async (req) => {
 
     // Optional body: { subscription_id } for manual single-run
     let manualId: string | null = null;
+    let backfillDocuments = false;
     try {
       if (req.method === "POST") {
         const text = await req.text();
@@ -78,13 +82,51 @@ Deno.serve(async (req) => {
           if (body && typeof body.subscription_id === "string") {
             manualId = body.subscription_id;
           }
+          if (body && body.backfill_documents === true) {
+            backfillDocuments = true;
+          }
         }
       }
     } catch (_) {
       // ignore malformed body — behave as full-run
     }
 
-    log("Start", { today: todayISO, manualId });
+    log("Start", { today: todayISO, manualId, backfillDocuments });
+
+    // ------------------------------------------------------------------
+    // INV-DOC-1 backfill mode: iterate invoices missing pdf_url that are
+    // linked to subscriptions and regenerate their documents. This is
+    // idempotent — the PDF generator overwrites the stored object.
+    // ------------------------------------------------------------------
+    if (backfillDocuments) {
+      const { data: missing, error: mErr } = await supabase
+        .from("invoices")
+        .select("id, subscription_id")
+        .not("subscription_id", "is", null)
+        .is("pdf_url", null)
+        .limit(200);
+      if (mErr) throw mErr;
+      const url = Deno.env.get("SUPABASE_URL")!;
+      const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      for (const inv of missing ?? []) {
+        try {
+          const r = await fetch(`${url}/functions/v1/generate-subscription-invoice-pdf`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
+            body: JSON.stringify({ invoice_id: (inv as any).id }),
+          });
+          if (r.ok) summary.backfilled++;
+          else summary.documents_failed++;
+        } catch (e) {
+          summary.documents_failed++;
+          console.error(`[GEN-SUB-INVOICES] Backfill doc failed for ${(inv as any).id}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      log("Backfill complete", { backfilled: summary.backfilled, failed: summary.documents_failed });
+      return new Response(JSON.stringify({ success: true, backfill: true, ...summary }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch active subscriptions with lines
     let query = supabase
@@ -388,6 +430,33 @@ Deno.serve(async (req) => {
           period_start: periodStart,
           period_end: periodEndAdj,
         });
+
+        // ----------------------------------------------------------------
+        // INV-DOC-1: generate PDF + UBL for this subscription invoice.
+        // Runs BEFORE the charge/mail block so that (a) auto-collect
+        // mails, and (b) reminders sent later, always have documents
+        // available. Failures are logged but never abort the invoice.
+        // ----------------------------------------------------------------
+        try {
+          const url = Deno.env.get("SUPABASE_URL")!;
+          const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const r = await fetch(`${url}/functions/v1/generate-subscription-invoice-pdf`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
+            body: JSON.stringify({ invoice_id: invoice.id }),
+          });
+          if (r.ok) {
+            summary.documents_generated++;
+          } else {
+            summary.documents_failed++;
+            log("Document generation returned non-OK", { invoice_id: invoice.id, status: r.status });
+          }
+        } catch (docErr) {
+          summary.documents_failed++;
+          console.error(
+            `[GEN-SUB-INVOICES] Document generation failed for invoice ${invoice.id}: ${docErr instanceof Error ? docErr.message : String(docErr)}`,
+          );
+        }
 
         // ----------------------------------------------------------------
         // SUB-2: off-session charge via active mandate (best-effort;
