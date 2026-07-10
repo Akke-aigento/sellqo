@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError } from "../_shared/auth.ts";
+import { ISSUED_INVOICE_STATUSES } from "../_shared/invoiceStatuses.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TOLERANCE_EUR = 1.0;
@@ -57,7 +58,7 @@ serve(async (req) => {
       .eq('tenant_id', body.tenant_id)
       .gte('issue_date', body.period_start)
       .lte('issue_date', body.period_end)
-      .in('status', ['sent', 'paid']);
+      .in('status', ISSUED_INVOICE_STATUSES as readonly string[]);
     if (invErr) throw new Error(`invoices query failed: ${invErr.message}`);
     const invIds = (invs ?? []).map((r: { id: string }) => r.id);
 
