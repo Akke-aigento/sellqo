@@ -77,6 +77,7 @@ interface TenantPaymentConfig {
   bic: string | null;
   stripe_payment_methods: string[];
   bank_transfer_acknowledged_manual: boolean;
+  bank_transfer_hide_qr_mobile: boolean;
   payment_section_order: PaymentSectionKey[];
 }
 
@@ -133,6 +134,7 @@ export function TransactionFeeSettings() {
     bic: null,
     stripe_payment_methods: ['card', 'ideal', 'bancontact'],
     bank_transfer_acknowledged_manual: false,
+    bank_transfer_hide_qr_mobile: false,
     payment_section_order: ['direct', 'later', 'transfer'],
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -156,7 +158,7 @@ export function TransactionFeeSettings() {
     try {
       const { data, error } = await supabase
         .from('tenants')
-        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods, bank_transfer_acknowledged_manual, payment_section_order')
+        .select('payment_methods_enabled, pass_transaction_fee_to_customer, transaction_fee_label, iban, bic, stripe_payment_methods, bank_transfer_acknowledged_manual, bank_transfer_hide_qr_mobile, payment_section_order')
         .eq('id', activeTenantId)
         .single();
 
@@ -179,6 +181,7 @@ export function TransactionFeeSettings() {
         bic: data.bic,
         stripe_payment_methods: sanitizedStripeMethods.length > 0 ? sanitizedStripeMethods : ['card'],
         bank_transfer_acknowledged_manual: data.bank_transfer_acknowledged_manual || false,
+        bank_transfer_hide_qr_mobile: (data as any).bank_transfer_hide_qr_mobile ?? false,
         payment_section_order: finalOrder,
       };
       setConfig(loaded);
@@ -208,6 +211,7 @@ export function TransactionFeeSettings() {
         transaction_fee_label: config.transaction_fee_label,
         stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'],
         bank_transfer_acknowledged_manual: config.bank_transfer_acknowledged_manual,
+        bank_transfer_hide_qr_mobile: config.bank_transfer_hide_qr_mobile,
         payment_section_order: config.payment_section_order,
       };
       
