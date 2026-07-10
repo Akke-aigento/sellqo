@@ -386,8 +386,11 @@ export function useReturnMutations() {
       invalidateAll();
       if (variables.status === 'approved') {
         fireReturnEmail(variables.returnId, 'approved');
-        // CN-AUTO-1: automatic credit note. Idempotent — safe to fire even
-        // if a later refund path also triggers it.
+      } else if (variables.status === 'inspected') {
+        // CN-AUTO-1: automatic credit note fires AFTER arrival + inspection,
+        // so the CN reflects accepted items/quantities (received_quantity),
+        // not the originally requested ones. Idempotent — safe if the
+        // process-refund safety net also fires later.
         (async () => {
           try {
             await supabase.functions.invoke('create-credit-note-from-return', {
