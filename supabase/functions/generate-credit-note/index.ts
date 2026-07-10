@@ -165,6 +165,45 @@ serve(async (req) => {
     const auth = await authenticateRequest(req, cn.tenant_id);
     requireRole(auth, cn.tenant_id, ["tenant_admin", "staff", "accountant"]);
 
+    // ---- Server-side total guard ----
+    // Recompute the credit note total from its own lines and reject any credit
+    // note that would exceed the remaining creditable amount on the invoice
+    // (invoice.total minus totals of previously issued credit notes). This is
+    // the authoritative check — client calculations are advisory only.
+    if (!cn.auto_generated) {
+      const inv = cn.original_invoice;
+      if (inv?.id && inv?.total != null) {
+        // Sum of previously issued credit notes for the same invoice (excluding this one).
+        const { data: prior, error: priorErr } = await admin
+          .from("credit_notes")
+          .select("id, total")
+          .eq("original_invoice_id", inv.id)
+          .neq("id", cn.id);
+        if (priorErr) throw new Error(`Guard read failed: ${priorErr.message}`);
+        const alreadyCredited = (prior || []).reduce(
+          (s: number, r: any) => s + Math.abs(Number(r.total || 0)),
+          0,
+        );
+        const invoiceTotal = Math.abs(Number(inv.total || 0));
+        const remaining = invoiceTotal - alreadyCredited;
+        const cnTotal = Math.abs(Number(cn.total || 0));
+        const EPS = 0.01;
+        if (cnTotal > remaining + EPS) {
+          // Roll back the invalid draft so the UI can retry cleanly.
+          await admin.from("credit_note_lines").delete().eq("credit_note_id", cn.id);
+          await admin.from("credit_notes").delete().eq("id", cn.id);
+          const msg =
+            `Creditnota-bedrag (${cnTotal.toFixed(2)}) overschrijdt het resterende crediteerbare bedrag ` +
+            `van factuur ${inv.invoice_number} (${remaining.toFixed(2)}; ` +
+            `origineel ${invoiceTotal.toFixed(2)} − reeds gecrediteerd ${alreadyCredited.toFixed(2)}).`;
+          return new Response(JSON.stringify({ success: false, error: msg }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     const { data: tenant, error: tErr } = await admin
       .from("tenants")
       .select("*")
