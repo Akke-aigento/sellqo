@@ -2648,6 +2648,7 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
     payment_method_id: payment_method,
     success_url: success_url || (params.origin ? `${params.origin}/order-confirmation` : undefined),
     cancel_url: cancel_url || (params.origin ? `${params.origin}/checkout?cancelled=true` : undefined),
+    user_agent: (params.user_agent as string | undefined) ?? '',
   });
 
   // Add customer note if order was created (bank/qr)
