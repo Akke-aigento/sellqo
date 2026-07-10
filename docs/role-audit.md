@@ -3671,3 +3671,28 @@ Live. Geverifieerd via shallow clone post-flight (commit "Credits preview toegev
 - Recrop `a6`: label vult A6, niets geclipt.
 - Handmatige sync-run: `[TRACKING-BACKFILL]` en `[STUCK-LABEL-CLEANUP]` logs verschijnen; tracking wordt bijgewerkt op `shipping_labels` én `orders`.
 - Regressie: nieuwe VVB-labels via UI doorlopen normale flow (label + tracking + shipped + Bol confirm).
+
+## QR verbergen op mobiel (tenant-toggle) — 2026-07-10
+
+### Root cause
+Op een smartphone kan een klant de EPC-QR-code niet scannen met hetzelfde toestel (bank-app en QR staan op één scherm). De QR is dan visuele ruis; klant heeft alleen IBAN/bedrag/mededeling nodig. Tot nu toe was er geen manier om dit per-tenant te sturen.
+
+### Wat
+- Nieuwe kolom `public.tenants.bank_transfer_hide_qr_mobile boolean NOT NULL DEFAULT false`. Default = false → géén gedragswijziging voor bestaande tenants.
+- Backend-gestuurde onderdrukking via User-Agent-detectie in `storefront-api`. `qr_data` wordt `null` gezet wanneer `isMobile && hideQrMobile`. `bank_details` (IBAN/BIC/mededeling/rekeninghouder) blijft ALTIJD gevuld.
+- Sellqo-core storefront (`ShopQRPayment.tsx`) gemigreerd van lokale `generateEPCString`-generatie naar het canonieke `qr_data`-contract — dezelfde flow die VanXcel/Mancini al gebruiken. Opgeloste tech debt: één contract, één source of truth voor QR-payload.
+
+### Bestanden
+- Migratie: kolom toegevoegd aan `tenants`.
+- `supabase/functions/storefront-api/index.ts`:
+  - Helper `isMobileUserAgent()` (bij PROMOTION UTILS).
+  - `checkoutComplete` tenant-select uitgebreid met `bank_transfer_hide_qr_mobile`.
+  - `bank_transfer`-return: `qr_data: suppressQr ? null : { … }`.
+  - Serve-handler: `userAgent = req.headers.get('user-agent') ?? ''` één keer, en meegeven aan `checkout_complete` / `checkout_place_order` / `checkout_create_session` via `{ ...params, user_agent: userAgent }`.
+  - Legacy `checkoutPlaceOrder` → `checkoutComplete` propagatie van `user_agent`.
+- `src/components/admin/settings/TransactionFeeSettings.tsx`: interface + defaults + loadConfig `.select` + loaded object + saveConfig payload + sub-rij `<Switch>` met kopij "QR-code verbergen op mobiel", enkel zichtbaar als bankoverschrijving enabled.
+- `src/pages/storefront/ShopCheckout.tsx`: `qrData: result.qr_data` toegevoegd aan navigatie-state.
+- `src/pages/storefront/ShopQRPayment.tsx`: `generateEPCString`-import + lokale EPC-generatie verwijderd; leest nu `qrData.payload` uit `location.state`. Als `payload` ontbreekt → QR-blok + scan-instructies volledig weggelaten, manuele gegevens worden hoofdweergave.
+
+### Custom frontends
+0 custom frontends aangeraakt. VanXcel + Mancini renderen `qr_data.payload` al uit het backend-contract → toggle werkt daar automatisch zodra deze tenants 'm aanzetten. Backend-only werking bevestigd.
