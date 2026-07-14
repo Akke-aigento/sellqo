@@ -73,7 +73,9 @@ Deno.serve(async (req) => {
       };
       if (!odoo_url || !odoo_db || !odoo_login) return jsonResponse({ success: false, error: 'URL, database en login zijn verplicht.' }, 400);
 
-      const normalizedUrl = assertValidOdooUrl(odoo_url);
+      let normalizedUrl: string;
+      try { normalizedUrl = assertValidOdooUrl(odoo_url); }
+      catch (e) { return jsonResponse({ success: false, error: errMsg(e) }, 400); }
 
       // If api_key not provided, must already be stored — reuse ciphertext by decrypting existing.
       let apiKey = odoo_api_key?.trim() || '';
