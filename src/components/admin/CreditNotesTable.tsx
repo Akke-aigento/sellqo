@@ -56,6 +56,8 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
+  const { data: odooSync } = useOdooSyncStatuses(currentTenant?.id);
+
   const handleDownloadPdf = async (cnId: string, existingUrl: string | null, language?: string) => {
     if (existingUrl) {
       window.open(existingUrl, '_blank');
@@ -177,7 +179,12 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
   };
 
   const columns: ColumnDef<CN>[] = [
-    { id: 'number',   header: 'Nummer', render: (cn) => <span className="font-medium">{cn.credit_note_number}</span> },
+    { id: 'number',   header: 'Nummer', render: (cn) => (
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{cn.credit_note_number}</span>
+        <OdooSyncBadge row={odooSync?.creditNotes.get(cn.id)} />
+      </div>
+    ) },
     { id: 'customer', header: 'Klant',  render: (cn) => <span className="block max-w-[180px] truncate">{getCustomerName(cn)}</span> },
     { id: 'original', header: 'Originele factuur', priority: 'lg', render: (cn) => cn.original_invoice ? (
       <Button variant="link" className="p-0 h-auto font-normal" onClick={(e) => { e.stopPropagation(); navigate('/admin/orders/invoices'); }}>
