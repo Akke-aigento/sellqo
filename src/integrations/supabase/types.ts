@@ -8397,11 +8397,15 @@ export type Database = {
       odoo_invoice_sync_log: {
         Row: {
           created_at: string
+          credit_note_id: string | null
+          document_type: string
           error_message: string | null
           id: string
           invoice_id: string | null
-          marketplace_connection_id: string
+          marketplace_connection_id: string | null
           odoo_move_id: string | null
+          peppol_note: string | null
+          peppol_status: string | null
           sync_direction: string
           sync_status: string
           synced_at: string | null
@@ -8409,11 +8413,15 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credit_note_id?: string | null
+          document_type?: string
           error_message?: string | null
           id?: string
           invoice_id?: string | null
-          marketplace_connection_id: string
+          marketplace_connection_id?: string | null
           odoo_move_id?: string | null
+          peppol_note?: string | null
+          peppol_status?: string | null
           sync_direction?: string
           sync_status?: string
           synced_at?: string | null
@@ -8421,17 +8429,28 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credit_note_id?: string | null
+          document_type?: string
           error_message?: string | null
           id?: string
           invoice_id?: string | null
-          marketplace_connection_id?: string
+          marketplace_connection_id?: string | null
           odoo_move_id?: string | null
+          peppol_note?: string | null
+          peppol_status?: string | null
           sync_direction?: string
           sync_status?: string
           synced_at?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "odoo_invoice_sync_log_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "odoo_invoice_sync_log_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -15763,6 +15782,8 @@ export type Database = {
           b2c_dummy_partner_name: string
           b2c_dummy_partner_odoo_id: number | null
           created_at: string
+          odoo_journal_name: string | null
+          odoo_sync_enabled: boolean
           tenant_id: string
           updated_at: string
         }
@@ -15772,6 +15793,8 @@ export type Database = {
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
           created_at?: string
+          odoo_journal_name?: string | null
+          odoo_sync_enabled?: boolean
           tenant_id: string
           updated_at?: string
         }
@@ -15781,6 +15804,8 @@ export type Database = {
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
           created_at?: string
+          odoo_journal_name?: string | null
+          odoo_sync_enabled?: boolean
           tenant_id?: string
           updated_at?: string
         }
