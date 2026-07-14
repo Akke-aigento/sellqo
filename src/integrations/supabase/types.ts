@@ -15775,6 +15775,60 @@ export type Database = {
           },
         ]
       }
+      tenant_odoo_credentials: {
+        Row: {
+          api_key_ciphertext: string
+          connected_version: string | null
+          created_at: string
+          last_test_at: string | null
+          last_test_ok: boolean | null
+          odoo_db: string
+          odoo_login: string
+          odoo_url: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_ciphertext: string
+          connected_version?: string | null
+          created_at?: string
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          odoo_db: string
+          odoo_login: string
+          odoo_url: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_ciphertext?: string
+          connected_version?: string | null
+          created_at?: string
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          odoo_db?: string
+          odoo_login?: string
+          odoo_url?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_odoo_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_odoo_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_odoo_settings: {
         Row: {
           aggregate_b2c_customers: boolean
@@ -15782,6 +15836,7 @@ export type Database = {
           b2c_dummy_partner_name: string
           b2c_dummy_partner_odoo_id: number | null
           created_at: string
+          odoo_journal_id: string | null
           odoo_journal_name: string | null
           odoo_sync_enabled: boolean
           tenant_id: string
@@ -15793,6 +15848,7 @@ export type Database = {
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
           created_at?: string
+          odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           tenant_id: string
@@ -15804,6 +15860,7 @@ export type Database = {
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
           created_at?: string
+          odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           tenant_id?: string
