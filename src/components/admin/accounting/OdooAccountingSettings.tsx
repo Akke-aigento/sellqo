@@ -49,12 +49,20 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const selectedJournal = journals.data?.find(j => String(j.id) === journalId);
   const configured = !!status.data?.configured;
 
+  // Compare against stored row when present, otherwise against defaults so the
+  // first-ever save (no row yet) is not permanently blocked.
+  const baseline = {
+    aggregate: settings?.aggregate_b2c_customers ?? false,
+    name: (settings?.b2c_dummy_partner_name || 'Diverse particulieren').trim(),
+    syncEnabled: settings?.odoo_sync_enabled ?? false,
+    journalId: settings?.odoo_journal_id || '',
+  };
   const dirty =
-    !!settings &&
-    (aggregate !== settings.aggregate_b2c_customers ||
-      name.trim() !== (settings.b2c_dummy_partner_name || 'Diverse particulieren').trim() ||
-      syncEnabled !== (settings.odoo_sync_enabled ?? false) ||
-      journalId !== (settings.odoo_journal_id || ''));
+    !isLoading &&
+    (aggregate !== baseline.aggregate ||
+      name.trim() !== baseline.name ||
+      syncEnabled !== baseline.syncEnabled ||
+      journalId !== baseline.journalId);
 
   const handleSave = () => {
     const j = journals.data?.find(x => String(x.id) === journalId);
