@@ -29,6 +29,8 @@ import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { PermissionGate } from '@/components/PermissionGate';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { useCan } from '@/hooks/useCan';
+import { useOdooSyncStatuses } from '@/hooks/useOdooSyncStatuses';
+import { OdooSyncBadge } from '@/components/admin/OdooSyncBadge';
 
 export default function InvoicesPage() {
   const { t } = useTranslation();
@@ -36,6 +38,7 @@ export default function InvoicesPage() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: odooSync } = useOdooSyncStatuses(currentTenant?.id);
   // H4d: gate write-acties (Peppol mark-sent + resend).
   const canWriteInvoices = useCan('write', 'invoices');
   const [search, setSearch] = useState('');
@@ -478,7 +481,12 @@ export default function InvoicesPage() {
               {
                 id: 'number',
                 header: 'Factuurnummer',
-                render: (invoice) => <span className="font-medium whitespace-nowrap">{invoice.invoice_number}</span>,
+                 render: (invoice) => (
+                   <div className="flex items-center gap-2">
+                     <span className="font-medium whitespace-nowrap">{invoice.invoice_number}</span>
+                     <OdooSyncBadge row={odooSync?.invoices.get(invoice.id)} />
+                   </div>
+                 ),
               },
               {
                 id: 'customer',
