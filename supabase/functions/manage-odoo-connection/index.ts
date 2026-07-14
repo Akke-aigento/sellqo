@@ -86,9 +86,19 @@ Deno.serve(async (req) => {
       }
 
       const env: OdooEnv = { url: normalizedUrl, db: odoo_db.trim(), login: odoo_login.trim(), apiKey };
-      // Live test — throws on failure with readable Dutch message.
-      await odooAuthenticate(env);
-      const version = await odooVersion(env);
+      // Live test — expected auth failures return 400 with a helpful Dutch message.
+      let version: Awaited<ReturnType<typeof odooVersion>>;
+      try {
+        await odooAuthenticate(env);
+        version = await odooVersion(env);
+      } catch (e) {
+        return jsonResponse({
+          success: false,
+          error:
+            'Odoo-authenticatie mislukt. Controleer database, login en API-key — en let op: de API-key moet aangemaakt zijn onder dezelfde Odoo-gebruiker als de login, met volledig bereik. (' +
+            errMsg(e) + ')',
+        }, 400);
+      }
 
       const ciphertext = await encryptOdooKey(apiKey);
       const { error: upErr } = await supabase.from('tenant_odoo_credentials').upsert({
