@@ -9,6 +9,7 @@ export interface TenantOdooSettings {
   b2c_dummy_partner_odoo_id: number | null;
   aggregate_per_channel: boolean;
   odoo_sync_enabled: boolean;
+  odoo_journal_id: string | null;
   odoo_journal_name: string | null;
 }
 
