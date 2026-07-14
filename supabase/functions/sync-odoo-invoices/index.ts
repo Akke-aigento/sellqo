@@ -1,3 +1,8 @@
+// ODOO-1: Nomadix-only Odoo sync, driven by env secrets + tenant sync-enable gate.
+// - Env: ODOO_URL, ODOO_DB, ODOO_LOGIN, ODOO_API_KEY
+// - Iterates every tenant where tenant_odoo_settings.odoo_sync_enabled = true
+// - Pushes unsynced issued invoices AND credit notes; sets account.move.name = Sellqo number
+// - Maps line VAT to Odoo account.tax; posts; best-effort Peppol send for B2B
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -5,343 +10,480 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface OdooCredentials {
-  odooUrl: string
-  odooDatabase: string
-  odooUsername: string
-  odooApiKey: string
-}
+const ISSUED_STATUSES = ['unpaid', 'sent', 'processing', 'paid'] as const
+const ISSUED_CN_STATUSES = ['sent', 'processed'] as const
 
-interface OdooJsonRpcResponse {
-  jsonrpc: string
-  id: number
-  result?: unknown
-  error?: { code: number; message: string; data?: { message: string } }
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message
+  try { return JSON.stringify(e) } catch { return String(e) }
 }
 
 function normalizeOdooUrl(url: string): string {
-  let normalized = url.trim().replace(/\/+$/, '')
-  if (!normalized.startsWith('http')) normalized = `https://${normalized}`
-  return normalized
+  let n = url.trim().replace(/\/+$/, '')
+  if (!n.startsWith('http')) n = `https://${n}`
+  return n
 }
 
-async function odooAuthenticate(credentials: OdooCredentials): Promise<{ uid: number; sessionId: string } | null> {
-  const normalizedUrl = normalizeOdooUrl(credentials.odooUrl)
-  const response = await fetch(`${normalizedUrl}/web/session/authenticate`, {
+interface OdooEnv {
+  url: string
+  db: string
+  login: string
+  apiKey: string
+}
+
+// Single JSON-RPC helper. Uses /jsonrpc endpoint (stateless, no session cookies).
+async function odooRpc(env: OdooEnv, service: string, method: string, args: unknown[]): Promise<unknown> {
+  const res = await fetch(`${env.url}/jsonrpc`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       jsonrpc: '2.0',
       method: 'call',
-      params: { db: credentials.odooDatabase, login: credentials.odooUsername, password: credentials.odooApiKey },
-      id: 1,
+      params: { service, method, args },
+      id: Date.now() + Math.floor(Math.random() * 1000),
     }),
   })
-
-  const data: OdooJsonRpcResponse = await response.json()
-  const result = data.result as { uid?: number } | null
-  if (!result?.uid) return null
-
-  const cookies = response.headers.get('set-cookie') || ''
-  const sessionMatch = cookies.match(/session_id=([^;]+)/)
-  return { uid: result.uid, sessionId: sessionMatch?.[1] || '' }
-}
-
-async function odooCallMethod(
-  credentials: OdooCredentials,
-  sessionId: string,
-  model: string,
-  method: string,
-  args: unknown[],
-  kwargs: Record<string, unknown> = {}
-): Promise<unknown> {
-  const normalizedUrl = normalizeOdooUrl(credentials.odooUrl)
-  const response = await fetch(`${normalizedUrl}/web/dataset/call_kw/${model}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': `session_id=${sessionId}` },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: { model, method, args, kwargs }, id: Date.now() }),
-  })
-
-  const data: OdooJsonRpcResponse = await response.json()
-  if (data.error) throw new Error(data.error.data?.message || data.error.message)
+  const data = await res.json() as { result?: unknown; error?: { data?: { message?: string }; message?: string } }
+  if (data.error) throw new Error(data.error.data?.message || data.error.message || 'Odoo RPC error')
   return data.result
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+async function odooAuthenticate(env: OdooEnv): Promise<number> {
+  const uid = await odooRpc(env, 'common', 'authenticate', [env.db, env.login, env.apiKey, {}]) as number | false
+  if (!uid || typeof uid !== 'number') throw new Error('Odoo authentication failed')
+  return uid
+}
+
+async function odooVersion(env: OdooEnv): Promise<{ server_version?: string; server_serie?: string; server_version_info?: number[] }> {
+  return await odooRpc(env, 'common', 'version', []) as any
+}
+
+function execKw(env: OdooEnv, uid: number, model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) {
+  return odooRpc(env, 'object', 'execute_kw', [env.db, uid, env.apiKey, model, method, args, kwargs])
+}
+
+interface SyncCtx {
+  env: OdooEnv
+  uid: number
+  versionMajor: number
+  journalId: number
+  taxCache: Map<string, number> // key: `${rate}` -> tax id
+  dummyPartnerId: number | null
+  aggregateB2C: boolean
+  dummyPartnerName: string
+  tenantId: string
+  supabase: ReturnType<typeof createClient>
+}
+
+async function resolveTax(ctx: SyncCtx, rate: number): Promise<number> {
+  const key = String(Math.round(rate * 100) / 100)
+  const cached = ctx.taxCache.get(key)
+  if (cached) return cached
+  const ids = await execKw(ctx.env, ctx.uid, 'account.tax', 'search',
+    [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
+    { limit: 1 }) as number[]
+  if (!ids.length) throw new Error(`No Odoo sales tax found for rate ${rate}% (type_tax_use=sale)`)
+  ctx.taxCache.set(key, ids[0])
+  return ids[0]
+}
+
+async function ensureDummyPartner(ctx: SyncCtx): Promise<number> {
+  if (ctx.dummyPartnerId) return ctx.dummyPartnerId
+  const existing = await execKw(ctx.env, ctx.uid, 'res.partner', 'search',
+    [[['name', '=', ctx.dummyPartnerName], ['customer_rank', '>', 0]]],
+    { limit: 1 }) as number[]
+  let id: number
+  if (existing.length) id = existing[0]
+  else {
+    id = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
+      name: ctx.dummyPartnerName,
+      company_type: 'person',
+      customer_rank: 1,
+      comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
+    }]) as number
+  }
+  ctx.dummyPartnerId = id
+  await ctx.supabase.from('tenant_odoo_settings').update({ b2c_dummy_partner_odoo_id: id }).eq('tenant_id', ctx.tenantId)
+  return id
+}
+
+async function findOrCreatePartner(ctx: SyncCtx, opts: {
+  name: string; email: string; phone?: string; vatNumber?: string; companyName?: string;
+  street?: string; city?: string; zip?: string; country?: string;
+}): Promise<{ partnerId: number; hasVat: boolean }> {
+  const hasVat = !!(opts.vatNumber && opts.vatNumber.trim())
+  // Try VAT first, then email
+  if (hasVat) {
+    const byVat = await execKw(ctx.env, ctx.uid, 'res.partner', 'search',
+      [[['vat', '=', opts.vatNumber]]], { limit: 1 }) as number[]
+    if (byVat.length) return { partnerId: byVat[0], hasVat }
+  }
+  if (opts.email) {
+    const byEmail = await execKw(ctx.env, ctx.uid, 'res.partner', 'search',
+      [[['email', '=', opts.email]]], { limit: 1 }) as number[]
+    if (byEmail.length) return { partnerId: byEmail[0], hasVat }
+  }
+  // Country → country_id
+  let countryId: number | false = false
+  if (opts.country) {
+    const cids = await execKw(ctx.env, ctx.uid, 'res.country', 'search',
+      [[['code', '=', opts.country.toUpperCase()]]], { limit: 1 }) as number[]
+    if (cids.length) countryId = cids[0]
+  }
+  const partnerId = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
+    name: opts.companyName || opts.name,
+    company_type: opts.companyName ? 'company' : 'person',
+    email: opts.email || false,
+    phone: opts.phone || false,
+    vat: opts.vatNumber || false,
+    street: opts.street || false,
+    city: opts.city || false,
+    zip: opts.zip || false,
+    country_id: countryId,
+    customer_rank: 1,
+  }]) as number
+  return { partnerId, hasVat }
+}
+
+// Best-effort Peppol send. Never throws — returns a status label.
+async function tryPeppolSend(ctx: SyncCtx, moveId: number): Promise<{ status: 'sent' | 'skipped' | 'manual'; note?: string }> {
+  // Odoo 17+/18: account.move.send wizard; older: action_invoice_send.
+  try {
+    // Attempt: create send wizard with peppol checking method
+    // We'll call action_send_and_print if present (Odoo 17+).
+    try {
+      await execKw(ctx.env, ctx.uid, 'account.move', 'action_send_and_print',
+        [[moveId]], { context: { discard_logo_check: true } })
+      return { status: 'sent' }
+    } catch (e1) {
+      // Fallback: mark move as needing Peppol → user clicks in Odoo
+      return { status: 'manual', note: `Auto Peppol-send unavailable on this Odoo version (${errMsg(e1)}). Posted; send manually from Odoo.` }
+    }
+  } catch (e) {
+    return { status: 'manual', note: errMsg(e) }
+  }
+}
+
+interface SellqoLine {
+  description: string
+  quantity: number
+  unit_price: number
+  vat_rate: number
+}
+
+async function buildOdooLines(ctx: SyncCtx, lines: SellqoLine[]): Promise<unknown[]> {
+  const out: unknown[] = []
+  for (const l of lines) {
+    const taxId = await resolveTax(ctx, Number(l.vat_rate) || 0)
+    out.push([0, 0, {
+      name: l.description || 'Item',
+      quantity: Number(l.quantity) || 0,
+      price_unit: Number(l.unit_price) || 0,
+      tax_ids: [[6, 0, [taxId]]],
+    }])
+  }
+  return out
+}
+
+async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
+  if (!customerId) return null
+  const { data } = await ctx.supabase
+    .from('customers')
+    .select('email, first_name, last_name, phone, customer_type, company_name, vat_number, billing_street, billing_city, billing_postal_code, billing_country')
+    .eq('id', customerId)
+    .maybeSingle()
+  return data
+}
+
+async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
+  const { data: inv, error } = await ctx.supabase
+    .from('invoices')
+    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id')
+    .eq('id', invoiceId)
+    .single()
+  if (error || !inv) throw new Error(`Invoice not found: ${errMsg(error)}`)
+
+  const { data: lines, error: linesErr } = await ctx.supabase
+    .from('invoice_lines')
+    .select('description, quantity, unit_price, vat_rate, line_type')
+    .eq('invoice_id', inv.id)
+    .order('sort_order', { ascending: true })
+  if (linesErr) throw new Error(`Invoice lines: ${errMsg(linesErr)}`)
+  if (!lines || !lines.length) throw new Error('Invoice has no lines')
+
+  const cust = await loadCustomer(ctx, inv.customer_id)
+  const hasVat = !!(cust?.vat_number && cust.vat_number.trim())
+  const isB2B = inv.is_b2b === true || hasVat
+
+  let partnerId: number
+  let audit: string | null = null
+  if (ctx.aggregateB2C && !isB2B) {
+    partnerId = await ensureDummyPartner(ctx)
+    audit = `SellQo customer: ${[cust?.first_name, cust?.last_name].filter(Boolean).join(' ') || 'consumer'}${cust?.email ? ` <${cust.email}>` : ''} (invoice ${inv.invoice_number})`
+  } else {
+    const p = await findOrCreatePartner(ctx, {
+      name: [cust?.first_name, cust?.last_name].filter(Boolean).join(' ') || cust?.company_name || 'Klant',
+      email: cust?.email || '',
+      phone: cust?.phone || undefined,
+      vatNumber: cust?.vat_number || undefined,
+      companyName: cust?.company_name || undefined,
+      street: cust?.billing_street || undefined,
+      city: cust?.billing_city || undefined,
+      zip: cust?.billing_postal_code || undefined,
+      country: cust?.billing_country || undefined,
+    })
+    partnerId = p.partnerId
   }
 
-  try {
-    const { connectionId, invoiceIds } = await req.json()
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[])
+  const moveData: Record<string, unknown> = {
+    move_type: 'out_invoice',
+    partner_id: partnerId,
+    invoice_date: inv.issue_date || new Date().toISOString().split('T')[0],
+    name: inv.invoice_number, // Sellqo number is the legal number
+    journal_id: ctx.journalId,
+    invoice_line_ids: moveLines,
+  }
+  if (audit) moveData.narration = audit
 
-    if (!connectionId) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Connection ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+  const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
+  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+  let peppol: { status: string; note?: string } = { status: 'skipped' }
+  if (isB2B && hasVat) {
+    peppol = await tryPeppolSend(ctx, moveId)
+  }
+  return { moveId, peppol }
+}
 
-    // Get connection details
-    const { data: connection, error: connError } = await supabase
-      .from('marketplace_connections')
-      .select('*')
-      .eq('id', connectionId)
-      .single()
+async function syncCreditNote(ctx: SyncCtx, cnId: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
+  const { data: cn, error } = await ctx.supabase
+    .from('credit_notes')
+    .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason')
+    .eq('id', cnId)
+    .single()
+  if (error || !cn) throw new Error(`Credit note not found: ${errMsg(error)}`)
 
-    if (connError || !connection) throw new Error('Connection not found')
+  const { data: lines, error: linesErr } = await ctx.supabase
+    .from('credit_note_lines')
+    .select('description, quantity, unit_price, vat_rate, line_type')
+    .eq('credit_note_id', cn.id)
+  if (linesErr) throw new Error(`CN lines: ${errMsg(linesErr)}`)
+  if (!lines || !lines.length) throw new Error('Credit note has no lines')
 
-    const credentials = connection.credentials as OdooCredentials
-    const settings = connection.settings as { 
-      odooDefaultJournalId?: string
-      odooAutoConfirmInvoices?: boolean
-      odooModuleAccounting?: boolean
-    }
+  const cust = await loadCustomer(ctx, cn.customer_id)
+  const hasVat = !!(cust?.vat_number && cust.vat_number.trim())
+  const isB2B = hasVat
 
-    // Check if accounting module is enabled
-    if (settings.odooModuleAccounting === false) {
-      console.log('Odoo accounting module not enabled, skipping invoice sync')
-      return new Response(
-        JSON.stringify({ success: true, invoicesSynced: 0, message: 'Accounting module not enabled' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+  let partnerId: number
+  let audit: string | null = cn.reason ? `Reason: ${cn.reason}` : null
+  if (ctx.aggregateB2C && !isB2B) {
+    partnerId = await ensureDummyPartner(ctx)
+  } else {
+    const p = await findOrCreatePartner(ctx, {
+      name: [cust?.first_name, cust?.last_name].filter(Boolean).join(' ') || cust?.company_name || 'Klant',
+      email: cust?.email || '',
+      phone: cust?.phone || undefined,
+      vatNumber: cust?.vat_number || undefined,
+      companyName: cust?.company_name || undefined,
+      street: cust?.billing_street || undefined,
+      city: cust?.billing_city || undefined,
+      zip: cust?.billing_postal_code || undefined,
+      country: cust?.billing_country || undefined,
+    })
+    partnerId = p.partnerId
+  }
 
-    // Authenticate with Odoo
-    const auth = await odooAuthenticate(credentials)
-    if (!auth) throw new Error('Odoo authentication failed')
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[])
+  const moveData: Record<string, unknown> = {
+    move_type: 'out_refund',
+    partner_id: partnerId,
+    invoice_date: cn.issue_date || new Date().toISOString().split('T')[0],
+    name: cn.credit_note_number,
+    journal_id: ctx.journalId,
+    invoice_line_ids: moveLines,
+  }
+  if (audit) moveData.narration = audit
 
-    // Load tenant Odoo settings (B2C aggregation toggle)
-    const { data: odooSettings } = await supabase
-      .from('tenant_odoo_settings')
-      .select('aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
-      .eq('tenant_id', connection.tenant_id)
-      .maybeSingle()
+  const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
+  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
 
-    const aggregateB2C = odooSettings?.aggregate_b2c_customers === true
-    let dummyPartnerId: number | null = odooSettings?.b2c_dummy_partner_odoo_id ?? null
-    const dummyPartnerName = odooSettings?.b2c_dummy_partner_name || 'Diverse particulieren'
+  let peppol: { status: string; note?: string } = { status: 'skipped' }
+  if (isB2B && hasVat) peppol = await tryPeppolSend(ctx, moveId)
+  return { moveId, peppol }
+}
 
-    // Lazily ensure the B2C dummy res.partner exists (only when aggregation is on)
-    const ensureDummyPartner = async (): Promise<number> => {
-      if (dummyPartnerId) return dummyPartnerId
-      const existing = await odooCallMethod(
-        credentials,
-        auth.sessionId,
-        'res.partner',
-        'search',
-        [[['name', '=', dummyPartnerName], ['customer_rank', '>', 0]]],
-        { limit: 1 }
-      ) as number[]
+async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEnv, uid: number, versionMajor: number, tenantId: string, opts: { invoiceIds?: string[]; creditNoteIds?: string[] } = {}) {
+  // Load per-tenant settings
+  const { data: settings, error: sErr } = await supabase
+    .from('tenant_odoo_settings')
+    .select('odoo_sync_enabled, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (sErr) throw new Error(`Load settings: ${errMsg(sErr)}`)
+  if (!settings?.odoo_sync_enabled) return { skipped: true, reason: 'sync disabled' }
+  if (!settings.odoo_journal_name) throw new Error('odoo_journal_name is not configured for this tenant')
 
-      if (existing.length > 0) {
-        dummyPartnerId = existing[0]
-      } else {
-        dummyPartnerId = await odooCallMethod(
-          credentials,
-          auth.sessionId,
-          'res.partner',
-          'create',
-          [{
-            name: dummyPartnerName,
-            company_type: 'person',
-            customer_rank: 1,
-            comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
-          }]
-        ) as number
-      }
+  // Resolve journal
+  const journalIds = await execKw(env, uid, 'account.journal', 'search',
+    [[['name', '=', settings.odoo_journal_name], ['type', '=', 'sale']]], { limit: 1 }) as number[]
+  if (!journalIds.length) throw new Error(`Odoo journal '${settings.odoo_journal_name}' (type=sale) not found`)
+  const journalId = journalIds[0]
 
-      await supabase
-        .from('tenant_odoo_settings')
-        .update({ b2c_dummy_partner_odoo_id: dummyPartnerId })
-        .eq('tenant_id', connection.tenant_id)
+  const ctx: SyncCtx = {
+    env, uid, versionMajor, journalId,
+    taxCache: new Map(),
+    dummyPartnerId: settings.b2c_dummy_partner_odoo_id ?? null,
+    aggregateB2C: settings.aggregate_b2c_customers === true,
+    dummyPartnerName: settings.b2c_dummy_partner_name || 'Diverse particulieren',
+    tenantId,
+    supabase,
+  }
 
-      return dummyPartnerId
-    }
+  const results = { invoices: { synced: 0, failed: 0, peppolManual: 0 }, creditNotes: { synced: 0, failed: 0, peppolManual: 0 }, errors: [] as string[] }
 
-    // Get invoices to sync
-    let invoicesQuery = supabase
+  // Invoices to sync
+  let invIds: string[] = opts.invoiceIds ?? []
+  if (!invIds.length) {
+    const { data: syncedRows } = await supabase
+      .from('odoo_invoice_sync_log')
+      .select('invoice_id')
+      .eq('tenant_id', tenantId)
+      .eq('document_type', 'invoice')
+      .eq('sync_status', 'synced')
+    const done = new Set((syncedRows || []).map((r: any) => r.invoice_id).filter(Boolean))
+    const { data: candidates } = await supabase
       .from('invoices')
-      .select('*, order:orders(*, order_items(*))')
-      .eq('tenant_id', connection.tenant_id)
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .in('status', ISSUED_STATUSES as unknown as string[])
+      .limit(200)
+    invIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
+  }
 
-    if (invoiceIds?.length) {
-      invoicesQuery = invoicesQuery.in('id', invoiceIds)
+  for (const id of invIds) {
+    try {
+      const { moveId, peppol } = await syncInvoice(ctx, id)
+      await supabase.from('odoo_invoice_sync_log').insert({
+        tenant_id: tenantId, invoice_id: id, document_type: 'invoice',
+        odoo_move_id: String(moveId), sync_status: 'synced', sync_direction: 'push',
+        peppol_status: peppol.status, peppol_note: peppol.note ?? null,
+        synced_at: new Date().toISOString(),
+      })
+      results.invoices.synced++
+      if (peppol.status === 'manual') results.invoices.peppolManual++
+    } catch (e) {
+      const msg = errMsg(e)
+      results.invoices.failed++
+      results.errors.push(`Invoice ${id}: ${msg}`)
+      await supabase.from('odoo_invoice_sync_log').insert({
+        tenant_id: tenantId, invoice_id: id, document_type: 'invoice',
+        sync_status: 'failed', sync_direction: 'push', error_message: msg,
+        synced_at: new Date().toISOString(),
+      })
+    }
+  }
+
+  // Credit notes to sync
+  let cnIds: string[] = opts.creditNoteIds ?? []
+  if (!cnIds.length) {
+    const { data: syncedRows } = await supabase
+      .from('odoo_invoice_sync_log')
+      .select('credit_note_id')
+      .eq('tenant_id', tenantId)
+      .eq('document_type', 'credit_note')
+      .eq('sync_status', 'synced')
+    const done = new Set((syncedRows || []).map((r: any) => r.credit_note_id).filter(Boolean))
+    const { data: candidates } = await supabase
+      .from('credit_notes')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .in('status', ISSUED_CN_STATUSES as unknown as string[])
+      .limit(200)
+    cnIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
+  }
+
+  for (const id of cnIds) {
+    try {
+      const { moveId, peppol } = await syncCreditNote(ctx, id)
+      await supabase.from('odoo_invoice_sync_log').insert({
+        tenant_id: tenantId, credit_note_id: id, document_type: 'credit_note',
+        odoo_move_id: String(moveId), sync_status: 'synced', sync_direction: 'push',
+        peppol_status: peppol.status, peppol_note: peppol.note ?? null,
+        synced_at: new Date().toISOString(),
+      })
+      results.creditNotes.synced++
+      if (peppol.status === 'manual') results.creditNotes.peppolManual++
+    } catch (e) {
+      const msg = errMsg(e)
+      results.creditNotes.failed++
+      results.errors.push(`CreditNote ${id}: ${msg}`)
+      await supabase.from('odoo_invoice_sync_log').insert({
+        tenant_id: tenantId, credit_note_id: id, document_type: 'credit_note',
+        sync_status: 'failed', sync_direction: 'push', error_message: msg,
+        synced_at: new Date().toISOString(),
+      })
+    }
+  }
+
+  return { skipped: false, ...results }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+
+  try {
+    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
+    const { tenantId, invoiceIds, creditNoteIds } = body as { tenantId?: string; invoiceIds?: string[]; creditNoteIds?: string[] }
+
+    const env: OdooEnv = {
+      url: normalizeOdooUrl(Deno.env.get('ODOO_URL') || ''),
+      db: Deno.env.get('ODOO_DB') || '',
+      login: Deno.env.get('ODOO_LOGIN') || '',
+      apiKey: Deno.env.get('ODOO_API_KEY') || '',
+    }
+    if (!env.url || !env.db || !env.login || !env.apiKey) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing Odoo env secrets (ODOO_URL/DB/LOGIN/API_KEY)' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+    // Authenticate + version
+    const uid = await odooAuthenticate(env)
+    const version = await odooVersion(env)
+    const versionMajor = Array.isArray(version.server_version_info) ? Number(version.server_version_info[0]) : 0
+    console.log(`Odoo connected: uid=${uid}, version=${version.server_version} (major ${versionMajor})`)
+
+    // Resolve target tenants
+    let tenantIds: string[]
+    if (tenantId) {
+      tenantIds = [tenantId]
     } else {
-      // Get unsynced invoices (no odoo_move_id in sync log with success status)
-      const { data: syncedIds } = await supabase
-        .from('odoo_invoice_sync_log')
-        .select('invoice_id')
-        .eq('marketplace_connection_id', connectionId)
-        .eq('sync_status', 'synced')
-
-      const syncedInvoiceIds = (syncedIds || []).map(s => s.invoice_id).filter(Boolean)
-      
-      if (syncedInvoiceIds.length > 0) {
-        invoicesQuery = invoicesQuery.not('id', 'in', `(${syncedInvoiceIds.join(',')})`)
-      }
+      const { data: enabled, error: eErr } = await supabase
+        .from('tenant_odoo_settings')
+        .select('tenant_id')
+        .eq('odoo_sync_enabled', true)
+      if (eErr) throw new Error(`List enabled tenants: ${errMsg(eErr)}`)
+      tenantIds = (enabled || []).map(r => r.tenant_id as string)
     }
 
-    const { data: invoices, error: invoicesError } = await invoicesQuery.limit(50)
-    if (invoicesError) throw invoicesError
-
-    let syncedCount = 0
-    const errors: string[] = []
-
-    for (const invoice of invoices || []) {
+    const perTenant: Record<string, unknown> = {}
+    for (const tId of tenantIds) {
       try {
-        const customerName = invoice.order?.customer_name || 'Onbekende klant'
-        const customerEmail = invoice.order?.customer_email || ''
-
-        // Determine customer type. Prefer the linked customer record; fall back to order heuristics.
-        let customerType: 'b2b' | 'b2c' = 'b2c'
-        if (invoice.order?.customer_id) {
-          const { data: cust } = await supabase
-            .from('customers')
-            .select('customer_type')
-            .eq('id', invoice.order.customer_id)
-            .maybeSingle()
-          if (cust?.customer_type === 'b2b') customerType = 'b2b'
-        } else if (invoice.order?.customer_vat_number || invoice.order?.customer_company_name) {
-          customerType = 'b2b'
-        }
-
-        let partnerId: number
-        let auditNote: string | null = null
-
-        if (aggregateB2C && customerType === 'b2c') {
-          // Route B2C invoice to the shared dummy partner; keep audit info in invoice narration
-          partnerId = await ensureDummyPartner()
-          auditNote = `SellQo customer: ${customerName}${customerEmail ? ` <${customerEmail}>` : ''} (order ${invoice.order?.order_number || invoice.order?.id || ''})`
-        } else {
-          // B2B or aggregation off → existing per-customer behaviour
-          const existingPartners = customerEmail
-            ? await odooCallMethod(
-                credentials,
-                auth.sessionId,
-                'res.partner',
-                'search',
-                [[['email', '=', customerEmail]]],
-                { limit: 1 }
-              ) as number[]
-            : []
-
-          if (existingPartners.length > 0) {
-            partnerId = existingPartners[0]
-          } else {
-            partnerId = await odooCallMethod(
-              credentials,
-              auth.sessionId,
-              'res.partner',
-              'create',
-              [{
-                name: customerName,
-                email: customerEmail || false,
-                phone: invoice.order?.customer_phone || false,
-                street: invoice.order?.billing_address?.street || false,
-                city: invoice.order?.billing_address?.city || false,
-                zip: invoice.order?.billing_address?.postal_code || false,
-                customer_rank: 1,
-              }]
-            ) as number
-          }
-        }
-
-        // Create invoice (account.move) in Odoo
-        const invoiceLines = (invoice.order?.order_items || []).map((item: { product_name: string; quantity: number; unit_price: number }) => [
-          0, 0, {
-            name: item.product_name,
-            quantity: item.quantity,
-            price_unit: item.unit_price,
-          }
-        ])
-
-        const moveData: Record<string, unknown> = {
-          move_type: 'out_invoice',
-          partner_id: partnerId,
-          invoice_date: invoice.invoice_date || new Date().toISOString().split('T')[0],
-          ref: invoice.invoice_number,
-          invoice_line_ids: invoiceLines,
-        }
-
-        if (auditNote) {
-          moveData.narration = auditNote
-        }
-
-        if (settings.odooDefaultJournalId) {
-          moveData.journal_id = parseInt(settings.odooDefaultJournalId)
-        }
-
-        const moveId = await odooCallMethod(
-          credentials,
-          auth.sessionId,
-          'account.move',
-          'create',
-          [moveData]
-        ) as number
-
-        // Optionally confirm/post the invoice
-        if (settings.odooAutoConfirmInvoices) {
-          await odooCallMethod(
-            credentials,
-            auth.sessionId,
-            'account.move',
-            'action_post',
-            [[moveId]]
-          )
-        }
-
-        // Log the sync
-        await supabase.from('odoo_invoice_sync_log').insert({
-          tenant_id: connection.tenant_id,
-          marketplace_connection_id: connectionId,
-          invoice_id: invoice.id,
-          odoo_move_id: moveId.toString(),
-          sync_status: 'synced',
-          sync_direction: 'push',
-          synced_at: new Date().toISOString(),
-        })
-
-        syncedCount++
-        console.log(`Synced invoice ${invoice.invoice_number} to Odoo as move ${moveId}`)
-
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        errors.push(`Invoice ${invoice.invoice_number}: ${errorMessage}`)
-
-        await supabase.from('odoo_invoice_sync_log').insert({
-          tenant_id: connection.tenant_id,
-          marketplace_connection_id: connectionId,
-          invoice_id: invoice.id,
-          sync_status: 'failed',
-          sync_direction: 'push',
-          error_message: errorMessage,
-          synced_at: new Date().toISOString(),
-        })
+        perTenant[tId] = await syncTenant(supabase, env, uid, versionMajor, tId, { invoiceIds, creditNoteIds })
+      } catch (e) {
+        perTenant[tId] = { error: errMsg(e) }
+        console.error(`Tenant ${tId} sync failed:`, errMsg(e))
       }
     }
 
-    // Update connection last_sync_at
-    await supabase
-      .from('marketplace_connections')
-      .update({ last_sync_at: new Date().toISOString(), last_error: errors.length > 0 ? errors[0] : null })
-      .eq('id', connectionId)
-
-    return new Response(
-      JSON.stringify({ success: true, invoicesSynced: syncedCount, errors }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
+    return new Response(JSON.stringify({ success: true, odoo_version: version.server_version, tenants: perTenant }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Error syncing invoices to Odoo:', errorMessage)
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    const msg = errMsg(error)
+    console.error('sync-odoo-invoices fatal:', msg)
+    return new Response(JSON.stringify({ success: false, error: msg }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
