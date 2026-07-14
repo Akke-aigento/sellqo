@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,14 +16,19 @@ import {
 import { MarketplaceCard } from '@/components/admin/marketplace/MarketplaceCard';
 import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/ConnectMarketplaceDialog';
 import { UnifiedChannelList } from '@/components/admin/marketplace/UnifiedChannelList';
+import { OdooAccountingCard } from '@/components/admin/accounting/OdooAccountingCard';
+import { OdooAccountingSettings } from '@/components/admin/accounting/OdooAccountingSettings';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { useTenant } from '@/hooks/useTenant';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
 export default function MarketplacesPage() {
   const navigate = useNavigate();
+  const { currentTenant } = useTenant();
   const {
     connections,
     activeConnections,
@@ -46,6 +51,7 @@ export default function MarketplacesPage() {
 
   const [connectingType, setConnectingType] = useState<MarketplaceType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [odooOpen, setOdooOpen] = useState(false);
 
   // Read tab from URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -186,7 +192,7 @@ export default function MarketplacesPage() {
 
       {/* Simplified Tabs: Marktplaatsen + Kanalen */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             Marktplaatsen
@@ -195,11 +201,15 @@ export default function MarketplacesPage() {
             <Share2 className="w-4 h-4" />
             Kanalen
           </TabsTrigger>
+          <TabsTrigger value="accounting" className="flex items-center gap-2">
+            <Calculator className="w-4 h-4" />
+            Boekhouding
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="marketplaces" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'odoo', 'ebay'] as MarketplaceType[]).map((type) => {
+            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'ebay'] as MarketplaceType[]).map((type) => {
               const info = MARKETPLACE_INFO[type];
               const connection = getConnectionByType(type);
               
@@ -233,6 +243,18 @@ export default function MarketplacesPage() {
           </div>
           <UnifiedChannelList />
         </TabsContent>
+
+        <TabsContent value="accounting" className="mt-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Boekhouding</h2>
+            <p className="text-muted-foreground">
+              Koppel je boekhoudpakket voor automatische facturen- en creditnota-sync.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <OdooAccountingCard tenantId={currentTenant?.id} onOpen={() => setOdooOpen(true)} />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Connect Dialog */}
@@ -244,6 +266,23 @@ export default function MarketplacesPage() {
           onSuccess={() => navigate('/admin/orders')}
         />
       )}
+
+      {/* Odoo Accounting Dialog */}
+      <Dialog open={odooOpen} onOpenChange={setOdooOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Odoo Boekhouding</DialogTitle>
+            <DialogDescription>
+              Verbind je eigen Odoo instance en configureer de facturensync.
+            </DialogDescription>
+          </DialogHeader>
+          {currentTenant?.id ? (
+            <OdooAccountingSettings tenantId={currentTenant.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Geen tenant geselecteerd.</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Disconnect Confirmation */}
       <AlertDialog open={!!disconnectingId} onOpenChange={(open) => !open && setDisconnectingId(null)}>
