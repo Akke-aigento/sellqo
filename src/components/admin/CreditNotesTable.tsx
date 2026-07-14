@@ -24,6 +24,8 @@ import type { CreditNoteStatus } from '@/types/creditNote';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { NewCreditNoteDialog } from '@/components/admin/NewCreditNoteDialog';
+import { useOdooSyncStatuses } from '@/hooks/useOdooSyncStatuses';
+import { OdooSyncBadge } from '@/components/admin/OdooSyncBadge';
 
 interface Props {
   /** When true, omits the top-right "Nieuwe creditnota" button (Invoices page already has its own primary CTA). */
