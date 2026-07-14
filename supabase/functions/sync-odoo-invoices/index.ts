@@ -1,9 +1,11 @@
-// ODOO-1: Nomadix-only Odoo sync, driven by env secrets + tenant sync-enable gate.
-// - Env: ODOO_URL, ODOO_DB, ODOO_LOGIN, ODOO_API_KEY
-// - Iterates every tenant where tenant_odoo_settings.odoo_sync_enabled = true
-// - Pushes unsynced issued invoices AND credit notes; sets account.move.name = Sellqo number
-// - Maps line VAT to Odoo account.tax; posts; best-effort Peppol send for B2B
+// ODOO-2: per-tenant Odoo sync driven by tenant_odoo_credentials.
+// - Iterates tenants where odoo_sync_enabled=true AND credentials exist.
+// - Groups by (url, db, login): one authenticate per group, reused across tenants.
+// - Per-tenant try/catch: one tenant's failure never breaks the whole run.
+// - Pushes issued invoices + credit notes; account.move.name = Sellqo number.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { decryptOdooKey } from '../_shared/odooCrypto.ts'
+import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, type OdooEnv } from '../_shared/odooRpc.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,45 +20,9 @@ function errMsg(e: unknown): string {
   try { return JSON.stringify(e) } catch { return String(e) }
 }
 
-function normalizeOdooUrl(url: string): string {
-  let n = url.trim().replace(/\/+$/, '')
-  if (!n.startsWith('http')) n = `https://${n}`
-  return n
-}
-
-interface OdooEnv {
-  url: string
-  db: string
-  login: string
-  apiKey: string
-}
-
-// Single JSON-RPC helper. Uses /jsonrpc endpoint (stateless, no session cookies).
-async function odooRpc(env: OdooEnv, service: string, method: string, args: unknown[]): Promise<unknown> {
-  const res = await fetch(`${env.url}/jsonrpc`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      method: 'call',
-      params: { service, method, args },
-      id: Date.now() + Math.floor(Math.random() * 1000),
-    }),
-  })
-  const data = await res.json() as { result?: unknown; error?: { data?: { message?: string }; message?: string } }
-  if (data.error) throw new Error(data.error.data?.message || data.error.message || 'Odoo RPC error')
-  return data.result
-}
-
-async function odooAuthenticate(env: OdooEnv): Promise<number> {
-  const uid = await odooRpc(env, 'common', 'authenticate', [env.db, env.login, env.apiKey, {}]) as number | false
-  if (!uid || typeof uid !== 'number') throw new Error('Odoo authentication failed')
-  return uid
-}
-
-async function odooVersion(env: OdooEnv): Promise<{ server_version?: string; server_serie?: string; server_version_info?: number[] }> {
-  return await odooRpc(env, 'common', 'version', []) as any
-}
+const odooRpc = sharedOdooRpc
+const odooAuthenticate = sharedAuth
+const odooVersion = sharedVersion
 
 function execKw(env: OdooEnv, uid: number, model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) {
   return odooRpc(env, 'object', 'execute_kw', [env.db, uid, env.apiKey, model, method, args, kwargs])
@@ -317,25 +283,34 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
   // Load per-tenant settings
   const { data: settings, error: sErr } = await supabase
     .from('tenant_odoo_settings')
-    .select('odoo_sync_enabled, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
+    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   if (sErr) throw new Error(`Load settings: ${errMsg(sErr)}`)
   if (!settings?.odoo_sync_enabled) return { skipped: true, reason: 'sync disabled' }
-  if (!settings.odoo_journal_name) throw new Error('odoo_journal_name is not configured for this tenant')
+  if (!settings.odoo_journal_id) throw new Error('Odoo-dagboek is niet geconfigureerd voor deze tenant.')
 
-  // Resolve journal
-  const journalIds = await execKw(env, uid, 'account.journal', 'search',
-    [[['name', '=', settings.odoo_journal_name], ['type', '=', 'sale']]], { limit: 1 }) as number[]
-  if (!journalIds.length) throw new Error(`Odoo journal '${settings.odoo_journal_name}' (type=sale) not found`)
-  const journalId = journalIds[0]
+  // Verify journal id + name still match on live Odoo.
+  const journalId = Number(settings.odoo_journal_id)
+  const journalRows = await execKw(env, uid, 'account.journal', 'read',
+    [[journalId], ['id', 'name', 'type']]) as Array<{ id: number; name: string; type: string }>
+  if (!journalRows.length) throw new Error(`Geconfigureerd Odoo-dagboek (id ${journalId}) bestaat niet meer.`)
+  const jr = journalRows[0]
+  if (jr.type !== 'sale') throw new Error(`Odoo-dagboek ${jr.name} is geen verkoopdagboek (type=${jr.type}).`)
+  if (settings.odoo_journal_name && jr.name !== settings.odoo_journal_name) {
+    throw new Error(`Odoo-dagboek naam is gewijzigd (was '${settings.odoo_journal_name}', is nu '${jr.name}'). Herconfigureer in instellingen.`)
+  }
+
+  // Load tenant name for default B2C dummy partner name.
+  const { data: tenantRow } = await supabase.from('tenants').select('name').eq('id', tenantId).maybeSingle()
+  const tenantName = (tenantRow?.name as string | undefined) || 'SellQo'
 
   const ctx: SyncCtx = {
     env, uid, versionMajor, journalId,
     taxCache: new Map(),
     dummyPartnerId: settings.b2c_dummy_partner_odoo_id ?? null,
     aggregateB2C: settings.aggregate_b2c_customers === true,
-    dummyPartnerName: settings.b2c_dummy_partner_name || 'Diverse particulieren',
+    dummyPartnerName: settings.b2c_dummy_partner_name || `Diverse particulieren — ${tenantName}`,
     tenantId,
     supabase,
   }
@@ -436,26 +411,9 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
     const { tenantId, invoiceIds, creditNoteIds } = body as { tenantId?: string; invoiceIds?: string[]; creditNoteIds?: string[] }
 
-    const env: OdooEnv = {
-      url: normalizeOdooUrl(Deno.env.get('ODOO_URL') || ''),
-      db: Deno.env.get('ODOO_DB') || '',
-      login: Deno.env.get('ODOO_LOGIN') || '',
-      apiKey: Deno.env.get('ODOO_API_KEY') || '',
-    }
-    if (!env.url || !env.db || !env.login || !env.apiKey) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing Odoo env secrets (ODOO_URL/DB/LOGIN/API_KEY)' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    // Authenticate + version
-    const uid = await odooAuthenticate(env)
-    const version = await odooVersion(env)
-    const versionMajor = Array.isArray(version.server_version_info) ? Number(version.server_version_info[0]) : 0
-    console.log(`Odoo connected: uid=${uid}, version=${version.server_version} (major ${versionMajor})`)
-
-    // Resolve target tenants
+    // Resolve target tenants: sync-enabled + have credentials.
     let tenantIds: string[]
     if (tenantId) {
       tenantIds = [tenantId]
@@ -468,18 +426,90 @@ Deno.serve(async (req) => {
       tenantIds = (enabled || []).map(r => r.tenant_id as string)
     }
 
+    if (!tenantIds.length) {
+      return new Response(JSON.stringify({ success: true, tenants: {}, note: 'Geen tenants met Odoo-sync ingeschakeld.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // Load credentials for these tenants (service_role bypasses RLS).
+    const { data: credRows, error: cErr } = await supabase
+      .from('tenant_odoo_credentials')
+      .select('tenant_id, odoo_url, odoo_db, odoo_login, api_key_ciphertext')
+      .in('tenant_id', tenantIds)
+    if (cErr) throw new Error(`Load credentials: ${errMsg(cErr)}`)
+
+    const credMap = new Map<string, { url: string; db: string; login: string; ciphertext: string }>()
+    for (const r of (credRows || []) as Array<{ tenant_id: string; odoo_url: string; odoo_db: string; odoo_login: string; api_key_ciphertext: string }>) {
+      credMap.set(r.tenant_id, { url: r.odoo_url, db: r.odoo_db, login: r.odoo_login, ciphertext: r.api_key_ciphertext })
+    }
+
+    // Group tenants by (url, db, login) — reuse one authenticated session per group.
+    const groups = new Map<string, { env: OdooEnv; tenants: string[] }>()
     const perTenant: Record<string, unknown> = {}
+
     for (const tId of tenantIds) {
+      const cred = credMap.get(tId)
+      if (!cred) {
+        perTenant[tId] = { skipped: true, reason: 'no credentials configured' }
+        console.log(`Tenant ${tId}: skipped (no credentials).`)
+        continue
+      }
       try {
-        perTenant[tId] = await syncTenant(supabase, env, uid, versionMajor, tId, { invoiceIds, creditNoteIds })
+        const apiKey = await decryptOdooKey(cred.ciphertext)
+        const key = `${cred.url}||${cred.db}||${cred.login}`
+        let group = groups.get(key)
+        if (!group) {
+          group = { env: { url: cred.url, db: cred.db, login: cred.login, apiKey }, tenants: [] }
+          groups.set(key, group)
+        }
+        group.tenants.push(tId)
       } catch (e) {
-        perTenant[tId] = { error: errMsg(e) }
-        console.error(`Tenant ${tId} sync failed:`, errMsg(e))
+        perTenant[tId] = { error: `decrypt: ${errMsg(e)}` }
+        console.error(`Tenant ${tId} decrypt failed:`, errMsg(e))
+        await supabase.from('tenant_odoo_credentials').update({
+          last_test_at: new Date().toISOString(), last_test_ok: false,
+        }).eq('tenant_id', tId)
       }
     }
 
-    return new Response(JSON.stringify({ success: true, odoo_version: version.server_version, tenants: perTenant }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    let usedVersion: string | undefined
+    for (const group of groups.values()) {
+      let uid: number
+      let versionMajor = 0
+      try {
+        uid = await odooAuthenticate(group.env)
+        const version = await odooVersion(group.env)
+        versionMajor = Array.isArray(version.server_version_info) ? Number(version.server_version_info[0]) : 0
+        usedVersion = version.server_version ?? usedVersion
+        console.log(`Odoo group ${group.env.url}/${group.env.db}: uid=${uid} version=${version.server_version}`)
+      } catch (e) {
+        const msg = errMsg(e)
+        console.error(`Odoo group ${group.env.url}/${group.env.db} auth failed:`, msg)
+        for (const tId of group.tenants) {
+          perTenant[tId] = { error: `authenticate: ${msg}` }
+          await supabase.from('tenant_odoo_credentials').update({
+            last_test_at: new Date().toISOString(), last_test_ok: false,
+          }).eq('tenant_id', tId)
+        }
+        continue
+      }
+
+      for (const tId of group.tenants) {
+        try {
+          perTenant[tId] = await syncTenant(supabase, group.env, uid, versionMajor, tId, { invoiceIds, creditNoteIds })
+        } catch (e) {
+          perTenant[tId] = { error: errMsg(e) }
+          console.error(`Tenant ${tId} sync failed:`, errMsg(e))
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      odoo_version: usedVersion,
+      tenants: perTenant,
+      note: 'ODOO_URL/ODOO_DB/ODOO_LOGIN/ODOO_API_KEY env-secrets zijn niet meer nodig en mogen verwijderd worden.',
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (error) {
     const msg = errMsg(error)
     console.error('sync-odoo-invoices fatal:', msg)
