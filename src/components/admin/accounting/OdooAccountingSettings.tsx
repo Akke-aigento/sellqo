@@ -14,7 +14,7 @@ interface Props {
   tenantId: string;
 }
 
-export function OdooB2CAggregationSettings({ tenantId }: Props) {
+export function OdooAccountingSettings({ tenantId }: Props) {
   const canWrite = useCan('write', 'integrations');
   const { settings, isLoading, upsert } = useTenantOdooSettings(tenantId);
   const { status, save, test, journals } = useOdooConnection(tenantId);
