@@ -5,7 +5,7 @@
 // - Pushes issued invoices + credit notes; account.move.name = Sellqo number.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
-import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, type OdooEnv } from '../_shared/odooRpc.ts'
+import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,17 +455,20 @@ Deno.serve(async (req) => {
         continue
       }
       try {
+        // Defense in depth: even for stored credentials, refuse anything that
+        // isn't a strict https domain URL before performing any network I/O.
+        const safeUrl = assertValidOdooUrl(cred.url)
         const apiKey = await decryptOdooKey(cred.ciphertext)
-        const key = `${cred.url}||${cred.db}||${cred.login}`
+        const key = `${safeUrl}||${cred.db}||${cred.login}`
         let group = groups.get(key)
         if (!group) {
-          group = { env: { url: cred.url, db: cred.db, login: cred.login, apiKey }, tenants: [] }
+          group = { env: { url: safeUrl, db: cred.db, login: cred.login, apiKey }, tenants: [] }
           groups.set(key, group)
         }
         group.tenants.push(tId)
       } catch (e) {
-        perTenant[tId] = { error: `decrypt: ${errMsg(e)}` }
-        console.error(`Tenant ${tId} decrypt failed:`, errMsg(e))
+        perTenant[tId] = { error: errMsg(e) }
+        console.error(`Tenant ${tId} credential load failed:`, errMsg(e))
         await supabase.from('tenant_odoo_credentials').update({
           last_test_at: new Date().toISOString(), last_test_ok: false,
         }).eq('tenant_id', tId)
