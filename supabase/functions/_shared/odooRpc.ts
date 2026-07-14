@@ -12,20 +12,33 @@ export function normalizeOdooUrl(url: string): string {
   return n;
 }
 
-// Strict URL guard for user-supplied Odoo endpoints. https-only, hostname required, no IP literals.
-// Throws with a Dutch error message when invalid — used at 'save'.
+// Strict URL guard for user-supplied Odoo endpoints. Blocks SSRF-style abuse:
+// https-only, domain hostname required (no IPs, no localhost, must contain a dot),
+// and no path/query/fragment beyond an optional trailing slash.
+// Throws a single Dutch error on any violation — used at 'save' and as defense
+// in depth when reading stored credentials in the sync runner.
+const INVALID_ODOO_URL = 'Ongeldige Odoo-URL: alleen https://-adressen met een domeinnaam zijn toegestaan';
 export function assertValidOdooUrl(raw: string): string {
-  const normalized = normalizeOdooUrl(raw);
+  if (typeof raw !== 'string' || !raw.trim()) throw new Error(INVALID_ODOO_URL);
+  // Require an explicit scheme in the input — do not silently upgrade http/missing to https.
+  if (!/^https:\/\//i.test(raw.trim())) throw new Error(INVALID_ODOO_URL);
   let u: URL;
-  try { u = new URL(normalized); } catch { throw new Error('Ongeldige Odoo-URL.'); }
-  if (u.protocol !== 'https:') throw new Error('Odoo-URL moet met https:// beginnen.');
+  try { u = new URL(raw.trim()); } catch { throw new Error(INVALID_ODOO_URL); }
+  if (u.protocol !== 'https:') throw new Error(INVALID_ODOO_URL);
+  if (u.username || u.password) throw new Error(INVALID_ODOO_URL);
+  if (u.search || u.hash) throw new Error(INVALID_ODOO_URL);
+  if (u.pathname && u.pathname !== '' && u.pathname !== '/') throw new Error(INVALID_ODOO_URL);
   const host = u.hostname;
-  if (!host || !host.includes('.')) throw new Error('Odoo-URL moet een geldige hostnaam bevatten.');
-  // IPv4 literal check
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) throw new Error('IP-adressen zijn niet toegestaan voor Odoo-URL.');
-  // IPv6 literal check (brackets)
-  if (host.startsWith('[') || host.includes(':')) throw new Error('IP-adressen zijn niet toegestaan voor Odoo-URL.');
-  return normalized;
+  if (!host) throw new Error(INVALID_ODOO_URL);
+  const lowered = host.toLowerCase();
+  if (lowered === 'localhost' || lowered.endsWith('.localhost')) throw new Error(INVALID_ODOO_URL);
+  if (!lowered.includes('.')) throw new Error(INVALID_ODOO_URL);
+  // IPv4 literal
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(lowered)) throw new Error(INVALID_ODOO_URL);
+  // IPv6 literal (URL puts these in brackets; also reject bare colons)
+  if (lowered.startsWith('[') || lowered.includes(':')) throw new Error(INVALID_ODOO_URL);
+  // Normalized form: strip trailing slash so callers get a consistent value.
+  return `${u.protocol}//${u.host}`;
 }
 
 export async function odooRpc(env: OdooEnv, service: string, method: string, args: unknown[]): Promise<unknown> {
