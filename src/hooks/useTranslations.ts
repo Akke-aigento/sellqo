@@ -266,7 +266,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         categories: categoriesWithCoverage,
       };
     },
-    enabled: !!tenantId && !!settings,
+    enabled: !!tenantId,
   });
 
   // Save translation settings
@@ -292,6 +292,35 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
     },
     onError: (error) => {
       toast.error('Fout bij opslaan instellingen', { description: error.message });
+    },
+  });
+
+  // Ensure a translation_settings row exists (idempotent — only inserts when
+  // no row is present; never overwrites existing settings).
+  const ensureSettings = useMutation({
+    mutationFn: async () => {
+      if (!tenantId) return null;
+      const { data: existing, error: readError } = await supabase
+        .from('translation_settings')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      if (readError) throw readError;
+      if (existing) return existing;
+      const { data, error } = await supabase
+        .from('translation_settings')
+        .insert({
+          tenant_id: tenantId,
+          source_language: 'nl',
+          target_languages: ['en', 'de', 'fr'],
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['translation-settings'] });
     },
   });
 
@@ -463,6 +492,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
     pendingEntities,
     pendingLoading,
     saveSettings,
+    ensureSettings,
     saveTranslation,
     toggleLock,
     startBulkTranslation,

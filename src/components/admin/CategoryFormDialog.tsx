@@ -46,6 +46,7 @@ import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import type { Category } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
+import { EntityTranslationTabs } from '@/components/admin/translations/EntityTranslationTabs';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Naam is verplicht').max(100, 'Naam mag maximaal 100 tekens zijn'),
@@ -265,7 +266,7 @@ export function CategoryFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="general">Algemeen</TabsTrigger>
                 <TabsTrigger value="image" className="flex items-center gap-1">
                   <ImageIcon className="h-4 w-4" />
@@ -274,6 +275,10 @@ export function CategoryFormDialog({
                 <TabsTrigger value="seo" className="flex items-center gap-1">
                   <Globe className="h-4 w-4" />
                   SEO
+                </TabsTrigger>
+                <TabsTrigger value="translations" disabled={!isEditing} className="flex items-center gap-1">
+                  <Languages className="h-4 w-4" />
+                  Vertalingen
                 </TabsTrigger>
               </TabsList>
 
@@ -591,6 +596,16 @@ export function CategoryFormDialog({
                     </Button>
                   </Link>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="translations" className="space-y-4 mt-4">
+                {isEditing && category?.id ? (
+                  <EntityTranslationTabs entityType="category" entityId={category.id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Sla de categorie eerst op om vertalingen te beheren.
+                  </p>
+                )}
               </TabsContent>
             </Tabs>
 

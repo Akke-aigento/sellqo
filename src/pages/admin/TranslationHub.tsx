@@ -88,6 +88,7 @@ export default function TranslationHub() {
     pendingEntities,
     pendingLoading,
     saveSettings,
+    ensureSettings,
     toggleLock,
     startBulkTranslation,
     translateEntity,
@@ -108,6 +109,15 @@ export default function TranslationHub() {
   const [bulkMode, setBulkMode] = useState<'missing' | 'all' | 'outdated'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
   const [bulkFields, setBulkFields] = useState<TranslatableField[]>([]);
+
+  // Ensure a translation_settings row exists so the UI never gets stuck on
+  // "no settings" for a fresh tenant.
+  useEffect(() => {
+    if (!settingsLoading && !settings && currentTenant?.id) {
+      ensureSettings.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsLoading, settings, currentTenant?.id]);
 
   // Reset field selection to all fields when entity type changes
   useEffect(() => {
@@ -805,10 +815,24 @@ export default function TranslationHub() {
                               Compleet
                             </Badge>
                           ) : (
-                            <Badge variant="secondary">
-                              <AlertCircle className="mr-1 h-3 w-3" />
-                              {item.missing} ontbrekend
-                            </Badge>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {(settings?.target_languages as TranslationLanguage[] | undefined)?.map(lang => {
+                                const meta = TRANSLATION_LANGUAGES.find(l => l.code === lang);
+                                const missingCount = (item.missingByLang as Record<string, number> | undefined)?.[lang] ?? 0;
+                                const ok = missingCount === 0;
+                                return (
+                                  <Badge
+                                    key={lang}
+                                    variant={ok ? 'default' : 'secondary'}
+                                    className={ok ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 gap-1' : 'gap-1'}
+                                    title={ok ? `${meta?.label}: volledig` : `${meta?.label}: ${missingCount} ontbrekend`}
+                                  >
+                                    <span>{meta?.flag}</span>
+                                    {ok ? <Check className="h-3 w-3" /> : <span>{missingCount}</span>}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right">

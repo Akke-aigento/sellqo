@@ -81,7 +81,7 @@ import { ChevronRight } from 'lucide-react';
 import type { ProductFormData, ProductType, DigitalDeliveryType } from '@/types/product';
 import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
-import { ProductTranslationTabs } from '@/components/admin/products/ProductTranslationTabs';
+import { EntityTranslationTabs } from '@/components/admin/translations/EntityTranslationTabs';
 import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 
@@ -630,8 +630,9 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="product">Product</TabsTrigger>
+              <TabsTrigger value="translations" disabled={!isEditing}>Vertalingen</TabsTrigger>
               <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
               <TabsTrigger value="ads" disabled={!isEditing}>Advertenties</TabsTrigger>
             </TabsList>
@@ -1782,12 +1783,21 @@ export default function ProductForm() {
                 </CardContent>
               </Card>
 
-              {/* Translation Tabs (only when editing) */}
-              {isEditing && id && (
-                <ProductTranslationTabs productId={id} />
-              )}
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Translations Tab */}
+            <TabsContent value="translations">
+              {isEditing && id ? (
+                <EntityTranslationTabs entityType="product" entityId={id} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Sla het product eerst op om vertalingen te beheren</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Marketplaces Tab */}

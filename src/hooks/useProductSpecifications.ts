@@ -13,12 +13,9 @@ export function useProductSpecifications(productId: string) {
         .from('product_specifications')
         .select('*')
         .eq('product_id', productId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
+      if (error) throw error;
       return data;
     },
     enabled: !!productId,
