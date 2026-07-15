@@ -468,5 +468,544 @@
       "contact": "Contact:",
       "copyright": "© {{year}} Nomadix BV. All rights reserved."
     }
+  },
+  "public": {
+    "about": {
+      "meta": {
+        "title": "About Sellqo — Belgian e-commerce platform for SMBs",
+        "description": "Sellqo is the Belgian e-commerce platform for ambitious entrepreneurs: webshop, POS and marketplace integrations in one tool. Meet our team and mission."
+      },
+      "title": "About SellQo",
+      "subtitle": "The Belgian e-commerce solution that grows with your ambitions",
+      "mission": {
+        "title": "Our Mission",
+        "p1": "At SellQo we believe every business, large or small, deserves access to professional e-commerce tools. We build the most complete and user-friendly solution for entrepreneurs in the Benelux — from first product to international expansion.",
+        "p2": "Founded in 2024, SellQo combines the power of AI with deep knowledge of the local market. Whether you sell through your own webshop, Bol.com, Amazon or a physical store — we bring everything together in one platform."
+      },
+      "stats": {
+        "belgian": {
+          "value": "🇧🇪 100% Belgian",
+          "label": "Built and operated in Belgium"
+        },
+        "languages": {
+          "value": "4 languages",
+          "label": "NL / EN / FR / DE — admin and storefront"
+        },
+        "peppol": {
+          "value": "Peppol-ready",
+          "label": "E-invoicing via Odoo integration"
+        },
+        "ai": {
+          "value": "AI-first",
+          "label": "Content, SEO and coaching built in"
+        }
+      },
+      "timeline": {
+        "title": "Our Journey",
+        "items": {
+          "q1_2024": {
+            "date": "Q1 2024",
+            "title": "SellQo Founded",
+            "description": "Started in Belgium with a vision for better e-commerce tools."
+          },
+          "q3_2024": {
+            "date": "Q3 2024",
+            "title": "First Beta Testers",
+            "description": "First entrepreneurs test the platform and provide feedback."
+          },
+          "q4_2024": {
+            "date": "Q4 2024",
+            "title": "Bol.com Integration Live",
+            "description": "Official marketplace integration launched."
+          },
+          "q1_2025": {
+            "date": "Q1 2025",
+            "title": "Public Launch",
+            "description": "Platform open to all entrepreneurs with AI features."
+          }
+        }
+      },
+      "values": {
+        "title": "Our Values",
+        "items": {
+          "simplicity": {
+            "title": "Simplicity First",
+            "description": "Simplifying complex e-commerce processes into intuitive workflows."
+          },
+          "entrepreneurs": {
+            "title": "Entrepreneurs at the Core",
+            "description": "Every feature is designed with SMB entrepreneurs in mind."
+          },
+          "innovation": {
+            "title": "Innovation Through AI",
+            "description": "Smart automation that saves you time and drives growth."
+          },
+          "belgian": {
+            "title": "Made in Belgium",
+            "description": "Proudly developed in Belgium, for the Benelux market."
+          },
+          "global": {
+            "title": "Local & Global",
+            "description": "Support for local payment methods and international growth."
+          },
+          "privacy": {
+            "title": "Privacy & Security",
+            "description": "GDPR-compliant with a focus on data protection and transparency."
+          }
+        }
+      },
+      "team": {
+        "title": "Who builds SellQo?",
+        "description": "SellQo is built and operated by <strong>Nomadix BV</strong> in Belgium. A small, dedicated team that designs, builds and supports every feature themselves — no middlemen, with direct lines to our customers."
+      },
+      "press": {
+        "title": "In the Media",
+        "subtitle": "Well-known names write about SellQo"
+      },
+      "cta": {
+        "title": "Ready to get started?",
+        "description": "Try SellQo free for 14 days and discover the difference.",
+        "button": "Start Free Trial"
+      }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "subtitle": "Connect SellQo with your favourite tools and platforms",
+      "searchPlaceholder": "Search integrations...",
+      "popular": "Popular Integrations",
+      "viewDetails": "View details →",
+      "intro": "SellQo connects seamlessly with dozens of platforms for marketplaces, payments, shipping and marketing. All from a single dashboard.",
+      "countLabel": "{{count}} integrations",
+      "status": {
+        "live": "Live",
+        "coming": "Coming soon",
+        "planned": "Planned"
+      },
+      "difficulty": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "advanced": "Advanced"
+      },
+      "modal": {
+        "category": "Category",
+        "setup": "Setup difficulty",
+        "features": "Features",
+        "startWith": "Start with {{name}}",
+        "comingSoon": "Coming soon",
+        "planned": "Planned for later"
+      },
+      "categories": {
+        "marketplaces": "Marketplaces",
+        "payments": "Payments",
+        "shipping": "Shipping",
+        "communication": "Communication",
+        "marketing": "Marketing",
+        "platforms": "E-commerce Platforms"
+      },
+      "items": {
+        "bolcom": {
+          "description": "Sell and manage products on Bol.com",
+          "features": [
+            "Product sync",
+            "Order import",
+            "Inventory management",
+            "VVB fulfilment"
+          ]
+        },
+        "amazon": {
+          "description": "Sync with Amazon Seller Central",
+          "features": [
+            "Product listing",
+            "FBA support",
+            "Multi-country"
+          ]
+        },
+        "ebay": {
+          "description": "eBay marketplace integration",
+          "features": [
+            "Auctions",
+            "Fixed price",
+            "Shipping profiles"
+          ]
+        },
+        "etsy": {
+          "description": "Sell handmade products",
+          "features": [
+            "Shop sync",
+            "Order management"
+          ]
+        },
+        "stripe": {
+          "description": "iDEAL, credit cards, Apple Pay and more",
+          "features": [
+            "iDEAL",
+            "Bancontact",
+            "Credit cards",
+            "Apple/Google Pay",
+            "Subscriptions"
+          ]
+        },
+        "mollie": {
+          "description": "Dutch payment provider",
+          "features": [
+            "iDEAL",
+            "Bancontact",
+            "Klarna",
+            "PayPal"
+          ]
+        },
+        "paypal": {
+          "description": "Global payments",
+          "features": [
+            "PayPal checkout",
+            "Pay Later"
+          ]
+        },
+        "postnl": {
+          "description": "Labels and track & trace",
+          "features": [
+            "Label printing",
+            "Track & trace",
+            "Pickup points"
+          ]
+        },
+        "dhl": {
+          "description": "DHL shipping labels",
+          "features": [
+            "Express",
+            "Parcel",
+            "ServicePoints"
+          ]
+        },
+        "sendcloud": {
+          "description": "Multi-carrier platform",
+          "features": [
+            "All carriers",
+            "Automation rules",
+            "Returns"
+          ]
+        },
+        "bpost": {
+          "description": "Belgian postal service",
+          "features": [
+            "Standard",
+            "Bpack",
+            "Pickup points"
+          ]
+        },
+        "resend": {
+          "description": "Transactional emails",
+          "features": [
+            "Order confirmations",
+            "Shipping notifications",
+            "Custom templates"
+          ]
+        },
+        "whatsapp": {
+          "description": "Customer communication via WhatsApp",
+          "features": [
+            "Send messages",
+            "Templates",
+            "Quick replies"
+          ]
+        },
+        "intercom": {
+          "description": "Customer success platform",
+          "features": [
+            "Live chat",
+            "Help desk",
+            "Product tours"
+          ]
+        },
+        "metaads": {
+          "description": "Facebook & Instagram advertising",
+          "features": [
+            "Pixel tracking",
+            "Catalog sync",
+            "CAPI"
+          ]
+        },
+        "googleads": {
+          "description": "Search and Shopping campaigns",
+          "features": [
+            "Google Shopping",
+            "Conversion tracking",
+            "Remarketing"
+          ]
+        },
+        "bolsponsored": {
+          "description": "Sponsored products on Bol.com",
+          "features": [
+            "Sponsored Products",
+            "Display ads"
+          ]
+        },
+        "klaviyo": {
+          "description": "Email marketing automation",
+          "features": [
+            "Email flows",
+            "Segmentation",
+            "A/B testing"
+          ]
+        },
+        "shopify": {
+          "description": "Import from Shopify",
+          "features": [
+            "Product import",
+            "Order sync",
+            "Customer migration"
+          ]
+        },
+        "woocommerce": {
+          "description": "WordPress webshop migration",
+          "features": [
+            "Full migration",
+            "Product import"
+          ]
+        },
+        "odoo": {
+          "description": "Automatic accounting integration with your own Odoo",
+          "features": [
+            "Invoices & credit notes booked automatically",
+            "Your own sales journal",
+            "Peppol e-invoicing via Odoo",
+            "B2C aggregation"
+          ]
+        },
+        "lightspeed": {
+          "description": "POS and e-commerce",
+          "features": [
+            "POS sync",
+            "Inventory",
+            "Products"
+          ]
+        },
+        "peppol": {
+          "description": "B2B e-invoicing via your Odoo integration",
+          "features": [
+            "UBL generation",
+            "Automatic sending via Odoo",
+            "Per-invoice status tracking"
+          ]
+        }
+      },
+      "apiCta": {
+        "title": "Build your own integration",
+        "description": "With the SellQo API you can build custom integrations for your specific workflow.",
+        "button": "View API documentation"
+      },
+      "requestCta": {
+        "text": "Missing an integration? Let us know!",
+        "button": "Request integration"
+      }
+    },
+    "careers": {
+      "title": "Work with SellQo",
+      "subtitle": "A young Belgian platform, built by Nomadix BV",
+      "heading": "No open vacancies — but open to collaboration",
+      "p1": "SellQo is a young e-commerce platform, built and operated by <strong>Nomadix BV</strong> in Belgium. At the moment we have no open vacancies.",
+      "p2": "Spontaneous applications and freelance collaborations (development, design, e-commerce, marketing) are welcome. Send us a message via the contact form — we read every request personally.",
+      "button": "Get in touch"
+    },
+    "partners": {
+      "title": "Partner programme in the making",
+      "subtitle": "We're building our partner network — become a founding partner",
+      "intro": "SellQo is a young Belgian platform and we're building out our partner network. Are you an agency, freelancer or integrator? Work with us as a founding partner and grow along with the platform.",
+      "sectionTitle": "Become a founding partner",
+      "types": {
+        "agencies": {
+          "title": "Agencies",
+          "description": "Web design and marketing agencies that want to offer SellQo to their clients."
+        },
+        "freelancers": {
+          "title": "Freelancers",
+          "description": "Freelance developers and consultants who want to recommend or implement SellQo."
+        },
+        "integrators": {
+          "title": "Integrators",
+          "description": "Build your own integration or service on top of the SellQo platform."
+        }
+      },
+      "benefits": [
+        "Early access to new features",
+        "Direct line to the team",
+        "Grow along with the platform"
+      ],
+      "ctaTitle": "Interested in collaborating?",
+      "ctaText": "Send us a message via the contact form — pick \"Partnership\" as the subject and we'll get back to you.",
+      "ctaButton": "Get in touch"
+    },
+    "help": {
+      "title": "Help Center",
+      "subtitle": "Find answers to your questions",
+      "noticeTitle": "Our help center is being built",
+      "noticeText": "We're working on comprehensive guides. In the meantime we're happy to help you directly.",
+      "topicsTitle": "Topics",
+      "categories": {
+        "start": {
+          "title": "Getting started",
+          "description": "First steps and setup guides"
+        },
+        "products": {
+          "title": "Products",
+          "description": "Manage your catalogue and inventory"
+        },
+        "orders": {
+          "title": "Orders",
+          "description": "Process and ship orders"
+        },
+        "payments": {
+          "title": "Payments",
+          "description": "Stripe, iDEAL and invoicing"
+        },
+        "customers": {
+          "title": "Customers",
+          "description": "CRM and customer groups"
+        },
+        "settings": {
+          "title": "Settings",
+          "description": "Account and configuration"
+        }
+      },
+      "supportTitle": "Need help?",
+      "supportText": "Our support team is ready to help you personally.",
+      "supportButton": "Get in touch"
+    },
+    "api": {
+      "title": "API access",
+      "subtitle": "Available on request for Enterprise customers",
+      "banner": {
+        "title": "API access on request",
+        "text": "The SellQo API is available to Enterprise customers who need deeper integrations."
+      },
+      "features": {
+        "rest": {
+          "title": "Modern REST API",
+          "description": "Predictable endpoints for products, orders, customers and more."
+        },
+        "auth": {
+          "title": "Secure authentication",
+          "description": "Access is protected with per-tenant credentials and fine-grained permissions."
+        },
+        "docs": {
+          "title": "Documentation at onboarding",
+          "description": "We provide full documentation and guidance once your Enterprise access is activated."
+        }
+      },
+      "ctaTitle": "Request API access?",
+      "ctaText": "Get in touch — we'll discuss your use case and implementation together.",
+      "ctaButton": "Get in touch"
+    },
+    "status": {
+      "title": "System Status",
+      "subtitle": "Transparent insight into SellQo's availability",
+      "intro": "SellQo publishes the current platform status via an external monitor. That way you know at a glance whether everything is running as expected.",
+      "button": "View live status page",
+      "placeholder": "Live status page coming soon.",
+      "supportLine": "Experiencing an outage or unexpected behaviour? Contact us at <email/> — we'll respond as soon as possible."
+    },
+    "blog": {
+      "meta": {
+        "title": "Blog — Sellqo insights on e-commerce",
+        "description": "Tips, trends and tutorials on webshops, marketplaces and e-commerce growth for Belgian and Dutch entrepreneurs."
+      },
+      "title": "Blog",
+      "subtitle": "Insights, tips and news about e-commerce",
+      "emptyTitle": "Our first articles are coming soon",
+      "emptyText": "For platform updates and release notes you can meanwhile check out our changelog.",
+      "changelogButton": "View changelog"
+    },
+    "contact": {
+      "meta": {
+        "title": "Contact — Sellqo support and sales",
+        "description": "Get in touch with the Sellqo team. Quick reply by email, WhatsApp or phone. We're happy to help with sales, support and partnership questions."
+      },
+      "title": "Get in Touch",
+      "subtitle": "Questions? We're happy to help.",
+      "methods": {
+        "email": {
+          "title": "Email",
+          "description": "For general questions"
+        },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "description": "Quick replies"
+        },
+        "phone": {
+          "title": "Phone",
+          "description": "Mon–Fri 9:00–17:00"
+        }
+      },
+      "subjects": {
+        "sales": "Sales & Pricing",
+        "support": "Technical Support",
+        "partnership": "Partnership",
+        "technical": "API & Integrations",
+        "other": "Other"
+      },
+      "responseTimes": {
+        "oneDay": "typically within 1 business day",
+        "twoDays": "within 2 business days"
+      },
+      "form": {
+        "title": "Send us a message",
+        "name": "Name",
+        "namePlaceholder": "Your name",
+        "company": "Company",
+        "companyPlaceholder": "Company name",
+        "email": "Email",
+        "emailPlaceholder": "you@example.com",
+        "subject": "Subject",
+        "subjectPlaceholder": "Select a subject",
+        "expected": "Expected response time: {{time}}",
+        "message": "Message",
+        "messagePlaceholder": "Describe your question or comment...",
+        "submit": "Send message",
+        "submitting": "Sending...",
+        "success": "Message sent! We'll get back to you as soon as possible.",
+        "error": "Something went wrong. Please try again."
+      },
+      "responseTitle": "Response times",
+      "companyTitle": "Company information",
+      "companyText": "SellQo is operated by:",
+      "enterprise": {
+        "title": "Enterprise customer?",
+        "text": "For large implementations and custom solutions we offer personal guidance.",
+        "button": "Book a demo"
+      },
+      "livechat": {
+        "title": "Live chat",
+        "text": "Coming soon for direct assistance",
+        "badge": "Coming soon"
+      }
+    },
+    "changelog": {
+      "title": "Changelog",
+      "subtitle": "All updates and improvements to SellQo",
+      "types": {
+        "feature": "New",
+        "improvement": "Improved",
+        "bugfix": "Bugfix",
+        "security": "Security"
+      },
+      "filters": {
+        "all": "All",
+        "feature": "Features",
+        "improvement": "Improvements",
+        "bugfix": "Bugfixes",
+        "security": "Security"
+      },
+      "version": "Version {{version}}",
+      "copyLink": "Copy link",
+      "copySuccess": "Link copied!",
+      "updatesCount": "{{count}} updates",
+      "subscribeTitle": "Stay up to date",
+      "subscribeText": "Receive changelogs and product updates straight to your inbox.",
+      "subscribePlaceholder": "Your email address",
+      "subscribeButton": "Subscribe",
+      "subscribeSubmitting": "Working...",
+      "subscribeSuccess": "You'll now receive changelog updates by email!",
+      "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime."
+    }
   }
 }

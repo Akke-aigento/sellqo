@@ -468,5 +468,544 @@
       "contact": "Contact:",
       "copyright": "© {{year}} Nomadix BV. All rights reserved."
     }
+  },
+  "public": {
+    "about": {
+      "meta": {
+        "title": "Over Sellqo — Belgisch e-commerce platform voor MKB",
+        "description": "Sellqo is het Belgische e-commerce platform voor ambitieuze ondernemers: webshop, POS en marketplace integraties in één tool. Leer ons team en missie kennen."
+      },
+      "title": "Over SellQo",
+      "subtitle": "De Belgische e-commerce oplossing die groeit met jouw ambities",
+      "mission": {
+        "title": "Onze Missie",
+        "p1": "Bij SellQo geloven we dat elk bedrijf, groot of klein, toegang verdient tot professionele e-commerce tools. We bouwen de meest complete en gebruiksvriendelijke oplossing voor ondernemers in de Benelux — van eerste product tot internationale expansie.",
+        "p2": "Opgericht in 2024 combineert SellQo de kracht van AI met diepgaande kennis van de lokale markt. Of je nu verkoopt via je eigen webshop, Bol.com, Amazon of fysieke winkel — wij brengen alles samen in één platform."
+      },
+      "stats": {
+        "belgian": {
+          "value": "🇧🇪 100% Belgisch",
+          "label": "Gebouwd en beheerd in België"
+        },
+        "languages": {
+          "value": "4 talen",
+          "label": "NL / EN / FR / DE — admin én webshop"
+        },
+        "peppol": {
+          "value": "Peppol-ready",
+          "label": "E-facturatie via Odoo-koppeling"
+        },
+        "ai": {
+          "value": "AI-first",
+          "label": "Content, SEO en coaching ingebouwd"
+        }
+      },
+      "timeline": {
+        "title": "Onze Reis",
+        "items": {
+          "q1_2024": {
+            "date": "Q1 2024",
+            "title": "SellQo Opgericht",
+            "description": "Start in België met een visie voor betere e-commerce tools."
+          },
+          "q3_2024": {
+            "date": "Q3 2024",
+            "title": "Eerste Beta Testers",
+            "description": "Eerste ondernemers testen het platform en geven feedback."
+          },
+          "q4_2024": {
+            "date": "Q4 2024",
+            "title": "Bol.com Integratie Live",
+            "description": "Officiële marketplace integratie gelanceerd."
+          },
+          "q1_2025": {
+            "date": "Q1 2025",
+            "title": "Publieke Launch",
+            "description": "Platform open voor alle ondernemers met AI-features."
+          }
+        }
+      },
+      "values": {
+        "title": "Onze Waarden",
+        "items": {
+          "simplicity": {
+            "title": "Eenvoud Eerst",
+            "description": "Complexe e-commerce processen versimpelen tot intuïtieve workflows."
+          },
+          "entrepreneurs": {
+            "title": "Ondernemers Centraal",
+            "description": "Elke feature is ontworpen met MKB-ondernemers in gedachten."
+          },
+          "innovation": {
+            "title": "Innovatie Door AI",
+            "description": "Slimme automatisering die jou tijd bespaart en groei stimuleert."
+          },
+          "belgian": {
+            "title": "Made in Belgium",
+            "description": "Met trots ontwikkeld in België, voor de Benelux-markt."
+          },
+          "global": {
+            "title": "Lokaal & Globaal",
+            "description": "Ondersteuning voor lokale betaalmethoden én internationale groei."
+          },
+          "privacy": {
+            "title": "Privacy & Veiligheid",
+            "description": "GDPR-compliant met focus op databescherming en transparantie."
+          }
+        }
+      },
+      "team": {
+        "title": "Wie bouwt SellQo?",
+        "description": "SellQo wordt gebouwd en beheerd door <strong>Nomadix BV</strong> in België. Een klein, toegewijd team dat elke feature zelf ontwerpt, bouwt en ondersteunt — zonder tussenlagen, met korte lijnen naar onze klanten."
+      },
+      "press": {
+        "title": "In de Media",
+        "subtitle": "Bekende namen schrijven over SellQo"
+      },
+      "cta": {
+        "title": "Klaar om te starten?",
+        "description": "Probeer SellQo 14 dagen gratis en ontdek het verschil.",
+        "button": "Start Gratis Trial"
+      }
+    },
+    "integrations": {
+      "title": "Integraties",
+      "subtitle": "Verbind SellQo met je favoriete tools en platforms",
+      "searchPlaceholder": "Zoek integraties...",
+      "popular": "Populaire Integraties",
+      "viewDetails": "Bekijk details →",
+      "intro": "SellQo verbindt naadloos met tientallen platforms voor marketplaces, betalingen, verzending en marketing. Alles vanuit één dashboard.",
+      "countLabel": "{{count}} integraties",
+      "status": {
+        "live": "Live",
+        "coming": "Binnenkort",
+        "planned": "Gepland"
+      },
+      "difficulty": {
+        "easy": "Makkelijk",
+        "medium": "Gemiddeld",
+        "advanced": "Geavanceerd"
+      },
+      "modal": {
+        "category": "Categorie",
+        "setup": "Setup moeilijkheid",
+        "features": "Features",
+        "startWith": "Start met {{name}}",
+        "comingSoon": "Binnenkort beschikbaar",
+        "planned": "Gepland voor later"
+      },
+      "categories": {
+        "marketplaces": "Marketplaces",
+        "payments": "Betalingen",
+        "shipping": "Verzending",
+        "communication": "Communicatie",
+        "marketing": "Marketing",
+        "platforms": "E-commerce Platforms"
+      },
+      "items": {
+        "bolcom": {
+          "description": "Verkoop en beheer producten op Bol.com",
+          "features": [
+            "Product sync",
+            "Order import",
+            "Voorraadbeheer",
+            "VVB-verzending"
+          ]
+        },
+        "amazon": {
+          "description": "Sync met Amazon Seller Central",
+          "features": [
+            "Product listing",
+            "FBA support",
+            "Multi-country"
+          ]
+        },
+        "ebay": {
+          "description": "eBay marketplace-integratie",
+          "features": [
+            "Veilingen",
+            "Vaste prijs",
+            "Shipping profiles"
+          ]
+        },
+        "etsy": {
+          "description": "Handgemaakte producten verkopen",
+          "features": [
+            "Shop sync",
+            "Order management"
+          ]
+        },
+        "stripe": {
+          "description": "iDEAL, creditcards, Apple Pay en meer",
+          "features": [
+            "iDEAL",
+            "Bancontact",
+            "Creditcards",
+            "Apple/Google Pay",
+            "Subscriptions"
+          ]
+        },
+        "mollie": {
+          "description": "Nederlandse payment provider",
+          "features": [
+            "iDEAL",
+            "Bancontact",
+            "Klarna",
+            "PayPal"
+          ]
+        },
+        "paypal": {
+          "description": "Wereldwijde betalingen",
+          "features": [
+            "PayPal checkout",
+            "Pay Later"
+          ]
+        },
+        "postnl": {
+          "description": "Labels en track & trace",
+          "features": [
+            "Label printen",
+            "Track & trace",
+            "Afhaalpunten"
+          ]
+        },
+        "dhl": {
+          "description": "DHL verzendlabels",
+          "features": [
+            "Express",
+            "Parcel",
+            "ServicePoints"
+          ]
+        },
+        "sendcloud": {
+          "description": "Multi-carrier platform",
+          "features": [
+            "Alle carriers",
+            "Automatische regels",
+            "Retouren"
+          ]
+        },
+        "bpost": {
+          "description": "Belgische post",
+          "features": [
+            "Standaard",
+            "Bpack",
+            "Afhaalpunten"
+          ]
+        },
+        "resend": {
+          "description": "Transactionele e-mails",
+          "features": [
+            "Orderbevestigingen",
+            "Verzendmeldingen",
+            "Eigen templates"
+          ]
+        },
+        "whatsapp": {
+          "description": "Klantcommunicatie via WhatsApp",
+          "features": [
+            "Berichten sturen",
+            "Templates",
+            "Quick replies"
+          ]
+        },
+        "intercom": {
+          "description": "Customer success platform",
+          "features": [
+            "Live chat",
+            "Help desk",
+            "Product tours"
+          ]
+        },
+        "metaads": {
+          "description": "Facebook & Instagram advertenties",
+          "features": [
+            "Pixel tracking",
+            "Catalog sync",
+            "CAPI"
+          ]
+        },
+        "googleads": {
+          "description": "Search- en Shopping-campagnes",
+          "features": [
+            "Google Shopping",
+            "Conversion tracking",
+            "Remarketing"
+          ]
+        },
+        "bolsponsored": {
+          "description": "Gesponsorde producten op Bol.com",
+          "features": [
+            "Sponsored Products",
+            "Display ads"
+          ]
+        },
+        "klaviyo": {
+          "description": "E-mail marketing automation",
+          "features": [
+            "E-mail flows",
+            "Segmentatie",
+            "A/B-testing"
+          ]
+        },
+        "shopify": {
+          "description": "Importeer vanuit Shopify",
+          "features": [
+            "Product import",
+            "Order sync",
+            "Klantmigratie"
+          ]
+        },
+        "woocommerce": {
+          "description": "WordPress webshop-migratie",
+          "features": [
+            "Volledige migratie",
+            "Product import"
+          ]
+        },
+        "odoo": {
+          "description": "Automatische boekhoudkoppeling met je eigen Odoo",
+          "features": [
+            "Facturen & creditnota's automatisch geboekt",
+            "Eigen verkoopdagboek",
+            "Peppol e-facturatie via Odoo",
+            "B2C-aggregatie"
+          ]
+        },
+        "lightspeed": {
+          "description": "POS en e-commerce",
+          "features": [
+            "POS sync",
+            "Voorraad",
+            "Producten"
+          ]
+        },
+        "peppol": {
+          "description": "B2B e-facturatie via je Odoo-koppeling",
+          "features": [
+            "UBL-generatie",
+            "Automatische verzending via Odoo",
+            "Statustracking per factuur"
+          ]
+        }
+      },
+      "apiCta": {
+        "title": "Bouw je eigen integratie",
+        "description": "Met de SellQo API kun je custom integraties bouwen voor jouw specifieke workflow.",
+        "button": "Bekijk API-documentatie"
+      },
+      "requestCta": {
+        "text": "Mis je een integratie? Laat het ons weten!",
+        "button": "Integratie aanvragen"
+      }
+    },
+    "careers": {
+      "title": "Werken met SellQo",
+      "subtitle": "Een jong Belgisch platform, gebouwd door Nomadix BV",
+      "heading": "Geen openstaande vacatures — wél open voor samenwerking",
+      "p1": "SellQo is een jong e-commerce platform, gebouwd en beheerd door <strong>Nomadix BV</strong> in België. Op dit moment hebben we geen openstaande vacatures.",
+      "p2": "Spontane sollicitaties en freelance-samenwerkingen (development, design, e-commerce, marketing) zijn wel welkom. Stuur ons een bericht via het contactformulier — we lezen elke aanvraag persoonlijk.",
+      "button": "Neem contact op"
+    },
+    "partners": {
+      "title": "Partnerprogramma in opbouw",
+      "subtitle": "We bouwen ons partnernetwerk op — word founding partner",
+      "intro": "SellQo is een jong Belgisch platform en we zijn ons partnernetwerk aan het opbouwen. Ben je bureau, freelancer of integrator? Werk met ons mee als founding partner en groei mee met het platform.",
+      "sectionTitle": "Word founding partner",
+      "types": {
+        "agencies": {
+          "title": "Agencies",
+          "description": "Webdesign- en marketingbureaus die SellQo aan klanten willen aanbieden."
+        },
+        "freelancers": {
+          "title": "Freelancers",
+          "description": "Freelance developers en consultants die SellQo willen aanbevelen of implementeren."
+        },
+        "integrators": {
+          "title": "Integrators",
+          "description": "Bouw je eigen integratie of dienst bovenop het SellQo-platform."
+        }
+      },
+      "benefits": [
+        "Early access tot nieuwe features",
+        "Directe lijn met het team",
+        "Meegroeien met het platform"
+      ],
+      "ctaTitle": "Interesse om samen te werken?",
+      "ctaText": "Stuur ons een bericht via het contactformulier — kies \"Partnership\" als onderwerp en we komen bij je terug.",
+      "ctaButton": "Neem contact op"
+    },
+    "help": {
+      "title": "Help Center",
+      "subtitle": "Vind antwoorden op je vragen",
+      "noticeTitle": "Ons helpcenter wordt uitgebouwd",
+      "noticeText": "We werken aan uitgebreide handleidingen. Ondertussen helpen we je graag rechtstreeks verder.",
+      "topicsTitle": "Onderwerpen",
+      "categories": {
+        "start": {
+          "title": "Aan de slag",
+          "description": "Eerste stappen en setup-handleidingen"
+        },
+        "products": {
+          "title": "Producten",
+          "description": "Beheer je catalogus en voorraad"
+        },
+        "orders": {
+          "title": "Bestellingen",
+          "description": "Orders verwerken en verzenden"
+        },
+        "payments": {
+          "title": "Betalingen",
+          "description": "Stripe, iDEAL en facturatie"
+        },
+        "customers": {
+          "title": "Klanten",
+          "description": "CRM en klantengroepen"
+        },
+        "settings": {
+          "title": "Instellingen",
+          "description": "Account en configuratie"
+        }
+      },
+      "supportTitle": "Hulp nodig?",
+      "supportText": "Ons support-team staat voor je klaar en helpt je persoonlijk verder.",
+      "supportButton": "Neem contact op"
+    },
+    "api": {
+      "title": "API-toegang",
+      "subtitle": "Beschikbaar op aanvraag voor Enterprise-klanten",
+      "banner": {
+        "title": "API-toegang op aanvraag",
+        "text": "De SellQo API is beschikbaar voor Enterprise-klanten die diepere integraties nodig hebben."
+      },
+      "features": {
+        "rest": {
+          "title": "Moderne REST API",
+          "description": "Voorspelbare endpoints voor producten, bestellingen, klanten en meer."
+        },
+        "auth": {
+          "title": "Veilige authenticatie",
+          "description": "Toegang wordt afgeschermd met per-tenant credentials en fijnmazige rechten."
+        },
+        "docs": {
+          "title": "Documentatie bij onboarding",
+          "description": "We leveren volledige documentatie en begeleiding zodra je Enterprise-toegang is geactiveerd."
+        }
+      },
+      "ctaTitle": "API-toegang aanvragen?",
+      "ctaText": "Neem contact met ons op — dan bespreken we samen je use-case en implementatie.",
+      "ctaButton": "Neem contact op"
+    },
+    "status": {
+      "title": "Systeem Status",
+      "subtitle": "Transparant inzicht in de beschikbaarheid van SellQo",
+      "intro": "SellQo publiceert de actuele status van het platform via een externe monitor. Zo weet je in één oogopslag of alles draait zoals verwacht.",
+      "button": "Bekijk live statuspagina",
+      "placeholder": "Live statuspagina binnenkort beschikbaar.",
+      "supportLine": "Ondervind je een storing of onverwacht gedrag? Neem contact op via <email/> — we reageren zo snel mogelijk."
+    },
+    "blog": {
+      "meta": {
+        "title": "Blog — Sellqo inzichten over e-commerce",
+        "description": "Tips, trends en tutorials over webshops, marketplaces en e-commerce groei voor Belgische en Nederlandse ondernemers."
+      },
+      "title": "Blog",
+      "subtitle": "Inzichten, tips en nieuws over e-commerce",
+      "emptyTitle": "Onze eerste artikelen verschijnen binnenkort",
+      "emptyText": "Voor platform-updates en release-notes kan je ondertussen terecht op onze changelog.",
+      "changelogButton": "Bekijk changelog"
+    },
+    "contact": {
+      "meta": {
+        "title": "Contact — Sellqo support en sales",
+        "description": "Neem contact op met het Sellqo team. Snel antwoord per e-mail, WhatsApp of telefoon. We helpen je graag met sales, support en partnership vragen."
+      },
+      "title": "Neem Contact Op",
+      "subtitle": "Vragen? We helpen je graag verder.",
+      "methods": {
+        "email": {
+          "title": "E-mail",
+          "description": "Voor algemene vragen"
+        },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "description": "Snelle antwoorden"
+        },
+        "phone": {
+          "title": "Telefoon",
+          "description": "Ma–Vr 9:00–17:00"
+        }
+      },
+      "subjects": {
+        "sales": "Verkoop & Prijzen",
+        "support": "Technische Support",
+        "partnership": "Partnership",
+        "technical": "API & Integraties",
+        "other": "Anders"
+      },
+      "responseTimes": {
+        "oneDay": "doorgaans binnen 1 werkdag",
+        "twoDays": "binnen 2 werkdagen"
+      },
+      "form": {
+        "title": "Stuur ons een bericht",
+        "name": "Naam",
+        "namePlaceholder": "Je naam",
+        "company": "Bedrijf",
+        "companyPlaceholder": "Bedrijfsnaam",
+        "email": "E-mail",
+        "emailPlaceholder": "jij@voorbeeld.com",
+        "subject": "Onderwerp",
+        "subjectPlaceholder": "Selecteer een onderwerp",
+        "expected": "Verwachte reactietijd: {{time}}",
+        "message": "Bericht",
+        "messagePlaceholder": "Beschrijf je vraag of opmerking...",
+        "submit": "Verstuur Bericht",
+        "submitting": "Verzenden...",
+        "success": "Bericht verzonden! We nemen zo snel mogelijk contact met je op.",
+        "error": "Er ging iets mis. Probeer het opnieuw."
+      },
+      "responseTitle": "Reactietijden",
+      "companyTitle": "Bedrijfsgegevens",
+      "companyText": "SellQo wordt beheerd door:",
+      "enterprise": {
+        "title": "Enterprise Klant?",
+        "text": "Voor grote implementaties en custom oplossingen bieden we persoonlijke begeleiding.",
+        "button": "Plan een Demo"
+      },
+      "livechat": {
+        "title": "Live Chat",
+        "text": "Binnenkort beschikbaar voor directe hulp",
+        "badge": "Coming soon"
+      }
+    },
+    "changelog": {
+      "title": "Changelog",
+      "subtitle": "Alle updates en verbeteringen aan SellQo",
+      "types": {
+        "feature": "Nieuw",
+        "improvement": "Verbeterd",
+        "bugfix": "Bugfix",
+        "security": "Security"
+      },
+      "filters": {
+        "all": "Alles",
+        "feature": "Features",
+        "improvement": "Verbeteringen",
+        "bugfix": "Bugfixes",
+        "security": "Security"
+      },
+      "version": "Versie {{version}}",
+      "copyLink": "Kopieer link",
+      "copySuccess": "Link gekopieerd!",
+      "updatesCount": "{{count}} updates",
+      "subscribeTitle": "Blijf op de hoogte van updates",
+      "subscribeText": "Ontvang changelogs en product-updates rechtstreeks in je inbox.",
+      "subscribePlaceholder": "Je e-mailadres",
+      "subscribeButton": "Inschrijven",
+      "subscribeSubmitting": "Bezig...",
+      "subscribeSuccess": "Je ontvangt nu changelog-updates per e-mail!",
+      "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven."
+    }
   }
 }
