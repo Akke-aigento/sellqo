@@ -17,12 +17,12 @@
       "trust": {
         "noCard": "Keine Kreditkarte nötig",
         "trial": "14 Tage gratis testen",
-        "setup": "In 5 Minuten live",
+        "setup": "Dein erstes Produkt in wenigen Minuten online",
         "support": "Niederländischer Support"
       },
       "float": {
         "sync": "Live-Daten-Sync",
-        "conversion": "+23% Conversion",
+        "conversion": "Peppol-fähige Rechnungsstellung",
         "invoicing": "Auto-Rechnung"
       }
     },
@@ -43,7 +43,7 @@
       "heading": "SellQo macht es anders",
       "subheading": "Eine Plattform, die alles vereint, was Du zum Wachsen brauchst.",
       "items": [
-        { "title": "Alles in einem Dashboard", "desc": "Bol, Amazon, Shopify, Odoo — alles an einem Ort." },
+        { "title": "Alles in einem Dashboard", "desc": "Bol.com, Odoo und mehr — alles an einem Ort." },
         { "title": "Live in 5 Minuten", "desc": "Setup-Assistent importiert Deine Produkte automatisch." },
         { "title": "KI, die mitdenkt", "desc": "SEO, Content, Übersetzungen, Chatbot — alles KI-gestützt." },
         { "title": "Für die EU gebaut", "desc": "Peppol, MwSt./OSS, DSGVO, lokale Zahlungsmethoden eingebaut." }
@@ -70,7 +70,7 @@
       "heading": "Funktionen, die Du nirgendwo sonst findest",
       "subheading": "Deshalb wählen clevere Unternehmer SellQo statt Shopify oder Lightspeed.",
       "items": [
-        { "title": "5-Minuten-Setup", "desc": "Kein Entwickler nötig. Unser Assistent führt Dich Schritt für Schritt. In 5 Minuten ist Dein erstes Produkt online.", "highlight": "Keine technischen Kenntnisse nötig" },
+        { "title": "Setup in Minuten, nicht Wochen", "desc": "Kein Entwickler nötig. Unser Assistent führt Dich Schritt für Schritt durch die Ersteinrichtung.", "highlight": "Keine technischen Kenntnisse nötig" },
         { "title": "Shop Health Score", "desc": "Echtzeit-Gesundheitscheck Deines Shops: Lagerbestand, Margen, SEO-Score — alles auf einen Blick.", "highlight": "Exklusiv bei SellQo" },
         { "title": "Proaktiver KI-Coach", "desc": "Bekomme Tipps, BEVOR Probleme entstehen. \"Lager von X wird knapp\", \"Zeit für eine Aktion bei Y\".", "highlight": "KI, die mitdenkt" },
         { "title": "KI-Chatbot 24/7", "desc": "Dein Shop hat einen smarten Chatbot, der Fragen anhand Deiner Produkte, FAQ und Richtlinien beantwortet.", "highlight": "Kundenservice auf Autopilot" },
@@ -120,7 +120,7 @@
         "loyalty": "Treueprogramm",
         "giftcards": "Gutscheinsystem",
         "vat": "MwSt./OSS-Compliance",
-        "peppol": "Peppol-E-Invoicing (bald)",
+        "peppol": "Peppol-E-Invoicing (über Odoo)",
         "whatsapp": "WhatsApp Business",
         "dutchSupport": "Niederländischer Support",
         "freeMigration": "Gratis Migration"
@@ -173,11 +173,11 @@
         },
         "pro": {
           "name": "Pro", "badge": "Beliebteste Wahl", "cta": "Kostenlos starten",
-          "features": ["2.500 Produkte", "5.000 Bestellungen/Monat", "10.000 Kunden", "10 Teammitglieder", "✨ 500 KI-Credits/Monat", "🛒 Webshop Builder + Visual Editor", "💳 POS Kasse inklusive", "🤖 KI Business Coach", "🔗 SellQo Connect — alle Kanäle", "Peppol-E-Invoicing (bald)", "Multi-Warehouse", "Live Activity Feed", "Treueprogramm", "Priority Support"]
+          "features": ["2.500 Produkte", "5.000 Bestellungen/Monat", "10.000 Kunden", "10 Teammitglieder", "✨ 500 KI-Credits/Monat", "🛒 Webshop Builder + Visual Editor", "💳 POS Kasse inklusive", "🤖 KI Business Coach", "🔗 SellQo Connect — alle Kanäle", "Odoo-Buchhaltungsanbindung (inkl. Peppol-E-Rechnung)", "Multi-Warehouse", "Live Activity Feed", "Treueprogramm", "Priority Support"]
         },
         "enterprise": {
           "name": "Enterprise", "badge": "Für skalierende Unternehmen", "cta": "Kontaktieren",
-          "features": ["Unbegrenzte Produkte", "Unbegrenzte Bestellungen", "50 Teammitglieder", "✨ 5.000 KI-Credits/Monat", "🛒 Alle Premium-Themes", "🔗 SellQo Connect — alle Kanäle + custom", "White-Label-Optionen", "Dedicated Account Manager", "Telefon-Support (NL/BE)", "Gratis Migration (€2.000 Wert)", "SLA 99,9%"]
+          "features": ["Unbegrenzte Produkte", "Unbegrenzte Bestellungen", "50 Teammitglieder", "✨ 5.000 KI-Credits/Monat", "🛒 Alle Premium-Themes", "🔗 SellQo Connect — alle Kanäle + custom", "White-Label-Optionen", "Persönlicher Ansprechpartner", "WhatsApp & Telefon-Support", "Migrations-Unterstützung inklusive", "Priority Onboarding"]
         }
       },
       "addons": {
@@ -210,7 +210,7 @@
     },
     "finalCta": {
       "heading": "Bereit, Dein E-Commerce auf das nächste Level zu bringen?",
-      "subheading": "Schließe Dich 500+ Unternehmern an, die ihr Business mit SellQo wachsen lassen",
+      "subheading": "Schließe Dich Unternehmern an, die ihr Business mit SellQo wachsen lassen",
       "cta": "Kostenlose Testphase starten",
       "trust": "Keine Kreditkarte nötig • 14 Tage komplett gratis • Jederzeit kündbar",
       "ssl": "SSL-gesichert",

@@ -17,12 +17,12 @@
       "trust": {
         "noCard": "Sans carte bancaire",
         "trial": "14 jours d'essai gratuit",
-        "setup": "En ligne en 5 minutes",
+        "setup": "Votre premier produit en ligne en quelques minutes",
         "support": "Support néerlandophone"
       },
       "float": {
         "sync": "Sync en direct",
-        "conversion": "+23% de conversion",
+        "conversion": "Facturation prête pour Peppol",
         "invoicing": "Facturation auto"
       }
     },
@@ -43,7 +43,7 @@
       "heading": "SellQo fait les choses autrement",
       "subheading": "Une plateforme qui combine tout ce dont vous avez besoin pour grandir.",
       "items": [
-        { "title": "Tout dans un seul dashboard", "desc": "Bol, Amazon, Shopify, Odoo — tout au même endroit." },
+        { "title": "Tout dans un seul dashboard", "desc": "Bol.com, Odoo et plus — tout au même endroit." },
         { "title": "En ligne en 5 minutes", "desc": "L'assistant importe vos produits automatiquement." },
         { "title": "Une IA qui réfléchit avec vous", "desc": "SEO, contenu, traductions, chatbot — tout est propulsé par l'IA." },
         { "title": "Pensée pour l'UE", "desc": "Peppol, TVA/OSS, RGPD, moyens de paiement locaux intégrés." }
@@ -70,7 +70,7 @@
       "heading": "Des fonctionnalités introuvables ailleurs",
       "subheading": "Voilà pourquoi les entrepreneurs malins choisissent SellQo plutôt que Shopify ou Lightspeed.",
       "items": [
-        { "title": "Mise en place en 5 minutes", "desc": "Pas besoin de développeur. Notre assistant vous guide pas à pas. Votre premier produit est en ligne en 5 minutes.", "highlight": "Aucune compétence technique requise" },
+        { "title": "Mise en place en minutes, pas en semaines", "desc": "Pas besoin de développeur. Notre assistant vous guide pas à pas dans la configuration initiale.", "highlight": "Aucune compétence technique requise" },
         { "title": "Shop Health Score", "desc": "Diagnostic en temps réel de votre boutique : stocks, marges, score SEO — tout d'un coup d'œil.", "highlight": "Exclusif à SellQo" },
         { "title": "Coach IA proactif", "desc": "Recevez des conseils AVANT que les problèmes n'arrivent. \"Votre stock de X s'épuise\", \"Il est temps d'une promo sur Y\".", "highlight": "Une IA qui anticipe" },
         { "title": "Chatbot IA 24/7", "desc": "Votre boutique dispose d'un chatbot qui répond grâce à vos produits, FAQ et CGV.", "highlight": "Service client en pilote automatique" },
@@ -120,7 +120,7 @@
         "loyalty": "Programme de fidélité",
         "giftcards": "Système de cartes cadeaux",
         "vat": "Conformité TVA/OSS",
-        "peppol": "E-invoicing Peppol (bientôt)",
+        "peppol": "E-invoicing Peppol (via Odoo)",
         "whatsapp": "WhatsApp Business",
         "dutchSupport": "Support néerlandophone",
         "freeMigration": "Migration gratuite"
@@ -173,11 +173,11 @@
         },
         "pro": {
           "name": "Pro", "badge": "Le plus choisi", "cta": "Commencer gratuitement",
-          "features": ["2 500 produits", "5 000 commandes/mois", "10 000 clients", "10 membres d'équipe", "✨ 500 crédits IA/mois", "🛒 Webshop Builder + Visual Editor", "💳 Caisse POS incluse", "🤖 Coach IA Business", "🔗 SellQo Connect — tous les canaux", "E-invoicing Peppol (bientôt)", "Multi-entrepôts", "Live Activity Feed", "Programme de fidélité", "Support prioritaire"]
+          "features": ["2 500 produits", "5 000 commandes/mois", "10 000 clients", "10 membres d'équipe", "✨ 500 crédits IA/mois", "🛒 Webshop Builder + Visual Editor", "💳 Caisse POS incluse", "🤖 Coach IA Business", "🔗 SellQo Connect — tous les canaux", "Intégration comptable Odoo (incl. e-facturation Peppol)", "Multi-entrepôts", "Live Activity Feed", "Programme de fidélité", "Support prioritaire"]
         },
         "enterprise": {
           "name": "Enterprise", "badge": "Pour entreprises en croissance", "cta": "Nous contacter",
-          "features": ["Produits illimités", "Commandes illimitées", "50 membres d'équipe", "✨ 5 000 crédits IA/mois", "🛒 Tous les thèmes premium", "🔗 SellQo Connect — tous canaux + custom", "Options white-label", "Account manager dédié", "Support téléphone (NL/BE)", "Migration gratuite (valeur 2 000 €)", "SLA 99,9 %"]
+          "features": ["Produits illimités", "Commandes illimitées", "50 membres d'équipe", "✨ 5 000 crédits IA/mois", "🛒 Tous les thèmes premium", "🔗 SellQo Connect — tous canaux + custom", "Options white-label", "Interlocuteur dédié", "Support WhatsApp & téléphone", "Accompagnement à la migration inclus", "Onboarding prioritaire"]
         }
       },
       "addons": {
@@ -210,7 +210,7 @@
     },
     "finalCta": {
       "heading": "Prêt à passer votre e-commerce au niveau supérieur ?",
-      "subheading": "Rejoignez 500+ entrepreneurs qui font grandir leur business avec SellQo",
+      "subheading": "Rejoignez les entrepreneurs qui font grandir leur business avec SellQo",
       "cta": "Démarrer votre essai gratuit",
       "trust": "Sans carte bancaire • 14 jours entièrement gratuits • Annulez quand vous voulez",
       "ssl": "SSL sécurisé",

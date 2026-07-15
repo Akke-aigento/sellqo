@@ -17,12 +17,12 @@
       "trust": {
         "noCard": "Geen creditcard nodig",
         "trial": "14 dagen gratis proberen",
-        "setup": "In 5 minuten live",
+        "setup": "Binnen enkele minuten je eerste product online",
         "support": "Nederlandse support"
       },
       "float": {
         "sync": "Live data sync",
-        "conversion": "+23% conversie",
+        "conversion": "Peppol-ready facturatie",
         "invoicing": "Auto facturatie"
       }
     },
@@ -43,7 +43,7 @@
       "heading": "SellQo Maakt Het Anders",
       "subheading": "Eén platform dat alles combineert wat je nodig hebt om te groeien.",
       "items": [
-        { "title": "Alles In Één Dashboard", "desc": "Bol, Amazon, Shopify, Odoo — alles op één plek." },
+        { "title": "Alles In Één Dashboard", "desc": "Bol.com, Odoo en meer — alles op één plek." },
         { "title": "Live In 5 Minuten", "desc": "Setup wizard importeert je producten automatisch." },
         { "title": "AI Die Meedenkt", "desc": "SEO, content, vertalingen, chatbot — allemaal AI-powered." },
         { "title": "Gebouwd Voor EU", "desc": "Peppol, BTW/OSS, GDPR, lokale betaalmethoden ingebakken." }
@@ -70,7 +70,7 @@
       "heading": "Functies Die Je Nergens Anders Vindt",
       "subheading": "Dit is waarom slimme ondernemers kiezen voor SellQo boven Shopify of Lightspeed.",
       "items": [
-        { "title": "5-Minuten Setup", "desc": "Geen developer nodig. Onze wizard helpt je stap voor stap. Binnen 5 minuten is je eerste product online.", "highlight": "Geen technische kennis vereist" },
+        { "title": "Setup in minuten, niet weken", "desc": "Geen developer nodig. Onze wizard helpt je stap voor stap door de eerste inrichting.", "highlight": "Geen technische kennis vereist" },
         { "title": "Shop Health Score", "desc": "Real-time gezondheidscheck van je shop: voorraadniveaus, winstmarges, SEO-score, alles op één blik.", "highlight": "Exclusief bij SellQo" },
         { "title": "Proactieve AI Coach", "desc": "Krijg advies VOORDAT er problemen ontstaan. \"Je voorraad van X raakt op\", \"Tijd voor een actie op Y\".", "highlight": "AI die meedenkt" },
         { "title": "AI Chatbot 24/7", "desc": "Je webshop heeft een slimme chatbot die vragen beantwoordt op basis van je producten, FAQ en policies.", "highlight": "Klantenservice op automatische piloot" },
@@ -120,7 +120,7 @@
         "loyalty": "Loyaliteitsprogramma",
         "giftcards": "Cadeaubonnen systeem",
         "vat": "BTW/OSS compliance",
-        "peppol": "Peppol e-invoicing (coming soon)",
+        "peppol": "Peppol e-facturatie (via Odoo)",
         "whatsapp": "WhatsApp Business",
         "dutchSupport": "Nederlandse support",
         "freeMigration": "Gratis migratie"
@@ -173,11 +173,11 @@
         },
         "pro": {
           "name": "Pro", "badge": "Meest gekozen", "cta": "Start Gratis",
-          "features": ["2.500 producten", "5.000 bestellingen/maand", "10.000 klanten", "10 teamleden", "✨ 500 AI credits/maand", "🛒 Webshop Builder + Visual Editor", "💳 POS Kassa inclusief", "🤖 AI Business Coach", "🔗 SellQo Connect — alle kanalen", "Peppol e-invoicing (coming soon)", "Multi-warehouse", "Live Activity Feed", "Loyaliteitsprogramma", "Priority support"]
+          "features": ["2.500 producten", "5.000 bestellingen/maand", "10.000 klanten", "10 teamleden", "✨ 500 AI credits/maand", "🛒 Webshop Builder + Visual Editor", "💳 POS Kassa inclusief", "🤖 AI Business Coach", "🔗 SellQo Connect — alle kanalen", "Odoo-boekhoudkoppeling (incl. Peppol e-facturatie)", "Multi-warehouse", "Live Activity Feed", "Loyaliteitsprogramma", "Priority support"]
         },
         "enterprise": {
           "name": "Enterprise", "badge": "Voor schaalbare businesses", "cta": "Neem Contact Op",
-          "features": ["Onbeperkte producten", "Onbeperkte bestellingen", "50 teamleden", "✨ 5.000 AI credits/maand", "🛒 Alle premium themes", "🔗 SellQo Connect — alle kanalen + custom", "White-label opties", "Dedicated account manager", "Phone support (NL/BE)", "Gratis migratie (€2.000 waarde)", "SLA 99.9%"]
+          "features": ["Onbeperkte producten", "Onbeperkte bestellingen", "50 teamleden", "✨ 5.000 AI credits/maand", "🛒 Alle premium themes", "🔗 SellQo Connect — alle kanalen + custom", "White-label opties", "Persoonlijk aanspreekpunt", "WhatsApp & telefonische support", "Migratie-ondersteuning inbegrepen", "Prioritaire onboarding"]
         }
       },
       "addons": {
@@ -210,7 +210,7 @@
     },
     "finalCta": {
       "heading": "Klaar Om Je E-commerce Naar Het Volgende Level Te Tillen?",
-      "subheading": "Sluit je aan bij 500+ ondernemers die hun business laten groeien met SellQo",
+      "subheading": "Sluit je aan bij ondernemers die hun business laten groeien met SellQo",
       "cta": "Start Je Gratis Proefperiode",
       "trust": "Geen creditcard nodig • 14 dagen volledig gratis • Annuleer wanneer je wilt",
       "ssl": "SSL Beveiligd",
