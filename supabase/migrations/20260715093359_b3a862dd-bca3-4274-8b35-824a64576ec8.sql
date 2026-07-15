@@ -1,0 +1,2 @@
+UPDATE public.pricing_plans SET features = COALESCE(features, '{}'::jsonb) || jsonb_build_object('odoo_sync', true) WHERE id IN ('pro','enterprise');
+UPDATE public.pricing_plans SET features = COALESCE(features, '{}'::jsonb) || jsonb_build_object('odoo_sync', false) WHERE id IN ('free','starter');

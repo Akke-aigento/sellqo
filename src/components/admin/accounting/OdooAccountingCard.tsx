@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -13,8 +16,37 @@ interface Props {
 }
 
 export function OdooAccountingCard({ tenantId, onOpen }: Props) {
+  const { checkFeature } = useUsageLimits();
+  const hasAccess = checkFeature('odoo_sync');
   const { status } = useOdooConnection(tenantId);
   const { settings } = useTenantOdooSettings(tenantId);
+
+  if (!hasAccess) {
+    return (
+      <div className="bg-card border rounded-xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-violet-100">
+            <Building2 className="w-6 h-6 text-violet-600" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">Odoo</h3>
+              <Badge variant="secondary" className="text-[10px]">Pro / Enterprise</Badge>
+            </div>
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
+              <Lock className="w-3.5 h-3.5" /> Beschikbaar op Pro of Enterprise
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Automatische facturen- en creditnota-sync met jouw eigen Odoo Accounting. Upgrade om deze koppeling te activeren.
+        </p>
+        <Button asChild className="w-full">
+          <Link to="/pricing">Bekijk abonnementen</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const configured = !!status.data?.configured;
   const syncEnabled = !!settings?.odoo_sync_enabled;

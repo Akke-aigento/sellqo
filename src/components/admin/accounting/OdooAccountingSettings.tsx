@@ -9,6 +9,10 @@ import { Info, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useCan } from '@/hooks/useCan';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Props {
   tenantId: string;
@@ -23,6 +27,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [name, setName] = useState('Diverse particulieren');
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [journalId, setJournalId] = useState<string>('');
+  const [peppolSendEnabled, setPeppolSendEnabled] = useState(true);
 
   const [url, setUrl] = useState('');
   const [db, setDb] = useState('');
@@ -35,6 +40,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setName(settings.b2c_dummy_partner_name || 'Diverse particulieren');
       setSyncEnabled(settings.odoo_sync_enabled ?? false);
       setJournalId(settings.odoo_journal_id || '');
+      setPeppolSendEnabled(settings.peppol_send_enabled ?? true);
     }
   }, [settings]);
 
@@ -56,13 +62,15 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     name: (settings?.b2c_dummy_partner_name || 'Diverse particulieren').trim(),
     syncEnabled: settings?.odoo_sync_enabled ?? false,
     journalId: settings?.odoo_journal_id || '',
+    peppolSendEnabled: settings?.peppol_send_enabled ?? true,
   };
   const dirty =
     !isLoading &&
     (aggregate !== baseline.aggregate ||
       name.trim() !== baseline.name ||
       syncEnabled !== baseline.syncEnabled ||
-      journalId !== baseline.journalId);
+      journalId !== baseline.journalId ||
+      peppolSendEnabled !== baseline.peppolSendEnabled);
 
   const handleSave = () => {
     const j = journals.data?.find(x => String(x.id) === journalId);
@@ -72,8 +80,34 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       odoo_sync_enabled: syncEnabled,
       odoo_journal_id: j ? String(j.id) : null,
       odoo_journal_name: j?.name ?? null,
+      peppol_send_enabled: peppolSendEnabled,
     });
   };
+
+  // Documents needing Peppol attention (pending / manual_action)
+  const attention = useQuery({
+    queryKey: ['peppol-attention', tenantId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const [inv, cn] = await Promise.all([
+        supabase
+          .from('invoices')
+          .select('id, invoice_number, peppol_status')
+          .eq('tenant_id', tenantId)
+          .in('peppol_status', ['pending', 'manual_action']),
+        supabase
+          .from('credit_notes')
+          .select('id, credit_note_number, peppol_status')
+          .eq('tenant_id', tenantId)
+          .in('peppol_status', ['pending', 'manual_action']),
+      ]);
+      return {
+        invoices: inv.data || [],
+        creditNotes: cn.data || [],
+      };
+    },
+  });
+  const attentionCount = (attention.data?.invoices.length || 0) + (attention.data?.creditNotes.length || 0);
 
   const handleSaveConnection = () => {
     save.mutate({ odoo_url: url, odoo_db: db, odoo_login: login, odoo_api_key: apiKey || undefined });
@@ -224,6 +258,21 @@ export function OdooAccountingSettings({ tenantId }: Props) {
             </div>
           ) : null}
 
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="peppol-send">Peppol verzenden via Odoo</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Wanneer aan, verstuurt Odoo automatisch de Peppol e-factuur na een succesvolle sync. Uit = alleen archiveren in Odoo.
+              </p>
+            </div>
+            <Switch
+              id="peppol-send"
+              checked={peppolSendEnabled}
+              disabled={!canWrite || isLoading || !syncEnabled}
+              onCheckedChange={setPeppolSendEnabled}
+            />
+          </div>
+
           <div className="flex justify-end">
             <Button onClick={handleSave}
               disabled={!canWrite || !dirty || upsert.isPending || (syncEnabled && !journalId) || !!selectedJournal?.claimed_by_other_tenant}>
@@ -232,6 +281,40 @@ export function OdooAccountingSettings({ tenantId }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {attentionCount > 0 && (
+        <Card className="border-amber-300 bg-amber-50/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-5 w-5" />
+              Peppol-aandacht ({attentionCount})
+            </CardTitle>
+            <CardDescription>
+              Deze documenten wachten op verzending of vereisen een handmatige actie in Peppol/Odoo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {attention.data?.invoices.map(i => (
+              <div key={i.id} className="flex items-center justify-between border-b py-1 last:border-b-0">
+                <Link to={`/admin/invoices/${i.id}`} className="hover:underline">
+                  Factuur {i.invoice_number}
+                </Link>
+                <span className="text-xs text-amber-700">
+                  {i.peppol_status === 'manual_action' ? 'Handmatig verzenden' : 'In wachtrij'}
+                </span>
+              </div>
+            ))}
+            {attention.data?.creditNotes.map(c => (
+              <div key={c.id} className="flex items-center justify-between border-b py-1 last:border-b-0">
+                <span>Creditnota {c.credit_note_number}</span>
+                <span className="text-xs text-amber-700">
+                  {c.peppol_status === 'manual_action' ? 'Handmatig verzenden' : 'In wachtrij'}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

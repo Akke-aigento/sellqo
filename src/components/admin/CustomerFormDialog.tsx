@@ -307,6 +307,12 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
                     onValidated={handleVatValidated}
                   />
 
+                  {formData.customer_type === 'b2b' && !formData.vat_number?.trim() && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                      Zonder BTW-nummer kan deze B2B-klant niet correct via Peppol of Odoo verwerkt worden. Vul een geldig BTW-nummer in voor volledige boekhoud- en e-facturatiekoppeling.
+                    </div>
+                  )}
+
                   {/* Peppol ID Field */}
                   <div className="space-y-2">
                     <Label htmlFor="peppol_id" className="flex items-center gap-2">

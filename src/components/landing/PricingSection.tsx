@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Check, Star, Sparkles, Monitor, Plus, FileText } from 'lucide-react';
+import { Check, Star, Sparkles, Monitor, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -40,7 +40,6 @@ const planMeta = [
 const addonMeta = [
   { icon: Sparkles, key: 'ai', price: 19 },
   { icon: Monitor, key: 'pos', price: 29, proPricing: 0 },
-  { icon: FileText, key: 'peppol', price: 12, proPricing: 0, hasUrgency: true },
   { icon: Plus, key: 'marketplace', price: 15 },
 ];
 
@@ -231,7 +230,9 @@ export function PricingSection() {
               const desc = t(`landing.pricing.addons.${addon.key}.desc`);
               const features = t(`landing.pricing.addons.${addon.key}.features`, { returnObjects: true }) as string[];
               const forTier = t(`landing.pricing.addons.${addon.key}.for`);
-              const urgency = addon.hasUrgency ? t(`landing.pricing.addons.${addon.key}.urgency`) : null;
+              const urgency = (addon as { hasUrgency?: boolean }).hasUrgency
+                ? t(`landing.pricing.addons.${addon.key}.urgency`)
+                : null;
               return (
               <div
                 key={index}
