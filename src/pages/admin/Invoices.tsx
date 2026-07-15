@@ -156,7 +156,7 @@ export default function InvoicesPage() {
 
   const getPeppolStatusBadge = (invoice: any) => {
     if (!invoice.peppol_status) return null;
-    
+
     if (invoice.peppol_status === 'pending') {
       return (
         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
@@ -165,7 +165,16 @@ export default function InvoicesPage() {
         </Badge>
       );
     }
-    
+
+    if (invoice.peppol_status === 'manual_action') {
+      return (
+        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+          <Clock className="h-3 w-3 mr-1" />
+          Peppol handmatig
+        </Badge>
+      );
+    }
+
     if (invoice.peppol_status === 'sent') {
       return (
         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -174,12 +183,26 @@ export default function InvoicesPage() {
         </Badge>
       );
     }
-    
+
+    if (invoice.peppol_status === 'archive_only') {
+      return (
+        <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+          Archief
+        </Badge>
+      );
+    }
+
+    if (invoice.peppol_status === 'not_applicable') {
+      return null;
+    }
+
     return null;
   };
 
-  // Count peppol pending invoices
-  const peppolPendingCount = invoices.filter(inv => (inv as any).peppol_status === 'pending').length;
+  // Count peppol invoices that need attention (pending charge OR manual action)
+  const peppolPendingCount = invoices.filter(inv =>
+    ['pending', 'manual_action'].includes((inv as any).peppol_status),
+  ).length;
 
   // Credit-note action handlers (mirror CreditNotesTable for consistency)
   const handleCnDownloadPdf = async (cnId: string, existingUrl: string | null | undefined, language?: string | null) => {
