@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { Check, Star, Sparkles, Monitor, Plus } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -35,12 +35,6 @@ const planMeta = [
     yearlyPrice: 1990,
     highlighted: false,
   },
-];
-
-const addonMeta = [
-  { icon: Sparkles, key: 'ai', price: 19 },
-  { icon: Monitor, key: 'pos', price: 29, proPricing: 0 },
-  { icon: Plus, key: 'marketplace', price: 15 },
 ];
 
 export function PricingSection() {
@@ -101,9 +95,7 @@ export function PricingSection() {
             const limitations = plan.hasLimitations
               ? (t(`landing.pricing.plans.${plan.key}.limitations`, { returnObjects: true }) as string[])
               : null;
-            const addons = plan.hasAddons
-              ? (t(`landing.pricing.plans.${plan.key}.addons`, { returnObjects: true }) as string[])
-              : null;
+            const addons = null;
             return (
             <div
               key={index}
@@ -210,75 +202,6 @@ export function PricingSection() {
             </div>
             );
           })}
-        </div>
-
-        {/* Add-ons Section */}
-        <div
-          className={cn(
-            'max-w-4xl mx-auto',
-            isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-          )}
-          style={{ animationDelay: '0.5s' }}
-        >
-          <h3 className="text-2xl font-bold text-foreground text-center mb-8">
-            {t('landing.pricing.boostHeading')}
-          </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {addonMeta.map((addon, index) => {
-              const Icon = addon.icon;
-              const name = t(`landing.pricing.addons.${addon.key}.name`);
-              const desc = t(`landing.pricing.addons.${addon.key}.desc`);
-              const features = t(`landing.pricing.addons.${addon.key}.features`, { returnObjects: true }) as string[];
-              const forTier = t(`landing.pricing.addons.${addon.key}.for`);
-              const urgency = (addon as { hasUrgency?: boolean }).hasUrgency
-                ? t(`landing.pricing.addons.${addon.key}.urgency`)
-                : null;
-              return (
-              <div
-                key={index}
-                className="p-6 bg-card rounded-xl border border-border hover:border-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-accent" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-foreground">{name}</h4>
-                      {urgency && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
-                          {urgency}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{desc}</p>
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <span className="text-2xl font-bold text-foreground">€{addon.price}</span>
-                  <span className="text-muted-foreground">{t('landing.pricing.perMonth')}</span>
-                  {addon.proPricing === 0 && (
-                    <p className="text-xs text-green-600 mt-1">{t('landing.pricing.freeAtPro')}</p>
-                  )}
-                  {addon.proPricing && addon.proPricing > 0 && (
-                    <p className="text-xs text-accent mt-1">{t('landing.pricing.atPro', { price: addon.proPricing })}</p>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {t('landing.pricing.availableFor', { tier: forTier })}
-                </p>
-                <ul className="space-y-2">
-                  {features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              );
-            })}
-          </div>
         </div>
 
         <div className="text-center mt-12 space-y-4">
