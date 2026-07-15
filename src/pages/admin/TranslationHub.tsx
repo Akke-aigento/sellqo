@@ -215,8 +215,9 @@ export default function TranslationHub() {
     }
   };
 
-  // Active jobs (processing or pending)
-  const activeJobs = jobs?.filter(j => j.status === 'processing' || j.status === 'pending') || [];
+  // Active jobs (processing / pending / running)
+  const activeJobs = jobs?.filter(j => ['processing', 'pending', 'running'].includes(j.status as string)) || [];
+  const recentFinished = (jobs || []).filter(j => ['completed', 'completed_with_errors', 'failed'].includes(j.status as string)).slice(0, 3);
 
   // Get entity data based on type
   const getEntityData = () => {
@@ -625,6 +626,11 @@ export default function TranslationHub() {
                     <p className="text-sm font-medium">{job.job_type}</p>
                     <p className="text-xs text-muted-foreground">
                       {job.processed_items} / {job.total_items} items
+                      {job.failed_items > 0 && (
+                        <span className="ml-2 inline-flex items-center rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-medium">
+                          {job.failed_items} mislukt
+                        </span>
+                      )}
                     </p>
                   </div>
                   <Progress 
@@ -633,6 +639,41 @@ export default function TranslationHub() {
                   />
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {recentFinished.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Recente Vertaaltaken</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentFinished.map(job => {
+                const withErrors = job.status === 'completed_with_errors';
+                const failed = job.status === 'failed';
+                return (
+                  <div key={job.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-medium">{job.job_type}</span>
+                      <span className="text-muted-foreground ml-2">
+                        {job.processed_items} / {job.total_items} items · {job.credits_used} credits
+                      </span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      failed
+                        ? 'bg-destructive/15 text-destructive'
+                        : withErrors
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                    }`}>
+                      {failed ? 'Mislukt' : withErrors ? `Voltooid met ${job.failed_items} fouten` : 'Voltooid'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
