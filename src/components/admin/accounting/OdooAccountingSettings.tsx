@@ -40,6 +40,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [journalId, setJournalId] = useState<string>('');
   const [peppolSendEnabled, setPeppolSendEnabled] = useState(true);
+  const [autoPost, setAutoPost] = useState(true);
 
   const [url, setUrl] = useState('');
   const [db, setDb] = useState('');
@@ -116,6 +117,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setSyncEnabled(settings.odoo_sync_enabled ?? false);
       setJournalId(settings.odoo_journal_id || '');
       setPeppolSendEnabled(settings.peppol_send_enabled ?? true);
+      setAutoPost(settings.odoo_auto_post ?? true);
     }
   }, [settings]);
 
@@ -138,6 +140,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     syncEnabled: settings?.odoo_sync_enabled ?? false,
     journalId: settings?.odoo_journal_id || '',
     peppolSendEnabled: settings?.peppol_send_enabled ?? true,
+    autoPost: settings?.odoo_auto_post ?? true,
   };
   const dirty =
     !isLoading &&
@@ -145,7 +148,8 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       name.trim() !== baseline.name ||
       syncEnabled !== baseline.syncEnabled ||
       journalId !== baseline.journalId ||
-      peppolSendEnabled !== baseline.peppolSendEnabled);
+      peppolSendEnabled !== baseline.peppolSendEnabled ||
+      autoPost !== baseline.autoPost);
 
   const handleSave = () => {
     const j = journals.data?.find(x => String(x.id) === journalId);
@@ -156,6 +160,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       odoo_journal_id: j ? String(j.id) : null,
       odoo_journal_name: j?.name ?? null,
       peppol_send_enabled: peppolSendEnabled,
+      odoo_auto_post: autoPost,
     });
   };
 
