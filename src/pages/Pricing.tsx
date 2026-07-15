@@ -209,7 +209,9 @@ export default function PricingPage() {
 
                   {/* Features */}
                   <div className="space-y-2">
-                    {Object.entries(plan.features).map(([key, enabled]) => (
+                    {Object.entries(plan.features)
+                      .filter(([key]) => key !== 'peppol')
+                      .map(([key, enabled]) => (
                       <div key={key} className="flex items-center gap-2 text-sm">
                         {enabled ? (
                           <Check className="h-4 w-4 text-primary" />
