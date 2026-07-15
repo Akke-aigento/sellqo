@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "AI Credit Pack", "desc": "500 extra AI credits/month", "features": ["Product descriptions", "Social content", "Image generation"], "for": "Starter+" },
         "pos": { "name": "POS Register", "desc": "Sell in your store", "features": ["Touch interface", "Barcode scanning", "Stripe Terminal"], "for": "Starter (Pro: free)" },
-        "peppol": { "name": "Peppol e-Invoicing", "desc": "Coming soon — mandatory in BE from 2026", "features": ["Official Peppol connection", "Automatic dispatch", "Delivery receipts", "B2B compliance"], "for": "Starter (Pro: free)", "urgency": "🔜 Coming Soon — Required 2026" },
+        
         "marketplace": { "name": "Extra Marketplace", "desc": "Per additional channel", "features": ["Amazon, eBay, etc.", "Order sync", "Stock sync"], "for": "Pro+" }
       }
     },

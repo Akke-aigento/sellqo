@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "Pack crédits IA", "desc": "500 crédits IA supplémentaires/mois", "features": ["Descriptions produits", "Contenu social", "Génération d'images"], "for": "Starter+" },
         "pos": { "name": "Caisse POS", "desc": "Vendez en boutique", "features": ["Interface tactile", "Scan de codes-barres", "Stripe Terminal"], "for": "Starter (Pro : gratuit)" },
-        "peppol": { "name": "E-invoicing Peppol", "desc": "Bientôt disponible — obligatoire en BE dès 2026", "features": ["Connexion Peppol officielle", "Envoi automatique", "Accusés de réception", "Conformité B2B"], "for": "Starter (Pro : gratuit)", "urgency": "🔜 Bientôt — Obligatoire 2026" },
+        
         "marketplace": { "name": "Marketplace supplémentaire", "desc": "Par canal additionnel", "features": ["Amazon, eBay, etc.", "Sync commandes", "Sync stock"], "for": "Pro+" }
       }
     },

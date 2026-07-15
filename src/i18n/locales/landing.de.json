@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "KI Credit Pack", "desc": "500 extra KI-Credits/Monat", "features": ["Produktbeschreibungen", "Social Content", "Bildgenerierung"], "for": "Starter+" },
         "pos": { "name": "POS Kasse", "desc": "Verkaufe in Deinem Laden", "features": ["Touch-Interface", "Barcode-Scanning", "Stripe Terminal"], "for": "Starter (Pro: gratis)" },
-        "peppol": { "name": "Peppol E-Invoicing", "desc": "Bald verfügbar — Pflicht ab 2026 in BE", "features": ["Offizielle Peppol-Anbindung", "Automatischer Versand", "Empfangsbestätigungen", "B2B-Compliance"], "for": "Starter (Pro: gratis)", "urgency": "🔜 Coming Soon — Pflicht 2026" },
+        
         "marketplace": { "name": "Extra Marketplace", "desc": "Pro zusätzlichem Kanal", "features": ["Amazon, eBay, etc.", "Bestellsync", "Lagersync"], "for": "Pro+" }
       }
     },
