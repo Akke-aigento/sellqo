@@ -8,42 +8,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Mail, Phone, MapPin, MessageSquare, Clock, Calendar, Headphones, Building2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageMeta } from '@/components/seo/PageMeta';
+import { useTranslation } from 'react-i18next';
 
-const subjects = [
-  { value: 'sales', label: 'Verkoop & Prijzen', responseTime: 'doorgaans binnen 1 werkdag' },
-  { value: 'support', label: 'Technische Support', responseTime: 'doorgaans binnen 1 werkdag' },
-  { value: 'partnership', label: 'Partnership', responseTime: 'binnen 2 werkdagen' },
-  { value: 'technical', label: 'API & Integraties', responseTime: 'doorgaans binnen 1 werkdag' },
-  { value: 'other', label: 'Anders', responseTime: 'binnen 2 werkdagen' },
-];
+const subjectDefs = [
+  { value: 'sales', responseKey: 'oneDay' },
+  { value: 'support', responseKey: 'oneDay' },
+  { value: 'partnership', responseKey: 'twoDays' },
+  { value: 'technical', responseKey: 'oneDay' },
+  { value: 'other', responseKey: 'twoDays' },
+] as const;
 
-const contactMethods = [
-  {
-    icon: Mail,
-    title: 'E-mail',
-    value: 'info@sellqo.app',
-    href: 'mailto:info@sellqo.app',
-    description: 'Voor algemene vragen',
-  },
-  {
-    icon: MessageSquare,
-    title: 'WhatsApp',
-    value: '+32 490 39 75 44',
-    href: 'https://wa.me/32490397544',
-    description: 'Snelle antwoorden',
-  },
-  {
-    icon: Phone,
-    title: 'Telefoon',
-    value: '+32 490 39 75 44',
-    href: 'tel:+32490397544',
-    description: 'Ma-Vr 9:00-17:00',
-  },
-];
+const contactMethodDefs = [
+  { key: 'email', icon: Mail, value: 'info@sellqo.app', href: 'mailto:info@sellqo.app' },
+  { key: 'whatsapp', icon: MessageSquare, value: '+32 490 39 75 44', href: 'https://wa.me/32490397544' },
+  { key: 'phone', icon: Phone, value: '+32 490 39 75 44', href: 'tel:+32490397544' },
+] as const;
 
 export default function Contact() {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState('');
+
+  const subjects = subjectDefs.map((s) => ({
+    value: s.value,
+    label: t(`public.contact.subjects.${s.value}`),
+    responseTime: t(`public.contact.responseTimes.${s.responseKey}`),
+  }));
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,7 +42,7 @@ export default function Contact() {
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    toast.success('Bericht verzonden! We nemen zo snel mogelijk contact met je op.');
+    toast.success(t('public.contact.form.success'));
     setIsSubmitting(false);
     (e.target as HTMLFormElement).reset();
     setSelectedSubject('');
@@ -63,18 +53,18 @@ export default function Contact() {
   return (
     <>
     <PageMeta
-      title="Contact — Sellqo support en sales"
-      description="Neem contact op met het Sellqo team. Snel antwoord per e-mail, WhatsApp of telefoon. We helpen je graag met sales, support en partnership vragen."
+      title={t('public.contact.meta.title')}
+      description={t('public.contact.meta.description')}
       path="/contact"
     />
     <PublicPageLayout 
-      title="Neem Contact Op" 
-      subtitle="Vragen? We helpen je graag verder."
+      title={t('public.contact.title')}
+      subtitle={t('public.contact.subtitle')}
     >
       {/* Quick Contact Methods */}
       <section className="max-w-4xl mx-auto mb-12">
         <div className="grid sm:grid-cols-3 gap-4">
-          {contactMethods.map((method, index) => (
+          {contactMethodDefs.map((method, index) => (
             <a
               key={index}
               href={method.href}
@@ -83,9 +73,9 @@ export default function Contact() {
               <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/20 transition-colors">
                 <method.icon className="w-5 h-5 text-accent" />
               </div>
-              <h3 className="font-semibold text-foreground mb-1">{method.title}</h3>
+              <h3 className="font-semibold text-foreground mb-1">{t(`public.contact.methods.${method.key}.title`)}</h3>
               <p className="text-accent text-sm mb-1">{method.value}</p>
-              <p className="text-xs text-muted-foreground">{method.description}</p>
+              <p className="text-xs text-muted-foreground">{t(`public.contact.methods.${method.key}.description`)}</p>
             </a>
           ))}
         </div>
@@ -94,27 +84,27 @@ export default function Contact() {
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12">
         {/* Contact Form */}
         <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
-          <h2 className="text-xl font-bold text-foreground mb-6">Stuur ons een bericht</h2>
+          <h2 className="text-xl font-bold text-foreground mb-6">{t('public.contact.form.title')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Naam *</Label>
-                <Input id="name" placeholder="Je naam" required />
+                <Label htmlFor="name">{t('public.contact.form.name')} *</Label>
+                <Input id="name" placeholder={t('public.contact.form.namePlaceholder')} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company">Bedrijf</Label>
-                <Input id="company" placeholder="Bedrijfsnaam" />
+                <Label htmlFor="company">{t('public.contact.form.company')}</Label>
+                <Input id="company" placeholder={t('public.contact.form.companyPlaceholder')} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail *</Label>
-              <Input id="email" type="email" placeholder="je@email.com" required />
+              <Label htmlFor="email">{t('public.contact.form.email')} *</Label>
+              <Input id="email" type="email" placeholder={t('public.contact.form.emailPlaceholder')} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subject">Onderwerp *</Label>
+              <Label htmlFor="subject">{t('public.contact.form.subject')} *</Label>
               <Select value={selectedSubject} onValueChange={setSelectedSubject} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer een onderwerp" />
+                  <SelectValue placeholder={t('public.contact.form.subjectPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map((subject) => (
@@ -127,21 +117,21 @@ export default function Contact() {
               {currentSubject && (
                 <p className="text-xs text-accent flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  Verwachte reactietijd: {currentSubject.responseTime}
+                  {t('public.contact.form.expected', { time: currentSubject.responseTime })}
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="message">Bericht *</Label>
+              <Label htmlFor="message">{t('public.contact.form.message')} *</Label>
               <Textarea 
                 id="message" 
-                placeholder="Beschrijf je vraag of opmerking..." 
+                placeholder={t('public.contact.form.messagePlaceholder')}
                 rows={5}
                 required 
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Verzenden...' : 'Verstuur Bericht'}
+              {isSubmitting ? t('public.contact.form.submitting') : t('public.contact.form.submit')}
             </Button>
           </form>
         </div>
@@ -150,7 +140,7 @@ export default function Contact() {
         <div className="space-y-6">
           {/* Response Times */}
           <div className="bg-card rounded-2xl border border-border p-6">
-            <h2 className="text-xl font-bold text-foreground mb-4">Reactietijden</h2>
+            <h2 className="text-xl font-bold text-foreground mb-4">{t('public.contact.responseTitle')}</h2>
             <div className="space-y-3">
               {subjects.map((subject) => (
                 <div key={subject.value} className="flex items-center justify-between py-2 border-b border-border last:border-0">
@@ -168,10 +158,8 @@ export default function Contact() {
                 <Building2 className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Company Information</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  SellQo is operated by:
-                </p>
+                <h3 className="font-semibold text-foreground mb-2">{t('public.contact.companyTitle')}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t('public.contact.companyText')}</p>
                 <p className="text-foreground text-sm leading-relaxed mt-2">
                   <span className="font-medium">Nomadix BV</span><br />
                   Beekstraat 49<br />
@@ -193,14 +181,12 @@ export default function Contact() {
                 <Building2 className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="font-bold text-foreground mb-2">Enterprise Klant?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Voor grote implementaties en custom oplossingen bieden we persoonlijke begeleiding.
-                </p>
+                <h3 className="font-bold text-foreground mb-2">{t('public.contact.enterprise.title')}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{t('public.contact.enterprise.text')}</p>
                 <Button variant="outline" className="w-full" asChild>
                   <a href="https://calendly.com" target="_blank" rel="noopener noreferrer">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Plan een Demo
+                    {t('public.contact.enterprise.button')}
                   </a>
                 </Button>
               </div>
@@ -212,13 +198,11 @@ export default function Contact() {
             <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
               <Headphones className="w-6 h-6 text-green-500" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Live Chat</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Binnenkort beschikbaar voor directe hulp
-            </p>
+            <h3 className="font-semibold text-foreground mb-2">{t('public.contact.livechat.title')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{t('public.contact.livechat.text')}</p>
             <div className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
               <Zap className="w-3 h-3" />
-              Coming soon
+              {t('public.contact.livechat.badge')}
             </div>
           </div>
         </div>

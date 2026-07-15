@@ -3,53 +3,30 @@ import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
 import { Target, Users, Zap, Heart, Globe, Shield, ShoppingBag, Building2, Rocket, Award, MapPin, FileCheck, Sparkles } from 'lucide-react';
 import { PageMeta } from '@/components/seo/PageMeta';
+import { useTranslation } from 'react-i18next';
 
-const stats = [
-  { icon: MapPin, value: '🇧🇪 100% Belgisch', label: 'Gebouwd en beheerd in België' },
-  { icon: Globe, value: '4 talen', label: 'NL / EN / FR / DE — admin én webshop' },
-  { icon: FileCheck, value: 'Peppol-ready', label: 'E-facturatie via Odoo-koppeling' },
-  { icon: Sparkles, value: 'AI-first', label: 'Content, SEO en coaching ingebouwd' },
-];
+const statKeys = [
+  { icon: MapPin, key: 'belgian' },
+  { icon: Globe, key: 'languages' },
+  { icon: FileCheck, key: 'peppol' },
+  { icon: Sparkles, key: 'ai' },
+] as const;
 
-const timeline = [
-  { date: 'Q1 2024', title: 'SellQo Opgericht', description: 'Start in België met een visie voor betere e-commerce tools.', icon: Rocket },
-  { date: 'Q3 2024', title: 'Eerste Beta Testers', description: 'Eerste ondernemers testen het platform en geven feedback.', icon: Users },
-  { date: 'Q4 2024', title: 'Bol.com Integratie Live', description: 'Officiële marketplace integratie gelanceerd.', icon: ShoppingBag },
-  { date: 'Q1 2025', title: 'Publieke Launch', description: 'Platform open voor alle ondernemers met AI-features.', icon: Award },
-];
+const timelineKeys = [
+  { key: 'q1_2024', icon: Rocket },
+  { key: 'q3_2024', icon: Users },
+  { key: 'q4_2024', icon: ShoppingBag },
+  { key: 'q1_2025', icon: Award },
+] as const;
 
-const values = [
-  {
-    icon: Target,
-    title: 'Eenvoud Eerst',
-    description: 'Complexe e-commerce processen versimpelen tot intuïtieve workflows.',
-  },
-  {
-    icon: Users,
-    title: 'Ondernemers Centraal',
-    description: 'Elke feature is ontworpen met MKB ondernemers in gedachten.',
-  },
-  {
-    icon: Zap,
-    title: 'Innovatie Door AI',
-    description: 'Slimme automatisering die jou tijd bespaart en groei stimuleert.',
-  },
-  {
-    icon: Heart,
-    title: 'Made in Belgium',
-    description: 'Met trots ontwikkeld in België, voor de Benelux markt.',
-  },
-  {
-    icon: Globe,
-    title: 'Lokaal & Globaal',
-    description: 'Ondersteuning voor lokale betaalmethoden én internationale groei.',
-  },
-  {
-    icon: Shield,
-    title: 'Privacy & Veiligheid',
-    description: 'GDPR-compliant met focus op databescherming en transparantie.',
-  },
-];
+const valueKeys = [
+  { key: 'simplicity', icon: Target },
+  { key: 'entrepreneurs', icon: Users },
+  { key: 'innovation', icon: Zap },
+  { key: 'belgian', icon: Heart },
+  { key: 'global', icon: Globe },
+  { key: 'privacy', icon: Shield },
+] as const;
 
 const pressLogos = [
   { name: 'De Tijd', placeholder: 'DE TIJD' },
@@ -59,31 +36,24 @@ const pressLogos = [
 ];
 
 export default function About() {
+  const { t } = useTranslation();
   return (
     <>
     <PageMeta
-      title="Over Sellqo — Belgisch e-commerce platform voor MKB"
-      description="Sellqo is het Belgische e-commerce platform voor ambitieuze ondernemers: webshop, POS en marketplace integraties in één tool. Leer ons team en missie kennen."
+      title={t('public.about.meta.title')}
+      description={t('public.about.meta.description')}
       path="/about"
     />
     <PublicPageLayout 
-      title="Over SellQo" 
-      subtitle="De Belgische e-commerce oplossing die groeit met jouw ambities"
+      title={t('public.about.title')}
+      subtitle={t('public.about.subtitle')}
     >
       {/* Mission Section */}
       <section className="max-w-4xl mx-auto mb-16">
         <div className="bg-card rounded-2xl border border-border p-8 md:p-12">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Onze Missie</h2>
-          <p className="text-lg text-muted-foreground mb-6">
-            Bij SellQo geloven we dat elk bedrijf, groot of klein, toegang verdient tot professionele 
-            e-commerce tools. We bouwen de meest complete en gebruiksvriendelijke oplossing voor 
-            ondernemers in de Benelux - van eerste product tot internationale expansie.
-          </p>
-          <p className="text-muted-foreground">
-            Opgericht in 2024, combineert SellQo de kracht van AI met diepgaande kennis van de lokale 
-            markt. Of je nu verkoopt via je eigen webshop, Bol.com, Amazon of fysieke winkel - wij 
-            brengen alles samen in één platform.
-          </p>
+          <h2 className="text-2xl font-bold text-foreground mb-4">{t('public.about.mission.title')}</h2>
+          <p className="text-lg text-muted-foreground mb-6">{t('public.about.mission.p1')}</p>
+          <p className="text-muted-foreground">{t('public.about.mission.p2')}</p>
           <p className="text-muted-foreground mt-4 pt-4 border-t border-border text-sm">
             <span className="font-medium text-foreground">Legal entity:</span> SellQo is a SaaS product
             developed and operated by <span className="font-medium text-foreground">Nomadix BV</span>,
@@ -97,7 +67,7 @@ export default function About() {
       {/* Stats Section */}
       <section className="max-w-5xl mx-auto mb-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {stats.map((stat, index) => (
+          {statKeys.map((stat, index) => (
             <div 
               key={index}
               className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl border border-accent/30 p-6 text-center"
@@ -105,8 +75,8 @@ export default function About() {
               <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
                 <stat.icon className="w-6 h-6 text-accent" />
               </div>
-              <p className="text-2xl md:text-3xl font-bold text-foreground mb-1">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <p className="text-2xl md:text-3xl font-bold text-foreground mb-1">{t(`public.about.stats.${stat.key}.value`)}</p>
+              <p className="text-sm text-muted-foreground">{t(`public.about.stats.${stat.key}.label`)}</p>
             </div>
           ))}
         </div>
@@ -114,12 +84,12 @@ export default function About() {
 
       {/* Timeline Section */}
       <section className="max-w-4xl mx-auto mb-16">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-8">Onze Reis</h2>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-8">{t('public.about.timeline.title')}</h2>
         <div className="relative">
           {/* Vertical line */}
           <div className="absolute left-4 md:left-1/2 md:-translate-x-0.5 top-0 bottom-0 w-0.5 bg-border" />
           
-          {timeline.map((item, index) => (
+          {timelineKeys.map((item, index) => (
             <div 
               key={index}
               className={`relative flex items-start gap-6 mb-8 ${
@@ -135,9 +105,9 @@ export default function About() {
               <div className={`ml-16 md:ml-0 md:w-[calc(50%-2rem)] ${
                 index % 2 === 0 ? 'md:pr-8 md:text-right' : 'md:pl-8'
               }`}>
-                <span className="text-sm font-medium text-accent">{item.date}</span>
-                <h3 className="text-lg font-semibold text-foreground mt-1">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                <span className="text-sm font-medium text-accent">{t(`public.about.timeline.items.${item.key}.date`)}</span>
+                <h3 className="text-lg font-semibold text-foreground mt-1">{t(`public.about.timeline.items.${item.key}.title`)}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{t(`public.about.timeline.items.${item.key}.description`)}</p>
               </div>
             </div>
           ))}
@@ -146,9 +116,9 @@ export default function About() {
 
       {/* Values Grid */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-8">Onze Waarden</h2>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-8">{t('public.about.values.title')}</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {values.map((value, index) => (
+          {valueKeys.map((value, index) => (
             <div 
               key={index}
               className="bg-card rounded-xl border border-border p-6 hover:border-accent/50 transition-colors"
@@ -156,8 +126,8 @@ export default function About() {
               <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4">
                 <value.icon className="w-6 h-6 text-accent" />
               </div>
-              <h3 className="font-semibold text-foreground mb-2">{value.title}</h3>
-              <p className="text-sm text-muted-foreground">{value.description}</p>
+              <h3 className="font-semibold text-foreground mb-2">{t(`public.about.values.items.${value.key}.title`)}</h3>
+              <p className="text-sm text-muted-foreground">{t(`public.about.values.items.${value.key}.description`)}</p>
             </div>
           ))}
         </div>
@@ -165,24 +135,22 @@ export default function About() {
 
       {/* Team Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-8">Wie bouwt SellQo?</h2>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-8">{t('public.about.team.title')}</h2>
         <div className="max-w-2xl mx-auto bg-card rounded-2xl border border-border p-8 text-center">
           <div className="w-14 h-14 rounded-lg bg-accent/10 flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-7 h-7 text-accent" />
           </div>
-          <p className="text-muted-foreground">
-            SellQo wordt gebouwd en beheerd door{' '}
-            <span className="font-medium text-foreground">Nomadix BV</span> in België.
-            Een klein, toegewijd team dat elke feature zelf ontwerpt, bouwt en
-            ondersteunt — zonder tussenlagen, met korte lijnen naar onze klanten.
-          </p>
+          <p
+            className="text-muted-foreground [&_strong]:font-medium [&_strong]:text-foreground"
+            dangerouslySetInnerHTML={{ __html: t('public.about.team.description') }}
+          />
         </div>
       </section>
 
       {/* Press/Featured Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-2">In de Media</h2>
-        <p className="text-center text-muted-foreground mb-8">Bekende namen schrijven over SellQo</p>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-2">{t('public.about.press.title')}</h2>
+        <p className="text-center text-muted-foreground mb-8">{t('public.about.press.subtitle')}</p>
         <div className="flex flex-wrap justify-center gap-6 max-w-3xl mx-auto">
           {pressLogos.map((press, index) => (
             <div 
@@ -197,14 +165,10 @@ export default function About() {
 
       {/* CTA */}
       <section className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-4">
-          Klaar om te starten?
-        </h2>
-        <p className="text-muted-foreground mb-6">
-          Probeer SellQo 14 dagen gratis en ontdek het verschil.
-        </p>
+        <h2 className="text-2xl font-bold text-foreground mb-4">{t('public.about.cta.title')}</h2>
+        <p className="text-muted-foreground mb-6">{t('public.about.cta.description')}</p>
         <Button asChild size="lg">
-          <Link to="/auth?mode=register">Start Gratis Trial</Link>
+          <Link to="/auth?mode=register">{t('public.about.cta.button')}</Link>
         </Button>
       </section>
     </PublicPageLayout>

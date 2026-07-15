@@ -6,121 +6,125 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ShoppingBag, CreditCard, Truck, MessageSquare, BarChart3, Globe, Search, Star, Zap, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
+// Structural definitions only; localized text is read from i18n at render time.
 const integrationCategories = [
   {
     id: 'marketplaces',
-    title: 'Marketplaces',
     icon: ShoppingBag,
     integrations: [
-      { name: 'Bol.com', status: 'live', description: 'Verkoop en beheer producten op Bol.com', difficulty: 'easy', popular: true, features: ['Product sync', 'Order import', 'Voorraad beheer', 'VVB verzending'] },
-      { name: 'Amazon', status: 'coming', description: 'Sync met Amazon Seller Central', difficulty: 'medium', popular: true, features: ['Product listing', 'FBA support', 'Multi-country'] },
-      { name: 'eBay', status: 'coming', description: 'eBay marketplace integratie', difficulty: 'medium', popular: false, features: ['Veilingen', 'Fixed price', 'Shipping profiles'] },
-      { name: 'Etsy', status: 'planned', description: 'Handgemaakte producten verkopen', difficulty: 'easy', popular: false, features: ['Shop sync', 'Order management'] },
+      { key: 'bolcom', name: 'Bol.com', status: 'live', difficulty: 'easy', popular: true },
+      { key: 'amazon', name: 'Amazon', status: 'coming', difficulty: 'medium', popular: true },
+      { key: 'ebay', name: 'eBay', status: 'coming', difficulty: 'medium', popular: false },
+      { key: 'etsy', name: 'Etsy', status: 'planned', difficulty: 'easy', popular: false },
     ],
   },
   {
     id: 'payments',
-    title: 'Betalingen',
     icon: CreditCard,
     integrations: [
-      { name: 'Stripe', status: 'live', description: 'iDEAL, creditcards, Apple Pay en meer', difficulty: 'easy', popular: true, features: ['iDEAL', 'Bancontact', 'Creditcards', 'Apple/Google Pay', 'Subscriptions'] },
-      { name: 'Mollie', status: 'planned', description: 'Nederlandse payment provider', difficulty: 'easy', popular: true, features: ['iDEAL', 'Bancontact', 'Klarna', 'PayPal'] },
-      { name: 'PayPal', status: 'planned', description: 'Wereldwijde betalingen', difficulty: 'easy', popular: false, features: ['PayPal checkout', 'Pay Later'] },
+      { key: 'stripe', name: 'Stripe', status: 'live', difficulty: 'easy', popular: true },
+      { key: 'mollie', name: 'Mollie', status: 'planned', difficulty: 'easy', popular: true },
+      { key: 'paypal', name: 'PayPal', status: 'planned', difficulty: 'easy', popular: false },
     ],
   },
   {
     id: 'shipping',
-    title: 'Verzending',
     icon: Truck,
     integrations: [
-      { name: 'PostNL', status: 'coming', description: 'Labels en track & trace', difficulty: 'easy', popular: false, features: ['Label printing', 'Track & trace', 'Afhaalpunten'] },
-      { name: 'DHL', status: 'coming', description: 'DHL verzendlabels', difficulty: 'easy', popular: false, features: ['Express', 'Parcel', 'ServicePoints'] },
-      { name: 'Sendcloud', status: 'coming', description: 'Multi-carrier platform', difficulty: 'medium', popular: false, features: ['Alle carriers', 'Automatische regels', 'Returns'] },
-      { name: 'Bpost', status: 'coming', description: 'Belgische post', difficulty: 'easy', popular: false, features: ['Standaard', 'Bpack', 'Afhaalpunten'] },
+      { key: 'postnl', name: 'PostNL', status: 'coming', difficulty: 'easy', popular: false },
+      { key: 'dhl', name: 'DHL', status: 'coming', difficulty: 'easy', popular: false },
+      { key: 'sendcloud', name: 'Sendcloud', status: 'coming', difficulty: 'medium', popular: false },
+      { key: 'bpost', name: 'Bpost', status: 'coming', difficulty: 'easy', popular: false },
     ],
   },
   {
     id: 'communication',
-    title: 'Communicatie',
     icon: MessageSquare,
     integrations: [
-      { name: 'Resend', status: 'live', description: 'Transactionele emails', difficulty: 'easy', popular: false, features: ['Orderbevestigingen', 'Verzendmeldingen', 'Custom templates'] },
-      { name: 'WhatsApp Business', status: 'coming', description: 'Klantcommunicatie via WhatsApp', difficulty: 'medium', popular: false, features: ['Berichten sturen', 'Templates', 'Quick replies'] },
-      { name: 'Intercom', status: 'planned', description: 'Customer success platform', difficulty: 'medium', popular: false, features: ['Live chat', 'Help desk', 'Product tours'] },
+      { key: 'resend', name: 'Resend', status: 'live', difficulty: 'easy', popular: false },
+      { key: 'whatsapp', name: 'WhatsApp Business', status: 'coming', difficulty: 'medium', popular: false },
+      { key: 'intercom', name: 'Intercom', status: 'planned', difficulty: 'medium', popular: false },
     ],
   },
   {
     id: 'marketing',
-    title: 'Marketing',
     icon: BarChart3,
     integrations: [
-      { name: 'Meta Ads', status: 'coming', description: 'Facebook & Instagram advertenties', difficulty: 'medium', popular: false, features: ['Pixel tracking', 'Catalog sync', 'CAPI'] },
-      { name: 'Google Ads', status: 'coming', description: 'Search en Shopping campagnes', difficulty: 'medium', popular: true, features: ['Google Shopping', 'Conversion tracking', 'Remarketing'] },
-      { name: 'Bol.com Sponsored', status: 'coming', description: 'Gesponsorde producten op Bol', difficulty: 'easy', popular: false, features: ['Sponsored Products', 'Display ads'] },
-      { name: 'Klaviyo', status: 'planned', description: 'Email marketing automation', difficulty: 'medium', popular: true, features: ['Email flows', 'Segmentatie', 'A/B testing'] },
+      { key: 'metaads', name: 'Meta Ads', status: 'coming', difficulty: 'medium', popular: false },
+      { key: 'googleads', name: 'Google Ads', status: 'coming', difficulty: 'medium', popular: true },
+      { key: 'bolsponsored', name: 'Bol.com Sponsored', status: 'coming', difficulty: 'easy', popular: false },
+      { key: 'klaviyo', name: 'Klaviyo', status: 'planned', difficulty: 'medium', popular: true },
     ],
   },
   {
     id: 'platforms',
-    title: 'E-commerce Platforms',
     icon: Globe,
     integrations: [
-      { name: 'Shopify', status: 'coming', description: 'Importeer vanuit Shopify', difficulty: 'easy', popular: true, features: ['Product import', 'Order sync', 'Customer migratie'] },
-      { name: 'WooCommerce', status: 'coming', description: 'WordPress webshop migratie', difficulty: 'medium', popular: true, features: ['Volledige migratie', 'Product import'] },
-      { name: 'Odoo', status: 'live', description: 'Automatische boekhoudkoppeling met je eigen Odoo', difficulty: 'medium', popular: true, features: ['Facturen & creditnota\u2019s automatisch geboekt', 'Eigen verkoopdagboek', 'Peppol e-facturatie via Odoo', 'B2C-aggregatie'] },
-      { name: 'Lightspeed', status: 'planned', description: 'POS en e-commerce', difficulty: 'medium', popular: false, features: ['POS sync', 'Inventory', 'Products'] },
-      { name: 'Peppol', status: 'live', description: 'B2B e-facturatie via je Odoo-koppeling', difficulty: 'easy', popular: false, features: ['UBL-generatie', 'Automatische verzending via Odoo', 'Statustracking per factuur'] },
+      { key: 'shopify', name: 'Shopify', status: 'coming', difficulty: 'easy', popular: true },
+      { key: 'woocommerce', name: 'WooCommerce', status: 'coming', difficulty: 'medium', popular: true },
+      { key: 'odoo', name: 'Odoo', status: 'live', difficulty: 'medium', popular: true },
+      { key: 'lightspeed', name: 'Lightspeed', status: 'planned', difficulty: 'medium', popular: false },
+      { key: 'peppol', name: 'Peppol', status: 'live', difficulty: 'easy', popular: false },
     ],
   },
-];
+] as const;
 
-const statusStyles = {
-  live: { label: 'Live', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
-  coming: { label: 'Binnenkort', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
-  planned: { label: 'Gepland', className: 'bg-secondary text-muted-foreground border-border' },
-};
+const statusClass = {
+  live: 'bg-green-500/10 text-green-600 border-green-500/20',
+  coming: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  planned: 'bg-secondary text-muted-foreground border-border',
+} as const;
 
-const difficultyStyles = {
-  easy: { label: 'Makkelijk', icon: Zap, color: 'text-green-500' },
-  medium: { label: 'Gemiddeld', icon: Clock, color: 'text-amber-500' },
-  advanced: { label: 'Geavanceerd', icon: CheckCircle, color: 'text-blue-500' },
-};
+const difficultyStyle = {
+  easy: { icon: Zap, color: 'text-green-500' },
+  medium: { icon: Clock, color: 'text-amber-500' },
+  advanced: { icon: CheckCircle, color: 'text-blue-500' },
+} as const;
 
 export default function Integrations() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
 
+  const catTitle = (id: string) => t(`public.integrations.categories.${id}`);
+  const itemDesc = (key: string) => t(`public.integrations.items.${key}.description`);
+  const itemFeatures = (key: string) => t(`public.integrations.items.${key}.features`, { returnObjects: true }) as string[];
+  const statusLabel = (s: string) => t(`public.integrations.status.${s}`);
+  const difficultyLabel = (d: string) => t(`public.integrations.difficulty.${d}`);
+
   // Get all integrations flat
-  const allIntegrations = integrationCategories.flatMap(cat => 
-    cat.integrations.map(int => ({ ...int, category: cat.title, categoryId: cat.id }))
+  const allIntegrations = integrationCategories.flatMap((cat) =>
+    cat.integrations.map((int) => ({ ...int, categoryTitle: catTitle(cat.id), categoryId: cat.id }))
   );
 
   // Filter by search
-  const filteredCategories = searchQuery 
-    ? integrationCategories.map(cat => ({
-        ...cat,
-        integrations: cat.integrations.filter(int => 
-          int.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          int.description.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      })).filter(cat => cat.integrations.length > 0)
+  const q = searchQuery.toLowerCase();
+  const filteredCategories = searchQuery
+    ? integrationCategories
+        .map((cat) => ({
+          ...cat,
+          integrations: cat.integrations.filter(
+            (int) => int.name.toLowerCase().includes(q) || itemDesc(int.key).toLowerCase().includes(q)
+          ),
+        }))
+        .filter((cat) => cat.integrations.length > 0)
     : integrationCategories;
 
-  // Popular integrations
-  const popularIntegrations = allIntegrations.filter(int => int.popular && int.status === 'live');
+  const popularIntegrations = allIntegrations.filter((int) => int.popular && int.status === 'live');
 
   return (
     <PublicPageLayout 
-      title="Integraties" 
-      subtitle="Verbind SellQo met je favoriete tools en platforms"
+      title={t('public.integrations.title')}
+      subtitle={t('public.integrations.subtitle')}
     >
       {/* Search */}
       <section className="max-w-2xl mx-auto mb-8">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input 
-            placeholder="Zoek integraties..." 
+            placeholder={t('public.integrations.searchPlaceholder')}
             className="pl-12 h-12"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -133,7 +137,7 @@ export default function Integrations() {
         <section className="max-w-5xl mx-auto mb-12">
           <div className="flex items-center gap-2 mb-6">
             <Star className="w-5 h-5 text-amber-500" />
-            <h2 className="text-xl font-bold text-foreground">Populaire Integraties</h2>
+            <h2 className="text-xl font-bold text-foreground">{t('public.integrations.popular')}</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {popularIntegrations.slice(0, 4).map((integration, index) => (
@@ -144,12 +148,12 @@ export default function Integrations() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-foreground">{integration.name}</h3>
-                  <Badge variant="outline" className={statusStyles.live.className}>
-                    Live
+                  <Badge variant="outline" className={statusClass.live}>
+                    {statusLabel('live')}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mb-2">{integration.description}</p>
-                <span className="text-xs text-accent">Bekijk details →</span>
+                <p className="text-sm text-muted-foreground mb-2">{itemDesc(integration.key)}</p>
+                <span className="text-xs text-accent">{t('public.integrations.viewDetails')}</span>
               </button>
             ))}
           </div>
@@ -158,10 +162,7 @@ export default function Integrations() {
 
       {/* Intro */}
       <section className="max-w-3xl mx-auto text-center mb-8">
-        <p className="text-lg text-muted-foreground">
-          SellQo verbindt naadloos met tientallen platforms voor marketplaces, betalingen, 
-          verzending en marketing. Alles vanuit één dashboard.
-        </p>
+        <p className="text-lg text-muted-foreground">{t('public.integrations.intro')}</p>
       </section>
 
       {/* Categories */}
@@ -172,20 +173,20 @@ export default function Integrations() {
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                 <category.icon className="w-5 h-5 text-accent" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">{category.title}</h2>
+              <h2 className="text-xl font-bold text-foreground">{catTitle(category.id)}</h2>
               <span className="text-sm text-muted-foreground">
-                ({category.integrations.length} integraties)
+                ({t('public.integrations.countLabel', { count: category.integrations.length })})
               </span>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {category.integrations.map((integration, i) => {
-                const status = statusStyles[integration.status as keyof typeof statusStyles];
-                const difficulty = difficultyStyles[integration.difficulty as keyof typeof difficultyStyles];
+                const status = statusClass[integration.status as keyof typeof statusClass];
+                const difficulty = difficultyStyle[integration.difficulty as keyof typeof difficultyStyle];
                 const DifficultyIcon = difficulty.icon;
                 return (
                   <button
                     key={i}
-                    onClick={() => setSelectedIntegration({ ...integration, category: category.title })}
+                    onClick={() => setSelectedIntegration({ ...integration, categoryTitle: catTitle(category.id), categoryId: category.id })}
                     className="bg-card rounded-xl border border-border p-4 hover:border-accent/50 transition-colors text-left"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -195,14 +196,14 @@ export default function Integrations() {
                           <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                         )}
                       </div>
-                      <Badge variant="outline" className={status.className}>
-                        {status.label}
+                      <Badge variant="outline" className={status}>
+                        {statusLabel(integration.status)}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{integration.description}</p>
+                    <p className="text-sm text-muted-foreground mb-3">{itemDesc(integration.key)}</p>
                     <div className="flex items-center gap-1 text-xs">
                       <DifficultyIcon className={`w-3 h-3 ${difficulty.color}`} />
-                      <span className={difficulty.color}>{difficulty.label}</span>
+                      <span className={difficulty.color}>{difficultyLabel(integration.difficulty)}</span>
                     </div>
                   </button>
                 );
@@ -219,31 +220,31 @@ export default function Integrations() {
             <div className="flex items-center gap-3">
               <DialogTitle className="text-xl">{selectedIntegration?.name}</DialogTitle>
               {selectedIntegration && (
-                <Badge variant="outline" className={statusStyles[selectedIntegration.status as keyof typeof statusStyles].className}>
-                  {statusStyles[selectedIntegration.status as keyof typeof statusStyles].label}
+                <Badge variant="outline" className={statusClass[selectedIntegration.status as keyof typeof statusClass]}>
+                  {statusLabel(selectedIntegration.status)}
                 </Badge>
               )}
             </div>
-            <DialogDescription>{selectedIntegration?.description}</DialogDescription>
+            <DialogDescription>{selectedIntegration ? itemDesc(selectedIntegration.key) : ''}</DialogDescription>
           </DialogHeader>
           
           {selectedIntegration && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-foreground mb-2">Categorie</p>
-                <p className="text-sm text-muted-foreground">{selectedIntegration.category}</p>
+                <p className="text-sm font-medium text-foreground mb-2">{t('public.integrations.modal.category')}</p>
+                <p className="text-sm text-muted-foreground">{selectedIntegration.categoryTitle}</p>
               </div>
               
               <div>
-                <p className="text-sm font-medium text-foreground mb-2">Setup moeilijkheid</p>
+                <p className="text-sm font-medium text-foreground mb-2">{t('public.integrations.modal.setup')}</p>
                 <div className="flex items-center gap-2">
                   {(() => {
-                    const diff = difficultyStyles[selectedIntegration.difficulty as keyof typeof difficultyStyles];
+                    const diff = difficultyStyle[selectedIntegration.difficulty as keyof typeof difficultyStyle];
                     const Icon = diff.icon;
                     return (
                       <>
                         <Icon className={`w-4 h-4 ${diff.color}`} />
-                        <span className={diff.color}>{diff.label}</span>
+                        <span className={diff.color}>{difficultyLabel(selectedIntegration.difficulty)}</span>
                       </>
                     );
                   })()}
@@ -251,9 +252,9 @@ export default function Integrations() {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-foreground mb-2">Features</p>
+                <p className="text-sm font-medium text-foreground mb-2">{t('public.integrations.modal.features')}</p>
                 <ul className="space-y-1">
-                  {selectedIntegration.features?.map((feature: string, i: number) => (
+                  {itemFeatures(selectedIntegration.key).map((feature: string, i: number) => (
                     <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
                       <CheckCircle className="w-3 h-3 text-green-500" />
                       {feature}
@@ -265,13 +266,15 @@ export default function Integrations() {
               {selectedIntegration.status === 'live' ? (
                 <Button className="w-full" asChild>
                   <Link to="/auth?mode=register">
-                    Start met {selectedIntegration.name}
+                    {t('public.integrations.modal.startWith', { name: selectedIntegration.name })}
                     <ExternalLink className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full" disabled>
-                  {selectedIntegration.status === 'coming' ? 'Binnenkort beschikbaar' : 'Gepland voor later'}
+                  {selectedIntegration.status === 'coming'
+                    ? t('public.integrations.modal.comingSoon')
+                    : t('public.integrations.modal.planned')}
                 </Button>
               )}
             </div>
@@ -282,25 +285,19 @@ export default function Integrations() {
       {/* API CTA */}
       <section className="max-w-2xl mx-auto text-center mb-12">
         <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-2xl border border-accent/30 p-8">
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            Bouw je eigen integratie
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Met de SellQo API kun je custom integraties bouwen voor jouw specifieke workflow.
-          </p>
+          <h2 className="text-xl font-bold text-foreground mb-4">{t('public.integrations.apiCta.title')}</h2>
+          <p className="text-muted-foreground mb-6">{t('public.integrations.apiCta.description')}</p>
           <Button asChild variant="outline">
-            <Link to="/api-docs">Bekijk API Documentatie</Link>
+            <Link to="/api-docs">{t('public.integrations.apiCta.button')}</Link>
           </Button>
         </div>
       </section>
 
       {/* Request */}
       <section className="text-center">
-        <p className="text-muted-foreground mb-4">
-          Mis je een integratie? Laat het ons weten!
-        </p>
+        <p className="text-muted-foreground mb-4">{t('public.integrations.requestCta.text')}</p>
         <Button asChild variant="ghost">
-          <Link to="/contact">Integratie Aanvragen</Link>
+          <Link to="/contact">{t('public.integrations.requestCta.button')}</Link>
         </Button>
       </section>
     </PublicPageLayout>
