@@ -1048,6 +1048,10 @@
         "pos": {
           "title": "POS-Kassensystem",
           "description": "Vor Ort verkaufen mit Touch-Interface und Barcodescanner — perfekt für Pop-up-Shops und Ladengeschäfte."
+        },
+        "channel_visibility": {
+          "title": "Verkaufskanäle in deiner Buchhaltung sichtbar",
+          "description": "In Odoo siehst du jetzt pro Buchung, über welchen Kanal (Bol.com, Webshop, ...) ein Verkauf hereinkam, mit einem eigenen Sammelkunden pro Kanal. Kanalnamen konfigurierst du unter Buchhaltung."
         }
       }
     }
