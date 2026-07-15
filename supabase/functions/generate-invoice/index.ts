@@ -1444,8 +1444,8 @@ serve(async (req) => {
       }
     }
 
-    // Determine Peppol status
-    const peppolStatus = peppolRequired ? 'pending' : null;
+    // Determine Peppol status (canonical vocabulary)
+    const peppolStatus = peppolRequired ? 'pending' : 'not_applicable';
 
     // ---- VAT-regime resolution (canonical engine) ----
     // Safe: any failure falls back to domestic_standard so invoicing never breaks.
