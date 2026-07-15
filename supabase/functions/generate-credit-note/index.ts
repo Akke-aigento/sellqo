@@ -418,7 +418,7 @@ serve(async (req) => {
         fy -= 10;
       }
     }
-    if (cn.peppol_status === "accepted" || cn.peppol_status === "archive_only") {
+    if (cn.peppol_status === "sent" || cn.peppol_status === "archive_only") {
       page.drawText("Verzonden via Peppol", { x: width - margin - 130, y: 40, size: 8, font: bold, color: gray });
     }
 

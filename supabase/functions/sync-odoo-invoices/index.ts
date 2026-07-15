@@ -39,6 +39,7 @@ interface SyncCtx {
   dummyPartnerName: string
   tenantId: string
   supabase: ReturnType<typeof createClient>
+  peppolSendEnabled: boolean
 }
 
 async function resolveTax(ctx: SyncCtx, rate: number): Promise<number> {
@@ -216,7 +217,7 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: n
   await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (isB2B && hasVat) {
+  if (ctx.peppolSendEnabled && isB2B && hasVat) {
     peppol = await tryPeppolSend(ctx, moveId)
   }
   return { moveId, peppol }
@@ -275,7 +276,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string): Promise<{ moveId: num
   await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (isB2B && hasVat) peppol = await tryPeppolSend(ctx, moveId)
+  if (ctx.peppolSendEnabled && isB2B && hasVat) peppol = await tryPeppolSend(ctx, moveId)
   return { moveId, peppol }
 }
 
@@ -283,7 +284,7 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
   // Load per-tenant settings
   const { data: settings, error: sErr } = await supabase
     .from('tenant_odoo_settings')
-    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id')
+    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id, peppol_send_enabled')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   if (sErr) throw new Error(`Load settings: ${errMsg(sErr)}`)
@@ -313,6 +314,7 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
     dummyPartnerName: settings.b2c_dummy_partner_name || `Diverse particulieren — ${tenantName}`,
     tenantId,
     supabase,
+    peppolSendEnabled: settings.peppol_send_enabled !== false,
   }
 
   const results = { invoices: { synced: 0, failed: 0, peppolManual: 0 }, creditNotes: { synced: 0, failed: 0, peppolManual: 0 }, errors: [] as string[] }
@@ -345,6 +347,16 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
         peppol_status: peppol.status, peppol_note: peppol.note ?? null,
         synced_at: new Date().toISOString(),
       })
+      if (peppol.status === 'sent') {
+        await supabase.from('invoices')
+          .update({ peppol_status: 'sent', peppol_sent_at: new Date().toISOString() })
+          .eq('id', id)
+      } else if (peppol.status === 'manual') {
+        await supabase.from('invoices')
+          .update({ peppol_status: 'manual_action' })
+          .eq('id', id)
+          .neq('peppol_status', 'sent')
+      }
       results.invoices.synced++
       if (peppol.status === 'manual') results.invoices.peppolManual++
     } catch (e) {
@@ -387,6 +399,16 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
         peppol_status: peppol.status, peppol_note: peppol.note ?? null,
         synced_at: new Date().toISOString(),
       })
+      if (peppol.status === 'sent') {
+        await supabase.from('credit_notes')
+          .update({ peppol_status: 'sent', peppol_sent_at: new Date().toISOString() })
+          .eq('id', id)
+      } else if (peppol.status === 'manual') {
+        await supabase.from('credit_notes')
+          .update({ peppol_status: 'manual_action' })
+          .eq('id', id)
+          .neq('peppol_status', 'sent')
+      }
       results.creditNotes.synced++
       if (peppol.status === 'manual') results.creditNotes.peppolManual++
     } catch (e) {

@@ -3934,6 +3934,7 @@ export type Database = {
           original_invoice_id: string
           pdf_url: string | null
           peppol_required: boolean | null
+          peppol_sent_at: string | null
           peppol_status: string | null
           reason: string
           return_id: string | null
@@ -3960,6 +3961,7 @@ export type Database = {
           original_invoice_id: string
           pdf_url?: string | null
           peppol_required?: boolean | null
+          peppol_sent_at?: string | null
           peppol_status?: string | null
           reason: string
           return_id?: string | null
@@ -3986,6 +3988,7 @@ export type Database = {
           original_invoice_id?: string
           pdf_url?: string | null
           peppol_required?: boolean | null
+          peppol_sent_at?: string | null
           peppol_status?: string | null
           reason?: string
           return_id?: string | null
@@ -15839,6 +15842,7 @@ export type Database = {
           odoo_journal_id: string | null
           odoo_journal_name: string | null
           odoo_sync_enabled: boolean
+          peppol_send_enabled: boolean
           tenant_id: string
           updated_at: string
         }
@@ -15851,6 +15855,7 @@ export type Database = {
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
+          peppol_send_enabled?: boolean
           tenant_id: string
           updated_at?: string
         }
@@ -15863,6 +15868,7 @@ export type Database = {
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
+          peppol_send_enabled?: boolean
           tenant_id?: string
           updated_at?: string
         }
