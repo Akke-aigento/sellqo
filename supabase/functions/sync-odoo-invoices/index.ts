@@ -40,6 +40,126 @@ interface SyncCtx {
   tenantId: string
   supabase: ReturnType<typeof createClient>
   peppolSendEnabled: boolean
+  tenantName: string
+  channelAliases: Record<string, string>
+  channelPartnerIds: Record<string, number>
+}
+
+// Known marketplace slugs on orders.marketplace_source that we treat as
+// distinct sales channels for accounting aggregation.
+const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay'])
+
+const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
+  bol_com: 'Bol.com verkopen',
+  webshop: 'Webshop verkopen',
+  amazon: 'Amazon verkopen',
+  ebay: 'eBay verkopen',
+  subscription: 'Abonnementen',
+  manual: 'Handmatige verkopen',
+}
+
+function resolveChannelDisplayName(ctx: SyncCtx, channel: string): string | null {
+  const alias = ctx.channelAliases?.[channel]
+  if (alias && typeof alias === 'string' && alias.trim()) return alias.trim()
+  return DEFAULT_CHANNEL_LABELS[channel] ?? null
+}
+
+// Resolve the sales channel for a set of invoices in one batched query.
+// DATA FACT: orders.sales_channel is unreliable for older Bol orders, so
+//   1. invoice.order_id set -> order.marketplace_source if known marketplace,
+//      else order.sales_channel, else 'webshop'
+//   2. invoice.subscription_id set -> 'subscription'
+//   3. neither -> 'manual'
+async function resolveChannelsForInvoices(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  invoiceIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (!invoiceIds.length) return out
+  const { data: invRows } = await supabase
+    .from('invoices')
+    .select('id, order_id, subscription_id')
+    .eq('tenant_id', tenantId)
+    .in('id', invoiceIds)
+  const rows = (invRows || []) as Array<{ id: string; order_id: string | null; subscription_id: string | null }>
+  const orderIds = Array.from(new Set(rows.map(r => r.order_id).filter((v): v is string => !!v)))
+  const orderMap = new Map<string, { marketplace_source: string | null; sales_channel: string | null }>()
+  if (orderIds.length) {
+    const { data: ordRows } = await supabase
+      .from('orders')
+      .select('id, marketplace_source, sales_channel')
+      .eq('tenant_id', tenantId)
+      .in('id', orderIds)
+    for (const o of (ordRows || []) as Array<{ id: string; marketplace_source: string | null; sales_channel: string | null }>) {
+      orderMap.set(o.id, { marketplace_source: o.marketplace_source, sales_channel: o.sales_channel })
+    }
+  }
+  for (const r of rows) {
+    if (r.order_id) {
+      const o = orderMap.get(r.order_id)
+      const ms = o?.marketplace_source
+      if (ms && KNOWN_MARKETPLACES.has(ms)) out.set(r.id, ms)
+      else if (o?.sales_channel) out.set(r.id, o.sales_channel)
+      else out.set(r.id, 'webshop')
+    } else if (r.subscription_id) {
+      out.set(r.id, 'subscription')
+    } else {
+      out.set(r.id, 'manual')
+    }
+  }
+  return out
+}
+
+async function resolveChannelsForCreditNotes(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  cnIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (!cnIds.length) return out
+  const { data: cnRows } = await supabase
+    .from('credit_notes')
+    .select('id, original_invoice_id')
+    .eq('tenant_id', tenantId)
+    .in('id', cnIds)
+  const rows = (cnRows || []) as Array<{ id: string; original_invoice_id: string | null }>
+  const invIds = Array.from(new Set(rows.map(r => r.original_invoice_id).filter((v): v is string => !!v)))
+  const invChannels = await resolveChannelsForInvoices(supabase, tenantId, invIds)
+  for (const r of rows) {
+    if (r.original_invoice_id) {
+      out.set(r.id, invChannels.get(r.original_invoice_id) || 'manual')
+    } else {
+      out.set(r.id, 'manual')
+    }
+  }
+  return out
+}
+
+// Find-or-create the per-channel aggregate B2C partner in Odoo and cache the id
+// in tenant_odoo_settings.channel_partner_ids.
+async function ensureChannelPartner(ctx: SyncCtx, channel: string, displayName: string): Promise<number> {
+  const cached = ctx.channelPartnerIds[channel]
+  if (cached && Number.isFinite(cached)) return cached
+  const name = `${displayName} — ${ctx.tenantName}`
+  const existing = await execKw(ctx.env, ctx.uid, 'res.partner', 'search',
+    [[['name', '=', name], ['customer_rank', '>', 0]]],
+    { limit: 1 }) as number[]
+  let id: number
+  if (existing.length) id = existing[0]
+  else {
+    id = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
+      name,
+      company_type: 'person',
+      customer_rank: 1,
+      comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
+    }]) as number
+  }
+  ctx.channelPartnerIds[channel] = id
+  await ctx.supabase.from('tenant_odoo_settings')
+    .update({ channel_partner_ids: ctx.channelPartnerIds })
+    .eq('tenant_id', ctx.tenantId)
+  return id
 }
 
 async function resolveTax(ctx: SyncCtx, rate: number): Promise<number> {
@@ -162,7 +282,7 @@ async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
   return data
 }
 
-async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
+async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: inv, error } = await ctx.supabase
     .from('invoices')
     .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id')
@@ -184,8 +304,13 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: n
 
   let partnerId: number
   let audit: string | null = null
+  const displayName = resolveChannelDisplayName(ctx, channel)
   if (ctx.aggregateB2C && !isB2B) {
-    partnerId = await ensureDummyPartner(ctx)
+    if (displayName) {
+      partnerId = await ensureChannelPartner(ctx, channel, displayName)
+    } else {
+      partnerId = await ensureDummyPartner(ctx)
+    }
     audit = `SellQo customer: ${[cust?.first_name, cust?.last_name].filter(Boolean).join(' ') || 'consumer'}${cust?.email ? ` <${cust.email}>` : ''} (invoice ${inv.invoice_number})`
   } else {
     const p = await findOrCreatePartner(ctx, {
@@ -212,6 +337,7 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: n
     invoice_line_ids: moveLines,
   }
   if (audit) moveData.narration = audit
+  if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
   await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
@@ -223,7 +349,7 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string): Promise<{ moveId: n
   return { moveId, peppol }
 }
 
-async function syncCreditNote(ctx: SyncCtx, cnId: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
+async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: cn, error } = await ctx.supabase
     .from('credit_notes')
     .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason')
@@ -244,8 +370,13 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string): Promise<{ moveId: num
 
   let partnerId: number
   let audit: string | null = cn.reason ? `Reason: ${cn.reason}` : null
+  const displayName = resolveChannelDisplayName(ctx, channel)
   if (ctx.aggregateB2C && !isB2B) {
-    partnerId = await ensureDummyPartner(ctx)
+    if (displayName) {
+      partnerId = await ensureChannelPartner(ctx, channel, displayName)
+    } else {
+      partnerId = await ensureDummyPartner(ctx)
+    }
   } else {
     const p = await findOrCreatePartner(ctx, {
       name: [cust?.first_name, cust?.last_name].filter(Boolean).join(' ') || cust?.company_name || 'Klant',
@@ -271,6 +402,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string): Promise<{ moveId: num
     invoice_line_ids: moveLines,
   }
   if (audit) moveData.narration = audit
+  if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
   await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
@@ -284,7 +416,7 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
   // Load per-tenant settings
   const { data: settings, error: sErr } = await supabase
     .from('tenant_odoo_settings')
-    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id, peppol_send_enabled')
+    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id, peppol_send_enabled, channel_aliases, channel_partner_ids')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   if (sErr) throw new Error(`Load settings: ${errMsg(sErr)}`)
@@ -315,6 +447,9 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
     tenantId,
     supabase,
     peppolSendEnabled: settings.peppol_send_enabled !== false,
+    tenantName,
+    channelAliases: (settings.channel_aliases && typeof settings.channel_aliases === 'object') ? settings.channel_aliases as Record<string, string> : {},
+    channelPartnerIds: (settings.channel_partner_ids && typeof settings.channel_partner_ids === 'object') ? settings.channel_partner_ids as Record<string, number> : {},
   }
 
   const results = { invoices: { synced: 0, failed: 0, peppolManual: 0 }, creditNotes: { synced: 0, failed: 0, peppolManual: 0 }, errors: [] as string[] }
@@ -338,9 +473,13 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
     invIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
   }
 
+  // Batch-resolve channels for these invoices (single order query).
+  const channelByInvoice = await resolveChannelsForInvoices(supabase, tenantId, invIds)
+
   for (const id of invIds) {
     try {
-      const { moveId, peppol } = await syncInvoice(ctx, id)
+      const channel = channelByInvoice.get(id) || 'manual'
+      const { moveId, peppol } = await syncInvoice(ctx, id, channel)
       await supabase.from('odoo_invoice_sync_log').insert({
         tenant_id: tenantId, invoice_id: id, document_type: 'invoice',
         odoo_move_id: String(moveId), sync_status: 'synced', sync_direction: 'push',
@@ -390,9 +529,13 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
     cnIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
   }
 
+  // Batch-resolve channels for these credit notes via their original invoices.
+  const channelByCreditNote = await resolveChannelsForCreditNotes(supabase, tenantId, cnIds)
+
   for (const id of cnIds) {
     try {
-      const { moveId, peppol } = await syncCreditNote(ctx, id)
+      const channel = channelByCreditNote.get(id) || 'manual'
+      const { moveId, peppol } = await syncCreditNote(ctx, id, channel)
       await supabase.from('odoo_invoice_sync_log').insert({
         tenant_id: tenantId, credit_note_id: id, document_type: 'credit_note',
         odoo_move_id: String(moveId), sync_status: 'synced', sync_direction: 'push',

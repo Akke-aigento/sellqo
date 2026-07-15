@@ -652,5 +652,23 @@
       "title": "Ermächtigung aktiviert",
       "body": "Zukünftige Abonnementrechnungen von {{tenant}} werden automatisch eingezogen."
     }
+  },
+  "admin": {
+    "odooChannels": {
+      "title": "Kanaldarstellung in Odoo",
+      "description": "Diese Namen erscheinen in Odoo als Sammelkunde für B2C-Verkäufe und als Referenz auf jeder Buchung. Ein Umbenennen nach der ersten Synchronisation ändert bereits in Odoo angelegte Kunden nicht.",
+      "columnChannel": "Kanal",
+      "columnDisplay": "Anzeigename in Odoo",
+      "save": "Anzeigenamen speichern",
+      "saving": "Speichern…",
+      "channels": {
+        "bol_com": "Bol.com",
+        "webshop": "Webshop",
+        "amazon": "Amazon",
+        "ebay": "eBay",
+        "subscription": "Abonnements",
+        "manual": "Manuell"
+      }
+    }
   }
 }

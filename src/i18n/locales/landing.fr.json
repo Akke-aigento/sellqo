@@ -1048,6 +1048,10 @@
         "pos": {
           "title": "Système de caisse POS",
           "description": "Vendez en magasin avec interface tactile et lecteur de code-barres — parfait pour les pop-up shops et boutiques."
+        },
+        "channel_visibility": {
+          "title": "Canaux de vente visibles dans votre comptabilité",
+          "description": "Dans Odoo, vous voyez désormais sur chaque écriture par quel canal (Bol.com, boutique en ligne, ...) une vente est arrivée, avec un client agrégé dédié par canal. Configurez les noms de canaux dans Comptabilité."
         }
       }
     }

@@ -652,5 +652,23 @@
       "title": "Autorisation activée",
       "body": "Les futures factures d'abonnement de {{tenant}} seront prélevées automatiquement."
     }
+  },
+  "admin": {
+    "odooChannels": {
+      "title": "Affichage des canaux dans Odoo",
+      "description": "Ces noms apparaissent dans Odoo comme client B2C agrégé et comme référence sur chaque écriture. Un renommage après la première synchronisation ne modifie pas les clients déjà créés dans Odoo.",
+      "columnChannel": "Canal",
+      "columnDisplay": "Nom d'affichage dans Odoo",
+      "save": "Enregistrer les noms d'affichage",
+      "saving": "Enregistrement…",
+      "channels": {
+        "bol_com": "Bol.com",
+        "webshop": "Boutique en ligne",
+        "amazon": "Amazon",
+        "ebay": "eBay",
+        "subscription": "Abonnements",
+        "manual": "Manuel"
+      }
+    }
   }
 }

@@ -1048,6 +1048,10 @@
         "pos": {
           "title": "POS checkout system",
           "description": "Sell in-person with a touch interface and barcode scanner — perfect for pop-up shops and retail stores."
+        },
+        "channel_visibility": {
+          "title": "Sales channels visible in your accounting",
+          "description": "In Odoo you now see per journal entry which channel (Bol.com, webshop, ...) a sale came from, with a dedicated aggregate customer per channel. Configure channel names under Accounting."
         }
       }
     }

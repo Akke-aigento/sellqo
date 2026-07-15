@@ -782,5 +782,23 @@
       "title": "Machtiging geactiveerd",
       "body": "Toekomstige abonnementsfacturen van {{tenant}} worden automatisch afgeschreven."
     }
+  },
+  "admin": {
+    "odooChannels": {
+      "title": "Kanaal-weergave in Odoo",
+      "description": "Deze namen verschijnen in Odoo als verzamelklant voor B2C-verkopen en als referentie op elke boeking. Hernoemen na de eerste sync wijzigt bestaande Odoo-klanten niet.",
+      "columnChannel": "Kanaal",
+      "columnDisplay": "Weergavenaam in Odoo",
+      "save": "Weergavenamen opslaan",
+      "saving": "Opslaan…",
+      "channels": {
+        "bol_com": "Bol.com",
+        "webshop": "Webshop",
+        "amazon": "Amazon",
+        "ebay": "eBay",
+        "subscription": "Abonnementen",
+        "manual": "Handmatig"
+      }
+    }
   }
 }

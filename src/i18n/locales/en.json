@@ -769,5 +769,23 @@
       "title": "Authorization activated",
       "body": "Future subscription invoices from {{tenant}} will be charged automatically."
     }
+  },
+  "admin": {
+    "odooChannels": {
+      "title": "Channel display in Odoo",
+      "description": "These names appear in Odoo as the aggregated B2C customer and as reference on every journal entry. Renaming after the first sync does not rename customers already created in Odoo.",
+      "columnChannel": "Channel",
+      "columnDisplay": "Display name in Odoo",
+      "save": "Save display names",
+      "saving": "Saving…",
+      "channels": {
+        "bol_com": "Bol.com",
+        "webshop": "Webshop",
+        "amazon": "Amazon",
+        "ebay": "eBay",
+        "subscription": "Subscriptions",
+        "manual": "Manual"
+      }
+    }
   }
 }

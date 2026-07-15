@@ -1048,6 +1048,10 @@
         "pos": {
           "title": "POS-kassasysteem",
           "description": "Verkoop fysiek met touch-interface en barcodescanner — perfect voor pop-up shops en winkels."
+        },
+        "channel_visibility": {
+          "title": "Verkoopkanalen zichtbaar in je boekhouding",
+          "description": "Zie in Odoo per boeking via welk kanaal (Bol.com, webshop, ...) een verkoop binnenkwam, met een eigen verzamelklant per kanaal. Stel je kanaalnamen in via Boekhouding."
         }
       }
     }

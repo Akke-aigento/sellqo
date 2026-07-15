@@ -12,6 +12,8 @@ export interface TenantOdooSettings {
   odoo_journal_id: string | null;
   odoo_journal_name: string | null;
   peppol_send_enabled: boolean;
+  channel_aliases: Record<string, string>;
+  channel_partner_ids: Record<string, number>;
 }
 
 export function useTenantOdooSettings(tenantId: string | undefined) {
