@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
-import { Target, Users, Zap, Heart, Globe, Shield, Store, ShoppingBag, Euro, CheckCircle, Building2, Rocket, Award, TrendingUp } from 'lucide-react';
+import { Target, Users, Zap, Heart, Globe, Shield, Store, ShoppingBag, Euro, CheckCircle, Building2, Rocket, Award } from 'lucide-react';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 const stats = [
@@ -16,7 +16,6 @@ const timeline = [
   { date: 'Q3 2024', title: 'Eerste Beta Testers', description: '50+ ondernemers testen het platform en geven feedback.', icon: Users },
   { date: 'Q4 2024', title: 'Bol.com Integratie Live', description: 'Officiële marketplace integratie gelanceerd.', icon: ShoppingBag },
   { date: 'Q1 2025', title: 'Publieke Launch', description: 'Platform open voor alle ondernemers met AI-features.', icon: Award },
-  { date: '2025+', title: 'Internationale Expansie', description: 'Uitbreiding naar Nederland en rest van Europa.', icon: Globe },
 ];
 
 const values = [
@@ -50,13 +49,6 @@ const values = [
     title: 'Privacy & Veiligheid',
     description: 'GDPR-compliant met focus op databescherming en transparantie.',
   },
-];
-
-const team = [
-  { name: 'Founder & CEO', role: 'Strategie & Visie', avatar: '👨‍💼' },
-  { name: 'CTO', role: 'Techniek & Product', avatar: '👨‍💻' },
-  { name: 'Head of Design', role: 'UX & Branding', avatar: '👩‍🎨' },
-  { name: 'Lead Developer', role: 'Full-Stack Development', avatar: '👨‍🔧' },
 ];
 
 const pressLogos = [
@@ -173,24 +165,18 @@ export default function About() {
 
       {/* Team Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-8">Het Team</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {team.map((member, index) => (
-            <div 
-              key={index}
-              className="bg-card rounded-xl border border-border p-6 text-center hover:border-accent/50 transition-colors"
-            >
-              <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4 text-4xl">
-                {member.avatar}
-              </div>
-              <h3 className="font-semibold text-foreground">{member.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{member.role}</p>
-            </div>
-          ))}
+        <h2 className="text-2xl font-bold text-foreground text-center mb-8">Wie bouwt SellQo?</h2>
+        <div className="max-w-2xl mx-auto bg-card rounded-2xl border border-border p-8 text-center">
+          <div className="w-14 h-14 rounded-lg bg-accent/10 flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-7 h-7 text-accent" />
+          </div>
+          <p className="text-muted-foreground">
+            SellQo wordt gebouwd en beheerd door{' '}
+            <span className="font-medium text-foreground">Nomadix BV</span> in België.
+            Een klein, toegewijd team dat elke feature zelf ontwerpt, bouwt en
+            ondersteunt — zonder tussenlagen, met korte lijnen naar onze klanten.
+          </p>
         </div>
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Een klein maar toegewijd team van ontwikkelaars, designers en e-commerce experts.
-        </p>
       </section>
 
       {/* Press/Featured Section */}
