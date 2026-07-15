@@ -2,7 +2,7 @@ import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
 import { Activity, ExternalLink, Mail } from 'lucide-react';
 
-const STATUS_MONITOR_URL = '';
+const STATUS_MONITOR_URL = 'https://status.sellqo.app';
 
 export default function Status() {
   return (
