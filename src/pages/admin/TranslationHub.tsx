@@ -88,6 +88,7 @@ export default function TranslationHub() {
     pendingEntities,
     pendingLoading,
     saveSettings,
+    ensureSettings,
     toggleLock,
     startBulkTranslation,
     translateEntity,
@@ -108,6 +109,15 @@ export default function TranslationHub() {
   const [bulkMode, setBulkMode] = useState<'missing' | 'all' | 'outdated'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
   const [bulkFields, setBulkFields] = useState<TranslatableField[]>([]);
+
+  // Ensure a translation_settings row exists so the UI never gets stuck on
+  // "no settings" for a fresh tenant.
+  useEffect(() => {
+    if (!settingsLoading && !settings && currentTenant?.id) {
+      ensureSettings.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsLoading, settings, currentTenant?.id]);
 
   // Reset field selection to all fields when entity type changes
   useEffect(() => {
