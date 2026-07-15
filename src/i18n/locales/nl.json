@@ -799,6 +799,11 @@
         "subscription": "Abonnementen",
         "manual": "Handmatig"
       }
+    },
+    "odooAutoPost": {
+      "label": "Automatisch boeken in Odoo",
+      "help": "Uit = boekingen komen als concept binnen; je boekhouder boekt en verstuurt Peppol zelf vanuit Odoo.",
+      "peppolDisabledNote": "Automatische Peppol-verzending vereist Automatisch boeken."
     }
   }
 }

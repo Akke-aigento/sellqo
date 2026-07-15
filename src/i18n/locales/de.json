@@ -669,6 +669,11 @@
         "subscription": "Abonnements",
         "manual": "Manuell"
       }
+    },
+    "odooAutoPost": {
+      "label": "Automatisch buchen in Odoo",
+      "help": "Aus = Buchungen kommen als Entwurf an; dein Buchhalter bucht und sendet Peppol selbst aus Odoo.",
+      "peppolDisabledNote": "Automatischer Peppol-Versand erfordert automatisches Buchen."
     }
   }
 }

@@ -1052,6 +1052,10 @@
         "channel_visibility": {
           "title": "Verkaufskanäle in deiner Buchhaltung sichtbar",
           "description": "In Odoo siehst du jetzt pro Buchung, über welchen Kanal (Bol.com, Webshop, ...) ein Verkauf hereinkam, mit einem eigenen Sammelkunden pro Kanal. Kanalnamen konfigurierst du unter Buchhaltung."
+        },
+        "odoo_draft_mode": {
+          "title": "Du entscheidest: buchen oder Entwurf in Odoo",
+          "description": "Lege pro Mandant fest, ob synchronisierte Rechnungen sofort gebucht werden oder als Entwurf ankommen, damit dein Buchhalter erst prüft."
         }
       }
     }

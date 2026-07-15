@@ -1052,6 +1052,10 @@
         "channel_visibility": {
           "title": "Canaux de vente visibles dans votre comptabilité",
           "description": "Dans Odoo, vous voyez désormais sur chaque écriture par quel canal (Bol.com, boutique en ligne, ...) une vente est arrivée, avec un client agrégé dédié par canal. Configurez les noms de canaux dans Comptabilité."
+        },
+        "odoo_draft_mode": {
+          "title": "À vous de choisir : comptabiliser ou brouillon dans Odoo",
+          "description": "Décidez par locataire si les factures synchronisées sont comptabilisées directement ou arrivent en brouillon pour que votre comptable les contrôle d'abord."
         }
       }
     }
