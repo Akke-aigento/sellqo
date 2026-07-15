@@ -10,11 +10,11 @@ import { toast } from 'sonner';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 const subjects = [
-  { value: 'sales', label: 'Verkoop & Prijzen', responseTime: '< 4 uur' },
-  { value: 'support', label: 'Technische Support', responseTime: '< 24 uur' },
-  { value: 'partnership', label: 'Partnership', responseTime: '< 48 uur' },
-  { value: 'technical', label: 'API & Integraties', responseTime: '< 24 uur' },
-  { value: 'other', label: 'Anders', responseTime: '< 48 uur' },
+  { value: 'sales', label: 'Verkoop & Prijzen', responseTime: 'doorgaans binnen 1 werkdag' },
+  { value: 'support', label: 'Technische Support', responseTime: 'doorgaans binnen 1 werkdag' },
+  { value: 'partnership', label: 'Partnership', responseTime: 'binnen 2 werkdagen' },
+  { value: 'technical', label: 'API & Integraties', responseTime: 'doorgaans binnen 1 werkdag' },
+  { value: 'other', label: 'Anders', responseTime: 'binnen 2 werkdagen' },
 ];
 
 const contactMethods = [
