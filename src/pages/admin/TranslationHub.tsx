@@ -105,7 +105,7 @@ export default function TranslationHub() {
     page: new Set(),
   });
   const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
-  const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
+  const [bulkMode, setBulkMode] = useState<'missing' | 'all' | 'outdated'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
   const [bulkFields, setBulkFields] = useState<TranslatableField[]>([]);
 
@@ -279,6 +279,11 @@ export default function TranslationHub() {
     if (bulkMode === 'all') {
       return scopeEntities.length * bulkFields.length * bulkLanguages.length * perCreditCost;
     }
+    if (bulkMode === 'outdated') {
+      // Actual outdated count is server-side (hash comparison). Show the
+      // 'all'-upper-bound as guidance.
+      return scopeEntities.length * bulkFields.length * bulkLanguages.length * perCreditCost;
+    }
     // 'missing' — sum per-entity missing fields intersected with selected fields & languages
     let total = 0;
     const selectedFieldSet = new Set<string>(bulkFields);
@@ -384,7 +389,7 @@ export default function TranslationHub() {
                   <Label className="text-sm font-medium mb-2 block">Modus</Label>
                   <RadioGroup
                     value={bulkMode}
-                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all')}
+                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all' | 'outdated')}
                     className="space-y-2"
                   >
                     <label className="flex items-start gap-2 cursor-pointer">
@@ -402,6 +407,15 @@ export default function TranslationHub() {
                         <div>Alles opnieuw vertalen</div>
                         <div className="text-xs text-muted-foreground">
                           Overschrijft bestaande, niet-vergrendelde vertalingen.
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="outdated" id="mode-outdated" className="mt-1" />
+                      <div>
+                        <div>Verouderd — bron gewijzigd sinds vertaling</div>
+                        <div className="text-xs text-muted-foreground">
+                          Ververst alleen vertalingen waarvan de brontekst is aangepast.
                         </div>
                       </div>
                     </label>
@@ -462,7 +476,9 @@ export default function TranslationHub() {
                 {/* Cost */}
                 <div className="rounded-md border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
-                    Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}
+                    {bulkMode === 'outdated'
+                      ? <>Kost wordt server-side bepaald, max ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}</>
+                      : <>Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}</>}
                   </p>
                   <p className="text-muted-foreground mt-1">
                     {isUnlimited
