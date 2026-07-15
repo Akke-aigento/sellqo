@@ -63,7 +63,7 @@
         "social": "Social Commerce & Messaging",
         "ops": "Operations & Payments"
       },
-      "badges": { "new": "Nieuw", "vvb": "VVB Labels", "comingSoon": "Coming Soon" }
+      "badges": { "new": "Nieuw", "vvb": "VVB Labels", "comingSoon": "Coming Soon", "viaOdoo": "via Odoo-koppeling" }
     },
     "unique": {
       "badge": "Wat ons uniek maakt",
