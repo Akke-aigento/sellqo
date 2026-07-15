@@ -14,6 +14,7 @@ export interface TenantOdooSettings {
   peppol_send_enabled: boolean;
   channel_aliases: Record<string, string>;
   channel_partner_ids: Record<string, number>;
+  odoo_auto_post: boolean;
 }
 
 export function useTenantOdooSettings(tenantId: string | undefined) {

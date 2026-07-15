@@ -43,6 +43,7 @@ interface SyncCtx {
   tenantName: string
   channelAliases: Record<string, string>
   channelPartnerIds: Record<string, number>
+  autoPost: boolean
 }
 
 // Known marketplace slugs on orders.marketplace_source that we treat as
@@ -340,10 +341,19 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
   if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  if (ctx.autoPost) {
+    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  }
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (ctx.peppolSendEnabled && isB2B && hasVat) {
+  if (!ctx.autoPost) {
+    // Concept-modus: laat het boeken + Peppol aan de boekhouder in Odoo.
+    // Alleen B2B-documenten met BTW-nummer krijgen 'manual' (relevant voor Peppol);
+    // B2C blijft 'skipped' zodat de bron-peppol_status niet muteert.
+    if (isB2B && hasVat) {
+      peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    }
+  } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
     peppol = await tryPeppolSend(ctx, moveId)
   }
   return { moveId, peppol }
@@ -405,10 +415,18 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
   if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  if (ctx.autoPost) {
+    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  }
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (ctx.peppolSendEnabled && isB2B && hasVat) peppol = await tryPeppolSend(ctx, moveId)
+  if (!ctx.autoPost) {
+    if (isB2B && hasVat) {
+      peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    }
+  } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
+    peppol = await tryPeppolSend(ctx, moveId)
+  }
   return { moveId, peppol }
 }
 
@@ -416,7 +434,7 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
   // Load per-tenant settings
   const { data: settings, error: sErr } = await supabase
     .from('tenant_odoo_settings')
-    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id, peppol_send_enabled, channel_aliases, channel_partner_ids')
+    .select('odoo_sync_enabled, odoo_journal_id, odoo_journal_name, aggregate_b2c_customers, b2c_dummy_partner_name, b2c_dummy_partner_odoo_id, peppol_send_enabled, channel_aliases, channel_partner_ids, odoo_auto_post')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   if (sErr) throw new Error(`Load settings: ${errMsg(sErr)}`)
@@ -450,6 +468,7 @@ async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEn
     tenantName,
     channelAliases: (settings.channel_aliases && typeof settings.channel_aliases === 'object') ? settings.channel_aliases as Record<string, string> : {},
     channelPartnerIds: (settings.channel_partner_ids && typeof settings.channel_partner_ids === 'object') ? settings.channel_partner_ids as Record<string, number> : {},
+    autoPost: settings.odoo_auto_post !== false,
   }
 
   const results = { invoices: { synced: 0, failed: 0, peppolManual: 0 }, creditNotes: { synced: 0, failed: 0, peppolManual: 0 }, errors: [] as string[] }

@@ -1052,6 +1052,10 @@
         "channel_visibility": {
           "title": "Verkoopkanalen zichtbaar in je boekhouding",
           "description": "Zie in Odoo per boeking via welk kanaal (Bol.com, webshop, ...) een verkoop binnenkwam, met een eigen verzamelklant per kanaal. Stel je kanaalnamen in via Boekhouding."
+        },
+        "odoo_draft_mode": {
+          "title": "Kies zelf: boeken of concept in Odoo",
+          "description": "Bepaal per tenant of gesynchroniseerde facturen direct geboekt worden of als concept binnenkomen zodat je boekhouder eerst controleert."
         }
       }
     }

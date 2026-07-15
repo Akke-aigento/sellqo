@@ -669,6 +669,11 @@
         "subscription": "Abonnements",
         "manual": "Manuel"
       }
+    },
+    "odooAutoPost": {
+      "label": "Comptabiliser automatiquement dans Odoo",
+      "help": "Désactivé = les écritures arrivent en brouillon ; votre comptable les valide et envoie Peppol depuis Odoo.",
+      "peppolDisabledNote": "L'envoi Peppol automatique nécessite la comptabilisation automatique."
     }
   }
 }

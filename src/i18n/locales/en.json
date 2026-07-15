@@ -786,6 +786,11 @@
         "subscription": "Subscriptions",
         "manual": "Manual"
       }
+    },
+    "odooAutoPost": {
+      "label": "Auto-post in Odoo",
+      "help": "Off = entries arrive as drafts; your bookkeeper posts them and sends Peppol from Odoo.",
+      "peppolDisabledNote": "Automatic Peppol sending requires Auto-post."
     }
   }
 }
