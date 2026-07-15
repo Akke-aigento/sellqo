@@ -492,6 +492,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
     pendingEntities,
     pendingLoading,
     saveSettings,
+    ensureSettings,
     saveTranslation,
     toggleLock,
     startBulkTranslation,
