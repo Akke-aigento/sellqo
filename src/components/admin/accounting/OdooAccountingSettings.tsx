@@ -13,6 +13,17 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
+const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
+  bol_com: 'Bol.com verkopen',
+  webshop: 'Webshop verkopen',
+  amazon: 'Amazon verkopen',
+  ebay: 'eBay verkopen',
+  subscription: 'Abonnementen',
+  manual: 'Handmatige verkopen',
+};
+const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay']);
 
 interface Props {
   tenantId: string;
@@ -22,6 +33,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const canWrite = useCan('write', 'integrations');
   const { settings, isLoading, upsert } = useTenantOdooSettings(tenantId);
   const { status, save, test, journals } = useOdooConnection(tenantId);
+  const { t } = useTranslation();
 
   const [aggregate, setAggregate] = useState(false);
   const [name, setName] = useState('Diverse particulieren');
@@ -33,6 +45,68 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [db, setDb] = useState('');
   const [login, setLogin] = useState('');
   const [apiKey, setApiKey] = useState('');
+
+  // Channel aliases (per-channel B2C display names in Odoo).
+  const [channelAliases, setChannelAliases] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (settings?.channel_aliases && typeof settings.channel_aliases === 'object') {
+      setChannelAliases({ ...settings.channel_aliases });
+    }
+  }, [settings?.channel_aliases]);
+
+  // Distinct sales channels seen in this tenant's orders — mirrors the
+  // resolution used in the Odoo sync edge function.
+  const orderChannels = useQuery({
+    queryKey: ['odoo-order-channels', tenantId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('marketplace_source, sales_channel')
+        .eq('tenant_id', tenantId)
+        .limit(2000);
+      const set = new Set<string>();
+      for (const r of (data || []) as Array<{ marketplace_source: string | null; sales_channel: string | null }>) {
+        const ms = r.marketplace_source;
+        if (ms && KNOWN_MARKETPLACES.has(ms)) set.add(ms);
+        else if (r.sales_channel) set.add(r.sales_channel);
+        else set.add('webshop');
+      }
+      return Array.from(set);
+    },
+  });
+
+  const channelList = (() => {
+    const s = new Set<string>(orderChannels.data || []);
+    s.add('subscription');
+    s.add('manual');
+    // Preserve a stable ordering: marketplaces first, then webshop/sub/manual.
+    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual'];
+    const extras = Array.from(s).filter(c => !order.includes(c)).sort();
+    return [...order.filter(c => s.has(c)), ...extras];
+  })();
+
+  const aliasesDirty = (() => {
+    const stored = (settings?.channel_aliases || {}) as Record<string, string>;
+    const keys = new Set([...Object.keys(stored), ...Object.keys(channelAliases)]);
+    for (const k of keys) {
+      const a = (channelAliases[k] ?? '').trim();
+      const b = (stored[k] ?? '').trim();
+      if (a !== b) return true;
+    }
+    return false;
+  })();
+
+  const handleSaveAliases = () => {
+    // Persist only non-empty custom aliases; empty inputs fall back to defaults.
+    const cleaned: Record<string, string> = {};
+    for (const [k, v] of Object.entries(channelAliases)) {
+      const s = (v ?? '').trim();
+      if (s) cleaned[k] = s;
+    }
+    upsert.mutate({ channel_aliases: cleaned } as never);
+  };
 
   useEffect(() => {
     if (settings) {
@@ -312,6 +386,53 @@ export function OdooAccountingSettings({ tenantId }: Props) {
                 </span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {configured && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.odooChannels.title', 'Kanaal-weergave in Odoo')}</CardTitle>
+            <CardDescription>
+              {t(
+                'admin.odooChannels.description',
+                'Deze namen verschijnen in Odoo als verzamelklant voor B2C-verkopen en als referentie op elke boeking. Hernoemen na de eerste sync wijzigt bestaande Odoo-klanten niet.'
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-2 text-xs uppercase tracking-wide text-muted-foreground pb-1 border-b">
+              <div>{t('admin.odooChannels.columnChannel', 'Kanaal')}</div>
+              <div>{t('admin.odooChannels.columnDisplay', 'Weergavenaam in Odoo')}</div>
+            </div>
+            {channelList.map(ch => {
+              const placeholder = DEFAULT_CHANNEL_LABELS[ch] ?? ch;
+              return (
+                <div key={ch} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-2 items-center">
+                  <Label htmlFor={`ch-${ch}`} className="text-sm">
+                    {t(`admin.odooChannels.channels.${ch}`, ch)}
+                  </Label>
+                  <Input
+                    id={`ch-${ch}`}
+                    value={channelAliases[ch] ?? ''}
+                    onChange={e => setChannelAliases(prev => ({ ...prev, [ch]: e.target.value }))}
+                    placeholder={placeholder}
+                    disabled={!canWrite || upsert.isPending}
+                  />
+                </div>
+              );
+            })}
+            <div className="flex justify-end pt-2">
+              <Button
+                onClick={handleSaveAliases}
+                disabled={!canWrite || !aliasesDirty || upsert.isPending}
+              >
+                {upsert.isPending
+                  ? t('admin.odooChannels.saving', 'Opslaan…')
+                  : t('admin.odooChannels.save', 'Weergavenamen opslaan')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
