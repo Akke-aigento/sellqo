@@ -150,16 +150,35 @@ serve(async (req) => {
     const existingMap = new Map<string, { hash: string | null; source: string | null }>();
     if (entitiesToTranslate.length > 0) {
       const ids = entitiesToTranslate.map(e => e.id);
-      const { data: existing } = await supabase
-        .from('content_translations')
-        .select('entity_id, entity_type, field_name, target_language, translated_content, is_locked, last_source_hash, source_content')
-        .eq('tenant_id', tenantId)
-        .in('entity_id', ids);
-      for (const t of (existing || []) as any[]) {
-        const key = `${t.entity_type}:${t.entity_id}:${t.field_name}:${t.target_language}`;
-        if (t.translated_content) existingSet.add(key);
-        if (t.is_locked) lockedSet.add(key);
-        existingMap.set(key, { hash: t.last_source_hash ?? null, source: t.source_content ?? null });
+      // Chunk entity_ids (PostgREST .in() + arg-length limits) and paginate each
+      // chunk with .range() to bypass the 1000-row cap.
+      const CHUNK = 50;
+      const PAGE = 1000;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK);
+        let from = 0;
+        while (true) {
+          const { data: page, error } = await supabase
+            .from('content_translations')
+            .select('entity_id, entity_type, field_name, target_language, translated_content, is_locked, last_source_hash, source_content')
+            .eq('tenant_id', tenantId)
+            .in('entity_id', chunk)
+            .order('id')
+            .range(from, from + PAGE - 1);
+          if (error) {
+            console.error('existing translations fetch failed', error);
+            break;
+          }
+          const rows = (page || []) as any[];
+          for (const t of rows) {
+            const key = `${t.entity_type}:${t.entity_id}:${t.field_name}:${t.target_language}`;
+            if (t.translated_content) existingSet.add(key);
+            if (t.is_locked) lockedSet.add(key);
+            existingMap.set(key, { hash: t.last_source_hash ?? null, source: t.source_content ?? null });
+          }
+          if (rows.length < PAGE) break;
+          from += PAGE;
+        }
       }
     }
 
