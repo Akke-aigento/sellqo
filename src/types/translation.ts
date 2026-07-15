@@ -59,8 +59,8 @@ export interface TranslationSettings {
 export interface TranslationJob {
   id: string;
   tenant_id: string;
-  job_type: 'bulk_translate' | 'sync_updates' | 'export' | 'import';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  job_type: 'bulk_translate' | 'sync_updates' | 'export' | 'import' | 'bulk' | 'single';
+  status: 'pending' | 'processing' | 'running' | 'completed' | 'completed_with_errors' | 'failed';
   entity_types: TranslatableEntityType[];
   target_languages: TranslationLanguage[];
   total_items: number;

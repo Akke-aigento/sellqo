@@ -105,7 +105,7 @@ export default function TranslationHub() {
     page: new Set(),
   });
   const [bulkScope, setBulkScope] = useState<'all' | 'missing' | 'selected'>('missing');
-  const [bulkMode, setBulkMode] = useState<'missing' | 'all'>('missing');
+  const [bulkMode, setBulkMode] = useState<'missing' | 'all' | 'outdated'>('missing');
   const [bulkLanguages, setBulkLanguages] = useState<TranslationLanguage[]>([]);
   const [bulkFields, setBulkFields] = useState<TranslatableField[]>([]);
 
@@ -215,8 +215,9 @@ export default function TranslationHub() {
     }
   };
 
-  // Active jobs (processing or pending)
-  const activeJobs = jobs?.filter(j => j.status === 'processing' || j.status === 'pending') || [];
+  // Active jobs (processing / pending / running)
+  const activeJobs = jobs?.filter(j => ['processing', 'pending', 'running'].includes(j.status as string)) || [];
+  const recentFinished = (jobs || []).filter(j => ['completed', 'completed_with_errors', 'failed'].includes(j.status as string)).slice(0, 3);
 
   // Get entity data based on type
   const getEntityData = () => {
@@ -277,6 +278,11 @@ export default function TranslationHub() {
   const bulkCost = (() => {
     if (!bulkLanguages.length || !bulkFields.length) return 0;
     if (bulkMode === 'all') {
+      return scopeEntities.length * bulkFields.length * bulkLanguages.length * perCreditCost;
+    }
+    if (bulkMode === 'outdated') {
+      // Actual outdated count is server-side (hash comparison). Show the
+      // 'all'-upper-bound as guidance.
       return scopeEntities.length * bulkFields.length * bulkLanguages.length * perCreditCost;
     }
     // 'missing' — sum per-entity missing fields intersected with selected fields & languages
@@ -384,7 +390,7 @@ export default function TranslationHub() {
                   <Label className="text-sm font-medium mb-2 block">Modus</Label>
                   <RadioGroup
                     value={bulkMode}
-                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all')}
+                    onValueChange={(v) => setBulkMode(v as 'missing' | 'all' | 'outdated')}
                     className="space-y-2"
                   >
                     <label className="flex items-start gap-2 cursor-pointer">
@@ -402,6 +408,15 @@ export default function TranslationHub() {
                         <div>Alles opnieuw vertalen</div>
                         <div className="text-xs text-muted-foreground">
                           Overschrijft bestaande, niet-vergrendelde vertalingen.
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <RadioGroupItem value="outdated" id="mode-outdated" className="mt-1" />
+                      <div>
+                        <div>Verouderd — bron gewijzigd sinds vertaling</div>
+                        <div className="text-xs text-muted-foreground">
+                          Ververst alleen vertalingen waarvan de brontekst is aangepast.
                         </div>
                       </div>
                     </label>
@@ -462,7 +477,9 @@ export default function TranslationHub() {
                 {/* Cost */}
                 <div className="rounded-md border bg-muted/40 p-3 text-sm">
                   <p className="font-medium">
-                    Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}
+                    {bulkMode === 'outdated'
+                      ? <>Kost wordt server-side bepaald, max ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}</>
+                      : <>Geschatte kost: ~{bulkCost} {bulkCost === 1 ? 'credit' : 'credits'}</>}
                   </p>
                   <p className="text-muted-foreground mt-1">
                     {isUnlimited
@@ -609,6 +626,11 @@ export default function TranslationHub() {
                     <p className="text-sm font-medium">{job.job_type}</p>
                     <p className="text-xs text-muted-foreground">
                       {job.processed_items} / {job.total_items} items
+                      {job.failed_items > 0 && (
+                        <span className="ml-2 inline-flex items-center rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-medium">
+                          {job.failed_items} mislukt
+                        </span>
+                      )}
                     </p>
                   </div>
                   <Progress 
@@ -617,6 +639,41 @@ export default function TranslationHub() {
                   />
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {recentFinished.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Recente Vertaaltaken</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentFinished.map(job => {
+                const withErrors = job.status === 'completed_with_errors';
+                const failed = job.status === 'failed';
+                return (
+                  <div key={job.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-medium">{job.job_type}</span>
+                      <span className="text-muted-foreground ml-2">
+                        {job.processed_items} / {job.total_items} items · {job.credits_used} credits
+                      </span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      failed
+                        ? 'bg-destructive/15 text-destructive'
+                        : withErrors
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                    }`}>
+                      {failed ? 'Mislukt' : withErrors ? `Voltooid met ${job.failed_items} fouten` : 'Voltooid'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
