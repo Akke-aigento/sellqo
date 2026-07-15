@@ -258,6 +258,21 @@ export function OdooAccountingSettings({ tenantId }: Props) {
             </div>
           ) : null}
 
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="peppol-send">Peppol verzenden via Odoo</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Wanneer aan, verstuurt Odoo automatisch de Peppol e-factuur na een succesvolle sync. Uit = alleen archiveren in Odoo.
+              </p>
+            </div>
+            <Switch
+              id="peppol-send"
+              checked={peppolSendEnabled}
+              disabled={!canWrite || isLoading || !syncEnabled}
+              onCheckedChange={setPeppolSendEnabled}
+            />
+          </div>
+
           <div className="flex justify-end">
             <Button onClick={handleSave}
               disabled={!canWrite || !dirty || upsert.isPending || (syncEnabled && !journalId) || !!selectedJournal?.claimed_by_other_tenant}>
