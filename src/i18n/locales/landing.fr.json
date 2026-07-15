@@ -63,7 +63,7 @@
         "social": "Social Commerce & Messagerie",
         "ops": "Opérations & Paiements"
       },
-      "badges": { "new": "Nouveau", "vvb": "Étiquettes VVB", "comingSoon": "Bientôt" }
+      "badges": { "new": "Nouveau", "vvb": "Étiquettes VVB", "comingSoon": "Bientôt", "viaOdoo": "via l'intégration Odoo" }
     },
     "unique": {
       "badge": "Ce qui nous rend unique",
@@ -110,9 +110,6 @@
         "chatbot": "Chatbot IA 24/7",
         "inbox": "Inbox unifiée (E-mail + WhatsApp)",
         "odoo": "Intégration ERP Odoo",
-        "bolAds": "Bol.com Sponsored Ads",
-        "metaAds": "Gestionnaire Meta Ads",
-        "feed": "Live Activity Feed",
         "multi": "Gestion multi-canal",
         "stock": "Sync de stock",
         "aiTools": "Outils marketing IA",
@@ -132,7 +129,8 @@
         "setup_sq": "5 minutes", "setup_sh": "1-2 heures", "setup_ls": "2-4 heures", "setup_cu": "Semaines",
         "mo_sq": "Dès 29 €", "mo_sh": "Dès 36 €", "mo_ls": "Dès 59 €", "mo_cu": "Variable",
         "tx_sq": "0 € (QR banque)"
-      }
+      },
+      "footnote": "Comparaison basée sur les fonctionnalités standard ; chez les concurrents, souvent possible via des applications payantes."
     },
     "testimonials": {
       "heading": "Ce que disent nos clients",

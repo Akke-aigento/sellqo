@@ -63,7 +63,7 @@
         "social": "Social Commerce & Messaging",
         "ops": "Operations & Payments"
       },
-      "badges": { "new": "New", "vvb": "VVB Labels", "comingSoon": "Coming Soon" }
+      "badges": { "new": "New", "vvb": "VVB Labels", "comingSoon": "Coming Soon", "viaOdoo": "via Odoo integration" }
     },
     "unique": {
       "badge": "What makes us unique",
@@ -110,9 +110,6 @@
         "chatbot": "AI Chatbot 24/7",
         "inbox": "Unified Inbox (Email + WhatsApp)",
         "odoo": "Odoo ERP Integration",
-        "bolAds": "Bol.com Sponsored Ads",
-        "metaAds": "Meta Ads Manager",
-        "feed": "Live Activity Feed",
         "multi": "Multi-channel management",
         "stock": "Stock sync",
         "aiTools": "AI Marketing Tools",
@@ -132,7 +129,8 @@
         "setup_sq": "5 minutes", "setup_sh": "1-2 hours", "setup_ls": "2-4 hours", "setup_cu": "Weeks",
         "mo_sq": "From €29", "mo_sh": "From €36", "mo_ls": "From €59", "mo_cu": "Variable",
         "tx_sq": "€0 (bank QR)"
-      }
+      },
+      "footnote": "Comparison based on standard functionality; competitors often support these via paid apps."
     },
     "testimonials": {
       "heading": "What Our Customers Say",

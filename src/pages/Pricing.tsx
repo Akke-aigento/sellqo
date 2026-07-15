@@ -25,8 +25,10 @@ const featureLabels: Record<string, { nl: string; en: string }> = {
   whiteLabel: { nl: 'White-label', en: 'White-label' },
   multiCurrency: { nl: 'Multi-valuta', en: 'Multi-currency' },
   facturX: { nl: 'Factur-X', en: 'Factur-X' },
-  peppol: { nl: 'Peppol', en: 'Peppol' },
-  odoo_sync: { nl: 'Odoo Accounting sync', en: 'Odoo Accounting sync' },
+  odoo_sync: {
+    nl: 'Odoo-boekhoudkoppeling (incl. Peppol e-facturatie)',
+    en: 'Odoo accounting integration (incl. Peppol e-invoicing)',
+  },
   bol_com: { nl: 'SellQo Connect — Bol.com', en: 'SellQo Connect — Bol.com' },
   bol_vvb_labels: { nl: 'SellQo Connect — VVB Labels', en: 'SellQo Connect — VVB Labels' },
   amazon: { nl: 'SellQo Connect — Amazon', en: 'SellQo Connect — Amazon' },
@@ -207,7 +209,9 @@ export default function PricingPage() {
 
                   {/* Features */}
                   <div className="space-y-2">
-                    {Object.entries(plan.features).map(([key, enabled]) => (
+                    {Object.entries(plan.features)
+                      .filter(([key]) => key !== 'peppol')
+                      .map(([key, enabled]) => (
                       <div key={key} className="flex items-center gap-2 text-sm">
                         {enabled ? (
                           <Check className="h-4 w-4 text-primary" />

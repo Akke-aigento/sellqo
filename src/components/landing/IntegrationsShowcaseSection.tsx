@@ -22,7 +22,7 @@ interface Integration {
   name: string;
   icon: LucideIcon;
   status: 'live' | 'coming-soon';
-  badgeKey?: 'new' | 'vvb' | 'comingSoon';
+  badgeKey?: 'new' | 'vvb' | 'comingSoon' | 'viaOdoo';
 }
 
 interface IntegrationCategory {
@@ -37,19 +37,19 @@ const categories: IntegrationCategory[] = [
     icon: Store,
     integrations: [
       { name: 'Bol.com', icon: ShoppingBag, status: 'live', badgeKey: 'vvb' },
-      { name: 'Amazon', icon: Package, status: 'live' },
-      { name: 'Shopify', icon: Store, status: 'live' },
-      { name: 'WooCommerce', icon: Store, status: 'live' },
+      { name: 'Amazon', icon: Package, status: 'coming-soon' },
+      { name: 'Shopify', icon: Store, status: 'coming-soon' },
+      { name: 'WooCommerce', icon: Store, status: 'coming-soon' },
       { name: 'Odoo', icon: Globe, status: 'live', badgeKey: 'new' },
-      { name: 'eBay', icon: ShoppingBag, status: 'live' },
+      { name: 'eBay', icon: ShoppingBag, status: 'coming-soon' },
     ],
   },
   {
     titleKey: 'ads',
     icon: Megaphone,
     integrations: [
-      { name: 'Bol.com Sponsored', icon: ShoppingBag, status: 'live' },
-      { name: 'Meta Ads', icon: Share2, status: 'live' },
+      { name: 'Bol.com Sponsored', icon: ShoppingBag, status: 'coming-soon' },
+      { name: 'Meta Ads', icon: Share2, status: 'coming-soon' },
       { name: 'Google Ads', icon: Globe, status: 'coming-soon' },
       { name: 'Amazon Ads', icon: Package, status: 'coming-soon' },
     ],
@@ -58,23 +58,23 @@ const categories: IntegrationCategory[] = [
     titleKey: 'social',
     icon: Share2,
     integrations: [
-      { name: 'Facebook Shop', icon: Share2, status: 'live' },
-      { name: 'Instagram Shopping', icon: Instagram, status: 'live' },
-      { name: 'Facebook Messenger', icon: MessageCircle, status: 'live', badgeKey: 'new' },
-      { name: 'Instagram DMs', icon: Instagram, status: 'live', badgeKey: 'new' },
-      { name: 'WhatsApp Business', icon: MessageCircle, status: 'live' },
-      { name: 'Google Shopping', icon: Globe, status: 'live' },
+      { name: 'Facebook Shop', icon: Share2, status: 'coming-soon' },
+      { name: 'Instagram Shopping', icon: Instagram, status: 'coming-soon' },
+      { name: 'Facebook Messenger', icon: MessageCircle, status: 'coming-soon' },
+      { name: 'Instagram DMs', icon: Instagram, status: 'coming-soon' },
+      { name: 'WhatsApp Business', icon: MessageCircle, status: 'coming-soon' },
+      { name: 'Google Shopping', icon: Globe, status: 'coming-soon' },
     ],
   },
   {
     titleKey: 'ops',
     icon: Truck,
     integrations: [
-      { name: 'PostNL', icon: Truck, status: 'live' },
-      { name: 'DHL', icon: Truck, status: 'live' },
-      { name: 'Sendcloud', icon: Package, status: 'live' },
+      { name: 'PostNL', icon: Truck, status: 'coming-soon' },
+      { name: 'DHL', icon: Truck, status: 'coming-soon' },
+      { name: 'Sendcloud', icon: Package, status: 'coming-soon' },
       { name: 'Stripe', icon: CreditCard, status: 'live' },
-      { name: 'Peppol', icon: FileText, status: 'coming-soon', badgeKey: 'comingSoon' },
+      { name: 'Peppol', icon: FileText, status: 'live', badgeKey: 'viaOdoo' },
       { name: 'Resend', icon: Mail, status: 'live' },
     ],
   },
