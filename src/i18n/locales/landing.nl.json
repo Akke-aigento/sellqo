@@ -110,9 +110,6 @@
         "chatbot": "AI Chatbot 24/7",
         "inbox": "Unified Inbox (Email + WhatsApp)",
         "odoo": "Odoo ERP Integratie",
-        "bolAds": "Bol.com Sponsored Ads",
-        "metaAds": "Meta Ads Manager",
-        "feed": "Live Activity Feed",
         "multi": "Multi-channel management",
         "stock": "Voorraadsync",
         "aiTools": "AI Marketing Tools",
@@ -132,7 +129,8 @@
         "setup_sq": "5 minuten", "setup_sh": "1-2 uur", "setup_ls": "2-4 uur", "setup_cu": "Weken",
         "mo_sq": "Vanaf €29", "mo_sh": "Vanaf €36", "mo_ls": "Vanaf €59", "mo_cu": "Variabel",
         "tx_sq": "€0 (bank QR)"
-      }
+      },
+      "footnote": "Vergelijking o.b.v. standaard-functionaliteit; bij concurrenten vaak mogelijk via betaalde apps."
     },
     "testimonials": {
       "heading": "Dit Zeggen Onze Klanten",
