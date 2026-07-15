@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
