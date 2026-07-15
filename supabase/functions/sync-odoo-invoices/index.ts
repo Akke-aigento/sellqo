@@ -64,6 +64,78 @@ function resolveChannelDisplayName(ctx: SyncCtx, channel: string): string | null
   return DEFAULT_CHANNEL_LABELS[channel] ?? null
 }
 
+// Resolve the sales channel for a set of invoices in one batched query.
+// DATA FACT: orders.sales_channel is unreliable for older Bol orders, so
+//   1. invoice.order_id set -> order.marketplace_source if known marketplace,
+//      else order.sales_channel, else 'webshop'
+//   2. invoice.subscription_id set -> 'subscription'
+//   3. neither -> 'manual'
+async function resolveChannelsForInvoices(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  invoiceIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (!invoiceIds.length) return out
+  const { data: invRows } = await supabase
+    .from('invoices')
+    .select('id, order_id, subscription_id')
+    .eq('tenant_id', tenantId)
+    .in('id', invoiceIds)
+  const rows = (invRows || []) as Array<{ id: string; order_id: string | null; subscription_id: string | null }>
+  const orderIds = Array.from(new Set(rows.map(r => r.order_id).filter((v): v is string => !!v)))
+  const orderMap = new Map<string, { marketplace_source: string | null; sales_channel: string | null }>()
+  if (orderIds.length) {
+    const { data: ordRows } = await supabase
+      .from('orders')
+      .select('id, marketplace_source, sales_channel')
+      .eq('tenant_id', tenantId)
+      .in('id', orderIds)
+    for (const o of (ordRows || []) as Array<{ id: string; marketplace_source: string | null; sales_channel: string | null }>) {
+      orderMap.set(o.id, { marketplace_source: o.marketplace_source, sales_channel: o.sales_channel })
+    }
+  }
+  for (const r of rows) {
+    if (r.order_id) {
+      const o = orderMap.get(r.order_id)
+      const ms = o?.marketplace_source
+      if (ms && KNOWN_MARKETPLACES.has(ms)) out.set(r.id, ms)
+      else if (o?.sales_channel) out.set(r.id, o.sales_channel)
+      else out.set(r.id, 'webshop')
+    } else if (r.subscription_id) {
+      out.set(r.id, 'subscription')
+    } else {
+      out.set(r.id, 'manual')
+    }
+  }
+  return out
+}
+
+async function resolveChannelsForCreditNotes(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  cnIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (!cnIds.length) return out
+  const { data: cnRows } = await supabase
+    .from('credit_notes')
+    .select('id, original_invoice_id')
+    .eq('tenant_id', tenantId)
+    .in('id', cnIds)
+  const rows = (cnRows || []) as Array<{ id: string; original_invoice_id: string | null }>
+  const invIds = Array.from(new Set(rows.map(r => r.original_invoice_id).filter((v): v is string => !!v)))
+  const invChannels = await resolveChannelsForInvoices(supabase, tenantId, invIds)
+  for (const r of rows) {
+    if (r.original_invoice_id) {
+      out.set(r.id, invChannels.get(r.original_invoice_id) || 'manual')
+    } else {
+      out.set(r.id, 'manual')
+    }
+  }
+  return out
+}
+
 // Find-or-create the per-channel aggregate B2C partner in Odoo and cache the id
 // in tenant_odoo_settings.channel_partner_ids.
 async function ensureChannelPartner(ctx: SyncCtx, channel: string, displayName: string): Promise<number> {
