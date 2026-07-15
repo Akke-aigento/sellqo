@@ -34,9 +34,9 @@ const integrationCategories = [
     title: 'Verzending',
     icon: Truck,
     integrations: [
-      { name: 'PostNL', status: 'live', description: 'Labels en track & trace', difficulty: 'easy', popular: true, features: ['Label printing', 'Track & trace', 'Afhaalpunten'] },
-      { name: 'DHL', status: 'live', description: 'DHL verzendlabels', difficulty: 'easy', popular: true, features: ['Express', 'Parcel', 'ServicePoints'] },
-      { name: 'Sendcloud', status: 'live', description: 'Multi-carrier platform', difficulty: 'medium', popular: true, features: ['Alle carriers', 'Automatische regels', 'Returns'] },
+      { name: 'PostNL', status: 'coming', description: 'Labels en track & trace', difficulty: 'easy', popular: false, features: ['Label printing', 'Track & trace', 'Afhaalpunten'] },
+      { name: 'DHL', status: 'coming', description: 'DHL verzendlabels', difficulty: 'easy', popular: false, features: ['Express', 'Parcel', 'ServicePoints'] },
+      { name: 'Sendcloud', status: 'coming', description: 'Multi-carrier platform', difficulty: 'medium', popular: false, features: ['Alle carriers', 'Automatische regels', 'Returns'] },
       { name: 'Bpost', status: 'coming', description: 'Belgische post', difficulty: 'easy', popular: false, features: ['Standaard', 'Bpack', 'Afhaalpunten'] },
     ],
   },
@@ -46,7 +46,7 @@ const integrationCategories = [
     icon: MessageSquare,
     integrations: [
       { name: 'Resend', status: 'live', description: 'Transactionele emails', difficulty: 'easy', popular: false, features: ['Orderbevestigingen', 'Verzendmeldingen', 'Custom templates'] },
-      { name: 'WhatsApp Business', status: 'live', description: 'Klantcommunicatie via WhatsApp', difficulty: 'medium', popular: true, features: ['Berichten sturen', 'Templates', 'Quick replies'] },
+      { name: 'WhatsApp Business', status: 'coming', description: 'Klantcommunicatie via WhatsApp', difficulty: 'medium', popular: false, features: ['Berichten sturen', 'Templates', 'Quick replies'] },
       { name: 'Intercom', status: 'planned', description: 'Customer success platform', difficulty: 'medium', popular: false, features: ['Live chat', 'Help desk', 'Product tours'] },
     ],
   },
@@ -55,9 +55,9 @@ const integrationCategories = [
     title: 'Marketing',
     icon: BarChart3,
     integrations: [
-      { name: 'Meta Ads', status: 'live', description: 'Facebook & Instagram advertenties', difficulty: 'medium', popular: true, features: ['Pixel tracking', 'Catalog sync', 'CAPI'] },
+      { name: 'Meta Ads', status: 'coming', description: 'Facebook & Instagram advertenties', difficulty: 'medium', popular: false, features: ['Pixel tracking', 'Catalog sync', 'CAPI'] },
       { name: 'Google Ads', status: 'coming', description: 'Search en Shopping campagnes', difficulty: 'medium', popular: true, features: ['Google Shopping', 'Conversion tracking', 'Remarketing'] },
-      { name: 'Bol.com Sponsored', status: 'live', description: 'Gesponsorde producten op Bol', difficulty: 'easy', popular: false, features: ['Sponsored Products', 'Display ads'] },
+      { name: 'Bol.com Sponsored', status: 'coming', description: 'Gesponsorde producten op Bol', difficulty: 'easy', popular: false, features: ['Sponsored Products', 'Display ads'] },
       { name: 'Klaviyo', status: 'planned', description: 'Email marketing automation', difficulty: 'medium', popular: true, features: ['Email flows', 'Segmentatie', 'A/B testing'] },
     ],
   },
@@ -68,8 +68,9 @@ const integrationCategories = [
     integrations: [
       { name: 'Shopify', status: 'coming', description: 'Importeer vanuit Shopify', difficulty: 'easy', popular: true, features: ['Product import', 'Order sync', 'Customer migratie'] },
       { name: 'WooCommerce', status: 'coming', description: 'WordPress webshop migratie', difficulty: 'medium', popular: true, features: ['Volledige migratie', 'Product import'] },
-      { name: 'Odoo', status: 'planned', description: 'ERP integratie', difficulty: 'advanced', popular: false, features: ['Inventory sync', 'Order flow', 'Accounting'] },
+      { name: 'Odoo', status: 'live', description: 'Automatische boekhoudkoppeling met je eigen Odoo', difficulty: 'medium', popular: true, features: ['Facturen & creditnota\u2019s automatisch geboekt', 'Eigen verkoopdagboek', 'Peppol e-facturatie via Odoo', 'B2C-aggregatie'] },
       { name: 'Lightspeed', status: 'planned', description: 'POS en e-commerce', difficulty: 'medium', popular: false, features: ['POS sync', 'Inventory', 'Products'] },
+      { name: 'Peppol', status: 'live', description: 'B2B e-facturatie via je Odoo-koppeling', difficulty: 'easy', popular: false, features: ['UBL-generatie', 'Automatische verzending via Odoo', 'Statustracking per factuur'] },
     ],
   },
 ];
