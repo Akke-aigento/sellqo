@@ -60,14 +60,6 @@ const blogPosts = [
     readTime: '6 min',
   },
   {
-    title: 'Hoe WebshopX 40% Groeide Met SellQo',
-    excerpt: 'Een inspirerend verhaal van een ondernemer die zijn omzet wist te verdubbelen.',
-    date: 'Binnenkort',
-    category: 'Case Studies',
-    author: 'Klant Spotlight',
-    readTime: '5 min',
-  },
-  {
     title: 'Nieuwe Features: Visual Editor & AI Coach',
     excerpt: 'Ontdek de nieuwste toevoegingen aan het SellQo platform.',
     date: 'Binnenkort',
