@@ -105,7 +105,8 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       const s = (v ?? '').trim();
       if (s) cleaned[k] = s;
     }
-    upsert.mutate({ channel_aliases: cleaned } as never);
+    // channel_aliases is stored as jsonb; cast satisfies the generated Json type.
+    upsert.mutate({ channel_aliases: cleaned as unknown as Record<string, string> });
   };
 
   useEffect(() => {
