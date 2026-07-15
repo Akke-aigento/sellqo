@@ -26,6 +26,7 @@ const featureLabels: Record<string, { nl: string; en: string }> = {
   multiCurrency: { nl: 'Multi-valuta', en: 'Multi-currency' },
   facturX: { nl: 'Factur-X', en: 'Factur-X' },
   peppol: { nl: 'Peppol', en: 'Peppol' },
+  odoo_sync: { nl: 'Odoo Accounting sync', en: 'Odoo Accounting sync' },
   bol_com: { nl: 'SellQo Connect — Bol.com', en: 'SellQo Connect — Bol.com' },
   bol_vvb_labels: { nl: 'SellQo Connect — VVB Labels', en: 'SellQo Connect — VVB Labels' },
   amazon: { nl: 'SellQo Connect — Amazon', en: 'SellQo Connect — Amazon' },
