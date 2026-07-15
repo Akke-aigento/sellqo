@@ -10,6 +10,7 @@ import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 interface CreditNoteFilters {
   status?: CreditNoteStatus;
   search?: string;
+  peppolPending?: boolean;
 }
 
 interface CreateCreditNoteData {
@@ -46,6 +47,10 @@ export function useCreditNotes(filters?: CreditNoteFilters) {
 
       if (filters?.search) {
         query = query.or(`credit_note_number.ilike.%${filters.search}%,reason.ilike.%${filters.search}%`);
+      }
+
+      if (filters?.peppolPending) {
+        query = query.in('peppol_status', ['pending', 'manual_action']);
       }
 
       const { data, error } = await query;
