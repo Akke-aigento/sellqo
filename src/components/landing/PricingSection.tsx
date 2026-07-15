@@ -230,7 +230,9 @@ export function PricingSection() {
               const desc = t(`landing.pricing.addons.${addon.key}.desc`);
               const features = t(`landing.pricing.addons.${addon.key}.features`, { returnObjects: true }) as string[];
               const forTier = t(`landing.pricing.addons.${addon.key}.for`);
-              const urgency = addon.hasUrgency ? t(`landing.pricing.addons.${addon.key}.urgency`) : null;
+              const urgency = (addon as { hasUrgency?: boolean }).hasUrgency
+                ? t(`landing.pricing.addons.${addon.key}.urgency`)
+                : null;
               return (
               <div
                 key={index}
