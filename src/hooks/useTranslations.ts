@@ -23,6 +23,25 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
   const queryClient = useQueryClient();
   const tenantId = currentTenant?.id;
 
+  // Supabase's PostgREST caps a single response at 1000 rows. For our stats
+  // and pending-entities queries we may exceed that, so paginate with .range()
+  // until a page returns fewer rows than the page size.
+  const PAGE = 1000;
+  const fetchAll = async <T,>(build: (from: number, to: number) => any): Promise<T[]> => {
+    const out: T[] = [];
+    let from = 0;
+    while (true) {
+      const to = from + PAGE - 1;
+      const { data, error } = await build(from, to);
+      if (error) throw error;
+      const rows = (data || []) as T[];
+      out.push(...rows);
+      if (rows.length < PAGE) break;
+      from += PAGE;
+    }
+    return out;
+  };
+
   // Detect insufficient-credit responses (402) from the edge function and
   // surface a dedicated toast with a buy-credits CTA. Returns true when the
   // error was handled, so callers can skip the generic toast.
@@ -92,29 +111,20 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
     queryFn: async () => {
       if (!tenantId) return null;
 
-      // Get counts per entity type
-      const { data: products } = await supabase
-        .from('products')
-        .select('id', { count: 'exact' })
-        .eq('tenant_id', tenantId)
-        .eq('is_active', true);
-
-      const { data: categories } = await supabase
-        .from('categories')
-        .select('id', { count: 'exact' })
-        .eq('tenant_id', tenantId)
-        .eq('is_active', true);
-
-      const { data: translations } = await supabase
+      const products = await fetchAll<{ id: string }>((from, to) => supabase
+        .from('products').select('id').eq('tenant_id', tenantId).eq('is_active', true).range(from, to));
+      const categories = await fetchAll<{ id: string }>((from, to) => supabase
+        .from('categories').select('id').eq('tenant_id', tenantId).eq('is_active', true).range(from, to));
+      const translations = await fetchAll<any>((from, to) => supabase
         .from('content_translations')
         .select('entity_type, entity_id, field_name, target_language, translated_content')
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId).range(from, to));
 
-      const productCount = products?.length || 0;
-      const categoryCount = categories?.length || 0;
+      const productCount = products.length;
+      const categoryCount = categories.length;
 
-      const activeProductIds = new Set((products || []).map((p: any) => p.id));
-      const activeCategoryIds = new Set((categories || []).map((c: any) => c.id));
+      const activeProductIds = new Set(products.map((p: any) => p.id));
+      const activeCategoryIds = new Set(categories.map((c: any) => c.id));
       const PRODUCT_FIELDS = ['name', 'description', 'short_description', 'meta_title', 'meta_description'];
       const CATEGORY_FIELDS = ['name', 'description', 'meta_title', 'meta_description'];
 
@@ -123,7 +133,7 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         ((t.entity_type === 'product' && activeProductIds.has(t.entity_id) && PRODUCT_FIELDS.includes(t.field_name)) ||
          (t.entity_type === 'category' && activeCategoryIds.has(t.entity_id) && CATEGORY_FIELDS.includes(t.field_name)));
 
-      const translationCount = translations?.filter(inScope).length || 0;
+      const translationCount = translations.filter(inScope).length;
 
       // Calculate coverage per language
       const targetLangs = settings?.target_languages || ['en', 'de', 'fr'];
@@ -139,9 +149,9 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         totalNeeded,
         coverage: totalNeeded > 0 ? Math.min(100, Math.round((translationCount / totalNeeded) * 100)) : 100,
         byLanguage: targetLangs.reduce((acc, lang) => {
-          const langTranslations = translations?.filter((t: any) =>
+          const langTranslations = translations.filter((t: any) =>
             inScope(t) && t.target_language === lang
-          ).length || 0;
+          ).length;
           const langNeeded = (productCount * fieldsPerProduct + categoryCount * fieldsPerCategory);
           acc[lang] = {
             completed: langTranslations,
@@ -182,32 +192,23 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
 
       const targetLangs = settings?.target_languages || ['en', 'de', 'fr'];
 
-      // Get products with their translations
-      const { data: products } = await supabase
-        .from('products')
-        .select('id, name')
-        .eq('tenant_id', tenantId)
-        .eq('is_active', true);
-
-      const { data: categories } = await supabase
-        .from('categories')
-        .select('id, name')
-        .eq('tenant_id', tenantId)
-        .eq('is_active', true);
-
-      const { data: translations } = await supabase
+      const products = await fetchAll<{ id: string; name: string }>((from, to) => supabase
+        .from('products').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).range(from, to));
+      const categories = await fetchAll<{ id: string; name: string }>((from, to) => supabase
+        .from('categories').select('id, name').eq('tenant_id', tenantId).eq('is_active', true).range(from, to));
+      const translations = await fetchAll<any>((from, to) => supabase
         .from('content_translations')
         .select('entity_id, entity_type, target_language, field_name, translated_content')
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId).range(from, to));
 
       // Calculate coverage per entity
       const productFields = ['name', 'description', 'short_description', 'meta_title', 'meta_description'];
       const categoryFields = ['name', 'description', 'meta_title', 'meta_description'];
 
-      const productsWithCoverage = (products || []).map(p => {
-        const entityTranslations = translations?.filter(t => 
+      const productsWithCoverage = products.map(p => {
+        const entityTranslations = translations.filter(t =>
           t.entity_type === 'product' && t.entity_id === p.id
-        ) || [];
+        );
         const totalNeeded = productFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
         const missingByLang: Record<string, number> = {};
@@ -232,10 +233,10 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
         };
       });
 
-      const categoriesWithCoverage = (categories || []).map(c => {
-        const entityTranslations = translations?.filter(t => 
+      const categoriesWithCoverage = categories.map(c => {
+        const entityTranslations = translations.filter(t =>
           t.entity_type === 'category' && t.entity_id === c.id
-        ) || [];
+        );
         const totalNeeded = categoryFields.length * targetLangs.length;
         const completed = entityTranslations.filter(t => t.translated_content).length;
         const missingByLang: Record<string, number> = {};
@@ -396,9 +397,18 @@ export function useTranslations(options: UseTranslationsOptions = {}) {
       queryClient.invalidateQueries({ queryKey: ['translation-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['translation-stats'] });
       queryClient.invalidateQueries({ queryKey: ['pending-translations'] });
-      toast.success(`Vertaling gestart: ${data.itemsQueued} items`, {
-        description: `${data.creditsUsed} credits gebruikt`,
-      });
+      const failed = data?.failedItems ?? 0;
+      const created = data?.translationsCreated ?? 0;
+      const credits = data?.creditsUsed ?? 0;
+      if (failed > 0) {
+        toast.warning(`${created} vertaald, ${failed} mislukt`, {
+          description: `${credits} credits gebruikt`,
+        });
+      } else {
+        toast.success(`Vertaling voltooid: ${created} items`, {
+          description: `${credits} credits gebruikt`,
+        });
+      }
     },
     onError: async (error: Error) => {
       if (await handleCreditError(error)) return;
