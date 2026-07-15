@@ -340,15 +340,35 @@ export function OdooAccountingSettings({ tenantId }: Props) {
 
           <div className="flex items-center justify-between gap-4 pt-4 border-t">
             <div>
+              <Label htmlFor="odoo-auto-post">{t('admin.odooAutoPost.label', 'Automatisch boeken in Odoo')}</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('admin.odooAutoPost.help', 'Uit = boekingen komen als concept binnen; je boekhouder boekt en verstuurt Peppol zelf vanuit Odoo.')}
+              </p>
+            </div>
+            <Switch
+              id="odoo-auto-post"
+              checked={autoPost}
+              disabled={!canWrite || isLoading || !syncEnabled}
+              onCheckedChange={setAutoPost}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div>
               <Label htmlFor="peppol-send">Peppol verzenden via Odoo</Label>
               <p className="text-xs text-muted-foreground mt-1">
                 Wanneer aan, verstuurt Odoo automatisch de Peppol e-factuur na een succesvolle sync. Uit = alleen archiveren in Odoo.
               </p>
+              {!autoPost && (
+                <p className="text-xs text-amber-700 mt-1">
+                  {t('admin.odooAutoPost.peppolDisabledNote', 'Automatische Peppol-verzending vereist Automatisch boeken.')}
+                </p>
+              )}
             </div>
             <Switch
               id="peppol-send"
-              checked={peppolSendEnabled}
-              disabled={!canWrite || isLoading || !syncEnabled}
+              checked={peppolSendEnabled && autoPost}
+              disabled={!canWrite || isLoading || !syncEnabled || !autoPost}
               onCheckedChange={setPeppolSendEnabled}
             />
           </div>
