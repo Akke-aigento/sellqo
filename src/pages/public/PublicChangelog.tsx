@@ -8,58 +8,42 @@ import { toast } from 'sonner';
 
 const changelogEntries = [
   {
-    version: '1.5.0',
-    date: '27 januari 2025',
+    version: '2026.07c',
+    date: 'Juli 2026',
     changes: [
-      { type: 'feature', title: '14-dagen Trial Systeem', description: 'Automatische trial bij registratie met subscription tracking. Nieuwe gebruikers krijgen nu automatisch een 14-dagen proefperiode met volledige toegang tot alle functies.' },
+      { type: 'feature', title: 'Odoo boekhoudkoppeling', description: 'Per-tenant koppeling met je eigen Odoo: facturen en creditnota\'s worden automatisch in je verkoopdagboek geboekt, inclusief automatische Peppol-verzending via Odoo voor B2B-klanten.' },
+    ],
+  },
+  {
+    version: '2026.07b',
+    date: 'Juli 2026',
+    changes: [
+      { type: 'improvement', title: 'Peppol-statussen gestroomlijnd', description: 'Één duidelijke Peppol-status per factuur en creditnota, met een filter op openstaande Peppol-acties in het factuuroverzicht.' },
+    ],
+  },
+  {
+    version: '2026.07a',
+    date: 'Juli 2026',
+    changes: [
+      { type: 'feature', title: 'Facturatie & SEPA', description: 'Native facturatie met SEPA-domiciliëring, automatische aanmaningen (dunning) en creditnota\'s voor terugkerende abonnementen.' },
+    ],
+  },
+  {
+    version: '2025.q1',
+    date: 'Q1 2025',
+    changes: [
       { type: 'feature', title: 'Shop Health Score', description: 'Real-time gezondheidsmonitor voor je webshop op 6 gebieden.' },
-      { type: 'feature', title: '7-stappen Onboarding', description: 'Verbeterde wizard inclusief plan selectie en guided setup.' },
-      { type: 'improvement', title: 'Trial Banner', description: 'Countdown banner in dashboard met upgrade prompts.' },
-    ],
-  },
-  {
-    version: '1.4.0',
-    date: '20 januari 2025',
-    changes: [
-      { type: 'feature', title: 'Visual Webshop Editor', description: 'Drag & drop builder voor je storefront pagina\'s. Pas je homepage, productpagina\'s en meer aan zonder code te schrijven.' },
+      { type: 'feature', title: 'Visual Webshop Editor', description: 'Drag & drop builder voor je storefront pagina\'s zonder code te schrijven.' },
       { type: 'feature', title: 'AI Business Coach', description: 'Proactieve suggesties gebaseerd op shop analytics.' },
-      { type: 'improvement', title: 'Performance Verbeteringen', description: 'Snellere laadtijden voor grote productcatalogi.' },
+      { type: 'feature', title: 'WhatsApp unified inbox', description: 'Klantcommunicatie via WhatsApp geïntegreerd in de unified inbox.' },
     ],
   },
   {
-    version: '1.3.0',
-    date: '10 januari 2025',
+    version: '2024.q4',
+    date: 'Q4 2024',
     changes: [
-      { type: 'feature', title: 'Bol.com VVB Labels', description: 'Fulfilled by Bol verzendlabels direct printen.' },
-      { type: 'feature', title: 'WhatsApp Business Integratie', description: 'Klantcommunicatie via WhatsApp in unified inbox.' },
-      { type: 'security', title: 'Verbeterde RLS Policies', description: 'Strengere data-isolatie tussen tenants voor extra veiligheid.' },
-    ],
-  },
-  {
-    version: '1.2.0',
-    date: '3 januari 2025',
-    changes: [
-      { type: 'feature', title: 'POS Kassasysteem', description: 'Verkoop fysiek met touch-interface en barcode scanner. Perfect voor pop-up shops en markten.' },
-      { type: 'feature', title: 'Peppol E-Invoicing', description: 'B2B-compliant elektronische facturatie.' },
-      { type: 'bugfix', title: 'Voorraad Sync Fix', description: 'Opgelost: voorraadaantallen synchroniseerden niet correct met Bol.com.' },
-    ],
-  },
-  {
-    version: '1.1.0',
-    date: '20 december 2024',
-    changes: [
-      { type: 'feature', title: 'Multi-carrier Verzending', description: 'Ondersteuning voor PostNL, DHL en Sendcloud.' },
-      { type: 'improvement', title: 'Verbeterde Product Import', description: 'CSV import nu 3x sneller met betere foutafhandeling.' },
-      { type: 'bugfix', title: 'Dashboard Grafieken', description: 'Fix voor ontbrekende data in omzetgrafieken.' },
-    ],
-  },
-  {
-    version: '1.0.0',
-    date: '1 december 2024',
-    changes: [
-      { type: 'feature', title: 'Eerste Release', description: 'SellQo is live! Complete e-commerce platform met Bol.com integratie, Stripe betalingen, en meer.' },
-      { type: 'feature', title: 'Bol.com Integratie', description: 'Volledige synchronisatie van producten, orders en voorraad.' },
-      { type: 'feature', title: 'AI Productbeschrijvingen', description: 'Genereer SEO-geoptimaliseerde beschrijvingen met AI.' },
+      { type: 'feature', title: 'Bol.com VVB Labels', description: 'Fulfilled by Bol verzendlabels direct printen vanuit SellQo.' },
+      { type: 'feature', title: 'POS Kassasysteem', description: 'Verkoop fysiek met touch-interface en barcode scanner — perfect voor pop-up shops en winkels.' },
     ],
   },
 ];
