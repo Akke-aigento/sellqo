@@ -129,7 +129,8 @@
         "setup_sq": "5 minutes", "setup_sh": "1-2 heures", "setup_ls": "2-4 heures", "setup_cu": "Semaines",
         "mo_sq": "Dès 29 €", "mo_sh": "Dès 36 €", "mo_ls": "Dès 59 €", "mo_cu": "Variable",
         "tx_sq": "0 € (QR banque)"
-      }
+      },
+      "footnote": "Comparaison basée sur les fonctionnalités standard ; chez les concurrents, souvent possible via des applications payantes."
     },
     "testimonials": {
       "heading": "Ce que disent nos clients",
