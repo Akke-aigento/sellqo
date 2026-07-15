@@ -53,7 +53,8 @@ export type Resource =
   | "suppliers"
   | "ops_helpers"
   | "global_lookups"
-  | "sellqo_legal";
+  | "sellqo_legal"
+  | "content_translations";
 
 type Matrix = Record<Resource, Partial<Record<PermissionAction, AppRole[]>>>;
 
@@ -228,6 +229,10 @@ export const PERMISSION_MATRIX: Matrix = {
   sellqo_legal: {
     read: ALL_ROLES,
     write: ["platform_admin"],
+  },
+  content_translations: {
+    read: ALL_ROLES,
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
 };
 
