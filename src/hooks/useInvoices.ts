@@ -69,7 +69,7 @@ export function useInvoices(filters?: InvoiceFilters) {
       }
 
       if (filters?.peppolPending) {
-        query = query.eq('peppol_status', 'pending');
+        query = query.in('peppol_status', ['pending', 'manual_action']);
       }
 
       const { data, error } = await query;
