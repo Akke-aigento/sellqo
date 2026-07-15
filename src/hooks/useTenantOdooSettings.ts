@@ -11,6 +11,7 @@ export interface TenantOdooSettings {
   odoo_sync_enabled: boolean;
   odoo_journal_id: string | null;
   odoo_journal_name: string | null;
+  peppol_send_enabled: boolean;
 }
 
 export function useTenantOdooSettings(tenantId: string | undefined) {
