@@ -1056,6 +1056,10 @@
         "odoo_draft_mode": {
           "title": "Kies zelf: boeken of concept in Odoo",
           "description": "Bepaal per tenant of gesynchroniseerde facturen direct geboekt worden of als concept binnenkomen zodat je boekhouder eerst controleert."
+        },
+        "language_switcher": {
+          "title": "Nieuwe taalkeuze op de website",
+          "description": "De taalwissel op de publieke site is vernieuwd: een overzichtelijk menu met voluit geschreven taalnamen in plaats van vlaggetjes."
         }
       }
     }

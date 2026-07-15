@@ -15,6 +15,7 @@ const changelogEntries: Array<{
 }> = [
   { version: '2026.07f', dateKey: 'jul_2026', changes: [{ id: 'odoo_draft_mode', type: 'improvement' }] },
   { version: '2026.07e', dateKey: 'jul_2026', changes: [{ id: 'channel_visibility', type: 'feature' }] },
+  { version: '2026.07d', dateKey: 'jul_2026', changes: [{ id: 'language_switcher', type: 'improvement' }] },
   { version: '2026.07c', dateKey: 'jul_2026', changes: [{ id: 'odoo_accounting', type: 'feature' }] },
   { version: '2026.07b', dateKey: 'jul_2026', changes: [{ id: 'peppol_status', type: 'improvement' }] },
   { version: '2026.07a', dateKey: 'jul_2026', changes: [{ id: 'billing_sepa', type: 'feature' }] },
