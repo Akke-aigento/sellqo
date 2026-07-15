@@ -341,10 +341,15 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
   if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  if (ctx.autoPost) {
+    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  }
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (ctx.peppolSendEnabled && isB2B && hasVat) {
+  if (!ctx.autoPost) {
+    // Concept-modus: laat het boeken + Peppol aan de boekhouder in Odoo.
+    peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+  } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
     peppol = await tryPeppolSend(ctx, moveId)
   }
   return { moveId, peppol }
@@ -406,10 +411,16 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
   if (displayName) moveData.ref = displayName
 
   const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  if (ctx.autoPost) {
+    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  }
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
-  if (ctx.peppolSendEnabled && isB2B && hasVat) peppol = await tryPeppolSend(ctx, moveId)
+  if (!ctx.autoPost) {
+    peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+  } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
+    peppol = await tryPeppolSend(ctx, moveId)
+  }
   return { moveId, peppol }
 }
 
