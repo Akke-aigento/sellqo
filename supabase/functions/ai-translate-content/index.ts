@@ -167,7 +167,7 @@ serve(async (req) => {
             .range(from, from + PAGE - 1);
           if (error) {
             console.error('existing translations fetch failed', error);
-            break;
+            throw error;
           }
           const rows = (page || []) as any[];
           for (const t of rows) {
