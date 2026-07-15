@@ -3696,3 +3696,15 @@ Op een smartphone kan een klant de EPC-QR-code niet scannen met hetzelfde toeste
 
 ### Custom frontends
 0 custom frontends aangeraakt. VanXcel + Mancini renderen `qr_data.payload` al uit het backend-contract → toggle werkt daar automatisch zodra deze tenants 'm aanzetten. Backend-only werking bevestigd.
+
+---
+
+## CHANNEL-1: verkoopkanalen zichtbaar in Odoo — 15 juli 2026
+
+**Root cause:** boekhouder kan Bol-uitbetalingen (netto, na commissie) niet matchen tegen facturen omdat alle B2C-verkopen onder één verzamelpartner ("Diverse particulieren") boeken, zonder kanaal-onderscheid. Reconciliatie = gokken met percentages.
+
+**Uitgevoerd:** kanaal-resolutie per factuur (marketplace_source prioritair boven sales_channel — recon toonde 33/44 Bol-orders met fout sales_channel='webshop'; alleen recente 11 correct), per-kanaal verzamelpartner in Odoo (find-or-create, gecached in tenant_odoo_settings.channel_partner_ids), kanaalnaam als ref op élke move (ook B2B), alias-beheer in Boekhouding-tab (channel_aliases jsonb), fallback naar bestaande dummy-partner bij onbekend kanaal. Batch-fetch van orders in de sync (geen N+1).
+
+**Vangst uit recon:** sales_channel onbetrouwbaar voor historische Bol-imports; marketplace_source is de bron van waarheid. Historische 33 zijn gepre-seed, dus geen voorwaartse impact. Eerste recon via Lovable-connector: SQL nu rechtstreeks door Claude uitvoerbaar.
+
+**Vervolg:** ODOO-POST-1 (auto-boeken-toggle, 2026.07f) direct erna geland — concept-modus beschikbaar per tenant. Parallelweek: BCC-concepten (INV-2026-0146 t/m 0153+) opruimen in Odoo bij het leegmaken van invoice_bcc_email ~21/7. Praktijktest kanaal-partner: eerstvolgende Bol-order moet onder "Bol.com verkopen — VanXcel" boeken.
