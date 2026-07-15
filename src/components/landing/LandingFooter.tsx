@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { Linkedin, Twitter, Facebook } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,8 @@ const socialLinks = [
 
 export function LandingFooter() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const productLinks = [
     { label: t('landing.footer.links.features'), href: '#features', isAnchor: true },
@@ -44,9 +46,13 @@ export function LandingFooter() {
 
   const handleAnchorClick = (href: string) => {
     if (href.startsWith('#')) {
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+      if (location.pathname === '/') {
+        const element = document.querySelector(href);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        navigate('/' + href);
       }
     }
   };
