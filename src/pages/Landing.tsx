@@ -14,8 +14,20 @@ import { FinalCtaSection } from '@/components/landing/FinalCtaSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
 import { PageMeta } from '@/components/seo/PageMeta';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    // Wait for sections to render, then scroll
+    const timer = setTimeout(() => {
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ForcedLightMode>
       <PageMeta
