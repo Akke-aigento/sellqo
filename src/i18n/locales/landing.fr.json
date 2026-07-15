@@ -1005,7 +1005,50 @@
       "subscribeButton": "S'abonner",
       "subscribeSubmitting": "En cours...",
       "subscribeSuccess": "Vous recevrez désormais les mises à jour du changelog par e-mail !",
-      "subscribeNote": "Uniquement des mises à jour pertinentes, pas de spam. Vous pouvez vous désabonner à tout moment."
+      "subscribeNote": "Uniquement des mises à jour pertinentes, pas de spam. Vous pouvez vous désabonner à tout moment.",
+      "dates": {
+        "jul_2026": "Juillet 2026",
+        "q1_2025": "T1 2025",
+        "q4_2024": "T4 2024"
+      },
+      "changes": {
+        "odoo_accounting": {
+          "title": "Intégration comptable Odoo",
+          "description": "Connexion par tenant à votre propre Odoo : les factures et notes de crédit sont comptabilisées automatiquement dans votre journal des ventes, avec envoi Peppol automatique via Odoo pour les clients B2B."
+        },
+        "peppol_status": {
+          "title": "Statuts Peppol simplifiés",
+          "description": "Un statut Peppol clair par facture et note de crédit, avec un filtre sur les actions Peppol en attente dans la vue d'ensemble des factures."
+        },
+        "billing_sepa": {
+          "title": "Facturation & SEPA",
+          "description": "Facturation native avec domiciliation SEPA, rappels automatiques (dunning) et notes de crédit pour les abonnements récurrents."
+        },
+        "shop_health": {
+          "title": "Shop Health Score",
+          "description": "Moniteur de santé en temps réel pour votre boutique sur 6 axes."
+        },
+        "visual_editor": {
+          "title": "Éditeur visuel de boutique",
+          "description": "Constructeur drag & drop pour vos pages de boutique sans écrire de code."
+        },
+        "ai_coach": {
+          "title": "AI Business Coach",
+          "description": "Suggestions proactives basées sur les analytics de la boutique."
+        },
+        "unified_inbox": {
+          "title": "Boîte de réception unifiée",
+          "description": "Toute la communication client par e-mail centralisée dans une seule boîte avec suggestions de réponse IA."
+        },
+        "bol_vvb": {
+          "title": "Étiquettes Bol.com VVB",
+          "description": "Imprimez les étiquettes d'expédition Fulfilled by Bol directement depuis SellQo."
+        },
+        "pos": {
+          "title": "Système de caisse POS",
+          "description": "Vendez en magasin avec interface tactile et lecteur de code-barres — parfait pour les pop-up shops et boutiques."
+        }
+      }
     }
   }
 }

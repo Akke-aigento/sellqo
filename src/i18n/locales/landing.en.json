@@ -1005,7 +1005,50 @@
       "subscribeButton": "Subscribe",
       "subscribeSubmitting": "Working...",
       "subscribeSuccess": "You'll now receive changelog updates by email!",
-      "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime."
+      "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime.",
+      "dates": {
+        "jul_2026": "July 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024"
+      },
+      "changes": {
+        "odoo_accounting": {
+          "title": "Odoo accounting integration",
+          "description": "Per-tenant connection with your own Odoo: invoices and credit notes are booked automatically into your sales journal, including automatic Peppol sending via Odoo for B2B customers."
+        },
+        "peppol_status": {
+          "title": "Streamlined Peppol statuses",
+          "description": "One clear Peppol status per invoice and credit note, with a filter for outstanding Peppol actions in the invoice overview."
+        },
+        "billing_sepa": {
+          "title": "Invoicing & SEPA",
+          "description": "Native invoicing with SEPA direct debit, automatic reminders (dunning) and credit notes for recurring subscriptions."
+        },
+        "shop_health": {
+          "title": "Shop Health Score",
+          "description": "Real-time health monitor for your webshop across 6 areas."
+        },
+        "visual_editor": {
+          "title": "Visual Webshop Editor",
+          "description": "Drag & drop builder for your storefront pages without writing code."
+        },
+        "ai_coach": {
+          "title": "AI Business Coach",
+          "description": "Proactive suggestions based on shop analytics."
+        },
+        "unified_inbox": {
+          "title": "Unified Inbox",
+          "description": "All customer communication via email centralised in one inbox with AI reply suggestions."
+        },
+        "bol_vvb": {
+          "title": "Bol.com VVB labels",
+          "description": "Print Fulfilled by Bol shipping labels directly from SellQo."
+        },
+        "pos": {
+          "title": "POS checkout system",
+          "description": "Sell in-person with a touch interface and barcode scanner — perfect for pop-up shops and retail stores."
+        }
+      }
     }
   }
 }

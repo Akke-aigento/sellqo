@@ -1005,7 +1005,50 @@
       "subscribeButton": "Abonnieren",
       "subscribeSubmitting": "Wird bearbeitet...",
       "subscribeSuccess": "Sie erhalten jetzt Changelog-Updates per E-Mail!",
-      "subscribeNote": "Nur relevante Updates, kein Spam. Sie können sich jederzeit abmelden."
+      "subscribeNote": "Nur relevante Updates, kein Spam. Sie können sich jederzeit abmelden.",
+      "dates": {
+        "jul_2026": "Juli 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024"
+      },
+      "changes": {
+        "odoo_accounting": {
+          "title": "Odoo-Buchhaltungsanbindung",
+          "description": "Tenant-spezifische Anbindung an Ihr eigenes Odoo: Rechnungen und Gutschriften werden automatisch in Ihr Verkaufsjournal gebucht, inklusive automatischer Peppol-Zustellung über Odoo für B2B-Kunden."
+        },
+        "peppol_status": {
+          "title": "Peppol-Status vereinheitlicht",
+          "description": "Ein klarer Peppol-Status pro Rechnung und Gutschrift, mit Filter für offene Peppol-Aktionen in der Rechnungsübersicht."
+        },
+        "billing_sepa": {
+          "title": "Rechnungsstellung & SEPA",
+          "description": "Native Rechnungsstellung mit SEPA-Lastschrift, automatischen Mahnungen (Dunning) und Gutschriften für wiederkehrende Abonnements."
+        },
+        "shop_health": {
+          "title": "Shop Health Score",
+          "description": "Echtzeit-Gesundheitsmonitor für Ihren Webshop in 6 Bereichen."
+        },
+        "visual_editor": {
+          "title": "Visueller Webshop-Editor",
+          "description": "Drag-&-Drop-Builder für Ihre Storefront-Seiten ohne Code."
+        },
+        "ai_coach": {
+          "title": "AI Business Coach",
+          "description": "Proaktive Vorschläge basierend auf Shop-Analytics."
+        },
+        "unified_inbox": {
+          "title": "Unified Inbox",
+          "description": "Alle Kundenkommunikation per E-Mail in einer Inbox gebündelt, mit KI-Antwortvorschlägen."
+        },
+        "bol_vvb": {
+          "title": "Bol.com VVB-Etiketten",
+          "description": "Fulfilled-by-Bol-Versandetiketten direkt aus SellQo drucken."
+        },
+        "pos": {
+          "title": "POS-Kassensystem",
+          "description": "Vor Ort verkaufen mit Touch-Interface und Barcodescanner — perfekt für Pop-up-Shops und Ladengeschäfte."
+        }
+      }
     }
   }
 }

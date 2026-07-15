@@ -1005,7 +1005,50 @@
       "subscribeButton": "Inschrijven",
       "subscribeSubmitting": "Bezig...",
       "subscribeSuccess": "Je ontvangt nu changelog-updates per e-mail!",
-      "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven."
+      "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven.",
+      "dates": {
+        "jul_2026": "Juli 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024"
+      },
+      "changes": {
+        "odoo_accounting": {
+          "title": "Odoo boekhoudkoppeling",
+          "description": "Per-tenant koppeling met je eigen Odoo: facturen en creditnota's worden automatisch in je verkoopdagboek geboekt, inclusief automatische Peppol-verzending via Odoo voor B2B-klanten."
+        },
+        "peppol_status": {
+          "title": "Peppol-statussen gestroomlijnd",
+          "description": "Één duidelijke Peppol-status per factuur en creditnota, met een filter op openstaande Peppol-acties in het factuuroverzicht."
+        },
+        "billing_sepa": {
+          "title": "Facturatie & SEPA",
+          "description": "Native facturatie met SEPA-domiciliëring, automatische aanmaningen (dunning) en creditnota's voor terugkerende abonnementen."
+        },
+        "shop_health": {
+          "title": "Shop Health Score",
+          "description": "Real-time gezondheidsmonitor voor je webshop op 6 gebieden."
+        },
+        "visual_editor": {
+          "title": "Visual Webshop Editor",
+          "description": "Drag & drop builder voor je storefront-pagina's zonder code te schrijven."
+        },
+        "ai_coach": {
+          "title": "AI Business Coach",
+          "description": "Proactieve suggesties gebaseerd op shop-analytics."
+        },
+        "unified_inbox": {
+          "title": "Unified Inbox",
+          "description": "Alle klantcommunicatie via e-mail gecentraliseerd in één inbox met AI-antwoordsuggesties."
+        },
+        "bol_vvb": {
+          "title": "Bol.com VVB-labels",
+          "description": "Fulfilled by Bol verzendlabels direct printen vanuit SellQo."
+        },
+        "pos": {
+          "title": "POS-kassasysteem",
+          "description": "Verkoop fysiek met touch-interface en barcodescanner — perfect voor pop-up shops en winkels."
+        }
+      }
     }
   }
 }
