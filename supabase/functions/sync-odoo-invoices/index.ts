@@ -43,6 +43,7 @@ interface SyncCtx {
   tenantName: string
   channelAliases: Record<string, string>
   channelPartnerIds: Record<string, number>
+  autoPost: boolean
 }
 
 // Known marketplace slugs on orders.marketplace_source that we treat as
