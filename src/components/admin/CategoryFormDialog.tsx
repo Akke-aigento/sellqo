@@ -597,12 +597,17 @@ export function CategoryFormDialog({
                   </Link>
                 </div>
               </TabsContent>
+
+              <TabsContent value="translations" className="space-y-4 mt-4">
+                {isEditing && category?.id ? (
+                  <EntityTranslationTabs entityType="category" entityId={category.id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Sla de categorie eerst op om vertalingen te beheren.
+                  </p>
+                )}
+              </TabsContent>
             </Tabs>
-            {activeTab === 'translations' && isEditing && category?.id && (
-              <div className="mt-4">
-                <EntityTranslationTabs entityType="category" entityId={category.id} />
-              </div>
-            )}
 
             <DialogFooter>
               <Button
