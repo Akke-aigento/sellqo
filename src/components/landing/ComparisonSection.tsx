@@ -28,7 +28,6 @@ const comparisonData: Row[] = [
   { key: 'giftcards', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { key: 'vat', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { key: 'peppol', sellqo: 'partial', shopify: false, lightspeed: false, custom: 'partial' },
-  { key: 'whatsapp', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
   { key: 'dutchSupport', sellqo: true, shopify: false, lightspeed: true, custom: 'partial' },
   { key: 'freeMigration', sellqo: true, shopify: false, lightspeed: false, custom: false },
 ];

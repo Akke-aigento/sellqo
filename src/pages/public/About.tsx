@@ -1,19 +1,19 @@
 import { Link } from 'react-router-dom';
 import { PublicPageLayout } from '@/components/landing/PublicPageLayout';
 import { Button } from '@/components/ui/button';
-import { Target, Users, Zap, Heart, Globe, Shield, Store, ShoppingBag, Euro, CheckCircle, Building2, Rocket, Award } from 'lucide-react';
+import { Target, Users, Zap, Heart, Globe, Shield, ShoppingBag, Building2, Rocket, Award, MapPin, FileCheck, Sparkles } from 'lucide-react';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 const stats = [
-  { icon: Store, value: '1.000+', label: 'Actieve Shops' },
-  { icon: ShoppingBag, value: '500.000+', label: 'Bestellingen Verwerkt' },
-  { icon: Euro, value: '€10M+', label: 'Omzet Gefaciliteerd' },
-  { icon: CheckCircle, value: '99.9%', label: 'Uptime' },
+  { icon: MapPin, value: '🇧🇪 100% Belgisch', label: 'Gebouwd en beheerd in België' },
+  { icon: Globe, value: '4 talen', label: 'NL / EN / FR / DE — admin én webshop' },
+  { icon: FileCheck, value: 'Peppol-ready', label: 'E-facturatie via Odoo-koppeling' },
+  { icon: Sparkles, value: 'AI-first', label: 'Content, SEO en coaching ingebouwd' },
 ];
 
 const timeline = [
   { date: 'Q1 2024', title: 'SellQo Opgericht', description: 'Start in België met een visie voor betere e-commerce tools.', icon: Rocket },
-  { date: 'Q3 2024', title: 'Eerste Beta Testers', description: '50+ ondernemers testen het platform en geven feedback.', icon: Users },
+  { date: 'Q3 2024', title: 'Eerste Beta Testers', description: 'Eerste ondernemers testen het platform en geven feedback.', icon: Users },
   { date: 'Q4 2024', title: 'Bol.com Integratie Live', description: 'Officiële marketplace integratie gelanceerd.', icon: ShoppingBag },
   { date: 'Q1 2025', title: 'Publieke Launch', description: 'Platform open voor alle ondernemers met AI-features.', icon: Award },
 ];
