@@ -9,19 +9,14 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { useUsageLimits } from '@/hooks/useUsageLimits';
-import { PeppolUpgradeCard } from '@/components/admin/billing/PeppolUpgradeCard';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function PeppolSettings() {
   const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
-  const { checkFeature } = useUsageLimits();
   const [isSaving, setIsSaving] = useState(false);
   const [peppolId, setPeppolId] = useState('');
-
-  const hasPeppolAccess = checkFeature('peppol');
 
   useEffect(() => {
     if (currentTenant) {
@@ -59,11 +54,6 @@ export function PeppolSettings() {
       setIsSaving(false);
     }
   };
-
-  // Show upgrade card if user doesn't have Peppol access
-  if (!hasPeppolAccess) {
-    return <PeppolUpgradeCard />;
-  }
 
   return (
     <>
