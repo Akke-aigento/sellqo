@@ -13,7 +13,7 @@
       "title2": "totalement sous contrôle",
       "subtitle": "La plateforme e-commerce complète qui réunit ventes, stocks, finances et croissance. Conçue spécialement pour les entrepreneurs en Belgique et aux Pays-Bas.",
       "ctaPrimary": "Essai gratuit 14 jours",
-      "ctaSecondary": "Voir la démo live",
+      "ctaSecondary": "Voir la plateforme",
       "trust": {
         "noCard": "Sans carte bancaire",
         "trial": "14 jours d'essai gratuit",
@@ -34,25 +34,46 @@
     "problem": {
       "heading": "Ça vous parle ?",
       "items": [
-        { "title": "Jongler en permanence entre 5+ plateformes", "desc": "Shopify pour la boutique, Excel pour les stocks, QuickBooks pour les factures, Mailchimp pour le marketing..." },
-        { "title": "Aucune idée de votre vraie marge", "desc": "Coûts de vente, retours, livraisons... Vous le savez à peu près, mais jamais précisément." },
-        { "title": "Des heures perdues en administratif", "desc": "Saisir les commandes à la main, mettre à jour le stock, créer les factures... du temps que vous n'avez pas." }
+        {
+          "title": "Jongler en permanence entre 5+ plateformes",
+          "desc": "Shopify pour la boutique, Excel pour les stocks, QuickBooks pour les factures, Mailchimp pour le marketing..."
+        },
+        {
+          "title": "Aucune idée de votre vraie marge",
+          "desc": "Coûts de vente, retours, livraisons... Vous le savez à peu près, mais jamais précisément."
+        },
+        {
+          "title": "Des heures perdues en administratif",
+          "desc": "Saisir les commandes à la main, mettre à jour le stock, créer les factures... du temps que vous n'avez pas."
+        }
       ]
     },
     "solution": {
       "heading": "SellQo fait les choses autrement",
       "subheading": "Une plateforme qui combine tout ce dont vous avez besoin pour grandir.",
       "items": [
-        { "title": "Tout dans un seul dashboard", "desc": "Bol.com, Odoo et plus — tout au même endroit." },
-        { "title": "En ligne en 5 minutes", "desc": "L'assistant importe vos produits automatiquement." },
-        { "title": "Une IA qui réfléchit avec vous", "desc": "SEO, contenu, traductions, chatbot — tout est propulsé par l'IA." },
-        { "title": "Pensée pour l'UE", "desc": "Peppol, TVA/OSS, RGPD, moyens de paiement locaux intégrés." }
+        {
+          "title": "Tout dans un seul dashboard",
+          "desc": "Bol.com, Odoo et plus — tout au même endroit."
+        },
+        {
+          "title": "En ligne rapidement",
+          "desc": "L'assistant importe vos produits automatiquement."
+        },
+        {
+          "title": "Une IA qui réfléchit avec vous",
+          "desc": "SEO, contenu, traductions, chatbot — tout est propulsé par l'IA."
+        },
+        {
+          "title": "Pensée pour l'UE",
+          "desc": "Peppol, TVA/OSS, RGPD, moyens de paiement locaux intégrés."
+        }
       ]
     },
     "integrations": {
       "badge": "SellQo Connect",
       "heading": "Vendez partout. Gérez ici.",
-      "subheading": "SellQo Connect relie votre boutique à Bol.com, Amazon, eBay et aux réseaux sociaux — depuis un seul dashboard.",
+      "subheading": "SellQo Connect relie votre boutique à Bol.com — et bientôt Amazon, eBay et les réseaux sociaux — depuis un seul dashboard.",
       "comingSoon": "Bientôt",
       "missing": "Une intégration manque ?",
       "missingCta": "Dites-le nous",
@@ -63,34 +84,115 @@
         "social": "Social Commerce & Messagerie",
         "ops": "Opérations & Paiements"
       },
-      "badges": { "new": "Nouveau", "vvb": "Étiquettes VVB", "comingSoon": "Bientôt", "viaOdoo": "via l'intégration Odoo" }
+      "badges": {
+        "new": "Nouveau",
+        "vvb": "Étiquettes VVB",
+        "comingSoon": "Bientôt",
+        "viaOdoo": "via l'intégration Odoo"
+      }
     },
     "unique": {
       "badge": "Ce qui nous rend unique",
       "heading": "Des fonctionnalités introuvables ailleurs",
       "subheading": "Voilà pourquoi les entrepreneurs malins choisissent SellQo plutôt que Shopify ou Lightspeed.",
       "items": [
-        { "title": "Mise en place en minutes, pas en semaines", "desc": "Pas besoin de développeur. Notre assistant vous guide pas à pas dans la configuration initiale.", "highlight": "Aucune compétence technique requise" },
-        { "title": "Shop Health Score", "desc": "Diagnostic en temps réel de votre boutique : stocks, marges, score SEO — tout d'un coup d'œil.", "highlight": "Exclusif à SellQo" },
-        { "title": "Coach IA proactif", "desc": "Recevez des conseils AVANT que les problèmes n'arrivent. \"Votre stock de X s'épuise\", \"Il est temps d'une promo sur Y\".", "highlight": "Une IA qui anticipe" },
-        { "title": "Chatbot IA 24/7", "desc": "Votre boutique dispose d'un chatbot qui répond grâce à vos produits, FAQ et CGV.", "highlight": "Service client en pilote automatique" },
-        { "title": "0 € de frais de transaction", "desc": "Avec les QR codes de virement bancaire, les clients paient direct via iDEAL/Bancontact — sans frais Stripe.", "highlight": "Économisez des centaines d'euros" },
-        { "title": "Boîte de réception unifiée", "desc": "E-mail, WhatsApp, Facebook Messenger, Instagram DMs et messages marketplace dans une seule boîte. L'IA suggère les réponses.", "highlight": "Tous les canaux au même endroit" }
+        {
+          "title": "Mise en place en minutes, pas en semaines",
+          "desc": "Pas besoin de développeur. Notre assistant vous guide pas à pas dans la configuration initiale.",
+          "highlight": "Aucune compétence technique requise"
+        },
+        {
+          "title": "Shop Health Score",
+          "desc": "Diagnostic en temps réel de votre boutique : stocks, marges, score SEO — tout d'un coup d'œil.",
+          "highlight": "Exclusif à SellQo"
+        },
+        {
+          "title": "Coach IA proactif",
+          "desc": "Recevez des conseils AVANT que les problèmes n'arrivent. \"Votre stock de X s'épuise\", \"Il est temps d'une promo sur Y\".",
+          "highlight": "Une IA qui anticipe"
+        },
+        {
+          "title": "Chatbot IA 24/7",
+          "desc": "Votre boutique dispose d'un chatbot qui répond grâce à vos produits, FAQ et CGV.",
+          "highlight": "Service client en pilote automatique"
+        },
+        {
+          "title": "0 € de frais de transaction",
+          "desc": "Avec les QR codes de virement bancaire, les clients paient direct via iDEAL/Bancontact — sans frais Stripe.",
+          "highlight": "Économisez des centaines d'euros"
+        },
+        {
+          "title": "Boîte de réception unifiée",
+          "desc": "Toute la communication e-mail dans une seule boîte, avec des réponses suggérées par l'IA. WhatsApp et messagerie sociale bientôt disponibles.",
+          "highlight": "Tous les canaux au même endroit"
+        }
       ]
     },
     "features": {
       "heading": "Tout ce dont vous avez besoin, au même endroit",
       "subheading": "Fini les outils éparpillés. SellQo est la plateforme complète pour votre business e-commerce.",
       "items": [
-        { "subtitle": "Vente multi-canal", "title": "Vendez partout, gérez au centre", "desc": "SellQo Connect relie votre boutique à Bol.com, Amazon, eBay et aux réseaux sociaux — depuis un seul dashboard.", "badge": "SellQo Connect" },
-        { "subtitle": "Sync de stock en temps réel", "title": "Plus jamais en rupture", "desc": "Synchronisation automatique entre tous vos canaux. Une vente sur Amazon ? Bol.com et votre boutique sont mis à jour instantanément." },
-        { "subtitle": "Contenu, SEO & Campagnes", "title": "Suite marketing IA complète", "desc": "Générez posts sociaux, descriptions produits, contenus e-mail et images. Planifiez vos pubs sur Bol.com et Meta.", "badge": "Propulsé par IA", "list": ["Hub de contenu IA avec calendrier", "Publication auto sur les réseaux", "Gestionnaire Bol.com & Meta Ads"] },
-        { "subtitle": "Être trouvé", "title": "SEO IA & Traductions", "desc": "Dashboard SEO avec Quick Wins, contrôles techniques et optimisation AI Search. Traduisez en masse vers EN/DE/FR en un clic.", "badge": "Exclusif" },
-        { "subtitle": "Réductions & Fidélité", "title": "8 types de promotions", "desc": "Codes de réduction, BOGO, packs, remises par quantité, cartes cadeaux, groupes clients et programme de fidélité complet.", "list": ["Cartes cadeaux avec QR codes", "Réductions cumulables avec règles", "Niveaux VIP avec multiplicateurs"] },
-        { "subtitle": "Factures & TVA", "title": "Finance intelligente", "desc": "PDF Factur-X en 4 langues, calcul TVA/OSS automatique, notes de crédit et e-facturation Peppol pour B2B via l'intégration Odoo.", "badge": "Peppol-ready" },
-        { "subtitle": "Toute la communication au même endroit", "title": "Boîte de réception unifiée", "desc": "E-mail, WhatsApp, Facebook Messenger et Instagram DMs dans une seule boîte. Messages marketplace routés automatiquement.", "badge": "Social Messaging" },
-        { "subtitle": "Sans code", "title": "Webshop Builder", "desc": "Choisissez un thème, ajustez les couleurs, construisez votre page d'accueil visuellement. Avis Google, Trustpilot et plus, au même endroit." },
-        { "subtitle": "Données & vente physique", "title": "Insights de croissance & POS", "desc": "Vision en temps réel du CA et des marges par produit. Plus un système POS complet pour votre boutique physique.", "badge": "Omnicanal" }
+        {
+          "subtitle": "Vente multi-canal",
+          "title": "Vendez partout, gérez au centre",
+          "desc": "SellQo Connect relie votre boutique à Bol.com — et bientôt Amazon, eBay et les réseaux sociaux — depuis un seul dashboard.",
+          "badge": "SellQo Connect"
+        },
+        {
+          "subtitle": "Sync de stock en temps réel",
+          "title": "Plus jamais en rupture",
+          "desc": "Une vente sur Bol.com ? Le stock de votre boutique est mis à jour instantanément — et inversement."
+        },
+        {
+          "subtitle": "Contenu, SEO & Campagnes",
+          "title": "Suite marketing IA complète",
+          "desc": "Générez posts sociaux, descriptions produits, contenus e-mail et images.",
+          "badge": "Propulsé par IA",
+          "list": [
+            "Hub de contenu IA avec calendrier",
+            "Publication auto sur les réseaux",
+            "Génération d'images IA"
+          ]
+        },
+        {
+          "subtitle": "Être trouvé",
+          "title": "SEO IA & Traductions",
+          "desc": "Dashboard SEO avec Quick Wins, contrôles techniques et optimisation AI Search. Traduisez en masse vers EN/DE/FR en un clic.",
+          "badge": "Exclusif"
+        },
+        {
+          "subtitle": "Réductions & Fidélité",
+          "title": "8 types de promotions",
+          "desc": "Codes de réduction, BOGO, packs, remises par quantité, cartes cadeaux, groupes clients et programme de fidélité complet.",
+          "list": [
+            "Cartes cadeaux avec QR codes",
+            "Réductions cumulables avec règles",
+            "Niveaux VIP avec multiplicateurs"
+          ]
+        },
+        {
+          "subtitle": "Factures & TVA",
+          "title": "Finance intelligente",
+          "desc": "PDF Factur-X en 4 langues, calcul TVA/OSS automatique, notes de crédit et e-facturation Peppol pour B2B via l'intégration Odoo.",
+          "badge": "Peppol-ready"
+        },
+        {
+          "subtitle": "Toute la communication au même endroit",
+          "title": "Boîte de réception unifiée",
+          "desc": "Toute la communication e-mail dans une seule boîte, avec des réponses suggérées par l'IA. WhatsApp et messagerie sociale bientôt disponibles.",
+          "badge": "Réponses IA"
+        },
+        {
+          "subtitle": "Sans code",
+          "title": "Webshop Builder",
+          "desc": "Choisissez un thème, ajustez les couleurs, construisez votre page d'accueil visuellement. Avis Google, Trustpilot et plus, au même endroit."
+        },
+        {
+          "subtitle": "Données & vente physique",
+          "title": "Insights de croissance & POS",
+          "desc": "Vision en temps réel du CA et des marges par produit. Plus un système POS complet pour votre boutique physique.",
+          "badge": "Omnicanal"
+        }
       ]
     },
     "comparison": {
@@ -98,7 +200,11 @@
       "recommended": "Recommandé",
       "scrollHint": "Défiler →",
       "featureCol": "Fonctionnalité",
-      "legend": { "included": "Inclus", "viaApp": "Via app payante", "notAvailable": "Indisponible" },
+      "legend": {
+        "included": "Inclus",
+        "viaApp": "Via app payante",
+        "notAvailable": "Indisponible"
+      },
       "viaApp": "(via app)",
       "rows": {
         "setup": "Temps de mise en place",
@@ -108,7 +214,7 @@
         "coach": "Coach IA proactif",
         "seo": "Dashboard SEO IA",
         "chatbot": "Chatbot IA 24/7",
-        "inbox": "Inbox unifiée (E-mail + WhatsApp)",
+        "inbox": "Inbox unifiée (E-mail)",
         "odoo": "Intégration ERP Odoo",
         "multi": "Gestion multi-canal",
         "stock": "Sync de stock",
@@ -121,13 +227,18 @@
         "giftcards": "Système de cartes cadeaux",
         "vat": "Conformité TVA/OSS",
         "peppol": "E-invoicing Peppol (via Odoo)",
-        "whatsapp": "WhatsApp Business",
         "dutchSupport": "Support néerlandophone",
-        "freeMigration": "Migration gratuite"
+        "freeMigration": "Accompagnement à la migration (Enterprise)"
       },
       "values": {
-        "setup_sq": "5 minutes", "setup_sh": "1-2 heures", "setup_ls": "2-4 heures", "setup_cu": "Semaines",
-        "mo_sq": "Dès 29 €", "mo_sh": "Dès 36 €", "mo_ls": "Dès 59 €", "mo_cu": "Variable",
+        "setup_sq": "Minutes",
+        "setup_sh": "1-2 heures",
+        "setup_ls": "2-4 heures",
+        "setup_cu": "Semaines",
+        "mo_sq": "Dès 29 €",
+        "mo_sh": "Dès 36 €",
+        "mo_ls": "Dès 59 €",
+        "mo_cu": "Variable",
         "tx_sq": "0 € (QR banque)"
       },
       "footnote": "Comparaison basée sur les fonctionnalités standard ; chez les concurrents, souvent possible via des applications payantes."
@@ -135,9 +246,21 @@
     "testimonials": {
       "heading": "Ce que disent nos clients",
       "items": [
-        { "quote": "SellQo nous fait économiser 500 €/mois en frais d'apps et j'ai enfin une vision claire de nos marges. Game changer.", "name": "Sarah van Berg", "company": "Founder, Nordic Living" },
-        { "quote": "La boîte unifiée et le calcul TVA/OSS automatique me font gagner des heures chaque semaine. Mon comptable adore aussi.", "name": "Thomas Hermans", "company": "CEO, TechGear Belgique" },
-        { "quote": "Migration de Shopify à SellQo en 2 heures. Le support est next level — ils réfléchissent vraiment avec vous.", "name": "Lisa Janssen", "company": "Owner, BabyBoutique.nl" }
+        {
+          "quote": "SellQo nous fait économiser 500 €/mois en frais d'apps et j'ai enfin une vision claire de nos marges. Game changer.",
+          "name": "Sarah van Berg",
+          "company": "Founder, Nordic Living"
+        },
+        {
+          "quote": "La boîte unifiée et le calcul TVA/OSS automatique me font gagner des heures chaque semaine. Mon comptable adore aussi.",
+          "name": "Thomas Hermans",
+          "company": "CEO, TechGear Belgique"
+        },
+        {
+          "quote": "Migration de Shopify à SellQo en 2 heures. Le support est next level — ils réfléchissent vraiment avec vous.",
+          "name": "Lisa Janssen",
+          "company": "Owner, BabyBoutique.nl"
+        }
       ]
     },
     "pricing": {
@@ -150,11 +273,6 @@
       "perYear": "/an",
       "free": "Gratuit",
       "yearlyHint": "{{price}} € par an (économisez 2 mois)",
-      "availableAddons": "Add-ons disponibles :",
-      "boostHeading": "Boostez votre plan avec des add-ons",
-      "freeAtPro": "Gratuit avec Pro",
-      "atPro": "{{price}} €/mois avec Pro",
-      "availableFor": "Disponible pour : {{tier}}",
       "footnoteTrial": "Tous les plans : <strong>14 jours gratuits</strong> • Sans carte bancaire • Résiliable chaque mois",
       "footnoteTipTitle": "Économisez sur les frais de transaction :",
       "footnoteTipBody": "Avec nos QR codes de virement bancaire, vos clients paient directement depuis leur app bancaire — 0 € de frais pour vous !",
@@ -162,50 +280,153 @@
       "footnoteVat": "Tous les prix sont TTC",
       "plans": {
         "free": {
-          "name": "Free", "badge": "Pour démarrer", "cta": "Commencer gratuitement",
-          "features": ["25 produits", "50 commandes/mois", "100 clients", "Factures manuelles", "Codes de réduction", "Support communautaire"],
-          "limitations": ["Pas de webshop", "Pas d'IA", "Pas de POS", "Pas de SellQo Connect", "Filigrane SellQo"]
+          "name": "Free",
+          "badge": "Pour démarrer",
+          "cta": "Commencer gratuitement",
+          "features": [
+            "25 produits",
+            "50 commandes/mois",
+            "100 clients",
+            "Factures manuelles",
+            "Codes de réduction",
+            "Support communautaire"
+          ],
+          "limitations": [
+            "Pas de webshop",
+            "Pas d'IA",
+            "Pas de POS",
+            "Pas de SellQo Connect",
+            "Filigrane SellQo"
+          ]
         },
         "starter": {
-          "name": "Starter", "badge": "Parfait pour démarrer", "cta": "Commencer gratuitement",
-          "features": ["250 produits", "500 commandes/mois", "1 000 clients", "3 membres d'équipe", "✨ 50 crédits IA/mois", "🛒 Webshop Builder", "E-factures Factur-X", "Codes de réduction", "Shop Health Score", "Gamification & Badges", "Support e-mail", "Domaine personnalisé", "🔗 SellQo Connect Lite — 1 canal"],
-          "addons": ["Caisse POS"]
+          "name": "Starter",
+          "badge": "Parfait pour démarrer",
+          "cta": "Commencer gratuitement",
+          "features": [
+            "250 produits",
+            "500 commandes/mois",
+            "1 000 clients",
+            "3 membres d'équipe",
+            "✨ 50 crédits IA/mois",
+            "🛒 Webshop Builder",
+            "E-factures Factur-X",
+            "Codes de réduction",
+            "Shop Health Score",
+            "Gamification & Badges",
+            "Support e-mail",
+            "Domaine personnalisé",
+            "🔗 SellQo Connect Lite — 1 canal"
+          ]
         },
         "pro": {
-          "name": "Pro", "badge": "Le plus choisi", "cta": "Commencer gratuitement",
-          "features": ["2 500 produits", "5 000 commandes/mois", "10 000 clients", "10 membres d'équipe", "✨ 500 crédits IA/mois", "🛒 Webshop Builder + Visual Editor", "💳 Caisse POS incluse", "🤖 Coach IA Business", "🔗 SellQo Connect — tous les canaux", "Intégration comptable Odoo (incl. e-facturation Peppol)", "Multi-entrepôts", "Live Activity Feed", "Programme de fidélité", "Support prioritaire"]
+          "name": "Pro",
+          "badge": "Le plus choisi",
+          "cta": "Commencer gratuitement",
+          "features": [
+            "2 500 produits",
+            "5 000 commandes/mois",
+            "10 000 clients",
+            "10 membres d'équipe",
+            "✨ 500 crédits IA/mois",
+            "🛒 Webshop Builder + Visual Editor",
+            "💳 Caisse POS incluse",
+            "🤖 Coach IA Business",
+            "🔗 SellQo Connect — tous les canaux",
+            "Intégration comptable Odoo (incl. e-facturation Peppol)",
+            "Multi-entrepôts",
+            "Live Activity Feed",
+            "Programme de fidélité",
+            "Support prioritaire"
+          ]
         },
         "enterprise": {
-          "name": "Enterprise", "badge": "Pour entreprises en croissance", "cta": "Nous contacter",
-          "features": ["Produits illimités", "Commandes illimitées", "50 membres d'équipe", "✨ 5 000 crédits IA/mois", "🛒 Tous les thèmes premium", "🔗 SellQo Connect — tous canaux + custom", "Options white-label", "Interlocuteur dédié", "Support WhatsApp & téléphone", "Accompagnement à la migration inclus", "Onboarding prioritaire"]
+          "name": "Enterprise",
+          "badge": "Pour entreprises en croissance",
+          "cta": "Nous contacter",
+          "features": [
+            "Produits illimités",
+            "Commandes illimitées",
+            "50 membres d'équipe",
+            "✨ 5 000 crédits IA/mois",
+            "🛒 Tous les thèmes premium",
+            "🔗 SellQo Connect — tous canaux + custom",
+            "Options white-label",
+            "Interlocuteur dédié",
+            "Support WhatsApp & téléphone",
+            "Accompagnement à la migration inclus",
+            "Onboarding prioritaire"
+          ]
         }
-      },
-      "addons": {
-        "ai": { "name": "Pack crédits IA", "desc": "500 crédits IA supplémentaires/mois", "features": ["Descriptions produits", "Contenu social", "Génération d'images"], "for": "Starter+" },
-        "pos": { "name": "Caisse POS", "desc": "Vendez en boutique", "features": ["Interface tactile", "Scan de codes-barres", "Stripe Terminal"], "for": "Starter (Pro : gratuit)" },
-        
-        "marketplace": { "name": "Marketplace supplémentaire", "desc": "Par canal additionnel", "features": ["Amazon, eBay, etc.", "Sync commandes", "Sync stock"], "for": "Pro+" }
       }
     },
     "faq": {
       "heading": "Questions fréquentes",
       "items": [
-        { "q": "Comment fonctionne l'essai gratuit ?", "a": "14 jours entièrement gratuits, toutes les fonctionnalités. Sans carte bancaire. Vous choisissez votre plan à l'inscription mais ne payez qu'après 14 jours. Upgrade possible à tout moment." },
-        { "q": "Que se passe-t-il après les 14 jours ?", "a": "Après 14 jours, on vous demande de choisir un plan. D'ici là votre compte reste actif mais les nouvelles fonctions sont bloquées. Vos données restent en sécurité et l'upgrade reste possible à tout moment." },
-        { "q": "Comment se déroule l'onboarding ?", "a": "À l'inscription vous suivez un assistant en 7 étapes : nom de boutique, choix du plan, infos entreprise, upload du logo, premier produit, paiements et lancement. Étapes contournables et complétables plus tard via les paramètres." },
-        { "q": "Qu'est-ce que le Shop Health Score ?", "a": "Un score en temps réel (0-100 %) mesurant la santé de votre boutique sur 6 axes : fulfillment, stock, service client, finance, SEO et conformité. Conseils personnalisés quotidiens pour l'améliorer." },
-        { "q": "Puis-je changer de plan plus tard ?", "a": "Oui ! Vous pouvez upgrader ou downgrader à tout moment via Paramètres → Abonnement. Upgrade immédiat, downgrade à la prochaine période de facturation. Aucun frais caché." },
-        { "q": "Quelles langues SellQo prend en charge ?", "a": "Néerlandais, anglais, français et allemand. L'admin et votre boutique sont entièrement traduisibles. Traductions IA disponibles pour fiches produits et contenu marketing." },
-        { "q": "Puis-je migrer ma boutique existante ?", "a": "Oui ! Des outils d'import pour Shopify, WooCommerce et d'autres. Les clients Enterprise bénéficient d'un accompagnement à la migration inclus." },
-        { "q": "Quels moyens de paiement sont supportés ?", "a": "Via Stripe Connect : iDEAL, Bancontact, cartes, Apple Pay, Google Pay et 40+ autres. Vos clients paient directement sur votre compte Stripe." },
-        { "q": "SellQo convient-il au B2B ?", "a": "Absolument ! Transactions exonérées de TVA, prix nets, tarifs par client et e-facturation Peppol automatique pour les professionnels via l'intégration Odoo (à partir de Pro)." },
-        { "q": "Comment fonctionnent les crédits IA ?", "a": "Les crédits IA servent à générer du contenu : posts sociaux, e-mails, fiches produits. Pro : 500/mois, Enterprise : 5 000/mois. Crédits supplémentaires à 19 € les 500." },
-        { "q": "Puis-je vendre en boutique physique avec SellQo ?", "a": "Oui ! Notre module POS est une caisse complète avec interface tactile, scanner, vente de cartes cadeaux et Stripe Terminal. Add-on à 29 €/mois ou 15 €/mois en Pro." },
-        { "q": "Quelles promotions puis-je créer ?", "a": "SellQo supporte 8 types : codes de réduction, remises par quantité, BOGO, packs produits, groupes clients avec prix spéciaux, remises automatiques, cartes cadeaux et programme de fidélité à points." },
-        { "q": "Comment construire ma boutique ?", "a": "Avec le Webshop Builder intégré : choisissez un thème, ajustez les sections par drag & drop, connectez votre domaine. Starter : thèmes de base, Pro : 1 thème premium, Enterprise : tous." },
-        { "q": "Y a-t-il des frais en plus de l'abonnement ?", "a": "Non. Seuls les frais Stripe standards (1,5 % + 0,25 € par transaction). Nous ne prélevons aucun frais de transaction supplémentaire. Add-ons optionnels." },
-        { "q": "Qu'est-ce que Peppol et pourquoi c'est important ?", "a": "Depuis 2026, la facturation électronique via Peppol est obligatoire pour les transactions B2B en Belgique. Avec l'intégration Odoo de SellQo (à partir de Pro), vos factures B2B sont automatiquement envoyées en tant qu'e-factures via votre propre Odoo, pour rester conforme." },
-        { "q": "Que deviennent mes données si j'arrête ?", "a": "Vos données vous appartiennent. Vous pouvez tout exporter (produits, clients, commandes) en CSV, Excel ou via API. Nous supprimons vos données 30 jours après la résiliation." }
+        {
+          "q": "Comment fonctionne l'essai gratuit ?",
+          "a": "14 jours entièrement gratuits, toutes les fonctionnalités. Sans carte bancaire. Vous choisissez votre plan à l'inscription mais ne payez qu'après 14 jours. Upgrade possible à tout moment."
+        },
+        {
+          "q": "Que se passe-t-il après les 14 jours ?",
+          "a": "Après 14 jours, on vous demande de choisir un plan. D'ici là votre compte reste actif mais les nouvelles fonctions sont bloquées. Vos données restent en sécurité et l'upgrade reste possible à tout moment."
+        },
+        {
+          "q": "Comment se déroule l'onboarding ?",
+          "a": "À l'inscription vous suivez un assistant en 7 étapes : nom de boutique, choix du plan, infos entreprise, upload du logo, premier produit, paiements et lancement. Étapes contournables et complétables plus tard via les paramètres."
+        },
+        {
+          "q": "Qu'est-ce que le Shop Health Score ?",
+          "a": "Un score en temps réel (0-100 %) mesurant la santé de votre boutique sur 6 axes : fulfillment, stock, service client, finance, SEO et conformité. Conseils personnalisés quotidiens pour l'améliorer."
+        },
+        {
+          "q": "Puis-je changer de plan plus tard ?",
+          "a": "Oui ! Vous pouvez upgrader ou downgrader à tout moment via Paramètres → Abonnement. Upgrade immédiat, downgrade à la prochaine période de facturation. Aucun frais caché."
+        },
+        {
+          "q": "Quelles langues SellQo prend en charge ?",
+          "a": "Néerlandais, anglais, français et allemand. L'admin et votre boutique sont entièrement traduisibles. Traductions IA disponibles pour fiches produits et contenu marketing."
+        },
+        {
+          "q": "Puis-je migrer ma boutique existante ?",
+          "a": "Oui — importez produits, clients et commandes via des exports CSV/Excel depuis Shopify, WooCommerce et d'autres plateformes. Les clients Enterprise bénéficient d'un accompagnement à la migration inclus."
+        },
+        {
+          "q": "Quels moyens de paiement sont supportés ?",
+          "a": "Via Stripe Connect : iDEAL, Bancontact, cartes, Apple Pay, Google Pay et 40+ autres. Vos clients paient directement sur votre compte Stripe."
+        },
+        {
+          "q": "SellQo convient-il au B2B ?",
+          "a": "Absolument ! Transactions exonérées de TVA, prix nets, tarifs par client et e-facturation Peppol automatique pour les professionnels via l'intégration Odoo (à partir de Pro)."
+        },
+        {
+          "q": "Comment fonctionnent les crédits IA ?",
+          "a": "Les crédits IA servent à générer du contenu : posts sociaux, e-mails, fiches produits. Pro : 500/mois, Enterprise : 5 000/mois. Besoin de plus de crédits ? Passez à un plan supérieur ou contactez-nous."
+        },
+        {
+          "q": "Puis-je vendre en boutique physique avec SellQo ?",
+          "a": "Oui ! Notre module POS est une caisse complète avec interface tactile, scanner, vente de cartes cadeaux et Stripe Terminal. Inclus à partir de Pro ; disponible sur demande sur Starter."
+        },
+        {
+          "q": "Quelles promotions puis-je créer ?",
+          "a": "SellQo supporte 8 types : codes de réduction, remises par quantité, BOGO, packs produits, groupes clients avec prix spéciaux, remises automatiques, cartes cadeaux et programme de fidélité à points."
+        },
+        {
+          "q": "Comment construire ma boutique ?",
+          "a": "Avec le Webshop Builder intégré : choisissez un thème, ajustez les sections par drag & drop, connectez votre domaine. Starter : thèmes de base, Pro : 1 thème premium, Enterprise : tous."
+        },
+        {
+          "q": "Y a-t-il des frais en plus de l'abonnement ?",
+          "a": "Non. Seuls les frais Stripe standards (1,5 % + 0,25 € par transaction). Nous ne prélevons aucun frais de transaction supplémentaire. Add-ons optionnels."
+        },
+        {
+          "q": "Qu'est-ce que Peppol et pourquoi c'est important ?",
+          "a": "Depuis 2026, la facturation électronique via Peppol est obligatoire pour les transactions B2B en Belgique. Avec l'intégration Odoo de SellQo (à partir de Pro), vos factures B2B sont automatiquement envoyées en tant qu'e-factures via votre propre Odoo, pour rester conforme."
+        },
+        {
+          "q": "Que deviennent mes données si j'arrête ?",
+          "a": "Vos données vous appartiennent. Vous pouvez tout exporter (produits, clients, commandes) en CSV, Excel ou via API. Nous supprimons vos données 30 jours après la résiliation."
+        }
       ]
     },
     "finalCta": {
@@ -222,10 +443,23 @@
       "company": "Entreprise",
       "support": "Support",
       "links": {
-        "features": "Fonctionnalités", "pricing": "Tarifs", "integrations": "Intégrations", "apiDocs": "Docs API", "changelog": "Changelog",
-        "about": "À propos", "blog": "Blog", "contact": "Contact", "careers": "Carrières", "partners": "Partenaires",
-        "help": "Centre d'aide", "faq": "FAQ", "status": "Statut", "contactUs": "Nous contacter",
-        "privacy": "Politique de confidentialité", "terms": "Conditions générales", "cookies": "Politique cookies"
+        "features": "Fonctionnalités",
+        "pricing": "Tarifs",
+        "integrations": "Intégrations",
+        "apiDocs": "Docs API",
+        "changelog": "Changelog",
+        "about": "À propos",
+        "blog": "Blog",
+        "contact": "Contact",
+        "careers": "Carrières",
+        "partners": "Partenaires",
+        "help": "Centre d'aide",
+        "faq": "FAQ",
+        "status": "Statut",
+        "contactUs": "Nous contacter",
+        "privacy": "Politique de confidentialité",
+        "terms": "Conditions générales",
+        "cookies": "Politique cookies"
       },
       "legalEntity": "Entité légale",
       "legalLine1": "SellQo est un produit de Nomadix BV",
