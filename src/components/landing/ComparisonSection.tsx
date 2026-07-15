@@ -15,16 +15,13 @@ const comparisonData: Row[] = [
   { key: 'coach', sellqo: true, shopify: false, lightspeed: false, custom: false },
   { key: 'seo', sellqo: true, shopify: false, lightspeed: false, custom: false },
   { key: 'chatbot', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
-  { key: 'inbox', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'inbox', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { key: 'odoo', sellqo: true, shopify: false, lightspeed: false, custom: 'partial' },
-  { key: 'bolAds', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { key: 'metaAds', sellqo: true, shopify: 'partial', lightspeed: false, custom: false },
-  { key: 'feed', sellqo: true, shopify: false, lightspeed: false, custom: false },
   { key: 'multi', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { key: 'stock', sellqo: true, shopify: 'partial', lightspeed: true, custom: false },
-  { key: 'aiTools', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { key: 'aiDesc', sellqo: true, shopify: false, lightspeed: false, custom: false },
-  { key: 'aiTrans', sellqo: true, shopify: false, lightspeed: false, custom: false },
+  { key: 'aiTools', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'aiDesc', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
+  { key: 'aiTrans', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
   { key: 'builder', sellqo: true, shopify: true, lightspeed: false, custom: true },
   { key: 'pos', sellqo: true, shopify: true, lightspeed: true, custom: false },
   { key: 'loyalty', sellqo: true, shopify: 'partial', lightspeed: 'partial', custom: false },
@@ -159,6 +156,17 @@ export function ComparisonSection() {
             <span className="text-muted-foreground">{t('landing.comparison.legend.notAvailable')}</span>
           </div>
         </div>
+
+        {/* Footnote */}
+        <p
+          className={cn(
+            'text-center text-xs text-muted-foreground mt-4 max-w-3xl mx-auto',
+            isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
+          )}
+          style={{ animationDelay: '0.35s' }}
+        >
+          {t('landing.comparison.footnote')}
+        </p>
       </div>
     </section>
   );
