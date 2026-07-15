@@ -15838,6 +15838,8 @@ export type Database = {
           aggregate_per_channel: boolean
           b2c_dummy_partner_name: string
           b2c_dummy_partner_odoo_id: number | null
+          channel_aliases: Json
+          channel_partner_ids: Json
           created_at: string
           odoo_journal_id: string | null
           odoo_journal_name: string | null
@@ -15851,6 +15853,8 @@ export type Database = {
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
+          channel_aliases?: Json
+          channel_partner_ids?: Json
           created_at?: string
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
@@ -15864,6 +15868,8 @@ export type Database = {
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string
           b2c_dummy_partner_odoo_id?: number | null
+          channel_aliases?: Json
+          channel_partner_ids?: Json
           created_at?: string
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
