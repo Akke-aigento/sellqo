@@ -236,7 +236,7 @@ export default function InvoicesPage() {
     if (r.kind === 'invoice') {
       if (r.pdfUrl) items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(r.pdfUrl!, '_blank') });
       if (r.ublUrl) items.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
-      if (canWriteInvoices && r.peppolStatus === 'pending') {
+      if (canWriteInvoices && ['pending','manual_action'].includes(r.peppolStatus as string)) {
         items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
       }
       if (canWriteInvoices) {
@@ -591,7 +591,7 @@ export default function InvoicesPage() {
                   if (invoice.ubl_url) {
                     actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
                   }
-                  if (canWriteInvoices && invoiceAny.peppol_status === 'pending') {
+                  if (canWriteInvoices && ['pending','manual_action'].includes(invoiceAny.peppol_status)) {
                     actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
                   }
                   if (canWriteInvoices) {
@@ -618,7 +618,7 @@ export default function InvoicesPage() {
               const actions: ActionItem[] = [];
               if (invoice.pdf_url) actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(invoice.pdf_url!, '_blank') });
               if (invoice.ubl_url) actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
-              if (canWriteInvoices && invoiceAny.peppol_status === 'pending') actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
+              if (canWriteInvoices && ['pending','manual_action'].includes(invoiceAny.peppol_status)) actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
               if (canWriteInvoices) actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
               return (
                 <div className="space-y-2">
