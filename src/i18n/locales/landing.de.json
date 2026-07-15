@@ -87,7 +87,7 @@
         { "subtitle": "Content, SEO & Kampagnen", "title": "Komplette KI-Marketing-Suite", "desc": "Erstelle Social Posts, Produktbeschreibungen, E-Mail-Content und Bilder. Plane Anzeigen auf Bol.com und Meta.", "badge": "KI-gestützt", "list": ["KI-Content-Hub mit Kalender", "Automatisch in Social Media posten", "Bol.com & Meta Ads Manager"] },
         { "subtitle": "Gefunden werden", "title": "KI-SEO & Übersetzungen", "desc": "SEO-Dashboard mit Quick Wins, technischen Checks und KI-Search-Optimierung. Bulk-Übersetzung nach EN/DE/FR per Klick.", "badge": "Exklusiv" },
         { "subtitle": "Rabatte & Loyalität", "title": "8 Aktionstypen", "desc": "Rabattcodes, BOGO, Bundles, Staffelrabatte, Gutscheine, Kundengruppen und ein komplettes Treueprogramm.", "list": ["Gutscheine mit QR-Codes", "Stapelbare Rabatte mit Regeln", "VIP-Stufen mit Punktemultiplikatoren"] },
-        { "subtitle": "Rechnungen & MwSt.", "title": "Smarte Finanzen", "desc": "Factur-X PDFs in 4 Sprachen, automatische MwSt./OSS-Berechnung, Gutschriften und Peppol-E-Invoicing für B2B (bald).", "badge": "Peppol Coming Soon" },
+        { "subtitle": "Rechnungen & MwSt.", "title": "Smarte Finanzen", "desc": "Factur-X PDFs in 4 Sprachen, automatische MwSt./OSS-Berechnung, Gutschriften und Peppol-E-Rechnung für B2B über die Odoo-Integration.", "badge": "Peppol-ready" },
         { "subtitle": "Alle Kommunikation an einem Ort", "title": "Unified Inbox", "desc": "E-Mail, WhatsApp, Facebook Messenger und Instagram DMs in einer Inbox. Marketplace-Nachrichten automatisch weitergeleitet.", "badge": "Social Messaging" },
         { "subtitle": "Kein Code nötig", "title": "Webshop Builder", "desc": "Wähle ein Theme, passe Farben an, baue Deine Homepage visuell. Bewertungen von Google, Trustpilot und mehr an einem Ort." },
         { "subtitle": "Daten & Ladenverkauf", "title": "Wachstums-Insights & POS", "desc": "Echtzeit-Einblick in Umsatz und Margen pro Produkt. Plus ein komplettes POS-Kassensystem für Deinen Laden.", "badge": "Omnichannel" }
@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "KI Credit Pack", "desc": "500 extra KI-Credits/Monat", "features": ["Produktbeschreibungen", "Social Content", "Bildgenerierung"], "for": "Starter+" },
         "pos": { "name": "POS Kasse", "desc": "Verkaufe in Deinem Laden", "features": ["Touch-Interface", "Barcode-Scanning", "Stripe Terminal"], "for": "Starter (Pro: gratis)" },
-        "peppol": { "name": "Peppol E-Invoicing", "desc": "Bald verfügbar — Pflicht ab 2026 in BE", "features": ["Offizielle Peppol-Anbindung", "Automatischer Versand", "Empfangsbestätigungen", "B2B-Compliance"], "for": "Starter (Pro: gratis)", "urgency": "🔜 Coming Soon — Pflicht 2026" },
+        
         "marketplace": { "name": "Extra Marketplace", "desc": "Pro zusätzlichem Kanal", "features": ["Amazon, eBay, etc.", "Bestellsync", "Lagersync"], "for": "Pro+" }
       }
     },
@@ -198,13 +198,13 @@
         { "q": "Welche Sprachen unterstützt SellQo?", "a": "Niederländisch, Englisch, Französisch und Deutsch. Sowohl das Admin-Interface als auch Dein Shop sind vollständig übersetzbar. KI-Übersetzungen für Produktbeschreibungen und Marketing-Content verfügbar." },
         { "q": "Kann ich meinen bestehenden Shop migrieren?", "a": "Ja! Wir haben Import-Tools für Shopify, WooCommerce und andere. Enterprise-Kunden bekommen Migrations-Unterstützung inklusive." },
         { "q": "Welche Zahlungsmethoden werden unterstützt?", "a": "Über Stripe Connect unterstützt Du iDEAL, Bancontact, Kreditkarten, Apple Pay, Google Pay und 40+ weitere Methoden. Deine Kunden zahlen direkt auf Dein Stripe-Konto." },
-        { "q": "Ist SellQo für B2B geeignet?", "a": "Absolut! Wir unterstützen MwSt.-befreite Transaktionen, Nettopreise, kundenspezifische Preise und automatische Peppol-E-Invoicing für Geschäftskunden (bald)." },
+        { "q": "Ist SellQo für B2B geeignet?", "a": "Absolut! Wir unterstützen MwSt.-befreite Transaktionen, Nettopreise, kundenspezifische Preise und automatische Peppol-E-Rechnung für Geschäftskunden über die Odoo-Integration (ab Pro)." },
         { "q": "Wie funktionieren KI-Credits?", "a": "KI-Credits werden für Content-Erstellung wie Social Posts, E-Mails und Produktbeschreibungen genutzt. Pro bekommt 500/Monat, Enterprise 5.000/Monat. Extra-Credits für €19 pro 500 Credits." },
         { "q": "Kann ich auch im Laden mit SellQo verkaufen?", "a": "Ja! Unser POS-Modul ist eine komplette Kasse mit Touch-Interface, Barcode-Scanner, Gutscheinverkauf und Stripe Terminal. Als Add-on für €29/Monat oder €15/Monat bei Pro." },
         { "q": "Welche Aktionen kann ich einrichten?", "a": "SellQo unterstützt 8 Aktionstypen: Rabattcodes, Staffelrabatte, BOGO, Produktbundles, Kundengruppen mit Sonderpreisen, automatische Rabatte, Gutscheine und ein komplettes Treueprogramm mit Punkten." },
         { "q": "Wie baue ich meinen eigenen Webshop?", "a": "Mit dem eingebauten Webshop Builder wählst Du ein Theme, passt Sektionen per Drag & Drop an und verbindest Deine eigene Domain. Starter erhält Basis-Themes, Pro 1 Premium-Theme, Enterprise alle." },
         { "q": "Gibt es Zusatzkosten zum Abo?", "a": "Nein. Du zahlst nur die Standard-Stripe-Gebühren (1,5% + €0,25 pro Transaktion). Wir berechnen keine extra Transaktionsgebühren. Add-ons wie POS sind optional." },
-        { "q": "Was ist Peppol und warum ist es wichtig?", "a": "Ab 2026 ist elektronische Rechnungsstellung über Peppol für alle B2B-Transaktionen in Belgien Pflicht. Unsere Peppol-Integration ist in Entwicklung und wird rechtzeitig launchen, damit Du compliant bist." },
+        { "q": "Was ist Peppol und warum ist es wichtig?", "a": "Seit 2026 ist elektronische Rechnungsstellung über Peppol für B2B-Transaktionen in Belgien Pflicht. Mit SellQos Odoo-Integration (ab Pro) werden Deine B2B-Rechnungen automatisch als E-Rechnung über Dein eigenes Odoo versendet, damit Du compliant bist." },
         { "q": "Was passiert mit meinen Daten bei Kündigung?", "a": "Deine Daten gehören Dir. Du kannst alles (Produkte, Kunden, Bestellungen) als CSV, Excel oder per API exportieren. Wir löschen Deine Daten erst 30 Tage nach Kündigung." }
       ]
     },

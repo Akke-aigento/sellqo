@@ -87,7 +87,7 @@
         { "subtitle": "Content, SEO & Campagnes", "title": "Complete AI Marketing Suite", "desc": "Genereer social posts, productbeschrijvingen, email content én afbeeldingen. Plan advertenties op Bol.com en Meta.", "badge": "AI-powered", "list": ["AI Content Hub met agenda", "Automatisch posten naar social media", "Bol.com & Meta Ads manager"] },
         { "subtitle": "Gevonden Worden", "title": "AI SEO & Vertalingen", "desc": "SEO Dashboard met Quick Wins, technische checks en AI Search optimalisatie. Bulk-vertaal naar EN/DE/FR met één klik.", "badge": "Exclusief" },
         { "subtitle": "Kortingen & Loyaliteit", "title": "8 Promotietypen", "desc": "Kortingscodes, BOGO, bundels, staffelkorting, cadeaubonnen, klantgroepen en een compleet loyaliteitsprogramma.", "list": ["Cadeaubonnen met QR-codes", "Stapelbare kortingen met regels", "VIP tiers met punten multipliers"] },
-        { "subtitle": "Facturen & BTW", "title": "Slimme Financiën", "desc": "Factur-X PDF's in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-invoicing voor B2B (coming soon).", "badge": "Peppol Coming Soon" },
+        { "subtitle": "Facturen & BTW", "title": "Slimme Financiën", "desc": "Factur-X PDF's in 4 talen, automatische BTW/OSS berekening, credit notes en Peppol e-facturatie voor B2B via de Odoo-koppeling.", "badge": "Peppol-ready" },
         { "subtitle": "Alle Communicatie Op Één Plek", "title": "Unified Inbox", "desc": "Email, WhatsApp, Facebook Messenger én Instagram DMs in één inbox. Marketplace berichten automatisch gerouteerd.", "badge": "Social Messaging" },
         { "subtitle": "Geen Code Nodig", "title": "Webshop Builder", "desc": "Kies een theme, pas kleuren aan, bouw je homepage visueel. Reviews van Google, Trustpilot en meer op één plek." },
         { "subtitle": "Data & Fysieke Verkoop", "title": "Groei-Insights & POS", "desc": "Real-time inzicht in omzet, winstmarges per product. Plus een volledig POS kassasysteem voor je winkel.", "badge": "Omnichannel" }
@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "AI Credit Pack", "desc": "500 extra AI credits/maand", "features": ["Productbeschrijvingen", "Social content", "Afbeelding generatie"], "for": "Starter+" },
         "pos": { "name": "POS Kassa", "desc": "Verkoop in je winkel", "features": ["Touch interface", "Barcode scanning", "Stripe Terminal"], "for": "Starter (Pro: gratis)" },
-        "peppol": { "name": "Peppol e-Invoicing", "desc": "Binnenkort beschikbaar — verplicht vanaf 2026 in BE", "features": ["Officiële Peppol koppeling", "Automatische verzending", "Ontvangstbevestigingen", "B2B compliance"], "for": "Starter (Pro: gratis)", "urgency": "🔜 Coming Soon — Verplicht 2026" },
+        
         "marketplace": { "name": "Extra Marketplace", "desc": "Per extra kanaal", "features": ["Amazon, eBay, etc.", "Order sync", "Voorraad sync"], "for": "Pro+" }
       }
     },
@@ -198,13 +198,13 @@
         { "q": "Welke talen ondersteunt SellQo?", "a": "Nederlands, Engels, Frans en Duits. Zowel de admin interface als je webshop zijn volledig vertaalbaar. AI vertalingen zijn beschikbaar voor productbeschrijvingen en marketing content." },
         { "q": "Kan ik mijn bestaande webshop migreren?", "a": "Ja! We hebben import tools voor Shopify, WooCommerce en andere platforms. Enterprise-klanten krijgen migratie-ondersteuning inbegrepen." },
         { "q": "Welke betaalmethoden worden ondersteund?", "a": "Via Stripe Connect ondersteun je iDEAL, Bancontact, creditcards, Apple Pay, Google Pay en 40+ andere methoden. Jouw klanten betalen direct op jouw Stripe account." },
-        { "q": "Is SellQo geschikt voor B2B verkoop?", "a": "Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-invoicing voor zakelijke klanten (binnenkort beschikbaar)." },
+        { "q": "Is SellQo geschikt voor B2B verkoop?", "a": "Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-facturatie voor zakelijke klanten via de Odoo-koppeling (vanaf Pro)." },
         { "q": "Hoe werken de AI credits?", "a": "AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise 5.000 credits/maand. Extra credits kun je bijkopen voor €19 per 500 credits." },
         { "q": "Kan ik ook fysiek verkopen met SellQo?", "a": "Ja! Met onze POS module heb je een complete kassa met touch-interface, barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Beschikbaar als add-on voor €29/maand of €15/maand bij Pro." },
         { "q": "Welke promoties kan ik instellen?", "a": "SellQo ondersteunt 8 promotietypen: kortingscodes, staffelkorting, BOGO (buy one get one), productbundels, klantgroepen met speciale prijzen, automatische kortingen, cadeaubonnen en een compleet loyaliteitsprogramma met punten." },
         { "q": "Hoe bouw ik mijn eigen webshop?", "a": "Met de ingebouwde Webshop Builder kies je een theme, pas je secties aan via drag & drop, en koppel je je eigen domein. Starter krijgt basis themes, Pro krijgt 1 premium theme, Enterprise alle themes." },
         { "q": "Zijn er extra kosten bovenop het abonnement?", "a": "Nee. Het enige wat je betaalt zijn de standaard Stripe betaalkosten (1,5% + €0,25 per transactie). Wij rekenen geen extra transactiekosten. Add-ons zoals POS zijn optioneel." },
-        { "q": "Wat is Peppol en waarom is het belangrijk?", "a": "Vanaf 2026 is elektronische facturatie via Peppol verplicht voor alle B2B transacties in België. Onze Peppol-integratie is in ontwikkeling en wordt vóór de deadline gelanceerd, zodat jij op tijd compliant bent." },
+        { "q": "Wat is Peppol en waarom is het belangrijk?", "a": "Sinds 2026 is elektronische facturatie via Peppol verplicht voor B2B-transacties in België. Met de Odoo-koppeling van SellQo (vanaf Pro) worden je B2B-facturen automatisch als e-factuur verstuurd via je eigen Odoo, zodat je compliant bent." },
         { "q": "Wat gebeurt er met mijn data als ik stop?", "a": "Je data blijft van jou. Je kunt alles exporteren (producten, klanten, bestellingen) in CSV, Excel of via API. We verwijderen je data pas 30 dagen na opzegging." }
       ]
     },

@@ -87,7 +87,7 @@
         { "subtitle": "Content, SEO & Campaigns", "title": "Complete AI Marketing Suite", "desc": "Generate social posts, product descriptions, email content and images. Plan ads on Bol.com and Meta.", "badge": "AI-powered", "list": ["AI Content Hub with calendar", "Auto-post to social media", "Bol.com & Meta Ads manager"] },
         { "subtitle": "Get Found", "title": "AI SEO & Translations", "desc": "SEO Dashboard with Quick Wins, technical checks and AI Search optimization. Bulk-translate to EN/DE/FR in one click.", "badge": "Exclusive" },
         { "subtitle": "Discounts & Loyalty", "title": "8 Promotion Types", "desc": "Discount codes, BOGO, bundles, volume discounts, gift cards, customer groups and a complete loyalty program.", "list": ["Gift cards with QR codes", "Stackable discounts with rules", "VIP tiers with point multipliers"] },
-        { "subtitle": "Invoices & VAT", "title": "Smart Finance", "desc": "Factur-X PDFs in 4 languages, automatic VAT/OSS calculation, credit notes and Peppol e-invoicing for B2B (coming soon).", "badge": "Peppol Coming Soon" },
+        { "subtitle": "Invoices & VAT", "title": "Smart Finance", "desc": "Factur-X PDFs in 4 languages, automatic VAT/OSS calculation, credit notes and Peppol e-invoicing for B2B via the Odoo integration.", "badge": "Peppol-ready" },
         { "subtitle": "All Communication In One Place", "title": "Unified Inbox", "desc": "Email, WhatsApp, Facebook Messenger and Instagram DMs in one inbox. Marketplace messages routed automatically.", "badge": "Social Messaging" },
         { "subtitle": "No Code Needed", "title": "Webshop Builder", "desc": "Pick a theme, tweak colors, build your homepage visually. Reviews from Google, Trustpilot and more in one place." },
         { "subtitle": "Data & In-Store Sales", "title": "Growth Insights & POS", "desc": "Real-time insight into revenue and per-product margins. Plus a full POS system for your store.", "badge": "Omnichannel" }
@@ -183,7 +183,7 @@
       "addons": {
         "ai": { "name": "AI Credit Pack", "desc": "500 extra AI credits/month", "features": ["Product descriptions", "Social content", "Image generation"], "for": "Starter+" },
         "pos": { "name": "POS Register", "desc": "Sell in your store", "features": ["Touch interface", "Barcode scanning", "Stripe Terminal"], "for": "Starter (Pro: free)" },
-        "peppol": { "name": "Peppol e-Invoicing", "desc": "Coming soon — mandatory in BE from 2026", "features": ["Official Peppol connection", "Automatic dispatch", "Delivery receipts", "B2B compliance"], "for": "Starter (Pro: free)", "urgency": "🔜 Coming Soon — Required 2026" },
+        
         "marketplace": { "name": "Extra Marketplace", "desc": "Per additional channel", "features": ["Amazon, eBay, etc.", "Order sync", "Stock sync"], "for": "Pro+" }
       }
     },
@@ -198,13 +198,13 @@
         { "q": "Which languages does SellQo support?", "a": "Dutch, English, French and German. Both the admin interface and your webshop are fully translatable. AI translations are available for product descriptions and marketing content." },
         { "q": "Can I migrate my existing webshop?", "a": "Yes! We have import tools for Shopify, WooCommerce and other platforms. Enterprise customers get migration support included." },
         { "q": "Which payment methods are supported?", "a": "Via Stripe Connect you support iDEAL, Bancontact, credit cards, Apple Pay, Google Pay and 40+ other methods. Your customers pay directly into your Stripe account." },
-        { "q": "Is SellQo suitable for B2B?", "a": "Absolutely! We support VAT-exempt transactions, net pricing, customer-specific prices and automatic Peppol e-invoicing for business customers (coming soon)." },
+        { "q": "Is SellQo suitable for B2B?", "a": "Absolutely! We support VAT-exempt transactions, net pricing, customer-specific prices and automatic Peppol e-invoicing for business customers via the Odoo integration (from Pro)." },
         { "q": "How do AI credits work?", "a": "AI credits are used to generate content like social posts, emails and product descriptions. Pro gets 500/month, Enterprise 5,000/month. Extra credits can be bought for €19 per 500 credits." },
         { "q": "Can I sell in-store with SellQo?", "a": "Yes! Our POS module is a full register with touch interface, barcode scanner, gift card sales and Stripe Terminal. Available as add-on for €29/month or €15/month on Pro." },
         { "q": "Which promotions can I set up?", "a": "SellQo supports 8 promotion types: discount codes, volume discounts, BOGO (buy one get one), product bundles, customer groups with special prices, automatic discounts, gift cards and a complete loyalty program with points." },
         { "q": "How do I build my own webshop?", "a": "With the built-in Webshop Builder you pick a theme, customize sections via drag & drop and connect your own domain. Starter gets basic themes, Pro gets 1 premium theme, Enterprise gets all." },
         { "q": "Are there extra costs on top of the subscription?", "a": "No. You only pay the standard Stripe payment fees (1.5% + €0.25 per transaction). We charge no extra transaction fees. Add-ons like POS are optional." },
-        { "q": "What is Peppol and why does it matter?", "a": "From 2026 electronic invoicing via Peppol is mandatory for all B2B transactions in Belgium. Our Peppol integration is in development and will launch before the deadline so you're compliant in time." },
+        { "q": "What is Peppol and why does it matter?", "a": "Since 2026, electronic invoicing via Peppol has been mandatory for B2B transactions in Belgium. With SellQo's Odoo integration (from Pro), your B2B invoices are automatically sent as e-invoices via your own Odoo, so you stay compliant." },
         { "q": "What happens to my data if I cancel?", "a": "Your data stays yours. You can export everything (products, customers, orders) in CSV, Excel or via API. We only delete your data 30 days after cancellation." }
       ]
     },
