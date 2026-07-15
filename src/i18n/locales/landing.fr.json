@@ -1056,6 +1056,10 @@
         "odoo_draft_mode": {
           "title": "À vous de choisir : comptabiliser ou brouillon dans Odoo",
           "description": "Décidez par locataire si les factures synchronisées sont comptabilisées directement ou arrivent en brouillon pour que votre comptable les contrôle d'abord."
+        },
+        "language_switcher": {
+          "title": "Nouveau sélecteur de langue sur le site",
+          "description": "Le sélecteur de langue du site public a été repensé : un menu clair avec les noms de langues en toutes lettres au lieu de drapeaux."
         }
       }
     }
