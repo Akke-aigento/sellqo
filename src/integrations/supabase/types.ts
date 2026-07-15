@@ -15841,6 +15841,7 @@ export type Database = {
           channel_aliases: Json
           channel_partner_ids: Json
           created_at: string
+          odoo_auto_post: boolean
           odoo_journal_id: string | null
           odoo_journal_name: string | null
           odoo_sync_enabled: boolean
@@ -15856,6 +15857,7 @@ export type Database = {
           channel_aliases?: Json
           channel_partner_ids?: Json
           created_at?: string
+          odoo_auto_post?: boolean
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
@@ -15871,6 +15873,7 @@ export type Database = {
           channel_aliases?: Json
           channel_partner_ids?: Json
           created_at?: string
+          odoo_auto_post?: boolean
           odoo_journal_id?: string | null
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
