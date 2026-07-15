@@ -3708,3 +3708,84 @@ Op een smartphone kan een klant de EPC-QR-code niet scannen met hetzelfde toeste
 **Vangst uit recon:** sales_channel onbetrouwbaar voor historische Bol-imports; marketplace_source is de bron van waarheid. Historische 33 zijn gepre-seed, dus geen voorwaartse impact. Eerste recon via Lovable-connector: SQL nu rechtstreeks door Claude uitvoerbaar.
 
 **Vervolg:** ODOO-POST-1 (auto-boeken-toggle, 2026.07f) direct erna geland — concept-modus beschikbaar per tenant. Parallelweek: BCC-concepten (INV-2026-0146 t/m 0153+) opruimen in Odoo bij het leegmaken van invoice_bcc_email ~21/7. Praktijktest kanaal-partner: eerstvolgende Bol-order moet onder "Bol.com verkopen — VanXcel" boeken.
+
+## INV-DOC-1 + CN-AUTO-1 + CN-CALC — Complete documenten & automatische creditnota's — 2026-07-10
+
+**Wat:** (A) Abonnementsfacturen krijgen nu PDF (generate-subscription-invoice-pdf, pdf-lib) + UBL (via generate-peppol-ubl), gegenereerd vóór charge/mail zodat bijlagen kloppen; backfill-modus voor bestaande facturen; mail laat de bijlage-zin weg als er geen document is. (B) Creditnota's ontstaan automatisch op het inspected-moment van een retour (kanaal-onafhankelijk — óók Bol, waar geld buiten onze Stripe om loopt), pro-rata op geaccepteerde aantallen (received_quantity), met process-refund als safety-net voor terugbetalingen zonder retour; harde idempotency via unique indexes op return_id/stripe_refund_id. (C) BTW-dubbeltelling in de handmatige creditnota-dialog gefixt + server-side plafond: nooit meer crediteren dan resterend crediteerbaar.
+
+**Bewijs:** backfill → 4/4 abonnementsfacturen met PDF; testretour Demo Bakkerij → CN-2026-0001 (€-29,99) automatisch geboren uit inspectie, genummerd, gemaild; volledige creditering INV-2026-0002 toont/boekt exact €12,10 (was €14,20).
+
+**Bugs & vondsten:**
+- Trigger stond eerst op 'approved' (= retourverzoek goedgekeurd, goederen nog bij klant) — verplaatst naar 'inspected' (ná aankomst + controle), conform het boekhoudkundige feit. Marktplaats-inzicht: creditnota volgt de retour-beslissing, nooit de geldbeweging (Bol betaalt buiten ons om).
+- Kolomronde #3: refund_reason/return_number bestonden niet (echt: return_reason, rma_number) — schema-audit ving het vóór runtime.
+- Deploy-gap #4 (generate-subscription-invoice-pdf) — deploy-tijdstip-check is nu onvoorwaardelijke stap vóór elke hertest. Backfill-lus logt voortaan HTTP-status + response-body per gefaalde factuur.
+- CreditNoteDialog telde vat_amount op bij een al-bruto line_total → €2,10 te veel. Onderliggend: invoice_lines.line_total inconsistent opgeslagen (soms netto, soms bruto) — reconstructie via unit_price×qty+vat_amount is de betrouwbare weg; normalisatie-migratie op de backlog.
+- Guard-kiertje: plafond geldt (bewust, scope) nog niet voor auto-CN's — meenemen in CN-VOID-1.
+
+**Open:** REPORT-FIX-1 (processing/unpaid onzichtbaar in BTW-rapport — prompt klaar), CN-VOID-1 (annuleren i.p.v. verwijderen + plafond op alle CN's), ODOO-1 (wacht op 5 Odoo-antwoorden), PEPPOL via Odoo, partial-acceptatie + idempotency-hertest CN.
+
+## Settlement-baseline SEPA smoke-facturen + fix INV-2026-0002 — 14 juli 2026
+
+**Root cause:** het initiële-charge-pad (subscription-invoice, vermoedelijk de handmatig getriggerde variant) maakt de off-session SEPA-PI correct aan met metadata (invoice_id/tenant_id/subscription_id, géén retry_attempt) maar zet de factuur níét op `processing`. INV-2026-0002 bleef daardoor op `sent` met next_action_at = 7/8 in de dunning-pijplijn staan, terwijl er al een SEPA liep (pi_3Tquu02NSrtUWC0r0keNQQIp, 8/7 12:48) → dubbele-charge-risico. Cronruns van 06:00 (0003/0005) zetten de status wél correct — twee paden, één bug. Uitzoeken ná settlement-week, zelfde familie als charge_attempts die op 0 blijft bij initiële charge.
+
+**Fix:** 0002 handmatig op `processing` + next_action_at = null (guard op 'sent', idempotent herbevestigd). Dunning-cron selecteert enkel unpaid/sent (geverifieerd in code) → processing-facturen zijn veilig.
+
+**Baseline (before-stand voor slotbewijs):**
+- pi_3Tquu02... → INV-2026-0002 (metadata-bevestigd) — processing
+- pi_3TrB0D2... → INV-2026-0003 (timestamp-match 9/7 06:00) — processing
+- pi_3TsGQu2... → INV-2026-0005 (timestamp-match 12/7 06:00) — processing
+- Alle drie: paid_at null, charge_attempts 0
+- INV-2026-0001: sent, geen PI, dunning 7/8 → opruimlijst
+- INV-2026-0004: sent, €35,09, next_action 20/7 = dunning level 3 canary ✓
+
+**Slotbewijs bij settlement:** 3× processing → paid + paid_at gevuld + `[SUB-CHARGE-WEBHOOK] Invoice marked paid` in platform-stripe-webhook-logs (filteren op PI-id). Webhook-handler idempotent geverifieerd: paid wordt nooit overschreven, late failed kan paid niet terugzetten.
+
+## Pre-seed VanXcel Odoo-sync — 14 juli 2026
+
+**Root cause (preventief):** sync-odoo-invoices dedupt uitsluitend op sync_status = 'synced'. Het overdrachtsplan ('historical' als sync_status) zou de dedup gemist hebben → 128 facturen + 1 credit note als duplicaat in Verkoopdagboek VanXcel bij toggle-aan. Markering verhuisd naar sync_direction = 'historical' (vrije string, nergens als filter gebruikt — geverifieerd in functions + src).
+
+**Uitgevoerd:** 128 facturen (107 paid, 21 sent) + 1 credit note (sent) gepre-seed als synced/historical met peppol_status 'skipped' en pre-seed-notitie in peppol_note. Insert idempotent (not exists-guard). Natrek: 128+1 bevestigd, nul push-rijen → cron heeft nooit gesynct, toggle stond uit.
+
+**Vangst uit recon:** de overdracht sprak van 149+ facturen; werkelijke sync-scope is 128 (rest valt buiten ISSUED_STATUSES). De credit note zat niet in het oorspronkelijke plan — zonder recon een gegarandeerd duplicaat.
+
+**Backlog-notitie:** candidates-query heeft .limit(200) zonder order by → non-deterministisch zodra VanXcel >200 issued documenten heeft. Zelfde familie als .limit(50)-item.
+
+**Vervolg:** toggle aan (journal "Verkoopdagboek VanXcel", B2C-aggregatie AAN) → eerste cron-run natrekken (verwacht 0/0) → week parallel met BCC (BCC-mails in Odoo NIET verwerken, zelfde dagboek = dubbelboeking) → daarna tenants.invoice_bcc_email leegmaken.
+
+**Slotbewijs (14/7, 22:17 lokaal):** eerste cron-run mét toggle aan (jobid 70, 20:17 UTC, succeeded) → nul push-rijen in sync_log (synced noch failed), Verkoopdagboek VanXcel onaangeroerd. Dedup bewezen op volledige productie-set. Parallelweek gestart 14/7 → BCC-mails in Odoo niet verwerken; rond 21/7 tenants.invoice_bcc_email leegmaken.
+
+## PEPPOL-2/3: vocabulaire-sanering + Odoo-gating + marketing — 15 juli 2026
+
+**Root cause:** drie schrijvers (generate-invoice, generate-peppol-ubl, generate-credit-note) hanteerden elk een eigen peppol_status-vocabulaire en de UI las een vierde ('pending'/'sent') dat in de data niet voorkwam (142× not_applicable, 2× archive_only, 0× pending). Filter en badges konden daardoor nooit iets tonen. Daarnaast praatten de native Peppol-stack en de Odoo-sync niet met elkaar: Odoo-verzending liet invoices.peppol_status onaangeroerd → risico op dubbele verzending en een eeuwig groeiende pending-teller.
+
+**Batch A (backend):** canoniek vocabulaire (not_applicable / archive_only / pending / sent / manual_action) + CHECK-constraints (validated), Odoo write-back naar invoices én credit_notes (met .neq-guard tegen downgrade van 'sent'), credit_notes.peppol_sent_at toegevoegd, tenant_odoo_settings.peppol_send_enabled (default true) gate't beide tryPeppolSend-call-sites.
+
+**Batch B (UI/marketing):** badges voor alle statussen, filter "Peppol-actie vereist" op pending+manual_action over facturen én credit notes, Boekhouding-tab achter checkFeature('odoo_sync') (pro/enterprise, migratie op pricing_plans.features), peppol_send_enabled-toggle + Peppol-aandacht-kaart in Boekhouding-tab, PeppolSettings uit de feature-gate (peppol_id voedt UBL die elk plan heeft), BTW-waarschuwing op B2B-klantformulier (non-blocking), €12 peppol-add-on incl. hasUrgency van de landing verwijderd, odoo_sync-label op pricing.
+
+**Beslissing:** Peppol-verzending loopt via de tenant zijn eigen Odoo — Sellqo verkoopt de kóppeling (vanaf Pro €79), niet de compliance. UBL-download blijft in alle plannen als handmatige compliance-route. Directe Peppol-API (access point) geparkeerd als PEPPOL-FUTURE.
+
+**Recon-lessen:** (1) customer_type is 'b2b'/'b2c', niet 'business' — eerdere "0 B2B zonder BTW" was vals negatief door foute filterwaarde; gecorrigeerd: 2 gevallen, beide demo/intern. (2) pricing_plans.id is de tekstuele key, geen UUID.
+
+**Open:** PEPPOL-4 opruimbatch (PeppolUpgradeCard, create-addon-checkout peppol-pad, backfill-ubl-archive evalueren, 'peppol' feature-key uitfaseren) + pricing-label evt. verrijken met "(incl. Peppol e-facturatie)".
+
+## ODOO-POST-1: auto-boeken-toggle (concept-modus) — 15 juli 2026
+
+**Root cause:** sommige boekhouders willen gesyncte facturen eerst reviewen vóór boeking, maar action_post zat hardcoded in sync-odoo-invoices. Extra koppeling: Odoo kan alleen gebóékte facturen via Peppol versturen — zonder toggle dus geen legitieme concept-workflow mogelijk.
+
+**Uitgevoerd:** migratie tenant_odoo_settings.odoo_auto_post boolean NOT NULL DEFAULT true (20260715194706, IF NOT EXISTS); sync-odoo-invoices laadt autoPost in SyncCtx en slaat action_post over bij false, in béíde paden (invoice + credit note); in concept-modus krijgen B2B-documenten met BTW-nummer peppol_status 'manual' met verklarende note, B2C blijft 'skipped' zodat de bron-peppol_status niet muteert; UI-toggle in Boekhouding-tab, Peppol-switch disabled + amber-toelichting bij autoPost=false (Peppol vereist auto-boeken); i18n 4-talig (admin + landing); changelog 2026.07f (odoo_draft_mode).
+
+**Natrek (16/7 via connector):** kolom bestaat, beide tenants (VanXcel + Sellqo intern) op true → default = exact het bestaande gedrag, geen risico voor de lopende parallelweek.
+
+## LANG-UI-1: flagless language switcher + changelog-gat 2026.07d — 15/16 juli 2026
+
+**Root cause:** vlag-emoji's zijn geen correcte taalindicatoren (een NL-vlag staat niet voor Nederlands in België) en de oude inline flag-switcher schaalde slecht. Daarnaast bleef bij de run van 15/7 de changelog-slottaak liggen: versienummer 2026.07d ontbrak tussen 07c en 07e.
+
+**Uitgevoerd:** LandingLanguageSwitcher herbouwd als shadcn DropdownMenu met Globe-icoon en endoniemen (Nederlands / English / Français / Deutsch), Check-indicator op de actieve taal, compact-variant met taalcode; aria-label via i18n-key landing.nav.languageSelect in 4 talen. Op 16/7 het changelog-gat gedicht: entry 2026.07d (language_switcher, improvement) in PublicChangelog.tsx + i18n-teksten in landing.{nl,en,fr,de}.json onder public.changelog.changes.
+
+## Role-audit backfill — 16 juli 2026
+
+**Root cause:** vijf documentatie-entries (INV-DOC-1, Settlement-baseline SEPA, Pre-seed VanXcel, PEPPOL-2/3, plus het pre-seed-slotbewijs) werden als losse Lovable-chatberichten aangeleverd zonder expliciete append-instructie en zijn daardoor nooit in dit bestand geland; alleen appends met "append to docs/role-audit.md" als opdracht (zoals CHANNEL-1) kwamen door.
+
+**Uitgevoerd:** de vijf teksten verbatim gerecoverd uit de Lovable-berichthistorie en hierboven in chronologische volgorde toegevoegd, samen met verse entries voor ODOO-POST-1 en LANG-UI-1. Werkregel voortaan: elke role-audit-entry gaat als expliciete append-opdracht ("DOCUMENTATION ONLY — append to docs/role-audit.md") naar Lovable, nooit als los contextbericht.
+
+**Vervolg:** entries voor ODOO-1, ODOO-2 (per-tenant connecties), REPORT-FIX-1 en de VERT/MARKETING-batches van 15/7 ontbreken nog — backfillen zodra gereconstrueerd (ROLE-AUDIT-BACKFILL-2).
