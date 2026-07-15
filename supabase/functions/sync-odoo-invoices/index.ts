@@ -348,7 +348,11 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
   let peppol: { status: string; note?: string } = { status: 'skipped' }
   if (!ctx.autoPost) {
     // Concept-modus: laat het boeken + Peppol aan de boekhouder in Odoo.
-    peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    // Alleen B2B-documenten met BTW-nummer krijgen 'manual' (relevant voor Peppol);
+    // B2C blijft 'skipped' zodat de bron-peppol_status niet muteert.
+    if (isB2B && hasVat) {
+      peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    }
   } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
     peppol = await tryPeppolSend(ctx, moveId)
   }
@@ -417,7 +421,9 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
   if (!ctx.autoPost) {
-    peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    if (isB2B && hasVat) {
+      peppol = { status: 'manual', note: 'concept-modus: boeken + Peppol-verzending gebeurt in Odoo' }
+    }
   } else if (ctx.peppolSendEnabled && isB2B && hasVat) {
     peppol = await tryPeppolSend(ctx, moveId)
   }
