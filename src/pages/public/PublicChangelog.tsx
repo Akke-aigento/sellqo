@@ -35,7 +35,7 @@ const changelogEntries = [
       { type: 'feature', title: 'Shop Health Score', description: 'Real-time gezondheidsmonitor voor je webshop op 6 gebieden.' },
       { type: 'feature', title: 'Visual Webshop Editor', description: 'Drag & drop builder voor je storefront pagina\'s zonder code te schrijven.' },
       { type: 'feature', title: 'AI Business Coach', description: 'Proactieve suggesties gebaseerd op shop analytics.' },
-      { type: 'feature', title: 'WhatsApp unified inbox', description: 'Klantcommunicatie via WhatsApp geïntegreerd in de unified inbox.' },
+      { type: 'feature', title: 'Unified Inbox', description: 'Alle klantcommunicatie via e-mail gecentraliseerd in één inbox met AI-antwoordsuggesties.' },
     ],
   },
   {
