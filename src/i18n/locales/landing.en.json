@@ -196,7 +196,7 @@
         { "q": "What is the Shop Health Score?", "a": "A real-time score (0-100%) measuring your shop's health across 6 areas: fulfillment, inventory, customer service, finance, SEO and compliance. You get personalized daily tips to improve it." },
         { "q": "Can I switch plans later?", "a": "Yes! You can upgrade or downgrade at any time via Settings → Subscription. Upgrades are instant, downgrades take effect next billing period. No hidden fees." },
         { "q": "Which languages does SellQo support?", "a": "Dutch, English, French and German. Both the admin interface and your webshop are fully translatable. AI translations are available for product descriptions and marketing content." },
-        { "q": "Can I migrate my existing webshop?", "a": "Yes! We have import tools for Shopify, WooCommerce and other platforms. Enterprise customers get free migration help worth €2,000." },
+        { "q": "Can I migrate my existing webshop?", "a": "Yes! We have import tools for Shopify, WooCommerce and other platforms. Enterprise customers get migration support included." },
         { "q": "Which payment methods are supported?", "a": "Via Stripe Connect you support iDEAL, Bancontact, credit cards, Apple Pay, Google Pay and 40+ other methods. Your customers pay directly into your Stripe account." },
         { "q": "Is SellQo suitable for B2B?", "a": "Absolutely! We support VAT-exempt transactions, net pricing, customer-specific prices and automatic Peppol e-invoicing for business customers (coming soon)." },
         { "q": "How do AI credits work?", "a": "AI credits are used to generate content like social posts, emails and product descriptions. Pro gets 500/month, Enterprise 5,000/month. Extra credits can be bought for €19 per 500 credits." },
