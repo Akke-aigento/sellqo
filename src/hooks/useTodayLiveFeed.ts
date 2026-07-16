@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfDay, subDays } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
+import { REAL_CUSTOMER_OR } from '@/lib/salesStats';
 
 export interface LiveFeedItem {
   id: string;
@@ -107,8 +108,8 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
           .eq('tenant_id', tenantId!)
           .gte('created_at', startISO)
           .lt('created_at', endISO)
-          // Echte klanten: NULL of niet-import. PostgREST-`not(...,'in',...)` sluit NULL uit, dus expliciet OR.
-          .or('acquisition_source.is.null,acquisition_source.not.in.(bol_com,shopify_import)'),
+          // Echte klanten: NULL of niet-import (import-bronnen gedefinieerd in salesStats).
+          .or(REAL_CUSTOMER_OR),
         supabase
           .from('customers')
           .select('id', { count: 'exact', head: true })

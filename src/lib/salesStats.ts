@@ -2,6 +2,18 @@
 export type OrderLike = { status?: string | null; payment_status?: string | null };
 export type ChannelLike = { marketplace_source?: string | null; sales_channel?: string | null };
 
+/**
+ * Bronnen die op klanten geplakt worden bij bulk-imports (Bol/Shopify/CSV).
+ * Deze klanten mogen nooit als "nieuwe registratie" tellen in de stats-hooks.
+ */
+export const IMPORT_ACQUISITION_SOURCES = ['bol_com', 'shopify_import', 'csv_import'] as const;
+
+/**
+ * PostgREST-`.or(...)` string voor useTodayLiveFeed/useAnalytics: NULL of niet-import.
+ * Eén bron zodat de lijst nooit meer uiteenloopt.
+ */
+export const REAL_CUSTOMER_OR = `acquisition_source.is.null,acquisition_source.not.in.(${IMPORT_ACQUISITION_SOURCES.join(',')})`;
+
 /** Telt mee als bestelling (alles behalve geannuleerd). */
 export const isCountableOrder = (o: OrderLike) => o.status !== 'cancelled';
 
@@ -18,10 +30,11 @@ export const resolveOrderChannel = (o: ChannelLike): string => {
   if (
     o.marketplace_source &&
     o.marketplace_source !== 'web' &&
-    o.marketplace_source !== 'shopify_draft_order'
+    o.marketplace_source !== 'shopify_draft_order' &&
+    o.marketplace_source !== 'csv_import'
   )
     return o.marketplace_source;
-  if (o.marketplace_source === 'shopify_draft_order') return 'webshop';
+  if (o.marketplace_source === 'shopify_draft_order' || o.marketplace_source === 'csv_import') return 'webshop';
   return o.sales_channel && o.sales_channel !== 'webshop' ? o.sales_channel : 'webshop';
 };
 

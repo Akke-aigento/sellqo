@@ -10,6 +10,55 @@ const corsHeaders = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
+// ============= NORMALIZATION HELPERS =============
+// parseBool: privacy-first — true alleen bij expliciete truthy waarden.
+function parseBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value !== 'string') return false;
+  const v = value.trim().toLowerCase();
+  return ['true', 'yes', 'ja', '1', 'y', 'waar'].includes(v);
+}
+
+// normalizeNumber: verwerkt Belgisch (19,99 / 1.234,56) en US (1,234.56) formaat.
+function normalizeNumber(value: unknown): number {
+  if (typeof value === 'number') return isFinite(value) ? value : 0;
+  if (value == null) return 0;
+  let s = String(value).trim();
+  if (!s) return 0;
+  // strip valuta-symbolen en spaties
+  s = s.replace(/[€$£¥\s]/g, '');
+  const hasDot = s.includes('.');
+  const hasComma = s.includes(',');
+  if (hasDot && hasComma) {
+    // laatst voorkomende teken is decimaal
+    const lastDot = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+    if (lastComma > lastDot) {
+      // ',' is decimaal, '.' = duizendtal
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // '.' is decimaal, ',' = duizendtal
+      s = s.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function normalizeInt(value: unknown): number {
+  return Math.round(normalizeNumber(value));
+}
+
+// Alleen keys uit `record` die daadwerkelijk aanwezig zijn (niet undefined en niet lege string).
+function hasValue(record: Record<string, unknown>, key: string): boolean {
+  if (!(key in record)) return false;
+  const v = record[key];
+  return v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '');
+}
+
 interface ImportRequest {
   tenant_id: string;
   platform: string;
@@ -105,7 +154,7 @@ Deno.serve(async (req) => {
         }
         await importProducts(supabase, tenant_id, records, options, result);
       } else if (data_type === "orders") {
-        await importOrders(supabase, tenant_id, records, options, result);
+        await importOrders(supabase, tenant_id, platform, records, options, result);
       }
     } catch (importError) {
     if (importError instanceof AuthError) {
@@ -177,10 +226,17 @@ async function importCustomers(
       const customerData = buildCustomerData(tenantId, record);
 
       if (existing && options.updateExisting) {
-        // Update existing
+        // Update existing — bouw non-destructieve payload: alleen velden die
+        // daadwerkelijk in de CSV-rij zitten, en NOOIT consent/acquisition/tellers
+        // tenzij expliciet aangeleverd.
+        const updateData = buildCustomerUpdateData(record);
+        if (Object.keys(updateData).length === 0) {
+          result.skipped_count++;
+          continue;
+        }
         const { error } = await supabase
           .from("customers")
-          .update(customerData)
+          .update(updateData)
           .eq("id", existing.id);
         
         if (error) throw error;
@@ -252,14 +308,76 @@ function buildCustomerData(tenantId: string, record: Record<string, unknown>) {
     notes: record.notes || null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     customer_type: record.customer_type === "b2b" || record.customer_type === "business" ? "b2b" : "b2c",
-    email_subscribed: record.email_subscribed ?? true,
-    sms_subscribed: record.sms_subscribed ?? false,
-    total_spent: parseFloat(String(record.total_spent || 0)) || 0,
-    total_orders: parseInt(String(record.total_orders || 0)) || 0,
+    email_subscribed: parseBool(record.email_subscribed),
+    email_subscribed_at: parseBool(record.email_subscribed) ? new Date().toISOString() : null,
+    sms_subscribed: parseBool(record.sms_subscribed),
+    acquisition_source: 'csv_import',
+    total_spent: normalizeNumber(record.total_spent),
+    total_orders: normalizeInt(record.total_orders),
     raw_import_data: record.raw_import_data || null,
     shopify_customer_id: record.shopify_customer_id || null,
     import_source: record.import_source || "csv",
   };
+}
+
+// Non-destructieve update-payload voor bestaande klanten: alleen aangeleverde
+// kolommen worden gemuteerd. tenant_id/email/acquisition_source/tellers/consent
+// blijven ongemoeid tenzij consent-velden expliciet in het record zitten.
+function buildCustomerUpdateData(record: Record<string, unknown>): Record<string, unknown> {
+  const update: Record<string, unknown> = {};
+
+  const passthroughFields = [
+    'first_name', 'last_name', 'phone', 'company_name',
+    'billing_street', 'billing_city', 'billing_postal_code', 'billing_country',
+    'shipping_street', 'shipping_city', 'shipping_postal_code', 'shipping_country',
+    'province', 'province_code',
+    'vat_number', 'notes', 'shopify_customer_id',
+  ];
+  for (const key of passthroughFields) {
+    if (hasValue(record, key)) update[key] = record[key];
+  }
+
+  if (hasValue(record, 'tags')) {
+    update.tags = Array.isArray(record.tags) ? record.tags : [record.tags];
+  }
+  if (hasValue(record, 'customer_type')) {
+    update.customer_type = record.customer_type === 'b2b' || record.customer_type === 'business' ? 'b2b' : 'b2c';
+  }
+  if (hasValue(record, 'raw_import_data')) update.raw_import_data = record.raw_import_data;
+
+  // Adressen alleen (her)opbouwen als minstens één deelveld aanwezig is.
+  const billingParts = ['billing_street', 'billing_city', 'billing_postal_code', 'billing_country', 'province', 'province_code'];
+  if (billingParts.some(k => hasValue(record, k))) {
+    const billing: Record<string, unknown> = {};
+    if (hasValue(record, 'billing_street')) billing.street = record.billing_street;
+    if (hasValue(record, 'billing_city')) billing.city = record.billing_city;
+    if (hasValue(record, 'billing_postal_code')) billing.postal_code = record.billing_postal_code;
+    if (hasValue(record, 'billing_country')) billing.country = record.billing_country;
+    if (hasValue(record, 'province')) billing.province = record.province;
+    if (hasValue(record, 'province_code')) billing.province_code = record.province_code;
+    update.default_billing_address = billing;
+  }
+  const shippingParts = ['shipping_street', 'shipping_city', 'shipping_postal_code', 'shipping_country'];
+  if (shippingParts.some(k => hasValue(record, k))) {
+    const shipping: Record<string, unknown> = {};
+    if (hasValue(record, 'shipping_street')) shipping.street = record.shipping_street;
+    if (hasValue(record, 'shipping_city')) shipping.city = record.shipping_city;
+    if (hasValue(record, 'shipping_postal_code')) shipping.postal_code = record.shipping_postal_code;
+    if (hasValue(record, 'shipping_country')) shipping.country = record.shipping_country;
+    update.default_shipping_address = shipping;
+  }
+
+  // Consent- en teller-velden alleen aanraken als de CSV ze expliciet levert.
+  if (hasValue(record, 'email_subscribed')) {
+    const v = parseBool(record.email_subscribed);
+    update.email_subscribed = v;
+    update.email_subscribed_at = v ? new Date().toISOString() : null;
+  }
+  if (hasValue(record, 'sms_subscribed')) update.sms_subscribed = parseBool(record.sms_subscribed);
+  if (hasValue(record, 'total_spent')) update.total_spent = normalizeNumber(record.total_spent);
+  if (hasValue(record, 'total_orders')) update.total_orders = normalizeInt(record.total_orders);
+
+  return update;
 }
 
 // ============= PRODUCTS IMPORT =============
@@ -609,14 +727,14 @@ async function importProductVariants(
         product_id: productId,
         tenant_id: tenantId,
         title: variantTitle,
-        price: parseFloat(v.price) || 0,
-        compare_at_price: v.compare_at_price ? parseFloat(v.compare_at_price) : null,
-        stock: parseInt(v.stock) || 0,
+        price: normalizeNumber(v.price),
+        compare_at_price: v.compare_at_price ? normalizeNumber(v.compare_at_price) : null,
+        stock: normalizeInt(v.stock),
         sku: variantSku || null,
         barcode: variantBarcode || null,
         attribute_values: attributeValues,
         image_url: v.image?.trim() || null,
-        weight: v.weight ? parseFloat(v.weight) / 1000 : null, // grams → kg
+        weight: v.weight ? normalizeNumber(v.weight) / 1000 : null, // grams → kg
         is_active: true,
       };
 
@@ -682,14 +800,14 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     slug,
     description: record.description || null,
     short_description: record.short_description || null,
-    price: parseFloat(String(record.price || 0)) || 0,
-    compare_at_price: record.compare_at_price ? parseFloat(String(record.compare_at_price)) : null,
-    cost_price: record.cost_price ? parseFloat(String(record.cost_price)) : null,
+    price: normalizeNumber(record.price),
+    compare_at_price: hasValue(record, 'compare_at_price') ? normalizeNumber(record.compare_at_price) : null,
+    cost_price: hasValue(record, 'cost_price') ? normalizeNumber(record.cost_price) : null,
     sku: record.sku || null,
     barcode: record.barcode || null,
-    stock: parseInt(String(record.stock || 0)) || 0,
+    stock: normalizeInt(record.stock),
     track_inventory: record.track_inventory ?? true,
-    weight: record.weight ? parseFloat(String(record.weight)) : null,
+    weight: hasValue(record, 'weight') ? normalizeNumber(record.weight) : null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     images: Array.isArray(record.images) ? record.images : [],
     featured_image: record.featured_image || (Array.isArray(record.images) && record.images.length > 0 ? record.images[0] : null),
@@ -710,6 +828,7 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
 async function importOrders(
   supabase: AnySupabaseClient,
   tenantId: string,
+  platform: string,
   records: Record<string, unknown>[],
   options: ImportRequest["options"],
   result: ImportResult
@@ -764,6 +883,8 @@ async function importOrders(
               first_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ")[0] : null,
               last_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ").slice(1).join(" ") : null,
               phone: firstRow.customer_phone || null,
+              email_subscribed: false,
+              acquisition_source: 'csv_import',
             })
             .select("id")
             .single();
@@ -772,7 +893,7 @@ async function importOrders(
         }
       }
 
-      const orderData = buildOrderData(tenantId, firstRow, customerId);
+      const orderData = buildOrderData(tenantId, platform, firstRow, customerId);
 
       let orderId: string;
 
@@ -822,7 +943,16 @@ async function importOrders(
   }
 }
 
-function buildOrderData(tenantId: string, record: Record<string, unknown>, customerId: string | null) {
+function buildOrderData(tenantId: string, platform: string, record: Record<string, unknown>, customerId: string | null) {
+  // marketplace_source: expliciete waarde > platform-fallback (shopify → shopify_draft_order) > csv_import.
+  let marketplaceSource: string;
+  if (hasValue(record, 'marketplace_source')) {
+    marketplaceSource = String(record.marketplace_source);
+  } else if (platform === 'shopify') {
+    marketplaceSource = 'shopify_draft_order';
+  } else {
+    marketplaceSource = 'csv_import';
+  }
   return {
     tenant_id: tenantId,
     customer_id: customerId,
@@ -832,18 +962,18 @@ function buildOrderData(tenantId: string, record: Record<string, unknown>, custo
     customer_phone: record.customer_phone || null,
     status: mapOrderStatus(record.status as string),
     payment_status: mapPaymentStatus(record.payment_status as string),
-    subtotal: parseFloat(String(record.subtotal || 0)) || 0,
-    shipping_cost: parseFloat(String(record.shipping_cost || 0)) || 0,
-    tax_amount: parseFloat(String(record.tax_amount || 0)) || 0,
-    discount_amount: parseFloat(String(record.discount_amount || 0)) || 0,
-    total: parseFloat(String(record.total || 0)) || 0,
+    subtotal: normalizeNumber(record.subtotal),
+    shipping_cost: normalizeNumber(record.shipping_cost),
+    tax_amount: normalizeNumber(record.tax_amount),
+    discount_amount: normalizeNumber(record.discount_amount),
+    total: normalizeNumber(record.total),
     currency: (record.currency as string) || "EUR",
     billing_address: record.billing_address || null,
     shipping_address: record.shipping_address || null,
     notes: record.notes || null,
     internal_notes: record.internal_notes || null,
     external_reference: record.external_reference || null,
-    marketplace_source: record.marketplace_source || "shopify",
+    marketplace_source: marketplaceSource,
     marketplace_order_id: record.marketplace_order_id || null,
     raw_marketplace_data: record.raw_marketplace_data || null,
     import_source: record.import_source || "csv",
@@ -862,8 +992,8 @@ async function insertOrderItem(
   
   const productName = (rawData.lineitem_name as string) || (row.product_name as string) || "Unknown Product";
   const sku = (rawData.lineitem_sku as string) || (row.sku as string) || null;
-  const quantity = parseInt(String(rawData.lineitem_quantity || row.quantity || 1)) || 1;
-  const unitPrice = parseFloat(String(rawData.lineitem_price || row.unit_price || 0)) || 0;
+  const quantity = normalizeInt(rawData.lineitem_quantity ?? row.quantity ?? 1) || 1;
+  const unitPrice = normalizeNumber(rawData.lineitem_price ?? row.unit_price);
 
   // Try to find product by SKU
   let productId: string | null = null;
