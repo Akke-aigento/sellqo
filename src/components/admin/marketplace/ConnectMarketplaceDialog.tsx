@@ -373,17 +373,6 @@ export function ConnectMarketplaceDialog({
             'Kopieer je credentials',
           ],
         };
-      case 'shopify':
-        return {
-          title: 'Shopify Admin',
-          url: 'https://admin.shopify.com',
-          steps: [
-            'Log in op je Shopify Admin',
-            'Ga naar Settings → Apps and sales channels → Develop apps',
-            'Maak een nieuwe app aan en configureer Admin API scopes',
-            'Installeer de app en kopieer je Admin API access token',
-          ],
-        };
       case 'woocommerce':
         return {
           title: 'WordPress Admin',
@@ -430,20 +419,6 @@ export function ConnectMarketplaceDialog({
   };
 
   const instructions = getInstructions();
-
-  // For Shopify, use the new multi-option dialog
-  if (marketplaceType === 'shopify') {
-    return (
-      <ShopifyConnectDialog
-        open={open}
-        onOpenChange={handleClose}
-        onSuccess={() => {
-          handleClose();
-          onSuccess?.();
-        }}
-      />
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
