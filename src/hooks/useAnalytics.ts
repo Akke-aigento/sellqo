@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfMonth, subMonths, format, eachDayOfInterval, subDays, startOfDay } from 'date-fns';
-import { fetchAllRows } from '@/lib/salesStats';
+import { fetchAllRows, REAL_CUSTOMER_OR, IMPORT_ACQUISITION_SOURCES } from '@/lib/salesStats';
 
 export interface DailyStats {
   date: string;
@@ -32,9 +32,6 @@ export interface AnalyticsSummary {
   ordersChange: number;
   customersChange: number;
 }
-
-// PostgREST-`not(...,'in',...)` sluit NULL uit; expliciet OR zodat NULL meetelt.
-const REAL_CUSTOMER_OR = 'acquisition_source.is.null,acquisition_source.not.in.(bol_com,shopify_import)';
 
 export function useAnalytics(days: number = 30) {
   const { currentTenant } = useTenant();
@@ -183,7 +180,7 @@ export function useAnalytics(days: number = 30) {
         // Echte klanten: import-bronnen uitsluiten, NULL telt mee.
         const dayCustomers = dayCustomersAll.filter(c =>
           c.acquisition_source == null ||
-          (c.acquisition_source !== 'bol_com' && c.acquisition_source !== 'shopify_import')
+          !(IMPORT_ACQUISITION_SOURCES as readonly string[]).includes(c.acquisition_source),
         );
         const daySubscribers = dayCustomersAll.filter(c => c.email_subscribed === true);
 
