@@ -87,10 +87,6 @@ export function ConnectMarketplaceDialog({
   const { createConnection } = useMarketplaceConnections();
   const info = MARKETPLACE_INFO[marketplaceType];
 
-  // Shopify-specific state
-  const [storeUrl, setStoreUrl] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-  
   // WooCommerce-specific state
   const [siteUrl, setSiteUrl] = useState('');
   const [consumerKey, setConsumerKey] = useState('');
@@ -315,8 +311,6 @@ export function ConnectMarketplaceDialog({
       setConnectionName('');
       setClientId('');
       setClientSecret('');
-      setStoreUrl('');
-      setAccessToken('');
       setSiteUrl('');
       setConsumerKey('');
       setConsumerSecret('');
