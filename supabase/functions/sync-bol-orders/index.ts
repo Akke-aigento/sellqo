@@ -446,6 +446,7 @@ Deno.serve(async (req) => {
                     phone: customerPhone,
                     customer_type: 'b2c',
                     acquisition_source: 'bol_com',
+                    email_subscribed: false,
                   })
                   .select('id').single()
                 if (custErr) {
