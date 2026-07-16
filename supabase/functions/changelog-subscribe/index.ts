@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: existing, error: selectError } = await supabase
       .from("customers")
-      .select("id, email_subscribed")
+      .select("id, email_subscribed, tags")
       .eq("tenant_id", SELLQO_TENANT_ID)
       .eq("email", email)
       .maybeSingle();
@@ -52,9 +52,16 @@ serve(async (req) => {
 
     if (existing) {
       if (!existing.email_subscribed) {
+        const mergedTags = Array.from(
+          new Set([...(existing.tags ?? []), "product-updates"]),
+        );
         const { error: updErr } = await supabase
           .from("customers")
-          .update({ email_subscribed: true, email_subscribed_at: now })
+          .update({
+            email_subscribed: true,
+            email_subscribed_at: now,
+            tags: mergedTags,
+          })
           .eq("id", existing.id);
         if (updErr) {
           console.error("changelog-subscribe update error:", updErr);
@@ -69,6 +76,7 @@ serve(async (req) => {
         email_subscribed_at: now,
         acquisition_source: "changelog",
         customer_type: "b2c",
+        tags: ["product-updates"],
       });
       if (insErr) {
         console.error("changelog-subscribe insert error:", insErr);
