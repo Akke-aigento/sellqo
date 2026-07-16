@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         }
         await importProducts(supabase, tenant_id, records, options, result);
       } else if (data_type === "orders") {
-        await importOrders(supabase, tenant_id, records, options, result);
+        await importOrders(supabase, tenant_id, platform, records, options, result);
       }
     } catch (importError) {
     if (importError instanceof AuthError) {
@@ -828,6 +828,7 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
 async function importOrders(
   supabase: AnySupabaseClient,
   tenantId: string,
+  platform: string,
   records: Record<string, unknown>[],
   options: ImportRequest["options"],
   result: ImportResult
@@ -882,6 +883,8 @@ async function importOrders(
               first_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ")[0] : null,
               last_name: firstRow.customer_name ? String(firstRow.customer_name).split(" ").slice(1).join(" ") : null,
               phone: firstRow.customer_phone || null,
+              email_subscribed: false,
+              acquisition_source: 'csv_import',
             })
             .select("id")
             .single();
@@ -890,7 +893,7 @@ async function importOrders(
         }
       }
 
-      const orderData = buildOrderData(tenantId, firstRow, customerId);
+      const orderData = buildOrderData(tenantId, platform, firstRow, customerId);
 
       let orderId: string;
 
@@ -940,7 +943,16 @@ async function importOrders(
   }
 }
 
-function buildOrderData(tenantId: string, record: Record<string, unknown>, customerId: string | null) {
+function buildOrderData(tenantId: string, platform: string, record: Record<string, unknown>, customerId: string | null) {
+  // marketplace_source: expliciete waarde > platform-fallback (shopify → shopify_draft_order) > csv_import.
+  let marketplaceSource: string;
+  if (hasValue(record, 'marketplace_source')) {
+    marketplaceSource = String(record.marketplace_source);
+  } else if (platform === 'shopify') {
+    marketplaceSource = 'shopify_draft_order';
+  } else {
+    marketplaceSource = 'csv_import';
+  }
   return {
     tenant_id: tenantId,
     customer_id: customerId,
@@ -950,18 +962,18 @@ function buildOrderData(tenantId: string, record: Record<string, unknown>, custo
     customer_phone: record.customer_phone || null,
     status: mapOrderStatus(record.status as string),
     payment_status: mapPaymentStatus(record.payment_status as string),
-    subtotal: parseFloat(String(record.subtotal || 0)) || 0,
-    shipping_cost: parseFloat(String(record.shipping_cost || 0)) || 0,
-    tax_amount: parseFloat(String(record.tax_amount || 0)) || 0,
-    discount_amount: parseFloat(String(record.discount_amount || 0)) || 0,
-    total: parseFloat(String(record.total || 0)) || 0,
+    subtotal: normalizeNumber(record.subtotal),
+    shipping_cost: normalizeNumber(record.shipping_cost),
+    tax_amount: normalizeNumber(record.tax_amount),
+    discount_amount: normalizeNumber(record.discount_amount),
+    total: normalizeNumber(record.total),
     currency: (record.currency as string) || "EUR",
     billing_address: record.billing_address || null,
     shipping_address: record.shipping_address || null,
     notes: record.notes || null,
     internal_notes: record.internal_notes || null,
     external_reference: record.external_reference || null,
-    marketplace_source: record.marketplace_source || "shopify",
+    marketplace_source: marketplaceSource,
     marketplace_order_id: record.marketplace_order_id || null,
     raw_marketplace_data: record.raw_marketplace_data || null,
     import_source: record.import_source || "csv",
@@ -980,8 +992,8 @@ async function insertOrderItem(
   
   const productName = (rawData.lineitem_name as string) || (row.product_name as string) || "Unknown Product";
   const sku = (rawData.lineitem_sku as string) || (row.sku as string) || null;
-  const quantity = parseInt(String(rawData.lineitem_quantity || row.quantity || 1)) || 1;
-  const unitPrice = parseFloat(String(rawData.lineitem_price || row.unit_price || 0)) || 0;
+  const quantity = normalizeInt(rawData.lineitem_quantity ?? row.quantity ?? 1) || 1;
+  const unitPrice = normalizeNumber(rawData.lineitem_price ?? row.unit_price);
 
   // Try to find product by SKU
   let productId: string | null = null;
