@@ -40,8 +40,6 @@ import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import type { MarketplaceType } from '@/types/marketplace';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
 import { supabase } from '@/integrations/supabase/client';
-import { ShopifyConnectDialog } from './ShopifyConnectDialog';
-import { ShopifyOAuthConnect } from './ShopifyOAuthConnect';
 
 interface ConnectMarketplaceDialogProps {
   open: boolean;
@@ -126,9 +124,7 @@ export function ConnectMarketplaceDialog({
     
     try {
       // Build credentials based on marketplace type
-      const credentials = marketplaceType === 'shopify' 
-        ? { storeUrl, accessToken }
-        : marketplaceType === 'woocommerce'
+      const credentials = marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
@@ -175,9 +171,7 @@ export function ConnectMarketplaceDialog({
     
     try {
       // Build credentials based on marketplace type
-      const credentials = marketplaceType === 'shopify' 
-        ? { storeUrl, accessToken }
-        : marketplaceType === 'woocommerce'
+      const credentials = marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
@@ -224,10 +218,7 @@ export function ConnectMarketplaceDialog({
       let syncOrdersFunction: string;
       let syncInventoryFunction: string;
       
-      if (marketplaceType === 'shopify') {
-        syncOrdersFunction = 'sync-shopify-orders';
-        syncInventoryFunction = 'sync-shopify-inventory';
-      } else if (marketplaceType === 'woocommerce') {
+      if (marketplaceType === 'woocommerce') {
         syncOrdersFunction = 'sync-woocommerce-orders';
         syncInventoryFunction = 'sync-woocommerce-inventory';
       } else if (marketplaceType === 'amazon') {
@@ -242,17 +233,6 @@ export function ConnectMarketplaceDialog({
       } else {
         syncOrdersFunction = 'sync-bol-orders';
         syncInventoryFunction = 'sync-bol-inventory';
-      }
-      
-      // Shopify also syncs customers
-      if (marketplaceType === 'shopify') {
-        try {
-          await supabase.functions.invoke('sync-shopify-customers', {
-            body: { connectionId: newConnection.id }
-          });
-        } catch (err) {
-          console.error('Customer sync failed:', err);
-        }
       }
       
       // Odoo syncs based on selected modules
