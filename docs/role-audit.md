@@ -3802,4 +3802,6 @@ Root cause: `customers.email_subscribed` heeft default `true`, en de order-impor
 
 Fix: expliciet `email_subscribed: false` toegevoegd op de customers-insert in `sync-bol-orders` en `sync-shopify-orders`. `sync-shopify-customers` blijft ongewijzigd omdat daar `accepts_marketing` al vanuit Shopify gemapt wordt en dat de leidende consent-bron is. Bestaande vervuiling (48 records) is via SQL gecorrigeerd met guard op `email_subscribed_at IS NULL`, zodat echte webshop-opt-ins met een timestamp intact bleven.
 
+Addendum (zelfde dag): sync-shopify-customers bleek email_subscribed tóch niet te zetten (accepts_marketing gaat naar een eigen kolom) — insert-tak zet nu email_subscribed op basis van de Shopify accepts_marketing-consent; update-tak bewust ongemoeid.
+
 Datum: 2026-07-16
