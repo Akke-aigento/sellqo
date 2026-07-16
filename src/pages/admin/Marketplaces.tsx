@@ -23,6 +23,8 @@ import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { useTenant } from '@/hooks/useTenant';
+import { useOdooConnection } from '@/hooks/useOdooConnection';
+import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -45,6 +47,9 @@ export default function MarketplacesPage() {
   } = useSocialChannels();
 
   const { subscription } = useTenantSubscription();
+  const { status: odooStatus } = useOdooConnection(currentTenant?.id);
+  const { settings: odooSettings } = useTenantOdooSettings(currentTenant?.id);
+  const odooActive = !!odooStatus.data?.configured && !!odooSettings?.odoo_sync_enabled;
   const planName = subscription?.pricing_plan?.name?.toLowerCase() || '';
   const isStarter = planName.includes('starter');
   const isProOrHigher = planName.includes('pro') || planName.includes('enterprise');
@@ -86,7 +91,8 @@ export default function MarketplacesPage() {
     ? formatDistanceToNow(new Date(lastSync), { addSuffix: true, locale: nl })
     : 'Nog niet';
 
-  const totalActiveConnections = activeConnections.length + activeSocialConnections.length;
+  const totalActiveConnections =
+    activeConnections.length + activeSocialConnections.length + (odooActive ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -209,7 +215,7 @@ export default function MarketplacesPage() {
 
         <TabsContent value="marketplaces" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(['bol_com', 'amazon', 'shopify', 'woocommerce', 'ebay'] as MarketplaceType[]).map((type) => {
+            {(['bol_com', 'amazon', 'woocommerce', 'ebay'] as MarketplaceType[]).map((type) => {
               const info = MARKETPLACE_INFO[type];
               const connection = getConnectionByType(type);
               

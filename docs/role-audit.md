@@ -3805,3 +3805,14 @@ Fix: expliciet `email_subscribed: false` toegevoegd op de customers-insert in `s
 Addendum (zelfde dag): sync-shopify-customers bleek email_subscribed tóch niet te zetten (accepts_marketing gaat naar een eigen kolom) — insert-tak zet nu email_subscribed op basis van de Shopify accepts_marketing-consent; update-tak bewust ongemoeid.
 
 Datum: 2026-07-16
+
+## STATS-1C: Connect-overzicht en leesbare grafieken — 16 juli 2026
+
+Root cause: Odoo (tenant_odoo_settings.odoo_sync_enabled) telde nergens mee als "actieve connectie" in Connect en de dashboard-widget — VanXcel zag daardoor "1" i.p.v. "2". Shopify stond bovendien als marktplaats-kaart op /admin/connect terwijl het een eenmalige import is (geen shopify-rijen in marketplace_connections platform-breed). In Analytics werden lange productnamen in 120px afgeknot en clipten pie-labels buiten de kaart; 'returned' was onvertaald.
+
+Wijzigingen:
+- `src/pages/admin/Marketplaces.tsx`: Odoo-status (configured + odoo_sync_enabled) telt mee in stat "Actieve Connecties"; 'shopify' verwijderd uit marktplaatsen-grid.
+- `src/components/admin/marketplace/DashboardMarketplaceWidget.tsx`: extra "Odoo Boekhouding"-rij (Calculator-icoon, groen) met synced document-count uit `odoo_invoice_sync_log` en recentste `synced_at`; linkt naar `/admin/connect?tab=accounting`. Lege staat toont enkel als er ook geen Odoo-koppeling is; CardDescription telt Odoo mee.
+- `src/pages/admin/Import.tsx`: nieuwe "Shopify importeren"-kaart opent de bestaande `ConnectMarketplaceDialog` met `marketplaceType='shopify'` (flow zelf ongemoeid).
+- `src/pages/admin/Analytics.tsx`: top-producten Y-as width 170 + tick-truncatie op 28 tekens met '…'; tooltip toont volledige naam + omzet + aantal stuks. Pie-labels verwijderd (info via legende + tooltip); STATUS_LABELS/COLORS aangevuld met `returned` en `refunded`.
+- Publieke changelog: entry `2026.07h` (connect_overview) toegevoegd in `PublicChangelog.tsx` en vertaald in landing.{nl,en,fr,de}.json.

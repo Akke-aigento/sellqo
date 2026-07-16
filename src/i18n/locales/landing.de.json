@@ -1064,6 +1064,10 @@
         "language_switcher": {
           "title": "Neue Sprachauswahl auf der Website",
           "description": "Die Sprachauswahl auf der öffentlichen Website wurde überarbeitet: ein übersichtliches Menü mit ausgeschriebenen Sprachnamen statt Flaggen."
+        },
+        "connect_overview": {
+          "title": "Übersichtlichere Integrationsübersicht und lesbare Diagramme",
+          "description": "Deine Odoo-Buchhaltungsanbindung zählt jetzt in der Integrationsübersicht mit, den Shopify-Import findest du künftig unter Importieren, und die Analytics-Diagramme zeigen Produktnamen und Bestellstatus gut lesbar an."
         }
       }
     }

@@ -5,13 +5,19 @@ import {
   ArrowRight, 
   TrendingUp,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Calculator
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
+import { useOdooConnection } from '@/hooks/useOdooConnection';
+import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
+import { useTenant } from '@/hooks/useTenant';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -22,6 +28,33 @@ const marketplaceIcons: Record<string, { icon: typeof ShoppingBag; color: string
 
 export function DashboardMarketplaceWidget() {
   const { activeConnections, liveOrderCounts, isLoading, error } = useMarketplaceConnections();
+  const { currentTenant } = useTenant();
+  const { status: odooStatus } = useOdooConnection(currentTenant?.id);
+  const { settings: odooSettings } = useTenantOdooSettings(currentTenant?.id);
+  const odooActive = !!odooStatus.data?.configured && !!odooSettings?.odoo_sync_enabled;
+
+  const { data: odooStats } = useQuery({
+    queryKey: ['odoo-invoice-sync-summary', currentTenant?.id],
+    enabled: !!currentTenant?.id && odooActive,
+    queryFn: async () => {
+      const [{ count }, { data: recent }] = await Promise.all([
+        supabase
+          .from('odoo_invoice_sync_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant!.id)
+          .eq('sync_status', 'synced'),
+        supabase
+          .from('odoo_invoice_sync_log')
+          .select('synced_at')
+          .eq('tenant_id', currentTenant!.id)
+          .eq('sync_status', 'synced')
+          .order('synced_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      return { count: count ?? 0, lastSyncedAt: recent?.synced_at as string | null };
+    },
+  });
 
   if (isLoading) {
     return (
@@ -36,7 +69,7 @@ export function DashboardMarketplaceWidget() {
     );
   }
 
-  if (activeConnections.length === 0) {
+  if (activeConnections.length === 0 && !odooActive) {
     return (
       <Card>
         <CardHeader>
@@ -68,6 +101,7 @@ export function DashboardMarketplaceWidget() {
     );
   }
 
+  const totalConnections = activeConnections.length + (odooActive ? 1 : 0);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -77,7 +111,7 @@ export function DashboardMarketplaceWidget() {
             SellQo Connect
           </CardTitle>
           <CardDescription>
-            {activeConnections.length} actieve {activeConnections.length === 1 ? 'connectie' : 'connecties'}
+            {totalConnections} actieve {totalConnections === 1 ? 'connectie' : 'connecties'}
           </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
@@ -134,6 +168,36 @@ export function DashboardMarketplaceWidget() {
             </div>
           );
         })}
+
+        {odooActive && (
+          <Link
+            to="/admin/connect?tab=accounting"
+            className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
+                <Calculator className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Odoo Boekhouding</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {odooStats?.lastSyncedAt ? (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(odooStats.lastSyncedAt), { addSuffix: true, locale: nl })}
+                    </span>
+                  ) : (
+                    <span>Nog niet gesynchroniseerd</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold text-sm">{odooStats?.count ?? 0}</p>
+              <p className="text-xs text-muted-foreground">documenten</p>
+            </div>
+          </Link>
+        )}
 
         {activeConnections.length > 3 && (
           <Button asChild variant="ghost" size="sm" className="w-full">
