@@ -1072,6 +1072,10 @@
         "reliable_import": {
           "title": "Import de données plus fiable",
           "description": "Les fichiers CSV utilisant le point-virgule comme séparateur et le format numérique européen (comme 19,99) sont désormais traités correctement. Le statut newsletter des clients importés n'est plus activé automatiquement, les données existantes ne sont plus écrasées lors d'un ré-import, et le rapport d'import affiche les résultats par type de données."
+        },
+        "import_guide": {
+          "title": "Instructions d'export claires lors de l'import",
+          "description": "Lors de l'import, choisissez votre plateforme actuelle et voyez immédiatement comment y exporter vos produits, clients et commandes. La page d'import a aussi reçu une mise en page plus claire et plus sobre."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
