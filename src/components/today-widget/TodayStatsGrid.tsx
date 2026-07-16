@@ -8,7 +8,7 @@ interface TodayStatsGridProps {
 
 export function TodayStatsGrid({ stats }: TodayStatsGridProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
       <TodayStatCard
         icon="💰"
         label="Omzet"
@@ -31,13 +31,6 @@ export function TodayStatsGrid({ stats }: TodayStatsGridProps) {
         change={stats.newCustomersChange}
         changeLabel="vs gisteren"
         changeIsAbsolute
-      />
-      <TodayStatCard
-        icon="⭐"
-        label="Reviews"
-        value={stats.reviewCount.toString()}
-        changeLabel="nieuw vandaag"
-        hideChange
       />
     </div>
   );
