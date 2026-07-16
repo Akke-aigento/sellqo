@@ -1064,6 +1064,10 @@
         "language_switcher": {
           "title": "Nouveau sélecteur de langue sur le site",
           "description": "Le sélecteur de langue du site public a été repensé : un menu clair avec les noms de langues en toutes lettres au lieu de drapeaux."
+        },
+        "connect_overview": {
+          "title": "Aperçu des intégrations plus clair et graphiques lisibles",
+          "description": "Votre connexion Odoo Comptabilité compte désormais dans l'aperçu des intégrations, l'import Shopify se trouve désormais dans la section Importer, et les graphiques Analytics affichent lisiblement les noms de produits et les statuts de commande."
         }
       }
     }

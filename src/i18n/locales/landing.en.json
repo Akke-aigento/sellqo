@@ -1064,6 +1064,10 @@
         "language_switcher": {
           "title": "New language selector on the website",
           "description": "The language switcher on the public site has been redesigned: a clean menu with full language names instead of flag icons."
+        },
+        "connect_overview": {
+          "title": "Clearer integrations overview and readable charts",
+          "description": "Your Odoo accounting connection now counts in the integrations overview, Shopify import has moved to the Import section, and Analytics charts show product names and order statuses legibly."
         }
       }
     }

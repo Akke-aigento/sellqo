@@ -1064,6 +1064,10 @@
         "language_switcher": {
           "title": "Nieuwe taalkeuze op de website",
           "description": "De taalwissel op de publieke site is vernieuwd: een overzichtelijk menu met voluit geschreven taalnamen in plaats van vlaggetjes."
+        },
+        "connect_overview": {
+          "title": "Duidelijker koppelingen-overzicht en leesbare grafieken",
+          "description": "Je Odoo-boekhoudkoppeling telt nu mee in het connectie-overzicht, Shopify-import vind je voortaan bij Importeren, en de Analytics-grafieken tonen productnamen en orderstatussen leesbaar."
         }
       }
     }
