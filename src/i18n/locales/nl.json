@@ -659,11 +659,62 @@
       "tips": "Tips",
       "step": "Stap",
       "show_guide": "Toon export instructies",
-      "hide_guide": "Verberg instructies"
+      "hide_guide": "Verberg instructies",
+      "panel_title": "Zo exporteer je uit {{platform}}",
+      "select_platform_first": "Kies eerst je huidige platform.",
+      "select_datatypes_first": "Kies eerst wat je wilt importeren om de exportstappen te zien.",
+      "fallback": "Zoek in {{platform}} naar de Export- of Data Transfer-functie en exporteer een CSV-bestand voor {{dataType}}. Upload dat bestand in de volgende stap.",
+      "csv_note": "Voor eigen CSV- of Excel-bestanden download je in de volgende stap onze sjablonen. Verplichte kolommen voor producten zijn name, sku en price. Scheid meerdere tags of afbeeldingen met een pipe (|).",
+      "platforms": {
+        "shopify": {
+          "customers": ["Ga naar Shopify Admin → Customers.", "Klik rechtsboven op \"Export\".", "Kies \"All customers\" of \"Current search\".", "Selecteer \"CSV for Excel, Numbers, or other spreadsheet programs\".", "Klik op \"Export customers\" en download het bestand."],
+          "products": ["Ga naar Shopify Admin → Products.", "Klik rechtsboven op \"Export\".", "Kies \"All products\" of je huidige selectie.", "Selecteer het CSV-formaat voor Excel.", "Download het bestand — varianten staan als extra rijen onder hetzelfde product."],
+          "orders": ["Ga naar Shopify Admin → Orders.", "Filter eventueel op de periode die je wilt exporteren.", "Klik rechtsboven op \"Export\".", "Kies CSV en download het bestand."],
+          "categories": ["Shopify exporteert geen aparte categorielijst.", "Categorieën staan in de kolommen \"Product Category\" en \"Type\" van je producten-export.", "Upload je producten-CSV — SellQo maakt de categorieën automatisch aan."],
+          "coupons": ["Ga naar Shopify Admin → Discounts.", "Klik op \"Export\" en kies CSV.", "Download het bestand."]
+        },
+        "woocommerce": {
+          "customers": ["Installeer eventueel de gratis plugin \"Customer/Order/Coupon Export\".", "Ga naar WooCommerce → Klanten (of Exports).", "Selecteer welke klanten je wilt exporteren.", "Kies CSV en klik op \"Exporteren\"."],
+          "products": ["Ga naar Products → All Products.", "Klik bovenaan op \"Export\".", "Selecteer alle producten en de gewenste velden.", "Genereer en download de CSV."],
+          "orders": ["Ga naar WooCommerce → Bestellingen.", "Gebruik de knop \"Exporteren\" of de Order Export-plugin.", "Kies het gewenste bereik en download de CSV."],
+          "categories": ["Ga naar Products → Categories.", "Gebruik de \"WP All Export\"-plugin of Tools → Export en kies taxonomie \"product_cat\".", "Download het bestand."],
+          "coupons": ["Ga naar WooCommerce → Coupons.", "Gebruik de exportknop of de Coupon Export-plugin.", "Download de CSV."]
+        },
+        "magento": {
+          "customers": ["Ga naar Admin → System → Data Transfer → Export.", "Kies Entity Type \"Customers Main File\".", "Kies CSV en klik op \"Continue\"."],
+          "products": ["Ga naar Admin → System → Data Transfer → Export.", "Kies Entity Type \"Products\".", "Kies CSV en klik op \"Continue\"."],
+          "orders": ["Ga naar Admin → Sales → Orders.", "Selecteer de bestellingen of filter op periode.", "Klik op \"Export\" bovenaan en kies CSV."],
+          "categories": ["Magento exporteert categorieën niet standaard via de admin.", "Gebruik een module of exporteer je producten en pas de boomstructuur in SellQo aan."],
+          "coupons": ["Ga naar Admin → Marketing → Promotions → Cart Price Rules.", "Exporteer via de Actions-knop of via System → Data Transfer."]
+        },
+        "prestashop": {
+          "customers": ["Ga naar Back Office → Customers → Customers.", "Klik rechtsboven op het Export-icoon (CSV).", "Het bestand wordt automatisch gedownload."],
+          "products": ["Ga naar Back Office → Catalog → Products.", "Klik rechtsboven op \"Export\".", "Download de CSV."],
+          "orders": ["Ga naar Back Office → Orders → Orders.", "Klik rechtsboven op \"Export\".", "Download de CSV."],
+          "categories": ["Ga naar Back Office → Catalog → Categories.", "Klik rechtsboven op \"Export\".", "Download de CSV."],
+          "coupons": ["Ga naar Back Office → Catalog → Discounts → Cart Rules.", "Klik rechtsboven op \"Export\" en download de CSV."]
+        },
+        "lightspeed": {
+          "customers": ["eCom: Back Office → Tools → Exports → Klanten. Retail: Reports → Klanten → Export.", "Kies CSV en download."],
+          "products": ["eCom: Back Office → Tools → Exports → Producten. Retail: Reports → Voorraad → Export.", "Kies CSV en download."],
+          "orders": ["eCom: Back Office → Tools → Exports → Bestellingen. Retail: Reports → Verkopen → Export.", "Kies CSV en download."],
+          "categories": ["eCom: Back Office → Tools → Exports → Categorieën.", "Download het bestand."],
+          "coupons": ["eCom: Back Office → Marketing → Kortingscodes → Export (indien beschikbaar).", "Download het bestand."]
+        }
+      }
     },
     "processing": "Bezig met importeren...",
     "duration": "Duur",
-    "seconds": "seconden"
+    "seconds": "seconden",
+    "page_title": "Gegevens importeren",
+    "page_subtitle": "Stap over vanaf een ander platform of importeer je eigen CSV- en Excel-bestanden.",
+    "data_type_desc": {
+      "customers": "Namen, e-mailadressen en klantgegevens",
+      "products": "Producten, varianten, prijzen en voorraad",
+      "categories": "Productcategorieën en subcategorieën",
+      "orders": "Historische bestellingen en betaalstatus",
+      "coupons": "Kortings- en couponcodes"
+    }
   },
   "checkout": {
     "securePayment": "Veilig betalen met",

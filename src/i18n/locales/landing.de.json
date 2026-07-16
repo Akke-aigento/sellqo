@@ -1076,6 +1076,10 @@
         "reliable_notifications": {
           "title": "E-Mail-Benachrichtigungen funktionieren jetzt zuverlässig",
           "description": "Wenn du E-Mail-Benachrichtigungen für Bestellungen, Rechnungen, Kunden oder Lagerbestand aktiviert hast, erhältst du diese Meldungen jetzt auch tatsächlich per E-Mail. Bulk-Importe lösen zudem keine Benachrichtigungsflut mehr aus."
+        },
+        "import_guide": {
+          "title": "Klare Export-Anleitung beim Importieren",
+          "description": "Wähle beim Importieren deine aktuelle Plattform und sieh sofort, wie du dort deine Produkte, Kunden und Bestellungen exportierst. Die Importseite hat außerdem ein aufgeräumteres, ruhigeres Layout erhalten."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."

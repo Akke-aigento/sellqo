@@ -1072,6 +1072,10 @@
         "reliable_import": {
           "title": "More reliable data import",
           "description": "CSV files that use semicolons as separators and European number formatting (like 19,99) are now processed correctly. Newsletter status is never turned on automatically for imported customers, existing customer data is no longer overwritten on re-import, and the import report shows results per data type."
+        },
+        "import_guide": {
+          "title": "Clear export instructions when importing",
+          "description": "When importing, pick your current platform and immediately see how to export your products, customers and orders from it. The import page also received a cleaner, calmer layout."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
