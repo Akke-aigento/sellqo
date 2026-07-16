@@ -10,6 +10,55 @@ const corsHeaders = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
+// ============= NORMALIZATION HELPERS =============
+// parseBool: privacy-first — true alleen bij expliciete truthy waarden.
+function parseBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value !== 'string') return false;
+  const v = value.trim().toLowerCase();
+  return ['true', 'yes', 'ja', '1', 'y', 'waar'].includes(v);
+}
+
+// normalizeNumber: verwerkt Belgisch (19,99 / 1.234,56) en US (1,234.56) formaat.
+function normalizeNumber(value: unknown): number {
+  if (typeof value === 'number') return isFinite(value) ? value : 0;
+  if (value == null) return 0;
+  let s = String(value).trim();
+  if (!s) return 0;
+  // strip valuta-symbolen en spaties
+  s = s.replace(/[€$£¥\s]/g, '');
+  const hasDot = s.includes('.');
+  const hasComma = s.includes(',');
+  if (hasDot && hasComma) {
+    // laatst voorkomende teken is decimaal
+    const lastDot = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+    if (lastComma > lastDot) {
+      // ',' is decimaal, '.' = duizendtal
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // '.' is decimaal, ',' = duizendtal
+      s = s.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function normalizeInt(value: unknown): number {
+  return Math.round(normalizeNumber(value));
+}
+
+// Alleen keys uit `record` die daadwerkelijk aanwezig zijn (niet undefined en niet lege string).
+function hasValue(record: Record<string, unknown>, key: string): boolean {
+  if (!(key in record)) return false;
+  const v = record[key];
+  return v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '');
+}
+
 interface ImportRequest {
   tenant_id: string;
   platform: string;
@@ -177,10 +226,17 @@ async function importCustomers(
       const customerData = buildCustomerData(tenantId, record);
 
       if (existing && options.updateExisting) {
-        // Update existing
+        // Update existing — bouw non-destructieve payload: alleen velden die
+        // daadwerkelijk in de CSV-rij zitten, en NOOIT consent/acquisition/tellers
+        // tenzij expliciet aangeleverd.
+        const updateData = buildCustomerUpdateData(record);
+        if (Object.keys(updateData).length === 0) {
+          result.skipped_count++;
+          continue;
+        }
         const { error } = await supabase
           .from("customers")
-          .update(customerData)
+          .update(updateData)
           .eq("id", existing.id);
         
         if (error) throw error;
