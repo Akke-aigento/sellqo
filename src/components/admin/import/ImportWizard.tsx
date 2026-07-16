@@ -19,8 +19,18 @@ import type {
   MappingOption,
   ImportOptions,
   PreviewRecord,
-  ImportJob
+  ImportError,
 } from '@/types/import';
+
+export interface PerTypeImportResult {
+  dataType: ImportDataType;
+  fileName: string | null;
+  total: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  errors: ImportError[];
+}
 
 interface ImportWizardProps {
   onComplete?: () => void;
@@ -36,7 +46,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   const [uploadedFiles, setUploadedFiles] = useState<Map<ImportDataType, UploadedFile>>(new Map());
   const [mappings, setMappings] = useState<Map<ImportDataType, MappingOption[]>>(new Map());
   const [previewData, setPreviewData] = useState<Map<ImportDataType, PreviewRecord[]>>(new Map());
-  const [importResult, setImportResult] = useState<ImportJob | null>(null);
+  const [importResults, setImportResults] = useState<PerTypeImportResult[] | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     dataType: string;
@@ -49,9 +59,6 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   const [options, setOptions] = useState<ImportOptions>({
     skipErrors: true,
     updateExisting: false,
-    batchSize: 50,
-    importImages: false,
-    sendWelcomeEmail: false,
   });
 
   const canProceed = () => {
@@ -91,6 +98,24 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     });
   };
 
+  const handleFileRemove = (dataType: ImportDataType) => {
+    setUploadedFiles(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
+    setMappings(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
+    setPreviewData(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
+  };
+
   const handleMappingChange = (dataType: ImportDataType, mapping: MappingOption[]) => {
     setMappings(prev => new Map(prev).set(dataType, mapping));
     // Clear stale previewData to force recomputation with updated mapping
@@ -123,12 +148,8 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     const BATCH_SIZE = 100;
     
     try {
-      let lastResult: ImportJob | null = null;
-      let totalSuccess = 0;
-      let totalFailed = 0;
-      let totalSkipped = 0;
-      const allErrors: Array<{ row: number; field?: string; value?: string; error: string; severity: 'warning' | 'error' }> = [];
-      
+      const perType: PerTypeImportResult[] = [];
+
       for (const dataType of selectedDataTypes) {
         const preview = previewData.get(dataType);
         if (!preview || preview.length === 0) continue;
@@ -146,13 +167,10 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           batches.push(records.slice(i, i + BATCH_SIZE));
         }
 
-        console.log(`Processing ${dataType}: ${records.length} records in ${batches.length} batches`);
-        if (dataType === 'products' && records.length > 0) {
-          const first = records[0];
-          console.log('[CSV IMPORT POST] First record keys:', Object.keys(first));
-          console.log('[CSV IMPORT POST] _variants_json present:', '_variants_json' in first, 'value:', typeof first._variants_json, first._variants_json ? String(first._variants_json).substring(0, 200) : 'MISSING');
-          console.log('[CSV IMPORT POST] _option1_name:', first._option1_name, '_option2_name:', first._option2_name);
-        }
+        let typeSuccess = 0;
+        let typeFailed = 0;
+        let typeSkipped = 0;
+        const typeErrors: ImportError[] = [];
 
         // Process each batch
         for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
@@ -162,8 +180,8 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
             dataType: t(`import.${dataType}`),
             current: batchIndex + 1,
             total: batches.length,
-            successCount: totalSuccess,
-            failedCount: totalFailed,
+            successCount: typeSuccess,
+            failedCount: typeFailed,
           });
 
           const { data, error } = await supabase.functions.invoke('run-csv-import', {
@@ -181,8 +199,8 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           
           if (error) {
             console.error(`Batch ${batchIndex + 1} error:`, error);
-            totalFailed += batch.length;
-            allErrors.push({
+            typeFailed += batch.length;
+            typeErrors.push({
               row: batchIndex * BATCH_SIZE,
               error: error.message || 'Batch failed',
               severity: 'error'
@@ -191,11 +209,11 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           }
           
           if (data) {
-            totalSuccess += data.success_count || 0;
-            totalFailed += data.failed_count || 0;
-            totalSkipped += data.skipped_count || 0;
+            typeSuccess += data.success_count || 0;
+            typeFailed += data.failed_count || 0;
+            typeSkipped += data.skipped_count || 0;
             if (data.errors) {
-              allErrors.push(...data.errors);
+              typeErrors.push(...data.errors);
             }
           }
 
@@ -205,34 +223,22 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           }
         }
 
-        // Build final result for this data type
-        lastResult = {
-          id: crypto.randomUUID(),
-          tenant_id: currentTenant.id,
-          source_platform: platform,
-          data_type: dataType,
-          file_name: uploadedFiles.get(dataType)?.file.name || null,
-          status: totalFailed > 0 && totalSuccess === 0 ? 'failed' : 'completed',
-          total_rows: records.length,
-          success_count: totalSuccess,
-          skipped_count: totalSkipped,
-          failed_count: totalFailed,
-          categories_created: 0,
-          categories_matched: 0,
-          mapping: null,
-          options: options,
-          errors: allErrors,
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          duration_ms: 0,
-          created_at: new Date().toISOString(),
-          created_by: null,
-        };
+        perType.push({
+          dataType,
+          fileName: uploadedFiles.get(dataType)?.file.name || null,
+          total: records.length,
+          success: typeSuccess,
+          failed: typeFailed,
+          skipped: typeSkipped,
+          errors: typeErrors,
+        });
       }
       
-      if (lastResult) {
-        setImportResult(lastResult);
+      if (perType.length > 0) {
+        setImportResults(perType);
         setStep(5);
+        const totalSuccess = perType.reduce((s, r) => s + r.success, 0);
+        const totalFailed = perType.reduce((s, r) => s + r.failed, 0);
         toast({
           title: t('import.complete'),
           description: `${totalSuccess} records geïmporteerd${totalFailed > 0 ? `, ${totalFailed} mislukt` : ''}`,
@@ -258,7 +264,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     setUploadedFiles(new Map());
     setMappings(new Map());
     setPreviewData(new Map());
-    setImportResult(null);
+    setImportResults(null);
   };
 
   const renderStep = () => {
@@ -279,6 +285,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
             dataTypes={selectedDataTypes}
             uploadedFiles={uploadedFiles}
             onFileUpload={handleFileUpload}
+            onFileRemove={handleFileRemove}
           />
         );
       case 3:
@@ -304,9 +311,9 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
           />
         );
       case 5:
-        return importResult && (
+        return importResults && (
           <ImportResult
-            result={importResult}
+            results={importResults}
             onNewImport={handleNewImport}
             onViewData={onComplete}
           />
