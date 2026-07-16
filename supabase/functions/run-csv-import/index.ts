@@ -308,14 +308,76 @@ function buildCustomerData(tenantId: string, record: Record<string, unknown>) {
     notes: record.notes || null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     customer_type: record.customer_type === "b2b" || record.customer_type === "business" ? "b2b" : "b2c",
-    email_subscribed: record.email_subscribed ?? true,
-    sms_subscribed: record.sms_subscribed ?? false,
-    total_spent: parseFloat(String(record.total_spent || 0)) || 0,
-    total_orders: parseInt(String(record.total_orders || 0)) || 0,
+    email_subscribed: parseBool(record.email_subscribed),
+    email_subscribed_at: parseBool(record.email_subscribed) ? new Date().toISOString() : null,
+    sms_subscribed: parseBool(record.sms_subscribed),
+    acquisition_source: 'csv_import',
+    total_spent: normalizeNumber(record.total_spent),
+    total_orders: normalizeInt(record.total_orders),
     raw_import_data: record.raw_import_data || null,
     shopify_customer_id: record.shopify_customer_id || null,
     import_source: record.import_source || "csv",
   };
+}
+
+// Non-destructieve update-payload voor bestaande klanten: alleen aangeleverde
+// kolommen worden gemuteerd. tenant_id/email/acquisition_source/tellers/consent
+// blijven ongemoeid tenzij consent-velden expliciet in het record zitten.
+function buildCustomerUpdateData(record: Record<string, unknown>): Record<string, unknown> {
+  const update: Record<string, unknown> = {};
+
+  const passthroughFields = [
+    'first_name', 'last_name', 'phone', 'company_name',
+    'billing_street', 'billing_city', 'billing_postal_code', 'billing_country',
+    'shipping_street', 'shipping_city', 'shipping_postal_code', 'shipping_country',
+    'province', 'province_code',
+    'vat_number', 'notes', 'shopify_customer_id',
+  ];
+  for (const key of passthroughFields) {
+    if (hasValue(record, key)) update[key] = record[key];
+  }
+
+  if (hasValue(record, 'tags')) {
+    update.tags = Array.isArray(record.tags) ? record.tags : [record.tags];
+  }
+  if (hasValue(record, 'customer_type')) {
+    update.customer_type = record.customer_type === 'b2b' || record.customer_type === 'business' ? 'b2b' : 'b2c';
+  }
+  if (hasValue(record, 'raw_import_data')) update.raw_import_data = record.raw_import_data;
+
+  // Adressen alleen (her)opbouwen als minstens één deelveld aanwezig is.
+  const billingParts = ['billing_street', 'billing_city', 'billing_postal_code', 'billing_country', 'province', 'province_code'];
+  if (billingParts.some(k => hasValue(record, k))) {
+    const billing: Record<string, unknown> = {};
+    if (hasValue(record, 'billing_street')) billing.street = record.billing_street;
+    if (hasValue(record, 'billing_city')) billing.city = record.billing_city;
+    if (hasValue(record, 'billing_postal_code')) billing.postal_code = record.billing_postal_code;
+    if (hasValue(record, 'billing_country')) billing.country = record.billing_country;
+    if (hasValue(record, 'province')) billing.province = record.province;
+    if (hasValue(record, 'province_code')) billing.province_code = record.province_code;
+    update.default_billing_address = billing;
+  }
+  const shippingParts = ['shipping_street', 'shipping_city', 'shipping_postal_code', 'shipping_country'];
+  if (shippingParts.some(k => hasValue(record, k))) {
+    const shipping: Record<string, unknown> = {};
+    if (hasValue(record, 'shipping_street')) shipping.street = record.shipping_street;
+    if (hasValue(record, 'shipping_city')) shipping.city = record.shipping_city;
+    if (hasValue(record, 'shipping_postal_code')) shipping.postal_code = record.shipping_postal_code;
+    if (hasValue(record, 'shipping_country')) shipping.country = record.shipping_country;
+    update.default_shipping_address = shipping;
+  }
+
+  // Consent- en teller-velden alleen aanraken als de CSV ze expliciet levert.
+  if (hasValue(record, 'email_subscribed')) {
+    const v = parseBool(record.email_subscribed);
+    update.email_subscribed = v;
+    update.email_subscribed_at = v ? new Date().toISOString() : null;
+  }
+  if (hasValue(record, 'sms_subscribed')) update.sms_subscribed = parseBool(record.sms_subscribed);
+  if (hasValue(record, 'total_spent')) update.total_spent = normalizeNumber(record.total_spent);
+  if (hasValue(record, 'total_orders')) update.total_orders = normalizeInt(record.total_orders);
+
+  return update;
 }
 
 // ============= PRODUCTS IMPORT =============
@@ -665,14 +727,14 @@ async function importProductVariants(
         product_id: productId,
         tenant_id: tenantId,
         title: variantTitle,
-        price: parseFloat(v.price) || 0,
-        compare_at_price: v.compare_at_price ? parseFloat(v.compare_at_price) : null,
-        stock: parseInt(v.stock) || 0,
+        price: normalizeNumber(v.price),
+        compare_at_price: v.compare_at_price ? normalizeNumber(v.compare_at_price) : null,
+        stock: normalizeInt(v.stock),
         sku: variantSku || null,
         barcode: variantBarcode || null,
         attribute_values: attributeValues,
         image_url: v.image?.trim() || null,
-        weight: v.weight ? parseFloat(v.weight) / 1000 : null, // grams → kg
+        weight: v.weight ? normalizeNumber(v.weight) / 1000 : null, // grams → kg
         is_active: true,
       };
 
@@ -738,14 +800,14 @@ function buildProductData(tenantId: string, record: Record<string, unknown>) {
     slug,
     description: record.description || null,
     short_description: record.short_description || null,
-    price: parseFloat(String(record.price || 0)) || 0,
-    compare_at_price: record.compare_at_price ? parseFloat(String(record.compare_at_price)) : null,
-    cost_price: record.cost_price ? parseFloat(String(record.cost_price)) : null,
+    price: normalizeNumber(record.price),
+    compare_at_price: hasValue(record, 'compare_at_price') ? normalizeNumber(record.compare_at_price) : null,
+    cost_price: hasValue(record, 'cost_price') ? normalizeNumber(record.cost_price) : null,
     sku: record.sku || null,
     barcode: record.barcode || null,
-    stock: parseInt(String(record.stock || 0)) || 0,
+    stock: normalizeInt(record.stock),
     track_inventory: record.track_inventory ?? true,
-    weight: record.weight ? parseFloat(String(record.weight)) : null,
+    weight: hasValue(record, 'weight') ? normalizeNumber(record.weight) : null,
     tags: Array.isArray(record.tags) ? record.tags : record.tags ? [record.tags] : [],
     images: Array.isArray(record.images) ? record.images : [],
     featured_image: record.featured_image || (Array.isArray(record.images) && record.images.length > 0 ? record.images[0] : null),
