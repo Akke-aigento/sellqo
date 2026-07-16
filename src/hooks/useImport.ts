@@ -231,11 +231,38 @@ export async function parseCSV(file: File): Promise<{
     
     reader.onload = (e) => {
       try {
-        let text = e.target?.result as string;
-        
+        // Encoding-fallback: decodeer als UTF-8; bij replacement-tekens (�)
+        // opnieuw als Windows-1252 (oude Belgische Excel-exports).
+        const buffer = e.target?.result as ArrayBuffer;
+        let text = new TextDecoder('utf-8').decode(buffer);
+        if (text.includes('\uFFFD')) {
+          text = new TextDecoder('windows-1252').decode(buffer);
+        }
+
         // Remove BOM if present
         if (text.charCodeAt(0) === 0xFEFF) {
           text = text.slice(1);
+        }
+
+        // Delimiter-sniff: tel ; en , in de eerste (quote-aware) regel.
+        // De rest van de parser gebruikt UITSLUITEND dit teken als celgrens.
+        let delimiter: ',' | ';' = ',';
+        {
+          let commas = 0;
+          let semis = 0;
+          let inQ = false;
+          for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (c === '"') {
+              if (inQ && text[i + 1] === '"') { i++; continue; }
+              inQ = !inQ;
+            } else if (!inQ) {
+              if (c === ',') commas++;
+              else if (c === ';') semis++;
+              else if (c === '\n' || c === '\r') break;
+            }
+          }
+          if (semis > commas) delimiter = ';';
         }
         
         // Parse using state machine - handles multi-line quoted values
@@ -257,7 +284,7 @@ export async function parseCSV(file: File): Promise<{
               // Toggle quote mode
               inQuotes = !inQuotes;
             }
-          } else if ((char === ',' || char === ';') && !inQuotes) {
+          } else if (char === delimiter && !inQuotes) {
             // End of cell (delimiter outside quotes)
             currentRow.push(currentCell.trim());
             currentCell = '';
@@ -318,6 +345,6 @@ export async function parseCSV(file: File): Promise<{
     };
     
     reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   });
 }
