@@ -32,7 +32,7 @@ export default function MarketplacesPage() {
   const {
     connections,
     activeConnections,
-    todayOrders,
+    totalMarketplaceOrders,
     lastSync,
     isLoading,
     deleteConnection,
@@ -145,8 +145,8 @@ export default function MarketplacesPage() {
                 <ShoppingCart className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Marketplace Orders</p>
-                <p className="text-2xl font-bold text-orange-600">{todayOrders}</p>
+                <p className="text-sm text-muted-foreground">Marketplace orders (totaal)</p>
+                <p className="text-2xl font-bold text-orange-600">{totalMarketplaceOrders}</p>
               </div>
             </div>
           </CardContent>
