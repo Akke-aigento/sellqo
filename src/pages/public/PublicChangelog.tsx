@@ -13,6 +13,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.07h', dateKey: 'jul_2026', changes: [{ id: 'connect_overview', type: 'improvement' }] },
   { version: '2026.07g', dateKey: 'jul_2026', changes: [{ id: 'accurate_stats', type: 'improvement' }] },
   { version: '2026.07f', dateKey: 'jul_2026', changes: [{ id: 'odoo_draft_mode', type: 'improvement' }] },
   { version: '2026.07e', dateKey: 'jul_2026', changes: [{ id: 'channel_visibility', type: 'feature' }] },
