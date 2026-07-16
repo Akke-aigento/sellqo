@@ -1072,6 +1072,10 @@
         "reliable_import": {
           "title": "Zuverlässigerer Datenimport",
           "description": "CSV-Dateien mit Semikolon-Trennzeichen und europäischer Zahlennotation (wie 19,99) werden jetzt korrekt verarbeitet. Der Newsletter-Status importierter Kunden wird nie mehr automatisch aktiviert, bestehende Kundendaten werden bei einem Re-Import nicht mehr überschrieben, und der Importbericht zeigt die Ergebnisse pro Datentyp."
+        },
+        "reliable_notifications": {
+          "title": "E-Mail-Benachrichtigungen funktionieren jetzt zuverlässig",
+          "description": "Wenn du E-Mail-Benachrichtigungen für Bestellungen, Rechnungen, Kunden oder Lagerbestand aktiviert hast, erhältst du diese Meldungen jetzt auch tatsächlich per E-Mail. Bulk-Importe lösen zudem keine Benachrichtigungsflut mehr aus."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."
