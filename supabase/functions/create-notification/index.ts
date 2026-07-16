@@ -43,8 +43,52 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const notification: NotificationRequest = await req.json();
-    await authenticateRequest(req, notification.tenant_id);
+    const rawBody: NotificationRequest = await req.json();
+    let notification: NotificationRequest = rawBody;
+
+    // NOTIF-FIX-1: internal-trusted path (called by DB trigger notify_email_on_notification).
+    // The trigger passes X-Internal-Secret; we verify against internal_config and re-fetch
+    // the notification row from the DB (never trusting the payload contents for security).
+    const internalSecretHeader = req.headers.get("X-Internal-Secret")?.trim();
+    if (internalSecretHeader) {
+      const { data: secretRow } = await supabase
+        .from("internal_config")
+        .select("value")
+        .eq("key", "internal_webhook_secret")
+        .maybeSingle();
+      const expected = (secretRow?.value as string | undefined)?.trim();
+      if (!expected || internalSecretHeader !== expected || !rawBody.notification_id) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized internal call" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: notifRow, error: notifErr } = await supabase
+        .from("notifications")
+        .select("id, tenant_id, category, type, title, message, priority, action_url, data")
+        .eq("id", rawBody.notification_id)
+        .maybeSingle();
+      if (notifErr || !notifRow) {
+        return new Response(
+          JSON.stringify({ error: "Notification not found" }),
+          { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      notification = {
+        tenant_id: notifRow.tenant_id,
+        category: notifRow.category,
+        type: notifRow.type,
+        title: notifRow.title,
+        message: notifRow.message,
+        priority: (notifRow.priority ?? "medium") as NotificationRequest["priority"],
+        action_url: notifRow.action_url ?? undefined,
+        data: (notifRow.data ?? {}) as Record<string, unknown>,
+        notification_id: notifRow.id,
+        skip_in_app: true,
+      };
+    } else {
+      await authenticateRequest(req, rawBody.tenant_id);
+    }
 
     const priority = notification.priority || 'medium';
     const skipInApp = notification.skip_in_app || false;
