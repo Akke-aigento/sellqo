@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
           icon={ShoppingCart}
         />
         <StatCard
-          title="Klanten"
+          title="Nieuwe klanten"
           value={summary?.totalCustomers ?? 0}
           change={summary?.customersChange}
           icon={Users}
