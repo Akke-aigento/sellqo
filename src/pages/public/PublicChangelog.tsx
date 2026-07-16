@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Bug, Zap, Shield, ChevronDown, ChevronUp, Link as LinkIcon, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
 
 // Structural changelog. Titles/descriptions and dates are localized via i18n.
 const changelogEntries: Array<{
@@ -71,10 +72,21 @@ export default function PublicChangelog() {
     if (!email) return;
 
     setIsSubscribing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success(t('public.changelog.subscribeSuccess'));
-    setEmail('');
-    setIsSubscribing(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('changelog-subscribe', {
+        body: { email: email.trim().toLowerCase() },
+      });
+      if (error || (data && data.success === false)) {
+        throw new Error(error?.message ?? 'subscribe_failed');
+      }
+      toast.success(t('public.changelog.subscribeSuccess'));
+      setEmail('');
+    } catch (err) {
+      console.error('changelog subscribe error:', err);
+      toast.error(t('public.changelog.subscribeError'));
+    } finally {
+      setIsSubscribing(false);
+    }
   };
 
   // Filter entries
