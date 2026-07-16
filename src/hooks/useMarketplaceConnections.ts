@@ -140,17 +140,41 @@ export function useMarketplaceConnections() {
   };
 
   const activeConnections = connections.filter(c => c.is_active);
-  const todayOrders = connections.reduce((sum, c) => sum + (c.stats?.totalOrders || 0), 0);
   const lastSync = connections
     .map(c => c.last_sync_at)
     .filter(Boolean)
     .sort()
     .reverse()[0];
 
+  // Live per-connection order counts (excl. cancelled) — vervangt de misleidende stats-blob.
+  const { data: liveOrderCounts = {} } = useQuery({
+    queryKey: ['marketplace-connection-live-orders', currentTenant?.id, connections.map(c => c.id).join(',')],
+    queryFn: async () => {
+      const result: Record<string, number> = {};
+      if (!currentTenant?.id || connections.length === 0) return result;
+      await Promise.all(
+        connections.map(async (c) => {
+          const { count } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', currentTenant.id)
+            .eq('marketplace_connection_id', c.id)
+            .neq('status', 'cancelled');
+          result[c.id] = count ?? 0;
+        }),
+      );
+      return result;
+    },
+    enabled: !!currentTenant?.id && connections.length > 0,
+  });
+
+  const totalMarketplaceOrders = Object.values(liveOrderCounts).reduce((s, n) => s + n, 0);
+
   return {
     connections,
     activeConnections,
-    todayOrders,
+    liveOrderCounts,
+    totalMarketplaceOrders,
     lastSync,
     isLoading,
     error,
