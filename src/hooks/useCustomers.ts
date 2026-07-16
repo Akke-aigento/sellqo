@@ -58,6 +58,7 @@ export function useCustomers(search?: string) {
         .insert({
           tenant_id: currentTenant.id,
           customer_type: data.customer_type || 'b2c',
+          acquisition_source: 'manual',
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
