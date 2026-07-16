@@ -343,15 +343,35 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
         </CardDescription>
         
         {/* Step indicator */}
-        <div className="flex items-center gap-2 mt-4">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div
-              key={s}
-              className={`flex-1 h-2 rounded-full ${
-                s <= step ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
+        <div className="mt-4">
+          <div className="flex items-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <div
+                key={s}
+                className={`flex-1 h-2 rounded-full ${
+                  s <= step ? 'bg-primary' : 'bg-muted'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            {stepTitles.map((title, idx) => {
+              const s = idx + 1;
+              const isActive = s === step;
+              return (
+                <div
+                  key={s}
+                  className={`flex-1 text-xs text-center truncate ${
+                    isActive
+                      ? 'text-primary font-medium'
+                      : 'text-muted-foreground hidden sm:block'
+                  }`}
+                >
+                  {title}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </CardHeader>
       
