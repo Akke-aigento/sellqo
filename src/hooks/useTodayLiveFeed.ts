@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfDay, subDays } from 'date-fns';
@@ -21,7 +21,6 @@ export interface TodayStats {
   orderCountChange: number;
   newCustomers: number;
   newCustomersChange: number;
-  reviewCount: number;
 }
 
 interface UseTodayLiveFeedReturn {
@@ -61,7 +60,14 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
   const [feedItems, setFeedItems] = useState<LiveFeedItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [yesterdayStats, setYesterdayStats] = useState({ revenue: 0, orderCount: 0, newCustomers: 0 });
+  const [todayStats, setTodayStats] = useState<TodayStats>({
+    revenue: 0,
+    revenueChange: 0,
+    orderCount: 0,
+    orderCountChange: 0,
+    newCustomers: 0,
+    newCustomersChange: 0,
+  });
 
   const tenantId = currentTenant?.id;
 
@@ -72,18 +78,80 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
     });
   }, []);
 
-  // Fetch today's existing events and yesterday's stats
+  // Compute stats for a day window (paid, non-cancelled revenue; non-cancelled order count; new customers).
+  const fetchStatsForWindow = useCallback(
+    async (startISO: string, endISO: string) => {
+      const [revenueRes, orderCountRes, customerCountRes] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('total')
+          .eq('tenant_id', tenantId!)
+          .eq('payment_status', 'paid')
+          .neq('status', 'cancelled')
+          .gte('created_at', startISO)
+          .lt('created_at', endISO),
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .neq('status', 'cancelled')
+          .gte('created_at', startISO)
+          .lt('created_at', endISO),
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .gte('created_at', startISO)
+          .lt('created_at', endISO),
+      ]);
+      const revenue = (revenueRes.data ?? []).reduce(
+        (sum, o: { total: number | null }) => sum + Number(o.total || 0),
+        0,
+      );
+      return {
+        revenue,
+        orderCount: orderCountRes.count ?? 0,
+        newCustomers: customerCountRes.count ?? 0,
+      };
+    },
+    [tenantId],
+  );
+
+  const refreshStats = useCallback(async () => {
+    if (!tenantId) return;
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const yesterdayStart = startOfDay(subDays(now, 1));
+    const [today, yesterday] = await Promise.all([
+      fetchStatsForWindow(todayStart.toISOString(), new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString()),
+      fetchStatsForWindow(yesterdayStart.toISOString(), todayStart.toISOString()),
+    ]);
+    const revenueChange =
+      yesterday.revenue > 0
+        ? Math.round(((today.revenue - yesterday.revenue) / yesterday.revenue) * 100)
+        : today.revenue > 0
+          ? 100
+          : 0;
+    setTodayStats({
+      revenue: today.revenue,
+      revenueChange,
+      orderCount: today.orderCount,
+      orderCountChange: today.orderCount - yesterday.orderCount,
+      newCustomers: today.newCustomers,
+      newCustomersChange: today.newCustomers - yesterday.newCustomers,
+    });
+  }, [tenantId, fetchStatsForWindow]);
+
+  // Fetch today's feed items (feed decoupled from stats).
   useEffect(() => {
     if (!tenantId) return;
 
     const fetchData = async () => {
       setIsLoading(true);
       const todayStart = startOfDay(new Date()).toISOString();
-      const yesterdayStart = startOfDay(subDays(new Date(), 1)).toISOString();
 
       try {
-        // Fetch today's orders, customers, reviews in parallel
-        const [ordersRes, customersRes, yesterdayOrdersRes, yesterdayCustomersRes] = await Promise.all([
+        const [ordersRes, customersRes] = await Promise.all([
           supabase
             .from('orders')
             .select('id, order_number, total, customer_name, customer_email, status, created_at, shipped_at, delivered_at, payment_status')
@@ -98,26 +166,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
             .gte('created_at', todayStart)
             .order('created_at', { ascending: false })
             .limit(10),
-          supabase
-            .from('orders')
-            .select('total, payment_status')
-            .eq('tenant_id', tenantId)
-            .gte('created_at', yesterdayStart)
-            .lt('created_at', todayStart)
-            .eq('payment_status', 'paid'),
-          supabase
-            .from('customers')
-            .select('id')
-            .eq('tenant_id', tenantId)
-            .gte('created_at', yesterdayStart)
-            .lt('created_at', todayStart),
         ]);
-
-        // Calculate yesterday stats
-        const yesterdayRevenue = yesterdayOrdersRes.data?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
-        const yesterdayOrderCount = yesterdayOrdersRes.data?.length || 0;
-        const yesterdayNewCustomers = yesterdayCustomersRes.data?.length || 0;
-        setYesterdayStats({ revenue: yesterdayRevenue, orderCount: yesterdayOrderCount, newCustomers: yesterdayNewCustomers });
 
         // Map orders to feed items
         const orderItems: LiveFeedItem[] = (ordersRes.data || []).flatMap(order => {
@@ -191,7 +240,8 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
     };
 
     fetchData();
-  }, [tenantId]);
+    refreshStats();
+  }, [tenantId, refreshStats]);
 
   // Setup realtime subscriptions
   useEffect(() => {
@@ -214,6 +264,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
             amount: order.total,
             metadata: { orderId: order.id, orderNumber: order.order_number },
           });
+          refreshStats();
         }
       )
       .on(
@@ -246,6 +297,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
               metadata: { orderId: order.id, orderNumber: order.order_number },
             });
           }
+          refreshStats();
         }
       )
       .on(
@@ -264,6 +316,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
             timestamp: new Date(),
             metadata: { customerId: customer.id },
           });
+          refreshStats();
         }
       )
       .subscribe((status) => {
@@ -273,36 +326,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tenantId, addFeedItem]);
-
-  // Calculate today stats from feed items
-  const todayStats = useMemo((): TodayStats => {
-    const orderItems = feedItems.filter(item => item.type === 'order_new');
-    const customerItems = feedItems.filter(item => item.type === 'customer_new');
-    const reviewItems = feedItems.filter(item => item.type === 'review_new');
-
-    const revenue = orderItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-    const orderCount = orderItems.length;
-    const newCustomers = customerItems.length;
-    const reviewCount = reviewItems.length;
-
-    // Calculate changes vs yesterday
-    const revenueChange = yesterdayStats.revenue > 0 
-      ? Math.round(((revenue - yesterdayStats.revenue) / yesterdayStats.revenue) * 100)
-      : revenue > 0 ? 100 : 0;
-    const orderCountChange = orderCount - yesterdayStats.orderCount;
-    const newCustomersChange = newCustomers - yesterdayStats.newCustomers;
-
-    return {
-      revenue,
-      revenueChange,
-      orderCount,
-      orderCountChange,
-      newCustomers,
-      newCustomersChange,
-      reviewCount,
-    };
-  }, [feedItems, yesterdayStats]);
+  }, [tenantId, addFeedItem, refreshStats]);
 
   return {
     feedItems,
