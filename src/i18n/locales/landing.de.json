@@ -1068,6 +1068,10 @@
         "connect_overview": {
           "title": "Übersichtlichere Integrationsübersicht und lesbare Diagramme",
           "description": "Deine Odoo-Buchhaltungsanbindung zählt jetzt in der Integrationsübersicht mit, den Shopify-Import findest du künftig unter Importieren, und die Analytics-Diagramme zeigen Produktnamen und Bestellstatus gut lesbar an."
+        },
+        "reliable_import": {
+          "title": "Zuverlässigerer Datenimport",
+          "description": "CSV-Dateien mit Semikolon-Trennzeichen und europäischer Zahlennotation (wie 19,99) werden jetzt korrekt verarbeitet. Der Newsletter-Status importierter Kunden wird nie mehr automatisch aktiviert, bestehende Kundendaten werden bei einem Re-Import nicht mehr überschrieben, und der Importbericht zeigt die Ergebnisse pro Datentyp."
         }
       }
     }

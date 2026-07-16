@@ -1068,6 +1068,10 @@
         "connect_overview": {
           "title": "Aperçu des intégrations plus clair et graphiques lisibles",
           "description": "Votre connexion Odoo Comptabilité compte désormais dans l'aperçu des intégrations, l'import Shopify se trouve désormais dans la section Importer, et les graphiques Analytics affichent lisiblement les noms de produits et les statuts de commande."
+        },
+        "reliable_import": {
+          "title": "Import de données plus fiable",
+          "description": "Les fichiers CSV utilisant le point-virgule comme séparateur et le format numérique européen (comme 19,99) sont désormais traités correctement. Le statut newsletter des clients importés n'est plus activé automatiquement, les données existantes ne sont plus écrasées lors d'un ré-import, et le rapport d'import affiche les résultats par type de données."
         }
       }
     }

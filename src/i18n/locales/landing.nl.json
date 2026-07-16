@@ -1068,6 +1068,10 @@
         "connect_overview": {
           "title": "Duidelijker koppelingen-overzicht en leesbare grafieken",
           "description": "Je Odoo-boekhoudkoppeling telt nu mee in het connectie-overzicht, Shopify-import vind je voortaan bij Importeren, en de Analytics-grafieken tonen productnamen en orderstatussen leesbaar."
+        },
+        "reliable_import": {
+          "title": "Betrouwbaardere data-import",
+          "description": "CSV-bestanden met puntkomma's als scheidingsteken en Belgische getalnotatie (zoals 19,99) worden nu correct verwerkt. De nieuwsbriefstatus van geïmporteerde klanten wordt nooit meer automatisch aangezet, bestaande klantgegevens worden bij een her-import niet meer overschreven, en het importrapport toont de resultaten per gegevenstype."
         }
       }
     }

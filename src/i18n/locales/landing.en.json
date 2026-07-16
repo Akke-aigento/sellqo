@@ -1068,6 +1068,10 @@
         "connect_overview": {
           "title": "Clearer integrations overview and readable charts",
           "description": "Your Odoo accounting connection now counts in the integrations overview, Shopify import has moved to the Import section, and Analytics charts show product names and order statuses legibly."
+        },
+        "reliable_import": {
+          "title": "More reliable data import",
+          "description": "CSV files that use semicolons as separators and European number formatting (like 19,99) are now processed correctly. Newsletter status is never turned on automatically for imported customers, existing customer data is no longer overwritten on re-import, and the import report shows results per data type."
         }
       }
     }
