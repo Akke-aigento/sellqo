@@ -420,3 +420,6 @@ verify_jwt = false
 
 [functions.create-credit-note-from-return]
 verify_jwt = false
+
+[functions.changelog-subscribe]
+verify_jwt = false
