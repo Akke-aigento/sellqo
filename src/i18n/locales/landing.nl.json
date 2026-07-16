@@ -1073,6 +1073,10 @@
           "title": "Betrouwbaardere data-import",
           "description": "CSV-bestanden met puntkomma's als scheidingsteken en Belgische getalnotatie (zoals 19,99) worden nu correct verwerkt. De nieuwsbriefstatus van geïmporteerde klanten wordt nooit meer automatisch aangezet, bestaande klantgegevens worden bij een her-import niet meer overschreven, en het importrapport toont de resultaten per gegevenstype."
         },
+        "reliable_notifications": {
+          "title": "E-mailnotificaties werken nu betrouwbaar",
+          "description": "Als je e-mailnotificaties hebt ingeschakeld voor bestellingen, facturen, klanten of voorraad, ontvang je die meldingen nu ook echt per e-mail. Bulk-imports veroorzaken bovendien geen notificatiestorm meer."
+        },
         "import_guide": {
           "title": "Duidelijke exportinstructies bij het importeren",
           "description": "Kies bij het importeren je huidige platform en zie meteen hoe je daar je producten, klanten en bestellingen exporteert. De importpagina kreeg ook een opgefriste, rustigere lay-out."
