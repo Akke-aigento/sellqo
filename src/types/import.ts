@@ -54,9 +54,6 @@ export interface ImportOptions {
   skipErrors: boolean;
   updateExisting: boolean;
   matchField?: string;
-  batchSize: number;
-  importImages?: boolean;
-  sendWelcomeEmail?: boolean;
 }
 
 export interface ImportError {

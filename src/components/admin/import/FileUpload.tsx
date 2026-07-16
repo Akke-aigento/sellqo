@@ -15,6 +15,7 @@ interface FileUploadProps {
   dataTypes: ImportDataType[];
   uploadedFiles: Map<ImportDataType, UploadedFile>;
   onFileUpload: (dataType: ImportDataType, file: UploadedFile) => void;
+  onFileRemove: (dataType: ImportDataType) => void;
 }
 
 export function FileUpload({
@@ -22,6 +23,7 @@ export function FileUpload({
   dataTypes,
   uploadedFiles,
   onFileUpload,
+  onFileRemove,
 }: FileUploadProps) {
   const { t } = useTranslation();
   const [dragOver, setDragOver] = useState<ImportDataType | null>(null);
@@ -38,16 +40,14 @@ export function FileUpload({
 
     try {
       const { headers, rows } = await parseCSV(file);
-      
-      // Detect platform from headers if unknown
-      const detectedPlatform = detectPlatform(headers);
-      console.log('Detected platform:', detectedPlatform);
+
+      // Detect platform from headers if unknown (kept for future auto-mapping)
+      detectPlatform(headers);
 
       // Consolidate Shopify product rows (multiple rows per product for images/variants)
       let processedRows = rows;
       if (dataType === 'products' && headers.includes('Handle') && headers.includes('Title')) {
         processedRows = consolidateShopifyProductRows(rows);
-        console.log(`Product consolidation: ${rows.length} → ${processedRows.length}`);
       }
 
       onFileUpload(dataType, {
@@ -73,8 +73,15 @@ export function FileUpload({
     setDragOver(null);
 
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.json'))) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.csv') || name.endsWith('.xlsx')) {
       handleFile(dataType, file);
+    } else {
+      setErrors(prev => new Map(prev).set(
+        dataType,
+        'Bestandstype niet ondersteund. Gebruik .csv of .xlsx.'
+      ));
     }
   }, [handleFile]);
 
@@ -86,9 +93,12 @@ export function FileUpload({
   };
 
   const removeFile = (dataType: ImportDataType) => {
-    // Remove file by setting empty state - parent needs to handle this
-    // For now, we'll just reload
-    window.location.reload();
+    onFileRemove(dataType);
+    setErrors(prev => {
+      const next = new Map(prev);
+      next.delete(dataType);
+      return next;
+    });
   };
 
   const TEMPLATE_HEADERS = [
@@ -210,7 +220,7 @@ export function FileUpload({
               >
                 <input
                   type="file"
-                  accept=".csv,.xlsx,.json"
+                  accept=".csv,.xlsx"
                   className="hidden"
                   id={`file-${dataType}`}
                   onChange={(e) => handleInputChange(dataType, e)}
