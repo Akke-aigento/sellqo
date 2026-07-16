@@ -3816,3 +3816,13 @@ Wijzigingen:
 - `src/pages/admin/Import.tsx`: nieuwe "Shopify importeren"-kaart opent de bestaande `ConnectMarketplaceDialog` met `marketplaceType='shopify'` (flow zelf ongemoeid).
 - `src/pages/admin/Analytics.tsx`: top-producten Y-as width 170 + tick-truncatie op 28 tekens met '…'; tooltip toont volledige naam + omzet + aantal stuks. Pie-labels verwijderd (info via legende + tooltip); STATUS_LABELS/COLORS aangevuld met `returned` en `refunded`.
 - Publieke changelog: entry `2026.07h` (connect_overview) toegevoegd in `PublicChangelog.tsx` en vertaald in landing.{nl,en,fr,de}.json.
+
+## SHOPIFY-CLEAN-1: Shopify API-koppeling verwijderd — 16 juli 2026
+
+Root cause: de Shopify-connect-flow was gebouwd op een niet-bestaande Shopify-app — de OAuth-poot vereist een geregistreerde Shopify-app die door hun app-review moet, iets wat een concurrent-SaaS niet krijgt. De alternatieve access-token-poot (custom app in Shopify Admin) bleek in de praktijk onbetrouwbaar en werd door tenants verworpen. Besluit: CSV-import via de standaard Shopify-export (Producten/Klanten/Bestellingen → Exporteren) is voortaan de enige ondersteunde route om vanuit Shopify over te stappen.
+
+Wijzigingen:
+- `src/pages/admin/Import.tsx`: de "Shopify importeren"-kaart uit STATS-1C vervangen door een uitleg-kaart "Vanuit Shopify overstappen?" met de twee CSV-export-stappen; dialog/knop/state verwijderd.
+- `src/components/admin/marketplace/ConnectMarketplaceDialog.tsx`: shopify-early-return, `ShopifyConnectDialog`/`ShopifyOAuthConnect` imports, shopify credential-takken (test/connect), sync-functie-mapping en `getInstructions`-case verwijderd; ongebruikte `storeUrl`/`accessToken`-state opgeruimd. Bol/Woo/Odoo/eBay/Amazon-takken ongewijzigd.
+- Verwijderd: `src/components/admin/marketplace/ShopifyConnectDialog.tsx`, `src/components/admin/marketplace/ShopifyOAuthConnect.tsx`, `src/pages/ShopifyCallback.tsx` + route `/api/shopify/callback` en import in `src/App.tsx`.
+- Edge functions `sync-shopify-orders` / `sync-shopify-customers` / `sync-shopify-inventory` bewust dormant gelaten (SHOPIFY-REMOVE-2 op backlog voor definitieve verwijdering). Historische `marketplace_source='shopify_draft_order'`-orders ongemoeid.
