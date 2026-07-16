@@ -64,7 +64,6 @@ import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
 import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ResetPassword from "./pages/ResetPassword";
-import ShopifyCallback from "./pages/ShopifyCallback";
 import MandateActivation from "./pages/MandateActivation";
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
@@ -164,9 +163,6 @@ const App = () => (
 
             {/* SUB-2: public mandate activation page (SEPA/card) */}
             <Route path="/betaling/machtiging/:token" element={<MandateActivation />} />
-            
-            {/* Shopify OAuth callback route */}
-            <Route path="/api/shopify/callback" element={<ShopifyCallback />} />
 
             {/* Fase 2 Foundation — role-mismatch fallback */}
             <Route path="/no-access" element={<NoAccess />} />

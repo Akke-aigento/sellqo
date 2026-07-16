@@ -40,8 +40,6 @@ import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import type { MarketplaceType } from '@/types/marketplace';
 import { MARKETPLACE_INFO } from '@/types/marketplace';
 import { supabase } from '@/integrations/supabase/client';
-import { ShopifyConnectDialog } from './ShopifyConnectDialog';
-import { ShopifyOAuthConnect } from './ShopifyOAuthConnect';
 
 interface ConnectMarketplaceDialogProps {
   open: boolean;
@@ -89,10 +87,6 @@ export function ConnectMarketplaceDialog({
   const { createConnection } = useMarketplaceConnections();
   const info = MARKETPLACE_INFO[marketplaceType];
 
-  // Shopify-specific state
-  const [storeUrl, setStoreUrl] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-  
   // WooCommerce-specific state
   const [siteUrl, setSiteUrl] = useState('');
   const [consumerKey, setConsumerKey] = useState('');
@@ -126,9 +120,7 @@ export function ConnectMarketplaceDialog({
     
     try {
       // Build credentials based on marketplace type
-      const credentials = marketplaceType === 'shopify' 
-        ? { storeUrl, accessToken }
-        : marketplaceType === 'woocommerce'
+      const credentials = marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
@@ -175,9 +167,7 @@ export function ConnectMarketplaceDialog({
     
     try {
       // Build credentials based on marketplace type
-      const credentials = marketplaceType === 'shopify' 
-        ? { storeUrl, accessToken }
-        : marketplaceType === 'woocommerce'
+      const credentials = marketplaceType === 'woocommerce'
         ? { siteUrl, consumerKey, consumerSecret }
         : marketplaceType === 'odoo'
         ? { odooUrl, odooDatabase, odooUsername, odooApiKey }
@@ -224,10 +214,7 @@ export function ConnectMarketplaceDialog({
       let syncOrdersFunction: string;
       let syncInventoryFunction: string;
       
-      if (marketplaceType === 'shopify') {
-        syncOrdersFunction = 'sync-shopify-orders';
-        syncInventoryFunction = 'sync-shopify-inventory';
-      } else if (marketplaceType === 'woocommerce') {
+      if (marketplaceType === 'woocommerce') {
         syncOrdersFunction = 'sync-woocommerce-orders';
         syncInventoryFunction = 'sync-woocommerce-inventory';
       } else if (marketplaceType === 'amazon') {
@@ -242,17 +229,6 @@ export function ConnectMarketplaceDialog({
       } else {
         syncOrdersFunction = 'sync-bol-orders';
         syncInventoryFunction = 'sync-bol-inventory';
-      }
-      
-      // Shopify also syncs customers
-      if (marketplaceType === 'shopify') {
-        try {
-          await supabase.functions.invoke('sync-shopify-customers', {
-            body: { connectionId: newConnection.id }
-          });
-        } catch (err) {
-          console.error('Customer sync failed:', err);
-        }
       }
       
       // Odoo syncs based on selected modules
@@ -335,8 +311,6 @@ export function ConnectMarketplaceDialog({
       setConnectionName('');
       setClientId('');
       setClientSecret('');
-      setStoreUrl('');
-      setAccessToken('');
       setSiteUrl('');
       setConsumerKey('');
       setConsumerSecret('');
@@ -393,17 +367,6 @@ export function ConnectMarketplaceDialog({
             'Kopieer je credentials',
           ],
         };
-      case 'shopify':
-        return {
-          title: 'Shopify Admin',
-          url: 'https://admin.shopify.com',
-          steps: [
-            'Log in op je Shopify Admin',
-            'Ga naar Settings → Apps and sales channels → Develop apps',
-            'Maak een nieuwe app aan en configureer Admin API scopes',
-            'Installeer de app en kopieer je Admin API access token',
-          ],
-        };
       case 'woocommerce':
         return {
           title: 'WordPress Admin',
@@ -450,20 +413,6 @@ export function ConnectMarketplaceDialog({
   };
 
   const instructions = getInstructions();
-
-  // For Shopify, use the new multi-option dialog
-  if (marketplaceType === 'shopify') {
-    return (
-      <ShopifyConnectDialog
-        open={open}
-        onOpenChange={handleClose}
-        onSuccess={() => {
-          handleClose();
-          onSuccess?.();
-        }}
-      />
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
