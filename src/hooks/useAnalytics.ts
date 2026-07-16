@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfMonth, subMonths, format, eachDayOfInterval, subDays, startOfDay } from 'date-fns';
+import { fetchAllRows } from '@/lib/salesStats';
 
 export interface DailyStats {
   date: string;
@@ -43,48 +44,73 @@ export function useAnalytics(days: number = 30) {
       const startDate = subDays(startOfDay(now), days);
       const previousStartDate = subDays(startDate, days);
 
-      // Current period stats
-      const { data: currentOrders } = await supabase
-        .from('orders')
-        .select('total, payment_status')
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate.toISOString());
+      // Revenue (paid + not cancelled) — paginated.
+      const currentRevenueRows = await fetchAllRows<{ total: number }>((from, to) =>
+        supabase
+          .from('orders')
+          .select('total')
+          .eq('tenant_id', currentTenant.id)
+          .eq('payment_status', 'paid')
+          .neq('status', 'cancelled')
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      );
+      const previousRevenueRows = await fetchAllRows<{ total: number }>((from, to) =>
+        supabase
+          .from('orders')
+          .select('total')
+          .eq('tenant_id', currentTenant.id)
+          .eq('payment_status', 'paid')
+          .neq('status', 'cancelled')
+          .gte('created_at', previousStartDate.toISOString())
+          .lt('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      );
 
-      const { data: previousOrders } = await supabase
-        .from('orders')
-        .select('total, payment_status')
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', previousStartDate.toISOString())
-        .lt('created_at', startDate.toISOString());
+      // Order counts (excluding cancelled).
+      const [
+        currentOrderCountRes,
+        previousOrderCountRes,
+        currentCustomerCountRes,
+        previousCustomerCountRes,
+      ] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .neq('status', 'cancelled')
+          .gte('created_at', startDate.toISOString()),
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .neq('status', 'cancelled')
+          .gte('created_at', previousStartDate.toISOString())
+          .lt('created_at', startDate.toISOString()),
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', startDate.toISOString()),
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', previousStartDate.toISOString())
+          .lt('created_at', startDate.toISOString()),
+      ]);
 
-      const { count: currentCustomerCount } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate.toISOString());
+      const currentRevenue = currentRevenueRows.reduce((sum, o) => sum + Number(o.total), 0);
+      const previousRevenue = previousRevenueRows.reduce((sum, o) => sum + Number(o.total), 0);
+      const currentOrderCount = currentOrderCountRes.count ?? 0;
+      const previousOrderCount = previousOrderCountRes.count ?? 0;
+      const currentCustomerCount = currentCustomerCountRes.count ?? 0;
+      const previousCustomerCount = previousCustomerCountRes.count ?? 0;
 
-      const { count: previousCustomerCount } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', previousStartDate.toISOString())
-        .lt('created_at', startDate.toISOString());
-
-      const { count: totalCustomers } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id);
-
-      const currentRevenue = currentOrders
-        ?.filter(o => o.payment_status === 'paid')
-        .reduce((sum, o) => sum + Number(o.total), 0) ?? 0;
-
-      const previousRevenue = previousOrders
-        ?.filter(o => o.payment_status === 'paid')
-        .reduce((sum, o) => sum + Number(o.total), 0) ?? 0;
-
-      const currentOrderCount = currentOrders?.length ?? 0;
-      const previousOrderCount = previousOrders?.length ?? 0;
+      // Average order value uses the SAME set as the revenue numerator: paid + not-cancelled.
+      const revenueOrderCount = currentRevenueRows.length;
 
       const revenueChange = previousRevenue > 0 
         ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
@@ -92,15 +118,15 @@ export function useAnalytics(days: number = 30) {
       const ordersChange = previousOrderCount > 0 
         ? ((currentOrderCount - previousOrderCount) / previousOrderCount) * 100 
         : 0;
-      const customersChange = (previousCustomerCount ?? 0) > 0 
-        ? (((currentCustomerCount ?? 0) - (previousCustomerCount ?? 0)) / (previousCustomerCount ?? 1)) * 100 
+      const customersChange = previousCustomerCount > 0
+        ? ((currentCustomerCount - previousCustomerCount) / previousCustomerCount) * 100
         : 0;
 
       return {
         totalRevenue: currentRevenue,
         totalOrders: currentOrderCount,
-        totalCustomers: totalCustomers ?? 0,
-        averageOrderValue: currentOrderCount > 0 ? currentRevenue / currentOrderCount : 0,
+        totalCustomers: currentCustomerCount,
+        averageOrderValue: revenueOrderCount > 0 ? currentRevenue / revenueOrderCount : 0,
         revenueChange,
         ordersChange,
         customersChange,
@@ -118,26 +144,36 @@ export function useAnalytics(days: number = 30) {
       const startDate = subDays(startOfDay(now), days);
       const dateRange = eachDayOfInterval({ start: startDate, end: now });
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('created_at, total, payment_status')
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate.toISOString());
+      const orders = await fetchAllRows<{ created_at: string; total: number; payment_status: string | null; status: string | null }>(
+        (from, to) =>
+          supabase
+            .from('orders')
+            .select('created_at, total, payment_status, status')
+            .eq('tenant_id', currentTenant.id)
+            .neq('status', 'cancelled')
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: false })
+            .range(from, to),
+      );
 
-      const { data: customers } = await supabase
-        .from('customers')
-        .select('created_at')
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', startDate.toISOString());
+      const customers = await fetchAllRows<{ created_at: string }>((from, to) =>
+        supabase
+          .from('customers')
+          .select('created_at')
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      );
 
       const dailyStats = dateRange.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        const dayOrders = orders?.filter(o => 
+        const dayOrders = orders.filter(o =>
           format(new Date(o.created_at!), 'yyyy-MM-dd') === dateStr
-        ) ?? [];
-        const dayCustomers = customers?.filter(c => 
+        );
+        const dayCustomers = customers.filter(c =>
           format(new Date(c.created_at!), 'yyyy-MM-dd') === dateStr
-        ) ?? [];
+        );
 
         return {
           date: format(date, 'dd MMM'),
@@ -155,17 +191,23 @@ export function useAnalytics(days: number = 30) {
   });
 
   const orderStatusQuery = useQuery({
-    queryKey: ['analytics', 'orderStatus', currentTenant?.id],
+    queryKey: ['analytics', 'orderStatus', currentTenant?.id, days],
     queryFn: async (): Promise<OrderStatusStats[]> => {
       if (!currentTenant) throw new Error('No tenant selected');
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('tenant_id', currentTenant.id);
+      const startDate = subDays(startOfDay(new Date()), days);
+      const orders = await fetchAllRows<{ status: string | null }>((from, to) =>
+        supabase
+          .from('orders')
+          .select('status')
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      );
 
       const statusCounts: Record<string, number> = {};
-      orders?.forEach(order => {
+      orders.forEach(order => {
         const status = order.status || 'pending';
         statusCounts[status] = (statusCounts[status] || 0) + 1;
       });
@@ -179,23 +221,35 @@ export function useAnalytics(days: number = 30) {
   });
 
   const topProductsQuery = useQuery({
-    queryKey: ['analytics', 'topProducts', currentTenant?.id],
+    queryKey: ['analytics', 'topProducts', currentTenant?.id, days],
     queryFn: async (): Promise<TopProduct[]> => {
       if (!currentTenant) throw new Error('No tenant selected');
 
-      const { data: orderItems } = await supabase
-        .from('order_items')
-        .select(`
+      const startDate = subDays(startOfDay(new Date()), days);
+      const orderItems = await fetchAllRows<{
+        product_name: string;
+        quantity: number;
+        total_price: number;
+        orders: { tenant_id: string; payment_status: string; status: string; created_at: string } | null;
+      }>((from, to) =>
+        supabase
+          .from('order_items')
+          .select(`
           product_name,
           quantity,
           total_price,
-          orders!inner(tenant_id, payment_status)
+          orders!inner(tenant_id, payment_status, status, created_at)
         `)
-        .eq('orders.tenant_id', currentTenant.id)
-        .eq('orders.payment_status', 'paid');
+          .eq('orders.tenant_id', currentTenant.id)
+          .eq('orders.payment_status', 'paid')
+          .neq('orders.status', 'cancelled')
+          .gte('orders.created_at', startDate.toISOString())
+          .order('id', { ascending: false })
+          .range(from, to),
+      );
 
       const productStats: Record<string, { revenue: number; quantity: number }> = {};
-      orderItems?.forEach(item => {
+      orderItems.forEach(item => {
         if (!productStats[item.product_name]) {
           productStats[item.product_name] = { revenue: 0, quantity: 0 };
         }
