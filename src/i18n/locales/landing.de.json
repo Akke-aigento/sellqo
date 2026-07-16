@@ -1073,7 +1073,8 @@
           "title": "Zuverlässigerer Datenimport",
           "description": "CSV-Dateien mit Semikolon-Trennzeichen und europäischer Zahlennotation (wie 19,99) werden jetzt korrekt verarbeitet. Der Newsletter-Status importierter Kunden wird nie mehr automatisch aktiviert, bestehende Kundendaten werden bei einem Re-Import nicht mehr überschrieben, und der Importbericht zeigt die Ergebnisse pro Datentyp."
         }
-      }
+      },
+      "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."
     }
   }
 }

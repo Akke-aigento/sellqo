@@ -1073,7 +1073,8 @@
           "title": "Import de données plus fiable",
           "description": "Les fichiers CSV utilisant le point-virgule comme séparateur et le format numérique européen (comme 19,99) sont désormais traités correctement. Le statut newsletter des clients importés n'est plus activé automatiquement, les données existantes ne sont plus écrasées lors d'un ré-import, et le rapport d'import affiche les résultats par type de données."
         }
-      }
+      },
+      "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
     }
   }
 }

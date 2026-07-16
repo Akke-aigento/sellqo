@@ -1073,7 +1073,8 @@
           "title": "Betrouwbaardere data-import",
           "description": "CSV-bestanden met puntkomma's als scheidingsteken en Belgische getalnotatie (zoals 19,99) worden nu correct verwerkt. De nieuwsbriefstatus van geïmporteerde klanten wordt nooit meer automatisch aangezet, bestaande klantgegevens worden bij een her-import niet meer overschreven, en het importrapport toont de resultaten per gegevenstype."
         }
-      }
+      },
+      "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
     }
   }
 }
