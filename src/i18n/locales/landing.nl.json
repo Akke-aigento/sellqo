@@ -1013,6 +1013,10 @@
         "q4_2024": "Q4 2024"
       },
       "changes": {
+        "accurate_stats": {
+          "title": "Nauwkeurigere statistieken in je dashboard",
+          "description": "Dashboard- en analytics-cijfers hanteren nu overal dezelfde definities (betaald en niet geannuleerd). Verkoopkanalen worden correct herkend en nieuwe klanten en nieuwsbrief-inschrijvingen worden apart geteld."
+        },
         "odoo_accounting": {
           "title": "Odoo boekhoudkoppeling",
           "description": "Per-tenant koppeling met je eigen Odoo: facturen en creditnota's worden automatisch in je verkoopdagboek geboekt, inclusief automatische Peppol-verzending via Odoo voor B2B-klanten."

@@ -1013,6 +1013,10 @@
         "q4_2024": "Q4 2024"
       },
       "changes": {
+        "accurate_stats": {
+          "title": "More accurate dashboard statistics",
+          "description": "Dashboard and analytics figures now use the same definitions everywhere (paid and not cancelled). Sales channels are recognised correctly and new customers and newsletter subscribers are counted separately."
+        },
         "odoo_accounting": {
           "title": "Odoo accounting integration",
           "description": "Per-tenant connection with your own Odoo: invoices and credit notes are booked automatically into your sales journal, including automatic Peppol sending via Odoo for B2B customers."
