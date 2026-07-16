@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfDay, subDays } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { REAL_CUSTOMER_OR, IMPORT_ACQUISITION_SOURCES } from '@/lib/salesStats';
+import { REAL_CUSTOMER_OR } from '@/lib/salesStats';
 
 export interface LiveFeedItem {
   id: string;
