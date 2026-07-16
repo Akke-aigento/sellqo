@@ -165,6 +165,7 @@ Deno.serve(async (req) => {
                 last_name: sLast,
                 phone: sPhone,
                 customer_type: 'b2c',
+                acquisition_source: 'shopify_import',
               })
               .select('id').single()
             if (custErr) {
