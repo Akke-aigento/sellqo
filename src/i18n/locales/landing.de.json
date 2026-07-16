@@ -1013,6 +1013,10 @@
         "q4_2024": "Q4 2024"
       },
       "changes": {
+        "accurate_stats": {
+          "title": "Genauere Statistiken in deinem Dashboard",
+          "description": "Dashboard- und Analytics-Zahlen verwenden jetzt überall die gleichen Definitionen (bezahlt und nicht storniert). Verkaufskanäle werden korrekt erkannt und Neukunden sowie Newsletter-Abonnenten werden getrennt gezählt."
+        },
         "odoo_accounting": {
           "title": "Odoo-Buchhaltungsanbindung",
           "description": "Tenant-spezifische Anbindung an Ihr eigenes Odoo: Rechnungen und Gutschriften werden automatisch in Ihr Verkaufsjournal gebucht, inklusive automatischer Peppol-Zustellung über Odoo für B2B-Kunden."

@@ -1654,6 +1654,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
           tenant_id: tenantId, email: cart.customer_email,
           first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '',
           phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c',
+          acquisition_source: 'webshop',
         })
         .select('id').single();
       if (insertErr) {
@@ -2313,7 +2314,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
       const { data: newCust, error: insertErr } = await supabase
         .from('customers')
-        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c' })
+        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c', acquisition_source: 'webshop' })
         .select('id').single();
       if (insertErr) {
         console.error(`[STOREFRONT-CUSTOMER] insert failed for ${cart.customer_email} (tenant ${tenantId}):`, insertErr.message);
@@ -2858,6 +2859,7 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         email_subscribed: true,
         email_subscribed_at: new Date().toISOString(),
         preferred_language: language || null,
+        acquisition_source: 'webshop',
       });
       if (insertErr) {
         console.error('Customer insert failed:', JSON.stringify(insertErr));

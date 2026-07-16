@@ -4726,6 +4726,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          acquisition_source: string | null
           billing_address_verified: boolean | null
           billing_city: string | null
           billing_country: string | null
@@ -4788,6 +4789,7 @@ export type Database = {
           whatsapp_opted_in_at: string | null
         }
         Insert: {
+          acquisition_source?: string | null
           billing_address_verified?: boolean | null
           billing_city?: string | null
           billing_country?: string | null
@@ -4850,6 +4852,7 @@ export type Database = {
           whatsapp_opted_in_at?: string | null
         }
         Update: {
+          acquisition_source?: string | null
           billing_address_verified?: boolean | null
           billing_city?: string | null
           billing_country?: string | null

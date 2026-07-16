@@ -9,6 +9,7 @@ export interface DailyStats {
   revenue: number;
   orders: number;
   customers: number;
+  subscribers: number;
 }
 
 export interface OrderStatusStats {
@@ -31,6 +32,9 @@ export interface AnalyticsSummary {
   ordersChange: number;
   customersChange: number;
 }
+
+// PostgREST-`not(...,'in',...)` sluit NULL uit; expliciet OR zodat NULL meetelt.
+const REAL_CUSTOMER_OR = 'acquisition_source.is.null,acquisition_source.not.in.(bol_com,shopify_import)';
 
 export function useAnalytics(days: number = 30) {
   const { currentTenant } = useTenant();
@@ -93,13 +97,15 @@ export function useAnalytics(days: number = 30) {
           .from('customers')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', currentTenant.id)
-          .gte('created_at', startDate.toISOString()),
+          .gte('created_at', startDate.toISOString())
+          .or(REAL_CUSTOMER_OR),
         supabase
           .from('customers')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', previousStartDate.toISOString())
-          .lt('created_at', startDate.toISOString()),
+          .lt('created_at', startDate.toISOString())
+          .or(REAL_CUSTOMER_OR),
       ]);
 
       const currentRevenue = currentRevenueRows.reduce((sum, o) => sum + Number(o.total), 0);
@@ -156,10 +162,10 @@ export function useAnalytics(days: number = 30) {
             .range(from, to),
       );
 
-      const customers = await fetchAllRows<{ created_at: string }>((from, to) =>
+      const customers = await fetchAllRows<{ created_at: string; acquisition_source: string | null; email_subscribed: boolean | null }>((from, to) =>
         supabase
           .from('customers')
-          .select('created_at')
+          .select('created_at, acquisition_source, email_subscribed')
           .eq('tenant_id', currentTenant.id)
           .gte('created_at', startDate.toISOString())
           .order('created_at', { ascending: false })
@@ -171,9 +177,15 @@ export function useAnalytics(days: number = 30) {
         const dayOrders = orders.filter(o =>
           format(new Date(o.created_at!), 'yyyy-MM-dd') === dateStr
         );
-        const dayCustomers = customers.filter(c =>
+        const dayCustomersAll = customers.filter(c =>
           format(new Date(c.created_at!), 'yyyy-MM-dd') === dateStr
         );
+        // Echte klanten: import-bronnen uitsluiten, NULL telt mee.
+        const dayCustomers = dayCustomersAll.filter(c =>
+          c.acquisition_source == null ||
+          (c.acquisition_source !== 'bol_com' && c.acquisition_source !== 'shopify_import')
+        );
+        const daySubscribers = dayCustomersAll.filter(c => c.email_subscribed === true);
 
         return {
           date: format(date, 'dd MMM'),
@@ -182,6 +194,7 @@ export function useAnalytics(days: number = 30) {
             .reduce((sum, o) => sum + Number(o.total), 0),
           orders: dayOrders.length,
           customers: dayCustomers.length,
+          subscribers: daySubscribers.length,
         };
       });
 

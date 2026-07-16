@@ -342,7 +342,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Klantgroei</CardTitle>
-          <CardDescription>Nieuwe klanten per dag</CardDescription>
+          <CardDescription>Nieuwe klanten en subscribers per dag</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[250px]">
@@ -352,6 +352,10 @@ export default function AnalyticsPage() {
                   <linearGradient id="colorCustomers" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorSubscribers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -367,19 +371,29 @@ export default function AnalyticsPage() {
                   axisLine={false}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [value, 'Nieuwe klanten']}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--background))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                   }}
                 />
+                <Legend />
                 <Area
                   type="monotone"
                   dataKey="customers"
+                  name="Nieuwe klanten"
                   stroke="#22c55e"
                   fillOpacity={1}
                   fill="url(#colorCustomers)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="subscribers"
+                  name="Subscribers"
+                  stroke="#3b82f6"
+                  fillOpacity={1}
+                  fill="url(#colorSubscribers)"
                   strokeWidth={2}
                 />
               </AreaChart>

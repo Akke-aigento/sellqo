@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
           // Insert new customer
           await supabase
             .from('customers')
-            .insert(customerData)
+            .insert({ ...customerData, acquisition_source: 'shopify_import' })
           customersImported++
         }
       } catch (err) {

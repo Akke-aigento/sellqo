@@ -21,7 +21,7 @@ const marketplaceIcons: Record<string, { icon: typeof ShoppingBag; color: string
 };
 
 export function DashboardMarketplaceWidget() {
-  const { connections, activeConnections, isLoading, error } = useMarketplaceConnections();
+  const { activeConnections, liveOrderCounts, isLoading, error } = useMarketplaceConnections();
 
   if (isLoading) {
     return (
@@ -91,8 +91,7 @@ export function DashboardMarketplaceWidget() {
         {activeConnections.slice(0, 3).map((connection) => {
           const config = marketplaceIcons[connection.marketplace_type] || marketplaceIcons.bol_com;
           const Icon = config.icon;
-          const stats = connection.stats;
-          const totalOrders = stats?.totalOrders || 0;
+          const totalOrders = liveOrderCounts[connection.id] ?? 0;
           const hasError = !!connection.last_error;
 
           return (

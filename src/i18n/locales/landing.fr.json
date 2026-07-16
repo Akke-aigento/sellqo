@@ -1013,6 +1013,10 @@
         "q4_2024": "T4 2024"
       },
       "changes": {
+        "accurate_stats": {
+          "title": "Des statistiques plus précises dans votre tableau de bord",
+          "description": "Les chiffres du tableau de bord et des analyses utilisent désormais partout les mêmes définitions (payé et non annulé). Les canaux de vente sont correctement identifiés et les nouveaux clients et abonnés à la newsletter sont comptés séparément."
+        },
         "odoo_accounting": {
           "title": "Intégration comptable Odoo",
           "description": "Connexion par tenant à votre propre Odoo : les factures et notes de crédit sont comptabilisées automatiquement dans votre journal des ventes, avec envoi Peppol automatique via Odoo pour les clients B2B."

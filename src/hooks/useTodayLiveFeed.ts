@@ -21,6 +21,8 @@ export interface TodayStats {
   orderCountChange: number;
   newCustomers: number;
   newCustomersChange: number;
+  subscribers: number;
+  subscribersChange: number;
 }
 
 interface UseTodayLiveFeedReturn {
@@ -67,6 +69,8 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
     orderCountChange: 0,
     newCustomers: 0,
     newCustomersChange: 0,
+    subscribers: 0,
+    subscribersChange: 0,
   });
 
   const tenantId = currentTenant?.id;
@@ -81,7 +85,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
   // Compute stats for a day window (paid, non-cancelled revenue; non-cancelled order count; new customers).
   const fetchStatsForWindow = useCallback(
     async (startISO: string, endISO: string) => {
-      const [revenueRes, orderCountRes, customerCountRes] = await Promise.all([
+      const [revenueRes, orderCountRes, customerCountRes, subscribersRes] = await Promise.all([
         supabase
           .from('orders')
           .select('total')
@@ -102,6 +106,15 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenantId!)
           .gte('created_at', startISO)
+          .lt('created_at', endISO)
+          // Echte klanten: NULL of niet-import. PostgREST-`not(...,'in',...)` sluit NULL uit, dus expliciet OR.
+          .or('acquisition_source.is.null,acquisition_source.not.in.(bol_com,shopify_import)'),
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .eq('email_subscribed', true)
+          .gte('created_at', startISO)
           .lt('created_at', endISO),
       ]);
       const revenue = (revenueRes.data ?? []).reduce(
@@ -112,6 +125,7 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
         revenue,
         orderCount: orderCountRes.count ?? 0,
         newCustomers: customerCountRes.count ?? 0,
+        subscribers: subscribersRes.count ?? 0,
       };
     },
     [tenantId],
@@ -139,6 +153,8 @@ export function useTodayLiveFeed(): UseTodayLiveFeedReturn {
       orderCountChange: today.orderCount - yesterday.orderCount,
       newCustomers: today.newCustomers,
       newCustomersChange: today.newCustomers - yesterday.newCustomers,
+      subscribers: today.subscribers,
+      subscribersChange: today.subscribers - yesterday.subscribers,
     });
   }, [tenantId, fetchStatsForWindow]);
 
