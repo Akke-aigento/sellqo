@@ -25,6 +25,8 @@ const STATUS_COLORS: Record<string, string> = {
   shipped: '#8b5cf6',
   delivered: '#22c55e',
   cancelled: '#ef4444',
+  returned: '#f97316',
+  refunded: '#a855f7',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -33,6 +35,8 @@ const STATUS_LABELS: Record<string, string> = {
   shipped: 'Verzonden',
   delivered: 'Afgeleverd',
   cancelled: 'Geannuleerd',
+  returned: 'Geretourneerd',
+  refunded: 'Terugbetaald',
 };
 
 function formatCurrency(value: number) {
@@ -254,8 +258,6 @@ export default function AnalyticsPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label={({ status, count }) => `${STATUS_LABELS[status] || status}: ${count}`}
-                      labelLine={false}
                     >
                       {orderStatus.map((entry, index) => (
                         <Cell 
@@ -311,10 +313,20 @@ export default function AnalyticsPage() {
                       tick={{ fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
-                      width={120}
+                      width={170}
+                      tickFormatter={(value: string) =>
+                        value && value.length > 28 ? `${value.slice(0, 28)}…` : value
+                      }
                     />
                     <Tooltip 
-                      formatter={(value: number) => [formatCurrency(value), 'Omzet']}
+                      formatter={(value: number, _name, item) => {
+                        const qty = (item?.payload as { quantity?: number } | undefined)?.quantity;
+                        return [
+                          `${formatCurrency(value)}${qty !== undefined ? ` — ${qty} stuks` : ''}`,
+                          'Omzet',
+                        ];
+                      }}
+                      labelFormatter={(label: string) => label}
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',
