@@ -254,16 +254,6 @@ export function FileUpload({
         );
       })}
 
-      {/* Platform-specific tips */}
-      {platform !== 'csv' && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            💡 <strong>{t('import.platform_tip', { platform: platform.charAt(0).toUpperCase() + platform.slice(1) })}:</strong>{' '}
-            {t(`import.${platform}_export_tip`)}
-          </p>
-        </Card>
-      )}
-
       {platform === 'csv' && (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <p className="text-sm text-blue-800 dark:text-blue-200">
