@@ -1084,6 +1084,10 @@
         "auth_refresh_fix": {
           "title": "Les formulaires restent en place lors du changement d'onglet",
           "description": "Lorsque vous passiez brièvement sur un autre onglet et reveniez, un écran de paramètres se réinitialisait parfois — les champs remplis étaient perdus et vous vous retrouviez sur la page précédente. La session se rafraîchit désormais silencieusement en arrière-plan, sans recharger la page."
+        },
+        "bol_label_integrity": {
+          "title": "Les étiquettes d'expédition restent correctement enregistrées",
+          "description": "À l'ouverture d'une étiquette d'expédition déjà créée, l'étiquette d'une autre commande pouvait dans certains cas s'afficher. Chaque étiquette est désormais enregistrée séparément et reste correctement récupérable."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
