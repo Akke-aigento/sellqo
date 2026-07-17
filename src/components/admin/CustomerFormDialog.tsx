@@ -18,6 +18,7 @@ import {
 import { VatInput } from './VatInput';
 import { AddressInput } from './AddressInput';
 import { useTenant } from '@/hooks/useTenant';
+import type { Customer } from '@/types/order';
 
 interface CustomerFormData {
   customer_type: 'b2c' | 'b2b';
@@ -42,11 +43,28 @@ interface CustomerFormData {
 interface CustomerFormDialogProps {
   onSubmit: (data: CustomerFormData) => void;
   isLoading?: boolean;
+  mode?: 'create' | 'edit';
+  customer?: Customer | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogProps) {
+export function CustomerFormDialog({
+  onSubmit,
+  isLoading,
+  mode = 'create',
+  customer,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: CustomerFormDialogProps) {
   const { currentTenant } = useTenant();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next);
+    controlledOnOpenChange?.(next);
+  };
   const [formData, setFormData] = useState<CustomerFormData>({
     customer_type: 'b2c',
     first_name: '',
@@ -78,6 +96,38 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
     }
   }, [currentTenant?.country]);
 
+  // Prefill form data when editing an existing customer (or when the customer changes)
+  useEffect(() => {
+    if (mode !== 'edit' || !customer || !open) return;
+    const type: 'b2c' | 'b2b' = customer.customer_type === 'b2b' ? 'b2b' : 'b2c';
+    setFormData({
+      customer_type: type,
+      first_name: customer.first_name || '',
+      last_name: customer.last_name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      company_name: customer.company_name || '',
+      vat_number: customer.vat_number || '',
+      vat_verified: Boolean(customer.vat_verified),
+      peppol_id: (customer as any).peppol_id || '',
+      billing_street: customer.billing_street || '',
+      billing_city: customer.billing_city || '',
+      billing_postal_code: customer.billing_postal_code || '',
+      billing_country: customer.billing_country || currentTenant?.country || 'NL',
+      shipping_street: customer.shipping_street || '',
+      shipping_city: customer.shipping_city || '',
+      shipping_postal_code: customer.shipping_postal_code || '',
+      shipping_country: customer.shipping_country || '',
+    });
+    setDifferentShipping(
+      Boolean(
+        customer.shipping_street ||
+        customer.shipping_city ||
+        customer.shipping_postal_code
+      )
+    );
+  }, [mode, customer, open, currentTenant?.country]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,7 +144,7 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
     };
     
     onSubmit(submitData);
-    resetForm();
+    if (mode === 'create') resetForm();
     setOpen(false);
   };
 
@@ -132,19 +182,25 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen);
-      if (!isOpen) resetForm();
+      if (!isOpen && mode === 'create') resetForm();
     }}>
-      <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Nieuwe klant
-        </Button>
-      </DialogTrigger>
+      {!isControlled && mode === 'create' && (
+        <DialogTrigger asChild>
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Nieuwe klant
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nieuwe klant toevoegen</DialogTitle>
+          <DialogTitle>
+            {mode === 'edit' ? 'Klant bewerken' : 'Nieuwe klant toevoegen'}
+          </DialogTitle>
           <DialogDescription>
-            Vul de gegevens in om een nieuwe klant aan te maken.
+            {mode === 'edit'
+              ? 'Werk de gegevens van deze klant bij.'
+              : 'Vul de gegevens in om een nieuwe klant aan te maken.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -339,7 +395,11 @@ export function CustomerFormDialog({ onSubmit, isLoading }: CustomerFormDialogPr
               Annuleren
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Bezig...' : 'Toevoegen'}
+              {isLoading
+                ? 'Bezig...'
+                : mode === 'edit'
+                  ? 'Wijzigingen opslaan'
+                  : 'Toevoegen'}
             </Button>
           </DialogFooter>
         </form>
