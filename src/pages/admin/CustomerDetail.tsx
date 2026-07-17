@@ -476,6 +476,11 @@ export default function CustomerDetailPage() {
             )}
           </div>
         </TabsContent>
+        {isPlatformAdmin && (
+          <TabsContent value="ledger">
+            <CustomerLedgerTab customerId={customerId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <CustomerFormDialog
