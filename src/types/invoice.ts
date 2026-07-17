@@ -18,6 +18,8 @@ export interface Invoice {
   total: number;
   pdf_url: string | null;
   ubl_url: string | null;
+  pdf_path: string | null;
+  ubl_path: string | null;
   sent_at: string | null;
   paid_at: string | null;
   created_at: string;
