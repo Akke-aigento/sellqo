@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLabelPrinter } from '@/hooks/useLabelPrinter';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { FetchExternalLabelDialog } from '@/components/admin/FetchExternalLabelDialog';
 import { generateTrackingUrl } from '@/lib/carrierPatterns';
 import type { Order } from '@/types/order';
@@ -24,6 +25,7 @@ interface ShippingLabel {
   carrier: string | null;
   tracking_number: string | null;
   label_url: string | null;
+  label_path: string | null;
   status: string;
   created_at: string;
 }
@@ -46,6 +48,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
     isSupported: isPrinterSupported,
     isPrinting 
   } = useLabelPrinter();
+  const { openDocument, getDocumentUrl } = useDocumentDownload();
 
   // Only show for Bol.com orders
   if (order.marketplace_source !== 'bol_com') {
@@ -119,14 +122,14 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success('VVB label aangemaakt');
       queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
       
       // Auto-open label if available
-      if (data.label_url) {
-        window.open(data.label_url, '_blank');
+      if (data.label?.id) {
+        await openDocument('shipping_label', data.label.id, 'pdf');
       }
     },
     onError: (error: Error) => {
@@ -249,17 +252,18 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
               )}
             </div>
           )}
-          {latestLabel.label_url && (
+          {latestLabel.label_path && (
             <div className="flex gap-2">
               <Button
                 variant="default"
                 size="sm"
                 className="flex-1"
                 onClick={async () => {
+                  const url = await getDocumentUrl('shipping_label', latestLabel.id, 'pdf');
                   if (isPrinterConnected) {
-                    await printLabel(latestLabel.label_url!);
+                    await printLabel(url);
                   } else {
-                    printViaBrowser(latestLabel.label_url!);
+                    printViaBrowser(url);
                   }
                 }}
                 disabled={isPrinting}
@@ -274,14 +278,14 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(latestLabel.label_url!, '_blank')}
+                onClick={() => openDocument('shipping_label', latestLabel.id, 'pdf')}
                 title="Open in nieuw tabblad"
               >
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
           )}
-          {latestLabel.label_url && (
+          {latestLabel.label_path && (
             <Button
               variant="outline"
               size="sm"
@@ -301,9 +305,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                   if (!response.data?.success) throw new Error(response.data?.error || 'Re-crop mislukt');
                   toast.success('Label opnieuw bijgesneden');
                   queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
-                  if (response.data.label_url) {
-                    window.open(`${response.data.label_url}?t=${Date.now()}`, '_blank');
-                  }
+                  await openDocument('shipping_label', latestLabel.id, 'pdf');
                 } catch (err: any) {
                   toast.error(`Re-crop fout: ${err?.message || 'Onbekende fout'}`);
                 } finally {
@@ -320,7 +322,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
               Label opnieuw bijsnijden
             </Button>
           )}
-          {!latestLabel.label_url && latestLabel.status === 'created' && (
+          {!latestLabel.label_path && latestLabel.status === 'created' && (
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -349,9 +351,7 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
                     toast.success('Label opnieuw opgehaald');
                     queryClient.invalidateQueries({ queryKey: ['shipping-labels', order.id] });
                     queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-                    if (response.data.label_url) {
-                      window.open(response.data.label_url, '_blank');
-                    }
+                    await openDocument('shipping_label', latestLabel.id, 'pdf');
                   } catch (err: any) {
                     const msg = err?.message || err?.details || 'Onbekende fout';
                     toast.error(`Fout bij ophalen: ${msg}`);
