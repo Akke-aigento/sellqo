@@ -1,5 +1,17 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## HELP-2 — 17 juli 2026
+
+**Root cause:** de hulpassistent verwees in zijn antwoorden naar doc_articles, maar de links werkten niet. Drie samenlopende oorzaken. (1) De kennisbank die naar het model gestuurd werd in `ai-help-assistant/index.ts` bevatte enkel `title/excerpt/content` — géén slug, géén link-formaat. Het model verzon dus URL's op basis van de titel, en die kwamen niet overeen met de echte routes. (2) `src/pages/admin/Help.tsx` stuurde de artikel-selectie via lokale `useState`, zonder URL-parameter — dus zelfs áls het model toevallig een correcte `/admin/help`-URL raadde, opende die enkel de indexpagina en niet het bedoelde artikel. (3) `AIHelpChatWindow.tsx` gaf ReactMarkdown geen custom `a`-renderer, waardoor markdown-links een standaard `<a>` werden: een klik veroorzaakte een volledige page-load die het chatvenster sloot.
+
+**Uitgevoerd:**
+- `ai-help-assistant/index.ts`: `slug` en `doc_level` toegevoegd aan beide doc_articles-queries (admin- en tenant-branch). Per artikel een `Link:`-regel in de kennisbank-tekst: `/admin/help?article={slug}` voor tenant-docs, `/admin/platform/docs?article={slug}` voor platform-docs (alleen zichtbaar in admin-branch). Extra promptregel toegevoegd in zowel `tenantRules` als `adminRules`: link-formaat verplicht `[Titel](link)` met de Link-waarde letterlijk overgenomen — geen zelf-verzonnen paden.
+- `src/pages/admin/Help.tsx`: `useSearchParams` ingevoerd. Bij mount + zodra `articles` geladen zijn wordt de `?article=`-slug opgezocht; bij match: artikel + juiste categorie geselecteerd. Handmatige selectie synct de URL met `replace: true` zodat browserhistorie niet vervuild raakt. Onbekende slug valt stil terug op de normale beginweergave.
+- `src/pages/admin/PlatformDocs.tsx`: identiek patroon in `DocsPanel` (beide tabs, tenant + platform). Delete-flow gaat via dezelfde `selectArticle`-helper zodat de URL-param mee gecleared wordt.
+- `AIHelpChatWindow.tsx`: `ReactMarkdown components={{ a: MarkdownLink }}` toegevoegd. Interne hrefs (starten met `/`) → `preventDefault` + `useNavigate` zodat het chatvenster open blijft; externe hrefs → `target="_blank" rel="noopener noreferrer"`. Links visueel duidelijk als link (underline, primary kleur).
+
+**Security-keuzes:** n.v.t. — puur gedrag/UX-fix, geen nieuwe tabellen, functies, routes of policies. Kennisbank blijft rol-bewust gefilterd zoals in HELP-1: tenants zien enkel `doc_level='tenant'`, platform-admins beide. Platform-links komen enkel voor in de admin-branch, dus tenants krijgen die Link-regels nooit te zien in hun prompt.
+
 ## HELP-1 — 17 juli 2026
 
 **Root cause:** de hulpchatbot trok per bericht 1 AI-credit uit `tenant_ai_credits` via de RPC `use_ai_help_credit`. Fout ontwerp voor een support-kanaal: Free-tenants (0 credits) konden de bot letterlijk nooit gebruiken, en elke tenant die zijn credits opmaakte aan andere AI-features (bulk-vertaling, image editor, coach) verloor tegelijk zijn support. Een winkeleigenaar met een vraag over facturatie kreeg dan een 402 "credits op" — precies op het moment dat hij hulp nodig had. De credit-pool bestaat voor waardevolle AI-outputs (content, vertaling), niet voor "leg me eens uit hoe X werkt".
