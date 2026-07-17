@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDocCategories, useDocArticles, useDocSearch, useDeleteArticle, type DocLevel } from '@/hooks/useDocumentation';
 import { DocSearchBar } from '@/components/admin/docs/DocSearchBar';
 import { DocCategoryList } from '@/components/admin/docs/DocCategoryList';
@@ -11,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 
 function DocsPanel({ level }: { level: DocLevel }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>();
   const [selectedSlug, setSelectedSlug] = useState<string>();
@@ -31,9 +33,29 @@ function DocsPanel({ level }: { level: DocLevel }) {
     [categories, selectedArticle, selectedCategoryId]
   );
 
-  if (categories.length > 0 && !selectedCategoryId && !search) {
-    setSelectedCategoryId(categories[0].id);
-  }
+  const articleParam = searchParams.get('article') || undefined;
+  useEffect(() => {
+    if (!articleParam || articles.length === 0) return;
+    const found = articles.find((a) => a.slug === articleParam);
+    if (found) {
+      setSelectedSlug(found.slug);
+      setSelectedCategoryId(found.category_id);
+    }
+  }, [articleParam, articles]);
+
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategoryId && !search && !articleParam) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId, search, articleParam]);
+
+  const selectArticle = (slug: string | undefined) => {
+    setSelectedSlug(slug);
+    const next = new URLSearchParams(searchParams);
+    if (slug) next.set('article', slug);
+    else next.delete('article');
+    setSearchParams(next, { replace: true });
+  };
 
   if (catLoading || artLoading) {
     return (
@@ -77,7 +99,7 @@ function DocsPanel({ level }: { level: DocLevel }) {
               {searchResults.map((a) => (
                 <button
                   key={a.id}
-                  onClick={() => setSelectedSlug(a.slug)}
+                  onClick={() => selectArticle(a.slug)}
                   className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted"
                 >
                   <p className="font-medium">{a.title}</p>
@@ -92,9 +114,9 @@ function DocsPanel({ level }: { level: DocLevel }) {
               selectedArticleSlug={selectedSlug}
               onSelectCategory={(id) => {
                 setSelectedCategoryId(id);
-                setSelectedSlug(undefined);
+                selectArticle(undefined);
               }}
-              onSelectArticle={setSelectedSlug}
+              onSelectArticle={selectArticle}
             />
           )}
         </div>
@@ -123,7 +145,7 @@ function DocsPanel({ level }: { level: DocLevel }) {
                         deleteArticle.mutate(selectedArticle.id, {
                           onSuccess: () => {
                             toast.success('Artikel verwijderd');
-                            setSelectedSlug(undefined);
+                            selectArticle(undefined);
                           },
                         });
                       }}>Verwijderen</AlertDialogAction>
