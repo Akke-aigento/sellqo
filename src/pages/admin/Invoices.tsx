@@ -132,7 +132,10 @@ export default function InvoicesPage() {
       pdfUrl: c.pdf_url ?? null,
       ublUrl: c.ubl_url ?? null,
       pdfPath: c.pdf_path ?? null,
-      ublPath: c.ubl_url ?? null ? null : null, // CN UBL lives in peppol-archive — out of scope
+      // Credit-note UBL lives in the peppol-archive bucket (not credit-notes),
+      // so we intentionally don't route it through get-document-url. The
+      // legacy `window.open(cn.ubl_url)` on r.263 stays untouched.
+      ublPath: null,
       peppolStatus: c.peppol_status ?? null,
       language: c.language ?? null,
     }));
