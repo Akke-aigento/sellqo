@@ -520,7 +520,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Uitloggen op dit toestel mag je sessie op je telefoon niet meesleuren.
+    await safeLocalSignOut();
     setRoles([]);
     currentUserIdRef.current = null;
     hasResolvedRolesOnceRef.current = false;
@@ -529,6 +530,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       description: 'Tot ziens!',
     });
   };
+
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   
