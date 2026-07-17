@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,17 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Platform-only endpoint. Draait met de service-role en raakt ALLE tenants;
+    // mag daarom nooit door een gewone gebruiker of met de publieke anon-key
+    // afgevuurd kunnen worden.
+    const auth = await authenticateRequest(req);
+    if (!auth.is_platform_admin) {
+      return new Response(JSON.stringify({ error: "Forbidden: platform admin only" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -127,6 +139,9 @@ serve(async (req: Request) => {
       }
     );
   } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error("Error repairing CID references:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
