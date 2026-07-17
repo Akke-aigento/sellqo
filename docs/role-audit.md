@@ -3919,3 +3919,15 @@ Geen publieke changelog en geen newsletter: dit is interne hardening, de tenant 
 `RouteGuard.tsx` en `ProtectedRoute.tsx` bleven ongewijzigd — hun `(user && rolesLoading)` blokkerende conditie profiteert nu automatisch van de rustigere `rolesLoading`. RLS, `user_roles`, `useCan` en de permissie-matrix zijn niet aangeraakt.
 
 **Acceptance geverifieerd.** Deep-link hard-refresh toont nog steeds de spinner (eerste load). Tab-switch + terug: geen spinner, geen navigatie, form-state blijft. `signOut()` en `RoleSimulator` onveranderd. Invite-accept `refetchRoles()` behoudt zijn luide gedrag.
+
+## INCIDENT-FIX — auth.ts pinnen + echte authError loggen — 17 juli 2026
+
+**Root cause.** `supabase/functions/_shared/auth.ts` was het enige bestand in het auth-pad met een ongepinde `https://esm.sh/@supabase/supabase-js@2`-import. Bij de recente redeploy van alle edge functions is die specifier opgelost naar de nieuwste v2.x, terwijl hij daarvoor maandenlang op een oudere v2 draaide. Gevolg: `supabase.auth.getUser(token)` begon geldige gebruikers-tokens te weigeren, wat elke functie die door `authenticateRequest` gaat (o.a. `send-invoice-email`, `get-document-url`) met 401 "Invalid or expired token" liet crashen.
+
+**Waarom het geen service-key- of DB-probleem was.** In `get-document-url` draaide de service-role query (`.from(...).select().in(...)`) succesvol vóór de auth-check, en we kregen consistent 401 in plaats van 500. De `SUPABASE_SERVICE_ROLE_KEY` en de DB-toegang waren dus aantoonbaar in orde — de weigering zat puur in `getUser()`.
+
+**Fix.** Twee wijzigingen, enkel in `_shared/auth.ts`:
+1. Import gepind op `@supabase/supabase-js@2.57.2` — de versie die de rest van het auth-pad (o.a. `send-invoice-email`, `get-document-url`, `generate-invoice`) al draait.
+2. `console.error("[auth] getUser rejected token:", …)` toegevoegd vóór de generieke `AuthError`. Log bevat `message`, `status`, `name`, `token_len` en `token_prefix` (12 chars) — genoeg om de vorm te herkennen zonder tokens te lekken. De naar buiten gegooide `AuthError` blijft exact hetzelfde (`"Invalid or expired token"`, 401), dus geen enkele caller of client verandert.
+
+**Backlog — zelfde tijdbom elders.** 68 andere edge functions hebben nog een ongepinde `https://esm.sh/@supabase/supabase-js@2`-import. Bewust niet in deze incident-fix meegenomen (te grote blast radius); moet in een aparte gecontroleerde batch waarin we alles op `@2.57.2` pinnen en per functie testen.
