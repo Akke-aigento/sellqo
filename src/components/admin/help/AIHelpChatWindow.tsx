@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -22,6 +22,34 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const MarkdownLink = ({ href, children, ...rest }: { href?: string; children?: React.ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+    const isInternal = !!href && href.startsWith('/');
+    if (isInternal) {
+      return (
+        <a
+          href={href}
+          onClick={(e) => { e.preventDefault(); navigate(href!); }}
+          className="underline text-primary hover:opacity-80"
+          {...rest}
+        >
+          {children}
+        </a>
+      );
+    }
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline text-primary hover:opacity-80"
+        {...rest}
+      >
+        {children}
+      </a>
+    );
+  };
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -183,8 +211,8 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
                 : 'bg-muted text-foreground'
             )}>
               {msg.role === 'assistant' ? (
-                <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-background/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-a:text-primary">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-background/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-a:text-primary prose-a:underline">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: MarkdownLink }}>{msg.content}</ReactMarkdown>
                 </div>
               ) : (
                 msg.content
