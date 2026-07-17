@@ -462,6 +462,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       let retryPdfUrl: string | null = null;
+    let retryUploadError: string | null = null;
       let retryTracking: string | null = existingLabel.tracking_number;
 
       // If label already has a PDF and we're not recropping, skip PDF fetch and
