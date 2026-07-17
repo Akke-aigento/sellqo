@@ -618,6 +618,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (retryPdfUrl) updateFields.label_url = retryPdfUrl;
       if (retryTracking) updateFields.tracking_number = retryTracking;
       if (retryPdfUrl) updateFields.status = "created"; // Mark as completed
+      if (!retryPdfUrl && retryUploadError) updateFields.error_message = retryUploadError;
 
       if (Object.keys(updateFields).length > 0) {
         const { error: updateError } = await supabase.from("shipping_labels").update(updateFields).eq("id", label_id);
