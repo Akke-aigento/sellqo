@@ -14,6 +14,8 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.07ac', dateKey: 'jul_2026', changes: [{ id: 'sec_signed_documents', type: 'security' }] },
+  { version: '2026.07ab', dateKey: 'jul_2026', changes: [{ id: 'sec_internal_endpoints', type: 'security' }] },
   { version: '2026.07aa', dateKey: 'jul_2026', changes: [{ id: 'help_assistant_links', type: 'bugfix' }] },
   { version: '2026.07z', dateKey: 'jul_2026', changes: [{ id: 'help_assistant_free', type: 'improvement' }] },
   { version: '2026.07y', dateKey: 'jul_2026', changes: [{ id: 'bol_label_integrity', type: 'bugfix' }] },
@@ -29,6 +31,7 @@ const changelogEntries: Array<{
   { version: '2026.07c', dateKey: 'jul_2026', changes: [{ id: 'odoo_accounting', type: 'feature' }] },
   { version: '2026.07b', dateKey: 'jul_2026', changes: [{ id: 'peppol_status', type: 'improvement' }] },
   { version: '2026.07a', dateKey: 'jul_2026', changes: [{ id: 'billing_sepa', type: 'feature' }] },
+  { version: '2026.q2', dateKey: 'q2_2026', changes: [{ id: 'sec_role_aware_rls', type: 'security' }] },
   { version: '2025.q1', dateKey: 'q1_2025', changes: [
     { id: 'shop_health', type: 'feature' },
     { id: 'visual_editor', type: 'feature' },
