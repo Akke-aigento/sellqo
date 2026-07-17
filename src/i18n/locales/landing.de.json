@@ -1092,6 +1092,10 @@
         "help_assistant_free": {
           "title": "Hilfe-Assistent in jedem Tarif kostenlos",
           "description": "Der KI-Hilfe-Assistent ist jetzt in jedem Abonnement kostenlos verfügbar und gibt smartere Hinweise dazu, welche Funktionen in deinem Tarif enthalten sind und wann sich ein Upgrade lohnt."
+        },
+        "help_assistant_links": {
+          "title": "Funktionierende Links im Hilfe-Assistenten",
+          "description": "Links des Hilfe-Assistenten zu Dokumentationsartikeln öffnen jetzt korrekt den richtigen Artikel, ohne die Seite neu zu laden."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."
