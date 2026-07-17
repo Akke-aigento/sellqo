@@ -342,10 +342,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (sessionError) {
       console.error('[Auth] ensureAuthenticated: session error', sessionError);
-      clearAuthStorage();
-      await supabase.auth.signOut();
+      await safeLocalSignOut();
       return false;
     }
+
     
     // If we have a session, verify it's actually valid server-side
     if (currentSession?.user && currentSession.access_token) {
