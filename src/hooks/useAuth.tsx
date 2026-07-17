@@ -30,6 +30,24 @@ function clearAuthStorage(): void {
   }
 }
 
+/**
+ * Opruimen mag NOOIT de sessies van andere tabs of apparaten slopen.
+ * `signOut()` is standaard `scope: 'global'` en revoket alles server-side;
+ * dat maakte tokens in andere tabs tot zombies (RLS werkt nog, maar
+ * GoTrue geeft session_not_found → alle edge functions 401).
+ * Daarom altijd expliciet `scope: 'local'`, en fouten mogen de opruiming
+ * nooit blokkeren.
+ */
+async function safeLocalSignOut(): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (e) {
+    console.warn('[Auth] local signOut failed (genegeerd):', e);
+  }
+  clearAuthStorage();
+}
+
+
 export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer' | 'marketing';
 
 // Role priority for determining highest role
