@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDocCategories, useDocArticles, useDocSearch } from '@/hooks/useDocumentation';
 import { DocSearchBar } from '@/components/admin/docs/DocSearchBar';
 import { DocCategoryList } from '@/components/admin/docs/DocCategoryList';
@@ -7,6 +8,7 @@ import { Loader2, BookOpen, MessageCircleQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Help() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>();
   const [selectedSlug, setSelectedSlug] = useState<string>();
@@ -25,10 +27,31 @@ export default function Help() {
     [categories, selectedArticle, selectedCategoryId]
   );
 
+  // Deeplink: ?article=<slug>
+  const articleParam = searchParams.get('article') || undefined;
+  useEffect(() => {
+    if (!articleParam || articles.length === 0) return;
+    const found = articles.find((a) => a.slug === articleParam);
+    if (found) {
+      setSelectedSlug(found.slug);
+      setSelectedCategoryId(found.category_id);
+    }
+  }, [articleParam, articles]);
+
   // Auto-select first category
-  if (categories.length > 0 && !selectedCategoryId && !search) {
-    setSelectedCategoryId(categories[0].id);
-  }
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategoryId && !search && !articleParam) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId, search, articleParam]);
+
+  const selectArticle = (slug: string | undefined) => {
+    setSelectedSlug(slug);
+    const next = new URLSearchParams(searchParams);
+    if (slug) next.set('article', slug);
+    else next.delete('article');
+    setSearchParams(next, { replace: true });
+  };
 
   if (catLoading || artLoading) {
     return (
@@ -69,7 +92,7 @@ export default function Help() {
               {searchResults.map((a) => (
                 <button
                   key={a.id}
-                  onClick={() => setSelectedSlug(a.slug)}
+                  onClick={() => selectArticle(a.slug)}
                   className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted"
                 >
                   <p className="font-medium">{a.title}</p>
@@ -85,9 +108,9 @@ export default function Help() {
               selectedArticleSlug={selectedSlug}
               onSelectCategory={(id) => {
                 setSelectedCategoryId(id);
-                setSelectedSlug(undefined);
+                selectArticle(undefined);
               }}
-              onSelectArticle={setSelectedSlug}
+              onSelectArticle={selectArticle}
             />
           )}
         </div>

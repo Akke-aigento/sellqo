@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.07aa', dateKey: 'jul_2026', changes: [{ id: 'help_assistant_links', type: 'bugfix' }] },
   { version: '2026.07z', dateKey: 'jul_2026', changes: [{ id: 'help_assistant_free', type: 'improvement' }] },
   { version: '2026.07y', dateKey: 'jul_2026', changes: [{ id: 'bol_label_integrity', type: 'bugfix' }] },
   { version: '2026.07x', dateKey: 'jul_2026', changes: [{ id: 'auth_refresh_fix', type: 'bugfix' }] },
