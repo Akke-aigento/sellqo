@@ -539,6 +539,88 @@ export type Database = {
           },
         ]
       }
+      admin_customer_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          entry_date: string
+          id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id: string
+          entry_date?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          entry_date?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_customer_ledger_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_customer_ledger_recurring: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          customer_id: string
+          id: string
+          interval_months: number
+          next_date: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          created_at?: string
+          customer_id: string
+          id?: string
+          interval_months?: number
+          next_date?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          id?: string
+          interval_months?: number
+          next_date?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_customer_ledger_recurring_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ads_ai_recommendations: {
         Row: {
           applied_at: string | null
