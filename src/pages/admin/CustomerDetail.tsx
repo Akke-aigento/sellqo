@@ -17,7 +17,8 @@ import {
   ExternalLink,
   UserPlus,
   Loader2,
-  Activity
+  Activity,
+  Wallet
 } from 'lucide-react';
 import { useCustomer, useCustomerOrders, useCustomers } from '@/hooks/useCustomers';
 import { useCustomerConversations } from '@/hooks/useCustomerConversations';
@@ -36,6 +37,8 @@ import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
 import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
+import { CustomerLedgerTab } from '@/components/admin/customers/CustomerLedgerTab';
+import { useAuth } from '@/hooks/useAuth';
 import type { Customer } from '@/types/order';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -44,6 +47,7 @@ export default function CustomerDetailPage() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
   const { customer, isLoading, error } = useCustomer(customerId);
   const { orders, isLoading: ordersLoading } = useCustomerOrders(customerId);
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
@@ -260,6 +264,12 @@ export default function CustomerDetailPage() {
             <User className="h-4 w-4" />
             Gegevens
           </TabsTrigger>
+          {isPlatformAdmin && (
+            <TabsTrigger value="ledger" className="gap-2">
+              <Wallet className="h-4 w-4" />
+              Saldo
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Orders Tab */}
