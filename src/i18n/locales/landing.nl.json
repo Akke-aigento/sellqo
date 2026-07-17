@@ -1092,6 +1092,10 @@
         "help_assistant_free": {
           "title": "Hulpassistent gratis op elk abonnement",
           "description": "De AI-hulpassistent is nu gratis beschikbaar op elk abonnement en geeft slimmer advies over welke functies in jouw plan zitten en wanneer een upgrade zin heeft."
+        },
+        "help_assistant_links": {
+          "title": "Werkende links in de hulpassistent",
+          "description": "Links van de hulpassistent naar documentatie-artikels openen nu correct het juiste artikel zonder de pagina te herladen."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
