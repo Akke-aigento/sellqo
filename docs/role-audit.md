@@ -3931,3 +3931,28 @@ Geen publieke changelog en geen newsletter: dit is interne hardening, de tenant 
 2. `console.error("[auth] getUser rejected token:", …)` toegevoegd vóór de generieke `AuthError`. Log bevat `message`, `status`, `name`, `token_len` en `token_prefix` (12 chars) — genoeg om de vorm te herkennen zonder tokens te lekken. De naar buiten gegooide `AuthError` blijft exact hetzelfde (`"Invalid or expired token"`, 401), dus geen enkele caller of client verandert.
 
 **Backlog — zelfde tijdbom elders.** 68 andere edge functions hebben nog een ongepinde `https://esm.sh/@supabase/supabase-js@2`-import. Bewust niet in deze incident-fix meegenomen (te grote blast radius); moet in een aparte gecontroleerde batch waarin we alles op `@2.57.2` pinnen en per functie testen.
+
+## AUTH-SCOPE-1 — signOut scope-fix — 17 juli 2026
+
+**Root cause.** `supabase.auth.signOut()` heeft standaard `scope: 'global'`. Dat revoket server-side **alle** sessies van de gebruiker, op **alle** apparaten en tabs. `useAuth.tsx` gebruikte die aanroep op zes plekken als *opruimactie* na een mislukte token-refresh. Één tab die opruimde, sloopt daarmee de sessie van elke andere actieve tab.
+
+**Het zombie-token-effect.** De andere tab houdt zijn access_token (cryptografisch nog geldig, `exp` ruim in de toekomst, `role: authenticated`). PostgREST/RLS controleert enkel handtekening en `exp`, dus de app lijkt gewoon te werken. Maar GoTrue weigert het token bij `/auth/v1/user` met `403 session_not_found` — de sessie achter het token bestaat niet meer. Elke edge function die `authenticateRequest` → `supabase.auth.getUser()` doet, faalt daarom met 401 "Invalid or expired token", terwijl de UI nog functioneert.
+
+**Bewijs.** Rauwe fetch rechtstreeks naar GoTrue:
+```
+GET /auth/v1/user
+403 {"code":403,"error_code":"session_not_found",
+     "msg":"Session from session_id claim in JWT does not exist"}
+```
+De browser toonde bovendien `POST /auth/v1/logout?scope=global 403 (Forbidden)`. `auth.sessions` bevatte één sessie van 08:55, wat onmogelijk kon horen bij een token dat om 10:48 nog geldig was.
+
+**Fix.** Enkel in `src/hooks/useAuth.tsx`:
+1. Nieuwe helper `safeLocalSignOut()` die altijd `supabase.auth.signOut({ scope: 'local' })` doet. Fouten worden genegeerd, maar `clearAuthStorage()` draait altijd zodat lokale state opgeruimd is.
+2. Zes opruimtakken (na mislukte refresh, sessie-error, corrupte storage, etc.) vervangen door `await safeLocalSignOut()`.
+3. De gebruikers-logoutknop (`signOut()`) loopt nu ook via `safeLocalSignOut()` — uitloggen op dit toestel mag je telefoon niet meesleuren.
+4. De `SIGNED_OUT`-event handler is ongewijzigd gelaten: die doet daar `clearAuthStorage()` zonder `signOut()`, wat correct is omdat het event zelf al de uitlog is.
+
+**Grenzen.** Geen enkel ander bestand aangeraakt. `RouteGuard.tsx`, `ProtectedRoute.tsx`, de AUTH-REFRESH-1 refs (`currentUserIdRef`, `hasResolvedRolesOnceRef`), `fetchUserRoles`, `useCan`, RLS en permissie-matrix zijn ongewijzigd. Geen SQL-migraties en geen edge functions.
+
+**Backlog-notitie.** `hasStaleAuthStorage()` heet "stale" maar controleert enkel óf er iets in `localStorage` staat — het controleert niet of die data daadwerkelijk verlopen of corrupt is. Die misleidende naam drijft een deel van deze opruimtakken aan; hernoemen/verfijnen staat op de backlog, niet in deze fix.
+
