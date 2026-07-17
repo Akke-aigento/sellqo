@@ -55,20 +55,27 @@ export function OrderCreditNotesSection({ invoiceId, invoiceNumber }: Props) {
   const fmt = (n: number) =>
     new Intl.NumberFormat('nl-NL', { style: 'currency', currency: currentTenant?.currency || 'EUR' }).format(n);
 
-  const handleDownload = async (cnId: string, existing: string | null) => {
-    if (existing) {
-      window.open(existing, '_blank');
-      return;
-    }
+  // Popup-safe download that regenerates a fresh 10-min signed URL every time.
+  // Fixes the 24u-bug where `credit_notes.pdf_url` was a stale signed URL.
+  const handleDownload = async (cnId: string, existingPath: string | null) => {
+    const win = window.open('', '_blank');
     try {
       setBusy(cnId);
-      const res = await invokeWithErrorBody<{ pdf_url: string }>('generate-credit-note', {
-        body: { credit_note_id: cnId },
+      if (!existingPath) {
+        await invokeWithErrorBody('generate-credit-note', {
+          body: { credit_note_id: cnId },
+        });
+        await qc.invalidateQueries({ queryKey: ['order-credit-notes', invoiceId] });
+      }
+      const res = await invokeWithErrorBody<{ url: string }>('get-document-url', {
+        body: { doc_type: 'credit_note', doc_id: cnId, kind: 'pdf' },
       });
-      qc.invalidateQueries({ queryKey: ['order-credit-notes', invoiceId] });
-      if (res?.pdf_url) window.open(res.pdf_url, '_blank');
+      if (!res?.url) throw new Error('Geen download-URL ontvangen');
+      if (win && !win.closed) win.location.href = res.url;
+      else window.location.href = res.url;
     } catch (e: any) {
-      toast({ title: 'PDF genereren mislukt', description: e?.message, variant: 'destructive' });
+      try { win?.close(); } catch { /* noop */ }
+      toast({ title: 'Downloaden mislukt', description: e?.message, variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -125,7 +132,7 @@ export function OrderCreditNotesSection({ invoiceId, invoiceNumber }: Props) {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={busy === cn.id} onClick={() => handleDownload(cn.id, cn.pdf_url)}>
+                <Button size="sm" variant="outline" disabled={busy === cn.id} onClick={() => handleDownload(cn.id, cn.pdf_path ?? null)}>
                   {busy === cn.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 </Button>
                 <PermissionGate action="write" resource="credit_notes">

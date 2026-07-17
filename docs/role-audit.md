@@ -3883,3 +3883,23 @@ Root-cause overzicht (deel 1 = edge function `run-csv-import` + stats-filters; d
 - `pdf_url`/`ubl_url` blijven gevuld tot de frontend niet meer leunt op die kolommen.
 
 Geen publieke changelog en geen newsletter: dit is interne hardening, de klant merkt enkel dat de dubbele downloadlink onderaan de factuurmail verdwijnt (de PDF en UBL zaten al als bijlage). Spoor 1 uit de release-werkwijze, meer niet.
+
+## Frontend naar signed URLs voor facturen & creditnota's — 17 juli 2026
+
+**Root cause:** heel de frontend leunde nog op `invoices.pdf_url` / `ubl_url` en `credit_notes.pdf_url` — kale publieke storage-URL's naar de `invoices`- en `credit-notes`-bucket. Zolang die buckets publiek staan is dat een enumereerbare lek: wie het patroon van een factuur-pad kent, kan alle facturen van alle tenants raden. Dat is exact de klasse issue die SEC-BATCH-2b oplost. In batch 1 legden we de fundering (backend schrijft `pdf_path`/`ubl_path`, `get-document-url` bestaat en doet zelf `authenticateRequest` + tenant-check). Deze batch (2) haalt de frontend van de kale URL's af.
+
+**Wat veranderd is:**
+- Nieuwe hook `src/hooks/useDocumentDownload.ts`: single source of truth. Exporteert `getDocumentUrl`, `openDocument`, `getDocumentUrls` (chunkt zelf per 200), en `isDownloading`. Alle downloadknoppen lopen hier door.
+- `Invoices.tsx`, `OrderDetail.tsx`, `CreditNotes.tsx`, `CreditNotesTable.tsx`, `OrderCreditNotesSection.tsx`: alle `window.open(pdf_url)` / `window.open(ubl_url)` op factuur- en creditnota-PDF's vervangen door een aanroep naar `get-document-url` via de hook. Knoppen gaten nu op `pdf_path` / `ubl_path` in plaats van op de kale URL-kolommen; de bijhorende queries selecteren die kolommen automatisch mee (of hangen op `select('*')`).
+- `useReportExports.ts`: de bulk-zip-download voor facturen (PDF & UBL) haalt eerst de paden op, vraagt dan verse signed URLs via `get-document-url` (in chunks van 200), en geeft die door aan `downloadAsZip`. De progress-callback blijft ongewijzigd werken.
+
+**Popup-blocker patroon (kritiek):** vroeger was het `onClick → window.open(pdf_url)` — synchroon, dus de browser stond het toe. Nu is er een `await` vóór we een URL hebben, en dan blokkeert Safari/Firefox de popup want de user-gesture is verlopen → de knop lijkt stuk. Overal waar we een document openen, doen we daarom eerst synchroon `const win = window.open('', '_blank')` binnen de click, halen dan async de signed URL op, en zetten `win.location.href` erop. Als de browser de popup tóch weigerde, fallen we terug op een same-tab navigatie zodat de download altijd doorgaat.
+
+**Meegenomen bug:** `credit_notes.pdf_url` bevatte een signed URL die na 24u verloopt. `CreditNotesTable`, `CreditNotes.tsx` en `OrderCreditNotesSection` deden alle drie `if (existingUrl) window.open(existingUrl)` — na een dag was dat een dode link. Vervangen door: als er geen `pdf_path` is, eerst `generate-credit-note` draaien, dán een verse signed URL ophalen via `get-document-url`. Elke klik levert nu een URL van maximaal 10 minuten oud.
+
+**Bewust buiten scope (nog niet aangepakt):**
+- **Creditnota-UBL.** `Invoices.tsx` r.263 en `CreditNotesTable.tsx` r.170 tonen "Download UBL/XML" op `cn.ubl_url`. Die UBL wordt door `generate-peppol-ubl` in de bucket **`peppol-archive`** gezet, niet in `credit-notes`. `get-document-url` zou daar in de verkeerde bucket zoeken. Vandaag heeft 0 creditnota een `ubl_url`, dus dat menu-item rendert nooit — apart oplossen zodra we peppol-archive privaat maken.
+- **De 2 Peppol-testfacturen** (`INV-PEPPOL-TEST-NL/DE`) hebben een `ubl_url` naar `peppol-archive` maar geen `ubl_path`. Hun UBL-knop verdwijnt door de nieuwe gating. Dat is de bedoeling — het zijn testrecords.
+- **Buckets blijven publiek.** `pdf_url`/`ubl_url` blijven als vangnet bestaan tot in batch 3.
+
+Geen publieke changelog en geen newsletter: dit is interne hardening, de tenant merkt geen functieverschil (knoppen doen exact hetzelfde). Spoor 1.

@@ -5,6 +5,7 @@ import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { usePaymentConfirmation } from '@/hooks/usePaymentConfirmation';
 import { useOrderReturnable } from '@/hooks/useOrderReturnable';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
+  const { openDocument } = useDocumentDownload();
+  const openInvoiceDoc = (invoiceId: string, kind: 'pdf' | 'ubl') => openDocument('invoice', invoiceId, kind);
   const { order, isLoading, error } = useOrder(id);
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
@@ -514,14 +517,14 @@ export default function OrderDetailPage() {
                     <InvoiceStatusBadge status={invoice.status} />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {invoice.pdf_url && (
-                      <Button variant="outline" size="sm" onClick={() => window.open(invoice.pdf_url!, '_blank')}>
+                    {(invoice as any).pdf_path && (
+                      <Button variant="outline" size="sm" onClick={() => openInvoiceDoc(invoice.id, 'pdf')}>
                         <Download className="h-4 w-4 mr-2" />
                         PDF
                       </Button>
                     )}
-                    {invoice.ubl_url && (
-                      <Button variant="outline" size="sm" onClick={() => window.open(invoice.ubl_url!, '_blank')}>
+                    {(invoice as any).ubl_path && (
+                      <Button variant="outline" size="sm" onClick={() => openInvoiceDoc(invoice.id, 'ubl')}>
                         <FileCode className="h-4 w-4 mr-2" />
                         UBL
                       </Button>

@@ -17,6 +17,8 @@ export interface CreditNote {
   ogm_reference: string | null;
   pdf_url: string | null;
   ubl_url: string | null;
+  pdf_path: string | null;
+  ubl_path: string | null;
   sent_at: string | null;
   peppol_required: boolean;
   peppol_status: string | null;

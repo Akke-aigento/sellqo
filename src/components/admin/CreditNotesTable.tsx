@@ -58,20 +58,28 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
 
   const { data: odooSync } = useOdooSyncStatuses(currentTenant?.id);
 
-  const handleDownloadPdf = async (cnId: string, existingUrl: string | null, language?: string) => {
-    if (existingUrl) {
-      window.open(existingUrl, '_blank');
-      return;
-    }
+  // Popup-safe: open the tab synchronously inside the click, then swap the URL.
+  // Also fixes the 24u-bug: the old code re-used `credit_notes.pdf_url`, which
+  // is a signed URL that expires after 24h.
+  const handleDownloadPdf = async (cnId: string, existingPath: string | null, language?: string) => {
+    const win = window.open('', '_blank');
     try {
       setGeneratingId(cnId);
-      const res = await invokeWithErrorBody<{ pdf_url: string }>('generate-credit-note', {
-        body: { credit_note_id: cnId, language },
+      if (!existingPath) {
+        await invokeWithErrorBody('generate-credit-note', {
+          body: { credit_note_id: cnId, language },
+        });
+        await queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      }
+      const res = await invokeWithErrorBody<{ url: string }>('get-document-url', {
+        body: { doc_type: 'credit_note', doc_id: cnId, kind: 'pdf' },
       });
-      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
-      if (res?.pdf_url) window.open(res.pdf_url, '_blank');
+      if (!res?.url) throw new Error('Geen download-URL ontvangen');
+      if (win && !win.closed) win.location.href = res.url;
+      else window.location.href = res.url;
     } catch (e: any) {
-      toast({ title: 'PDF genereren mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
+      try { win?.close(); } catch { /* noop */ }
+      toast({ title: 'Downloaden mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
     } finally {
       setGeneratingId(null);
     }
@@ -154,9 +162,9 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
   const buildActions = (cn: CN): ActionItem[] => {
     const items: ActionItem[] = [];
     items.push({
-      label: cn.pdf_url ? 'Download PDF' : 'PDF genereren',
+      label: (cn as any).pdf_path ? 'Download PDF' : 'PDF genereren',
       icon: generatingId === cn.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />,
-      onClick: () => handleDownloadPdf(cn.id, cn.pdf_url, (cn as any).language),
+      onClick: () => handleDownloadPdf(cn.id, (cn as any).pdf_path ?? null, (cn as any).language),
     });
     if (cn.ubl_url) {
       items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(cn.ubl_url!, '_blank') });
