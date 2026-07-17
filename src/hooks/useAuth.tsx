@@ -314,9 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (hasStaleAuthStorage()) {
         // No session but we have storage = corrupt state
         console.warn('[Auth] No session but stale storage exists, cleaning up...');
-        clearAuthStorage();
-        await supabase.auth.signOut();
+        await safeLocalSignOut();
         setRolesLoading(false);
+
       } else {
         setRolesLoading(false);
       }
