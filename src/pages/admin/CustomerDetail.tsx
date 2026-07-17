@@ -467,6 +467,21 @@ export default function CustomerDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <CustomerFormDialog
+        mode="edit"
+        customer={customer}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        isLoading={updateCustomer.isPending}
+        onSubmit={(data) => {
+          if (!customerId) return;
+          updateCustomer.mutate(
+            { customerId, data: data as Partial<Customer> },
+            { onSuccess: () => setEditOpen(false) }
+          );
+        }}
+      />
     </div>
   );
 }
