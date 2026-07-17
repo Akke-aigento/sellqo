@@ -2887,6 +2887,7 @@ export type Database = {
           prompt_summary: string | null
           result_summary: string | null
           tenant_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2900,6 +2901,7 @@ export type Database = {
           prompt_summary?: string | null
           result_summary?: string | null
           tenant_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2913,6 +2915,7 @@ export type Database = {
           prompt_summary?: string | null
           result_summary?: string | null
           tenant_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -18262,6 +18265,10 @@ export type Database = {
       }
       can_create_tenant: {
         Args: { _owner_email: string; _user_id: string }
+        Returns: boolean
+      }
+      check_help_rate_limit: {
+        Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
       }
       complete_sync_activity: {

@@ -1088,6 +1088,10 @@
         "bol_label_integrity": {
           "title": "Versandetiketten bleiben korrekt gespeichert",
           "description": "Beim Öffnen eines zuvor erstellten Versandetiketts konnte in einigen Fällen das Etikett einer anderen Bestellung angezeigt werden. Jedes Etikett wird jetzt separat gespeichert und bleibt korrekt abrufbar."
+        },
+        "help_assistant_free": {
+          "title": "Hilfe-Assistent in jedem Tarif kostenlos",
+          "description": "Der KI-Hilfe-Assistent ist jetzt in jedem Abonnement kostenlos verfügbar und gibt smartere Hinweise dazu, welche Funktionen in deinem Tarif enthalten sind und wann sich ein Upgrade lohnt."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."

@@ -1088,6 +1088,10 @@
         "bol_label_integrity": {
           "title": "Verzendlabels blijven correct bewaard",
           "description": "Bij het openen van een eerder aangemaakt verzendlabel kon in sommige gevallen het label van een andere bestelling getoond worden. Elk label wordt nu apart bewaard en blijft correct opvraagbaar."
+        },
+        "help_assistant_free": {
+          "title": "Hulpassistent gratis op elk abonnement",
+          "description": "De AI-hulpassistent is nu gratis beschikbaar op elk abonnement en geeft slimmer advies over welke functies in jouw plan zitten en wanneer een upgrade zin heeft."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
