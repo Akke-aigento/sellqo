@@ -131,50 +131,41 @@ serve(async (req) => {
     // Download PDF/UBL and prepare as email attachments
     const emailAttachments: { filename: string; content: string }[] = [];
 
-    if (invoice.pdf_url) {
+    // Prefer service-role storage.download via pdf_path (private-ready).
+    // Fall back to fetch(pdf_url) while the bucket is still public.
+    async function loadAttachment(path: string | null, url: string | null, filename: string) {
       try {
-        logStep("Downloading PDF for attachment", { url: invoice.pdf_url });
-        const pdfResponse = await fetch(invoice.pdf_url);
-        if (pdfResponse.ok) {
-          const pdfBuffer = await pdfResponse.arrayBuffer();
-          emailAttachments.push({
-            filename: `${invoice.invoice_number}.pdf`,
-            content: arrayBufferToBase64(pdfBuffer),
-          });
-          logStep("PDF attachment ready", { size: pdfBuffer.byteLength });
-        } else {
-          logStep("WARNING: Could not download PDF", { status: pdfResponse.status });
+        if (path) {
+          const { data, error } = await supabaseClient.storage.from('invoices').download(path);
+          if (!error && data) {
+            const buf = await data.arrayBuffer();
+            emailAttachments.push({ filename, content: arrayBufferToBase64(buf) });
+            logStep("Attachment ready (storage)", { filename, size: buf.byteLength });
+            return;
+          }
+          logStep("WARNING: storage.download failed, falling back to url", { path, error: error?.message });
         }
-      } catch (pdfErr) {
-        logStep("WARNING: PDF download failed", { error: pdfErr instanceof Error ? pdfErr.message : String(pdfErr) });
+        if (url) {
+          const r = await fetch(url);
+          if (r.ok) {
+            const buf = await r.arrayBuffer();
+            emailAttachments.push({ filename, content: arrayBufferToBase64(buf) });
+            logStep("Attachment ready (url fallback)", { filename, size: buf.byteLength });
+          } else {
+            logStep("WARNING: url fetch failed", { url, status: r.status });
+          }
+        }
+      } catch (e) {
+        logStep("WARNING: attachment load failed", { filename, error: e instanceof Error ? e.message : String(e) });
       }
     }
 
+    if (invoice.pdf_path || invoice.pdf_url) {
+      await loadAttachment(invoice.pdf_path ?? null, invoice.pdf_url ?? null, `${invoice.invoice_number}.pdf`);
+    }
     // Always attach UBL XML if available — required for Odoo / Peppol e-invoice digitalization
-    if (invoice.ubl_url) {
-      try {
-        logStep("Downloading UBL for attachment", { url: invoice.ubl_url });
-        const ublResponse = await fetch(invoice.ubl_url);
-        if (ublResponse.ok) {
-          const ublBuffer = await ublResponse.arrayBuffer();
-          emailAttachments.push({
-            filename: `${invoice.invoice_number}.xml`,
-            content: arrayBufferToBase64(ublBuffer),
-          });
-          logStep("UBL attachment ready", { size: ublBuffer.byteLength });
-        }
-      } catch (ublErr) {
-        logStep("WARNING: UBL download failed", { error: ublErr instanceof Error ? ublErr.message : String(ublErr) });
-      }
-    }
-
-    // Build attachments info for email body (download links)
-    const attachmentsInfo: string[] = [];
-    if (invoice.pdf_url && (invoiceFormat === 'pdf' || invoiceFormat === 'both')) {
-      attachmentsInfo.push(`<a href="${invoice.pdf_url}" style="color: #3b82f6;">Download factuur (PDF)</a>`);
-    }
-    if (invoice.ubl_url) {
-      attachmentsInfo.push(`<a href="${invoice.ubl_url}" style="color: #3b82f6;">Download factuur (UBL/XML)</a>`);
+    if (invoice.ubl_path || invoice.ubl_url) {
+      await loadAttachment(invoice.ubl_path ?? null, invoice.ubl_url ?? null, `${invoice.invoice_number}.xml`);
     }
 
     const brand = await getTenantBrand(supabaseClient, invoice.tenant_id);
@@ -231,7 +222,6 @@ serve(async (req) => {
       </table>
     </td></tr></table>
     ${payNowBlock}
-    ${attachmentsInfo.length ? `<div style="text-align:center;margin:24px 0;">${attachmentsInfo.join('<br/>')}</div>` : ''}
     ${attachedLine ? `<p style="color:#4b5563;">${attachedLine}</p>` : ''}`;
 
     const { html: emailHtml, text: emailText } = renderTenantEmail({

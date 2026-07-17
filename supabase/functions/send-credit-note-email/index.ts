@@ -138,16 +138,27 @@ serve(async (req) => {
 
     // Download PDF for attachment
     const attachments: { filename: string; content: string }[] = [];
-    if (pdfUrl) {
-      try {
+    try {
+      let loaded = false;
+      if (cn.pdf_path) {
+        const { data, error } = await admin.storage.from("credit-notes").download(cn.pdf_path);
+        if (!error && data) {
+          const buf = await data.arrayBuffer();
+          attachments.push({ filename: `${cn.credit_note_number}.pdf`, content: arrayBufferToBase64(buf) });
+          loaded = true;
+        } else if (error) {
+          console.warn("[send-credit-note-email] storage.download failed, falling back", error.message);
+        }
+      }
+      if (!loaded && pdfUrl) {
         const r = await fetch(pdfUrl);
         if (r.ok) {
           const buf = await r.arrayBuffer();
           attachments.push({ filename: `${cn.credit_note_number}.pdf`, content: arrayBufferToBase64(buf) });
         }
-      } catch (e) {
-        console.warn("[send-credit-note-email] PDF download failed", e);
       }
+    } catch (e) {
+      console.warn("[send-credit-note-email] PDF download failed", e);
     }
 
     const invoiceNumber = cn.original_invoice?.invoice_number || "-";

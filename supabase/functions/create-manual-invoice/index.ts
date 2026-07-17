@@ -683,13 +683,15 @@ serve(async (req) => {
 
     let pdfUrl = null;
     let ublUrl = null;
+    let pdfPath: string | null = null;
+    let ublPath: string | null = null;
 
     // Generate PDF HTML
     if (invoiceFormat === 'pdf' || invoiceFormat === 'both') {
       logStep("Generating PDF HTML");
       const pdfHtml = generatePDFHTML(invoiceData);
       
-      const pdfPath = `${tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.html`;
+      pdfPath = `${tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.html`;
       
       const { error: uploadError } = await supabaseClient.storage
         .from("invoices")
@@ -712,7 +714,7 @@ serve(async (req) => {
       logStep("Generating UBL XML");
       const ublXml = generateUBL(invoiceData);
       
-      const ublPath = `${tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
+      ublPath = `${tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
       
       const { error: uploadError } = await supabaseClient.storage
         .from("invoices")
@@ -746,6 +748,8 @@ serve(async (req) => {
         total: total,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
+        pdf_path: pdfUrl ? pdfPath : null,
+        ubl_path: ublUrl ? ublPath : null,
         vat_regime: resolvedRegime.vat_regime,
         reporting_country: resolvedRegime.reporting_country,
         ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
