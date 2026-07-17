@@ -1084,6 +1084,10 @@
         "auth_refresh_fix": {
           "title": "Forms stay put when switching tabs",
           "description": "When you briefly switched to another tab and came back, a settings screen sometimes reset — filled-in fields were lost and you landed back on the previous page. The session now refreshes silently in the background without reloading the page."
+        },
+        "bol_label_integrity": {
+          "title": "Shipping labels stay correctly stored",
+          "description": "When opening a previously created shipping label, the label of another order could sometimes be shown. Each label is now stored separately and remains correctly retrievable."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
