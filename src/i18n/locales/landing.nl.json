@@ -1010,7 +1010,8 @@
       "dates": {
         "jul_2026": "Juli 2026",
         "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024"
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026"
       },
       "changes": {
         "accurate_stats": {
@@ -1096,6 +1097,18 @@
         "help_assistant_links": {
           "title": "Werkende links in de hulpassistent",
           "description": "Links van de hulpassistent naar documentatie-artikels openen nu correct het juiste artikel zonder de pagina te herladen."
+        },
+        "sec_signed_documents": {
+          "title": "Veiligere downloadlinks voor facturen en labels",
+          "description": "Facturen, creditnota's en verzendlabels worden nu geopend via kortdurende, ondertekende links. Enkel de eigenaar van de winkel kan bij deze documenten."
+        },
+        "sec_internal_endpoints": {
+          "title": "Interne beheer-endpoints extra afgeschermd",
+          "description": "Enkele onderhoudsroutes vereisen nu expliciete platform-authenticatie. Ongeauthenticeerd bereiken is uitgesloten."
+        },
+        "sec_role_aware_rls": {
+          "title": "Rol-bewuste toegangscontrole doorheen het platform",
+          "description": "Grote hardening-ronde: elk team-account ziet enkel data die bij zijn rol hoort binnen de eigen winkel. Cross-winkel-toegang is structureel uitgesloten."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
