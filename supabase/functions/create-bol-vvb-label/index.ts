@@ -1033,6 +1033,7 @@ const handler = async (req: Request): Promise<Response> => {
           tracking_number: trackingNumber,
           label_url: labelPdfUrl,
           status: (transporterLabelId && labelPdfUrl) ? "created" : "pending",
+          ...(!labelPdfUrl && labelUploadError ? { error_message: labelUploadError } : {}),
         },
       ])
       .select()
