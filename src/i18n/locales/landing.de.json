@@ -1010,7 +1010,8 @@
       "dates": {
         "jul_2026": "Juli 2026",
         "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024"
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026"
       },
       "changes": {
         "accurate_stats": {
@@ -1096,6 +1097,18 @@
         "help_assistant_links": {
           "title": "Funktionierende Links im Hilfe-Assistenten",
           "description": "Links des Hilfe-Assistenten zu Dokumentationsartikeln öffnen jetzt korrekt den richtigen Artikel, ohne die Seite neu zu laden."
+        },
+        "sec_signed_documents": {
+          "title": "Sicherere Download-Links für Rechnungen und Etiketten",
+          "description": "Rechnungen, Gutschriften und Versandetiketten werden jetzt über kurzlebige, signierte Links geöffnet. Nur der Shop-Inhaber kann auf diese Dokumente zugreifen."
+        },
+        "sec_internal_endpoints": {
+          "title": "Interne Admin-Endpunkte zusätzlich abgesichert",
+          "description": "Mehrere Wartungsrouten erfordern nun eine ausdrückliche Plattform-Authentifizierung. Unauthentifizierter Zugriff ist ausgeschlossen."
+        },
+        "sec_role_aware_rls": {
+          "title": "Rollenbasierte Zugriffskontrolle im gesamten Platform",
+          "description": "Große Härtungsrunde: Jedes Team-Konto sieht nur die Daten, die seiner Rolle im eigenen Shop entsprechen. Shop-übergreifender Zugriff ist strukturell ausgeschlossen."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."

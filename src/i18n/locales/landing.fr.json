@@ -1010,7 +1010,8 @@
       "dates": {
         "jul_2026": "Juillet 2026",
         "q1_2025": "T1 2025",
-        "q4_2024": "T4 2024"
+        "q4_2024": "T4 2024",
+        "q2_2026": "T2 2026"
       },
       "changes": {
         "accurate_stats": {
@@ -1096,6 +1097,18 @@
         "help_assistant_links": {
           "title": "Liens fonctionnels dans l'assistant d'aide",
           "description": "Les liens de l'assistant d'aide vers les articles de documentation ouvrent désormais correctement le bon article sans recharger la page."
+        },
+        "sec_signed_documents": {
+          "title": "Liens de téléchargement plus sûrs pour factures et étiquettes",
+          "description": "Les factures, notes de crédit et étiquettes d'expédition s'ouvrent désormais via des liens signés à durée limitée. Seul le propriétaire de la boutique y a accès."
+        },
+        "sec_internal_endpoints": {
+          "title": "Endpoints d'administration internes mieux protégés",
+          "description": "Plusieurs routes de maintenance exigent désormais une authentification plateforme explicite. Aucun accès non authentifié n'est possible."
+        },
+        "sec_role_aware_rls": {
+          "title": "Contrôle d'accès basé sur les rôles à travers la plateforme",
+          "description": "Grand chantier de durcissement : chaque compte d'équipe ne voit que les données correspondant à son rôle dans sa propre boutique. L'accès inter-boutiques est structurellement exclu."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."

@@ -1010,7 +1010,8 @@
       "dates": {
         "jul_2026": "July 2026",
         "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024"
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026"
       },
       "changes": {
         "accurate_stats": {
@@ -1096,6 +1097,18 @@
         "help_assistant_links": {
           "title": "Working links in the help assistant",
           "description": "Links from the help assistant to documentation articles now correctly open the right article without reloading the page."
+        },
+        "sec_signed_documents": {
+          "title": "Safer download links for invoices and labels",
+          "description": "Invoices, credit notes and shipping labels now open through short-lived, signed links. Only the store owner can reach these documents."
+        },
+        "sec_internal_endpoints": {
+          "title": "Internal admin endpoints further locked down",
+          "description": "A number of maintenance routes now require explicit platform authentication. Unauthenticated access is no longer possible."
+        },
+        "sec_role_aware_rls": {
+          "title": "Role-aware access control across the platform",
+          "description": "Large hardening round: every team account sees only the data that matches its role within its own store. Cross-store access is structurally excluded."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
