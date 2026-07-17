@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditNoteDialog } from '@/components/admin/CreditNoteDialog';
-import { invokeWithErrorBody as _dummy } from '@/lib/invokeWithErrorBody'; // keep import path parity
 
 interface Props {
   invoiceId: string;
