@@ -3932,6 +3932,7 @@ export type Database = {
           language: string
           ogm_reference: string | null
           original_invoice_id: string
+          pdf_path: string | null
           pdf_url: string | null
           peppol_required: boolean | null
           peppol_sent_at: string | null
@@ -3946,6 +3947,7 @@ export type Database = {
           tenant_id: string
           total: number
           type: string
+          ubl_path: string | null
           ubl_url: string | null
           updated_at: string | null
         }
@@ -3959,6 +3961,7 @@ export type Database = {
           language?: string
           ogm_reference?: string | null
           original_invoice_id: string
+          pdf_path?: string | null
           pdf_url?: string | null
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
@@ -3973,6 +3976,7 @@ export type Database = {
           tenant_id: string
           total?: number
           type: string
+          ubl_path?: string | null
           ubl_url?: string | null
           updated_at?: string | null
         }
@@ -3986,6 +3990,7 @@ export type Database = {
           language?: string
           ogm_reference?: string | null
           original_invoice_id?: string
+          pdf_path?: string | null
           pdf_url?: string | null
           peppol_required?: boolean | null
           peppol_sent_at?: string | null
@@ -4000,6 +4005,7 @@ export type Database = {
           tenant_id?: string
           total?: number
           type?: string
+          ubl_path?: string | null
           ubl_url?: string | null
           updated_at?: string | null
         }
@@ -7288,6 +7294,7 @@ export type Database = {
           ogm_reference: string | null
           order_id: string | null
           paid_at: string | null
+          pdf_path: string | null
           pdf_url: string | null
           peppol_delivered_at: string | null
           peppol_error: string | null
@@ -7306,6 +7313,7 @@ export type Database = {
           tenant_id: string
           total: number
           ubl_generated_at: string | null
+          ubl_path: string | null
           ubl_url: string | null
           updated_at: string
           vat_number_validated_at: string | null
@@ -7334,6 +7342,7 @@ export type Database = {
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
+          pdf_path?: string | null
           pdf_url?: string | null
           peppol_delivered_at?: string | null
           peppol_error?: string | null
@@ -7352,6 +7361,7 @@ export type Database = {
           tenant_id: string
           total?: number
           ubl_generated_at?: string | null
+          ubl_path?: string | null
           ubl_url?: string | null
           updated_at?: string
           vat_number_validated_at?: string | null
@@ -7380,6 +7390,7 @@ export type Database = {
           ogm_reference?: string | null
           order_id?: string | null
           paid_at?: string | null
+          pdf_path?: string | null
           pdf_url?: string | null
           peppol_delivered_at?: string | null
           peppol_error?: string | null
@@ -7398,6 +7409,7 @@ export type Database = {
           tenant_id?: string
           total?: number
           ubl_generated_at?: string | null
+          ubl_path?: string | null
           ubl_url?: string | null
           updated_at?: string
           vat_number_validated_at?: string | null
