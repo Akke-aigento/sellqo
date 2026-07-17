@@ -14,7 +14,6 @@ import { useTenant } from '@/hooks/useTenant';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { useToast } from '@/hooks/use-toast';
 import { useCan } from '@/hooks/useCan';
-import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +43,6 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { openDocument } = useDocumentDownload();
 
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
