@@ -445,7 +445,7 @@ serve(async (req) => {
     // Persist pdf_url + language
     const { data: updated, error: updErr } = await admin
       .from("credit_notes")
-      .update({ pdf_url: pdfUrl, language: lang })
+      .update({ pdf_url: pdfUrl, pdf_path: path, language: lang })
       .eq("id", cn.id)
       .select(`*, original_invoice:invoices!original_invoice_id(id, invoice_number, total, customer_id), customer:customers(id, first_name, last_name, email, company_name), lines:credit_note_lines(*)`)
       .single();

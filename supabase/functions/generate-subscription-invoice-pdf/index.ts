@@ -219,7 +219,7 @@ serve(async (req) => {
 
     const { data: { publicUrl } } = admin.storage.from("invoices").getPublicUrl(pdfPath);
 
-    await admin.from("invoices").update({ pdf_url: publicUrl }).eq("id", inv.id);
+    await admin.from("invoices").update({ pdf_url: publicUrl, pdf_path: pdfPath }).eq("id", inv.id);
 
     // ---- UBL via existing service (best-effort) ----
     let ublUrl: string | null = null;

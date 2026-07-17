@@ -1421,12 +1421,13 @@ serve(async (req) => {
     const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
     const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
     
+    let ublPath: string | null = null;
     // Always generate UBL for Odoo / Peppol compatibility — attached to every invoice email
     if (true) {
       logStep("Generating UBL XML for Peppol");
       const ublXml = generateUBL(invoiceData);
       
-      const ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
+      ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
       
       const { error: ublUploadError } = await supabaseClient.storage
         .from("invoices")
@@ -1537,6 +1538,8 @@ serve(async (req) => {
         total: finalTotal,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
+        pdf_path: pdfPath,
+        ubl_path: ublUrl ? ublPath : null,
         ogm_reference: ogmReference,
         paid_at: new Date().toISOString(),
         is_b2b: isB2B,
