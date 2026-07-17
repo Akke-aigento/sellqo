@@ -1,5 +1,22 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## BOL-LABEL-1a — verzendlabels: onveilige bestandsnaam — 17 juli 2026
+
+**Root cause:** Bol-ordernummers beginnen met `#` (bv. `#1161`). `create-bol-vvb-label` bouwde de storage-key als `bol-vvb-${order.order_number}${suffix}.pdf` en uploadde naar `${tenant_id}/${fileName}`. Een `#` in een URL start het fragment; server-side kapt Supabase Storage het pad daar af. Alle labels landden dus op één object: `{tenant_id}/bol-vvb-`. Met `upsert: true` (bewust, tegen vastlopende retries) overschreef elk nieuw label het vorige. `getPublicUrl()` plakt strings en gaf de volle URL met `#` terug — die werd in `shipping_labels.label_url` opgeslagen. Bij het openen kapt de browser opnieuw af op `#`, vraagt `.../bol-vvb-` op en krijgt het láátst geüploade label. Gevolg: iemand kon het label van een andere klant printen, mét diens adres.
+
+**Bewijs:** `storage.objects` had exact één object `54f6b480-.../bol-vvb-` (aangemaakt 5 maart 2026, `updated_at` 15 juli — 18 keer overschreven). 18 van 30 `label_url`'s in `shipping_labels` bevatten een `#` → 0 bestaande bestanden onder het gevraagde pad; de 12 zonder `#` → alle 12 bestaan. Sinds 26 maart is élk label kapot (5× a6, 13× dymo4xl). #1144/#1145 (20 min uit elkaar) en #1140/#1141 (60 min) deelden hetzelfde storage-object. Regressie: oudere objecten heten `bol-vvb-1122-a6-1772782818158.pdf` — met timestamp en zonder `#`, dus eerdere code saneerde de naam wél. Niets viel op omdat upload slaagde, `label_url` netjes gezet werd en de gebruiker meestal direct printte (dan is het laatst = het juiste).
+
+**Uitgevoerd:** in `supabase/functions/create-bol-vvb-label/index.ts`:
+- `safeLabelFileName(orderNumber, formatSuffix)` toegevoegd: strip alles buiten `[A-Za-z0-9-_]`, cap op 40 chars, plus `Date.now()`-timestamp — hetzelfde patroon als de oude, werkende objecten.
+- Beide upload-plekken (r.527 retry-flow, r.936 nieuwe-label-flow) gebruiken nu die helper.
+- Na elke upload een path-mismatch-check: als `uploadData.path !== requestedPath`, geen `label_url` zetten en luid `console.error`. Had dit vangnet er in maart gestaan, dan was de bug meteen opgevallen.
+- Upload-fouten en path-mismatches worden bewaard in een lokale `*UploadError`: in de retry-flow gaat het in `updateFields.error_message` op de `shipping_labels`-rij, in de nieuwe-label-flow in de insert. Zonder geverifieerde upload nooit een `label_url`. Geen nieuwe statuswaarden verzonnen.
+- Function gedeployed via `deploy_edge_functions`.
+
+**Security-keuzes:** n.v.t. — geen tabellen, RLS-policies, GRANT's of routes geraakt. `upsert: true` bewust behouden (comment r.522) om vastlopende retries te vermijden; verdedigingslinie zit nu in de bestandsnaam zelf, niet in de bucket-config.
+
+**Vervolg — bewust géén data-cleanup in deze batch:** de 18 bestaande `label_url`'s met `#` worden **NIET op NULL gezet**. `LABEL-PDF-RETRY` in `sync-bol-orders` selecteert op `status='created' AND label_url IS NULL AND external_id IS NOT NULL` — precies die 18. Ze zouden dan zonder limiet elke 5 minuten opnieuw bij Bol worden opgehaald tot `MAX_LABEL_RETRIES`. In plaats daarvan: enkel het weesobject `bol-vvb-` verwijderen (aparte SQL-batch). De afgekapte URL's geven daarna 404 in plaats van het verkeerde label, en de retry-machinerie blijft onaangeroerd. Wie een oud label nodig heeft, gebruikt de bestaande "opnieuw bijsnijden"-knop (`retry: true, recrop: true`).
+
 ## Lovable workspace-skills aangemaakt — 17 juli 2026
 
 **Root cause:** de zes engineering-regels, release-werkwijze en DB-safety-regels leefden enkel in docs/role-audit.md en projectbestanden. De Lovable-agent las ze niet mee; elke prompt buiten een Claude-chat om miste ze. Actiepunt stond al in SellQo_Connector_Werkwijze.md.
