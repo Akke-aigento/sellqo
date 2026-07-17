@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.07x', dateKey: 'jul_2026', changes: [{ id: 'auth_refresh_fix', type: 'bugfix' }] },
   { version: '2026.07k', dateKey: 'jul_2026', changes: [{ id: 'import_guide', type: 'improvement' }] },
   { version: '2026.07j', dateKey: 'jul_2026', changes: [{ id: 'reliable_notifications', type: 'bugfix' }] },
   { version: '2026.07i', dateKey: 'jul_2026', changes: [{ id: 'reliable_import', type: 'improvement' }] },
