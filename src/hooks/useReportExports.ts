@@ -18,6 +18,25 @@ import {
   ISSUED_INVOICE_STATUSES,
   OPEN_INVOICE_STATUSES,
 } from '@/lib/invoiceStatuses';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+
+const SIGNED_URL_CHUNK = 200;
+async function fetchSignedInvoiceFiles(
+  ids: string[],
+  kind: 'pdf' | 'ubl',
+): Promise<Array<{ id: string; name: string; url: string }>> {
+  if (ids.length === 0) return [];
+  const out: Array<{ id: string; name: string; url: string }> = [];
+  for (let i = 0; i < ids.length; i += SIGNED_URL_CHUNK) {
+    const chunk = ids.slice(i, i + SIGNED_URL_CHUNK);
+    const res = await invokeWithErrorBody<{ files: Array<{ id: string; name: string; url: string }> }>(
+      'get-document-url',
+      { body: { doc_type: 'invoice', doc_ids: chunk, kind } },
+    );
+    if (res?.files?.length) out.push(...res.files);
+  }
+  return out;
+}
 
 interface DateRange {
   from: Date;
@@ -87,11 +106,11 @@ export const useBulkPdfDownload = () => {
     try {
       const { data, error } = await supabase
         .from('invoices')
-        .select('invoice_number, pdf_url')
+        .select('id, invoice_number, pdf_path')
         .eq('tenant_id', currentTenant.id)
         .gte('issue_date', dateRange.from.toISOString())
         .lte('issue_date', dateRange.to.toISOString())
-        .not('pdf_url', 'is', null);
+        .not('pdf_path', 'is', null);
 
       if (error) throw error;
 
@@ -100,10 +119,12 @@ export const useBulkPdfDownload = () => {
         return;
       }
 
-      const files = data.map(inv => ({
-        name: `${inv.invoice_number}.pdf`,
-        url: inv.pdf_url!,
-      }));
+      const signed = await fetchSignedInvoiceFiles(data.map(d => d.id as string), 'pdf');
+      const files = signed.map(f => ({ name: f.name, url: f.url }));
+      if (files.length === 0) {
+        toast.info('Geen facturen gevonden met PDF');
+        return;
+      }
 
       setProgress({ current: 0, total: files.length });
 
@@ -129,11 +150,11 @@ export const useBulkPdfDownload = () => {
     try {
       const { data, error } = await supabase
         .from('invoices')
-        .select('invoice_number, ubl_url')
+        .select('id, invoice_number, ubl_path')
         .eq('tenant_id', currentTenant.id)
         .gte('issue_date', dateRange.from.toISOString())
         .lte('issue_date', dateRange.to.toISOString())
-        .not('ubl_url', 'is', null);
+        .not('ubl_path', 'is', null);
 
       if (error) throw error;
 
@@ -142,10 +163,12 @@ export const useBulkPdfDownload = () => {
         return;
       }
 
-      const files = data.map(inv => ({
-        name: `${inv.invoice_number}.xml`,
-        url: inv.ubl_url!,
-      }));
+      const signed = await fetchSignedInvoiceFiles(data.map(d => d.id as string), 'ubl');
+      const files = signed.map(f => ({ name: f.name, url: f.url }));
+      if (files.length === 0) {
+        toast.info('Geen facturen gevonden met UBL');
+        return;
+      }
 
       setProgress({ current: 0, total: files.length });
 
