@@ -1,5 +1,17 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## Lovable workspace-skills aangemaakt — 17 juli 2026
+
+**Root cause:** de zes engineering-regels, release-werkwijze en DB-safety-regels leefden enkel in docs/role-audit.md en projectbestanden. De Lovable-agent las ze niet mee; elke prompt buiten een Claude-chat om miste ze. Actiepunt stond al in SellQo_Connector_Werkwijze.md.
+
+**Uitgevoerd:** drie workspace-skills aangemaakt op workspace 8fa9AQcZxxoglV7BaRsZ: `sellqo-engineering-rules` (R1–R6 mét incidenten, commit b4a1964), `sellqo-release-werkwijze` (drie sporen, formats, JJJJ.MMx, i18n, commit 2ebfb57), `sellqo-db-safety` (M1–M5, vaste SQL-regels, SECURITY DEFINER-val, service-role-valkuil, batch-checklist, commit 66cd3c5). Elke skill heeft een expliciete scope-regel: enkel project sellqo, andere projecten negeren.
+
+**Security-keuzes:** n.v.t. — geen tabellen, functies, routes of policies geraakt; enkel workspace-configuratie.
+
+**Vervolg:** bij nieuwe geleerde lessen de skills updaten i.p.v. enkel role-audit; bij skills voor andere projecten zelfde patroon hanteren.
+
+---
+
 ## Orphan cleanup + banner verduidelijking + root-cause doc (2026-06-10)
 
 - **Cleanup migration** `cleanup_orphan_spoof_user_and_link_sander.sql`: orphan spoof-user `aaron.mercken@hotmail.com` (UUID `d020b521-0ab1-40cc-a13c-614cb879ae6d`) verwijderd uit `auth.users` (cascade naar `profiles`) en uit `user_roles` op Mancini Milano. Sander (`info@mancinimilano.com`, UUID `a183cd15-...`) gekoppeld als `tenant_admin` op Mancini (`2606c5b9-...`). Pending VanXcel-invite voor de spoof-email gerevoked met audit-log entry (`reason='orphan_spoof_cleanup_2026_06_10'`). `tenants.owner_email` van Mancini bijgewerkt naar `info@mancinimilano.com` om herhaling via `repair-tenant-access` te voorkomen.
