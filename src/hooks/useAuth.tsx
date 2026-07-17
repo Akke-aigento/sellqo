@@ -256,9 +256,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
-            clearAuthStorage();
-            await supabase.auth.signOut();
+            await safeLocalSignOut();
             setSession(null);
+
             setUser(null);
             setRoles([]);
             setRolesLoading(false);
