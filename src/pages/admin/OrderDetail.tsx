@@ -54,6 +54,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
+  const { openDocument } = useDocumentDownload();
+  const openInvoiceDoc = (invoiceId: string, kind: 'pdf' | 'ubl') => openDocument('invoice', invoiceId, kind);
   const { order, isLoading, error } = useOrder(id);
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
