@@ -1092,6 +1092,10 @@
         "help_assistant_free": {
           "title": "Assistant d'aide gratuit sur chaque abonnement",
           "description": "L'assistant d'aide IA est désormais gratuit sur chaque abonnement et donne des conseils plus pertinents sur les fonctionnalités incluses dans votre plan et sur le moment où une mise à niveau est utile."
+        },
+        "help_assistant_links": {
+          "title": "Liens fonctionnels dans l'assistant d'aide",
+          "description": "Les liens de l'assistant d'aide vers les articles de documentation ouvrent désormais correctement le bon article sans recharger la page."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
