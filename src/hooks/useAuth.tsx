@@ -286,9 +286,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear corrupt storage if session fetch fails
         if (hasStaleAuthStorage()) {
           console.warn('[Auth] Session error with stale storage, cleaning up...');
-          clearAuthStorage();
-          await supabase.auth.signOut();
+          await safeLocalSignOut();
         }
+
         setSession(null);
         setUser(null);
         setRoles([]);
