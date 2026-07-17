@@ -538,22 +538,32 @@ const handler = async (req: Request): Promise<Response> => {
         // on every retry, leaving label_url NULL and the label stuck forever.
         console.log("Uploading PDF to Supabase Storage...");
         const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
-        const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
+        const fileName = safeLabelFileName(order.order_number, formatSuffix);
+        const requestedPath = `${order.tenant_id}/${fileName}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
-          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
+          .upload(requestedPath, pdfBuffer, {
             contentType: "application/pdf",
             upsert: true,
           });
 
         if (uploadError) {
           console.error("PDF upload to storage failed:", uploadError);
+          retryUploadError = uploadError instanceof Error ? uploadError.message : String(uploadError);
         } else if (uploadData) {
-          const { data: urlData } = supabase.storage
-            .from("shipping-labels")
-            .getPublicUrl(`${order.tenant_id}/${fileName}`);
-          retryPdfUrl = urlData?.publicUrl || null;
-          console.log("PDF uploaded, URL:", retryPdfUrl);
+          if (uploadData.path && uploadData.path !== requestedPath) {
+            console.error("[bol-vvb-label] upload path mismatch — label NIET opgeslagen zoals gevraagd", {
+              requested: requestedPath,
+              actual: uploadData.path,
+            });
+            retryUploadError = `upload path mismatch: requested ${requestedPath}, got ${uploadData.path}`;
+          } else {
+            const { data: urlData } = supabase.storage
+              .from("shipping-labels")
+              .getPublicUrl(requestedPath);
+            retryPdfUrl = urlData?.publicUrl || null;
+            console.log("PDF uploaded, URL:", retryPdfUrl);
+          }
         }
       } catch (pdfError) {
         const errorMsg = pdfError instanceof Error ? pdfError.message : String(pdfError);
