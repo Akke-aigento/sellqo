@@ -30,6 +30,24 @@ function clearAuthStorage(): void {
   }
 }
 
+/**
+ * Opruimen mag NOOIT de sessies van andere tabs of apparaten slopen.
+ * `signOut()` is standaard `scope: 'global'` en revoket alles server-side;
+ * dat maakte tokens in andere tabs tot zombies (RLS werkt nog, maar
+ * GoTrue geeft session_not_found → alle edge functions 401).
+ * Daarom altijd expliciet `scope: 'local'`, en fouten mogen de opruiming
+ * nooit blokkeren.
+ */
+async function safeLocalSignOut(): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (e) {
+    console.warn('[Auth] local signOut failed (genegeerd):', e);
+  }
+  clearAuthStorage();
+}
+
+
 export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer' | 'marketing';
 
 // Role priority for determining highest role
@@ -238,9 +256,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
-            clearAuthStorage();
-            await supabase.auth.signOut();
+            await safeLocalSignOut();
             setSession(null);
+
             setUser(null);
             setRoles([]);
             setRolesLoading(false);
@@ -268,9 +286,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear corrupt storage if session fetch fails
         if (hasStaleAuthStorage()) {
           console.warn('[Auth] Session error with stale storage, cleaning up...');
-          clearAuthStorage();
-          await supabase.auth.signOut();
+          await safeLocalSignOut();
         }
+
         setSession(null);
         setUser(null);
         setRoles([]);
@@ -296,9 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (hasStaleAuthStorage()) {
         // No session but we have storage = corrupt state
         console.warn('[Auth] No session but stale storage exists, cleaning up...');
-        clearAuthStorage();
-        await supabase.auth.signOut();
+        await safeLocalSignOut();
         setRolesLoading(false);
+
       } else {
         setRolesLoading(false);
       }
@@ -324,10 +342,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (sessionError) {
       console.error('[Auth] ensureAuthenticated: session error', sessionError);
-      clearAuthStorage();
-      await supabase.auth.signOut();
+      await safeLocalSignOut();
       return false;
     }
+
     
     // If we have a session, verify it's actually valid server-side
     if (currentSession?.user && currentSession.access_token) {
@@ -344,9 +362,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (refreshError || !refreshData.session) {
           console.error('[Auth] ensureAuthenticated: refresh also failed', refreshError);
-          clearAuthStorage();
-          await supabase.auth.signOut();
+          await safeLocalSignOut();
           toast({
+
             title: 'Sessie verlopen',
             description: 'Log opnieuw in om verder te gaan.',
             variant: 'destructive',
@@ -369,9 +387,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (refreshError || !refreshData.session) {
         console.warn('[Auth] ensureAuthenticated: refresh failed, forcing sign-out', refreshError);
-        clearAuthStorage();
-        await supabase.auth.signOut();
+        await safeLocalSignOut();
         toast({
+
           title: 'Sessie verlopen',
           description: 'Log opnieuw in om verder te gaan.',
           variant: 'destructive',
@@ -502,7 +520,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Uitloggen op dit toestel mag je sessie op je telefoon niet meesleuren.
+    await safeLocalSignOut();
     setRoles([]);
     currentUserIdRef.current = null;
     hasResolvedRolesOnceRef.current = false;
@@ -511,6 +530,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       description: 'Tot ziens!',
     });
   };
+
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   
