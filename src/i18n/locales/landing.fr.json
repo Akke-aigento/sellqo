@@ -1080,6 +1080,10 @@
         "import_guide": {
           "title": "Instructions d'export claires lors de l'import",
           "description": "Lors de l'import, choisissez votre plateforme actuelle et voyez immédiatement comment y exporter vos produits, clients et commandes. La page d'import a aussi reçu une mise en page plus claire et plus sobre."
+        },
+        "auth_refresh_fix": {
+          "title": "Les formulaires restent en place lors du changement d'onglet",
+          "description": "Lorsque vous passiez brièvement sur un autre onglet et reveniez, un écran de paramètres se réinitialisait parfois — les champs remplis étaient perdus et vous vous retrouviez sur la page précédente. La session se rafraîchit désormais silencieusement en arrière-plan, sans recharger la page."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."

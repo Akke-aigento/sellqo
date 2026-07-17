@@ -1080,6 +1080,10 @@
         "import_guide": {
           "title": "Duidelijke exportinstructies bij het importeren",
           "description": "Kies bij het importeren je huidige platform en zie meteen hoe je daar je producten, klanten en bestellingen exporteert. De importpagina kreeg ook een opgefriste, rustigere lay-out."
+        },
+        "auth_refresh_fix": {
+          "title": "Formulieren blijven staan bij tab-wissel",
+          "description": "Wanneer je even naar een ander tabblad ging en terugkwam, resette een instellingsscherm soms — ingevulde velden waren weg en je landde terug op de vorige pagina. De sessie ververst nu stil op de achtergrond zonder de pagina te herladen."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."

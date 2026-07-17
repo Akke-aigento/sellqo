@@ -1080,6 +1080,10 @@
         "import_guide": {
           "title": "Klare Export-Anleitung beim Importieren",
           "description": "Wähle beim Importieren deine aktuelle Plattform und sieh sofort, wie du dort deine Produkte, Kunden und Bestellungen exportierst. Die Importseite hat außerdem ein aufgeräumteres, ruhigeres Layout erhalten."
+        },
+        "auth_refresh_fix": {
+          "title": "Formulare bleiben beim Tab-Wechsel erhalten",
+          "description": "Wenn du kurz zu einem anderen Tab gewechselt und zurückgekommen bist, wurde ein Einstellungsbildschirm manchmal zurückgesetzt — ausgefüllte Felder waren weg und du landetest wieder auf der vorigen Seite. Die Sitzung wird jetzt still im Hintergrund aktualisiert, ohne die Seite neu zu laden."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."
