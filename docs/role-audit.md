@@ -1,5 +1,17 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## F05-2a — weesendpoints dichtzetten — 17 juli 2026
+
+**Root cause:** drie edge functions draaiden met de service-role en zonder één enkele auth-check: `reset-monthly-ai-credits`, `repair-attachments`, `repair-cid-references`. Geen van drie stond in `config.toml`, dus `verify_jwt` viel terug op de default `true` — maar dat beschermt niks: de anon-key is een geldige publieke JWT (hij zit in elke frontend-bundle en in `.env`), dus de gateway laat gewoon door en daarachter stond letterlijk niks. Iedereen op internet die de URL kende, kon deze afvuren.
+
+**Impact-oppervlak:** `reset-monthly-ai-credits` roept de RPC `reset_monthly_ai_credits()` aan, en die doet `UPDATE tenant_ai_credits SET credits_used = 0, credits_total = ...` **zonder WHERE** — één anonieme call reset alle 9 tenants tegelijk. `repair-attachments` en `repair-cid-references` doen massa-onderhoud én triggeren Resend-API-calls (dus reële euro's, niet enkel data). Alle drie zijn bovendien wees: read-only geverifieerd — geen frontend-aanroep, geen andere edge function die ze aanroept, en géén cronjob. Niemand roept ze aan, ze stonden er alleen maar te wachten.
+
+**Uitgevoerd:** in alle drie de functies als **eerste** stap ná de OPTIONS-afhandeling `authenticateRequest(req)` + `!auth.is_platform_admin → 403`. Vóór die guard gebeurt niks meer: geen `createClient`, geen `req.json()`, geen RPC, geen fetch. `AuthError` wordt in elk `catch` als eerste afgevangen en via `authErrorResponse` teruggegeven, exact het patroon uit `get-stripe-login-link/index.ts`. Service-role-aanroepen passeren via de bestaande bypass in `_shared/auth.ts`, echte platform-admins via `is_platform_admin`, een tenant-gebruiker krijgt 403, en de publieke anon-key faalt op `getUser()` met 401. Bewust `config.toml` **niet** aangepast: `verify_jwt=true` blijft, gateway blokkeert al rommel, onze check doet de rest — defense in depth. Businesslogica (RPC, repair-loops, Resend-calls, responsvormen) onaangeroerd. Alle drie gedeployed.
+
+**Security-keuzes:** enkel dichtzetten, niet verwijderen — de functies zijn op zich nuttig (credit-reset is beheer, repair-flows staan er voor incidenten). Geen nieuwe secrets, geen migraties, geen `src/`-wijziging.
+
+**Backlog — AI-CREDITS-1:** de maandelijkse credit-reset draait helemaal niet. Er is nooit een cronjob voor `reset-monthly-ai-credits` aangemaakt; 7 van de 9 tenants staan over hun `credits_reset_at`, sommige 4,5 maand (SellQo 0/10 over, Mancini Milano 2/10, VanXcel 75/210). De machinerie (edge function + RPC + `credits_reset_at`-kolom) staat compleet, enkel de cron ontbreekt. Nu triviaal te bouwen met het Vault-patroon uit F05-1 (`cron_service_role_key`). Functionele bug, geen security — apart oppakken.
+
 ## SEC-BATCH-2d-2 — verzendlabels naar signed URLs — 17 juli 2026
 
 **Root cause:** de bucket `shipping-labels` is publiek leesbaar en verzendlabels bevatten naam + adres van de klant. Zolang de admin-UI `window.open(label_url)` doet met een publieke storage-URL, kan die bucket niet privaat worden zonder alles te breken. F-01 heeft ditzelfde patroon bij facturen al opgelost via `get-document-url` + signed URLs; verzendlabels waren de laatste publieke doc-flow.
