@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 export class AuthError extends Error {
   status: number;
@@ -64,6 +64,16 @@ export async function authenticateRequest(
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
+    // Diagnostiek: de echte reden mag nooit stil verdwijnen. Log geen tokens —
+    // enkel lengte + prefix, genoeg om vorm te herkennen zonder te lekken.
+    console.error("[auth] getUser rejected token:", {
+      message: authError?.message ?? "no user returned",
+      status: (authError as { status?: number } | null)?.status ?? null,
+      name: authError?.name ?? null,
+      token_len: token.length,
+      token_prefix: token.slice(0, 12),
+      has_user: !!user,
+    });
     throw new AuthError("Invalid or expired token", 401);
   }
 
