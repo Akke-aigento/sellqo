@@ -52,6 +52,20 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
   dymo_lw_4xl: "-dymo4xl",
 };
 
+/**
+ * Bol-ordernummers beginnen met '#' (bv. '#1161'). Een '#' in een storage-key
+ * wordt als URL-fragment geïnterpreteerd: het pad wordt afgekapt en élk label
+ * belandt op hetzelfde object. Met upsert:true overschrijven ze elkaar, en een
+ * herprint levert dan het label van een andere klant.
+ * Daarom: alles buiten [A-Za-z0-9-_] eruit, plus een timestamp voor uniciteit.
+ */
+function safeLabelFileName(orderNumber: string, formatSuffix: string): string {
+  const safe = String(orderNumber ?? "")
+    .replace(/[^A-Za-z0-9-_]/g, "")
+    .slice(0, 40) || "order";
+  return `bol-vvb-${safe}${formatSuffix}-${Date.now()}.pdf`;
+}
+
 // Fit the actual label area onto the requested paper format.
 //
 // Bol carriers anchor the label top-left on the source page:
@@ -448,6 +462,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       let retryPdfUrl: string | null = null;
+    let retryUploadError: string | null = null;
       let retryTracking: string | null = existingLabel.tracking_number;
 
       // If label already has a PDF and we're not recropping, skip PDF fetch and
@@ -524,22 +539,32 @@ const handler = async (req: Request): Promise<Response> => {
         // on every retry, leaving label_url NULL and the label stuck forever.
         console.log("Uploading PDF to Supabase Storage...");
         const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
-        const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
+        const fileName = safeLabelFileName(order.order_number, formatSuffix);
+        const requestedPath = `${order.tenant_id}/${fileName}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("shipping-labels")
-          .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
+          .upload(requestedPath, pdfBuffer, {
             contentType: "application/pdf",
             upsert: true,
           });
 
         if (uploadError) {
           console.error("PDF upload to storage failed:", uploadError);
+          retryUploadError = uploadError instanceof Error ? uploadError.message : String(uploadError);
         } else if (uploadData) {
-          const { data: urlData } = supabase.storage
-            .from("shipping-labels")
-            .getPublicUrl(`${order.tenant_id}/${fileName}`);
-          retryPdfUrl = urlData?.publicUrl || null;
-          console.log("PDF uploaded, URL:", retryPdfUrl);
+          if (uploadData.path && uploadData.path !== requestedPath) {
+            console.error("[bol-vvb-label] upload path mismatch — label NIET opgeslagen zoals gevraagd", {
+              requested: requestedPath,
+              actual: uploadData.path,
+            });
+            retryUploadError = `upload path mismatch: requested ${requestedPath}, got ${uploadData.path}`;
+          } else {
+            const { data: urlData } = supabase.storage
+              .from("shipping-labels")
+              .getPublicUrl(requestedPath);
+            retryPdfUrl = urlData?.publicUrl || null;
+            console.log("PDF uploaded, URL:", retryPdfUrl);
+          }
         }
       } catch (pdfError) {
         const errorMsg = pdfError instanceof Error ? pdfError.message : String(pdfError);
@@ -593,6 +618,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (retryPdfUrl) updateFields.label_url = retryPdfUrl;
       if (retryTracking) updateFields.tracking_number = retryTracking;
       if (retryPdfUrl) updateFields.status = "created"; // Mark as completed
+      if (!retryPdfUrl && retryUploadError) updateFields.error_message = retryUploadError;
 
       if (Object.keys(updateFields).length > 0) {
         const { error: updateError } = await supabase.from("shipping_labels").update(updateFields).eq("id", label_id);
@@ -823,6 +849,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const processStatusId = labelData.processStatusId;
     let labelPdfUrl: string | null = null;
+    let labelUploadError: string | null = null;
     let trackingNumber: string | null = null;
     let transporterLabelId: string | null = null;
 
@@ -933,22 +960,32 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           const formatSuffix = FORMAT_SUFFIX[labelFormat] ?? "";
-          const fileName = `bol-vvb-${order.order_number}${formatSuffix}.pdf`;
+          const fileName = safeLabelFileName(order.order_number, formatSuffix);
+          const requestedPath = `${order.tenant_id}/${fileName}`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("shipping-labels")
-            .upload(`${order.tenant_id}/${fileName}`, pdfBuffer, {
+            .upload(requestedPath, pdfBuffer, {
               contentType: "application/pdf",
               upsert: true,
             });
 
           if (!uploadError && uploadData) {
-            const { data: urlData } = supabase.storage
-              .from("shipping-labels")
-              .getPublicUrl(`${order.tenant_id}/${fileName}`);
-            labelPdfUrl = urlData?.publicUrl || null;
-            console.log("PDF uploaded to storage:", labelPdfUrl);
+            if (uploadData.path && uploadData.path !== requestedPath) {
+              console.error("[bol-vvb-label] upload path mismatch — label NIET opgeslagen zoals gevraagd", {
+                requested: requestedPath,
+                actual: uploadData.path,
+              });
+              labelUploadError = `upload path mismatch: requested ${requestedPath}, got ${uploadData.path}`;
+            } else {
+              const { data: urlData } = supabase.storage
+                .from("shipping-labels")
+                .getPublicUrl(requestedPath);
+              labelPdfUrl = urlData?.publicUrl || null;
+              console.log("PDF uploaded to storage:", labelPdfUrl);
+            }
           } else if (uploadError) {
             console.error("PDF upload error:", uploadError);
+            labelUploadError = uploadError instanceof Error ? uploadError.message : String(uploadError);
           }
         } else {
           console.error("PDF fetch failed:", pdfResponse.status, await pdfResponse.text());
@@ -996,6 +1033,7 @@ const handler = async (req: Request): Promise<Response> => {
           tracking_number: trackingNumber,
           label_url: labelPdfUrl,
           status: (transporterLabelId && labelPdfUrl) ? "created" : "pending",
+          ...(!labelPdfUrl && labelUploadError ? { error_message: labelUploadError } : {}),
         },
       ])
       .select()

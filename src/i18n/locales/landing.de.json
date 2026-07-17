@@ -1084,6 +1084,10 @@
         "auth_refresh_fix": {
           "title": "Formulare bleiben beim Tab-Wechsel erhalten",
           "description": "Wenn du kurz zu einem anderen Tab gewechselt und zurückgekommen bist, wurde ein Einstellungsbildschirm manchmal zurückgesetzt — ausgefüllte Felder waren weg und du landetest wieder auf der vorigen Seite. Die Sitzung wird jetzt still im Hintergrund aktualisiert, ohne die Seite neu zu laden."
+        },
+        "bol_label_integrity": {
+          "title": "Versandetiketten bleiben korrekt gespeichert",
+          "description": "Beim Öffnen eines zuvor erstellten Versandetiketts konnte in einigen Fällen das Etikett einer anderen Bestellung angezeigt werden. Jedes Etikett wird jetzt separat gespeichert und bleibt korrekt abrufbar."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."

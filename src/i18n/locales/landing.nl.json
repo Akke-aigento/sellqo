@@ -1084,6 +1084,10 @@
         "auth_refresh_fix": {
           "title": "Formulieren blijven staan bij tab-wissel",
           "description": "Wanneer je even naar een ander tabblad ging en terugkwam, resette een instellingsscherm soms — ingevulde velden waren weg en je landde terug op de vorige pagina. De sessie ververst nu stil op de achtergrond zonder de pagina te herladen."
+        },
+        "bol_label_integrity": {
+          "title": "Verzendlabels blijven correct bewaard",
+          "description": "Bij het openen van een eerder aangemaakt verzendlabel kon in sommige gevallen het label van een andere bestelling getoond worden. Elk label wordt nu apart bewaard en blijft correct opvraagbaar."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
