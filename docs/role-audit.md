@@ -1,5 +1,25 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## HELP-1 — 17 juli 2026
+
+**Root cause:** de hulpchatbot trok per bericht 1 AI-credit uit `tenant_ai_credits` via de RPC `use_ai_help_credit`. Fout ontwerp voor een support-kanaal: Free-tenants (0 credits) konden de bot letterlijk nooit gebruiken, en elke tenant die zijn credits opmaakte aan andere AI-features (bulk-vertaling, image editor, coach) verloor tegelijk zijn support. Een winkeleigenaar met een vraag over facturatie kreeg dan een 402 "credits op" — precies op het moment dat hij hulp nodig had. De credit-pool bestaat voor waardevolle AI-outputs (content, vertaling), niet voor "leg me eens uit hoe X werkt".
+
+**Uitgevoerd:**
+- Migratie: additief `user_id uuid NULL` op `ai_usage_log` (geen backfill, geen constraint-wijzigingen). Partial index op `(tenant_id, user_id, feature, created_at) WHERE feature = 'help_assistant'` voor snelle daily-counts.
+- Nieuwe SECURITY DEFINER-functie `public.check_help_rate_limit(p_tenant_id, p_user_id)` met `SET search_path = public`: telt help_assistant-rijen van vandaag per user en per tenant, en INSERT bij succes één rij met `credits_used = 0`. Check+log atomair in één functie zodat ze niet kunnen divergeren. Caps: 30/user/dag, 150/tenant/dag. EXECUTE gerevoked voor public/anon/authenticated, enkel service_role kan 'm aanroepen — de edge function gebruikt de service-role client, geen andere caller nodig.
+- `ai-help-assistant/index.ts`: `use_ai_help_credit`-flow, de `is_internal_tenant`-check en het volledige 402-pad zijn weg. `authenticateRequest(req, tenantId)` staat nu vóór de rate-limit; `is_platform_admin === true` slaat de rate-limit over. Anders `check_help_rate_limit` via service-role; FALSE → 429 met de NL-melding. supabase-js gepind op `2.57.2` (R2). De misplaatste `if (e instanceof AuthError) return authErrorResponse(...)` in de pull()-catch rond de `ai_help_unanswered`-insert is verwijderd — een Response returnen binnen een ReadableStream doet niks, en het maskerde de echte fout enkel.
+- Kennisbank rol-bewust: platform_admin krijgt `doc_level IN ('tenant','platform')` én een aparte admin-systemprompt (geen verbodsregels op technische details of platform-info; tenant-isolatie en prompt-geheimhouding blijven WEL staan). Tenant-user krijgt uitsluitend `doc_level = 'tenant'` — de platform-query staat fysiek alleen in de admin-branch, belt & braces tegen lekken.
+- Plan-awareness: `pricing_plans` (id, name, monthly_price, features, active=true, gesorteerd op sort_order) wordt in de system prompt geïnjecteerd als planmatrix + huidig plan + feature-flags. Regel 5 herschreven: publieke plan-info mag gedeeld worden, interne marges/kortingslogica niet. Nieuwe regel 13: bij vraag naar hoger-plan-feature kort uitleggen wat de feature doet, vermelden vanaf welk plan, verwijzen naar "Abonnement". Regel 14: kennisbank is tenant-only, platformbeheer-vragen → support.
+- RPC `use_ai_help_credit` bewust NIET gedropt (deprecated laten staan; geen destructieve wijziging in dezelfde batch, M1 uit sellqo-db-safety).
+
+**Security-keuzes:**
+- `check_help_rate_limit` is `SECURITY DEFINER` omdat ze INSERT'ert in `ai_usage_log` (RLS-tabel) namens de service-role. `search_path = public` verplicht, EXECUTE ingetrokken van public/anon/authenticated en enkel toegewezen aan `service_role` — geen frontend-pad, geen anon-pad.
+- Rol-bewuste knowledge-base: de query op `doc_level = 'platform'` staat uitsluitend binnen `if (isPlatformAdmin)`, niet als filter dat via een variabele wordt gezet. Een bug die `isPlatformAdmin` verkeerd zet, laat de platform-branch overslaan; de tenant-branch kan geen platform-docs opvragen.
+- Rate-limit-bypass voor platform-admin is bewust: platform-support en interne triage mogen niet gedwarsboomd worden door dezelfde caps als tenants. Bypass hangt aan `auth.is_platform_admin`, niet aan e-mail of tenant-id.
+- Geen wijziging aan `tenant_ai_credits`; oude rijen en RPC blijven werken voor overige AI-features.
+
+**Backlog-notitie:** de deprecated RPC `use_ai_help_credit` en de kolom `tenant_ai_credits.help_credits_used` (indien aanwezig) kunnen bij een latere schoonmaak weg, samen met AI-CREDITS-1 (maandelijkse cron). Niet nu — additief blijft additief.
+
 ## F05-2a — weesendpoints dichtzetten — 17 juli 2026
 
 **Root cause:** drie edge functions draaiden met de service-role en zonder één enkele auth-check: `reset-monthly-ai-credits`, `repair-attachments`, `repair-cid-references`. Geen van drie stond in `config.toml`, dus `verify_jwt` viel terug op de default `true` — maar dat beschermt niks: de anon-key is een geldige publieke JWT (hij zit in elke frontend-bundle en in `.env`), dus de gateway laat gewoon door en daarachter stond letterlijk niks. Iedereen op internet die de URL kende, kon deze afvuren.
