@@ -52,6 +52,20 @@ const FORMAT_SUFFIX: Record<LabelFormat, string> = {
   dymo_lw_4xl: "-dymo4xl",
 };
 
+/**
+ * Bol-ordernummers beginnen met '#' (bv. '#1161'). Een '#' in een storage-key
+ * wordt als URL-fragment geïnterpreteerd: het pad wordt afgekapt en élk label
+ * belandt op hetzelfde object. Met upsert:true overschrijven ze elkaar, en een
+ * herprint levert dan het label van een andere klant.
+ * Daarom: alles buiten [A-Za-z0-9-_] eruit, plus een timestamp voor uniciteit.
+ */
+function safeLabelFileName(orderNumber: string, formatSuffix: string): string {
+  const safe = String(orderNumber ?? "")
+    .replace(/[^A-Za-z0-9-_]/g, "")
+    .slice(0, 40) || "order";
+  return `bol-vvb-${safe}${formatSuffix}-${Date.now()}.pdf`;
+}
+
 // Fit the actual label area onto the requested paper format.
 //
 // Bol carriers anchor the label top-left on the source page:
