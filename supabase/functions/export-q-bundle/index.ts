@@ -4,7 +4,7 @@
 // Admin-only (JWT verified). Returns ZIP as binary download.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
@@ -185,35 +185,57 @@ async function fetchInvoicePdfs(
   tenantId: string,
   start: string,
   end: string,
-): Promise<FetchedDoc[]> {
+): Promise<{ docs: FetchedDoc[]; failures: Array<{ doc: string; error: string }> }> {
+  const failures: Array<{ doc: string; error: string }> = [];
+  const docs: FetchedDoc[] = [];
+
   const { data, error } = await sb
     .from("invoices")
-    .select("invoice_number, pdf_url")
+    .select("invoice_number, pdf_path")
     .eq("tenant_id", tenantId)
     .gte("issue_date", start)
     .lte("issue_date", end)
     .in("status", ISSUED_INVOICE_STATUSES as readonly string[])
-    .not("pdf_url", "is", null);
-  if (error) throw new Error(`pdf_url query failed: ${error.message}`);
-  const out: FetchedDoc[] = [];
-  const list = (data ?? []) as Array<{ invoice_number: string; pdf_url: string }>;
-  // Fetch in parallel batches of 8 to avoid hammering Storage
+    .not("pdf_path", "is", null);
+  if (error) throw new Error(`pdf_path query failed: ${error.message}`);
+  const list = (data ?? []) as Array<{ invoice_number: string; pdf_path: string }>;
+
   const batchSize = 8;
   for (let i = 0; i < list.length; i += batchSize) {
     const batch = list.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(async (row) => {
-      const resp = await fetch(row.pdf_url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const buf = new Uint8Array(await resp.arrayBuffer());
-      const ext = row.pdf_url.split(".").pop()?.toLowerCase() === "html" ? "html" : "pdf";
-      return { name: `${row.invoice_number}.${ext}`, bytes: buf };
+    await Promise.allSettled(batch.map(async (row) => {
+      try {
+        const { data: file, error: dlErr } = await sb.storage.from("invoices").download(row.pdf_path);
+        if (dlErr || !file) throw new Error(dlErr?.message ?? "download gaf geen data");
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const ext = row.pdf_path.toLowerCase().endsWith(".html") ? "html" : "pdf";
+        docs.push({ name: `${row.invoice_number}.${ext}`, bytes: buf });
+      } catch (e) {
+        const msg = (e as Error).message;
+        console.warn("[q-bundle] pdf fetch failed", row.invoice_number, msg);
+        failures.push({ doc: `06_Factuur_PDFs/${row.invoice_number}`, error: msg });
+      }
     }));
-    for (const r of results) {
-      if (r.status === "fulfilled") out.push(r.value);
-      else console.warn("[q-bundle] pdf fetch failed", r.reason);
+  }
+
+  // Volledigheidscheck: uitgegeven facturen zonder pdf_path.
+  const { data: missing, error: missingErr } = await sb
+    .from("invoices")
+    .select("invoice_number")
+    .eq("tenant_id", tenantId)
+    .gte("issue_date", start)
+    .lte("issue_date", end)
+    .in("status", ISSUED_INVOICE_STATUSES as readonly string[])
+    .is("pdf_path", null);
+  if (missingErr) {
+    failures.push({ doc: "06_Factuur_PDFs", error: `volledigheidscheck faalde: ${missingErr.message}` });
+  } else {
+    for (const row of (missing ?? []) as Array<{ invoice_number: string }>) {
+      failures.push({ doc: `06_Factuur_PDFs/${row.invoice_number}`, error: "geen PDF beschikbaar in Storage" });
     }
   }
-  return out;
+
+  return { docs, failures };
 }
 
 async function fetchCreditNotePdfs(
@@ -221,35 +243,58 @@ async function fetchCreditNotePdfs(
   tenantId: string,
   start: string,
   end: string,
-): Promise<FetchedDoc[]> {
+): Promise<{ docs: FetchedDoc[]; failures: Array<{ doc: string; error: string }> }> {
+  const failures: Array<{ doc: string; error: string }> = [];
+  const docs: FetchedDoc[] = [];
+
   const { data, error } = await sb
     .from("credit_notes")
-    .select("credit_note_number, pdf_url")
+    .select("credit_note_number, pdf_path")
     .eq("tenant_id", tenantId)
     .gte("issue_date", start)
     .lte("issue_date", end)
-    .not("pdf_url", "is", null);
+    .not("pdf_path", "is", null);
   if (error) {
     console.warn("[q-bundle] credit_notes query failed", error.message);
-    return [];
+    failures.push({ doc: "06_Factuur_PDFs/creditnotas", error: error.message });
+    return { docs, failures };
   }
-  const out: FetchedDoc[] = [];
-  const list = (data ?? []) as Array<{ credit_note_number: string; pdf_url: string }>;
+  const list = (data ?? []) as Array<{ credit_note_number: string; pdf_path: string }>;
   const batchSize = 8;
   for (let i = 0; i < list.length; i += batchSize) {
     const batch = list.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(async (row) => {
-      const resp = await fetch(row.pdf_url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const buf = new Uint8Array(await resp.arrayBuffer());
-      return { name: `${row.credit_note_number}.pdf`, bytes: buf };
+    await Promise.allSettled(batch.map(async (row) => {
+      try {
+        const { data: file, error: dlErr } = await sb.storage.from("credit-notes").download(row.pdf_path);
+        if (dlErr || !file) throw new Error(dlErr?.message ?? "download gaf geen data");
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const ext = row.pdf_path.toLowerCase().endsWith(".html") ? "html" : "pdf";
+        docs.push({ name: `${row.credit_note_number}.${ext}`, bytes: buf });
+      } catch (e) {
+        const msg = (e as Error).message;
+        console.warn("[q-bundle] credit-note pdf fetch failed", row.credit_note_number, msg);
+        failures.push({ doc: `06_Factuur_PDFs/creditnotas/${row.credit_note_number}`, error: msg });
+      }
     }));
-    for (const r of results) {
-      if (r.status === "fulfilled") out.push(r.value);
-      else console.warn("[q-bundle] credit-note pdf fetch failed", r.reason);
+  }
+
+  // Volledigheidscheck: creditnota's zonder pdf_path.
+  const { data: missing, error: missingErr } = await sb
+    .from("credit_notes")
+    .select("credit_note_number")
+    .eq("tenant_id", tenantId)
+    .gte("issue_date", start)
+    .lte("issue_date", end)
+    .is("pdf_path", null);
+  if (missingErr) {
+    failures.push({ doc: "06_Factuur_PDFs/creditnotas", error: `volledigheidscheck faalde: ${missingErr.message}` });
+  } else {
+    for (const row of (missing ?? []) as Array<{ credit_note_number: string }>) {
+      failures.push({ doc: `06_Factuur_PDFs/creditnotas/${row.credit_note_number}`, error: "geen PDF beschikbaar in Storage" });
     }
   }
-  return out;
+
+  return { docs, failures };
 }
 
 serve(async (req) => {
@@ -316,7 +361,8 @@ serve(async (req) => {
       return j.payload as Record<string, unknown>;
     })();
 
-    const [xlsxR, pdfR, vatXmlR, icXmlR, odooR, enginePayload, invoicePdfs, creditNotePdfs] = await Promise.all([
+    const emptyPdfRes = { docs: [] as FetchedDoc[], failures: [] as Array<{ doc: string; error: string }> };
+    const [xlsxR, pdfR, vatXmlR, icXmlR, odooR, enginePayload, invRes, cnRes] = await Promise.all([
       tryFetch("xlsx", callInternal("export-vat-xlsx", engineBody)),
       tryFetch("pdf", callInternal("export-vat-pdf", engineBody)),
       tryFetch("vat-xml", callInternal("export-vat-xml", engineBody)),
@@ -327,17 +373,27 @@ serve(async (req) => {
       enginePromise.catch((e) => { console.error("[q-bundle] engine failed", e); return null; }),
       body.include_invoice_pdfs
         ? fetchInvoicePdfs(sb, body.tenant_id, body.period_start, body.period_end)
-          .catch((e) => { console.error("[q-bundle] invoice pdfs failed", e); return [] as FetchedDoc[]; })
-        : Promise.resolve([] as FetchedDoc[]),
+          .catch((e) => {
+            console.error("[q-bundle] invoice pdfs failed", e);
+            return { docs: [], failures: [{ doc: "06_Factuur_PDFs", error: (e as Error).message }] };
+          })
+        : Promise.resolve(emptyPdfRes),
       body.include_invoice_pdfs
         ? fetchCreditNotePdfs(sb, body.tenant_id, body.period_start, body.period_end)
-          .catch((e) => { console.error("[q-bundle] credit-note pdfs failed", e); return [] as FetchedDoc[]; })
-        : Promise.resolve([] as FetchedDoc[]),
+          .catch((e) => {
+            console.error("[q-bundle] credit-note pdfs failed", e);
+            return { docs: [], failures: [{ doc: "06_Factuur_PDFs/creditnotas", error: (e as Error).message }] };
+          })
+        : Promise.resolve(emptyPdfRes),
     ]);
 
     const failures: Array<{ doc: string; error: string }> = [];
     const notes: string[] = [];
     const zip = new JSZip();
+
+    const invoicePdfs = invRes.docs;
+    const creditNotePdfs = cnRes.docs;
+    failures.push(...invRes.failures, ...cnRes.failures);
 
     if (xlsxR.ok) zip.file("01_BTW-aangifte_overzicht.xlsx", xlsxR.bytes);
     else failures.push({ doc: "01_BTW-aangifte_overzicht.xlsx", error: xlsxR.error });

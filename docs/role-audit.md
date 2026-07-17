@@ -3956,3 +3956,21 @@ De browser toonde bovendien `POST /auth/v1/logout?scope=global 403 (Forbidden)`.
 
 **Backlog-notitie.** `hasStaleAuthStorage()` heet "stale" maar controleert enkel óf er iets in `localStorage` staat — het controleert niet of die data daadwerkelijk verlopen of corrupt is. Die misleidende naam drijft een deel van deze opruimtakken aan; hernoemen/verfijnen staat op de backlog, niet in deze fix.
 
+## SEC-BATCH-2c-1 — export-q-bundle: signed-ready + luide fouten — 17 juli 2026
+
+**Root cause.** `export-q-bundle` haalde factuur- en creditnota-PDF's op met een kale `fetch(row.pdf_url)` op de opgeslagen publieke URL. Twee problemen tegelijk:
+
+1. Zodra bucket `invoices` privaat gaat (SEC-BATCH-2c-2), breekt élke factuur-fetch.
+2. Voor creditnota's was het **al** stuk: bucket `credit-notes` is al privaat, en `credit_notes.pdf_url` bevat een opgeslagen signed URL die na 24u verloopt. De boekhouder kreeg al een tijd een ZIP zonder creditnota's.
+
+**Waarom niemand het zag.** Beide fetch-helpers logden mislukkingen enkel via `console.warn` en gaven een lege lijst terug. De README had nochtans al een `failures`/WAARSCHUWINGEN-sectie — die werd gewoon niet gevoed.
+
+**Fix.** Enkel `supabase/functions/export-q-bundle/index.ts` aangeraakt:
+- Import gepind op `@supabase/supabase-js@2.57.2` (zelfde bugklasse als INCIDENT-FIX: ongepinde `@2` gaf al eens een lib-mismatch met `_shared/auth.ts`).
+- `fetchInvoicePdfs` / `fetchCreditNotePdfs` selecteren nu `pdf_path` en downloaden via `sb.storage.from(<bucket>).download(pdf_path)` met de service-role client. Facturen uit `invoices`, creditnota's uit `credit-notes`. Extensie afgeleid uit `pdf_path` (`.html` blijft `.html` — `create-manual-invoice` schrijft namelijk HTML).
+- Elke mislukte download landt nu in een `failures`-array met het documentnummer, niet enkel in `console.warn`. Zo verschijnen ze in README → WAARSCHUWINGEN.
+- Nieuwe volledigheidscheck: een tweede query per functie voor uitgegeven documenten mét `pdf_path IS NULL`. Elk resultaat wordt als `"geen PDF beschikbaar in Storage"` toegevoegd aan `failures`. Zo kan een uitgegeven factuur nooit meer stilletjes uit de bundel verdwijnen.
+- Call-site voegt `invRes.failures` en `cnRes.failures` toe aan de bestaande `failures`-array. `buildReadme` zelf is onaangeroerd.
+
+**Grenzen.** Bucket-privacy en storage-policies blijven voor SEC-BATCH-2c-2. Geen SQL-migraties. Geen wijziging aan `buildReadme`, `buildAuditCsv`, `callInternal`, `tryFetch`, `periodCode`, `slugify` of auth/`requireRole`. De 67 andere ongepinde `supabase-js@2`-imports elders blijven staan — apart traject.
+
