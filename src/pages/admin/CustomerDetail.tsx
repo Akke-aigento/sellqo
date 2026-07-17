@@ -34,6 +34,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/utils';
 import { CustomerSelectDialog } from '@/components/admin/CustomerSelectDialog';
+import { CustomerFormDialog } from '@/components/admin/CustomerFormDialog';
 import { CustomerActivityTab } from '@/components/admin/customers/CustomerActivityTab';
 import type { Customer } from '@/types/order';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +49,7 @@ export default function CustomerDetailPage() {
   const { conversations, isLoading: conversationsLoading } = useCustomerConversations(customerId);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { createCustomer, updateCustomer } = useCustomers();
 
   // Query customer_messages for from_email when customer not found
@@ -212,7 +214,7 @@ export default function CustomerDetailPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled>
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                     <Edit className="h-4 w-4 mr-1" />
                     Bewerken
                   </Button>
