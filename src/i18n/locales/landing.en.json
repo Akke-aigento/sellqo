@@ -1092,6 +1092,10 @@
         "help_assistant_free": {
           "title": "Help assistant free on every plan",
           "description": "The AI help assistant is now free on every subscription and gives smarter advice about which features are included in your plan and when an upgrade makes sense."
+        },
+        "help_assistant_links": {
+          "title": "Working links in the help assistant",
+          "description": "Links from the help assistant to documentation articles now correctly open the right article without reloading the page."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
