@@ -387,9 +387,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (refreshError || !refreshData.session) {
         console.warn('[Auth] ensureAuthenticated: refresh failed, forcing sign-out', refreshError);
-        clearAuthStorage();
-        await supabase.auth.signOut();
+        await safeLocalSignOut();
         toast({
+
           title: 'Sessie verlopen',
           description: 'Log opnieuw in om verder te gaan.',
           variant: 'destructive',
