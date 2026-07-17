@@ -3903,3 +3903,19 @@ Geen publieke changelog en geen newsletter: dit is interne hardening, de klant m
 - **Buckets blijven publiek.** `pdf_url`/`ubl_url` blijven als vangnet bestaan tot in batch 3.
 
 Geen publieke changelog en geen newsletter: dit is interne hardening, de tenant merkt geen functieverschil (knoppen doen exact hetzelfde). Spoor 1.
+
+## AUTH-REFRESH-1 — Ongewenste unmount bij tab-switch — 17-07-2026
+
+**Root cause.** Supabase GoTrue vuurt bij terugkeer naar de tab (of na een laptop-ontwaken, of periodiek elke ~55 min) een `TOKEN_REFRESHED`/`SIGNED_IN` event met een verse `access_token`. `useAuth.tsx` behandelde dat identiek aan een verse login: `setRolesLoading(true)` + `setUser(nieuw object)` + roles-refetch via `setTimeout`. `RouteGuard` blokkeert op `(user && rolesLoading)` → hele subtree unmount → alle lokale form-state weg en `<Navigate replace>` binnen de guard kan de gebruiker terug naar de parent-route sturen. Resultaat: mensen die 30 seconden een andere tab openden verloren hun ingevulde instellingen.
+
+**Fix.** Twee refs in `AuthProvider`: `currentUserIdRef` en `hasResolvedRolesOnceRef`.
+- Binnenkomend event met sessie én dezelfde `user.id` én roles al ooit resolved → alleen `setSession(currentSession)`. Geen nieuwe user-referentie, geen `rolesLoading = true`, geen roles-refetch.
+- Alleen een échte user-switch of eerste login triggert de volledige flow. `setUser` gebruikt nu ook een referentie-stabiele setter (`prev?.id === next.id ? prev : next`) zodat downstream `useEffect([user])` niet hervuurt op token-refresh.
+- `rolesLoading = true` alleen zolang `hasResolvedRolesOnceRef.current === false`. Latere fetches lopen op de achtergrond. `refetchRoles()` (invite-accept) blijft bewust luid — die flow verwacht dat de guard even wacht.
+- `SIGNED_OUT` reset beide refs zodat een nieuwe login weer als eerste-load telt.
+- `hasStaleAuthStorage()`-tak probeert nu eerst `supabase.auth.refreshSession()` voordat we `clearAuthStorage()`+`signOut()` doen. Voorkomt random uitloggen bij een tijdelijke race tussen event en session-hydration.
+- `AuthContext.Provider value` in `useMemo` zodat consumers niet hertekenen bij elke render van de provider.
+
+`RouteGuard.tsx` en `ProtectedRoute.tsx` bleven ongewijzigd — hun `(user && rolesLoading)` blokkerende conditie profiteert nu automatisch van de rustigere `rolesLoading`. RLS, `user_roles`, `useCan` en de permissie-matrix zijn niet aangeraakt.
+
+**Acceptance geverifieerd.** Deep-link hard-refresh toont nog steeds de spinner (eerste load). Tab-switch + terug: geen spinner, geen navigatie, form-state blijft. `signOut()` en `RoleSimulator` onveranderd. Invite-accept `refetchRoles()` behoudt zijn luide gedrag.
