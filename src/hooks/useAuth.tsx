@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -101,6 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [rolesLoading, setRolesLoading] = useState(true);
   const { toast } = useToast();
 
+  /**
+   * AUTH-REFRESH-1 — event-discriminatie voor `onAuthStateChange`.
+   *
+   * GoTrue vuurt bij terugkeer naar de tab (bv. na tab-switch of laptop-
+   * ontwaken) een `TOKEN_REFRESHED`/`SIGNED_IN` event met een verse
+   * `access_token`. We willen dan uitsluitend `session` bijwerken, en
+   * NIET `user` opnieuw setten of `rolesLoading` op true zetten — dat
+   * zou de RouteGuard laten unmounten en form-state weggooien.
+   *
+   * Alleen bij een écht andere user (login / user-switch) draaien we de
+   * volledige flow. `hasResolvedRolesOnceRef` zorgt dat `rolesLoading`
+   * na de eerste succesvolle fetch niet meer terug naar true springt
+   * voor achtergrond-refetches; `refetchRoles()` (invite-accept) heeft
+   * daar zijn eigen pad naast.
+   */
+  const currentUserIdRef = useRef<string | null>(null);
+  const hasResolvedRolesOnceRef = useRef(false);
+
   const fetchUserRoles = async (userId: string) => {
     const { data, error } = await supabase
       .from('user_roles')
@@ -122,10 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRolesLoading(false);
       return [];
     }
+    // refetchRoles() is bewust luid — invite-accept verwacht dat de
+    // guard even wacht. Andere paden gebruiken deze functie niet.
     setRolesLoading(true);
     const fresh = await fetchUserRoles(currentUser.id);
     setRoles(fresh);
     setRolesLoading(false);
+    hasResolvedRolesOnceRef.current = true;
     return fresh;
   }, []);
 
@@ -143,34 +164,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRoles([]);
           setRolesLoading(false);
           setLoading(false);
+          currentUserIdRef.current = null;
+          hasResolvedRolesOnceRef.current = false;
           return;
         }
         
         // If we get a session, use it
         if (currentSession?.user) {
+          const incomingId = currentSession.user.id;
+          const sameUser =
+            currentUserIdRef.current !== null &&
+            currentUserIdRef.current === incomingId;
+
+          if (sameUser && hasResolvedRolesOnceRef.current) {
+            // Verse access_token bij tab-switch / token-refresh. Alleen
+            // de sessie bijwerken — user-object en roles blijven staan
+            // zodat downstream effects niet hervuren en RouteGuard niet
+            // unmount.
+            setSession(currentSession);
+            setLoading(false);
+            return;
+          }
+
+          // Echte nieuwe login of user-switch: volledige flow.
           setSession(currentSession);
-          setUser(currentSession.user);
-          setRolesLoading(true);
+          setUser((prev) =>
+            prev && prev.id === currentSession.user.id ? prev : currentSession.user
+          );
+          currentUserIdRef.current = incomingId;
+          // Alleen bij initiële load de guard triggeren; latere refetches
+          // lopen op de achtergrond.
+          if (!hasResolvedRolesOnceRef.current) {
+            setRolesLoading(true);
+          }
           setTimeout(() => {
             fetchUserRoles(currentSession.user.id).then((r) => {
               setRoles(r);
               setRolesLoading(false);
+              hasResolvedRolesOnceRef.current = true;
             });
           }, 0);
         } else if (hasStaleAuthStorage()) {
-          // No session but storage exists = corrupt/expired state
-          console.warn('[Auth] Stale auth storage detected, cleaning up...');
-          clearAuthStorage();
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setRoles([]);
-          setRolesLoading(false);
+          // No session but storage exists. Kan een tijdelijke race zijn
+          // (bv. GoTrue vuurt event vlak vóór session-hydration). Probeer
+          // eerst een refresh; alleen bij échte fout alsnog uitloggen.
+          console.warn('[Auth] Stale auth storage detected, attempting refresh before sign-out...');
+          const { data: refreshData, error: refreshError } =
+            await supabase.auth.refreshSession();
+          if (!refreshError && refreshData.session?.user) {
+            const refreshed = refreshData.session;
+            const incomingId = refreshed.user.id;
+            const sameUser =
+              currentUserIdRef.current !== null &&
+              currentUserIdRef.current === incomingId;
+            setSession(refreshed);
+            if (sameUser && hasResolvedRolesOnceRef.current) {
+              // Alleen sessie bijwerken.
+            } else {
+              setUser((prev) =>
+                prev && prev.id === refreshed.user.id ? prev : refreshed.user
+              );
+              currentUserIdRef.current = incomingId;
+              if (!hasResolvedRolesOnceRef.current) {
+                setRolesLoading(true);
+              }
+              setTimeout(() => {
+                fetchUserRoles(refreshed.user.id).then((r) => {
+                  setRoles(r);
+                  setRolesLoading(false);
+                  hasResolvedRolesOnceRef.current = true;
+                });
+              }, 0);
+            }
+          } else {
+            console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
+            clearAuthStorage();
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setRoles([]);
+            setRolesLoading(false);
+            currentUserIdRef.current = null;
+            hasResolvedRolesOnceRef.current = false;
+          }
         } else {
           setSession(null);
           setUser(null);
           setRoles([]);
           setRolesLoading(false);
+          currentUserIdRef.current = null;
         }
         
         setLoading(false);
@@ -199,11 +281,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (existingSession?.user) {
         setSession(existingSession);
-        setUser(existingSession.user);
-        setRolesLoading(true);
+        setUser((prev) =>
+          prev && prev.id === existingSession.user.id ? prev : existingSession.user
+        );
+        currentUserIdRef.current = existingSession.user.id;
+        if (!hasResolvedRolesOnceRef.current) {
+          setRolesLoading(true);
+        }
         fetchUserRoles(existingSession.user.id).then((r) => {
           setRoles(r);
           setRolesLoading(false);
+          hasResolvedRolesOnceRef.current = true;
         });
       } else if (hasStaleAuthStorage()) {
         // No session but we have storage = corrupt state
@@ -416,6 +504,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setRoles([]);
+    currentUserIdRef.current = null;
+    hasResolvedRolesOnceRef.current = false;
     toast({
       title: 'Uitgelogd',
       description: 'Tot ziens!',
@@ -437,30 +527,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAccountant = userRole === 'accountant';
   const hasFinancialAccess = ['platform_admin', 'tenant_admin', 'accountant'].includes(userRole || '');
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        rolesLoading,
-        roles,
-        isPlatformAdmin,
-        userRole,
-        isWarehouse,
-        isAccountant,
-        hasFinancialAccess,
-        signIn,
-        signUp,
-        signOut,
-        ensureAuthenticated,
-        getVerifiedAccessToken,
-        refetchRoles,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo<AuthContextType>(
+    () => ({
+      user,
+      session,
+      loading,
+      rolesLoading,
+      roles,
+      isPlatformAdmin,
+      userRole,
+      isWarehouse,
+      isAccountant,
+      hasFinancialAccess,
+      signIn,
+      signUp,
+      signOut,
+      ensureAuthenticated,
+      getVerifiedAccessToken,
+      refetchRoles,
+    }),
+    [
+      user,
+      session,
+      loading,
+      rolesLoading,
+      roles,
+      isPlatformAdmin,
+      userRole,
+      isWarehouse,
+      isAccountant,
+      hasFinancialAccess,
+      ensureAuthenticated,
+      getVerifiedAccessToken,
+      refetchRoles,
+    ]
   );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
