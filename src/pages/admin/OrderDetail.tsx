@@ -517,9 +517,6 @@ export default function OrderDetailPage() {
                     <InvoiceStatusBadge status={invoice.status} />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {invoice.pdf_url && (
-                      null
-                    )}
                     {(invoice as any).pdf_path && (
                       <Button variant="outline" size="sm" onClick={() => openInvoiceDoc(invoice.id, 'pdf')}>
                         <Download className="h-4 w-4 mr-2" />
