@@ -9,6 +9,7 @@ import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,7 @@ export default function InvoicesPage() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { openDocument } = useDocumentDownload();
   const { data: odooSync } = useOdooSyncStatuses(currentTenant?.id);
   // H4d: gate write-acties (Peppol mark-sent + resend).
   const canWriteInvoices = useCan('write', 'invoices');
@@ -88,6 +90,8 @@ export default function InvoicesPage() {
     invoiceNumber?: string;
     pdfUrl?: string | null;
     ublUrl?: string | null;
+    pdfPath?: string | null;
+    ublPath?: string | null;
     peppolStatus?: string | null;
     language?: string | null;
   };
@@ -107,6 +111,8 @@ export default function InvoicesPage() {
       invoiceNumber: i.invoice_number,
       pdfUrl: i.pdf_url,
       ublUrl: i.ubl_url,
+      pdfPath: (i as any).pdf_path ?? null,
+      ublPath: (i as any).ubl_path ?? null,
       peppolStatus: (i as any).peppol_status ?? null,
       language: (i as any).language ?? null,
       dunning_level: (i as any).dunning_level ?? 0,
@@ -125,6 +131,8 @@ export default function InvoicesPage() {
       invoiceNumber: c.original_invoice?.invoice_number,
       pdfUrl: c.pdf_url ?? null,
       ublUrl: c.ubl_url ?? null,
+      pdfPath: c.pdf_path ?? null,
+      ublPath: c.ubl_url ?? null ? null : null, // CN UBL lives in peppol-archive — out of scope
       peppolStatus: c.peppol_status ?? null,
       language: c.language ?? null,
     }));
@@ -204,17 +212,35 @@ export default function InvoicesPage() {
     ['pending', 'manual_action'].includes((inv as any).peppol_status),
   ).length;
 
-  // Credit-note action handlers (mirror CreditNotesTable for consistency)
-  const handleCnDownloadPdf = async (cnId: string, existingUrl: string | null | undefined, language?: string | null) => {
-    if (existingUrl) { window.open(existingUrl, '_blank'); return; }
+  // Credit-note PDF download.
+  // Popup-safe: open the window synchronously inside the click, then swap
+  // its location once the (possibly newly generated) signed URL is ready.
+  const handleCnDownloadPdf = async (
+    cnId: string,
+    existingPath: string | null | undefined,
+    language?: string | null,
+  ) => {
+    const win = window.open('', '_blank');
     try {
-      const res = await invokeWithErrorBody<{ pdf_url: string }>('generate-credit-note', {
-        body: { credit_note_id: cnId, language: language ?? undefined },
+      if (!existingPath) {
+        await invokeWithErrorBody('generate-credit-note', {
+          body: { credit_note_id: cnId, language: language ?? undefined },
+        });
+        await queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+      }
+      const res = await invokeWithErrorBody<{ url: string }>('get-document-url', {
+        body: { doc_type: 'credit_note', doc_id: cnId, kind: 'pdf' },
       });
-      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
-      if (res?.pdf_url) window.open(res.pdf_url, '_blank');
+      if (!res?.url) throw new Error('Geen download-URL ontvangen');
+      if (win && !win.closed) win.location.href = res.url;
+      else window.location.href = res.url;
     } catch (e: any) {
-      toast({ title: 'PDF genereren mislukt', description: e?.message || 'Onbekende fout', variant: 'destructive' });
+      try { win?.close(); } catch { /* noop */ }
+      toast({
+        title: 'Downloaden mislukt',
+        description: e?.message || 'Onbekende fout',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -234,8 +260,8 @@ export default function InvoicesPage() {
   const buildCombinedActions = (r: Combined): ActionItem[] => {
     const items: ActionItem[] = [];
     if (r.kind === 'invoice') {
-      if (r.pdfUrl) items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(r.pdfUrl!, '_blank') });
-      if (r.ublUrl) items.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
+      if (r.pdfPath) items.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => openDocument('invoice', r.id, 'pdf') });
+      if (r.ublPath) items.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => openDocument('invoice', r.id, 'ubl') });
       if (canWriteInvoices && ['pending','manual_action'].includes(r.peppolStatus as string)) {
         items.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(r.id) });
       }
@@ -256,9 +282,9 @@ export default function InvoicesPage() {
       }
     } else {
       items.push({
-        label: r.pdfUrl ? 'Download PDF' : 'PDF genereren',
+        label: r.pdfPath ? 'Download PDF' : 'PDF genereren',
         icon: <Download className="h-4 w-4" />,
-        onClick: () => handleCnDownloadPdf(r.id, r.pdfUrl, r.language),
+        onClick: () => handleCnDownloadPdf(r.id, r.pdfPath, r.language),
       });
       if (r.ublUrl) items.push({ label: 'Download UBL/XML', icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(r.ublUrl!, '_blank') });
       items.push({ label: 'E-mail opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => handleCnResend(r.id, r.language) });
