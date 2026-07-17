@@ -82,18 +82,18 @@ serve(async (req) => {
       .single();
 
     // Fetch docs as knowledge base — rol-bewust
-    let articles: Array<{ title: string; content: string | null; excerpt: string | null; tags: unknown; context_path: string | null }> = [];
+    let articles: Array<{ title: string; slug: string; doc_level: string; content: string | null; excerpt: string | null; tags: unknown; context_path: string | null }> = [];
     if (isPlatformAdmin) {
       const { data } = await adminClient
         .from("doc_articles")
-        .select("title, content, excerpt, tags, context_path")
+        .select("title, slug, doc_level, content, excerpt, tags, context_path")
         .in("doc_level", ["tenant", "platform"])
         .eq("is_published", true);
       articles = data || [];
     } else {
       const { data } = await adminClient
         .from("doc_articles")
-        .select("title, content, excerpt, tags, context_path")
+        .select("title, slug, doc_level, content, excerpt, tags, context_path")
         .eq("doc_level", "tenant")
         .eq("is_published", true);
       articles = data || [];
@@ -111,7 +111,11 @@ serve(async (req) => {
       const cleanContent = (a.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
       const contextNote = current_route && a.context_path && current_route.startsWith(a.context_path)
         ? " [RELEVANT VOOR HUIDIGE PAGINA]" : "";
-      return `### ${a.title}${contextNote}\n${a.excerpt || ""}\n${cleanContent}`;
+      const linkPath = a.doc_level === "platform"
+        ? `/admin/platform/docs?article=${a.slug}`
+        : `/admin/help?article=${a.slug}`;
+      const linkLine = a.slug ? `\nLink: ${linkPath}` : "";
+      return `### ${a.title}${contextNote}${linkLine}\n${a.excerpt || ""}\n${cleanContent}`;
     }).join("\n\n---\n\n");
 
     // Tenant subscription info
@@ -180,7 +184,8 @@ ${planMatrix || "Geen abonnementen bekend."}
 11. Gebruik geen technisch jargon tenzij de gebruiker zelf technische termen gebruikt
 12. Als de gebruiker op een specifieke pagina is, gebruik die context om relevantere antwoorden te geven
 13. Vraagt de gebruiker naar een functie die niet in zijn abonnement zit: leg kort uit wat de functie doet, vermeld vanaf welk plan ze beschikbaar is, en verwijs naar "Abonnement" in het menu om te upgraden. Wees behulpzaam, niet pusherig.
-14. Je kennisbank bevat uitsluitend documentatie voor winkeleigenaars. Vragen over platformbeheer of interne werking beantwoord je niet; verwijs naar support.`;
+14. Je kennisbank bevat uitsluitend documentatie voor winkeleigenaars. Vragen over platformbeheer of interne werking beantwoord je niet; verwijs naar support.
+15. Wanneer je naar een documentatie-artikel verwijst, gebruik UITSLUITEND een markdown-link in het formaat [Artikeltitel](link) waarbij je de Link-waarde letterlijk uit je kennisbank overneemt. Verzin NOOIT zelf URL's of paden; bestaat er geen Link-regel voor het artikel, verwijs dan alleen met de titel zonder link.`;
 
     const adminRules = `## Strikte regels (platform-admin modus)
 1. Je spreekt met een SellQo platform-admin. Je mag vrijuit over platform-features, architectuur, edge functions en interne werking praten.
@@ -190,7 +195,8 @@ ${planMatrix || "Geen abonnementen bekend."}
 5. Als je het antwoord NIET weet: zeg dat eerlijk en voeg EXACT deze marker toe aan het einde: [UNANSWERED]
 6. Antwoord in de taal waarin de gebruiker schrijft (standaard Nederlands)
 7. Wees kort en bondig bij simpele vragen, uitgebreider bij complexe uitleg
-8. Verwijs waar mogelijk naar het relevante documentatie-artikel.`;
+8. Verwijs waar mogelijk naar het relevante documentatie-artikel.
+9. Wanneer je naar een documentatie-artikel verwijst, gebruik UITSLUITEND een markdown-link in het formaat [Artikeltitel](link) waarbij je de Link-waarde letterlijk uit je kennisbank overneemt. Verzin NOOIT zelf URL's of paden; bestaat er geen Link-regel voor het artikel, verwijs dan alleen met de titel zonder link.`;
 
     const systemPrompt = `Je bent de SellQo Hulp Assistent — een vriendelijke, geduldige en deskundige assistent${isPlatformAdmin ? " voor platform-admins" : " die tenant-gebruikers helpt met het SellQo platform"}.
 
