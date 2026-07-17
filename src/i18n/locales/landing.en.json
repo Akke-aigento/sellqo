@@ -1080,6 +1080,10 @@
         "import_guide": {
           "title": "Clear export instructions when importing",
           "description": "When importing, pick your current platform and immediately see how to export your products, customers and orders from it. The import page also received a cleaner, calmer layout."
+        },
+        "auth_refresh_fix": {
+          "title": "Forms stay put when switching tabs",
+          "description": "When you briefly switched to another tab and came back, a settings screen sometimes reset — filled-in fields were lost and you landed back on the previous page. The session now refreshes silently in the background without reloading the page."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
