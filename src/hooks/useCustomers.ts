@@ -99,9 +99,13 @@ export function useCustomers(search?: string) {
         .eq('id', customerId);
 
       if (error) throw error;
+      return customerId;
     },
-    onSuccess: () => {
+    onSuccess: (customerId) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      if (customerId) {
+        queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      }
       toast({ title: 'Klant bijgewerkt' });
     },
     onError: (error) => {
