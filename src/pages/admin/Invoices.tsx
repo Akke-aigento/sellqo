@@ -614,11 +614,11 @@ export default function InvoicesPage() {
                 render: (invoice) => {
                   const invoiceAny = invoice as any;
                   const actions: ActionItem[] = [];
-                  if (invoice.pdf_url) {
-                    actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(invoice.pdf_url!, '_blank') });
+                  if (invoiceAny.pdf_path) {
+                    actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => openDocument('invoice', invoice.id, 'pdf') });
                   }
-                  if (invoice.ubl_url) {
-                    actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
+                  if (invoiceAny.ubl_path) {
+                    actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => openDocument('invoice', invoice.id, 'ubl') });
                   }
                   if (canWriteInvoices && ['pending','manual_action'].includes(invoiceAny.peppol_status)) {
                     actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
@@ -645,8 +645,8 @@ export default function InvoicesPage() {
               const customer = getCustomerDisplay(invoice);
               const invoiceAny = invoice as any;
               const actions: ActionItem[] = [];
-              if (invoice.pdf_url) actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => window.open(invoice.pdf_url!, '_blank') });
-              if (invoice.ubl_url) actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => window.open(invoice.ubl_url!, '_blank') });
+              if (invoiceAny.pdf_path) actions.push({ label: 'Download PDF', icon: <Download className="h-4 w-4" />, onClick: () => openDocument('invoice', invoice.id, 'pdf') });
+              if (invoiceAny.ubl_path) actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => openDocument('invoice', invoice.id, 'ubl') });
               if (canWriteInvoices && ['pending','manual_action'].includes(invoiceAny.peppol_status)) actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
               if (canWriteInvoices) actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
               return (
