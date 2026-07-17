@@ -1,5 +1,21 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## SEC-BATCH-2d-2 — verzendlabels naar signed URLs — 17 juli 2026
+
+**Root cause:** de bucket `shipping-labels` is publiek leesbaar en verzendlabels bevatten naam + adres van de klant. Zolang de admin-UI `window.open(label_url)` doet met een publieke storage-URL, kan die bucket niet privaat worden zonder alles te breken. F-01 heeft ditzelfde patroon bij facturen al opgelost via `get-document-url` + signed URLs; verzendlabels waren de laatste publieke doc-flow.
+
+**Uitgevoerd:** derde `doc_type` toegevoegd aan `supabase/functions/get-document-url/index.ts`: `shipping_label` mapt op tabel `shipping_labels`, bucket `shipping-labels`, number-kolom `tracking_number`. Nieuwe `PATH_COL`-map vervangt de hardcoded `pdf_path`/`ubl_path`: shipping labels gebruiken `label_path` (kolom die op `shipping_labels` bestaat), `ubl` is `null` en levert 400 `"kind 'ubl' is not supported for doc_type 'shipping_label'"`. De `.select(...)` bouwt nu dynamisch met `${numberCol}, ${pathCol}` — nooit meer `pdf_path` opvragen op een tabel die die kolom niet heeft. Batch-bestandsnaam valt terug op `label-${id}.pdf` als `tracking_number` null is. Tenant-resolutie, `authenticateRequest(req, tenantId)`, single-tenant-check en TTL 600s onaangeroerd.
+
+In `src/hooks/useDocumentDownload.ts` alleen het `DocType` uitgebreid; hook is doc_type-agnostisch. In `src/components/admin/BolActionsCard.tsx` alle vijf `window.open(label_url)`-aanroepen vervangen door `openDocument('shipping_label', latestLabel.id, 'pdf')` (popup-safe, zelfde patroon als de facturen), en de print-knop haalt de URL nu via `getDocumentUrl` op vóór `printLabel`/`printViaBrowser`. `?t=${Date.now()}`-cachebuster verwijderd: elke signed URL is uniek.
+
+**Gating verplaatst van `label_url` naar `label_path`:** de 17 rijen die door BOL-LABEL-1a nooit een bestand hadden (`label_path IS NULL`, gebackfilld in 2d-1) tonen de print/open-knoppen nu niet meer. Die knoppen leverden vroeger het label van een andere klant en na 1b een 404 — een knop die er niet is, is eerlijker. De "opnieuw ophalen"-flow (`!label_path && status === 'created'`) blijft juist wél verschijnen voor die 17 rijen; dat is precies wat je nodig hebt om ze te repareren.
+
+**Bewust NIET aangeraakt:** `label_url` blijft in DB én in de `ShippingLabel`-interface — `LABEL-PDF-RETRY` selecteert op `label_url IS NULL` om nieuw aangemaakte labels waarvan de PDF nog niet klaar is te vinden. Dat weghalen zou die retry-flow slopen. `useLabelPrinter.ts` idem: die krijgt gewoon een URL binnen, publiek of signed maakt hem niet uit. `create-bol-vvb-label`, `sync-bol-orders`, VVB-RETRY, LABEL-PDF-RETRY en STUCK-LABEL-CLEANUP: onaangeroerd.
+
+**Security-keuzes:** bucket blijft in deze batch nog publiek — dat is 2d-3, met een aparte migratie + storage policy. `get-document-url` blijft de authenticatie doen via `authenticateRequest` op de tenant die uit de rij komt (RLS-equivalent op function-niveau), en de single-tenant-check voorkomt dat één request signed URLs van meerdere tenants mengt.
+
+**Vervolg:** SEC-BATCH-2d-3 — bucket `shipping-labels` op private zetten en de storage-policy aanscherpen (alleen service_role read, net als bij `invoices` en `credit-notes`). Pas dán is de klant-NAW-lek in verzendlabels dicht.
+
 ## BOL-LABEL-1a — verzendlabels: onveilige bestandsnaam — 17 juli 2026
 
 **Root cause:** Bol-ordernummers beginnen met `#` (bv. `#1161`). `create-bol-vvb-label` bouwde de storage-key als `bol-vvb-${order.order_number}${suffix}.pdf` en uploadde naar `${tenant_id}/${fileName}`. Een `#` in een URL start het fragment; server-side kapt Supabase Storage het pad daar af. Alle labels landden dus op één object: `{tenant_id}/bol-vvb-`. Met `upsert: true` (bewust, tegen vastlopende retries) overschreef elk nieuw label het vorige. `getPublicUrl()` plakt strings en gaf de volle URL met `#` terug — die werd in `shipping_labels.label_url` opgeslagen. Bij het openen kapt de browser opnieuw af op `#`, vraagt `.../bol-vvb-` op en krijgt het láátst geüploade label. Gevolg: iemand kon het label van een andere klant printen, mét diens adres.

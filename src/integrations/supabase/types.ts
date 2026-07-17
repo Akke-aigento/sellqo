@@ -13245,6 +13245,7 @@ export type Database = {
           id: string
           integration_id: string | null
           label_format: string | null
+          label_path: string | null
           label_url: string | null
           metadata: Json | null
           order_id: string
@@ -13268,6 +13269,7 @@ export type Database = {
           id?: string
           integration_id?: string | null
           label_format?: string | null
+          label_path?: string | null
           label_url?: string | null
           metadata?: Json | null
           order_id: string
@@ -13291,6 +13293,7 @@ export type Database = {
           id?: string
           integration_id?: string | null
           label_format?: string | null
+          label_path?: string | null
           label_url?: string | null
           metadata?: Json | null
           order_id?: string

@@ -7,22 +7,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type DocType = "invoice" | "credit_note";
+type DocType = "invoice" | "credit_note" | "shipping_label";
 type Kind = "pdf" | "ubl";
 
 const TABLE: Record<DocType, string> = {
   invoice: "invoices",
   credit_note: "credit_notes",
+  shipping_label: "shipping_labels",
 };
 
 const BUCKET: Record<DocType, string> = {
   invoice: "invoices",
   credit_note: "credit-notes",
+  shipping_label: "shipping-labels",
 };
 
 const NUMBER_COL: Record<DocType, string> = {
   invoice: "invoice_number",
   credit_note: "credit_note_number",
+  // shipping_labels heeft geen eigen documentnummer; tracking_number is de
+  // meest herkenbare identifier voor de gebruiker.
+  shipping_label: "tracking_number",
+};
+
+// Verzendlabels gebruiken `label_path` (geen ubl-variant). We selecteren nooit
+// hardgecodeerd `pdf_path`/`ubl_path` — die kolommen bestaan niet op
+// `shipping_labels`.
+const PATH_COL: Record<DocType, { pdf: string; ubl: string | null }> = {
+  invoice: { pdf: "pdf_path", ubl: "ubl_path" },
+  credit_note: { pdf: "pdf_path", ubl: "ubl_path" },
+  shipping_label: { pdf: "label_path", ubl: null },
 };
 
 const SIGNED_TTL = 600; // 10 minutes
@@ -44,8 +58,12 @@ serve(async (req) => {
     const doc_id = body?.doc_id as string | undefined;
     const doc_ids = body?.doc_ids as string[] | undefined;
 
-    if (doc_type !== "invoice" && doc_type !== "credit_note") {
-      return badRequest("doc_type must be 'invoice' or 'credit_note'");
+    if (
+      doc_type !== "invoice" &&
+      doc_type !== "credit_note" &&
+      doc_type !== "shipping_label"
+    ) {
+      return badRequest("doc_type must be 'invoice', 'credit_note' or 'shipping_label'");
     }
     if (kind !== "pdf" && kind !== "ubl") {
       return badRequest("kind must be 'pdf' or 'ubl'");
@@ -66,13 +84,16 @@ serve(async (req) => {
     const table = TABLE[doc_type];
     const bucket = BUCKET[doc_type];
     const numberCol = NUMBER_COL[doc_type];
-    const pathCol = kind === "pdf" ? "pdf_path" : "ubl_path";
+    const pathCol = PATH_COL[doc_type][kind];
+    if (!pathCol) {
+      return badRequest(`kind '${kind}' is not supported for doc_type '${doc_type}'`);
+    }
 
     const ids = doc_id ? [doc_id] : (doc_ids as string[]);
 
     const { data: rows, error: rowsErr } = await admin
       .from(table)
-      .select(`id, tenant_id, ${numberCol}, pdf_path, ubl_path`)
+      .select(`id, tenant_id, ${numberCol}, ${pathCol}`)
       .in("id", ids);
 
     if (rowsErr) {
@@ -133,11 +154,10 @@ serve(async (req) => {
         .createSignedUrl(path, SIGNED_TTL);
       if (signErr || !signed?.signedUrl) continue;
       const ext = kind === "ubl" ? "xml" : "pdf";
-      files.push({
-        id: row.id,
-        name: `${row[numberCol]}.${ext}`,
-        url: signed.signedUrl,
-      });
+      const numberVal = row[numberCol] as string | null;
+      const fallback = doc_type === "shipping_label" ? `label-${row.id}` : `${row.id}`;
+      const name = `${numberVal ?? fallback}.${ext}`;
+      files.push({ id: row.id, name, url: signed.signedUrl });
     }
 
     return new Response(JSON.stringify({ files }), {
