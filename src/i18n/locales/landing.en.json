@@ -1088,6 +1088,10 @@
         "bol_label_integrity": {
           "title": "Shipping labels stay correctly stored",
           "description": "When opening a previously created shipping label, the label of another order could sometimes be shown. Each label is now stored separately and remains correctly retrievable."
+        },
+        "help_assistant_free": {
+          "title": "Help assistant free on every plan",
+          "description": "The AI help assistant is now free on every subscription and gives smarter advice about which features are included in your plan and when an upgrade makes sense."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."

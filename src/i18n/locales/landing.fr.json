@@ -1088,6 +1088,10 @@
         "bol_label_integrity": {
           "title": "Les étiquettes d'expédition restent correctement enregistrées",
           "description": "À l'ouverture d'une étiquette d'expédition déjà créée, l'étiquette d'une autre commande pouvait dans certains cas s'afficher. Chaque étiquette est désormais enregistrée séparément et reste correctement récupérable."
+        },
+        "help_assistant_free": {
+          "title": "Assistant d'aide gratuit sur chaque abonnement",
+          "description": "L'assistant d'aide IA est désormais gratuit sur chaque abonnement et donne des conseils plus pertinents sur les fonctionnalités incluses dans votre plan et sur le moment où une mise à niveau est utile."
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
