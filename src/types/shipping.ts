@@ -10,6 +10,7 @@ export interface ShippingMethod {
   is_active: boolean;
   is_default: boolean;
   sort_order: number | null;
+  shipping_class: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -23,4 +24,5 @@ export interface ShippingMethodFormData {
   estimated_days_max?: number;
   is_active: boolean;
   is_default: boolean;
+  shipping_class?: string | null;
 }
