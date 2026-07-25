@@ -21,7 +21,8 @@ export function LogisticsFields({ spec, onChange }: LogisticsFieldsProps) {
         </div>
         <div className="space-y-1">
           <Label className="text-sm">Verzendklasse</Label>
-          <Input value={val('shipping_class')} onChange={(e) => onChange({ shipping_class: e.target.value || null })} placeholder="Standaard, Groot, Zwaar..." />
+          <Input value={val('shipping_class')} onChange={(e) => onChange({ shipping_class: e.target.value || null })} placeholder="Bijv. boxspring" />
+          <p className="text-xs text-muted-foreground">Bijvoorbeeld 'boxspring' voor producten die met een vrachtwagen geleverd moeten worden. Koppelt aan de verzendklasse van je verzendmethodes.</p>
         </div>
       </div>
 
