@@ -1102,6 +1102,10 @@
           "title": "Safer download links for invoices and labels",
           "description": "Invoices, credit notes and shipping labels now open through short-lived, signed links. Only the store owner can reach these documents."
         },
+        "shipping_classes": {
+          "title": "Shipping classes: match methods to products",
+          "description": "Products can now carry a shipping class (for example 'boxspring'). Shipping methods with the same class are only offered when that kind of product is in the cart — universal methods drop out of the list. A customer with a boxspring no longer sees 'Free shipping', and a customer with just a mattress no longer sees the €100 delivery option. Available from the Starter plan onwards."
+        },
         "sec_internal_endpoints": {
           "title": "Internal admin endpoints further locked down",
           "description": "A number of maintenance routes now require explicit platform authentication. Unauthenticated access is no longer possible."

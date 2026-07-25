@@ -1102,6 +1102,10 @@
           "title": "Veiligere downloadlinks voor facturen en labels",
           "description": "Facturen, creditnota's en verzendlabels worden nu geopend via kortdurende, ondertekende links. Enkel de eigenaar van de winkel kan bij deze documenten."
         },
+        "shipping_classes": {
+          "title": "Verzendklassen: methodes koppelen aan producten",
+          "description": "Producten kunnen nu een verzendklasse krijgen (bijvoorbeeld 'boxspring'). Verzendmethodes met dezelfde klasse worden dan alléén nog getoond wanneer zo'n product in het winkelmandje zit — universele methodes verdwijnen dan uit de keuze. Zo krijgen klanten met een boxspring geen 'Gratis verzending' meer aangeboden, en klanten met een matras geen leveringsoptie van €100. Beschikbaar vanaf het Starter-plan."
+        },
         "sec_internal_endpoints": {
           "title": "Interne beheer-endpoints extra afgeschermd",
           "description": "Enkele onderhoudsroutes vereisen nu expliciete platform-authenticatie. Ongeauthenticeerd bereiken is uitgesloten."

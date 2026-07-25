@@ -1102,6 +1102,10 @@
           "title": "Sicherere Download-Links für Rechnungen und Etiketten",
           "description": "Rechnungen, Gutschriften und Versandetiketten werden jetzt über kurzlebige, signierte Links geöffnet. Nur der Shop-Inhaber kann auf diese Dokumente zugreifen."
         },
+        "shipping_classes": {
+          "title": "Versandklassen: Methoden mit Produkten verknüpfen",
+          "description": "Produkte können jetzt eine Versandklasse tragen (zum Beispiel 'boxspring'). Versandmethoden mit derselben Klasse werden nur noch angezeigt, wenn ein solches Produkt im Warenkorb liegt — universelle Methoden verschwinden dann aus der Auswahl. Ein Kunde mit einer Boxspring bekommt somit kein 'Kostenloser Versand' mehr angeboten, und ein Kunde mit einer Matratze keine Lieferoption für 100 €. Verfügbar ab dem Starter-Plan."
+        },
         "sec_internal_endpoints": {
           "title": "Interne Admin-Endpunkte zusätzlich abgesichert",
           "description": "Mehrere Wartungsrouten erfordern nun eine ausdrückliche Plattform-Authentifizierung. Unauthentifizierter Zugriff ist ausgeschlossen."

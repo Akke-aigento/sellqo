@@ -883,17 +883,54 @@ async function getSitemapData(supabase: any, tenantId: string) {
 
 // ============== SHIPPING METHODS ==============
 
-async function getShippingMethods(supabase: any, tenantId: string) {
+// Resolves the distinct set of shipping_class labels required by the products
+// currently in a cart. Empty array = no classified products.
+async function resolveCartShippingClasses(
+  supabase: any,
+  tenantId: string,
+  productIds: string[],
+): Promise<string[]> {
+  if (!productIds || productIds.length === 0) return [];
+  const { data } = await supabase
+    .from('product_specifications')
+    .select('shipping_class')
+    .eq('tenant_id', tenantId)
+    .in('product_id', productIds)
+    .not('shipping_class', 'is', null);
+  return [...new Set((data || []).map((r: any) => r.shipping_class).filter(Boolean))] as string[];
+}
+
+async function getShippingMethods(
+  supabase: any,
+  tenantId: string,
+  shippingClasses?: string[],
+) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, shipping_class')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  return (data || []).map((m: any) => ({
+  const all = (data || []);
+
+  let filtered = all;
+  if (Array.isArray(shippingClasses)) {
+    if (shippingClasses.length === 0) {
+      filtered = all.filter((m: any) => m.shipping_class == null);
+    } else {
+      filtered = all.filter((m: any) => m.shipping_class && shippingClasses.includes(m.shipping_class));
+      if (filtered.length === 0) {
+        console.warn('[SHIP-CLASS] geen methode voor klassen', shippingClasses, 'tenant', tenantId);
+        filtered = all; // safety net: never block checkout
+      }
+    }
+  }
+
+  return filtered.map((m: any) => ({
     id: m.id, name: m.name, description: m.description, price: m.price, free_above: m.free_above,
     estimated_days: m.estimated_days_min && m.estimated_days_max ? `${m.estimated_days_min}-${m.estimated_days_max}` : m.estimated_days_min || m.estimated_days_max || null,
     is_default: m.is_default,
+    shipping_class: m.shipping_class ?? null,
   }));
 }
 
@@ -1527,8 +1564,8 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Total
   const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
 
-  // Available shipping methods
-  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal });
+  // Available shipping methods — filtered by shipping-class of the cart
+  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal, cart_id: cartId });
 
   // Available payment methods
   const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
@@ -1827,6 +1864,17 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
 
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
+
+  // Validate that this method is allowed for this cart's shipping-class mix
+  const productIds = (cart.cartItems || []).map((i: any) => i.product_id).filter((v: any) => !!v);
+  const shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+  const allowed = await getShippingMethods(supabase, tenantId, shippingClasses);
+  if (!allowed.some((m: any) => m.id === shippingMethodId)) {
+    return { success: false, error: {
+      code: 'SHIPPING_NOT_ALLOWED',
+      message: 'Deze verzendmethode is niet beschikbaar voor de producten in je winkelwagen',
+    }};
+  }
 
   let shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
 
@@ -2555,7 +2603,20 @@ async function checkoutSetAddresses(supabase: any, tenantId: string, params: Rec
 
 async function checkoutGetShippingOptions(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const subtotal = Number(params.subtotal) || 0;
-  const methods = await getShippingMethods(supabase, tenantId);
+  const cartId = params.cart_id as string | undefined;
+
+  let shippingClasses: string[] | undefined;
+  if (cartId) {
+    const cart = await getCartForCheckout(supabase, tenantId, cartId);
+    if (cart) {
+      const productIds = (cart.cartItems || [])
+        .map((i: any) => i.product_id)
+        .filter((v: any) => !!v);
+      shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+    }
+  }
+
+  const methods = await getShippingMethods(supabase, tenantId, shippingClasses);
   return methods.map((m: any) => ({
     ...m,
     effective_price: m.free_above && subtotal >= m.free_above ? 0 : m.price,
