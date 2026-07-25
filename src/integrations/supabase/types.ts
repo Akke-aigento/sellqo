@@ -13446,6 +13446,7 @@ export type Database = {
           name_fr: string | null
           name_nl: string | null
           price: number
+          shipping_class: string | null
           sort_order: number | null
           tenant_id: string
           updated_at: string
@@ -13466,6 +13467,7 @@ export type Database = {
           name_fr?: string | null
           name_nl?: string | null
           price?: number
+          shipping_class?: string | null
           sort_order?: number | null
           tenant_id: string
           updated_at?: string
@@ -13486,6 +13488,7 @@ export type Database = {
           name_fr?: string | null
           name_nl?: string | null
           price?: number
+          shipping_class?: string | null
           sort_order?: number | null
           tenant_id?: string
           updated_at?: string
