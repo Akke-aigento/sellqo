@@ -2592,7 +2592,20 @@ async function checkoutSetAddresses(supabase: any, tenantId: string, params: Rec
 
 async function checkoutGetShippingOptions(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const subtotal = Number(params.subtotal) || 0;
-  const methods = await getShippingMethods(supabase, tenantId);
+  const cartId = params.cart_id as string | undefined;
+
+  let shippingClasses: string[] | undefined;
+  if (cartId) {
+    const cart = await getCartForCheckout(supabase, tenantId, cartId);
+    if (cart) {
+      const productIds = (cart.cartItems || [])
+        .map((i: any) => i.product_id)
+        .filter((v: any) => !!v);
+      shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+    }
+  }
+
+  const methods = await getShippingMethods(supabase, tenantId, shippingClasses);
   return methods.map((m: any) => ({
     ...m,
     effective_price: m.free_above && subtotal >= m.free_above ? 0 : m.price,
