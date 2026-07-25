@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.07ad — Verzendklassen (feature, 25-07-2026)
+
+**Slimmer keuzemenu bij verzenden** (juli 2026)
+Producten kunnen nu een verzendklasse dragen. Verzendmethodes met dezelfde klasse verschijnen enkel wanneer zo'n product in het winkelmandje zit; universele methodes vallen dan weg uit de keuze. Zo krijgt een klant met een boxspring geen "Gratis verzending" meer aangeboden, en een klant met alleen een matras geen speciale leveringsoptie van €100.
+Wat betekent dit voor jou? Je stelt per verzendmethode én per product een klasse in (bv. `boxspring`). SellQo filtert de checkout automatisch. Servers valideren dit ook aan hun kant, dus verkeerde combinaties zijn niet meer via een omweg af te dwingen.
+[Beschikbaar vanaf Starter]
+
+**i18n-keys.** `public.changelog.changes.shipping_classes` — NL/EN/FR/DE aanwezig.
+
 ### 2026.07z — Hulpassistent gratis op elk abonnement (17-07-2026)
 
 **Hulpassistent gratis op elk abonnement** (juli 2026)
