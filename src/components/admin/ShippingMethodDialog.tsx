@@ -32,6 +32,7 @@ const formSchema = z.object({
   estimated_days_max: z.coerce.number().min(1).optional(),
   is_active: z.boolean(),
   is_default: z.boolean(),
+  shipping_class: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,6 +63,7 @@ export function ShippingMethodDialog({
       estimated_days_max: 3,
       is_active: true,
       is_default: false,
+      shipping_class: "",
     },
   });
 
@@ -76,6 +78,7 @@ export function ShippingMethodDialog({
         estimated_days_max: method.estimated_days_max || 3,
         is_active: method.is_active,
         is_default: method.is_default,
+        shipping_class: method.shipping_class || "",
       });
     } else {
       form.reset({
@@ -87,6 +90,7 @@ export function ShippingMethodDialog({
         estimated_days_max: 3,
         is_active: true,
         is_default: false,
+        shipping_class: "",
       });
     }
   }, [method, form]);
@@ -214,6 +218,27 @@ export function ShippingMethodDialog({
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">
+              <FormField
+                control={form.control}
+                name="shipping_class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Verzendklasse</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Bijv. boxspring"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Laat leeg als deze methode voor alle producten geldt. Vul je een klasse in, dan is deze methode alleen beschikbaar wanneer er een product met dezelfde klasse in de winkelwagen zit.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="is_active"
