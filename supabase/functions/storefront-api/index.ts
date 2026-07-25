@@ -883,17 +883,54 @@ async function getSitemapData(supabase: any, tenantId: string) {
 
 // ============== SHIPPING METHODS ==============
 
-async function getShippingMethods(supabase: any, tenantId: string) {
+// Resolves the distinct set of shipping_class labels required by the products
+// currently in a cart. Empty array = no classified products.
+async function resolveCartShippingClasses(
+  supabase: any,
+  tenantId: string,
+  productIds: string[],
+): Promise<string[]> {
+  if (!productIds || productIds.length === 0) return [];
+  const { data } = await supabase
+    .from('product_specifications')
+    .select('shipping_class')
+    .eq('tenant_id', tenantId)
+    .in('product_id', productIds)
+    .not('shipping_class', 'is', null);
+  return [...new Set((data || []).map((r: any) => r.shipping_class).filter(Boolean))] as string[];
+}
+
+async function getShippingMethods(
+  supabase: any,
+  tenantId: string,
+  shippingClasses?: string[],
+) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, shipping_class')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  return (data || []).map((m: any) => ({
+  const all = (data || []);
+
+  let filtered = all;
+  if (Array.isArray(shippingClasses)) {
+    if (shippingClasses.length === 0) {
+      filtered = all.filter((m: any) => m.shipping_class == null);
+    } else {
+      filtered = all.filter((m: any) => m.shipping_class && shippingClasses.includes(m.shipping_class));
+      if (filtered.length === 0) {
+        console.warn('[SHIP-CLASS] geen methode voor klassen', shippingClasses, 'tenant', tenantId);
+        filtered = all; // safety net: never block checkout
+      }
+    }
+  }
+
+  return filtered.map((m: any) => ({
     id: m.id, name: m.name, description: m.description, price: m.price, free_above: m.free_above,
     estimated_days: m.estimated_days_min && m.estimated_days_max ? `${m.estimated_days_min}-${m.estimated_days_max}` : m.estimated_days_min || m.estimated_days_max || null,
     is_default: m.is_default,
+    shipping_class: m.shipping_class ?? null,
   }));
 }
 
