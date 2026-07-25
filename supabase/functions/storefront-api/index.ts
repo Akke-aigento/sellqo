@@ -1564,8 +1564,8 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Total
   const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
 
-  // Available shipping methods
-  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal });
+  // Available shipping methods — filtered by shipping-class of the cart
+  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal, cart_id: cartId });
 
   // Available payment methods
   const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
