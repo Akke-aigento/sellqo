@@ -1865,6 +1865,17 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
 
+  // Validate that this method is allowed for this cart's shipping-class mix
+  const productIds = (cart.cartItems || []).map((i: any) => i.product_id).filter((v: any) => !!v);
+  const shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+  const allowed = await getShippingMethods(supabase, tenantId, shippingClasses);
+  if (!allowed.some((m: any) => m.id === shippingMethodId)) {
+    return { success: false, error: {
+      code: 'SHIPPING_NOT_ALLOWED',
+      message: 'Deze verzendmethode is niet beschikbaar voor de producten in je winkelwagen',
+    }};
+  }
+
   let shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
 
   // Check if any discount code provides free shipping
