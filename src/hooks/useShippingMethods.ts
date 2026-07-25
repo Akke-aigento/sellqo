@@ -46,6 +46,7 @@ export const useShippingMethods = () => {
           estimated_days_max: formData.estimated_days_max || 3,
           is_active: formData.is_active,
           is_default: formData.is_default,
+          shipping_class: formData.shipping_class?.trim() || null,
         })
         .select()
         .single();
@@ -88,6 +89,7 @@ export const useShippingMethods = () => {
           estimated_days_max: formData.estimated_days_max,
           is_active: formData.is_active,
           is_default: formData.is_default,
+          shipping_class: formData.shipping_class?.trim() || null,
         })
         .eq("id", id)
         .select()
