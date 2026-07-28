@@ -1,5 +1,24 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## PWRESET-1 — wachtwoord-reset aanvragen vanaf de inlogpagina — 28 juli 2026
+
+**Root cause:** de reset-flow bestond al voor de helft. `src/pages/ResetPassword.tsx` vangt de `PASSWORD_RECOVERY`-sessie correct af en zet het nieuwe wachtwoord via `updateUser`, de route `/reset-password` is aangesloten in `src/App.tsx`, en de `RecoveryEmail`-template in `supabase/functions/_shared/email-templates/recovery.tsx` wordt door `auth-email-hook` afgehandeld voor `action_type='recovery'`. Wat ontbrak was de **trigger**: `resetPasswordForEmail` kwam nergens in `src/` voor, zodat er geen UI-pad was om de flow te starten. Elke "wachtwoord vergeten"-vraag landde bij de platform-admin, wat uitnodigde tot handmatige wachtwoordreset — een slechte gewoonte.
+
+**Uitgevoerd:**
+- `src/hooks/useAuth.tsx`: nieuwe `resetPassword(email)` in dezelfde `{ error }`-stijl als `signIn`/`signUp`. Opgenomen in `AuthContextType` en in de `contextValue`-memo. `redirectTo` is bewust dynamisch (`${window.location.origin}/reset-password`) omdat tenants op eigen custom domains draaien — een hardcoded platform-URL zou daar een cross-origin recovery-sessie opleveren.
+- `src/pages/Auth.tsx`: onder de inlogknop een discrete `variant="link"` "Wachtwoord vergeten?"-knop. Opent een `Dialog` met één e-mailveld, gevalideerd met een aparte `resetSchema` (zod, email-check) in lijn met `loginSchema`. Prefill met de al ingevulde `loginEmail` als die er is. Feedback via bestaande `useToast`.
+- **Enumeratie-bestendige respons:** de toast na verzending is altijd exact dezelfde — "Als er een account bestaat op dit adres, is er een e-mail met een reset-link verstuurd." Ongeacht of GoTrue een fout teruggeeft of het adres bestaat. De echte fout gaat naar `console.error` voor debugging. Zonder deze uniforme respons wordt het formulier een orakel om te aftoetsen welke e-mailadressen een account hebben.
+- **60s-cooldown:** na een succesvolle verzending sluit de dialog en toont de trigger-knop een aftelling ("Opnieuw mogelijk over 45s"). Voorkomt dat iemand het formulier gebruikt om een mailbox te bombarderen. GoTrue heeft server-side ook rate-limiting, maar de client-cooldown geeft directe UX-feedback en scheelt onnodige API-calls.
+- Taal: `Auth.tsx` is volledig hardcoded Nederlands (geen `useTranslation`). Nieuwe teksten volgen die conventie — géén i18n-keys ingevoerd om te voorkomen dat de pagina half-i18n wordt.
+- `doc_articles` (`doc_level='tenant'`, slug `wachtwoord-opnieuw-instellen`, categorie Team & Account, `context_path='/auth'`): artikel legt uit waar de knop staat, dat de mail enkele minuten kan duren, spam-map checken, en dat de link ~1u geldig is. Idempotent via `ON CONFLICT (doc_level, slug) DO UPDATE`.
+- Changelog: `2026.07ae` met `id='password_reset'`, type `feature`, i18n-teksten in NL/EN/FR/DE. Tenant-zichtbaar, dus publieke changelog. Neutraal geformuleerd ("wachtwoord opnieuw instellen vanaf de inlogpagina") — niet als het dichten van een gat.
+
+**Bewust géén newsletter-item:** basishygiëne, niet aankondigings-waardig.
+
+**Buiten scope (bewust niet aangeraakt):** `ResetPassword.tsx` (werkt correct), `auth-email-hook`, `RecoveryEmail`-template, mailqueue, en geen i18n-refactor van `Auth.tsx`.
+
+**Losse observatie (niet in deze batch opgelost):** `loginSchema` in `Auth.tsx` eist minimaal 6 tekens voor het wachtwoord, terwijl `ResetPassword.tsx` en `signUp` in Supabase minimaal 8 tekens hanteren. Inconsistent, maar rakelings buiten deze scope — bestaande accounts met 6-7 tekens moeten kunnen blijven inloggen tot ze zelf een sterker wachtwoord kiezen.
+
 ## NANO-1 — `nano-studio` edge function (imgeditor.co beeldgeneratie) — 28 juli 2026
 
 **Doel:** platform-intern gereedschap om beeldgeneratie via imgeditor.co aan te roepen vanuit SQL (`net.http_post`), zonder de API-sleutel bloot te stellen. `API_NANO` zit in Lovable secrets en is niet uitleesbaar via SQL; een edge function ertussen houdt de sleutel binnen de service-role-omgeving.
