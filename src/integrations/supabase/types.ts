@@ -8243,6 +8243,88 @@ export type Database = {
           },
         ]
       }
+      nano_image_jobs: {
+        Row: {
+          aspect_ratio: string | null
+          completed_at: string | null
+          created_at: string
+          credits_used: number | null
+          error_message: string | null
+          id: string
+          mode: string
+          model: string
+          prompt: string
+          resolution: string | null
+          result_url: string | null
+          source_image_url: string | null
+          source_product_id: string | null
+          status: string
+          storage_path: string | null
+          task_id: string
+          tenant_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          created_at?: string
+          credits_used?: number | null
+          error_message?: string | null
+          id?: string
+          mode: string
+          model: string
+          prompt: string
+          resolution?: string | null
+          result_url?: string | null
+          source_image_url?: string | null
+          source_product_id?: string | null
+          status?: string
+          storage_path?: string | null
+          task_id: string
+          tenant_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          created_at?: string
+          credits_used?: number | null
+          error_message?: string | null
+          id?: string
+          mode?: string
+          model?: string
+          prompt?: string
+          resolution?: string | null
+          result_url?: string | null
+          source_image_url?: string | null
+          source_product_id?: string | null
+          status?: string
+          storage_path?: string | null
+          task_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nano_image_jobs_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nano_image_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nano_image_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           confirmation_token: string | null

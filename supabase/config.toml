@@ -426,3 +426,6 @@ verify_jwt = false
 
 [functions.get-document-url]
 verify_jwt = false
+
+[functions.nano-studio]
+verify_jwt = false
