@@ -1114,6 +1114,10 @@
           "title": "Interne beheer-endpoints extra afgeschermd",
           "description": "Enkele onderhoudsroutes vereisen nu expliciete platform-authenticatie. Ongeauthenticeerd bereiken is uitgesloten."
         },
+        "sec_internal_rpc_hardening": {
+          "title": "Interne databasefuncties afgeschermd",
+          "description": "Een reeks interne databasefuncties kan nu enkel nog door het systeem zelf worden aangeroepen. Ongeauthenticeerde toegang is uitgesloten."
+        },
         "sec_role_aware_rls": {
           "title": "Rol-bewuste toegangscontrole doorheen het platform",
           "description": "Grote hardening-ronde: elk team-account ziet enkel data die bij zijn rol hoort binnen de eigen winkel. Cross-winkel-toegang is structureel uitgesloten."
