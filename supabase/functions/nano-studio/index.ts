@@ -48,19 +48,37 @@ function mapUpstreamError(status: number, upstream: unknown): { status: number; 
   return { status: 502, error: upstreamMsg };
 }
 
+function extractRole(authHeader: string): string | null {
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Autorisatie: alleen aanroepbaar met de service-role key (SQL cron / interne calls).
+  // Autorisatie: verify_jwt=true valideert de handtekening op platformniveau;
+  // hier controleren we dat de rol expliciet service_role is (anon wordt geweigerd).
+  const role = extractRole(req.headers.get("Authorization") || "");
+  if (role !== "service_role") {
+    console.error("[nano-studio] unauthorized call, role:", role);
+    return jsonResponse(403, { success: false, error: "service_role_required" });
+  }
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const authHeader = req.headers.get("Authorization") || "";
-  const providedToken = authHeader.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : "";
-  if (!serviceKey || !providedToken || providedToken !== serviceKey) {
-    return jsonResponse(401, { success: false, error: "unauthorized" });
+  if (!serviceKey) {
+    console.error("[nano-studio] SUPABASE_SERVICE_ROLE_KEY missing");
+    return jsonResponse(500, { success: false, error: "service_key_not_configured" });
   }
 
   const apiKey = Deno.env.get("API_NANO");
