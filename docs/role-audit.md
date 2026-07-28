@@ -19,6 +19,8 @@
 
 **Losse observatie (niet in deze batch opgelost):** `loginSchema` in `Auth.tsx` eist minimaal 6 tekens voor het wachtwoord, terwijl `ResetPassword.tsx` en `signUp` in Supabase minimaal 8 tekens hanteren. Inconsistent, maar rakelings buiten deze scope — bestaande accounts met 6-7 tekens moeten kunnen blijven inloggen tot ze zelf een sterker wachtwoord kiezen.
 
+**Post-flight correctie (DE-FIX):** de Duitse changelogtekst voor deze batch bevatte een niet-geëscapete rechte quote tegenover een openend `„`, waardoor `landing.de.json` ongeldige JSON werd (`Expecting ',' delimiter: line 1111 column 105`). Gecorrigeerd naar `„Passwort vergessen?“`. Deze fout werd gevonden door de parse-verificatie na afloop van de batch, niet door de type-check.
+
 ## NANO-1 — `nano-studio` edge function (imgeditor.co beeldgeneratie) — 28 juli 2026
 
 **Doel:** platform-intern gereedschap om beeldgeneratie via imgeditor.co aan te roepen vanuit SQL (`net.http_post`), zonder de API-sleutel bloot te stellen. `API_NANO` zit in Lovable secrets en is niet uitleesbaar via SQL; een edge function ertussen houdt de sleutel binnen de service-role-omgeving.
