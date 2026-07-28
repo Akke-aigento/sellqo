@@ -90,6 +90,12 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   /**
+   * Verstuurt een reset-mail via GoTrue. `redirectTo` is bewust dynamisch
+   * (window.location.origin) zodat tenants op custom domains niet naar de
+   * platform-URL gestuurd worden.
+   */
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  /**
    * Ensures the user has a valid authenticated session.
    * Returns true if authenticated, false if session is invalid/expired.
    * If session is invalid, it will attempt to refresh, then force sign-out if that fails.
@@ -531,6 +537,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  };
+
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   
@@ -562,6 +575,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      resetPassword,
       ensureAuthenticated,
       getVerifiedAccessToken,
       refetchRoles,

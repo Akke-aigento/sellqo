@@ -9,10 +9,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { z } from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Ongeldig e-mailadres'),
   password: z.string().min(6, 'Wachtwoord moet minimaal 6 tekens zijn'),
+});
+
+const resetSchema = z.object({
+  email: z.string().email('Ongeldig e-mailadres'),
 });
 
 const signupSchema = loginSchema.extend({
@@ -25,10 +38,24 @@ const signupSchema = loginSchema.extend({
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp, signOut } = useAuth();
+  const { user, loading, signIn, signUp, signOut, resetPassword } = useAuth();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAccountSwitch, setShowAccountSwitch] = useState(false);
+
+  // Forgot-password dialog
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = window.setInterval(() => setCooldown((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => window.clearInterval(id);
+  }, [cooldown]);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -43,6 +70,42 @@ export default function Auth() {
   const handleSwitchAccount = async () => {
     await signOut();
     setShowAccountSwitch(true);
+  };
+
+  const openReset = () => {
+    setResetError(null);
+    setResetEmail(loginEmail || '');
+    setResetOpen(true);
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+
+    try {
+      resetSchema.parse({ email: resetEmail });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setResetError(err.errors[0]?.message ?? 'Ongeldig e-mailadres');
+        return;
+      }
+    }
+
+    setResetSubmitting(true);
+    // Bewust GEEN onderscheid maken tussen bestaand/onbestaand adres
+    // of tussen success/error, om account-enumeratie te vermijden.
+    const { error } = await resetPassword(resetEmail);
+    if (error) {
+      console.error('[Auth] resetPassword error:', error);
+    }
+    setResetSubmitting(false);
+    setResetOpen(false);
+    setCooldown(60);
+    toast({
+      title: 'Controleer je inbox',
+      description:
+        'Als er een account bestaat op dit adres, is er een e-mail met een reset-link verstuurd. Het kan enkele minuten duren.',
+    });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -205,7 +268,7 @@ export default function Auth() {
                   </div>
                 </CardContent>
 
-                <CardFooter>
+                <CardFooter className="flex-col gap-2">
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
@@ -215,6 +278,18 @@ export default function Auth() {
                     ) : (
                       'Inloggen'
                     )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-muted-foreground"
+                    onClick={openReset}
+                    disabled={cooldown > 0}
+                  >
+                    {cooldown > 0
+                      ? `Opnieuw mogelijk over ${cooldown}s`
+                      : 'Wachtwoord vergeten?'}
                   </Button>
                 </CardFooter>
               </form>
@@ -309,6 +384,55 @@ export default function Auth() {
           Jouw webshop. Simpel online.
         </p>
       </div>
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Wachtwoord opnieuw instellen</DialogTitle>
+            <DialogDescription>
+              Vul je e-mailadres in. We sturen je een link om een nieuw wachtwoord
+              in te stellen. Controleer ook je spam-map als je niets ontvangt.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">E-mail</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="naam@voorbeeld.nl"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                disabled={resetSubmitting}
+                autoFocus
+              />
+              {resetError && (
+                <p className="text-sm text-destructive">{resetError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setResetOpen(false)}
+                disabled={resetSubmitting}
+              >
+                Annuleren
+              </Button>
+              <Button type="submit" disabled={resetSubmitting}>
+                {resetSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Versturen...
+                  </>
+                ) : (
+                  'Reset-link versturen'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
