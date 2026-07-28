@@ -359,6 +359,7 @@ async function handleStatus(
     return jsonResponse(500, { success: false, error: "job_update_failed" });
   }
 
+  const enhancementType = job.mode === "image" ? "enhance" : "generate";
   const { error: aiInsertError } = await admin.from("ai_generated_images").insert({
     tenant_id: job.tenant_id,
     prompt: job.prompt,
@@ -367,11 +368,16 @@ async function handleStatus(
     source_image_url: job.source_image_url,
     source_product_id: job.source_product_id,
     credits_used: job.credits_used ?? 0,
-    enhancement_type: "nano_studio",
+    enhancement_type: enhancementType,
+    style: "nano_studio",
   });
   if (aiInsertError) {
     // Non-fataal: job is klaar en bestand staat in storage. Loggen en doorgaan.
-    console.error("[nano-studio] ai_generated_images insert failed:", aiInsertError.message);
+    console.error(
+      "[nano-studio] ai_generated_images insert failed (job stays completed):",
+      aiInsertError.message,
+      { job_id: job.id, enhancement_type: enhancementType },
+    );
   }
 
   return jsonResponse(200, {
@@ -379,5 +385,6 @@ async function handleStatus(
     status: "completed",
     result_url: publicUrl,
     storage_path: storagePath,
+    ai_image_logged: !aiInsertError,
   });
 }
