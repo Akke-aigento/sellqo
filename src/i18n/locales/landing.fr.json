@@ -1106,6 +1106,10 @@
           "title": "Classes de livraison : associer méthodes et produits",
           "description": "Les produits peuvent désormais avoir une classe de livraison (par exemple 'boxspring'). Les méthodes d'expédition portant la même classe ne s'affichent que lorsqu'un tel produit est dans le panier — les méthodes universelles disparaissent alors du choix. Un client avec un sommier ne voit donc plus « Livraison gratuite », et un client qui commande uniquement un matelas ne voit plus l'option de livraison à 100 €. Disponible à partir du plan Starter."
         },
+        "password_reset": {
+          "title": "Réinitialiser votre mot de passe depuis la page de connexion",
+          "description": "Le formulaire de connexion propose désormais un bouton « Mot de passe oublié ? ». Saisissez votre adresse e-mail et vous recevrez un lien pour choisir un nouveau mot de passe. Le lien a une durée de validité limitée ; vérifiez votre dossier spam si rien n'arrive."
+        },
         "sec_internal_endpoints": {
           "title": "Endpoints d'administration internes mieux protégés",
           "description": "Plusieurs routes de maintenance exigent désormais une authentification plateforme explicite. Aucun accès non authentifié n'est possible."
