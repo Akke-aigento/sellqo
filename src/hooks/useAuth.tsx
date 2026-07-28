@@ -537,6 +537,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  };
+
 
   const isPlatformAdmin = roles.some(r => r.role === 'platform_admin');
   
@@ -568,6 +575,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      resetPassword,
       ensureAuthenticated,
       getVerifiedAccessToken,
       refetchRoles,
