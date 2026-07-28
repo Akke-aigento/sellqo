@@ -1114,6 +1114,10 @@
           "title": "Internal admin endpoints further locked down",
           "description": "A number of maintenance routes now require explicit platform authentication. Unauthenticated access is no longer possible."
         },
+        "sec_internal_rpc_hardening": {
+          "title": "Internal database functions locked down",
+          "description": "A set of internal database functions can now only be invoked by the system itself. Unauthenticated access is no longer possible."
+        },
         "sec_role_aware_rls": {
           "title": "Role-aware access control across the platform",
           "description": "Large hardening round: every team account sees only the data that matches its role within its own store. Cross-store access is structurally excluded."

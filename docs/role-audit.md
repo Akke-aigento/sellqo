@@ -1,5 +1,88 @@
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
 
+## SEC-0a — EXECUTE ingetrokken op interne SECURITY DEFINER-RPC's — 28 juli 2026
+
+**Root cause:** Supabase kent bij het aanmaken van elke functie in `public` standaard `EXECUTE` toe aan `PUBLIC`, `anon` en `authenticated`. Die default is bij dit project nooit teruggedraaid. Gecombineerd met `SECURITY DEFINER` — dat RLS per definitie omzeilt — waren 35 interne functies pre-auth bereikbaar via de PostgREST-RPC-endpoint met alleen de publieke anon-key: mailqueue-uitlezen en injecteren, POS-pincodes zetten/brute-forcen, cadeaubonnen verzilveren, creditnota's aanmaken, voorraad naar nul zetten, AI-credits toekennen of leegtrekken. Geen van deze functiebodies bevat een interne autorisatiecheck (`auth.uid()`, `has_tenant_role`, `is_platform_admin`, `get_user_tenant_ids`); ze zijn geschreven onder de aanname dat alleen `service_role` ze bereikt.
+
+**Verificatiemethode vóór de migratie:**
+- `has_function_privilege('anon', …, 'EXECUTE') = true` op alle 35 doelfuncties;
+- statische sweep op letterlijke `.rpc('<naam>')`-aanroepen over `src/` én alle 205 edge-functies — geen dynamische of via templates opgebouwde aanroepen, alle hits waren string-literals;
+- van de 35 functies wordt de meerderheid alleen aangeroepen door edge-functies die op `SERVICE_ROLE` draaien, of door niemand (aanwezig in `src/integrations/supabase/types.ts` maar zonder call-site);
+- `service_role` stond expliciet in elke ACL, dus de revoke raakt geen legitieme aanroeper;
+- `check_help_rate_limit` — ACL `postgres | service_role` — diende als referentiepatroon.
+
+**Uitgevoerd (grants-only, geen bodies gewijzigd):**
+```
+REVOKE EXECUTE ON FUNCTION <fn> FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION <fn> TO service_role;
+```
+voor elk van deze 35 signatures:
+`read_email_batch(text, integer, integer)`, `enqueue_email(text, jsonb)`, `delete_email(text, bigint)`, `move_to_dlq(text, text, bigint, jsonb)`, `email_queue_dispatch()`, `create_pos_cashier(uuid, text, text, text)`, `update_cashier_pin(uuid, text)`, `verify_cashier_pin(uuid, text)`, `hash_cashier_pin(text)`, `redeem_gift_card(uuid, numeric, uuid)`, `create_credit_note_from_return(uuid)`, `decrement_stock(uuid, integer)`, `decrement_variant_stock(uuid, integer)`, `use_ai_credits(uuid, integer, text, text, jsonb)`, `use_ai_credits(uuid, integer)`, `reset_monthly_ai_credits()`, `reset_monthly_ai_credits(uuid, integer)`, `use_ai_help_credit(uuid)`, `send_notification(uuid, text, text, text, text, text, text, jsonb)`, `increment_campaign_bounced(uuid)`, `increment_campaign_clicked(uuid)`, `increment_campaign_delivered(uuid)`, `increment_campaign_opened(uuid)`, `increment_discount_usage(text, uuid)`, `expire_unpaid_orders()`, `downgrade_expired_trials()`, `start_sync_activity(uuid, uuid, text, text)`, `complete_sync_activity(uuid, text, integer, integer, integer, integer, jsonb)`, `create_sync_conflict(uuid, uuid, text, text, jsonb, jsonb, text[])`, `bulk_update_specifications(uuid[], jsonb)`, `schedule_automation_run(uuid, uuid, text, jsonb)`, `get_already_returned_quantity(uuid)`, `get_user_highest_role(uuid)`, `is_warehouse_user(uuid)`, `has_addon(uuid, text)`.
+
+`FROM PUBLIC` is essentieel: enkele functies droegen naast rol-grants een `PUBLIC`-grant (`=X/postgres` in `proacl`); zonder die clausule bereikte `anon` de functie via `PUBLIC` alsnog. `GRANT ... TO service_role` is formeel dubbelop maar maakt intentie expliciet en beschermt tegen wegvallen van een impliciet pad.
+
+**Verificatie na de migratie:** `has_function_privilege('anon' | 'authenticated' | 'service_role', …, 'EXECUTE')` — alle 35 functies retourneren `anon=false, authenticated=false, service_role=true`.
+
+**Rollback (letterlijk plakbaar bij incident):**
+```sql
+DO $$
+DECLARE
+  fn text;
+  fns text[] := ARRAY[
+    'public.read_email_batch(text, integer, integer)',
+    'public.enqueue_email(text, jsonb)',
+    'public.delete_email(text, bigint)',
+    'public.move_to_dlq(text, text, bigint, jsonb)',
+    'public.email_queue_dispatch()',
+    'public.create_pos_cashier(uuid, text, text, text)',
+    'public.update_cashier_pin(uuid, text)',
+    'public.verify_cashier_pin(uuid, text)',
+    'public.hash_cashier_pin(text)',
+    'public.redeem_gift_card(uuid, numeric, uuid)',
+    'public.create_credit_note_from_return(uuid)',
+    'public.decrement_stock(uuid, integer)',
+    'public.decrement_variant_stock(uuid, integer)',
+    'public.use_ai_credits(uuid, integer, text, text, jsonb)',
+    'public.use_ai_credits(uuid, integer)',
+    'public.reset_monthly_ai_credits()',
+    'public.reset_monthly_ai_credits(uuid, integer)',
+    'public.use_ai_help_credit(uuid)',
+    'public.send_notification(uuid, text, text, text, text, text, text, jsonb)',
+    'public.increment_campaign_bounced(uuid)',
+    'public.increment_campaign_clicked(uuid)',
+    'public.increment_campaign_delivered(uuid)',
+    'public.increment_campaign_opened(uuid)',
+    'public.increment_discount_usage(text, uuid)',
+    'public.expire_unpaid_orders()',
+    'public.downgrade_expired_trials()',
+    'public.start_sync_activity(uuid, uuid, text, text)',
+    'public.complete_sync_activity(uuid, text, integer, integer, integer, integer, jsonb)',
+    'public.create_sync_conflict(uuid, uuid, text, text, jsonb, jsonb, text[])',
+    'public.bulk_update_specifications(uuid[], jsonb)',
+    'public.schedule_automation_run(uuid, uuid, text, jsonb)',
+    'public.get_already_returned_quantity(uuid)',
+    'public.get_user_highest_role(uuid)',
+    'public.is_warehouse_user(uuid)',
+    'public.has_addon(uuid, text)'
+  ];
+BEGIN
+  FOREACH fn IN ARRAY fns LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated', fn);
+  END LOOP;
+END $$;
+```
+
+**Slottaken:**
+- Changelog `2026.07af` (`sec_internal_rpc_hardening`, type `security`) met neutrale i18n-teksten in NL/EN/FR/DE — geen functienamen, geen misbruikscenario. Volgt de vaste lijn voor security-entries.
+- `doc_articles` platform-artikel over de autorisatie-conventie voor RPC's (`doc_level='platform'`, slug `rpc-autorisatie-conventie`), idempotent via `ON CONFLICT`.
+- Geen newsletter-item — niet tenant-zichtbaar.
+
+**Openstaand — bewust niet in deze batch:**
+- **Bucket B:** RPC's die de frontend wél aanroept en die een interne autorisatiecheck missen. Aanpak: `GRANT EXECUTE ... TO authenticated` behouden, maar interne check (`auth.uid()`-scoped tenant/rol) in de body toevoegen. Wordt SEC-0b.
+- **Bucket C:** `has_tenant_role`, `get_user_tenant_ids`, `is_platform_admin`, `can_create_tenant`, `get_current_user_email` — bewust ongemoeid, want gebruikt in circa 1.170 policy-expressies; EXECUTE intrekken legt RLS plat.
+- `get_invitation_effective_status` en `generate_platform_ogm` — bewust niet in deze batch.
+- **Geen `ALTER DEFAULT PRIVILEGES`** in deze batch — creëert vertraagde stille faalmodus voor toekomstige RPC's, en het effect is rol-gebonden (onder welke rol maken migrations effectief functies aan?). Aparte batch.
+
 ## PWRESET-1 — wachtwoord-reset aanvragen vanaf de inlogpagina — 28 juli 2026
 
 **Root cause:** de reset-flow bestond al voor de helft. `src/pages/ResetPassword.tsx` vangt de `PASSWORD_RECOVERY`-sessie correct af en zet het nieuwe wachtwoord via `updateUser`, de route `/reset-password` is aangesloten in `src/App.tsx`, en de `RecoveryEmail`-template in `supabase/functions/_shared/email-templates/recovery.tsx` wordt door `auth-email-hook` afgehandeld voor `action_type='recovery'`. Wat ontbrak was de **trigger**: `resetPasswordForEmail` kwam nergens in `src/` voor, zodat er geen UI-pad was om de flow te starten. Elke "wachtwoord vergeten"-vraag landde bij de platform-admin, wat uitnodigde tot handmatige wachtwoordreset — een slechte gewoonte.

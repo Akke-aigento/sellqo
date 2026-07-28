@@ -1114,6 +1114,10 @@
           "title": "Interne Admin-Endpunkte zusätzlich abgesichert",
           "description": "Mehrere Wartungsrouten erfordern nun eine ausdrückliche Plattform-Authentifizierung. Unauthentifizierter Zugriff ist ausgeschlossen."
         },
+        "sec_internal_rpc_hardening": {
+          "title": "Interne Datenbankfunktionen abgesichert",
+          "description": "Eine Reihe interner Datenbankfunktionen kann jetzt nur noch vom System selbst aufgerufen werden. Unauthentifizierter Zugriff ist ausgeschlossen."
+        },
         "sec_role_aware_rls": {
           "title": "Rollenbasierte Zugriffskontrolle im gesamten Platform",
           "description": "Große Härtungsrunde: Jedes Team-Konto sieht nur die Daten, die seiner Rolle im eigenen Shop entsprechen. Shop-übergreifender Zugriff ist strukturell ausgeschlossen."
