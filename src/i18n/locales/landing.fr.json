@@ -1114,6 +1114,10 @@
           "title": "Endpoints d'administration internes mieux protégés",
           "description": "Plusieurs routes de maintenance exigent désormais une authentification plateforme explicite. Aucun accès non authentifié n'est possible."
         },
+        "sec_internal_rpc_hardening": {
+          "title": "Fonctions internes de base de données verrouillées",
+          "description": "Un ensemble de fonctions internes de base de données ne peut désormais être appelé que par le système lui-même. Tout accès non authentifié est exclu."
+        },
         "sec_role_aware_rls": {
           "title": "Contrôle d'accès basé sur les rôles à travers la plateforme",
           "description": "Grand chantier de durcissement : chaque compte d'équipe ne voit que les données correspondant à son rôle dans sa propre boutique. L'accès inter-boutiques est structurellement exclu."
