@@ -1108,7 +1108,7 @@
         },
         "password_reset": {
           "title": "Passwort direkt über die Login-Seite zurücksetzen",
-          "description": "Unter dem Login-Formular gibt es jetzt eine Schaltfläche „Passwort vergessen?". Gib deine E-Mail-Adresse ein und du erhältst einen Link, um ein neues Passwort zu wählen. Der Link ist zeitlich begrenzt gültig; prüfe auch deinen Spam-Ordner, falls nichts ankommt."
+          "description": "Unter dem Login-Formular gibt es jetzt eine Schaltfläche „Passwort vergessen?“. Gib deine E-Mail-Adresse ein und du erhältst einen Link, um ein neues Passwort zu wählen. Der Link ist zeitlich begrenzt gültig; prüfe auch deinen Spam-Ordner, falls nichts ankommt."
         },
         "sec_internal_endpoints": {
           "title": "Interne Admin-Endpunkte zusätzlich abgesichert",
