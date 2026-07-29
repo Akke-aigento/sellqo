@@ -1122,10 +1122,6 @@
           "title": "Rechten van de marketingrol scherper afgebakend",
           "description": "De marketingrol heeft nu enkel nog de rechten die bij die functie horen. Onderdelen die daarbuiten vallen, beheer je met een beheerders- of medewerkersaccount."
         },
-        "sec_tenant_scoped_files_legacy": {
-          "title": "Bestanden strikt per organisatie afgeschermd",
-          "description": "Geüploade bestanden zijn nu strikt gekoppeld aan je eigen organisatie. Alleen jouw team kan ze toevoegen, wijzigen of verwijderen."
-        },
         "sec_internal_rpc_hardening": {
           "title": "Interne databasefuncties afgeschermd",
           "description": "Een reeks interne databasefuncties kan nu enkel nog door het systeem zelf worden aangeroepen. Ongeauthenticeerde toegang is uitgesloten."
