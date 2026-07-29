@@ -1118,6 +1118,10 @@
           "title": "Bestanden strikt per organisatie afgeschermd",
           "description": "Geüploade bestanden zijn nu strikt gekoppeld aan je eigen organisatie. Alleen jouw team kan ze toevoegen, wijzigen of verwijderen."
         },
+        "sec_role_scoped_reads": {
+          "title": "Gegevens strikter afgeschermd per rol",
+          "description": "Teamleden zien voortaan alleen de gegevens die bij hun rol horen. Wie ergens geen rechten voor heeft, krijgt dat onderdeel niet langer te zien."
+        },
         "sec_marketing_role_scope": {
           "title": "Rechten van de marketingrol scherper afgebakend",
           "description": "De marketingrol heeft nu enkel nog de rechten die bij die functie horen. Onderdelen die daarbuiten vallen, beheer je met een beheerders- of medewerkersaccount."
