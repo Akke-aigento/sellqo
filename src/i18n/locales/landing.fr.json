@@ -1114,6 +1114,10 @@
           "title": "Endpoints d'administration internes mieux protégés",
           "description": "Plusieurs routes de maintenance exigent désormais une authentification plateforme explicite. Aucun accès non authentifié n'est possible."
         },
+        "sec_tenant_scoped_files": {
+          "title": "Fichiers strictement cloisonnés par organisation",
+          "description": "Les fichiers téléversés sont désormais strictement liés à votre propre organisation. Seule votre équipe peut les ajouter, les modifier ou les supprimer."
+        },
         "sec_internal_rpc_hardening": {
           "title": "Fonctions internes de base de données verrouillées",
           "description": "Un ensemble de fonctions internes de base de données ne peut désormais être appelé que par le système lui-même. Tout accès non authentifié est exclu."
