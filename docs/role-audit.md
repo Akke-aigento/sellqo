@@ -4308,6 +4308,8 @@ Bij rollback moet ook `BrandingUploader.tsx` teruggedraaid worden naar `` `${typ
 
 **Openstaand (bewust):** `discount_codes` en de promotietabellen (`automatic_discounts`, `volume_discounts`, `volume_discount_tiers`, `bogo_promotions`, `gift_promotions`, `discount_stacking_rules`) blijven bij `marketing` — kortingen aanmaken is de kern van die functie, dat wegnemen maakt de rol zinloos. Het financiële risico daarvan wordt afgedekt in **`PERM-1`**: een per-gebruiker instelbaar recht, waarbij enkel `tenant_admin` en `platform_admin` dat recht kunnen toekennen.
 
+**Procesnotitie:** de oorspronkelijke SEC-3-batch is halverwege afgebroken. De migratie en het `doc_articles`-artikel `teamleden-rollen` landden wel, maar de role-audit-entry en de changelog niet, en er is geen commit gepusht. De databasewijziging was daardoor tijdelijk niet gedocumenteerd — de productiestaat liep vóór op de paper trail. Deze entry (`SEC-3-PAPER`) herstelt dat, zonder enige databasewijziging. Les: na elke batch de git-stand natrekken in plaats van te vertrouwen op het afrondingsbericht van de agent.
+
 ### Rollback SEC-3
 
 ```sql
@@ -4372,10 +4374,6 @@ CREATE POLICY "pos_quick_buttons_delete" ON public.pos_quick_buttons FOR DELETE 
 USING (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
 ```
 
-### Newsletter-wachtrij — item SEC-3
+### Openstaande actie — Akke
 
-```
-**Scherpere rolrechten voor je team** (juli 2026)
-De rechten van de marketingrol zijn strakker afgebakend rond je rol binnen de winkel. Cadeaubonnen, klantgroepprijzen, juridische pagina's, reviews en kassa-instellingen beheer je voortaan met een beheerders- of medewerkersaccount.
-Wat betekent dit voor jou? Werkt iemand met een marketingrol aan die onderdelen, geef die persoon dan de rol Medewerker.
-```
+- Newsletter-item voor SEC-3 nog te plaatsen — mechanisme te bevestigen (er bestaat geen `newsletter_queue`-tabel; bewust buiten scope gehouden in deze batch).
