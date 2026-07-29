@@ -4377,3 +4377,171 @@ USING (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant
 ### Openstaande actie — Akke
 
 - Newsletter-item voor SEC-3 nog te plaatsen — mechanisme te bevestigen (er bestaat geen `newsletter_queue`-tabel; bewust buiten scope gehouden in deze batch).
+
+---
+
+## SEC-2a — leesrechten uit `PERMISSION_MATRIX` afgedwongen in RLS
+
+**Datum:** 2026-07-29
+
+### Root cause
+
+Veertien `SELECT`-policies waren **tenant-blind**: ze controleerden uitsluitend
+of de gebruiker lid was van de tenant (`tenant_id IN get_user_tenant_ids(auth.uid())`,
+of een `EXISTS` op de moedertabel), maar niet welke rol hij binnen die tenant had.
+`PERMISSION_MATRIX` in `src/hooks/useCan.ts` beschreef de bedoelde afscherming al,
+maar was frontend-only: wie de REST-API rechtstreeks aansprak met zijn eigen JWT
+omzeilde de matrix volledig. Concreet kon de `marketing`-rol facturen en
+factuurregels, creditnota's, SEPA-mandaten inclusief `mandate_setup_tokens.token`,
+cadeaubonnen met `code` en `current_balance`, en de credentials in
+`marketplace_connections`, `shipping_integrations`, `review_platform_connections`,
+`tenant_newsletter_config`, `whatsapp_connections` en `tenant_odoo_settings` lezen.
+
+### Aanpak
+
+Per policy is de **bestaande `USING`-expressie ongewijzigd behouden** en met `AND`
+een rolcheck toegevoegd via de tweeargumentige `has_tenant_role(tenant_id, ARRAY[...])`,
+die `auth.uid()` intern gebruikt en een platform-admin-bypass bevat. Geen policy is
+hernoemd of herschreven. Bij de drie regeltabellen (`invoice_lines`,
+`credit_note_lines`, `payment_reminders`) staat de rolcheck binnen de bestaande
+`EXISTS` en gebruikt hij de `tenant_id` van de moedertabel.
+
+De twee bestaande platform-admin-`SELECT`-policies
+(`Platform admins can view all invoices`, `Platform admins can view all invoice lines`)
+zijn **volledig met rust gelaten**. Waar zo'n aparte policy ontbrak, bleef de
+al aanwezige `is_platform_admin(auth.uid()) OR (...)` in de expressie staan; voor de
+overige tabellen borgt de bypass in `has_tenant_role` het platformbeheer.
+
+### Groep A — integratie-credentials
+
+Matrix-resource: `integrations` → `["platform_admin","tenant_admin","viewer"]`
+Rol-array: `ARRAY['tenant_admin'::app_role, 'viewer'::app_role]`
+
+| Tabel | Policy |
+|---|---|
+| `marketplace_connections` | `mc_select_tenant_members` |
+| `shipping_integrations` | `si_select_tenant_members` |
+| `review_platform_connections` | `rpc_select_tenant_members` |
+| `tenant_newsletter_config` | `Tenant users can view newsletter config` |
+| `whatsapp_connections` | `Users can view their tenant whatsapp connections` |
+| `tenant_odoo_settings` | `tos_select_tenant_members` |
+
+### Groep B — financiële documenten
+
+Matrix-resources: `invoices` en `credit_notes` (alle rollen behalve `warehouse` en
+`marketing`) en `payments` (`platform_admin, tenant_admin, staff, accountant, viewer`).
+Beide leiden tot dezelfde rol-array:
+`ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'accountant'::app_role, 'viewer'::app_role]`
+
+| Tabel | Policy | Matrix-resource |
+|---|---|---|
+| `invoices` | `Tenant users can view invoices` | `invoices` |
+| `invoice_lines` | `Tenant users can view invoice lines` | `invoices` |
+| `credit_notes` | `Tenant users can view credit notes` | `credit_notes` |
+| `credit_note_lines` | `Tenant users can view credit note lines` | `credit_notes` |
+| `customer_payment_mandates` | `mandates_select` | `payments` |
+| `mandate_setup_tokens` | `mandate_tokens_select` | `payments` |
+| `payment_reminders` | `Tenant users can view payment reminders` | `payments` |
+| `gift_cards` | `Tenant users can view gift cards` | `payments` (bewuste keuze) |
+
+**Bewuste keuze `gift_cards`:** de matrix noemt cadeaubonnen niet expliciet. Ze zijn
+op `payments`-niveau gezet in plaats van `loyalty`, omdat een cadeaubon een `code` en
+`current_balance` draagt — wie de code kan lezen, kan hem verzilveren. Dat is een
+toonderinstrument, geen loyaliteitspunt.
+
+### Cross-check matrix
+
+`PERMISSION_MATRIX` in `src/hooks/useCan.ts` is gelezen vóór uitvoering; `integrations`,
+`invoices`, `credit_notes` en `payments` kwamen exact overeen met bovenstaande arrays.
+`platform_admin` is bewust weggelaten uit de `has_tenant_role`-arrays.
+
+### Verificatie
+
+Rol-simulatie over twaalf tabellen × zes rollen gaf exact het verwachte beeld:
+`marketing` en `warehouse` overal `false`; `staff` en `accountant` `false` op de zes
+tabellen van groep A en `true` op groep B; `tenant_admin` en `viewer` overal `true`.
+De veertien tenant-policies bevatten `has_tenant_role`; de twee platform-admin-policies
+niet — dat is correct.
+
+### Rollback
+
+```sql
+-- Groep A
+DROP POLICY IF EXISTS "mc_select_tenant_members" ON public.marketplace_connections;
+CREATE POLICY "mc_select_tenant_members" ON public.marketplace_connections FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+DROP POLICY IF EXISTS "si_select_tenant_members" ON public.shipping_integrations;
+CREATE POLICY "si_select_tenant_members" ON public.shipping_integrations FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+DROP POLICY IF EXISTS "rpc_select_tenant_members" ON public.review_platform_connections;
+CREATE POLICY "rpc_select_tenant_members" ON public.review_platform_connections FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+DROP POLICY IF EXISTS "Tenant users can view newsletter config" ON public.tenant_newsletter_config;
+CREATE POLICY "Tenant users can view newsletter config" ON public.tenant_newsletter_config FOR SELECT TO authenticated
+USING (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids));
+
+DROP POLICY IF EXISTS "Users can view their tenant whatsapp connections" ON public.whatsapp_connections;
+CREATE POLICY "Users can view their tenant whatsapp connections" ON public.whatsapp_connections FOR SELECT TO authenticated
+USING (tenant_id IN ( SELECT ur.tenant_id FROM user_roles ur WHERE (ur.user_id = auth.uid())));
+
+DROP POLICY IF EXISTS "tos_select_tenant_members" ON public.tenant_odoo_settings;
+CREATE POLICY "tos_select_tenant_members" ON public.tenant_odoo_settings FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+-- Groep B
+DROP POLICY IF EXISTS "Tenant users can view invoices" ON public.invoices;
+CREATE POLICY "Tenant users can view invoices" ON public.invoices FOR SELECT TO authenticated
+USING (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids));
+
+DROP POLICY IF EXISTS "Tenant users can view invoice lines" ON public.invoice_lines;
+CREATE POLICY "Tenant users can view invoice lines" ON public.invoice_lines FOR SELECT TO authenticated
+USING (EXISTS ( SELECT 1 FROM invoices i WHERE ((i.id = invoice_lines.invoice_id) AND (i.tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)))));
+
+DROP POLICY IF EXISTS "Tenant users can view credit notes" ON public.credit_notes;
+CREATE POLICY "Tenant users can view credit notes" ON public.credit_notes FOR SELECT TO authenticated
+USING (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids));
+
+DROP POLICY IF EXISTS "Tenant users can view credit note lines" ON public.credit_note_lines;
+CREATE POLICY "Tenant users can view credit note lines" ON public.credit_note_lines FOR SELECT TO authenticated
+USING (EXISTS ( SELECT 1 FROM credit_notes cn WHERE ((cn.id = credit_note_lines.credit_note_id) AND (cn.tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)))));
+
+DROP POLICY IF EXISTS "mandates_select" ON public.customer_payment_mandates;
+CREATE POLICY "mandates_select" ON public.customer_payment_mandates FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+DROP POLICY IF EXISTS "mandate_tokens_select" ON public.mandate_setup_tokens;
+CREATE POLICY "mandate_tokens_select" ON public.mandate_setup_tokens FOR SELECT TO authenticated
+USING (is_platform_admin(auth.uid()) OR (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)));
+
+DROP POLICY IF EXISTS "Tenant users can view payment reminders" ON public.payment_reminders;
+CREATE POLICY "Tenant users can view payment reminders" ON public.payment_reminders FOR SELECT TO authenticated
+USING (EXISTS ( SELECT 1 FROM invoices i WHERE ((i.id = payment_reminders.invoice_id) AND (i.tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)))));
+
+DROP POLICY IF EXISTS "Tenant users can view gift cards" ON public.gift_cards;
+CREATE POLICY "Tenant users can view gift cards" ON public.gift_cards FOR SELECT TO authenticated
+USING (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids));
+```
+
+### Openstaand
+
+- **`products.cost_price`** blijft leesbaar voor alle tenant-leden, terwijl de matrix
+  `product_costs` beperkt tot `tenant_admin`, `accountant` en `warehouse`. Beperking op
+  kolomniveau vergt een view of column-level privileges en is bewust niet in deze batch
+  meegenomen.
+- De resterende tenant-blinde tabellen waarvan de matrix `ALL_ROLES` toestaat
+  (`orders`, `customers`, `products`, `pos`) zijn correct zoals ze zijn en niet aangeraakt.
+- `discount_codes` en de overige promotietabellen: vervolg in **PERM-1**.
+
+### Openstaande actie — Akke
+
+Newsletter-item voor SEC-2a nog te plaatsen (tenant-zichtbaar); verzendmechanisme te
+bevestigen. Voorgestelde tekst:
+
+> **Rolrechten aangescherpt**
+> We hebben de toegang tot gegevens in SellQo strikter afgestemd op de rol van elk
+> teamlid. Teamleden zien voortaan alleen wat bij hun functie hoort; onderdelen waar
+> ze geen rechten voor hebben, worden niet langer getoond. Heeft een collega ergens
+> toegang tot nodig? Pas dan zijn rol aan bij Instellingen → Teamleden.
