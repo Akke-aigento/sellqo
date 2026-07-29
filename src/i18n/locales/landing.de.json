@@ -1118,6 +1118,10 @@
           "title": "Dateien strikt pro Organisation abgeschirmt",
           "description": "Hochgeladene Dateien sind jetzt strikt an Ihre eigene Organisation gebunden. Nur Ihr Team kann sie hinzufügen, ändern oder löschen."
         },
+        "sec_marketing_role_scope": {
+          "title": "Rechte der Marketingrolle klarer abgegrenzt",
+          "description": "Die Marketingrolle verfügt jetzt nur noch über die Rechte, die zu dieser Funktion gehören. Alles darüber hinaus verwalten Sie mit einem Administrator- oder Mitarbeiterkonto."
+        },
         "sec_internal_rpc_hardening": {
           "title": "Interne Datenbankfunktionen abgesichert",
           "description": "Eine Reihe interner Datenbankfunktionen kann jetzt nur noch vom System selbst aufgerufen werden. Unauthentifizierter Zugriff ist ausgeschlossen."
