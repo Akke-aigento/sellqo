@@ -4284,3 +4284,98 @@ CREATE POLICY "Authenticated users can view marketing assets" ON storage.objects
 ```
 
 Bij rollback moet ook `BrandingUploader.tsx` teruggedraaid worden naar `` `${type}/${Date.now()}` `` — of blijven staan, want de oude policies accepteren beide paden.
+
+## SEC-3 — schrijfrechten van de `marketing`-rol intrekken op vijf tabellen — 29 juli 2026
+
+**Root cause:** de `marketing`-rol was destijds in de rol-arrays van vijftien write-policies opgenomen op basis van "zit in de buurt van marketing", niet op basis van wat de functie effectief nodig heeft. Alle vijftien gebruiken hetzelfde patroon `has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing'])` (tweeargumentige signatuur, `auth.uid()` intern). Daardoor kon een externe marketier:
+
+- **`gift_cards`** — een toonderinstrument aanmaken: `INSERT` met vrij te kiezen `code` en `current_balance`, en dat vervolgens verzilveren. Zuiver financieel, hoort niet bij marketing.
+- **`customer_group_product_prices`** — prijzen zetten. Klantgroep aanmaken, zichzelf koppelen, prijs op €0,01. Prijsbeleid is geen marketingfunctie.
+- **`legal_pages`** — algemene voorwaarden en privacyverklaring herschrijven. Juridische documenten horen bij `tenant_admin`/`staff`.
+- **`external_reviews`** — reviews aanmaken/wijzigen/verwijderen. Verzonnen reviews zijn onder EU-consumentenrecht verboden; dit was een juridisch risico, geen marketingtool.
+- **`pos_quick_buttons`** — kassaconfiguratie. Geen enkele relatie tot marketing; vermoedelijk per ongeluk in de rol-array meegekopieerd.
+
+**Uitgevoerd:** vijftien policies gedropt en identiek herbouwd, met als enige wijziging dat `'marketing'::app_role` uit de array verdwijnt (`ARRAY['tenant_admin'::app_role, 'staff'::app_role]`). Policynamen ongewijzigd gehouden zodat de rollback triviaal blijft. Alle omliggende expressies letterlijk behouden: de `EXISTS (SELECT 1 FROM customer_groups g …)`-constructie, de `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`-voorwaarde bij `gift_cards`/`external_reviews`, en de `is_platform_admin(auth.uid()) OR …`-prefix bij `pos_quick_buttons`.
+
+**Security-keuzes:**
+- `staff` en `tenant_admin` blijven bewust behouden op alle vijftien policies — dit is een intrekking van één rol, geen verstrenging voor de rest.
+- `SELECT`-policies op alle vijf de tabellen ongemoeid: marketing mag deze data blijven **lezen**, enkel niet meer schrijven.
+- `pos_quick_buttons_service_role` (`ALL`, `true`, rol `service_role`) niet aangeraakt — edge-functiepad.
+- `gift_card_designs` blijft bewust bij marketing: een ontwerp heeft geen monetaire waarde, enkel het instrument zelf wel.
+- Geen wijziging aan `useCan.ts` — RLS is hier de bepalende grens; de frontend-matrix volgt in `PERM-1`.
+
+**Verificatie:** exact 15 rijen (`cmd <> 'SELECT'`, `cmd <> 'ALL'`) met `nog_marketing = false`, en de tegencontrole `heeft_admin = true` én `heeft_staff = true` op alle 15. Geen policy verdwenen.
+
+**Openstaand (bewust):** `discount_codes` en de promotietabellen (`automatic_discounts`, `volume_discounts`, `volume_discount_tiers`, `bogo_promotions`, `gift_promotions`, `discount_stacking_rules`) blijven bij `marketing` — kortingen aanmaken is de kern van die functie, dat wegnemen maakt de rol zinloos. Het financiële risico daarvan wordt afgedekt in **`PERM-1`**: een per-gebruiker instelbaar recht, waarbij enkel `tenant_admin` en `platform_admin` dat recht kunnen toekennen.
+
+### Rollback SEC-3
+
+```sql
+-- gift_cards
+DROP POLICY IF EXISTS "Marketing roles can insert gift cards" ON public.gift_cards;
+CREATE POLICY "Marketing roles can insert gift cards" ON public.gift_cards FOR INSERT TO authenticated
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "Marketing roles can update gift cards" ON public.gift_cards;
+CREATE POLICY "Marketing roles can update gift cards" ON public.gift_cards FOR UPDATE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "Marketing roles can delete gift cards" ON public.gift_cards;
+CREATE POLICY "Marketing roles can delete gift cards" ON public.gift_cards FOR DELETE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+-- customer_group_product_prices
+DROP POLICY IF EXISTS "Users can insert customer group product prices" ON public.customer_group_product_prices;
+CREATE POLICY "Users can insert customer group product prices" ON public.customer_group_product_prices FOR INSERT TO authenticated
+WITH CHECK (EXISTS ( SELECT 1 FROM customer_groups g WHERE ((g.id = customer_group_product_prices.customer_group_id) AND has_tenant_role(g.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))));
+DROP POLICY IF EXISTS "Users can update customer group product prices" ON public.customer_group_product_prices;
+CREATE POLICY "Users can update customer group product prices" ON public.customer_group_product_prices FOR UPDATE TO authenticated
+USING (EXISTS ( SELECT 1 FROM customer_groups g WHERE ((g.id = customer_group_product_prices.customer_group_id) AND has_tenant_role(g.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))))
+WITH CHECK (EXISTS ( SELECT 1 FROM customer_groups g WHERE ((g.id = customer_group_product_prices.customer_group_id) AND has_tenant_role(g.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))));
+DROP POLICY IF EXISTS "Users can delete customer group product prices" ON public.customer_group_product_prices;
+CREATE POLICY "Users can delete customer group product prices" ON public.customer_group_product_prices FOR DELETE TO authenticated
+USING (EXISTS ( SELECT 1 FROM customer_groups g WHERE ((g.id = customer_group_product_prices.customer_group_id) AND has_tenant_role(g.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))));
+
+-- legal_pages
+DROP POLICY IF EXISTS "legal_pages_insert_marketing" ON public.legal_pages;
+CREATE POLICY "legal_pages_insert_marketing" ON public.legal_pages FOR INSERT TO authenticated
+WITH CHECK (has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "legal_pages_update_marketing" ON public.legal_pages;
+CREATE POLICY "legal_pages_update_marketing" ON public.legal_pages FOR UPDATE TO authenticated
+USING (has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+WITH CHECK (has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "legal_pages_delete_marketing" ON public.legal_pages;
+CREATE POLICY "legal_pages_delete_marketing" ON public.legal_pages FOR DELETE TO authenticated
+USING (has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+-- external_reviews
+DROP POLICY IF EXISTS "Moderators can insert external_reviews" ON public.external_reviews;
+CREATE POLICY "Moderators can insert external_reviews" ON public.external_reviews FOR INSERT TO authenticated
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "Moderators can update external_reviews" ON public.external_reviews;
+CREATE POLICY "Moderators can update external_reviews" ON public.external_reviews FOR UPDATE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "Moderators can delete external_reviews" ON public.external_reviews;
+CREATE POLICY "Moderators can delete external_reviews" ON public.external_reviews FOR DELETE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids)) AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+-- pos_quick_buttons
+DROP POLICY IF EXISTS "pos_quick_buttons_insert" ON public.pos_quick_buttons;
+CREATE POLICY "pos_quick_buttons_insert" ON public.pos_quick_buttons FOR INSERT TO authenticated
+WITH CHECK (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "pos_quick_buttons_update" ON public.pos_quick_buttons;
+CREATE POLICY "pos_quick_buttons_update" ON public.pos_quick_buttons FOR UPDATE TO authenticated
+USING (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+WITH CHECK (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+DROP POLICY IF EXISTS "pos_quick_buttons_delete" ON public.pos_quick_buttons;
+CREATE POLICY "pos_quick_buttons_delete" ON public.pos_quick_buttons FOR DELETE TO authenticated
+USING (is_platform_admin(auth.uid()) OR has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+```
+
+### Newsletter-wachtrij — item SEC-3
+
+```
+**Scherpere rolrechten voor je team** (juli 2026)
+De rechten van de marketingrol zijn strakker afgebakend rond je rol binnen de winkel. Cadeaubonnen, klantgroepprijzen, juridische pagina's, reviews en kassa-instellingen beheer je voortaan met een beheerders- of medewerkersaccount.
+Wat betekent dit voor jou? Werkt iemand met een marketingrol aan die onderdelen, geef die persoon dan de rol Medewerker.
+```
