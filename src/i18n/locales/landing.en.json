@@ -1118,6 +1118,10 @@
           "title": "Files strictly scoped to your organisation",
           "description": "Uploaded files are now strictly tied to your own organisation. Only your team can add, change or remove them."
         },
+        "sec_role_scoped_reads": {
+          "title": "Data access tightened per role",
+          "description": "Team members now only see the data that matches their role. Anything outside their permissions is no longer visible to them."
+        },
         "sec_marketing_role_scope": {
           "title": "Marketing role permissions tightened",
           "description": "The marketing role now only has the permissions that fit that job. Anything outside it is managed with an administrator or staff account."

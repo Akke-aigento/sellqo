@@ -1118,6 +1118,10 @@
           "title": "Fichiers strictement cloisonnés par organisation",
           "description": "Les fichiers téléversés sont désormais strictement liés à votre propre organisation. Seule votre équipe peut les ajouter, les modifier ou les supprimer."
         },
+        "sec_role_scoped_reads": {
+          "title": "Accès aux données restreint selon le rôle",
+          "description": "Les membres de l'équipe ne voient désormais que les données correspondant à leur rôle. Ce qui dépasse leurs autorisations ne leur est plus visible."
+        },
         "sec_marketing_role_scope": {
           "title": "Droits du rôle marketing mieux délimités",
           "description": "Le rôle marketing ne dispose plus que des droits correspondant à cette fonction. Le reste se gère avec un compte administrateur ou collaborateur."
