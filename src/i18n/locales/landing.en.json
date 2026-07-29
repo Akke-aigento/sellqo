@@ -1114,6 +1114,10 @@
           "title": "Internal admin endpoints further locked down",
           "description": "A number of maintenance routes now require explicit platform authentication. Unauthenticated access is no longer possible."
         },
+        "sec_tenant_scoped_files": {
+          "title": "Files strictly scoped to your organisation",
+          "description": "Uploaded files are now strictly tied to your own organisation. Only your team can add, change or remove them."
+        },
         "sec_internal_rpc_hardening": {
           "title": "Internal database functions locked down",
           "description": "A set of internal database functions can now only be invoked by the system itself. Unauthenticated access is no longer possible."

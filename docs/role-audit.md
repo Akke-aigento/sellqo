@@ -4200,3 +4200,87 @@ De browser toonde bovendien `POST /auth/v1/logout?scope=global 403 (Forbidden)`.
 
 **Grenzen.** Bucket-privacy en storage-policies blijven voor SEC-BATCH-2c-2. Geen SQL-migraties. Geen wijziging aan `buildReadme`, `buildAuditCsv`, `callInternal`, `tryFetch`, `periodCode`, `slugify` of auth/`requireRole`. De 67 andere ongepinde `supabase-js@2`-imports elders blijven staan — apart traject.
 
+
+## SEC-1 — storage-buckets tenant-scopen — 29 juli 2026
+
+**Root cause.** De schrijfpolicies op de vijf publieke buckets (`product-images`, `tenant-logos`, `ai-images`, `tenant-assets`, `marketing-assets`) hadden als enige voorwaarde `bucket_id = '<naam>'` met rol `authenticated` (of `public` + `auth.role() = 'authenticated'`). Er was geen tenant-scope: **elke ingelogde gebruiker van élke tenant kon objecten van álle andere tenants overschrijven of verwijderen.** Verergerd door `upsert: true` in `src/hooks/useImageUpload.ts` — een bestaand object op een geraden pad werd stilzwijgend overschreven. `marketing-assets` had al tenant-gescopete write-policies (via `user_roles`), maar geen scope op `SELECT`.
+
+**Padconventie.** Alle buckets gebruiken `<tenant_id>/…` als eerste map. Enige niet-conforme uploadpad: `src/components/admin/storefront/BrandingUploader.tsx` gaf `customPath` mee als `` `${type}/${Date.now()}` `` — zonder tenant-prefix. `useImageUpload.ts` valt alleen terug op zijn tenant-gescopete default wanneer er géén `customPath` is. Alle andere aanroepers (`GiftCardDesignDialog`, `CategoryFormDialog`, `MediaAssetsLibrary`, `ProductForm`, `BusinessSettings`) zaten al goed.
+
+**Code-fix.** `BrandingUploader.tsx` gebruikt nu `useTenant()` en uploadt naar `` `${currentTenant.id}/${type}/${Date.now()}` ``. Zonder deze wijziging zou de nieuwe policy élke branding-upload weigeren.
+
+**Policy-fix.** Per bucket zijn `INSERT`/`UPDATE`/`DELETE` vervangen door `<bucket>_{insert,update,delete}_own_tenant` met:
+`bucket_id = '<bucket>' AND (public.is_platform_admin(auth.uid()) OR (storage.foldername(name))[1] IN (SELECT tid::text FROM public.get_user_tenant_ids(auth.uid()) AS tid))`.
+`get_user_tenant_ids(_user_id uuid)` retourneert `SETOF uuid`, dus de `SELECT … FROM`-vorm werkt. `is_platform_admin` blijft nodig zodat platformbeheer bij alle tenants kan.
+
+**Kritiek: vergelijken als `text`, nooit `::uuid` op een mapnaam.** Er bestaan 10 objecten in `tenant-logos` met een niet-UUID eerste map (`logo/`, `favicon/`, `document-logo/`, `demo-bakkerij/`). `(storage.foldername(name))[1]::uuid` zou `invalid input syntax for type uuid` gooien zodra de policy over zo'n rij evalueert, wat de hele query laat falen. De UUID-kant wordt daarom naar `text` gecast.
+
+**Lezen bewust ongemoeid.** De publieke `SELECT`-policies op `product-images`, `tenant-logos`, `ai-images` en `tenant-assets` blijven ongewijzigd — de storefront rendert eruit. Daarom blijven de 10 objecten met afwijkend pad gewoon werken en is er géén datamigratie nodig.
+
+**Nuance `marketing-assets`.** De `SELECT`-policy (`bucket_id = 'marketing-assets'` voor `authenticated`) liet elke ingelogde gebruiker de assets van alle tenants **opsommen** via de API. Die is nu tenant-gescopet (`marketing-assets_select_own_tenant`). Eerlijke beperking: de bucket is `public = true`, dus wie een exacte URL heeft komt er sowieso bij — deze wijziging voorkomt **opsomming**, geen directe toegang via een bekende URL.
+
+**Verificatie.** Alle 5×3 write-policies geven `gescopet = true`; `marketing-assets_select_own_tenant` eveneens; de vier andere `SELECT`-policies blijven bewust publiek (`gescopet = false`). Type-check schoon, `landing.{nl,en,fr,de}.json` parsen alle vier.
+
+**Buiten scope.** Geen datamigratie, geen paden hernoemd. Private buckets (`invoices`, `credit-notes`, `shipping-labels`, `peppol-archive`, `message-attachments`, `supplier-documents`, `digital-products`) niet aangeraakt — die hebben al tenant-gescopete policies. `upsert: true` blijft staan; met tenant-scope is dat gedrag afdoende ingeperkt.
+
+**Losse observatie.** Eén object onder `document-logo/` is niet herleidbaar naar een tenant. Bewust niet opgeruimd; blijft leesbaar via de publieke SELECT-policy, maar is voortaan door niemand meer via de API te overschrijven (behalve platform-admins).
+
+### Rollback SEC-1
+
+```sql
+DROP POLICY IF EXISTS "product-images_insert_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "product-images_update_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "product-images_delete_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-logos_insert_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-logos_update_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-logos_delete_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "ai-images_insert_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "ai-images_update_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "ai-images_delete_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-assets_insert_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-assets_update_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "tenant-assets_delete_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "marketing-assets_insert_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "marketing-assets_update_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "marketing-assets_delete_own_tenant" ON storage.objects;
+DROP POLICY IF EXISTS "marketing-assets_select_own_tenant" ON storage.objects;
+
+-- exacte pre-SEC-1 staat (uit de inventarisatiequery)
+CREATE POLICY "Authenticated users can upload product images" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'product-images'::text);
+CREATE POLICY "Authenticated users can update their uploaded images" ON storage.objects
+  FOR UPDATE TO authenticated USING (bucket_id = 'product-images'::text);
+CREATE POLICY "Authenticated users can delete product images" ON storage.objects
+  FOR DELETE TO authenticated USING (bucket_id = 'product-images'::text);
+
+CREATE POLICY "Authenticated users can upload tenant logos" ON storage.objects
+  FOR INSERT TO public WITH CHECK ((bucket_id = 'tenant-logos'::text) AND (auth.role() = 'authenticated'::text));
+CREATE POLICY "Authenticated users can update tenant logos" ON storage.objects
+  FOR UPDATE TO public USING ((bucket_id = 'tenant-logos'::text) AND (auth.role() = 'authenticated'::text));
+CREATE POLICY "Authenticated users can delete tenant logos" ON storage.objects
+  FOR DELETE TO public USING ((bucket_id = 'tenant-logos'::text) AND (auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Authenticated users can upload AI images" ON storage.objects
+  FOR INSERT TO public WITH CHECK ((bucket_id = 'ai-images'::text) AND (auth.role() = 'authenticated'::text));
+CREATE POLICY "Users can delete their own AI images" ON storage.objects
+  FOR DELETE TO public USING ((bucket_id = 'ai-images'::text) AND (auth.role() = 'authenticated'::text));
+-- ai-images had vóór SEC-1 géén UPDATE-policy
+
+CREATE POLICY "Authenticated users can upload tenant assets" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'tenant-assets'::text);
+-- tenant-assets had vóór SEC-1 géén UPDATE- of DELETE-policy
+
+CREATE POLICY "Users can upload to their tenant folder" ON storage.objects
+  FOR INSERT TO public WITH CHECK ((bucket_id = 'marketing-assets'::text) AND ((storage.foldername(name))[1] IN (
+    SELECT (user_roles.tenant_id)::text FROM user_roles WHERE (user_roles.user_id = auth.uid()))));
+CREATE POLICY "Users can update their tenant's marketing assets" ON storage.objects
+  FOR UPDATE TO public USING ((bucket_id = 'marketing-assets'::text) AND ((storage.foldername(name))[1] IN (
+    SELECT (user_roles.tenant_id)::text FROM user_roles WHERE (user_roles.user_id = auth.uid()))));
+CREATE POLICY "Users can delete their tenant's marketing assets" ON storage.objects
+  FOR DELETE TO public USING ((bucket_id = 'marketing-assets'::text) AND ((storage.foldername(name))[1] IN (
+    SELECT (user_roles.tenant_id)::text FROM user_roles WHERE (user_roles.user_id = auth.uid()))));
+CREATE POLICY "Authenticated users can view marketing assets" ON storage.objects
+  FOR SELECT TO public USING (bucket_id = 'marketing-assets'::text);
+```
+
+Bij rollback moet ook `BrandingUploader.tsx` teruggedraaid worden naar `` `${type}/${Date.now()}` `` — of blijven staan, want de oude policies accepteren beide paden.

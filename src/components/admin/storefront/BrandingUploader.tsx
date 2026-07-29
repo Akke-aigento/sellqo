@@ -3,6 +3,7 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { useTenant } from '@/hooks/useTenant';
 
 interface BrandingUploaderProps {
   logoUrl: string | null;
@@ -18,13 +19,15 @@ export function BrandingUploader({
   onFaviconChange 
 }: BrandingUploaderProps) {
   const { uploadImage, uploading } = useImageUpload();
+  const { currentTenant } = useTenant();
   const [uploadingType, setUploadingType] = useState<'logo' | 'favicon' | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File, type: 'logo' | 'favicon') => {
+    if (!currentTenant) return;
     setUploadingType(type);
-    const url = await uploadImage(file, 'tenant-logos', `${type}/${Date.now()}`);
+    const url = await uploadImage(file, 'tenant-logos', `${currentTenant.id}/${type}/${Date.now()}`);
     if (url) {
       if (type === 'logo') {
         onLogoChange(url);

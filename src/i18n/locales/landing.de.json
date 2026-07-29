@@ -1114,6 +1114,10 @@
           "title": "Interne Admin-Endpunkte zusätzlich abgesichert",
           "description": "Mehrere Wartungsrouten erfordern nun eine ausdrückliche Plattform-Authentifizierung. Unauthentifizierter Zugriff ist ausgeschlossen."
         },
+        "sec_tenant_scoped_files": {
+          "title": "Dateien strikt pro Organisation abgeschirmt",
+          "description": "Hochgeladene Dateien sind jetzt strikt an Ihre eigene Organisation gebunden. Nur Ihr Team kann sie hinzufügen, ändern oder löschen."
+        },
         "sec_internal_rpc_hardening": {
           "title": "Interne Datenbankfunktionen abgesichert",
           "description": "Eine Reihe interner Datenbankfunktionen kann jetzt nur noch vom System selbst aufgerufen werden. Unauthentifizierter Zugriff ist ausgeschlossen."
