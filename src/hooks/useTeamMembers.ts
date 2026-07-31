@@ -126,6 +126,61 @@ export function useTeamMembers() {
     }
   };
 
+  /**
+   * PERM-1 — recht toekennen of intrekken. Aanwezigheid van een rij = recht verleend.
+   * RLS staat dit uitsluitend toe voor tenant_admin / platform_admin.
+   */
+  const setPermissionGrant = async (
+    userId: string,
+    resource: string,
+    granted: boolean,
+  ) => {
+    try {
+      if (!currentTenant?.id) throw new Error('Geen actieve winkel geselecteerd');
+      const { data: authData } = await supabase.auth.getUser();
+      const grantedBy = authData?.user?.id;
+      if (!grantedBy) throw new Error('Niet ingelogd');
+
+      if (granted) {
+        const { error } = await supabase
+          .from('user_permission_grants')
+          .insert({
+            tenant_id: currentTenant.id,
+            user_id: userId,
+            resource,
+            granted_by: grantedBy,
+          });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('user_permission_grants')
+          .delete()
+          .eq('tenant_id', currentTenant.id)
+          .eq('user_id', userId)
+          .eq('resource', resource);
+        if (error) throw error;
+      }
+
+      await fetchMembers();
+
+      toast({
+        title: granted ? 'Recht toegekend' : 'Recht ingetrokken',
+        description: granted
+          ? 'Dit teamlid kan nu kortingscodes beheren.'
+          : 'Dit teamlid kan geen kortingscodes meer beheren.',
+      });
+
+      return true;
+    } catch (error: any) {
+      toast({
+        title: 'Fout bij wijzigen recht',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   const removeMember = async (memberId: string) => {
     try {
       if (!currentTenant?.id) throw new Error('Geen actieve winkel geselecteerd');
@@ -162,6 +217,7 @@ export function useTeamMembers() {
     isLoading,
     fetchMembers,
     updateMemberRole,
+    setPermissionGrant,
     removeMember,
   };
 }
