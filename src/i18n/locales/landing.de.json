@@ -1118,6 +1118,10 @@
           "title": "Dateien strikt pro Organisation abgeschirmt",
           "description": "Hochgeladene Dateien sind jetzt strikt an Ihre eigene Organisation gebunden. Nur Ihr Team kann sie hinzufügen, ändern oder löschen."
         },
+        "shipping_label_downloads": {
+          "title": "Versandlabels wieder zuverlässig ladbar",
+          "description": "Versandlabels: Das Herunterladen und Stapeldrucken von Labels funktioniert wieder zuverlässig."
+        },
         "sec_role_scoped_reads": {
           "title": "Datenzugriff strenger nach Rolle geregelt",
           "description": "Teammitglieder sehen jetzt nur noch die Daten, die zu ihrer Rolle gehören. Alles außerhalb ihrer Berechtigungen wird ihnen nicht mehr angezeigt."
