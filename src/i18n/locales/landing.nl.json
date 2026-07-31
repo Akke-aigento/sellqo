@@ -1014,6 +1014,10 @@
         "q2_2026": "Q2 2026"
       },
       "changes": {
+        "per_user_discount_rights": {
+          "title": "Kortingscodes per teamlid vrijgeven",
+          "description": "Beheerders kunnen nu per teamlid met de marketingrol instellen of die persoon kortingscodes mag aanmaken en wijzigen. Je regelt dit via Instellingen → Teamleden."
+        },
         "accurate_stats": {
           "title": "Nauwkeurigere statistieken in je dashboard",
           "description": "Dashboard- en analytics-cijfers hanteren nu overal dezelfde definities (betaald en niet geannuleerd). Verkoopkanalen worden correct herkend en nieuwe klanten en nieuwsbrief-inschrijvingen worden apart geteld."

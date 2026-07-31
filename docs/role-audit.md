@@ -4560,3 +4560,128 @@ bevestigen. Voorgestelde tekst:
 > teamlid. Teamleden zien voortaan alleen wat bij hun functie hoort; onderdelen waar
 > ze geen rechten voor hebben, worden niet langer getoond. Heeft een collega ergens
 > toegang tot nodig? Pas dan zijn rol aan bij Instellingen → Teamleden.
+
+---
+
+## PERM-1 — per-gebruiker recht om kortingscodes te beheren (31-07-2026)
+
+### Root cause
+
+Rechten waren uitsluitend **per rol** te verlenen. Kortingscodes aanmaken hoort
+functioneel bij de marketingfunctie, maar een code van 100% is direct geld. Met alleen
+rolgebaseerde autorisatie kon dat recht uitsluitend aan of uit voor de hele rol
+`marketing` — te grof zodra een tenant met een externe marketier werkt.
+
+### Ontwerp
+
+- Nieuwe tabel `public.user_permission_grants (tenant_id, user_id, resource, granted_by)`
+  met `UNIQUE (tenant_id, user_id, resource)`. `resource` is bewust `text` en géén enum,
+  zodat er later een recht bij kan zonder schemawijziging.
+- **Aanwezigheid van een rij = recht verleend.** Er is geen `granted`-booleaan; intrekken
+  is de rij verwijderen. Dat voorkomt een derde toestand ("bestaat, maar false").
+- RLS: `SELECT` voor eigen rijen (`user_id = auth.uid()`), plus alle rijen van de eigen
+  tenant voor `tenant_admin`, plus `is_platform_admin(auth.uid())`. `INSERT`/`UPDATE`/
+  `DELETE` uitsluitend voor `tenant_admin` of `is_platform_admin`. Bij `INSERT` dwingt de
+  `WITH CHECK` bovendien `granted_by = auth.uid()` af. Een `marketing`-gebruiker kan
+  zichzelf dus niets toekennen.
+- Helper `public.has_permission_grant(uuid, uuid, text)` — `STABLE SECURITY DEFINER`,
+  `search_path = public`. Volgens de SEC-0a-conventie: `EXECUTE` ingetrokken van `PUBLIC`
+  en `anon`, verleend aan `authenticated` en `service_role`. `authenticated` is nodig
+  omdat de functie binnen een RLS-policy door de rol van de aanroepende sessie wordt
+  geëvalueerd. `anon` niet: de betreffende `discount_codes`-policies staan alle drie op
+  `TO authenticated` — gecontroleerd in `pg_policies.roles` vóór de migratie, bevestigd.
+- De drie write-policies op `discount_codes` behouden hun naam en de
+  `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`-voorwaarde; alleen het
+  rolgedeelte wijzigde. `tenant_admin` en `staff` blijven **onvoorwaardelijk** bevoegd:
+  zij zijn de rollen die het recht ook kunnen toekennen respectievelijk de bestaande
+  operationele rol, en hen afhankelijk maken van een grant zou de tenant kunnen
+  opsluiten (niemand kan dan nog een code aanmaken). Alleen `marketing` is afhankelijk.
+- De `SELECT`-policy op `discount_codes` is **niet** aangeraakt: lezen blijft voor alle
+  rollen behalve `warehouse`, conform de matrix. De grant gaat uitsluitend over schrijven.
+
+### Waarom `useCan` synchroon blijft
+
+`useCan(action, resource)` is een pure, synchrone check op `useAuth().roles` en wordt op
+tientallen plaatsen gebruikt, inclusief in render-paden zonder loading-state. Een
+asynchrone grant-lookup erin bouwen zou de hele applicatie raken (elke gate zou een
+tussentoestand "nog onbekend" krijgen). De grant is daarom een **aanvullende** check
+náást `useCan`, via de nieuwe hook `src/hooks/usePermissionGrants.ts`
+(`usePermissionGrants` + de afgeleide `useCanWriteDiscountCodes`). `PERMISSION_MATRIX`
+zelf is ongewijzigd.
+
+### Drie plaatsen voor rechten
+
+Rechten leven nu op **drie** plaatsen:
+
+1. `PERMISSION_MATRIX` in `src/hooks/useCan.ts` (UI-gating),
+2. de RLS-policies in de database (afdwinging),
+3. `public.user_permission_grants` (per-persoon uitzondering).
+
+Dit is beheersbaar zolang het bij een handvol resources blijft. Bij verdere uitbreiding
+hoort de matrix éérst naar de database te verhuizen, zodat UI en RLS uit één bron lezen;
+anders lopen de drie plaatsen onvermijdelijk uit elkaar.
+
+### Verificatie (alle groen)
+
+- `pg_class.relrowsecurity` op `user_permission_grants` = `true`.
+- Vier policies: `SELECT` (eigen rijen / tenant_admin / platform_admin), `INSERT`
+  (`granted_by = auth.uid()` + tenant_admin/platform_admin), `UPDATE` en `DELETE`
+  (uitsluitend tenant_admin/platform_admin).
+- `has_permission_grant`: `anon = false`, `authenticated = true`, `service_role = true`.
+- `discount_codes`: `INSERT`/`UPDATE`/`DELETE` alle drie `gebruikt_grant = true`,
+  `SELECT` = `false`.
+- `cron.job` waar `command ILIKE '%permission_grant%'`: 0 rijen.
+- Type-check (`tsgo -p tsconfig.app.json`) exit 0; JSON-parse van de vier
+  `landing.*.json` OK.
+
+### Geen migratie van bestaande data
+
+Er zijn op dit moment geen gebruikers met de rol `marketing` (alleen `platform_admin` en
+`tenant_admin`). Deze wijziging ontneemt vandaag dus niemand toegang en er zijn geen
+grants te seeden.
+
+### Rollback
+
+```sql
+-- 1. Oorspronkelijke write-policies op discount_codes (marketing onvoorwaardelijk)
+DROP POLICY IF EXISTS "Marketing roles can insert discount codes" ON public.discount_codes;
+CREATE POLICY "Marketing roles can insert discount codes"
+ON public.discount_codes FOR INSERT TO authenticated
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids))
+  AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+DROP POLICY IF EXISTS "Marketing roles can update discount codes" ON public.discount_codes;
+CREATE POLICY "Marketing roles can update discount codes"
+ON public.discount_codes FOR UPDATE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids))
+  AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+WITH CHECK ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids))
+  AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+DROP POLICY IF EXISTS "Marketing roles can delete discount codes" ON public.discount_codes;
+CREATE POLICY "Marketing roles can delete discount codes"
+ON public.discount_codes FOR DELETE TO authenticated
+USING ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids))
+  AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]));
+
+-- 2. Helper en tabel
+DROP FUNCTION public.has_permission_grant(uuid, uuid, text);
+DROP TABLE public.user_permission_grants;
+```
+
+### Openstaand
+
+- De **promotietabellen** vallen nog **niet** onder de grant: `automatic_discounts`,
+  `volume_discounts`, `volume_discount_tiers`, `bogo_promotions`, `gift_promotions`,
+  `discount_stacking_rules`. Die volgen in een aparte batch zodra dit mechanisme zich in
+  de praktijk bewezen heeft. Tot dan kan een `marketing`-gebruiker zonder grant wél nog
+  promoties aanmaken — functioneel een vergelijkbaar risico, bewust buiten scope
+  gehouden om de blast-radius van deze batch klein te houden.
+- Een plafond op kortingswaarde (bv. maximaal 30% voor niet-beheerders) is een aparte
+  batch en zit hier niet in.
+
+### Openstaande actie — Akke
+
+Newsletter-item voor PERM-1 staat in `docs/newsletter-queue.md` onder "Openstaand"
+(2026.07ak, tenant-zichtbaar). Er bestaat geen wachtrij**tabel** in de database, alleen
+dat document; het verzendmechanisme is nog te bevestigen, in lijn met SEC-3 en SEC-2a.

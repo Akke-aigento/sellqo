@@ -23,6 +23,9 @@ import { DiscountCodeCard } from '@/components/admin/DiscountCodeCard';
 import { DiscountCodeDialog } from '@/components/admin/DiscountCodeDialog';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
+import { useCanWriteDiscountCodes } from '@/hooks/usePermissionGrants';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Lock } from 'lucide-react';
 import {
   useDiscountCodes,
   useCreateDiscountCode,
@@ -48,6 +51,8 @@ export default function Discounts() {
   const createMutation = useCreateDiscountCode();
   const updateMutation = useUpdateDiscountCode();
   const deleteMutation = useDeleteDiscountCode();
+  // PERM-1 — `marketing` heeft een per-persoon recht nodig om te schrijven.
+  const { allowed: canWrite, needsGrant } = useCanWriteDiscountCodes();
 
   const handleOpenCreate = () => {
     setEditingCode(null);
@@ -91,11 +96,31 @@ export default function Discounts() {
             Beheer kortingscodes voor je klanten
           </p>
         </div>
-        <GatedButton action="write" resource="discount_codes" onClick={handleOpenCreate}>
+        <GatedButton
+          action="write"
+          resource="discount_codes"
+          onClick={handleOpenCreate}
+          disabled={!canWrite}
+          tooltip={
+            needsGrant
+              ? 'Een beheerder moet dit recht aan jou toekennen via Instellingen → Teamleden.'
+              : undefined
+          }
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nieuwe code
         </GatedButton>
       </div>
+
+      {needsGrant && (
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertDescription>
+            Je kunt kortingscodes bekijken maar niet aanmaken of wijzigen. Een beheerder
+            kan dit recht per persoon inschakelen via Instellingen → Teamleden.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Filters */}
       <div className="flex gap-4">
@@ -136,7 +161,12 @@ export default function Discounts() {
               : 'Maak je eerste kortingscode aan'}
           </p>
           {!search && statusFilter === 'all' && (
-            <GatedButton action="write" resource="discount_codes" onClick={handleOpenCreate}>
+            <GatedButton
+              action="write"
+              resource="discount_codes"
+              onClick={handleOpenCreate}
+              disabled={!canWrite}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Nieuwe code
             </GatedButton>

@@ -27,6 +27,9 @@ import { Separator } from '@/components/ui/separator';
 import { Wand2 } from 'lucide-react';
 import type { DiscountCode, DiscountCodeFormData, DiscountType, DiscountAppliesTo } from '@/types/discount';
 import { generateRandomCode } from '@/hooks/useDiscountCodes';
+import { useCanWriteDiscountCodes } from '@/hooks/usePermissionGrants';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Lock } from 'lucide-react';
 
 const formSchema = z.object({
   code: z.string().min(3, 'Code moet minimaal 3 karakters zijn').max(20, 'Code mag maximaal 20 karakters zijn'),
@@ -60,6 +63,8 @@ export function DiscountCodeDialog({
   isLoading,
 }: DiscountCodeDialogProps) {
   const isEditing = !!discountCode;
+  // PERM-1 — `marketing` heeft een expliciet recht nodig; RLS dwingt dit ook af.
+  const { allowed: canWrite, needsGrant } = useCanWriteDiscountCodes();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -152,6 +157,16 @@ export function DiscountCodeDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {needsGrant && (
+          <Alert>
+            <Lock className="h-4 w-4" />
+            <AlertDescription>
+              Je hebt geen recht om kortingscodes te beheren. Een beheerder kan dit per
+              persoon inschakelen via Instellingen → Teamleden.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Code */}
@@ -170,7 +185,7 @@ export function DiscountCodeDialog({
                         onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                       />
                     </FormControl>
-                    <Button type="button" variant="outline" onClick={generateCode}>
+                    <Button type="button" variant="outline" onClick={generateCode} disabled={!canWrite}>
                       <Wand2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -430,7 +445,7 @@ export function DiscountCodeDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuleren
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || !canWrite}>
                 {isLoading ? 'Opslaan...' : isEditing ? 'Bijwerken' : 'Aanmaken'}
               </Button>
             </div>

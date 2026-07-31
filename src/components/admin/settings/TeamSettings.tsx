@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Users, MoreHorizontal, Shield, UserCog, Trash2, Calculator, Warehouse, Eye } from 'lucide-react';
+import { Users, MoreHorizontal, Shield, UserCog, Trash2, Calculator, Warehouse, Eye, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTeamMembers, TeamMember, AppRole } from '@/hooks/useTeamMembers';
 import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { useAuth } from '@/hooks/useAuth';
+import { useCan } from '@/hooks/useCan';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
 import { TenantInvitationsList } from './TenantInvitationsList';
 import { format } from 'date-fns';
@@ -43,6 +46,8 @@ const getRoleBadge = (role: string) => {
       return <Badge className="bg-green-500">Boekhouder</Badge>;
     case 'warehouse':
       return <Badge className="bg-orange-500">Magazijn</Badge>;
+    case 'marketing':
+      return <Badge className="bg-pink-500">Marketing</Badge>;
     case 'viewer':
       return <Badge variant="outline">Kijker</Badge>;
     default:
@@ -58,9 +63,11 @@ const getInitials = (name: string | null, email: string | null) => {
 };
 
 export function TeamSettings() {
-  const { members, isLoading, updateMemberRole, removeMember } = useTeamMembers();
+  const { members, isLoading, updateMemberRole, setPermissionGrant, removeMember } = useTeamMembers();
   const { refetch: refetchInvitations } = useTeamInvitations({ statusFilter: 'all' });
   const { user } = useAuth();
+  // PERM-1 — de matrix beperkt `team` write al tot tenant_admin + platform_admin.
+  const canManageTeam = useCan('write', 'team');
   
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -135,6 +142,7 @@ export function TeamSettings() {
                 <TableRow>
                   <TableHead>Gebruiker</TableHead>
                   <TableHead>Rol</TableHead>
+                  <TableHead>Rechten</TableHead>
                   <TableHead>Toegevoegd op</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
@@ -168,6 +176,27 @@ export function TeamSettings() {
                         </div>
                       </TableCell>
                       <TableCell>{getRoleBadge(member.role)}</TableCell>
+                      <TableCell>
+                        {member.role === 'marketing' && canManageTeam ? (
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id={`grant-${member.id}`}
+                              checked={member.canManageDiscountCodes}
+                              onCheckedChange={(checked) =>
+                                setPermissionGrant(member.user_id, 'discount_codes', checked)
+                              }
+                            />
+                            <Label
+                              htmlFor={`grant-${member.id}`}
+                              className="text-sm font-normal text-muted-foreground cursor-pointer"
+                            >
+                              Mag kortingscodes beheren
+                            </Label>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(member.created_at), 'd MMM yyyy', { locale: nl })}
                       </TableCell>
@@ -207,6 +236,13 @@ export function TeamSettings() {
                               >
                                 <Warehouse className="h-4 w-4 mr-2" />
                                 Magazijn
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleRoleChange(member, 'marketing')}
+                                disabled={member.role === 'marketing'}
+                              >
+                                <Megaphone className="h-4 w-4 mr-2" />
+                                Marketing
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'viewer')}
@@ -250,7 +286,7 @@ export function TeamSettings() {
             { badge: <Badge variant="secondary">Medewerker</Badge>, name: 'Staff', desc: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
             { badge: <Badge className="bg-green-500 hover:bg-green-500">Boekhouder</Badge>, name: 'Accountant', desc: "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten." },
             { badge: <Badge className="bg-orange-500 hover:bg-orange-500">Magazijn</Badge>, name: 'Warehouse', desc: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
-            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">Marketing</Badge>, name: 'Marketing', desc: 'Campagnes, kortingen, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen.' },
+            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">Marketing</Badge>, name: 'Marketing', desc: 'Campagnes, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen. Kortingscodes beheren is een apart recht dat een beheerder per persoon inschakelt via de schakelaar in de ledenlijst hierboven.' },
             { badge: <Badge variant="outline">Kijker</Badge>, name: 'Viewer', desc: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
           ].map((r) => (
             <div key={r.name} className="grid grid-cols-[110px_1fr] items-start gap-4">

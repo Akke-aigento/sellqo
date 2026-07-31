@@ -17303,6 +17303,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permission_grants: {
+        Row: {
+          created_at: string
+          granted_by: string
+          id: string
+          resource: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by: string
+          id?: string
+          resource: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string
+          id?: string
+          resource?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -18551,6 +18593,10 @@ export type Database = {
         | { Args: { _user_id?: string }; Returns: string[] }
       has_addon: {
         Args: { _addon_type: string; _tenant_id: string }
+        Returns: boolean
+      }
+      has_permission_grant: {
+        Args: { _resource: string; _tenant_id: string; _user_id: string }
         Returns: boolean
       }
       has_tenant_role: {

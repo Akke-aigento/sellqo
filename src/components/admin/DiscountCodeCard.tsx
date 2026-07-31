@@ -13,6 +13,7 @@ import { nl } from 'date-fns/locale';
 import type { DiscountCode } from '@/types/discount';
 import { useToast } from '@/hooks/use-toast';
 import { useCan } from '@/hooks/useCan';
+import { useCanWriteDiscountCodes } from '@/hooks/usePermissionGrants';
 
 interface DiscountCodeCardProps {
   discountCode: DiscountCode;
@@ -24,7 +25,10 @@ export function DiscountCodeCard({ discountCode, onEdit, onDelete }: DiscountCod
   const { toast } = useToast();
   // H4d: row-action gating in dropdown — hide voor non-write rollen
   // (matrix: discount_codes write = tenant_admin + marketing).
-  const canWrite = useCan('write', 'discount_codes');
+  const canWriteMatrix = useCan('write', 'discount_codes');
+  // PERM-1 — voor de rol `marketing` geldt bovendien een per-persoon recht.
+  const { allowed: canWriteGrant } = useCanWriteDiscountCodes();
+  const canWrite = canWriteMatrix && canWriteGrant;
   
   const now = new Date();
   const isExpired = discountCode.valid_until && new Date(discountCode.valid_until) < now;
