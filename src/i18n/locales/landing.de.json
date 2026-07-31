@@ -1014,6 +1014,10 @@
         "q2_2026": "Q2 2026"
       },
       "changes": {
+        "per_user_discount_rights": {
+          "title": "Rabattcodes pro Teammitglied freigeben",
+          "description": "Administratoren können jetzt pro Teammitglied mit der Rolle „Marketing“ festlegen, ob diese Person Rabattcodes anlegen und ändern darf. Das steuern Sie über Einstellungen → Teammitglieder."
+        },
         "accurate_stats": {
           "title": "Genauere Statistiken in deinem Dashboard",
           "description": "Dashboard- und Analytics-Zahlen verwenden jetzt überall die gleichen Definitionen (bezahlt und nicht storniert). Verkaufskanäle werden korrekt erkannt und Neukunden sowie Newsletter-Abonnenten werden getrennt gezählt."

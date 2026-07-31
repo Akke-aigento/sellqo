@@ -1014,6 +1014,10 @@
         "q2_2026": "T2 2026"
       },
       "changes": {
+        "per_user_discount_rights": {
+          "title": "Autoriser les codes de réduction par membre",
+          "description": "Les administrateurs peuvent désormais déterminer, pour chaque membre ayant le rôle marketing, s’il peut créer et modifier des codes de réduction. Cela se gère via Paramètres → Membres de l’équipe."
+        },
         "accurate_stats": {
           "title": "Des statistiques plus précises dans votre tableau de bord",
           "description": "Les chiffres du tableau de bord et des analyses utilisent désormais partout les mêmes définitions (payé et non annulé). Les canaux de vente sont correctement identifiés et les nouveaux clients et abonnés à la newsletter sont comptés séparément."
