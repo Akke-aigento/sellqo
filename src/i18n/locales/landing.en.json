@@ -1118,6 +1118,10 @@
           "title": "Files strictly scoped to your organisation",
           "description": "Uploaded files are now strictly tied to your own organisation. Only your team can add, change or remove them."
         },
+        "shipping_label_downloads": {
+          "title": "Shipping labels download reliably again",
+          "description": "Shipping labels: downloading and batch printing labels works reliably again."
+        },
         "sec_role_scoped_reads": {
           "title": "Data access tightened per role",
           "description": "Team members now only see the data that matches their role. Anything outside their permissions is no longer visible to them."

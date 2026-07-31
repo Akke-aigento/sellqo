@@ -850,6 +850,10 @@ const handler = async (req: Request): Promise<Response> => {
     const processStatusId = labelData.processStatusId;
     let labelPdfUrl: string | null = null;
     let labelUploadError: string | null = null;
+    // Storage-key van het geüploade label. `get-document-url` signt uitsluitend
+    // op deze kolom (`label_path`); de bucket is privé, dus een publieke URL
+    // alleen is niet bruikbaar voor download/batch-print.
+    let labelStoragePath: string | null = null;
     let trackingNumber: string | null = null;
     let transporterLabelId: string | null = null;
 
@@ -981,6 +985,7 @@ const handler = async (req: Request): Promise<Response> => {
                 .from("shipping-labels")
                 .getPublicUrl(requestedPath);
               labelPdfUrl = urlData?.publicUrl || null;
+              labelStoragePath = requestedPath;
               console.log("PDF uploaded to storage:", labelPdfUrl);
             }
           } else if (uploadError) {
@@ -1032,6 +1037,7 @@ const handler = async (req: Request): Promise<Response> => {
           carrier: selectedOffer.transporterCode,
           tracking_number: trackingNumber,
           label_url: labelPdfUrl,
+          label_path: (labelPdfUrl && !labelUploadError) ? labelStoragePath : null,
           status: (transporterLabelId && labelPdfUrl) ? "created" : "pending",
           ...(!labelPdfUrl && labelUploadError ? { error_message: labelUploadError } : {}),
         },

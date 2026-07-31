@@ -53,16 +53,45 @@ export function useBatchLabelPrint() {
       throw error;
     }
 
+    // De bucket `shipping-labels` is privé: rauwe `label_url`-waardes
+    // (/object/public/…) geven 400/403. We signen daarom per label via
+    // `get-document-url` (kolom `label_path`, TTL 600s).
+    const labelIdByOrder = new Map<string, { labelId: string; carrier?: string }>();
     for (const order of orders || []) {
-      const labels = order.shipping_labels as Array<{ id: string; label_url: string | null; carrier: string | null }> | null;
+      const labels = order.shipping_labels as Array<{ id: string; carrier: string | null }> | null;
       const latestLabel = labels?.[0];
+      if (latestLabel?.id) {
+        labelIdByOrder.set(order.id, { labelId: latestLabel.id, carrier: latestLabel.carrier || undefined });
+      }
+    }
+
+    const labelIds = Array.from(labelIdByOrder.values()).map(v => v.labelId);
+    const signedById = new Map<string, string>();
+
+    if (labelIds.length > 0) {
+      const { data, error: signError } = await supabase.functions.invoke('get-document-url', {
+        body: { doc_type: 'shipping_label', kind: 'pdf', doc_ids: labelIds },
+      });
+      if (signError) {
+        console.error('Error signing label URLs:', signError);
+      } else {
+        const files = (data as { files?: Array<{ id: string; url: string }> } | null)?.files ?? [];
+        for (const f of files) {
+          if (f?.id && f?.url) signedById.set(f.id, f.url);
+        }
+      }
+    }
+
+    for (const order of orders || []) {
+      const entry = labelIdByOrder.get(order.id);
+      const signedUrl = entry ? signedById.get(entry.labelId) : undefined;
 
       statuses.push({
         orderId: order.id,
         orderNumber: order.order_number || order.id.slice(0, 8),
-        status: latestLabel?.label_url ? 'pending' : 'no_label',
-        labelUrl: latestLabel?.label_url || undefined,
-        carrier: latestLabel?.carrier || undefined,
+        status: signedUrl ? 'pending' : 'no_label',
+        labelUrl: signedUrl,
+        carrier: entry?.carrier,
       });
     }
 

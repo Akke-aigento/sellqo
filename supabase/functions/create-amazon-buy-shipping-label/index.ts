@@ -250,6 +250,9 @@ Deno.serve(async (req) => {
 
     // Step 4: Store label in Supabase Storage
     let labelUrl = null
+    // Storage-key van het label; `get-document-url` signt uitsluitend op
+    // `label_path` (privé bucket).
+    let labelPath: string | null = null
     if (shipment.label?.fileContents?.contents) {
       const labelBytes = Uint8Array.from(atob(shipment.label.fileContents.contents), c => c.charCodeAt(0))
       const fileName = `${order.tenant_id}/${order_id}/amazon-label-${Date.now()}.pdf`
@@ -268,6 +271,7 @@ Deno.serve(async (req) => {
           .from('shipping-labels')
           .getPublicUrl(fileName)
         labelUrl = urlData.publicUrl
+        labelPath = fileName
       }
     }
 
@@ -280,6 +284,7 @@ Deno.serve(async (req) => {
         carrier: selectedService.carrierName,
         tracking_number: shipment.trackingId,
         label_url: labelUrl,
+        label_path: labelUrl ? labelPath : null,
         label_format: 'pdf',
         provider: 'amazon_buy_shipping',
         raw_response: shipment
