@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.07ak — Kortingscodes per teamlid vrijgeven (feature, 31-07-2026)
+
+**Kortingscodes per teamlid vrijgeven** (juli 2026)
+Een kortingscode van 100% is direct geld. Daarom is "kortingscodes beheren" nu geen
+onderdeel meer van de marketingrol als geheel, maar een recht dat je per persoon
+toekent. Beheerders zien in de ledenlijst bij elk lid met de marketingrol een
+schakelaar "Mag kortingscodes beheren".
+Wat betekent dit voor jou? Werk je met een externe marketier? Dan bepaal je zelf of
+die persoon codes mag aanmaken en wijzigen. Beheerders en medewerkers houden dit
+recht onvoorwaardelijk. Je regelt het via Instellingen → Teamleden.
+
+**i18n-keys.** `public.changelog.changes.per_user_discount_rights` — NL/EN/FR/DE aanwezig.
+
 ### 2026.07ad — Verzendklassen (feature, 25-07-2026)
 
 **Slimmer keuzemenu bij verzenden** (juli 2026)
