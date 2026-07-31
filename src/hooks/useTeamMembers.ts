@@ -13,6 +13,8 @@ export interface TeamMember {
   full_name: string | null;
   avatar_url: string | null;
   created_at: string;
+  /** PERM-1 — mag dit lid kortingscodes beheren (alleen relevant voor rol `marketing`). */
+  canManageDiscountCodes: boolean;
 }
 
 export function useTeamMembers() {
@@ -53,6 +55,15 @@ export function useTeamMembers() {
 
       if (profilesError) throw profilesError;
 
+      // PERM-1 — per-gebruiker rechten voor deze tenant.
+      const { data: permGrants, error: grantsError } = await supabase
+        .from('user_permission_grants')
+        .select('user_id, resource')
+        .eq('tenant_id', currentTenant.id)
+        .in('user_id', userIds);
+
+      if (grantsError) throw grantsError;
+
       // Combine the data
       const combined: TeamMember[] = roles.map(role => {
         const profile = profiles?.find(p => p.id === role.user_id);
@@ -64,6 +75,9 @@ export function useTeamMembers() {
           full_name: profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           created_at: role.created_at,
+          canManageDiscountCodes: (permGrants ?? []).some(
+            g => g.user_id === role.user_id && g.resource === 'discount_codes',
+          ),
         };
       });
 
