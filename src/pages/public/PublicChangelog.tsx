@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.07ak', dateKey: 'jul_2026', changes: [{ id: 'per_user_discount_rights', type: 'feature' }] },
   { version: '2026.07aj', dateKey: 'jul_2026', changes: [{ id: 'shipping_label_downloads', type: 'bugfix' }] },
   { version: '2026.07ai', dateKey: 'jul_2026', changes: [{ id: 'sec_role_scoped_reads', type: 'security' }] },
   { version: '2026.07ah', dateKey: 'jul_2026', changes: [{ id: 'sec_marketing_role_scope', type: 'security' }] },
