@@ -1,0 +1,23 @@
+---
+name: Per-user permission grants (PERM-1)
+description: user_permission_grants table + has_permission_grant helper; marketing role needs explicit grant to write discount_codes
+type: feature
+---
+Rechten zijn niet alleen per rol maar ook **per gebruiker** te verlenen via
+`public.user_permission_grants (tenant_id, user_id, resource text, granted_by)`.
+Aanwezigheid van een rij = recht verleend; intrekken = rij verwijderen (geen booleaan).
+`resource` is `text`, geen enum, zodat er rechten bij kunnen zonder schemawijziging.
+
+- Helper: `public.has_permission_grant(_user_id, _tenant_id, _resource)` — SECURITY DEFINER,
+  EXECUTE alleen voor `authenticated` + `service_role` (SEC-0a-conventie).
+- Toekennen/intrekken uitsluitend door `tenant_admin` of `is_platform_admin`; `INSERT`
+  dwingt `granted_by = auth.uid()` af.
+- Toegepast op `discount_codes` writes: `tenant_admin` en `staff` onvoorwaardelijk,
+  `marketing` alleen mét grant. De SELECT-policy is ongemoeid.
+- Frontend: `src/hooks/usePermissionGrants.ts` (`usePermissionGrants`,
+  `useCanWriteDiscountCodes`). **`useCan` blijft synchroon** — de grant is een
+  aanvullende check, nooit in `useCan` inbouwen.
+- Rechten leven op drie plaatsen: `PERMISSION_MATRIX`, RLS-policies, grants-tabel.
+  Bij meer dan een handvol resources hoort de matrix eerst naar de database.
+- Promotietabellen (`automatic_discounts`, `volume_discounts`, `bogo_promotions`,
+  `gift_promotions`, `discount_stacking_rules`) vallen nog **niet** onder de grant.
