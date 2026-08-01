@@ -641,7 +641,7 @@ export default function InvoicesPage() {
                   if (canWriteInvoices) {
                     actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
                   }
-                  actions.push({ label: 'Creditnota aanmaken', onClick: () => {/* handled by dedicated button via menu — fallback no-op */} });
+                  
                   if (canWriteInvoices && invoice.status === 'paid') {
                     actions.push({
                       separator: true,

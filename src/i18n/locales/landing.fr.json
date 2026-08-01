@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "credit_note_button_fix": {
+          "title": "Créer une note de crédit fonctionne à nouveau partout",
+          "description": "L'action 'Créer une note de crédit' dans le menu factures n'ouvrait pas de dialogue dans certaines vues. C'est corrigé."
+        },
         "invoice_refund": {
           "title": "Remboursements sans le tableau de bord Stripe",
           "description": "Les factures payées — y compris les factures d'abonnement — se remboursent désormais intégralement depuis SellQo : une seule action crée le remboursement Stripe et la note de crédit, qui part automatiquement vers votre comptabilité."
