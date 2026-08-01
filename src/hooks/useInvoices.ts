@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { Invoice, InvoiceStatus } from '@/types/invoice';
 
 interface InvoiceFilters {
@@ -142,6 +143,18 @@ export function useInvoices(filters?: InvoiceFilters) {
     },
   });
 
+  const refundInvoice = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      return await invokeWithErrorBody<{ credit_note_number?: string }>('refund-invoice', {
+        body: { invoice_id: invoiceId },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+    },
+  });
+
   return {
     invoices,
     isLoading,
@@ -150,6 +163,7 @@ export function useInvoices(filters?: InvoiceFilters) {
     resendInvoice,
     updateInvoiceStatus,
     markPeppolSent,
+    refundInvoice,
   };
 }
 

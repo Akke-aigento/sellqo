@@ -654,39 +654,138 @@
       "csv_note": "For your own CSV or Excel files, download our templates in the next step. Required columns for products are name, sku and price. Separate multiple tags or images with a pipe (|).",
       "platforms": {
         "shopify": {
-          "customers": ["Go to Shopify Admin → Customers.", "Click \"Export\" in the top right.", "Choose \"All customers\" or \"Current search\".", "Select \"CSV for Excel, Numbers, or other spreadsheet programs\".", "Click \"Export customers\" and download the file."],
-          "products": ["Go to Shopify Admin → Products.", "Click \"Export\" in the top right.", "Choose \"All products\" or your current selection.", "Select the CSV format for Excel.", "Download the file — variants appear as extra rows below the parent product."],
-          "orders": ["Go to Shopify Admin → Orders.", "Filter by the date range you want to export.", "Click \"Export\" in the top right.", "Choose CSV and download the file."],
-          "categories": ["Shopify does not export a separate category list.", "Categories live in the \"Product Category\" and \"Type\" columns of your product export.", "Upload your products CSV — SellQo will create the categories automatically."],
-          "coupons": ["Go to Shopify Admin → Discounts.", "Click \"Export\" and choose CSV.", "Download the file."]
+          "customers": [
+            "Go to Shopify Admin → Customers.",
+            "Click \"Export\" in the top right.",
+            "Choose \"All customers\" or \"Current search\".",
+            "Select \"CSV for Excel, Numbers, or other spreadsheet programs\".",
+            "Click \"Export customers\" and download the file."
+          ],
+          "products": [
+            "Go to Shopify Admin → Products.",
+            "Click \"Export\" in the top right.",
+            "Choose \"All products\" or your current selection.",
+            "Select the CSV format for Excel.",
+            "Download the file — variants appear as extra rows below the parent product."
+          ],
+          "orders": [
+            "Go to Shopify Admin → Orders.",
+            "Filter by the date range you want to export.",
+            "Click \"Export\" in the top right.",
+            "Choose CSV and download the file."
+          ],
+          "categories": [
+            "Shopify does not export a separate category list.",
+            "Categories live in the \"Product Category\" and \"Type\" columns of your product export.",
+            "Upload your products CSV — SellQo will create the categories automatically."
+          ],
+          "coupons": [
+            "Go to Shopify Admin → Discounts.",
+            "Click \"Export\" and choose CSV.",
+            "Download the file."
+          ]
         },
         "woocommerce": {
-          "customers": ["Optionally install the free \"Customer/Order/Coupon Export\" plugin.", "Go to WooCommerce → Customers (or Exports).", "Select which customers you want to export.", "Choose CSV and click \"Export\"."],
-          "products": ["Go to Products → All Products.", "Click \"Export\" at the top.", "Select all products and the fields you need.", "Generate and download the CSV."],
-          "orders": ["Go to WooCommerce → Orders.", "Use the \"Export\" button or the Order Export plugin.", "Choose the date range and download the CSV."],
-          "categories": ["Go to Products → Categories.", "Use the \"WP All Export\" plugin or Tools → Export with taxonomy \"product_cat\".", "Download the file."],
-          "coupons": ["Go to WooCommerce → Coupons.", "Use the export button or the Coupon Export plugin.", "Download the CSV."]
+          "customers": [
+            "Optionally install the free \"Customer/Order/Coupon Export\" plugin.",
+            "Go to WooCommerce → Customers (or Exports).",
+            "Select which customers you want to export.",
+            "Choose CSV and click \"Export\"."
+          ],
+          "products": [
+            "Go to Products → All Products.",
+            "Click \"Export\" at the top.",
+            "Select all products and the fields you need.",
+            "Generate and download the CSV."
+          ],
+          "orders": [
+            "Go to WooCommerce → Orders.",
+            "Use the \"Export\" button or the Order Export plugin.",
+            "Choose the date range and download the CSV."
+          ],
+          "categories": [
+            "Go to Products → Categories.",
+            "Use the \"WP All Export\" plugin or Tools → Export with taxonomy \"product_cat\".",
+            "Download the file."
+          ],
+          "coupons": [
+            "Go to WooCommerce → Coupons.",
+            "Use the export button or the Coupon Export plugin.",
+            "Download the CSV."
+          ]
         },
         "magento": {
-          "customers": ["Go to Admin → System → Data Transfer → Export.", "Choose Entity Type \"Customers Main File\".", "Choose CSV and click \"Continue\"."],
-          "products": ["Go to Admin → System → Data Transfer → Export.", "Choose Entity Type \"Products\".", "Choose CSV and click \"Continue\"."],
-          "orders": ["Go to Admin → Sales → Orders.", "Select orders or filter by date.", "Click \"Export\" at the top and choose CSV."],
-          "categories": ["Magento does not export categories through the admin by default.", "Use a third-party module or export your products and rebuild the tree in SellQo."],
-          "coupons": ["Go to Admin → Marketing → Promotions → Cart Price Rules.", "Export via the Actions button or System → Data Transfer."]
+          "customers": [
+            "Go to Admin → System → Data Transfer → Export.",
+            "Choose Entity Type \"Customers Main File\".",
+            "Choose CSV and click \"Continue\"."
+          ],
+          "products": [
+            "Go to Admin → System → Data Transfer → Export.",
+            "Choose Entity Type \"Products\".",
+            "Choose CSV and click \"Continue\"."
+          ],
+          "orders": [
+            "Go to Admin → Sales → Orders.",
+            "Select orders or filter by date.",
+            "Click \"Export\" at the top and choose CSV."
+          ],
+          "categories": [
+            "Magento does not export categories through the admin by default.",
+            "Use a third-party module or export your products and rebuild the tree in SellQo."
+          ],
+          "coupons": [
+            "Go to Admin → Marketing → Promotions → Cart Price Rules.",
+            "Export via the Actions button or System → Data Transfer."
+          ]
         },
         "prestashop": {
-          "customers": ["Go to Back Office → Customers → Customers.", "Click the Export icon (CSV) in the top right.", "The file downloads automatically."],
-          "products": ["Go to Back Office → Catalog → Products.", "Click \"Export\" in the top right.", "Download the CSV."],
-          "orders": ["Go to Back Office → Orders → Orders.", "Click \"Export\" in the top right.", "Download the CSV."],
-          "categories": ["Go to Back Office → Catalog → Categories.", "Click \"Export\" in the top right.", "Download the CSV."],
-          "coupons": ["Go to Back Office → Catalog → Discounts → Cart Rules.", "Click \"Export\" in the top right and download the CSV."]
+          "customers": [
+            "Go to Back Office → Customers → Customers.",
+            "Click the Export icon (CSV) in the top right.",
+            "The file downloads automatically."
+          ],
+          "products": [
+            "Go to Back Office → Catalog → Products.",
+            "Click \"Export\" in the top right.",
+            "Download the CSV."
+          ],
+          "orders": [
+            "Go to Back Office → Orders → Orders.",
+            "Click \"Export\" in the top right.",
+            "Download the CSV."
+          ],
+          "categories": [
+            "Go to Back Office → Catalog → Categories.",
+            "Click \"Export\" in the top right.",
+            "Download the CSV."
+          ],
+          "coupons": [
+            "Go to Back Office → Catalog → Discounts → Cart Rules.",
+            "Click \"Export\" in the top right and download the CSV."
+          ]
         },
         "lightspeed": {
-          "customers": ["eCom: Back Office → Tools → Exports → Customers. Retail: Reports → Customers → Export.", "Choose CSV and download."],
-          "products": ["eCom: Back Office → Tools → Exports → Products. Retail: Reports → Inventory → Export.", "Choose CSV and download."],
-          "orders": ["eCom: Back Office → Tools → Exports → Orders. Retail: Reports → Sales → Export.", "Choose CSV and download."],
-          "categories": ["eCom: Back Office → Tools → Exports → Categories.", "Download the file."],
-          "coupons": ["eCom: Back Office → Marketing → Discount codes → Export (when available).", "Download the file."]
+          "customers": [
+            "eCom: Back Office → Tools → Exports → Customers. Retail: Reports → Customers → Export.",
+            "Choose CSV and download."
+          ],
+          "products": [
+            "eCom: Back Office → Tools → Exports → Products. Retail: Reports → Inventory → Export.",
+            "Choose CSV and download."
+          ],
+          "orders": [
+            "eCom: Back Office → Tools → Exports → Orders. Retail: Reports → Sales → Export.",
+            "Choose CSV and download."
+          ],
+          "categories": [
+            "eCom: Back Office → Tools → Exports → Categories.",
+            "Download the file."
+          ],
+          "coupons": [
+            "eCom: Back Office → Marketing → Discount codes → Export (when available).",
+            "Download the file."
+          ]
         }
       }
     },
@@ -842,6 +941,18 @@
       "label": "Auto-post in Odoo",
       "help": "Off = entries arrive as drafts; your bookkeeper posts them and sends Peppol from Odoo.",
       "peppolDisabledNote": "Automatic Peppol sending requires Auto-post."
+    },
+    "invoiceRefund": {
+      "action": "Refund & credit",
+      "alreadyRefunded": "Already refunded",
+      "confirmTitle": "Refund this invoice in full?",
+      "confirmAmount": "Amount: {{amount}}",
+      "confirmDescription": "This creates a full Stripe refund and a credit note. This cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Refund & credit",
+      "successTitle": "Refund processed",
+      "successDescription": "The Stripe refund and the credit note have been created.",
+      "errorTitle": "Refund failed"
     }
   }
 }
