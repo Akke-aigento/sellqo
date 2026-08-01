@@ -1127,6 +1127,11 @@
           "description": "Verzendlabels: downloaden en batch-printen van labels werkt weer betrouwbaar."
         },
         "sec_role_scoped_reads": {
+          "title": "Interne databasefuncties extra afgeschermd",
+          "description": "Interne databasehandelingen controleren nu eerst of je toegang hebt tot de betrokken organisatie voordat ze iets doen. Ongebruikte interne functies zijn helemaal niet meer aanroepbaar vanuit de app.",
+          "_placeholder": true
+        },
+        "sec_role_scoped_reads_orig": {
           "title": "Gegevens strikter afgeschermd per rol",
           "description": "Teamleden zien voortaan alleen de gegevens die bij hun rol horen. Wie ergens geen rechten voor heeft, krijgt dat onderdeel niet langer te zien."
         },
