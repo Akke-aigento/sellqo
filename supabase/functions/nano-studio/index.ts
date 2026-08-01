@@ -341,10 +341,12 @@ async function handleStatus(
   }
   const imgBuf = new Uint8Array(await dlRes.arrayBuffer());
 
-  const storagePath = `${job.tenant_id}/nano/${job.id}.png`;
+  const ext = job.output_format === "png" ? "png" : "jpg";
+  const contentType = job.output_format === "png" ? "image/png" : "image/jpeg";
+  const storagePath = `${job.tenant_id}/nano/${job.id}.${ext}`;
   const { error: upErr } = await admin.storage
     .from("ai-images")
-    .upload(storagePath, imgBuf, { contentType: "image/png", upsert: true });
+    .upload(storagePath, imgBuf, { contentType, upsert: true });
   if (upErr) {
     console.error("[nano-studio] storage upload failed:", upErr.message);
     return jsonResponse(502, { success: false, error: "storage_upload_failed" });
