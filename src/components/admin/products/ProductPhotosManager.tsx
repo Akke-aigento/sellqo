@@ -5,6 +5,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useAIImages } from '@/hooks/useAIImages';
 import { useAICredits } from '@/hooks/useAICredits';
 import { ImageEditorDialog } from './ImageEditorDialog';
+import { ProductPhotoLibraryCard } from './ProductPhotoLibraryCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -190,6 +191,7 @@ export function ProductPhotosManager() {
 
   return (
     <div className="space-y-6">
+      <ProductPhotoLibraryCard />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
