@@ -4621,6 +4621,44 @@ Dit is beheersbaar zolang het bij een handvol resources blijft. Bij verdere uitb
 hoort de matrix éérst naar de database te verhuizen, zodat UI en RLS uit één bron lezen;
 anders lopen de drie plaatsen onvermijdelijk uit elkaar.
 
+### Frontend (aparte batch: PERM-1-UI, 01-08-2026)
+
+De eerste batch werd afgebroken nadat de databaselaag was geland; de frontend is daarna in
+een aparte batch afgerond. Zonder die batch was het recht wel vereist maar nergens toe te
+kennen behalve met handmatige SQL. Wat er nu staat:
+
+- `src/hooks/usePermissionGrants.ts` — `usePermissionGrants()` haalt de grants van de
+  **huidige** gebruiker voor de **huidige** tenant op (`useAuth()` + `useTenant()`) en
+  geeft `{ grants, hasGrant, isLoading, refetch }`. Stijl volgt `useTeamMembers.ts`:
+  `useState` + `useEffect` + `useCallback`, geen react-query. Daarnaast de afgeleide
+  `useCanWriteDiscountCodes()`, die `tenant_admin` / `staff` / `platform_admin`
+  onvoorwaardelijk toestaat en voor `marketing` op de grant terugvalt (`needsGrant` voor
+  de uitleg in de UI).
+- `src/hooks/useTeamMembers.ts` — `TeamMember` heeft nu `canManageDiscountCodes`. De
+  grants worden in **één** query per tenant opgehaald (`user_id, resource` gefilterd op
+  `tenant_id`) en in-memory aan de leden gekoppeld; geen query per lid. `setPermissionGrant(userId, resource, granted)`
+  doet insert (met `granted_by` = ingelogde gebruiker) of delete, met try/catch, toast en
+  `await fetchMembers()`, in dezelfde stijl als `updateMemberRole`.
+- `src/components/admin/settings/TeamSettings.tsx` — kolom "Kortingscodes" met een
+  `Switch`, uitsluitend gerenderd voor leden met rol `marketing` (andere rollen: streepje,
+  want zij hebben het recht onvoorwaardelijk of krijgen het sowieso niet). Bedienbaar
+  alleen wanneer `useCan('write', 'team')` waar is; anders uitgeschakeld zodat de stand
+  zichtbaar blijft. `aria-label` "Mag kortingscodes aanmaken en wijzigen". De
+  rollenlegenda vermeldt nu expliciet dat kortingscodes beheren een apart, per persoon in
+  te schakelen recht is en niet standaard bij de marketingrol hoort.
+- Kortingscode-UI afgeschermd via `useCanWriteDiscountCodes()`:
+  `src/pages/admin/Discounts.tsx` (knop "Nieuwe code" + uitleg-alert),
+  `src/components/admin/DiscountCodeDialog.tsx` (opslaan geblokkeerd, lock-alert) en
+  `src/components/admin/DiscountCodeCard.tsx` (bewerken/verwijderen verborgen). Lezen is
+  ongewijzigd — de `SELECT`-policy is niet aangeraakt.
+- `useCan` is bewust **synchroon** gebleven; de grant is een aanvullende check ernaast,
+  niet een vervanging (zie de sectie hierboven).
+
+**Losse observatie:** `getRoleBadge` in `TeamSettings.tsx` had géén `case 'marketing'` en
+toonde daardoor sinds de uitbreiding van de `app_role`-enum de rauwe string `marketing` in
+de ledenlijst. Gecorrigeerd naar een roze Marketing-badge, passend bij de legenda die die
+badge al gebruikte.
+
 ### Verificatie (alle groen)
 
 - `pg_class.relrowsecurity` op `user_permission_grants` = `true`.
