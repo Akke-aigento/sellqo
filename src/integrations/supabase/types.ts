@@ -8253,6 +8253,7 @@ export type Database = {
           id: string
           mode: string
           model: string
+          output_format: string
           prompt: string
           resolution: string | null
           result_url: string | null
@@ -8272,6 +8273,7 @@ export type Database = {
           id?: string
           mode: string
           model: string
+          output_format?: string
           prompt: string
           resolution?: string | null
           result_url?: string | null
@@ -8291,6 +8293,7 @@ export type Database = {
           id?: string
           mode?: string
           model?: string
+          output_format?: string
           prompt?: string
           resolution?: string | null
           result_url?: string | null
