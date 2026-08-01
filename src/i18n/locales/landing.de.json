@@ -1126,6 +1126,10 @@
           "title": "Versandlabels wieder zuverlässig ladbar",
           "description": "Versandlabels: Das Herunterladen und Stapeldrucken von Labels funktioniert wieder zuverlässig."
         },
+        "sec_rpc_authorization_guards": {
+          "title": "Interne Datenbankfunktionen zusätzlich abgesichert",
+          "description": "Interne Datenbankvorgänge prüfen jetzt zuerst, ob Sie Zugriff auf die betroffene Organisation haben, bevor sie etwas ausführen. Ungenutzte interne Funktionen sind aus der App nicht mehr aufrufbar."
+        },
         "sec_role_scoped_reads": {
           "title": "Datenzugriff strenger nach Rolle geregelt",
           "description": "Teammitglieder sehen jetzt nur noch die Daten, die zu ihrer Rolle gehören. Alles außerhalb ihrer Berechtigungen wird ihnen nicht mehr angezeigt."
