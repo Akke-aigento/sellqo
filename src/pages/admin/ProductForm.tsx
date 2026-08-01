@@ -28,7 +28,8 @@ import {
   Gift,
   Languages,
   ExternalLink,
-  Wand2
+  Wand2,
+  Library
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -37,6 +38,7 @@ import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMar
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
+import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 import { AIUpsellHint } from '@/components/admin/ai/AIUpsellHint';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
@@ -165,6 +167,7 @@ export default function ProductForm() {
   const [descOpen, setDescOpen] = useState(false);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [imageEditorUrl, setImageEditorUrl] = useState('');
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [bundleItemsState, setBundleItemsState] = useState<Array<{
     child_product_id: string;
     quantity: number;
@@ -421,6 +424,16 @@ export default function ProductForm() {
       });
     }
     e.target.value = '';
+  };
+
+  const handleLibrarySelect = (urls: string[]) => {
+    if (urls.length === 0) return;
+    const currentImages = form.getValues('images') || [];
+    const merged = [...currentImages, ...urls.filter(u => !currentImages.includes(u))];
+    form.setValue('images', merged, { shouldDirty: true });
+    if (!form.getValues('featured_image') && merged.length > 0) {
+      form.setValue('featured_image', merged[0], { shouldDirty: true });
+    }
   };
 
   const downloadImage = async (url: string, filename: string) => {
@@ -1538,7 +1551,7 @@ export default function ProductForm() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Afbeeldingen</CardTitle>
-                      <CardDescription>Upload afbeeldingen van je product</CardDescription>
+                      <CardDescription>Upload afbeeldingen of kies uit je mediabibliotheek</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -1558,6 +1571,15 @@ export default function ProductForm() {
                             <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
                           </label>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setLibraryPickerOpen(true)}
+                        >
+                          <Library className="mr-2 h-4 w-4" />
+                          Kies uit bibliotheek
+                        </Button>
                         {form.watch('images').length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {form.watch('images').map((url, index) => (
@@ -1860,6 +1882,13 @@ export default function ProductForm() {
             }
           }
         }}
+      />
+
+      <MediaLibraryPickerDialog
+        open={libraryPickerOpen}
+        onOpenChange={setLibraryPickerOpen}
+        existingUrls={form.watch('images') || []}
+        onSelect={handleLibrarySelect}
       />
     </div>
   );

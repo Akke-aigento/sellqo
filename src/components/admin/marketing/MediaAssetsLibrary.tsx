@@ -272,8 +272,8 @@ export function MediaAssetsLibrary() {
   // Merge and filter
   const allAssets = useMemo(() => {
     let combined: VirtualAsset[];
-    if (folder === 'products') combined = productAssets;
-    else if (folder === 'categories') combined = categoryAssets;
+    if (folder === 'products') combined = [...mediaVirtualAssets, ...productAssets];
+    else if (folder === 'categories') combined = [...mediaVirtualAssets, ...categoryAssets];
     else combined = [...mediaVirtualAssets, ...productAssets, ...categoryAssets];
     if (!search) return combined;
     const q = search.toLowerCase();
@@ -380,7 +380,7 @@ export function MediaAssetsLibrary() {
           file_type: file.type,
           file_size: file.size,
           source: 'upload',
-          folder: folder === 'all' || folder === 'favorites' || folder === 'products' ? 'general' : folder,
+          folder: folder === 'all' || folder === 'favorites' ? 'general' : folder,
           tags: [],
           is_ai_generated: false,
           is_favorite: false,
