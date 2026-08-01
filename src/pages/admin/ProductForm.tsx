@@ -28,7 +28,8 @@ import {
   Gift,
   Languages,
   ExternalLink,
-  Wand2
+  Wand2,
+  Library
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -37,6 +38,7 @@ import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMar
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
+import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 import { AIUpsellHint } from '@/components/admin/ai/AIUpsellHint';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
@@ -165,6 +167,7 @@ export default function ProductForm() {
   const [descOpen, setDescOpen] = useState(false);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [imageEditorUrl, setImageEditorUrl] = useState('');
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [bundleItemsState, setBundleItemsState] = useState<Array<{
     child_product_id: string;
     quantity: number;
@@ -421,6 +424,16 @@ export default function ProductForm() {
       });
     }
     e.target.value = '';
+  };
+
+  const handleLibrarySelect = (urls: string[]) => {
+    if (urls.length === 0) return;
+    const currentImages = form.getValues('images') || [];
+    const merged = [...currentImages, ...urls.filter(u => !currentImages.includes(u))];
+    form.setValue('images', merged, { shouldDirty: true });
+    if (!form.getValues('featured_image') && merged.length > 0) {
+      form.setValue('featured_image', merged[0], { shouldDirty: true });
+    }
   };
 
   const downloadImage = async (url: string, filename: string) => {
