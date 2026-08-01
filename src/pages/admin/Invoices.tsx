@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import type { InvoiceStatus } from '@/types/invoice';
 import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
+import { RefundInvoiceButton } from '@/components/admin/RefundInvoiceButton';
 import { CreditNotesTable } from '@/components/admin/CreditNotesTable';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
@@ -69,7 +70,7 @@ export default function InvoicesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const { invoices, isLoading, resendInvoice, markPeppolSent, refetch } = useInvoices({
+  const { invoices, isLoading, resendInvoice, markPeppolSent, refundInvoice, refetch } = useInvoices({
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
     peppolPending: peppolPendingOnly || undefined,
@@ -94,6 +95,7 @@ export default function InvoicesPage() {
     ublPath?: string | null;
     peppolStatus?: string | null;
     language?: string | null;
+    refundedAt?: string | null;
   };
 
   const combined: Combined[] = useMemo(() => {
@@ -115,6 +117,7 @@ export default function InvoicesPage() {
       ublPath: (i as any).ubl_path ?? null,
       peppolStatus: (i as any).peppol_status ?? null,
       language: (i as any).language ?? null,
+      refundedAt: ((i as any).metadata?.stripe_refund_id ?? null) ? 'refunded' : null,
       dunning_level: (i as any).dunning_level ?? 0,
     }));
     const fromCNs: Combined[] = creditNotes.map((c: any) => ({
@@ -279,6 +282,18 @@ export default function InvoicesPage() {
               invoiceNumber={r.invoiceNumber!}
               onSuccess={() => refetch()}
               variant="menuItem"
+            />
+          ),
+        });
+      }
+      if (canWriteInvoices && r.status === 'paid') {
+        items.push({
+          separator: true,
+          render: () => (
+            <RefundInvoiceButton
+              amountLabel={formatCurrency(r.amount)}
+              alreadyRefunded={!!r.refundedAt}
+              onConfirm={() => refundInvoice.mutateAsync(r.id)}
             />
           ),
         });
