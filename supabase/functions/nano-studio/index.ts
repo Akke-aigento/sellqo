@@ -133,7 +133,14 @@ async function handleGenerate(
   const resolution = body.resolution ?? "2K";
   const aspect_ratio = body.aspect_ratio ?? "4:5";
   const num_images = body.num_images ?? 1;
-  const output_format = body.output_format ?? "png";
+  const requestedFormat = body.output_format ?? "jpeg";
+  let output_format = requestedFormat;
+  if (output_format !== "png" && output_format !== "jpeg") {
+    console.warn(
+      `[nano-studio] invalid output_format "${requestedFormat}", falling back to jpeg`,
+    );
+    output_format = "jpeg";
+  }
 
   const upstreamPayload: Record<string, unknown> = {
     prompt: body.prompt,
@@ -202,6 +209,7 @@ async function handleGenerate(
       source_image_url: body.image_url ?? null,
       aspect_ratio,
       resolution,
+      output_format,
       credits_used,
       source_product_id: body.source_product_id ?? null,
     })
