@@ -676,6 +676,18 @@ export default function InvoicesPage() {
               if (invoiceAny.ubl_path) actions.push({ label: t('peppol.download_ubl'), icon: <FileCode className="h-4 w-4" />, onClick: () => openDocument('invoice', invoice.id, 'ubl') });
               if (canWriteInvoices && ['pending','manual_action'].includes(invoiceAny.peppol_status)) actions.push({ label: t('peppol.mark_as_sent'), icon: <CheckCircle className="h-4 w-4" />, onClick: () => markPeppolSent.mutate(invoice.id) });
               if (canWriteInvoices) actions.push({ label: 'Opnieuw versturen', icon: <Mail className="h-4 w-4" />, onClick: () => resendInvoice.mutate(invoice.id) });
+              if (canWriteInvoices && invoice.status === 'paid') {
+                actions.push({
+                  separator: true,
+                  render: () => (
+                    <RefundInvoiceButton
+                      amountLabel={formatCurrency(Number(invoice.total || 0))}
+                      alreadyRefunded={!!invoiceAny.metadata?.stripe_refund_id}
+                      onConfirm={() => refundInvoice.mutateAsync(invoice.id)}
+                    />
+                  ),
+                });
+              }
               return (
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
