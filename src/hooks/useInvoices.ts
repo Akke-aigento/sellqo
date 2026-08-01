@@ -142,6 +142,26 @@ export function useInvoices(filters?: InvoiceFilters) {
     },
   });
 
+  const refundInvoice = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { data, error } = await supabase.functions.invoke('refund-invoice', {
+        body: { invoice_id: invoiceId },
+      });
+      if (error) {
+        const detail = (data as { error?: string } | null)?.error;
+        throw new Error(detail || error.message);
+      }
+      if (data && (data as { success?: boolean }).success === false) {
+        throw new Error((data as { error?: string }).error || 'Terugbetaling mislukt');
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-notes'] });
+    },
+  });
+
   return {
     invoices,
     isLoading,
@@ -150,6 +170,7 @@ export function useInvoices(filters?: InvoiceFilters) {
     resendInvoice,
     updateInvoiceStatus,
     markPeppolSent,
+    refundInvoice,
   };
 }
 
