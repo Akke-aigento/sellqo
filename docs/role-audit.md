@@ -4723,3 +4723,112 @@ DROP TABLE public.user_permission_grants;
 Newsletter-item voor PERM-1 staat in `docs/newsletter-queue.md` onder "Openstaand"
 (2026.07ak, tenant-zichtbaar). Er bestaat geen wachtrij**tabel** in de database, alleen
 dat document; het verzendmechanisme is nog te bevestigen, in lijn met SEC-3 en SEC-2a.
+
+---
+
+## SEC-0b — autorisatiechecks in RPC's die de frontend aanroept
+
+**Datum:** juli 2026 · **Changelog:** 2026.07al · **Migratie:** 1 (geen tabelwijzigingen)
+
+### Root cause
+
+Na SEC-0a (EXECUTE ingetrokken op 35 puur-interne functies) bleef een tweede bucket over:
+29 `SECURITY DEFINER`-functies die de frontend *wel* legitiem aanroept. Omdat ze als
+definer draaien, omzeilen ze RLS volledig, terwijl de tenant-parameter gewoon uit de
+client komt. Elke ingelogde gebruiker kon dus een willekeurige `tenant_id` (of
+`product_ids` van een andere tenant) meegeven. De autorisatie zat enkel in de UI, niet in
+de functie zelf.
+
+### Aanpak
+
+**Groep 1 — dood (EXECUTE volledig ingetrokken, alleen `service_role`)**
+`generate_content_hash`, `get_invitation_effective_status`,
+`initialize_ai_assistant_config`, `initialize_customer_communication_settings`.
+
+**Groep 2 — onschuldig (alleen `anon` ingetrokken)**
+`generate_gift_card_code`, `generate_fulfillment_api_key`, `generate_platform_ogm` —
+pure code-generatoren zonder datatoegang, maar niet nodig voor niet-ingelogden.
+
+**Groep 3 — tenant-guard toegevoegd + `anon` ingetrokken (22 functies)**
+
+- *3a — expliciete tenant-parameter:* `generate_invoice_number`,
+  `generate_order_number`, `generate_credit_note_number`, `generate_quote_number`,
+  `generate_rma_number`, `generate_po_number`, `generate_proforma_number`,
+  `generate_packing_slip_number`, `get_tenant_storage_bytes`,
+  `find_order_by_reference`, `update_ai_learning_pattern`, `add_ai_credits`,
+  `record_transaction`.
+- *3b — gebruikersparameter:* `track_user_behavior`, `update_user_learning_pattern` —
+  naast de tenant-check ook `p_user_id = auth.uid()`.
+- *3c — tenant afgeleid uit de entiteit:* `get_order_return_tag`,
+  `get_order_returnable_items` (via `orders.tenant_id`),
+  `calculate_session_expected_cash` (via `pos_sessions.tenant_id`),
+  `bulk_adjust_prices`, `bulk_adjust_stock`, `bulk_update_tags`,
+  `bulk_update_social_channels` (via `products.tenant_id`).
+
+`add_ai_credits` is géén tenant-handeling maar een platformhandeling: de guard eist
+`is_platform_admin(auth.uid())`.
+
+De bulk-functies zijn **alles-of-niets**: staat er één product buiten de eigen tenant in
+`p_product_ids`, dan faalt de hele call (`42501`) en wordt er niets aangepast. Geen
+stille filtering — dat zou een aanvaller een orakel geven en de teller misleiden.
+
+### Guard-patroon
+
+Alle guards gebruiken bewust:
+
+```sql
+IF auth.uid() IS NOT NULL AND NOT (public.is_platform_admin(auth.uid())
+    OR _tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))) THEN
+  RAISE EXCEPTION 'Geen toegang tot deze tenant' USING ERRCODE = '42501';
+END IF;
+```
+
+`auth.uid() IS NOT NULL AND ...` in plaats van een harde check, omdat een reeks van deze
+functies óók vanuit edge functions op de **service-role** wordt aangeroepen — daar is
+`auth.uid()` NULL en zou een harde guard checkout, tracking-webhooks en de
+subscription-runner breken. Omdat `anon` in dezelfde migratie EXECUTE verliest, is
+`auth.uid() IS NULL` voortaan gelijk aan "service-role of cron", niet aan "anonieme
+bezoeker". Concreet geverifieerde service-role-aanroepers: `storefront-api`,
+`stripe-connect-webhook`, `tracking-webhook`, `confirm-platform-bank-payment`
+(`add_ai_credits`), en de AI-leerfuncties.
+
+Twee functies waren `LANGUAGE sql` en zijn naar `plpgsql` gezet om een guard te kunnen
+bevatten: `get_tenant_storage_bytes` en `get_order_returnable_items`. Returntype,
+`STABLE`-volatiliteit, `SECURITY DEFINER` en `SET search_path` zijn ongewijzigd.
+
+Interne aanroepers binnen de database zijn nagetrokken: `create_credit_note_from_return`
+→ `generate_credit_note_number` en `redeem_gift_card` → `record_transaction`. Beide zijn
+zelf `SECURITY DEFINER` met eigen tenant-context; de guard slaagt daar op de
+tenant-lidmaatschapstak.
+
+### Verificatie
+
+Rechtenmatrix over alle 29 functies:
+
+| groep | anon | authenticated | service_role | guard aanwezig |
+| --- | --- | --- | --- | --- |
+| 1 (4 functies) | f | f | t | n.v.t. |
+| 2 (3 functies) | f | t | t | n.v.t. |
+| 3 (22 functies) | f | t | t | ja (`42501`) |
+
+Alle 29 rijen gecontroleerd via `has_function_privilege` en een `prosrc`-scan op
+`42501`. Geen enkele functie is nog voor `anon` uitvoerbaar.
+
+### Rollback
+
+Draai per functie de vorige definitie terug (bewaard in `/tmp/bucketb.sql` tijdens de
+batch; de definities staan één-op-één in de migratiehistoriek) en herstel de rechten:
+
+```sql
+GRANT EXECUTE ON FUNCTION public.<fn>(<args>) TO anon, authenticated;
+```
+
+Voor groep 1 volstaat `GRANT EXECUTE ... TO authenticated` — die functies hadden geen
+guard, alleen ingetrokken rechten.
+
+### Openstaand
+
+- Een newsletter-item is **niet** nodig: tenants merken hier functioneel niets van
+  (zie de werkwijze bij SEC-0a en SEC-1).
+- De promotie-RPC's en de resterende `SECURITY DEFINER`-views (linter: `0010`) vallen
+  buiten deze batch.
