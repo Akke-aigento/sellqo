@@ -1538,7 +1538,7 @@ export default function ProductForm() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Afbeeldingen</CardTitle>
-                      <CardDescription>Upload afbeeldingen van je product</CardDescription>
+                      <CardDescription>Upload afbeeldingen of kies uit je mediabibliotheek</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -1558,6 +1558,15 @@ export default function ProductForm() {
                             <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
                           </label>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setLibraryPickerOpen(true)}
+                        >
+                          <Library className="mr-2 h-4 w-4" />
+                          Kies uit bibliotheek
+                        </Button>
                         {form.watch('images').length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {form.watch('images').map((url, index) => (
