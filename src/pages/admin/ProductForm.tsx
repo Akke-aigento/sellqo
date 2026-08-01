@@ -1883,6 +1883,13 @@ export default function ProductForm() {
           }
         }}
       />
+
+      <MediaLibraryPickerDialog
+        open={libraryPickerOpen}
+        onOpenChange={setLibraryPickerOpen}
+        existingUrls={form.watch('images') || []}
+        onSelect={handleLibrarySelect}
+      />
     </div>
   );
 }
