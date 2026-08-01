@@ -1126,6 +1126,10 @@
           "title": "Shipping labels download reliably again",
           "description": "Shipping labels: downloading and batch printing labels works reliably again."
         },
+        "sec_rpc_authorization_guards": {
+          "title": "Internal database functions further locked down",
+          "description": "Internal database operations now first verify that you have access to the organisation involved before doing anything. Unused internal functions can no longer be called from the app."
+        },
         "sec_role_scoped_reads": {
           "title": "Data access tightened per role",
           "description": "Team members now only see the data that matches their role. Anything outside their permissions is no longer visible to them."

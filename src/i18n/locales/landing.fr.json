@@ -1126,6 +1126,10 @@
           "title": "Téléchargement des étiquettes rétabli",
           "description": "Étiquettes d'expédition : le téléchargement et l'impression par lot fonctionnent à nouveau de manière fiable."
         },
+        "sec_rpc_authorization_guards": {
+          "title": "Fonctions internes de la base de données mieux protégées",
+          "description": "Les opérations internes de la base de données vérifient désormais d'abord que vous avez accès à l'organisation concernée avant d'agir. Les fonctions internes inutilisées ne sont plus appelables depuis l'application."
+        },
         "sec_role_scoped_reads": {
           "title": "Accès aux données restreint selon le rôle",
           "description": "Les membres de l'équipe ne voient désormais que les données correspondant à leur rôle. Ce qui dépasse leurs autorisations ne leur est plus visible."
