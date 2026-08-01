@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { Invoice, InvoiceStatus } from '@/types/invoice';
 
 interface InvoiceFilters {
@@ -144,17 +145,9 @@ export function useInvoices(filters?: InvoiceFilters) {
 
   const refundInvoice = useMutation({
     mutationFn: async (invoiceId: string) => {
-      const { data, error } = await supabase.functions.invoke('refund-invoice', {
+      return await invokeWithErrorBody<{ credit_note_number?: string }>('refund-invoice', {
         body: { invoice_id: invoiceId },
       });
-      if (error) {
-        const detail = (data as { error?: string } | null)?.error;
-        throw new Error(detail || error.message);
-      }
-      if (data && (data as { success?: boolean }).success === false) {
-        throw new Error((data as { error?: string }).error || 'Terugbetaling mislukt');
-      }
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
