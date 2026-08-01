@@ -1011,9 +1011,14 @@
         "jul_2026": "July 2026",
         "q1_2025": "Q1 2025",
         "q4_2024": "Q4 2024",
-        "q2_2026": "Q2 2026"
+        "q2_2026": "Q2 2026",
+        "aug_2026": "August 2026"
       },
       "changes": {
+        "invoice_refund": {
+          "title": "Refunds without the Stripe dashboard",
+          "description": "Paid invoices — including subscription invoices — can now be refunded in full straight from SellQo: a single action creates the Stripe refund and the credit note, which flows automatically into your bookkeeping."
+        },
         "per_user_discount_rights": {
           "title": "Grant discount code access per team member",
           "description": "Admins can now decide per team member with the marketing role whether that person may create and edit discount codes. You manage this via Settings → Team members."

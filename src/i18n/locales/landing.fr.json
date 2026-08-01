@@ -1011,9 +1011,14 @@
         "jul_2026": "Juillet 2026",
         "q1_2025": "T1 2025",
         "q4_2024": "T4 2024",
-        "q2_2026": "T2 2026"
+        "q2_2026": "T2 2026",
+        "aug_2026": "Août 2026"
       },
       "changes": {
+        "invoice_refund": {
+          "title": "Remboursements sans le tableau de bord Stripe",
+          "description": "Les factures payées — y compris les factures d'abonnement — se remboursent désormais intégralement depuis SellQo : une seule action crée le remboursement Stripe et la note de crédit, qui part automatiquement vers votre comptabilité."
+        },
         "per_user_discount_rights": {
           "title": "Autoriser les codes de réduction par membre",
           "description": "Les administrateurs peuvent désormais déterminer, pour chaque membre ayant le rôle marketing, s’il peut créer et modifier des codes de réduction. Cela se gère via Paramètres → Membres de l’équipe."

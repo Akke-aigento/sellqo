@@ -1011,9 +1011,14 @@
         "jul_2026": "Juli 2026",
         "q1_2025": "Q1 2025",
         "q4_2024": "Q4 2024",
-        "q2_2026": "Q2 2026"
+        "q2_2026": "Q2 2026",
+        "aug_2026": "August 2026"
       },
       "changes": {
+        "invoice_refund": {
+          "title": "Erstattungen ohne Stripe-Dashboard",
+          "description": "Bezahlte Rechnungen — auch Abonnementrechnungen — erstattest du jetzt vollständig direkt in SellQo: eine Aktion erstellt die Stripe-Erstattung und die Gutschrift, die automatisch in deine Buchhaltung übergeht."
+        },
         "per_user_discount_rights": {
           "title": "Rabattcodes pro Teammitglied freigeben",
           "description": "Administratoren können jetzt pro Teammitglied mit der Rolle „Marketing“ festlegen, ob diese Person Rabattcodes anlegen und ändern darf. Das steuern Sie über Einstellungen → Teammitglieder."
