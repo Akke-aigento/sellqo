@@ -1015,6 +1015,10 @@
         "aug_2026": "Augustus 2026"
       },
       "changes": {
+        "credit_note_button_fix": {
+          "title": "Creditnota aanmaken werkt weer overal",
+          "description": "De actie 'Creditnota aanmaken' in het factuurmenu opende in sommige weergaven geen venster. Dat is opgelost."
+        },
         "invoice_refund": {
           "title": "Terugbetalen zonder Stripe-dashboard",
           "description": "Betaalde facturen — ook abonnementsfacturen — betaal je nu volledig terug vanuit SellQo: één actie maakt de Stripe-terugbetaling én de creditnota aan, die automatisch meegaat naar je boekhouding."

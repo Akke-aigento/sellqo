@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "credit_note_button_fix": {
+          "title": "Create credit note works everywhere again",
+          "description": "The 'Create credit note' action in the invoice menu failed to open a dialog in some views. That is now fixed."
+        },
         "invoice_refund": {
           "title": "Refunds without the Stripe dashboard",
           "description": "Paid invoices — including subscription invoices — can now be refunded in full straight from SellQo: a single action creates the Stripe refund and the credit note, which flows automatically into your bookkeeping."

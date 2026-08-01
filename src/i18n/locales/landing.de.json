@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "credit_note_button_fix": {
+          "title": "Gutschrift erstellen funktioniert wieder überall",
+          "description": "Die Aktion 'Gutschrift erstellen' im Rechnungsmenü öffnete in einigen Ansichten kein Dialogfenster. Das ist nun behoben."
+        },
         "invoice_refund": {
           "title": "Erstattungen ohne Stripe-Dashboard",
           "description": "Bezahlte Rechnungen — auch Abonnementrechnungen — erstattest du jetzt vollständig direkt in SellQo: eine Aktion erstellt die Stripe-Erstattung und die Gutschrift, die automatisch in deine Buchhaltung übergeht."

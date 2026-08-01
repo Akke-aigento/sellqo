@@ -71,7 +71,7 @@ export function CreateCreditNoteFromInvoiceButton({ invoiceId, invoiceNumber, va
 
   const trigger =
     variant === 'menuItem' ? (
-      <DropdownMenuItem onClick={handleClick} disabled={loading}>
+      <DropdownMenuItem disabled={loading} onSelect={(e) => { e.preventDefault(); handleClick(); }}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
         <span className="ml-2">Creditnota aanmaken</span>
       </DropdownMenuItem>
