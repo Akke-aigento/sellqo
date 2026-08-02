@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.08d — Verzendkosten al zichtbaar in het winkelmandje (improvement, 02-08-2026)
+
+**Verzendkosten al zichtbaar in het winkelmandje** (augustus 2026)
+Is er voor de inhoud van het mandje maar één verzendmethode mogelijk, dan toont de
+checkout die prijs nu al in het overzicht — nog voor de klant een adres invult. Voorheen
+stond daar "wordt berekend", ook wanneer de prijs feitelijk al vastlag.
+Wat betekent dit voor jou? Klanten zien een toeslag (bv. €100 levering en montage) of
+gratis verzending meteen, en haken minder snel af in de laatste stap. Zijn er meerdere
+verzendmethodes mogelijk, dan blijft het "wordt berekend" tot de klant kiest. Je hoeft
+hiervoor niets in te stellen.
+
+**i18n-keys.** `public.changelog.changes.shipping_cost_preview` — NL/EN/FR/DE aanwezig.
+
 ### 2026.08c — Meerdere foto's per variant (feature, 02-08-2026)
 
 **Meerdere foto's per variant** (augustus 2026)
