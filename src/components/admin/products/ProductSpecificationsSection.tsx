@@ -25,7 +25,7 @@ const IDENTIFICATION_KEYS: (keyof ProductSpecification)[] = [
 ];
 const MATERIAL_KEYS: (keyof ProductSpecification)[] = ['material', 'color', 'size', 'composition'];
 const COMPLIANCE_KEYS: (keyof ProductSpecification)[] = ['warranty_months', 'ce_marking', 'energy_label', 'safety_warnings'];
-const LOGISTICS_KEYS: (keyof ProductSpecification)[] = ['lead_time_days', 'shipping_class', 'is_fragile', 'is_hazardous', 'hazard_class', 'storage_instructions'];
+const LOGISTICS_KEYS: (keyof ProductSpecification)[] = ['lead_time_days', 'shipping_class_id', 'is_fragile', 'is_hazardous', 'hazard_class', 'storage_instructions'];
 
 function countFilled(spec: any, keys: string[]): number {
   if (!spec) return 0;

@@ -883,8 +883,8 @@ async function getSitemapData(supabase: any, tenantId: string) {
 
 // ============== SHIPPING METHODS ==============
 
-// Resolves the distinct set of shipping_class labels required by the products
-// currently in a cart. Empty array = no classified products.
+// SHIP-CLASS-2 — resolves the distinct set of shipping_class_id values required
+// by the products currently in a cart. Empty array = no classified products.
 async function resolveCartShippingClasses(
   supabase: any,
   tenantId: string,
@@ -893,35 +893,74 @@ async function resolveCartShippingClasses(
   if (!productIds || productIds.length === 0) return [];
   const { data } = await supabase
     .from('product_specifications')
-    .select('shipping_class')
+    .select('shipping_class_id')
     .eq('tenant_id', tenantId)
     .in('product_id', productIds)
-    .not('shipping_class', 'is', null);
-  return [...new Set((data || []).map((r: any) => r.shipping_class).filter(Boolean))] as string[];
+    .not('shipping_class_id', 'is', null);
+  return [...new Set((data || []).map((r: any) => r.shipping_class_id).filter(Boolean))] as string[];
 }
 
 async function getShippingMethods(
   supabase: any,
   tenantId: string,
-  shippingClasses?: string[],
+  shippingClassIds?: string[],
 ) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, shipping_class')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, shipping_classes(name)')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
   const all = (data || []);
 
   let filtered = all;
-  if (Array.isArray(shippingClasses)) {
-    if (shippingClasses.length === 0) {
-      filtered = all.filter((m: any) => m.shipping_class == null);
+  let combined: { breakdown: Array<{ class_name: string; method_name: string; price: number }>; total: number } | null = null;
+
+  if (Array.isArray(shippingClassIds)) {
+    if (shippingClassIds.length === 0) {
+      filtered = all.filter((m: any) => m.shipping_class_id == null);
     } else {
-      filtered = all.filter((m: any) => m.shipping_class && shippingClasses.includes(m.shipping_class));
+      filtered = all.filter((m: any) => m.shipping_class_id && shippingClassIds.includes(m.shipping_class_id));
+
       if (filtered.length === 0) {
-        console.warn('[SHIP-CLASS] geen methode voor klassen', shippingClasses, 'tenant', tenantId);
+        console.warn('[SHIP-CLASS] geen methode voor klassen', shippingClassIds, 'tenant', tenantId);
         filtered = all; // safety net: never block checkout
+      } else if (shippingClassIds.length > 1) {
+        // Mixed cart — apply the tenant's conflict rule.
+        const { data: tenantRow } = await supabase
+          .from('tenants').select('shipping_conflict_rule').eq('id', tenantId).maybeSingle();
+        const rule = tenantRow?.shipping_conflict_rule === 'sum' ? 'sum' : 'highest_price';
+
+        const byPrice = (a: any, b: any) =>
+          Number(b.price ?? 0) - Number(a.price ?? 0) ||
+          Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0);
+
+        if (rule === 'sum') {
+          // Cheapest method per class; charge the sum on the most expensive one.
+          const cheapestPerClass = new Map<string, any>();
+          for (const m of filtered) {
+            const cur = cheapestPerClass.get(m.shipping_class_id);
+            if (!cur || Number(m.price ?? 0) < Number(cur.price ?? 0)) {
+              cheapestPerClass.set(m.shipping_class_id, m);
+            }
+          }
+          const perClass = [...cheapestPerClass.values()];
+          const total = perClass.reduce((sum, m) => sum + Number(m.price ?? 0), 0);
+          const carrier = [...perClass].sort(byPrice)[0];
+          combined = {
+            total,
+            breakdown: perClass.map((m: any) => ({
+              class_name: m.shipping_classes?.name ?? '',
+              method_name: m.name,
+              price: Number(m.price ?? 0),
+            })),
+          };
+          filtered = [{ ...carrier, price: total, free_above: null }];
+        } else {
+          // highest_price: only the most expensive method survives.
+          const winner = [...filtered].sort(byPrice)[0];
+          filtered = [winner];
+        }
       }
     }
   }
@@ -930,7 +969,10 @@ async function getShippingMethods(
     id: m.id, name: m.name, description: m.description, price: m.price, free_above: m.free_above,
     estimated_days: m.estimated_days_min && m.estimated_days_max ? `${m.estimated_days_min}-${m.estimated_days_max}` : m.estimated_days_min || m.estimated_days_max || null,
     is_default: m.is_default,
-    shipping_class: m.shipping_class ?? null,
+    shipping_class_id: m.shipping_class_id ?? null,
+    shipping_class: m.shipping_classes?.name ?? null,
+    is_combined: !!combined,
+    shipping_breakdown: combined ? combined.breakdown : null,
   }));
 }
 
@@ -1881,14 +1923,18 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   const productIds = (cart.cartItems || []).map((i: any) => i.product_id).filter((v: any) => !!v);
   const shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
   const allowed = await getShippingMethods(supabase, tenantId, shippingClasses);
-  if (!allowed.some((m: any) => m.id === shippingMethodId)) {
+  const allowedEntry = allowed.find((m: any) => m.id === shippingMethodId);
+  if (!allowedEntry) {
     return { success: false, error: {
       code: 'SHIPPING_NOT_ALLOWED',
       message: 'Deze verzendmethode is niet beschikbaar voor de producten in je winkelwagen',
     }};
   }
 
-  let shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
+  // SHIP-CLASS-2 — bij de 'sum'-regel geldt de gecombineerde prijs, niet de DB-prijs.
+  let shippingCost = allowedEntry.is_combined
+    ? Number(allowedEntry.price ?? 0)
+    : (method.free_above && cart.subtotal >= method.free_above ? 0 : method.price);
 
   // Check if any discount code provides free shipping
   const discountCodes: string[] = cart.discount_codes || [];

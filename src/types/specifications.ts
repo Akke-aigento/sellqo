@@ -34,6 +34,7 @@ export interface ProductSpecification {
   // Logistics
   lead_time_days: number | null;
   shipping_class: string | null;
+  shipping_class_id: string | null;
   is_fragile: boolean | null;
   is_hazardous: boolean | null;
   hazard_class: string | null;

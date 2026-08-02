@@ -10997,6 +10997,7 @@ export type Database = {
           product_id: string
           safety_warnings: string | null
           shipping_class: string | null
+          shipping_class_id: string | null
           size: string | null
           storage_instructions: string | null
           tenant_id: string
@@ -11035,6 +11036,7 @@ export type Database = {
           product_id: string
           safety_warnings?: string | null
           shipping_class?: string | null
+          shipping_class_id?: string | null
           size?: string | null
           storage_instructions?: string | null
           tenant_id: string
@@ -11073,6 +11075,7 @@ export type Database = {
           product_id?: string
           safety_warnings?: string | null
           shipping_class?: string | null
+          shipping_class_id?: string | null
           size?: string | null
           storage_instructions?: string | null
           tenant_id?: string
@@ -11089,6 +11092,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: true
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_specifications_shipping_class_id_fkey"
+            columns: ["shipping_class_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_classes"
             referencedColumns: ["id"]
           },
           {
@@ -13347,6 +13357,51 @@ export type Database = {
           },
         ]
       }
+      shipping_classes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_classes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_classes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_integrations: {
         Row: {
           api_key: string | null
@@ -13538,6 +13593,7 @@ export type Database = {
           name_nl: string | null
           price: number
           shipping_class: string | null
+          shipping_class_id: string | null
           sort_order: number | null
           tenant_id: string
           updated_at: string
@@ -13559,6 +13615,7 @@ export type Database = {
           name_nl?: string | null
           price?: number
           shipping_class?: string | null
+          shipping_class_id?: string | null
           sort_order?: number | null
           tenant_id: string
           updated_at?: string
@@ -13580,12 +13637,20 @@ export type Database = {
           name_nl?: string | null
           price?: number
           shipping_class?: string | null
+          shipping_class_id?: string | null
           sort_order?: number | null
           tenant_id?: string
           updated_at?: string
           vat_rate_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shipping_methods_shipping_class_id_fkey"
+            columns: ["shipping_class_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_classes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shipping_methods_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -16824,6 +16889,7 @@ export type Database = {
           require_vies_validation: boolean | null
           reverse_charge_text: string | null
           secondary_color: string | null
+          shipping_conflict_rule: string
           shipping_enabled: boolean | null
           simplified_vat_acknowledged_at: string | null
           simplified_vat_mode: boolean | null
@@ -16932,6 +16998,7 @@ export type Database = {
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
+          shipping_conflict_rule?: string
           shipping_enabled?: boolean | null
           simplified_vat_acknowledged_at?: string | null
           simplified_vat_mode?: boolean | null
@@ -17040,6 +17107,7 @@ export type Database = {
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
+          shipping_conflict_rule?: string
           shipping_enabled?: boolean | null
           simplified_vat_acknowledged_at?: string | null
           simplified_vat_mode?: boolean | null

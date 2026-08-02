@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,7 +21,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Package } from "lucide-react";
+import { useShippingClasses } from "@/hooks/useShippingClasses";
+import { ShippingClassProductsDialog } from "@/components/admin/shipping/ShippingClassProductsDialog";
 import type { ShippingMethod } from "@/types/shipping";
+
+const NO_CLASS = "__none__";
 
 const formSchema = z.object({
   name: z.string().min(1, "Naam is verplicht"),
@@ -32,7 +44,7 @@ const formSchema = z.object({
   estimated_days_max: z.coerce.number().min(1).optional(),
   is_active: z.boolean(),
   is_default: z.boolean(),
-  shipping_class: z.string().optional().nullable(),
+  shipping_class_id: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -63,9 +75,14 @@ export function ShippingMethodDialog({
       estimated_days_max: 3,
       is_active: true,
       is_default: false,
-      shipping_class: "",
+      shipping_class_id: null,
     },
   });
+
+  const { shippingClasses } = useShippingClasses();
+  const [productsDialogOpen, setProductsDialogOpen] = useState(false);
+  const selectedClassId = form.watch("shipping_class_id");
+  const selectedClass = shippingClasses.find((c) => c.id === selectedClassId);
 
   useEffect(() => {
     if (method) {
@@ -78,7 +95,7 @@ export function ShippingMethodDialog({
         estimated_days_max: method.estimated_days_max || 3,
         is_active: method.is_active,
         is_default: method.is_default,
-        shipping_class: method.shipping_class || "",
+        shipping_class_id: method.shipping_class_id || null,
       });
     } else {
       form.reset({
@@ -90,7 +107,7 @@ export function ShippingMethodDialog({
         estimated_days_max: 3,
         is_active: true,
         is_default: false,
-        shipping_class: "",
+        shipping_class_id: null,
       });
     }
   }, [method, form]);
@@ -220,20 +237,48 @@ export function ShippingMethodDialog({
             <div className="space-y-4 rounded-lg border p-4">
               <FormField
                 control={form.control}
-                name="shipping_class"
+                name="shipping_class_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Verzendklasse</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Bijv. boxspring"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
+                    <Select
+                      value={field.value ?? NO_CLASS}
+                      onValueChange={(v) =>
+                        field.onChange(v === NO_CLASS ? null : v)
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Kies een verzendklasse" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_CLASS}>
+                          Geen (geldt voor alle producten)
+                        </SelectItem>
+                        {shippingClasses.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name} ({cls.product_count} product(en))
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormDescription>
-                      Laat leeg als deze methode voor alle producten geldt. Vul je een klasse in, dan is deze methode alleen beschikbaar wanneer er een product met dezelfde klasse in de winkelwagen zit.
+                      Kies "Geen" als deze methode voor alle producten geldt. Met
+                      een klasse is deze methode alleen beschikbaar wanneer er
+                      een product uit die klasse in de winkelwagen zit.
                     </FormDescription>
+                    {selectedClassId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProductsDialogOpen(true)}
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        Producten koppelen
+                      </Button>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -296,6 +341,13 @@ export function ShippingMethodDialog({
             </div>
           </form>
         </Form>
+
+        <ShippingClassProductsDialog
+          open={productsDialogOpen}
+          onOpenChange={setProductsDialogOpen}
+          shippingClassId={selectedClassId ?? null}
+          shippingClassName={selectedClass?.name}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "shipping_classes_entity": {
+          "title": "Classes d'expédition avec règle de priorité",
+          "description": "Les classes d'expédition deviennent un vrai réglage : créez-les, associez les produits dans une seule vue et sélectionnez-les par méthode de livraison dans une liste. Pour une commande mélangeant plusieurs classes, vous choisissez si la livraison la plus chère s'applique ou si les frais s'additionnent."
+        },
         "shipping_cost_preview": {
           "title": "Frais de livraison visibles dans le panier",
           "description": "Lorsqu'une seule méthode de livraison est possible pour le contenu du panier, son prix apparaît désormais dans le récapitulatif, avant la saisie de l'adresse. Plus de surprise à la dernière étape."

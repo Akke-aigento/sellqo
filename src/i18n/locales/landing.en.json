@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "shipping_classes_entity": {
+          "title": "Shipping classes with a priority rule",
+          "description": "Shipping classes are now a real setting: create them, link products in one overview and pick them per shipping method from a list. For orders that mix classes you decide whether the most expensive delivery applies or the costs add up."
+        },
         "shipping_cost_preview": {
           "title": "Shipping cost visible in the cart",
           "description": "When only one shipping method applies to the items in your cart, its price now shows in the summary — before you enter an address. No surprises at the final step."
