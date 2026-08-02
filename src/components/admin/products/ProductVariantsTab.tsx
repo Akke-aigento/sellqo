@@ -700,6 +700,11 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                 <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
+                                <VariantExtraImagesDialog
+                                  variantTitle={variant.title}
+                                  images={variant.images ?? []}
+                                  onChange={(imgs) => handleVariantImagesChange(variant.id, imgs)}
+                                />
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button type="button" size="icon" variant="ghost" className="text-destructive">
