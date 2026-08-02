@@ -506,7 +506,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       price: v.price ?? product.price, compare_at_price: v.compare_at_price ?? product.compare_at_price,
       stock: v.track_inventory ? v.stock : null,
       in_stock: !v.track_inventory || v.stock > 0,
-      image_url: v.image_url, attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
+      image_url: v.image_url, images: v.images ?? [], attribute_values: v.attribute_values, weight: v.weight ?? product.weight,
       linked_product_id: v.linked_product_id || null,
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
