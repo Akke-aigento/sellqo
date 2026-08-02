@@ -14,7 +14,7 @@ type GenerateBody = {
   prompt: string;
   mode?: "text" | "image";
   model?: string;
-  image_url?: string;
+  image_url?: string | string[];
   aspect_ratio?: string;
   resolution?: string;
   num_images?: number;
@@ -126,8 +126,17 @@ async function handleGenerate(
   const mode = body.mode ?? "text";
   if (mode !== "text" && mode !== "image")
     return jsonResponse(400, { success: false, error: "invalid_mode" });
-  if (mode === "image" && !body.image_url)
+  const rawImage = body.image_url;
+  const imageUrls: string[] = Array.isArray(rawImage)
+    ? rawImage.filter((u): u is string => typeof u === "string" && u.length > 0)
+    : typeof rawImage === "string" && rawImage
+      ? [rawImage]
+      : [];
+
+  if (mode === "image" && imageUrls.length === 0)
     return jsonResponse(400, { success: false, error: "image_url_required_for_image_mode" });
+  if (imageUrls.length > 10)
+    return jsonResponse(400, { success: false, error: "too_many_reference_images" });
 
   const model = body.model ?? "nano-banana-pro";
   const resolution = body.resolution ?? "2K";
@@ -151,7 +160,9 @@ async function handleGenerate(
     num_images,
     output_format,
   };
-  if (mode === "image") upstreamPayload.image_url = body.image_url;
+  if (mode === "image") {
+    upstreamPayload.image_url = imageUrls.length > 1 ? imageUrls : imageUrls[0];
+  }
 
   const res = await fetch(`${IMGEDITOR_BASE}/generate`, {
     method: "POST",
@@ -206,7 +217,8 @@ async function handleGenerate(
       prompt: body.prompt,
       model,
       mode,
-      source_image_url: body.image_url ?? null,
+      source_image_url: imageUrls[0] ?? null,
+      source_image_urls: imageUrls.length > 0 ? imageUrls : null,
       aspect_ratio,
       resolution,
       output_format,
