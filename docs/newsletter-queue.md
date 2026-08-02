@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.08c — Meerdere foto's per variant (feature, 02-08-2026)
+
+**Meerdere foto's per variant** (augustus 2026)
+Een variant kan nu een eigen fotogalerij dragen. Naast de hoofdfoto voeg je extra
+beelden toe per kleur of uitvoering — bijvoorbeeld een detailfoto van het hoofdbord
+naast het volledige bed. Je kiest ze uit je fotobibliotheek en bepaalt zelf de volgorde.
+Wat betekent dit voor jou? Klanten zien enkel de beelden van de combinatie die ze
+gekozen hebben, niet alle uitvoeringen door elkaar. Je regelt het via
+Producten → een product → Varianten → Extra foto's.
+
+**i18n-keys.** `public.changelog.changes.variant_photo_gallery` — NL/EN/FR/DE aanwezig.
+
 ### 2026.07ak — Kortingscodes per teamlid vrijgeven (feature, 31-07-2026)
 
 **Kortingscodes per teamlid vrijgeven** (juli 2026)
