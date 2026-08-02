@@ -14,7 +14,7 @@ type GenerateBody = {
   prompt: string;
   mode?: "text" | "image";
   model?: string;
-  image_url?: string;
+  image_url?: string | string[];
   aspect_ratio?: string;
   resolution?: string;
   num_images?: number;
