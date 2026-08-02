@@ -18,6 +18,7 @@ export interface ProductVariant {
   track_inventory: boolean;
   is_active: boolean;
   image_url: string | null;
+  images?: string[];
   attribute_values: Record<string, string>;
   weight: number | null;
   position: number;
@@ -48,6 +49,7 @@ export interface VariantFormData {
   track_inventory?: boolean;
   is_active?: boolean;
   image_url?: string | null;
+  images?: string[];
   attribute_values?: Record<string, string>;
   weight?: number | null;
   position?: number;
