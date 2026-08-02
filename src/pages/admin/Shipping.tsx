@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShippingMethodDialog } from "@/components/admin/ShippingMethodDialog";
+import { ShippingClassesCard } from "@/components/admin/shipping/ShippingClassesCard";
+import { ShippingConflictRuleCard } from "@/components/admin/shipping/ShippingConflictRuleCard";
 import { ShippingIntegrationsSettings } from "@/components/admin/settings/ShippingIntegrationsSettings";
 import { LabelPrinterSettings } from "@/components/admin/settings/LabelPrinterSettings";
 import { LabelFormatSettings } from "@/components/admin/settings/LabelFormatSettings";
@@ -176,6 +178,11 @@ export default function ShippingPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* SHIP-CLASS-2 — verzendklassen boven de methodes */}
+      <ShippingClassesCard />
+
+      <ShippingConflictRuleCard />
 
       <Card>
         <CardHeader>
