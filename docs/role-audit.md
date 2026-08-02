@@ -4852,3 +4852,22 @@ Admin-UI: per variant een dialoog "Extra foto's" die het bestaande
 "Kies uit bibliotheek"-patroon (`MediaLibraryPickerDialog`) hergebruikt, met herordenen
 en verwijderen per beeld. Zichtbaar achter `PermissionGate action="write" resource="products"`
 (dus `tenant_admin` en `staff`).
+
+## CART-SHIP-PREVIEW-1 — verzendkosten vóór adresinvoer
+
+`buildCartResponse` hield `shipping_display_state` op `not_calculated` zolang
+`cart.shipping_method_id` leeg was, terwijl `available_shipping_methods` in dezelfde
+functie al berekend wordt via `checkoutGetShippingOptions` — die filtert op de
+verzendklasse van de cart-inhoud, niet op het adres. De prijs was dus vaak al bekend
+zodra het mandje gevuld was, maar werd als "wordt berekend" weergegeven; klanten
+ontdekten een toeslag van €100 pas in de laatste stap.
+
+Nu: is er nog geen methode gekozen én is er precies één beschikbaar, dan geeft de
+respons `shipping_preview: { name, price }`, met `shipping_cost` en
+`shipping_display_state` (`free`/`charged`) daarop afgestemd; `total` wordt na dit blok
+berekend en telt de preview mee. Een gratis-verzendkorting zet de preview op 0.
+
+`shipping_method` blijft `null` tot er daadwerkelijk gekozen is — de preview is
+informatief, `checkout_shipping` blijft verplicht voor het afronden. Bij meerdere
+geldige methodes verandert er niets (`not_calculated`, `shipping_preview: null`).
+Rollen: geen impact, dit is publieke storefront-API-logica zonder rolafhankelijkheid.

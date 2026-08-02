@@ -1561,11 +1561,22 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     }
   }
 
-  // Total
-  const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
-
   // Available shipping methods — filtered by shipping-class of the cart
   const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal, cart_id: cartId });
+
+  // Preview: nog geen methode gekozen, maar er is er maar één mogelijk →
+  // toon die prijs alvast, zodat de klant niet voor verrassingen komt te staan.
+  let shippingPreview: { name: string; price: number } | null = null;
+  if (!cart.shipping_method_id && Array.isArray(availableShipping) && availableShipping.length === 1) {
+    const only = availableShipping[0] as any;
+    const price = hasFreeShipping ? 0 : Number(only.effective_price ?? only.price ?? 0);
+    shippingPreview = { name: only.name, price };
+    shippingCost = price;
+    shippingDisplayState = price === 0 ? 'free' : 'charged';
+  }
+
+  // Total (na de shipping-preview, zodat die meegerekend wordt)
+  const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
 
   // Available payment methods
   const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
@@ -1594,6 +1605,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     shipping_cost: shippingCost,
     shipping_method: shippingMethod,
     shipping_display_state: shippingDisplayState,
+    shipping_preview: shippingPreview,
 
     applied_discounts: appliedDiscounts,
     discount_total: Math.round(discountTotal * 100) / 100,
