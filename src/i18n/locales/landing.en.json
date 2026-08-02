@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "variant_photo_gallery": {
+          "title": "Multiple photos per variant",
+          "description": "A variant can now carry its own photo gallery: next to the main photo you add extra images per colour or finish. Pick them from your media library and set the order yourself."
+        },
         "credit_note_button_fix": {
           "title": "Create credit note works everywhere again",
           "description": "The 'Create credit note' action in the invoice menu failed to open a dialog in some views. That is now fixed."

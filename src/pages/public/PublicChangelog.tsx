@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.08c', dateKey: 'aug_2026', changes: [{ id: 'variant_photo_gallery', type: 'feature' }] },
   { version: '2026.08b', dateKey: 'aug_2026', changes: [{ id: 'credit_note_button_fix', type: 'bugfix' }] },
   { version: '2026.08a', dateKey: 'aug_2026', changes: [{ id: 'invoice_refund', type: 'feature' }] },
   { version: '2026.07al', dateKey: 'jul_2026', changes: [{ id: 'sec_rpc_authorization_guards', type: 'security' }] },

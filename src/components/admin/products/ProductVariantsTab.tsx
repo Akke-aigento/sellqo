@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
+import { VariantExtraImagesDialog } from './VariantExtraImagesDialog';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -179,6 +180,10 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
 
   const handleSelectVariantImage = (variantId: string, imageUrl: string | null) => {
     updateVariant.mutate({ id: variantId, data: { image_url: imageUrl } });
+  };
+
+  const handleVariantImagesChange = (variantId: string, images: string[]) => {
+    updateVariant.mutate({ id: variantId, data: { images } });
   };
 
   const saveEditVariant = () => {
@@ -427,6 +432,11 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVariant(variant)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
+                            <VariantExtraImagesDialog
+                              variantTitle={variant.title}
+                              images={variant.images ?? []}
+                              onChange={(imgs) => handleVariantImagesChange(variant.id, imgs)}
+                            />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive">
@@ -690,6 +700,11 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                 <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
+                                <VariantExtraImagesDialog
+                                  variantTitle={variant.title}
+                                  images={variant.images ?? []}
+                                  onChange={(imgs) => handleVariantImagesChange(variant.id, imgs)}
+                                />
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button type="button" size="icon" variant="ghost" className="text-destructive">

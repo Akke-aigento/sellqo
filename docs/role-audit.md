@@ -4834,3 +4834,21 @@ guard, alleen ingetrokken rechten.
   (zie de werkwijze bij SEC-0a en SEC-1).
 - De promotie-RPC's en de resterende `SECURITY DEFINER`-views (linter: `0010`) vallen
   buiten deze batch.
+
+## VARIANT-GALLERY-1 — meerdere foto's per variant
+
+`product_variants` kon maar één beeld dragen (`image_url`), waardoor een galerij per
+variant niet mogelijk was: extra beelden (bv. een hoofdborddetail per kleur) konden
+alleen in `products.images` en verschenen dan bij álle combinaties door elkaar.
+
+Toegevoegd: `product_variants.images text[] NOT NULL DEFAULT '{}'`. `image_url` blijft
+de hoofdfoto en leidend voor bestaande code — geen breaking change, geen backfill:
+bestaande varianten houden een lege array.
+
+`storefront-api` geeft in de variant-mapping van `getProduct` nu `images: v.images ?? []`
+terug naast `image_url`. Cart, checkout en verzendklassen zijn niet aangeraakt.
+
+Admin-UI: per variant een dialoog "Extra foto's" die het bestaande
+"Kies uit bibliotheek"-patroon (`MediaLibraryPickerDialog`) hergebruikt, met herordenen
+en verwijderen per beeld. Zichtbaar achter `PermissionGate action="write" resource="products"`
+(dus `tenant_admin` en `staff`).
