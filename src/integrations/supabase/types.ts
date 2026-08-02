@@ -8258,6 +8258,7 @@ export type Database = {
           resolution: string | null
           result_url: string | null
           source_image_url: string | null
+          source_image_urls: string[] | null
           source_product_id: string | null
           status: string
           storage_path: string | null
@@ -8278,6 +8279,7 @@ export type Database = {
           resolution?: string | null
           result_url?: string | null
           source_image_url?: string | null
+          source_image_urls?: string[] | null
           source_product_id?: string | null
           status?: string
           storage_path?: string | null
@@ -8298,6 +8300,7 @@ export type Database = {
           resolution?: string | null
           result_url?: string | null
           source_image_url?: string | null
+          source_image_urls?: string[] | null
           source_product_id?: string | null
           status?: string
           storage_path?: string | null
