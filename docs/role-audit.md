@@ -4871,3 +4871,35 @@ berekend en telt de preview mee. Een gratis-verzendkorting zet de preview op 0.
 informatief, `checkout_shipping` blijft verplicht voor het afronden. Bij meerdere
 geldige methodes verandert er niets (`not_calculated`, `shipping_preview: null`).
 Rollen: geen impact, dit is publieke storefront-API-logica zonder rolafhankelijkheid.
+
+## SHIP-CLASS-2 — verzendklassen als entiteit + voorrangsregel
+
+SHIP-CLASS-1 koppelde producten aan verzendmethodes via een vrij tekstveld
+(`shipping_methods.shipping_class` en `product_specifications.shipping_class`).
+Drie gebreken: typefoutgevoelig ("boxspring" vs "Boxspring" = stille mismatch),
+geen overzicht van welke producten aan een methode hingen, en bij een gemengde
+cart gaf `getShippingMethods` de methodes van **beide** klassen terug — de klant
+koos dan de goedkoopste (matras gratis) terwijl er een boxspring van €100 in het
+mandje zat.
+
+Nu: `public.shipping_classes` als entiteit per tenant (unieke naam), met
+`shipping_class_id`-FK's op `shipping_methods` en `product_specifications`.
+Bestaande tekstwaarden zijn gemigreerd en gekoppeld (Astra Sleep: klasse
+"boxspring", 1 methode + 2 producten); de tekstkolommen staan als DEPRECATED
+gemarkeerd en worden in een aparte batch gedropt.
+
+`tenants.shipping_conflict_rule` (`highest_price` standaard, of `sum`) bepaalt het
+gedrag bij meerdere klassen in één cart: `highest_price` houdt alleen de duurste
+methode over (bij gelijke prijs: laagste `sort_order`), `sum` telt de goedkoopste
+methode per klasse op, zet die som als prijs op de duurste methode en geeft
+`is_combined: true` plus `shipping_breakdown` mee. Het vangnet blijft: levert het
+filter niets op, dan alle actieve methodes met een `console.warn`.
+`checkout_shipping` valideert tegen dezelfde set en gebruikt bij `sum` de
+gecombineerde prijs; een niet-toegestane methode geeft `SHIPPING_NOT_ALLOWED`.
+
+Rollen: het beheer van klassen, het koppelen van producten en de voorrangsregel
+zitten achter `PermissionGate action="write" resource="settings_general"`
+(`tenant_admin`, `staff`; platform_admin via bypass). RLS op `shipping_classes`:
+lezen voor leden van de tenant, schrijven voor `tenant_admin`/`staff` via
+`has_tenant_role`, plus `is_platform_admin`-bypass. De storefront-API leest met
+service-role en is rol-onafhankelijk.
