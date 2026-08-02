@@ -2,6 +2,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useShippingClasses } from '@/hooks/useShippingClasses';
 import type { ProductSpecification } from '@/types/specifications';
 
 interface LogisticsFieldsProps {
@@ -9,8 +17,11 @@ interface LogisticsFieldsProps {
   onChange: (updates: Partial<ProductSpecification>) => void;
 }
 
+const NO_CLASS = '__none__';
+
 export function LogisticsFields({ spec, onChange }: LogisticsFieldsProps) {
   const val = (key: keyof ProductSpecification) => (spec as any)?.[key] ?? '';
+  const { shippingClasses } = useShippingClasses();
 
   return (
     <div className="space-y-4">
@@ -21,8 +32,21 @@ export function LogisticsFields({ spec, onChange }: LogisticsFieldsProps) {
         </div>
         <div className="space-y-1">
           <Label className="text-sm">Verzendklasse</Label>
-          <Input value={val('shipping_class')} onChange={(e) => onChange({ shipping_class: e.target.value || null })} placeholder="Bijv. boxspring" />
-          <p className="text-xs text-muted-foreground">Bijvoorbeeld 'boxspring' voor producten die met een vrachtwagen geleverd moeten worden. Koppelt aan de verzendklasse van je verzendmethodes.</p>
+          <Select
+            value={spec?.shipping_class_id ?? NO_CLASS}
+            onValueChange={(v) => onChange({ shipping_class_id: v === NO_CLASS ? null : v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Kies een verzendklasse" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_CLASS}>Geen</SelectItem>
+              {shippingClasses.map((cls) => (
+                <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Bijvoorbeeld 'boxspring' voor producten die met een vrachtwagen geleverd moeten worden. Beheer klassen bij Instellingen → Verzending.</p>
         </div>
       </div>
 
