@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "shipping_cost_preview": {
+          "title": "Shipping cost visible in the cart",
+          "description": "When only one shipping method applies to the items in your cart, its price now shows in the summary — before you enter an address. No surprises at the final step."
+        },
         "variant_photo_gallery": {
           "title": "Multiple photos per variant",
           "description": "A variant can now carry its own photo gallery: next to the main photo you add extra images per colour or finish. Pick them from your media library and set the order yourself."

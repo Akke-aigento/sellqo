@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "shipping_cost_preview": {
+          "title": "Frais de livraison visibles dans le panier",
+          "description": "Lorsqu'une seule méthode de livraison est possible pour le contenu du panier, son prix apparaît désormais dans le récapitulatif, avant la saisie de l'adresse. Plus de surprise à la dernière étape."
+        },
         "variant_photo_gallery": {
           "title": "Plusieurs photos par variante",
           "description": "Une variante peut désormais avoir sa propre galerie : en plus de la photo principale, ajoutez des images par couleur ou finition. Choisissez-les dans votre bibliothèque et définissez l'ordre."

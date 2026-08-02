@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "shipping_cost_preview": {
+          "title": "Versandkosten schon im Warenkorb sichtbar",
+          "description": "Wenn für den Warenkorbinhalt nur eine Versandart möglich ist, wird deren Preis jetzt bereits in der Übersicht angezeigt — noch vor der Adresseingabe. Keine Überraschung im letzten Schritt."
+        },
         "variant_photo_gallery": {
           "title": "Mehrere Fotos pro Variante",
           "description": "Eine Variante kann jetzt eine eigene Fotogalerie haben: neben dem Hauptfoto fügst du zusätzliche Bilder pro Farbe oder Ausführung hinzu. Du wählst sie aus deiner Mediathek und bestimmst die Reihenfolge."
