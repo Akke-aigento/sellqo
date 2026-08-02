@@ -1016,6 +1016,7 @@
       },
       "changes": {
         "shipping_cost_preview": {
+          "_sibling": "",
           "title": "Verzendkosten al zichtbaar in het winkelmandje",
           "description": "Is er voor de inhoud van het mandje maar één verzendmethode mogelijk, dan zie je die prijs nu al in het overzicht — nog voor je een adres invult. Geen verrassing meer bij de laatste stap."
         },
