@@ -1923,14 +1923,18 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   const productIds = (cart.cartItems || []).map((i: any) => i.product_id).filter((v: any) => !!v);
   const shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
   const allowed = await getShippingMethods(supabase, tenantId, shippingClasses);
-  if (!allowed.some((m: any) => m.id === shippingMethodId)) {
+  const allowedEntry = allowed.find((m: any) => m.id === shippingMethodId);
+  if (!allowedEntry) {
     return { success: false, error: {
       code: 'SHIPPING_NOT_ALLOWED',
       message: 'Deze verzendmethode is niet beschikbaar voor de producten in je winkelwagen',
     }};
   }
 
-  let shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
+  // SHIP-CLASS-2 — bij de 'sum'-regel geldt de gecombineerde prijs, niet de DB-prijs.
+  let shippingCost = allowedEntry.is_combined
+    ? Number(allowedEntry.price ?? 0)
+    : (method.free_above && cart.subtotal >= method.free_above ? 0 : method.price);
 
   // Check if any discount code provides free shipping
   const discountCodes: string[] = cart.discount_codes || [];
