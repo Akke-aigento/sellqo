@@ -1015,6 +1015,10 @@
         "aug_2026": "Augustus 2026"
       },
       "changes": {
+        "variant_photo_gallery": {
+          "title": "Meerdere foto's per variant",
+          "description": "Een variant kan nu een eigen fotogalerij dragen: naast de hoofdfoto voeg je extra beelden toe per kleur of uitvoering. Je kiest ze uit je fotobibliotheek en bepaalt zelf de volgorde."
+        },
         "credit_note_button_fix": {
           "title": "Creditnota aanmaken werkt weer overal",
           "description": "De actie 'Creditnota aanmaken' in het factuurmenu opende in sommige weergaven geen venster. Dat is opgelost."

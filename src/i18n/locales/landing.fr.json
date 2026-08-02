@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "variant_photo_gallery": {
+          "title": "Plusieurs photos par variante",
+          "description": "Une variante peut désormais avoir sa propre galerie : en plus de la photo principale, ajoutez des images par couleur ou finition. Choisissez-les dans votre bibliothèque et définissez l'ordre."
+        },
         "credit_note_button_fix": {
           "title": "Créer une note de crédit fonctionne à nouveau partout",
           "description": "L'action 'Créer une note de crédit' dans le menu factures n'ouvrait pas de dialogue dans certaines vues. C'est corrigé."

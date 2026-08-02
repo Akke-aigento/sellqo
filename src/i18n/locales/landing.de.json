@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "variant_photo_gallery": {
+          "title": "Mehrere Fotos pro Variante",
+          "description": "Eine Variante kann jetzt eine eigene Fotogalerie haben: neben dem Hauptfoto fügst du zusätzliche Bilder pro Farbe oder Ausführung hinzu. Du wählst sie aus deiner Mediathek und bestimmst die Reihenfolge."
+        },
         "credit_note_button_fix": {
           "title": "Gutschrift erstellen funktioniert wieder überall",
           "description": "Die Aktion 'Gutschrift erstellen' im Rechnungsmenü öffnete in einigen Ansichten kein Dialogfenster. Das ist nun behoben."
