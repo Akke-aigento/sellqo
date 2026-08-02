@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.08e — Verzendklassen instelbaar met voorrangsregel (feature, 02-08-2026)
+
+**Verzendklassen instelbaar met voorrangsregel** (augustus 2026)
+Verzendklassen waren een vrij tekstveld dat je op twee plekken foutloos moest intikken.
+Nu maak je ze aan bij Instellingen → Verzending, zie je per klasse hoeveel producten en
+verzendmethodes eraan hangen, en koppel je producten in één doorzoekbaar overzicht. Bij
+een verzendmethode kies je de klasse uit een lijst in plaats van te typen.
+Wat betekent dit voor jou? Geen stille typefouten meer, en bij een bestelling met
+verschillende verzendklassen bepaal je zelf de regel: de duurste levering geldt voor de
+hele bestelling (aanbevolen), of de kosten worden opgeteld. Voorheen kon de klant in zo'n
+gemengde bestelling de goedkoopste methode kiezen en draaide jij op voor de rest.
+
+**i18n-keys.** `public.changelog.changes.shipping_classes_entity` — NL/EN/FR/DE aanwezig.
+
 ### 2026.08d — Verzendkosten al zichtbaar in het winkelmandje (improvement, 02-08-2026)
 
 **Verzendkosten al zichtbaar in het winkelmandje** (augustus 2026)
