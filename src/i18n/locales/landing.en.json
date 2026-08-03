@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "refund_cn_fix": {
+          "title": "Refunds now create the credit note correctly",
+          "description": "When refunding an invoice, the matching credit note was in some cases not created. This has been fixed — the action now creates the credit note, also for invoices that were already refunded."
+        },
         "shipping_classes_entity": {
           "title": "Shipping classes with a priority rule",
           "description": "Shipping classes are now a real setting: create them, link products in one overview and pick them per shipping method from a list. For orders that mix classes you decide whether the most expensive delivery applies or the costs add up."

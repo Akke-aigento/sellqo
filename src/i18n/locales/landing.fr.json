@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "refund_cn_fix": {
+          "title": "Le remboursement crée désormais correctement la note de crédit",
+          "description": "Lors du remboursement d'une facture, la note de crédit correspondante n'était dans certains cas pas créée. Ce problème est corrigé — l'action crée désormais la note de crédit, y compris pour les factures déjà remboursées."
+        },
         "shipping_classes_entity": {
           "title": "Classes d'expédition avec règle de priorité",
           "description": "Les classes d'expédition deviennent un vrai réglage : créez-les, associez les produits dans une seule vue et sélectionnez-les par méthode de livraison dans une liste. Pour une commande mélangeant plusieurs classes, vous choisissez si la livraison la plus chère s'applique ou si les frais s'additionnent."
