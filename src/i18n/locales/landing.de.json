@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "refund_cn_fix": {
+          "title": "Rückzahlung erstellt die Gutschrift jetzt korrekt",
+          "description": "Beim Zurückzahlen einer Rechnung wurde die zugehörige Gutschrift in manchen Fällen nicht erstellt. Das ist behoben — die Aktion erstellt die Gutschrift jetzt nachträglich, auch bei bereits zurückgezahlten Rechnungen."
+        },
         "shipping_classes_entity": {
           "title": "Versandklassen mit Vorrangregel",
           "description": "Versandklassen sind jetzt eine echte Einstellung: Du legst sie an, verknüpfst Produkte in einer Übersicht und wählst sie pro Versandart aus einer Liste. Bei einer Bestellung mit verschiedenen Klassen entscheidest du, ob die teuerste Lieferung gilt oder die Kosten addiert werden."

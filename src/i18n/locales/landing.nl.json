@@ -1015,6 +1015,10 @@
         "aug_2026": "Augustus 2026"
       },
       "changes": {
+        "refund_cn_fix": {
+          "title": "Terugbetaling maakt de creditnota nu correct aan",
+          "description": "Bij het terugbetalen van een factuur werd de bijhorende creditnota in sommige gevallen niet aangemaakt. Dat is opgelost — de actie maakt de creditnota nu alsnog aan."
+        },
         "shipping_classes_entity": {
           "title": "Verzendklassen instelbaar met voorrangsregel",
           "description": "Verzendklassen zijn nu een echte instelling: je maakt ze aan, koppelt producten in één overzicht en kiest ze per verzendmethode uit een lijst. Bij een bestelling met verschillende klassen bepaal je zelf of de duurste levering geldt of de kosten worden opgeteld."
