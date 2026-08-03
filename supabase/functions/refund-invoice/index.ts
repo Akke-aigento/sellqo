@@ -71,19 +71,28 @@ Deno.serve(async (req) => {
     }
 
     const metadata = (invoice.metadata ?? {}) as Record<string, unknown>;
-    if (metadata.stripe_refund_id) {
-      return json({ success: false, error: "Deze factuur is al terugbetaald" }, 409);
-    }
-
     const { data: existingCns, error: cnErr } = await supabase
       .from("credit_notes")
       .select("id, status")
       .eq("original_invoice_id", invoiceId);
     if (cnErr) throw new Error(`Creditnota-check mislukt: ${errMsg(cnErr)}`);
-    if ((existingCns ?? []).some((c) => c.status !== "cancelled")) {
+    const hasCreditNote = (existingCns ?? []).some((c) => c.status !== "cancelled");
+    const existingRefundId = (metadata.stripe_refund_id as string | undefined) || null;
+
+    // Volledig afgehandeld → afwijzen. Alleen refund zonder creditnota →
+    // COMPLETION MODE: geen nieuwe Stripe-call, enkel de creditnota afmaken.
+    if (existingRefundId && hasCreditNote) {
+      return json({ success: false, error: "Deze factuur is al terugbetaald" }, 409);
+    }
+    if (!existingRefundId && hasCreditNote) {
       return json({ success: false, error: "Er bestaat al een creditnota voor deze factuur" }, 409);
     }
+    const completionMode = !!existingRefundId;
 
+    let refundId = existingRefundId;
+    let paymentIntentId: string | null = (metadata.stripe_payment_intent_id as string | undefined) || null;
+
+    if (!completionMode) {
     // ── b) Stripe key resolven (zoals process-refund) ──
     const { data: tenantSettings } = await supabase
       .from("tenant_settings")
@@ -105,7 +114,6 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" } as any);
 
     // ── c) payment intent zoeken via metadata ──
-    let paymentIntentId: string | null = null;
     try {
       const search = await stripe.paymentIntents.search(
         { query: `metadata['invoice_id']:'${invoiceId}'` },
@@ -130,6 +138,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       return json({ success: false, error: errMsg(e) }, 502);
     }
+    refundId = refund.id;
 
     // ── e) pas NA succes muteren: metadata + creditnota ──
     const refundedAt = new Date().toISOString();
@@ -146,6 +155,7 @@ Deno.serve(async (req) => {
       .eq("id", invoiceId)
       .select("id");
     if (metaErr) console.error("[refund-invoice] metadata update failed", metaErr);
+    }
 
     // Creditnota voor ALLE factuurregels.
     const { data: lines, error: linesErr } = await supabase
@@ -170,8 +180,12 @@ Deno.serve(async (req) => {
       .rpc("generate_credit_note_number", { _tenant_id: invoice.tenant_id });
     if (numErr) throw new Error(`Creditnotanummer mislukt: ${errMsg(numErr)}`);
 
-    const subtotal = cnLines.reduce((s, l) => s + l.line_total, 0);
-    const taxAmount = cnLines.reduce((s, l) => s + l.vat_amount, 0);
+    // PostgREST levert numeric als string: altijd Number(...) vóór optellen.
+    // line_total-semantiek is inconsistent in dit schema → factuurtotaal is
+    // de bron van waarheid voor de header-bedragen.
+    const taxAmount = cnLines.reduce((s, l) => s + Number(l.vat_amount), 0);
+    const total = Number(invoice.total);
+    const subtotal = total - taxAmount;
 
     const { data: creditNote, error: cnInsertErr } = await supabase
       .from("credit_notes")
@@ -182,9 +196,9 @@ Deno.serve(async (req) => {
         customer_id: invoice.customer_id,
         type: "full",
         reason: "Terugbetaling",
-        subtotal,
-        tax_amount: taxAmount,
-        total: subtotal + taxAmount,
+        subtotal: Number(subtotal),
+        tax_amount: Number(taxAmount),
+        total: Number(total),
         ogm_reference: generateOGM(cnNumber as string),
         status: "draft",
       })
@@ -195,7 +209,17 @@ Deno.serve(async (req) => {
     if (cnLines.length > 0) {
       const { error: cnLinesErr } = await supabase
         .from("credit_note_lines")
-        .insert(cnLines.map((l) => ({ ...l, credit_note_id: creditNote.id })));
+        .insert(cnLines.map((l) => ({
+          credit_note_id: creditNote.id,
+          original_invoice_line_id: l.original_invoice_line_id,
+          description: l.description,
+          line_type: l.line_type,
+          quantity: Number(l.quantity),
+          unit_price: Number(l.unit_price),
+          vat_rate: Number(l.vat_rate),
+          vat_amount: Number(l.vat_amount),
+          line_total: Number(l.line_total),
+        })));
       if (cnLinesErr) throw new Error(`Creditnotaregels mislukt: ${errMsg(cnLinesErr)}`);
     }
 
