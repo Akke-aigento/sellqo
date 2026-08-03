@@ -241,7 +241,8 @@ Deno.serve(async (req) => {
 
     return json({
       success: true,
-      stripe_refund_id: refund.id,
+      stripe_refund_id: refundId,
+      completion_mode: completionMode,
       credit_note_id: creditNote.id,
       credit_note_number: cnNumber,
       pdf_generated: pdfGenerated,
