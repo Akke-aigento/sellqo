@@ -145,6 +145,17 @@ export default function InvoicesPage() {
     return [...fromInvoices, ...fromCNs].sort((a, b) => +new Date(b.date) - +new Date(a.date));
   }, [invoices, creditNotes]);
 
+  // Invoice ids that already have a (non-cancelled) credit note.
+  const invoiceIdsWithCreditNote = useMemo(() => {
+    const set = new Set<string>();
+    (creditNotes as any[]).forEach((c) => {
+      if (c.status === 'cancelled') return;
+      const id = c.original_invoice_id ?? c.original_invoice?.id;
+      if (id) set.add(id as string);
+    });
+    return set;
+  }, [creditNotes]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('nl-NL', {
       style: 'currency',
@@ -292,7 +303,8 @@ export default function InvoicesPage() {
           render: () => (
             <RefundInvoiceButton
               amountLabel={formatCurrency(r.amount)}
-              alreadyRefunded={!!r.refundedAt}
+              hasRefund={!!r.refundedAt}
+              hasCreditNote={invoiceIdsWithCreditNote.has(r.id)}
               onConfirm={() => refundInvoice.mutateAsync(r.id)}
             />
           ),
