@@ -4913,3 +4913,15 @@ service-role en is rol-onafhankelijk.
 **Opruiming:** 7 CN's interne tenant (5×6,05 + 2×35,09) + CN-2026-0003 VanXcel (Mercken 299 via retour-flow, refund via Stripe-pad), alle drie smoke-abo's cancelled, BCC uit (parallelweek 15/7-1/8 clean afgesloten), dunning geneutraliseerd (0001/0004/SQ-0005). INV-2026-0002: CN vóór refund aangemaakt → refund eenmalig via Stripe-dashboard (guard-les).
 
 **Vangsten/backlog:** CN-DUNNING-1 (CN moet bronfactuur uit dunning halen), cancelled-status ontbreekt in credit_notes CHECK-constraint, REFUND-UX-1 (refund als checkbox in CN-dialoog), GELD-1/PAYOUT-1-2 (payout- en fee-transparantie naar Odoo), initiële-charge zet status/attempts niet (SUB-2-familie). Astra SQ-2026-0001 (€60,50) bewust open — wacht op betaling Marawan.
+
+## STOCK-1: voorraadrapport op elke datum — 4 aug 2026
+
+**Aanleiding:** tenants (en hun boekhouder) hebben een gewaardeerde voorraadlijst nodig op een willekeurige datum — o.a. 31/12 voor de jaarrekening. Belofte aan Pieter (Finobi) in de VanXcel-mail.
+
+**Kernbeslissing:** er is GEEN voorraad-grootboek; stock is een live kolom op products en product_variants (beide met cost_price). Historische voorraad wordt daarom GERECONSTRUEERD: stock(D) = huidige stock + verkocht na D − ontvangen na D. Vandaag = live snapshot; verleden = reconstructie met zichtbare amber-disclaimer.
+
+**Uitgevoerd:** nieuwe pagina /admin/reports/stock (menu "Voorraadrapport" onder Rapporten), useStockReport-hook met gebatchte queries (geen N+1), datumkeuze, reconstructie op niet-geannuleerde orders na D + PO-ontvangsten (received_at, met status+updated_at als benadering, zichtbaar gemeld), alleen track_inventory-producten, negatief→0 met per-rij-waarschuwing, filters (zoek/categorie/nulvoorraad-toggle), totalen, CSV+XLSX-export met kopblok (onderneming, datum, timestamp, disclaimer). Changelog 2026.08h, i18n 4 admin- + 4 landing-locales met pariteit.
+
+**Datavangst bij oplevering:** van 39 getrackte VanXcel-producten hadden er 19 geen kostprijs (waonder #12003, doorheen de Shopify-import geglipt). Akke vulde kostprijzen aan en zette testproducten op track_inventory=false → 25 getrackte producten, alle met stock>0 gewaardeerd. Cross-check 31/12/2025: reconstructie €13.938,53 (2.175 st) vs live €13.047,06 — richting klopt (verleden > heden = netto verkocht sindsdien). Export voor Pieter bevestigd correct.
+
+**Beperking / vervolg (STOCK-2):** reconstructie mist handmatige correcties en marketplace-syncs (eerlijk gedisclaimerd). STOCK-2 = echt stock_movements-grootboek dat elke datum exact maakt i.p.v. gereconstrueerd, inclusief die mutaties. Klein stuksverschil (2.175 vs 2.177 in export) door PO-ontvangstdatum-benadering — lost STOCK-2 op.
