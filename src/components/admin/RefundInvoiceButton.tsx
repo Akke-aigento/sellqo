@@ -16,8 +16,10 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   amountLabel: string;
-  /** Already refunded → item disabled with explanatory label. */
-  alreadyRefunded?: boolean;
+  /** Stripe refund already executed (metadata.stripe_refund_id present). */
+  hasRefund?: boolean;
+  /** A non-cancelled credit note already exists for this invoice. */
+  hasCreditNote?: boolean;
   onConfirm: () => Promise<unknown>;
 }
 
@@ -25,11 +27,27 @@ interface Props {
  * Menu-item + confirmatiedialoog voor "Terugbetalen & crediteren".
  * Alleen renderen op facturen met status 'paid'.
  */
-export function RefundInvoiceButton({ amountLabel, alreadyRefunded = false, onConfirm }: Props) {
+export function RefundInvoiceButton({
+  amountLabel,
+  hasRefund = false,
+  hasCreditNote = false,
+  onConfirm,
+}: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Drive the state from BOTH facts: refund executed and credit note present.
+  const disabled = hasCreditNote;
+  const completionMode = hasRefund && !hasCreditNote;
+  const label = disabled
+    ? hasRefund
+      ? t('admin.invoiceRefund.alreadyRefunded')
+      : t('admin.invoiceRefund.alreadyCredited')
+    : completionMode
+      ? t('admin.invoiceRefund.completeAction')
+      : t('admin.invoiceRefund.action');
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -54,19 +72,16 @@ export function RefundInvoiceButton({ amountLabel, alreadyRefunded = false, onCo
   return (
     <>
       <DropdownMenuItem
-        disabled={alreadyRefunded}
-        className={alreadyRefunded ? '' : 'text-destructive focus:text-destructive'}
+        disabled={disabled}
+        title={label}
+        className={disabled ? '' : 'text-destructive focus:text-destructive'}
         onSelect={(e) => {
           e.preventDefault();
-          if (!alreadyRefunded) setOpen(true);
+          if (!disabled) setOpen(true);
         }}
       >
         <Undo2 className="h-4 w-4" />
-        <span className="ml-2">
-          {alreadyRefunded
-            ? t('admin.invoiceRefund.alreadyRefunded')
-            : t('admin.invoiceRefund.action')}
-        </span>
+        <span className="ml-2">{label}</span>
       </DropdownMenuItem>
 
       <AlertDialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
@@ -76,7 +91,9 @@ export function RefundInvoiceButton({ amountLabel, alreadyRefunded = false, onCo
             <AlertDialogDescription>
               {t('admin.invoiceRefund.confirmAmount', { amount: amountLabel })}
               <br />
-              {t('admin.invoiceRefund.confirmDescription')}
+              {completionMode
+                ? t('admin.invoiceRefund.completeConfirmDescription')
+                : t('admin.invoiceRefund.confirmDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -89,7 +106,9 @@ export function RefundInvoiceButton({ amountLabel, alreadyRefunded = false, onCo
               }}
             >
               {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {t('admin.invoiceRefund.confirm')}
+              {completionMode
+                ? t('admin.invoiceRefund.completeAction')
+                : t('admin.invoiceRefund.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
