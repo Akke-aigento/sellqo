@@ -1015,6 +1015,10 @@
         "aug_2026": "Août 2026"
       },
       "changes": {
+        "refund_button_states": {
+          "title": "Le bouton de remboursement affiche le bon état",
+          "description": "L'action de remboursement sur les factures indique désormais correctement si un remboursement ou une note de crédit existe déjà, et peut finaliser un remboursement interrompu."
+        },
         "refund_cn_fix": {
           "title": "Le remboursement crée désormais correctement la note de crédit",
           "description": "Lors du remboursement d'une facture, la note de crédit correspondante n'était dans certains cas pas créée. Ce problème est corrigé — l'action crée désormais la note de crédit, y compris pour les factures déjà remboursées."

@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "refund_button_states": {
+          "title": "Refund button now shows the right state",
+          "description": "The refund action on invoices now correctly shows whether a refund or credit note already exists, and can complete an interrupted refund."
+        },
         "refund_cn_fix": {
           "title": "Refunds now create the credit note correctly",
           "description": "When refunding an invoice, the matching credit note was in some cases not created. This has been fixed — the action now creates the credit note, also for invoices that were already refunded."

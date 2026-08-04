@@ -1015,6 +1015,10 @@
         "aug_2026": "August 2026"
       },
       "changes": {
+        "refund_button_states": {
+          "title": "Erstattungs-Button zeigt jetzt den richtigen Status",
+          "description": "Die Erstattungsaktion bei Rechnungen zeigt jetzt korrekt an, ob eine Erstattung oder Gutschrift bereits existiert, und kann eine unterbrochene Erstattung nachträglich abschließen."
+        },
         "refund_cn_fix": {
           "title": "Rückzahlung erstellt die Gutschrift jetzt korrekt",
           "description": "Beim Zurückzahlen einer Rechnung wurde die zugehörige Gutschrift in manchen Fällen nicht erstellt. Das ist behoben — die Aktion erstellt die Gutschrift jetzt nachträglich, auch bei bereits zurückgezahlten Rechnungen."
