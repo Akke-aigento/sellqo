@@ -4925,3 +4925,23 @@ service-role en is rol-onafhankelijk.
 **Datavangst bij oplevering:** van 39 getrackte VanXcel-producten hadden er 19 geen kostprijs (waonder #12003, doorheen de Shopify-import geglipt). Akke vulde kostprijzen aan en zette testproducten op track_inventory=false → 25 getrackte producten, alle met stock>0 gewaardeerd. Cross-check 31/12/2025: reconstructie €13.938,53 (2.175 st) vs live €13.047,06 — richting klopt (verleden > heden = netto verkocht sindsdien). Export voor Pieter bevestigd correct.
 
 **Beperking / vervolg (STOCK-2):** reconstructie mist handmatige correcties en marketplace-syncs (eerlijk gedisclaimerd). STOCK-2 = echt stock_movements-grootboek dat elke datum exact maakt i.p.v. gereconstrueerd, inclusief die mutaties. Klein stuksverschil (2.175 vs 2.177 in export) door PO-ontvangstdatum-benadering — lost STOCK-2 op.
+
+## STOCK-2: voorraadgrootboek (stock_movements) — 4 aug 2026
+
+**Aanleiding:** STOCK-1 kon voorraad alleen reconstrueren omdat er geen mutatie-historie was. STOCK-2 legt elke voorraadbeweging vast zodat elke datum exact wordt i.p.v. gereconstrueerd.
+
+**Ontwerp (one-gateway):** i.p.v. 20+ schrijfpunten te herschrijven, is de bestaande SECURITY DEFINER RPC decrement_stock/decrement_variant_stock herschreven om via één kern-functie record_stock_movement te lopen (past delta toe, leest balance_after, schrijft stock_movements-rij). Signatuur onveranderd → de Stripe-webhook en sync-bol-orders krijgen ledgering gratis. increment_stock/increment_variant_stock toegevoegd voor retours.
+
+**Tabel stock_movements:** tenant_id, product_id, variant_id, delta (±), balance_after, reason (sale/return/purchase/sync/manual/opening/adjustment), reference_type/id, note, created_by, created_at. RLS: alleen SELECT voor tenant-leden; INSERT enkel via SECURITY DEFINER (geen client-bypass). Indexen op (tenant,product,created_at) etc.
+
+**Opening balances:** idempotent geseed (NOT EXISTS-guard), delta=balance_after=huidige stock. 105 product-openings + variant-openings = 528 rijen.
+
+**UI:** InlineStockStepper in ProductVariantsTab loopt nu via handleStockChange → ledger met reason 'manual' (geen directe stock-update meer die het grootboek omzeilt). Per variant een voorraadhistoriek-knop → StockLedgerDialog (datum/reden/delta/saldo/notitie, vertaald). Shared helper _shared/stockLedger.ts (logStockMovement, no-op bij delta 0) voor edge-side logging.
+
+**Sync-paden:** Odoo/Shopify/WooCommerce inventory-sync loggen 'sync'-movements via de helper. PO-ontvangst logt 'purchase'.
+
+**Post-flight geverifieerd:** grootboek-identiteit sum(delta)=live stock over 105 getrackte producten met 0 mismatches en 0 negatieve saldi. Verkoop-test (decrement_stock in teruggedraaide transactie): stock -2, één 'sale'-rij met balance_after correct. Changelog 2026.08i, i18n 4 admin + 4 landing met pariteit.
+
+**Scope-vangst tijdens post-flight:** oorspronkelijke prompt nam aan dat bol/amazon/ebay inventory-sync lokale stock overschrijven → die zouden 'sync' moeten loggen. Recon toonde dat deze drie OUTBOUND zijn (pushen SellQo-stock naar de marketplace, schrijven geen lokale stock: Bol update marketplace_mappings, Amazon/eBay enkel last_synced_at). Er is dus niets te loggen — geen gat. Bol-VERKOPEN lopen via sync-bol-orders → decrement_stock (logt al). STOCK-2 daarmee volledig; geen STOCK-2b nodig.
+
+**Vervolg/backlog:** STOCK-1 reconstructie kan later vervangen worden door directe ledger-optelling voor datums ná invoering (exacter dan de order/PO-reconstructie). Lovable paste de migratie deels toe zonder git-bestand op één timestamp — DB is de waarheid bij post-flight, niet enkel de repo.
