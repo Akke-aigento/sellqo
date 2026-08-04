@@ -828,6 +828,9 @@
     "invoiceRefund": {
       "action": "Rembourser & créditer",
       "alreadyRefunded": "Déjà remboursé",
+      "alreadyCredited": "Déjà crédité — remboursement uniquement via Stripe",
+      "completeAction": "Finaliser la note de crédit",
+      "completeConfirmDescription": "Le remboursement a déjà été effectué ; cette action ne crée plus que la note de crédit.",
       "confirmTitle": "Rembourser intégralement cette facture ?",
       "confirmAmount": "Montant : {{amount}}",
       "confirmDescription": "Cette action crée un remboursement Stripe intégral ainsi qu'une note de crédit. Elle est irréversible.",

@@ -1015,6 +1015,10 @@
         "aug_2026": "Augustus 2026"
       },
       "changes": {
+        "refund_button_states": {
+          "title": "Terugbetaal-knop toont nu de juiste status",
+          "description": "De terugbetaal-actie op facturen toont nu correct wanneer een terugbetaling of creditnota al bestaat, en kan een onderbroken terugbetaling alsnog afronden."
+        },
         "refund_cn_fix": {
           "title": "Terugbetaling maakt de creditnota nu correct aan",
           "description": "Bij het terugbetalen van een factuur werd de bijhorende creditnota in sommige gevallen niet aangemaakt. Dat is opgelost — de actie maakt de creditnota nu alsnog aan."

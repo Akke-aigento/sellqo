@@ -828,6 +828,9 @@
     "invoiceRefund": {
       "action": "Erstatten & gutschreiben",
       "alreadyRefunded": "Bereits erstattet",
+      "alreadyCredited": "Bereits gutgeschrieben — Erstattung nur über Stripe",
+      "completeAction": "Gutschrift abschließen",
+      "completeConfirmDescription": "Die Erstattung wurde bereits ausgeführt; diese Aktion erstellt nur noch die Gutschrift.",
       "confirmTitle": "Rechnung vollständig erstatten?",
       "confirmAmount": "Betrag: {{amount}}",
       "confirmDescription": "Dies erstellt eine vollständige Stripe-Erstattung und eine Gutschrift. Dies kann nicht rückgängig gemacht werden.",

@@ -958,6 +958,9 @@
     "invoiceRefund": {
       "action": "Terugbetalen & crediteren",
       "alreadyRefunded": "Al terugbetaald",
+      "alreadyCredited": "Al gecrediteerd — terugbetaling kan enkel via Stripe",
+      "completeAction": "Creditnota afronden",
+      "completeConfirmDescription": "De terugbetaling is al uitgevoerd; deze actie maakt alleen nog de creditnota aan.",
       "confirmTitle": "Factuur volledig terugbetalen?",
       "confirmAmount": "Bedrag: {{amount}}",
       "confirmDescription": "Dit maakt een volledige Stripe-terugbetaling én een creditnota aan. Dit kan niet ongedaan worden gemaakt.",
