@@ -58,6 +58,7 @@ import AdsBolcomSearchTermsPage from "./pages/admin/AdsBolcomSearchTerms";
 import AdsAiRulesPage from "./pages/admin/AdsAiRules";
 import AdsProductMapPage from "./pages/admin/AdsProductMap";
 import ReportsPage from "./pages/admin/Reports";
+import StockReportPage from "./pages/admin/reports/StockReport";
 import MessagesPage from "./pages/admin/Messages";
 import SuppliersPage from "./pages/admin/Suppliers";
 import PurchaseOrdersPage from "./pages/admin/PurchaseOrders";
@@ -237,6 +238,7 @@ const App = () => (
               <Route path="import" element={<RouteGuard requireRead="integrations"><ImportPage /></RouteGuard>} />
               <Route path="reports" element={<RouteGuard requireRead="reports"><ReportsPage /></RouteGuard>} />
               <Route path="analytics" element={<RouteGuard requireRead="reports"><AnalyticsPage /></RouteGuard>} />
+              <Route path="reports/stock" element={<RouteGuard requireRead="reports"><StockReportPage /></RouteGuard>} />
               <Route path="suppliers" element={<RouteGuard requireRead="suppliers"><SuppliersPage /></RouteGuard>} />
               <Route path="purchase-orders" element={<RouteGuard requireRead="suppliers"><PurchaseOrdersPage /></RouteGuard>} />
               <Route path="supplier-documents" element={<RouteGuard requireRead="suppliers"><SupplierDocumentsPage /></RouteGuard>} />
