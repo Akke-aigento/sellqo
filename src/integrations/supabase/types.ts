@@ -14100,6 +14100,66 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          balance_after: number
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          note: string | null
+          product_id: string
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+          tenant_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          note?: string | null
+          product_id: string
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+          tenant_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          note?: string | null
+          product_id?: string
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          tenant_id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storefront_api_keys: {
         Row: {
           created_at: string | null
@@ -18704,6 +18764,28 @@ export type Database = {
         Args: { _code: string; _tenant_id: string }
         Returns: undefined
       }
+      increment_stock: {
+        Args: {
+          p_note?: string
+          p_product_id: string
+          p_quantity: number
+          p_reason?: string
+          p_reference_id?: string
+          p_reference_type?: string
+        }
+        Returns: undefined
+      }
+      increment_variant_stock: {
+        Args: {
+          p_note?: string
+          p_quantity: number
+          p_reason?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_variant_id: string
+        }
+        Returns: undefined
+      }
       initialize_ai_assistant_config: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -18738,6 +18820,20 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_stock_movement: {
+        Args: {
+          p_created_by?: string
+          p_delta: number
+          p_note?: string
+          p_product_id: string
+          p_reason: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_tenant_id: string
+          p_variant_id: string
+        }
+        Returns: number
       }
       record_transaction: {
         Args: {
