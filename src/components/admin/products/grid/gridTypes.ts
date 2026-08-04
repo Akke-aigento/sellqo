@@ -79,7 +79,7 @@ export const GRID_COLUMNS: ColumnDefinition[] = [
 // Fields that are editable on variant sub-rows
 export const VARIANT_EDITABLE_FIELDS = new Set([
   'name', 'sku', 'barcode', 'price', 'cost_price', 'compare_at_price',
-  'stock', 'weight', 'is_active',
+  'stock', 'weight', 'is_active', 'track_inventory',
 ]);
 
 // Map variant fields to their column type overrides (name → title)
