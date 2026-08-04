@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logStockMovement } from '../_shared/stockLedger.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -155,6 +156,18 @@ Deno.serve(async (req) => {
               .from('products')
               .update({ stock: wooStock })
               .eq('id', product.id)
+
+            // Ledger: only when the value actually changed
+            await logStockMovement(supabase, {
+              tenantId: connection.tenant_id,
+              productId: product.id,
+              oldStock: product.stock,
+              newStock: wooStock,
+              reason: 'sync',
+              referenceType: 'marketplace',
+              referenceId: connectionId,
+              note: 'WooCommerce',
+            })
 
             // Log the sync
             await supabase.from('inventory_sync_log').insert({
