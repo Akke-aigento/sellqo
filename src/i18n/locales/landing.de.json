@@ -1174,6 +1174,10 @@
         "sec_role_aware_rls": {
           "title": "Rollenbasierte Zugriffskontrolle im gesamten Platform",
           "description": "Große Härtungsrunde: Jedes Team-Konto sieht nur die Daten, die seiner Rolle im eigenen Shop entsprechen. Shop-übergreifender Zugriff ist strukturell ausgeschlossen."
+        },
+        "stock_report": {
+          "title": "Bestandsbericht zu jedem Datum",
+          "description": "Erstellen Sie eine bewertete Bestandsliste (Mengen × Einstandspreis) für heute oder ein vergangenes Datum — mit CSV- und Excel-Export, bereit für Ihre Buchhaltung."
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."

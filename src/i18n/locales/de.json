@@ -839,6 +839,33 @@
       "successTitle": "Erstattung verarbeitet",
       "successDescription": "Die Stripe-Erstattung und die Gutschrift wurden erstellt.",
       "errorTitle": "Erstattung fehlgeschlagen"
+    },
+    "stockReport": {
+      "title": "Bestandsbericht",
+      "subtitle": "Bewertete Bestandsliste zu einem gewählten Datum",
+      "filters": "Filter",
+      "searchPlaceholder": "Nach Name oder SKU suchen...",
+      "allCategories": "Alle Kategorien",
+      "hideZeroStock": "Nullbestand ausblenden",
+      "colSku": "SKU",
+      "colName": "Produkt",
+      "colVariant": "Variante",
+      "colStock": "Bestand",
+      "colCostPrice": "Einstandspreis",
+      "colStockValue": "Bestandswert",
+      "colSalesPrice": "Verkaufspreis",
+      "colSalesValue": "Verkaufswert",
+      "totals": "Gesamt",
+      "empty": "Keine Produkte für diese Auswahl gefunden.",
+      "exportCsv": "CSV",
+      "exportXlsx": "Excel",
+      "exportTenant": "Unternehmen",
+      "exportDate": "Berichtsdatum",
+      "exportGeneratedAt": "Erstellt am",
+      "exportNotice": "Hinweis",
+      "reconstructionNotice": "Rekonstruktion auf Basis der Verkäufe und Wareneingänge seit diesem Datum. Manuelle Bestandskorrekturen und Marketplace-Synchronisationen sind nicht enthalten.",
+      "poApproximation": "Bei Bestellungen ohne Eingangsdatum wurde das Datum der letzten Änderung als Näherung verwendet.",
+      "negativeWarning": "Der rekonstruierte Bestand war negativ und wird als 0 angezeigt."
     }
   }
 }

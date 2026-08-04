@@ -1174,6 +1174,10 @@
         "sec_role_aware_rls": {
           "title": "Role-aware access control across the platform",
           "description": "Large hardening round: every team account sees only the data that matches its role within its own store. Cross-store access is structurally excluded."
+        },
+        "stock_report": {
+          "title": "Stock report for any date",
+          "description": "Generate a valued stock list (quantities × cost price) for today or a date in the past — with CSV and Excel export, ready for your accountant."
         }
       },
       "subscribeError": "Subscription failed. Please try again later."
