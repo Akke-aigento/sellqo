@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
+import { History, Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { VariantExtraImagesDialog } from './VariantExtraImagesDialog';
+import { StockLedgerDialog } from './StockLedgerDialog';
+import { useSetStockManual } from '@/hooks/useStockLedger';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -88,6 +90,21 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
     generateVariants, syncVariants,
   } = useProductVariants(productId, defaultPrice);
   const { products } = useProducts();
+  const setStockManual = useSetStockManual();
+
+  // Stock ledger dialog state
+  const [ledgerVariantId, setLedgerVariantId] = useState<string | null>(null);
+
+  /** Manual stock change — always via the ledger, never a direct stock update. */
+  const handleStockChange = (variantId: string, oldStock: number, newStock: number) => {
+    setStockManual.mutate({
+      productId,
+      variantId,
+      oldStock: oldStock ?? 0,
+      newStock,
+      note: 'Handmatige correctie via variantenoverzicht',
+    });
+  };
 
   // Container-width detection for existing variants section
   const variantsContainerRef = useRef<HTMLDivElement>(null);
@@ -188,7 +205,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
 
   const saveEditVariant = () => {
     if (!editingVariantId) return;
-    updateVariant.mutate({ id: editingVariantId, data: editVariantData });
+    const variant = variants.find(v => v.id === editingVariantId);
+    const { stock, ...rest } = editVariantData;
+    updateVariant.mutate({ id: editingVariantId, data: rest });
+    if (variant && typeof stock === 'number' && stock !== variant.stock) {
+      handleStockChange(editingVariantId, variant.stock ?? 0, stock);
+    }
     setEditingVariantId(null);
   };
 
@@ -510,7 +532,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         <div>
                           <span className="text-xs text-muted-foreground block">Voorraad</span>
                           {trackInventory ? (
-                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title="Voorraadhistoriek" onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Niet bijgehouden</span>
                           )}
@@ -654,7 +676,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             editingVariantId === variant.id ? (
                               <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
-                              <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title="Voorraadhistoriek" onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                             )
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>
@@ -772,6 +794,14 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <StockLedgerDialog
+        open={ledgerVariantId !== null}
+        onOpenChange={(o) => { if (!o) setLedgerVariantId(null); }}
+        productId={productId}
+        variantId={ledgerVariantId}
+        title={variants.find(v => v.id === ledgerVariantId)?.title ?? undefined}
+      />
+
     </div>
   );
 }

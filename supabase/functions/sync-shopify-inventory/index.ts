@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logStockMovement } from '../_shared/stockLedger.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -199,6 +200,17 @@ Deno.serve(async (req) => {
                       shopify_last_synced_at: new Date().toISOString(),
                     })
                     .eq('id', matchedProducts.id)
+
+                  await logStockMovement(supabase, {
+                    tenantId: connection.tenant_id,
+                    productId: matchedProducts.id,
+                    oldStock: matchedProducts.stock,
+                    newStock: shopifyStock,
+                    reason: 'sync',
+                    referenceType: 'marketplace',
+                    referenceId: connectionId,
+                    note: 'Shopify',
+                  })
 
                   productsSynced++
                 }

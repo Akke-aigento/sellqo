@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl as nlLocale } from 'date-fns/locale';
-import { AlertTriangle, Calendar as CalendarIcon, Download, FileSpreadsheet, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, Calendar as CalendarIcon, Download, FileSpreadsheet, History, Loader2, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useCategories } from '@/hooks/useCategories';
 import { useStockReport, isToday, type StockReportRow } from '@/hooks/useStockReport';
+import { StockLedgerDialog } from '@/components/admin/products/StockLedgerDialog';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 const money = (v: number) =>
@@ -36,6 +37,7 @@ const StockReport = () => {
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState<string>('all');
   const [hideZero, setHideZero] = useState(true);
+  const [ledgerRow, setLedgerRow] = useState<StockReportRow | null>(null);
 
   const { data, isLoading } = useStockReport(date);
   const rows = data?.rows ?? [];
@@ -163,6 +165,17 @@ const StockReport = () => {
       <TableCell className="text-right font-medium">{money(r.stock_value)}</TableCell>
       <TableCell className="text-right">{money(r.sales_price)}</TableCell>
       <TableCell className="text-right">{money(r.sales_value)}</TableCell>
+      <TableCell className="text-right">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          title={t('admin.stockLedger.openHistory')}
+          onClick={() => setLedgerRow(r)}
+        >
+          <History className="h-4 w-4" />
+        </Button>
+      </TableCell>
     </TableRow>
   );
 
@@ -274,6 +287,7 @@ const StockReport = () => {
                     <TableHead className="text-right">{t('admin.stockReport.colStockValue')}</TableHead>
                     <TableHead className="text-right">{t('admin.stockReport.colSalesPrice')}</TableHead>
                     <TableHead className="text-right">{t('admin.stockReport.colSalesValue')}</TableHead>
+                    <TableHead className="text-right sr-only">{t('admin.stockLedger.openHistory')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -285,6 +299,7 @@ const StockReport = () => {
                     <TableCell className="text-right">{money(totals.stockValue)}</TableCell>
                     <TableCell />
                     <TableCell className="text-right">{money(totals.salesValue)}</TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableBody>
               </Table>
@@ -292,6 +307,14 @@ const StockReport = () => {
           )}
         </CardContent>
       </Card>
+
+      <StockLedgerDialog
+        open={ledgerRow !== null}
+        onOpenChange={(o) => { if (!o) setLedgerRow(null); }}
+        productId={ledgerRow?.product_id ?? null}
+        variantId={ledgerRow?.variant_id ?? null}
+        title={ledgerRow ? [ledgerRow.name, ledgerRow.variant_title].filter(Boolean).join(' — ') : undefined}
+      />
     </div>
   );
 };

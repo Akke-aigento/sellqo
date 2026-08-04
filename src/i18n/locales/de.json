@@ -866,6 +866,26 @@
       "reconstructionNotice": "Rekonstruktion auf Basis der Verkäufe und Wareneingänge seit diesem Datum. Manuelle Bestandskorrekturen und Marketplace-Synchronisationen sind nicht enthalten.",
       "poApproximation": "Bei Bestellungen ohne Eingangsdatum wurde das Datum der letzten Änderung als Näherung verwendet.",
       "negativeWarning": "Der rekonstruierte Bestand war negativ und wird als 0 angezeigt."
+    },
+    "stockLedger": {
+      "title": "Bestandsverlauf",
+      "subtitle": "Alle Bestandsbewegungen, neueste zuerst",
+      "openHistory": "Bestandsverlauf ansehen",
+      "empty": "Noch keine Bestandsbewegungen",
+      "colDate": "Datum",
+      "colReason": "Grund",
+      "colDelta": "Veränderung",
+      "colBalance": "Saldo danach",
+      "colNote": "Notiz",
+      "reason": {
+        "sale": "Verkauf",
+        "return": "Rückgabe",
+        "purchase": "Einkauf",
+        "sync": "Synchronisierung",
+        "manual": "Manuell",
+        "opening": "Anfangsbestand",
+        "adjustment": "Korrektur"
+      }
     }
   }
 }

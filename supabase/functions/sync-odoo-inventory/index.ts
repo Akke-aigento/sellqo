@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logStockMovement } from '../_shared/stockLedger.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -223,6 +224,17 @@ Deno.serve(async (req) => {
             .from('products')
             .update({ stock: newStock, last_inventory_sync: new Date().toISOString() })
             .eq('id', sellqoProduct.id)
+
+          await logStockMovement(supabase, {
+            tenantId: connection.tenant_id,
+            productId: sellqoProduct.id,
+            oldStock: sellqoProduct.stock,
+            newStock,
+            reason: 'sync',
+            referenceType: 'marketplace',
+            referenceId: connectionId,
+            note: 'Odoo',
+          })
 
           await supabase.from('inventory_sync_log').insert({
             tenant_id: connection.tenant_id,

@@ -236,12 +236,33 @@ export function usePurchaseOrderMutations() {
       quantityReceived: number;
       orderId: string;
     }) => {
+      // Read the previous received quantity so we can book the delta into stock
+      const { data: prevItem } = await supabase
+        .from("purchase_order_items")
+        .select("product_id, quantity_received")
+        .eq("id", itemId)
+        .maybeSingle();
+
       const { error } = await supabase
         .from("purchase_order_items")
         .update({ quantity_received: quantityReceived })
         .eq("id", itemId);
 
       if (error) throw error;
+
+      // Stock ledger: only book when the received quantity actually increased
+      const receivedDelta = quantityReceived - (prevItem?.quantity_received ?? 0);
+      if (prevItem?.product_id && receivedDelta > 0) {
+        const { error: stockError } = await supabase.rpc("increment_stock", {
+          p_product_id: prevItem.product_id,
+          p_quantity: receivedDelta,
+          p_reason: "purchase",
+          p_reference_type: "purchase_order",
+          p_reference_id: orderId,
+          p_note: null,
+        });
+        if (stockError) console.error("increment_stock (purchase) failed:", stockError.message);
+      }
 
       // Check if all items are fully received
       const { data: items } = await supabase

@@ -178,6 +178,27 @@ export function ProductGridView({ products }: ProductGridViewProps) {
 
         // Save remaining product fields
         const remainingData = { ...change.data };
+        // Stock never bypasses the ledger: book it as a manual movement
+        if ('stock' in remainingData) {
+          const newStock = Number(remainingData.stock ?? 0);
+          delete remainingData.stock;
+          const current = products.find(p => p.id === change.id);
+          const oldStock = Number(current?.stock ?? 0);
+          if (newStock !== oldStock) {
+            const { error: ledgerError } = await supabase.rpc('record_stock_movement', {
+              p_tenant_id: null,
+              p_product_id: change.id,
+              p_variant_id: null,
+              p_delta: newStock - oldStock,
+              p_reason: 'manual',
+              p_reference_type: null,
+              p_reference_id: null,
+              p_note: 'Handmatige correctie via productgrid',
+              p_created_by: null,
+            });
+            if (ledgerError) console.error('record_stock_movement failed', ledgerError.message);
+          }
+        }
         if (Object.keys(remainingData).length > 0) {
           await updateProduct.mutateAsync({
             id: change.id,
@@ -189,9 +210,31 @@ export function ProductGridView({ products }: ProductGridViewProps) {
       // Save variant changes
       for (const vc of variantChanges) {
         try {
+          const variantData = { ...vc.data } as Record<string, unknown>;
+          if ('stock' in variantData) {
+            const newStock = Number(variantData.stock ?? 0);
+            delete variantData.stock;
+            const currentVariant = allVariants.find(v => v.id === vc.id);
+            const oldStock = Number(currentVariant?.stock ?? 0);
+            if (newStock !== oldStock) {
+              const { error: ledgerError } = await supabase.rpc('record_stock_movement', {
+                p_tenant_id: null,
+                p_product_id: null,
+                p_variant_id: vc.id,
+                p_delta: newStock - oldStock,
+                p_reason: 'manual',
+                p_reference_type: null,
+                p_reference_id: null,
+                p_note: 'Handmatige correctie via productgrid',
+                p_created_by: null,
+              });
+              if (ledgerError) console.error('record_stock_movement failed', ledgerError.message);
+            }
+          }
+          if (Object.keys(variantData).length === 0) continue;
           await supabase
             .from('product_variants')
-            .update(vc.data)
+            .update(variantData)
             .eq('id', vc.id);
         } catch (e) {
           console.error('Failed to update variant', vc.id, e);

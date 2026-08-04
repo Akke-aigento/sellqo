@@ -1180,7 +1180,11 @@
           "description": "Erstellen Sie eine bewertete Bestandsliste (Mengen × Einstandspreis) für heute oder ein vergangenes Datum — mit CSV- und Excel-Export, bereit für Ihre Buchhaltung."
         }
       },
-      "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut."
+      "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "stock_ledger": {
+        "title": "Bestandsbuch: jede Bewegung erfasst",
+        "description": "SellQo erfasst jetzt jede Bestandsbewegung — Verkauf, Rückgabe, Einkauf, Synchronisierung und manuelle Korrektur — damit Ihr Bestand zu jedem Datum exakt stimmt und vollständig nachvollziehbar ist."
+      }
     }
   }
 }
