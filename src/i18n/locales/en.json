@@ -983,6 +983,26 @@
       "reconstructionNotice": "Reconstruction based on sales and goods receipts since this date. Manual stock corrections and marketplace syncs are not included.",
       "poApproximation": "For purchase orders without a receipt date, the last modification date was used as an approximation.",
       "negativeWarning": "Reconstructed stock was negative and is shown as 0."
+    },
+    "stockLedger": {
+      "title": "Stock history",
+      "subtitle": "All stock movements, newest first",
+      "openHistory": "View stock history",
+      "empty": "No stock movements yet",
+      "colDate": "Date",
+      "colReason": "Reason",
+      "colDelta": "Change",
+      "colBalance": "Balance after",
+      "colNote": "Note",
+      "reason": {
+        "sale": "Sale",
+        "return": "Return",
+        "purchase": "Purchase",
+        "sync": "Sync",
+        "manual": "Manual",
+        "opening": "Opening balance",
+        "adjustment": "Adjustment"
+      }
     }
   }
 }

@@ -1180,7 +1180,11 @@
           "description": "Generate a valued stock list (quantities × cost price) for today or a date in the past — with CSV and Excel export, ready for your accountant."
         }
       },
-      "subscribeError": "Subscription failed. Please try again later."
+      "subscribeError": "Subscription failed. Please try again later.",
+      "stock_ledger": {
+        "title": "Stock ledger: every movement recorded",
+        "description": "SellQo now records every stock movement — sales, returns, purchases, syncs and manual corrections — so your stock is exact on any date and fully traceable."
+      }
     }
   }
 }

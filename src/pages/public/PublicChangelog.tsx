@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.08i', dateKey: 'aug_2026', changes: [{ id: 'stock_ledger', type: 'feature' }] },
   { version: '2026.08h', dateKey: 'aug_2026', changes: [{ id: 'stock_report', type: 'feature' }] },
   { version: '2026.08g', dateKey: 'aug_2026', changes: [{ id: 'refund_button_states', type: 'bugfix' }] },
   { version: '2026.08f', dateKey: 'aug_2026', changes: [{ id: 'refund_cn_fix', type: 'bugfix' }] },

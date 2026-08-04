@@ -996,6 +996,26 @@
       "reconstructionNotice": "Reconstructie op basis van verkopen en ontvangsten sinds deze datum. Handmatige voorraadcorrecties en marketplace-syncs zijn niet inbegrepen.",
       "poApproximation": "Voor inkooporders zonder ontvangstdatum is de laatste wijzigingsdatum gebruikt als benadering.",
       "negativeWarning": "Gereconstrueerde voorraad was negatief en is als 0 weergegeven."
+    },
+    "stockLedger": {
+      "title": "Voorraadhistoriek",
+      "subtitle": "Alle voorraadbewegingen, nieuwste eerst",
+      "openHistory": "Voorraadhistoriek bekijken",
+      "empty": "Nog geen voorraadbewegingen",
+      "colDate": "Datum",
+      "colReason": "Reden",
+      "colDelta": "Mutatie",
+      "colBalance": "Saldo na",
+      "colNote": "Notitie",
+      "reason": {
+        "sale": "Verkoop",
+        "return": "Retour",
+        "purchase": "Inkoop",
+        "sync": "Synchronisatie",
+        "manual": "Handmatig",
+        "opening": "Openingssaldo",
+        "adjustment": "Correctie"
+      }
     }
   }
 }

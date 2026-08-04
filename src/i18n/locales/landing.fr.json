@@ -1180,7 +1180,11 @@
           "description": "Générez une liste de stock valorisée (quantités × prix de revient) pour aujourd'hui ou une date passée — avec export CSV et Excel, prêt pour votre comptable."
         }
       },
-      "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard."
+      "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
+      "stock_ledger": {
+        "title": "Grand livre de stock : chaque mouvement enregistré",
+        "description": "SellQo enregistre désormais chaque mouvement de stock — ventes, retours, achats, synchronisations et corrections manuelles — pour un stock exact à n'importe quelle date et entièrement traçable."
+      }
     }
   }
 }

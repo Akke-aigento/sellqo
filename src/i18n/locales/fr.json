@@ -866,6 +866,26 @@
       "reconstructionNotice": "Reconstitution basée sur les ventes et les réceptions depuis cette date. Les corrections manuelles de stock et les synchronisations marketplace ne sont pas incluses.",
       "poApproximation": "Pour les commandes d'achat sans date de réception, la date de dernière modification a été utilisée comme approximation.",
       "negativeWarning": "Le stock reconstitué était négatif et est affiché comme 0."
+    },
+    "stockLedger": {
+      "title": "Historique de stock",
+      "subtitle": "Tous les mouvements de stock, du plus récent au plus ancien",
+      "openHistory": "Voir l'historique de stock",
+      "empty": "Aucun mouvement de stock",
+      "colDate": "Date",
+      "colReason": "Motif",
+      "colDelta": "Variation",
+      "colBalance": "Solde après",
+      "colNote": "Note",
+      "reason": {
+        "sale": "Vente",
+        "return": "Retour",
+        "purchase": "Achat",
+        "sync": "Synchronisation",
+        "manual": "Manuel",
+        "opening": "Solde d'ouverture",
+        "adjustment": "Correction"
+      }
     }
   }
 }

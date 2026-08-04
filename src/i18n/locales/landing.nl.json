@@ -1180,7 +1180,11 @@
           "description": "Trek een gewaardeerde voorraadlijst (aantallen × kostprijs) voor vandaag of een datum in het verleden — met CSV- en Excel-export, klaar voor je boekhouder."
         }
       },
-      "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."
+      "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
+      "stock_ledger": {
+        "title": "Voorraadgrootboek: elke mutatie geregistreerd",
+        "description": "SellQo houdt nu elke voorraadbeweging bij — verkoop, retour, inkoop, synchronisatie en handmatige correctie — zodat je voorraad op elke datum exact klopt en volledig traceerbaar is."
+      }
     }
   }
 }
