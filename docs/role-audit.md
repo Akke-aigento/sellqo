@@ -4903,3 +4903,13 @@ zitten achter `PermissionGate action="write" resource="settings_general"`
 lezen voor leden van de tenant, schrijven voor `tenant_admin`/`staff` via
 `has_tenant_role`, plus `is_platform_admin`-bypass. De storefront-API leest met
 service-role en is rol-onafhankelijk.
+
+## Billing-slotstuk: webhook-gat, refund-flow & smoke-opruiming — 1-4 aug 2026
+
+**Root cause (webhook):** het Stripe-endpoint "Sellqo Platform" was nooit geabonneerd op payment_intent.*-events — alleen de oude Billing-laag-events. Sinds SUB-2 (off-session PI's) wachtte de handler op events die Stripe nooit verstuurde: 4 geslaagde SEPA's bleven weken op processing. Fix: events toegevoegd (succeeded/payment_failed/processing); historie via plan B gereconcilieerd (4 facturen op paid met échte Stripe-betaaldatums, manual_reconciliation-annotatie in metadata). SQ-2026-0003/0004 = organische end-to-end-test zodra hun SEPA settelt.
+
+**REFUND-SUB-1 (2026.08a):** refund + auto-CN vanuit SellQo voor facturen zonder order (PI via Stripe-search op metadata.invoice_id) — productprincipe "boekhouder heeft alleen SellQo + Odoo nodig". Twee opvolg-bugs gevonden en gefixt in productie: (1) CN-FIX-1/2026.08b: dropdown-dialog unmount (onSelect preventDefault) + dode no-op-actie; (2) REFUND-FIX-1/2026.08f: PostgREST numeric-strings → string-concatenatie ("06.0501.05") brak de CN-insert ná de refund; fix = Number() + factuurtotaal als bron + completion-modus (self-healing). REFUND-UX-FIX/2026.08g: knop stuurt nu op refund_id ÉN CN-bestaan.
+
+**Opruiming:** 7 CN's interne tenant (5×6,05 + 2×35,09) + CN-2026-0003 VanXcel (Mercken 299 via retour-flow, refund via Stripe-pad), alle drie smoke-abo's cancelled, BCC uit (parallelweek 15/7-1/8 clean afgesloten), dunning geneutraliseerd (0001/0004/SQ-0005). INV-2026-0002: CN vóór refund aangemaakt → refund eenmalig via Stripe-dashboard (guard-les).
+
+**Vangsten/backlog:** CN-DUNNING-1 (CN moet bronfactuur uit dunning halen), cancelled-status ontbreekt in credit_notes CHECK-constraint, REFUND-UX-1 (refund als checkbox in CN-dialoog), GELD-1/PAYOUT-1-2 (payout- en fee-transparantie naar Odoo), initiële-charge zet status/attempts niet (SUB-2-familie). Astra SQ-2026-0001 (€60,50) bewust open — wacht op betaling Marawan.
