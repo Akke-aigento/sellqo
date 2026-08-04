@@ -69,6 +69,7 @@ export const GRID_COLUMNS: ColumnDefinition[] = [
   { field: 'social_channels', header: 'Kanalen', type: 'channels', width: 180, minWidth: 120, editable: true, bulkEditable: true },
   { field: 'is_active', header: 'Actief', type: 'toggle', width: 80, minWidth: 60, editable: true, bulkEditable: true },
   { field: 'is_featured', header: 'Uitgelicht', type: 'toggle', width: 90, minWidth: 70, editable: true, bulkEditable: true },
+  { field: 'track_inventory', header: 'Voorraad bijhouden', type: 'toggle', width: 130, minWidth: 100, editable: true, bulkEditable: true },
   { field: 'tags', header: 'Tags', type: 'tags', width: 200, minWidth: 120, editable: true, bulkEditable: true },
   { field: 'barcode', header: 'Barcode', type: 'text', width: 130, minWidth: 80, editable: true, bulkEditable: false },
   { field: 'weight', header: 'Gewicht (g)', type: 'number', width: 100, minWidth: 70, editable: true, bulkEditable: true },
