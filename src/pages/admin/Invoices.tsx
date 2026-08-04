@@ -660,7 +660,8 @@ export default function InvoicesPage() {
                       render: () => (
                         <RefundInvoiceButton
                           amountLabel={formatCurrency(Number(invoice.total || 0))}
-                          alreadyRefunded={!!invoiceAny.metadata?.stripe_refund_id}
+                          hasRefund={!!invoiceAny.metadata?.stripe_refund_id}
+                          hasCreditNote={invoiceIdsWithCreditNote.has(invoice.id)}
                           onConfirm={() => refundInvoice.mutateAsync(invoice.id)}
                         />
                       ),
@@ -694,7 +695,8 @@ export default function InvoicesPage() {
                   render: () => (
                     <RefundInvoiceButton
                       amountLabel={formatCurrency(Number(invoice.total || 0))}
-                      alreadyRefunded={!!invoiceAny.metadata?.stripe_refund_id}
+                      hasRefund={!!invoiceAny.metadata?.stripe_refund_id}
+                      hasCreditNote={invoiceIdsWithCreditNote.has(invoice.id)}
                       onConfirm={() => refundInvoice.mutateAsync(invoice.id)}
                     />
                   ),

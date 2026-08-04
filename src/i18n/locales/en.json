@@ -945,6 +945,9 @@
     "invoiceRefund": {
       "action": "Refund & credit",
       "alreadyRefunded": "Already refunded",
+      "alreadyCredited": "Already credited — refunds only via Stripe",
+      "completeAction": "Complete credit note",
+      "completeConfirmDescription": "The refund has already been processed; this action only creates the credit note.",
       "confirmTitle": "Refund this invoice in full?",
       "confirmAmount": "Amount: {{amount}}",
       "confirmDescription": "This creates a full Stripe refund and a credit note. This cannot be undone.",
