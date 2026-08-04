@@ -14,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useProductVariants, type VariantFormData } from '@/hooks/useProductVariants';
 import { VariantExtraImagesDialog } from './VariantExtraImagesDialog';
+import { StockLedgerDialog } from './StockLedgerDialog';
+import { useSetStockManual } from '@/hooks/useStockLedger';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -88,6 +90,21 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
     generateVariants, syncVariants,
   } = useProductVariants(productId, defaultPrice);
   const { products } = useProducts();
+  const setStockManual = useSetStockManual();
+
+  // Stock ledger dialog state
+  const [ledgerVariantId, setLedgerVariantId] = useState<string | null>(null);
+
+  /** Manual stock change — always via the ledger, never a direct stock update. */
+  const handleStockChange = (variantId: string, oldStock: number, newStock: number) => {
+    setStockManual.mutate({
+      productId,
+      variantId,
+      oldStock: oldStock ?? 0,
+      newStock,
+      note: 'Handmatige correctie via variantenoverzicht',
+    });
+  };
 
   // Container-width detection for existing variants section
   const variantsContainerRef = useRef<HTMLDivElement>(null);
@@ -188,7 +205,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
 
   const saveEditVariant = () => {
     if (!editingVariantId) return;
-    updateVariant.mutate({ id: editingVariantId, data: editVariantData });
+    const variant = variants.find(v => v.id === editingVariantId);
+    const { stock, ...rest } = editVariantData;
+    updateVariant.mutate({ id: editingVariantId, data: rest });
+    if (variant && typeof stock === 'number' && stock !== variant.stock) {
+      handleStockChange(editingVariantId, variant.stock ?? 0, stock);
+    }
     setEditingVariantId(null);
   };
 
