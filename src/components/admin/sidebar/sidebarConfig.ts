@@ -93,7 +93,7 @@ export const MARKETING_ALLOWED_ITEMS = [
   'promotions', 'promo-codes', 'promo-bundles', 'promo-bogo', 'promo-volume', 'promo-auto', 'promo-gifts', 'promo-loyalty', 'promo-groups', 'promo-giftcards',
   'campaigns', 'ai-tools', 'ai-content', 'ai-actions', 'seo',
   'translations',
-  'reports', 'reports-overview', 'reports-analytics',
+  'reports', 'reports-overview', 'reports-analytics', 'reports-stock',
   'help',
 ];
 
@@ -206,6 +206,7 @@ const managementItems: NavItem[] = [
     children: [
       { id: 'reports-overview', title: 'Overzicht', url: '/admin/reports', requireRead: 'reports' },
       { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics', requireRead: 'reports' },
+      { id: 'reports-stock', title: 'Voorraadrapport', url: '/admin/reports/stock', requireRead: 'reports' },
     ],
   },
   { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },

@@ -839,6 +839,33 @@
       "successTitle": "Remboursement traité",
       "successDescription": "Le remboursement Stripe et la note de crédit ont été créés.",
       "errorTitle": "Échec du remboursement"
+    },
+    "stockReport": {
+      "title": "Rapport de stock",
+      "subtitle": "Liste de stock valorisée à une date choisie",
+      "filters": "Filtres",
+      "searchPlaceholder": "Rechercher par nom ou SKU...",
+      "allCategories": "Toutes les catégories",
+      "hideZeroStock": "Masquer le stock nul",
+      "colSku": "SKU",
+      "colName": "Produit",
+      "colVariant": "Variante",
+      "colStock": "Stock",
+      "colCostPrice": "Prix de revient",
+      "colStockValue": "Valeur du stock",
+      "colSalesPrice": "Prix de vente",
+      "colSalesValue": "Valeur de vente",
+      "totals": "Total",
+      "empty": "Aucun produit trouvé pour cette sélection.",
+      "exportCsv": "CSV",
+      "exportXlsx": "Excel",
+      "exportTenant": "Entreprise",
+      "exportDate": "Date du rapport",
+      "exportGeneratedAt": "Généré le",
+      "exportNotice": "Remarque",
+      "reconstructionNotice": "Reconstitution basée sur les ventes et les réceptions depuis cette date. Les corrections manuelles de stock et les synchronisations marketplace ne sont pas incluses.",
+      "poApproximation": "Pour les commandes d'achat sans date de réception, la date de dernière modification a été utilisée comme approximation.",
+      "negativeWarning": "Le stock reconstitué était négatif et est affiché comme 0."
     }
   }
 }

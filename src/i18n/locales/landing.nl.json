@@ -1174,6 +1174,10 @@
         "sec_role_aware_rls": {
           "title": "Rol-bewuste toegangscontrole doorheen het platform",
           "description": "Grote hardening-ronde: elk team-account ziet enkel data die bij zijn rol hoort binnen de eigen winkel. Cross-winkel-toegang is structureel uitgesloten."
+        },
+        "stock_report": {
+          "title": "Voorraadrapport op elke datum",
+          "description": "Trek een gewaardeerde voorraadlijst (aantallen × kostprijs) voor vandaag of een datum in het verleden — met CSV- en Excel-export, klaar voor je boekhouder."
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw."

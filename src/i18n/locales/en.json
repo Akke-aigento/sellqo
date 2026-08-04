@@ -956,6 +956,33 @@
       "successTitle": "Refund processed",
       "successDescription": "The Stripe refund and the credit note have been created.",
       "errorTitle": "Refund failed"
+    },
+    "stockReport": {
+      "title": "Stock report",
+      "subtitle": "Valued stock list on a chosen date",
+      "filters": "Filters",
+      "searchPlaceholder": "Search by name or SKU...",
+      "allCategories": "All categories",
+      "hideZeroStock": "Hide zero stock",
+      "colSku": "SKU",
+      "colName": "Product",
+      "colVariant": "Variant",
+      "colStock": "Stock",
+      "colCostPrice": "Cost price",
+      "colStockValue": "Stock value",
+      "colSalesPrice": "Sales price",
+      "colSalesValue": "Sales value",
+      "totals": "Total",
+      "empty": "No products found for this selection.",
+      "exportCsv": "CSV",
+      "exportXlsx": "Excel",
+      "exportTenant": "Company",
+      "exportDate": "Report date",
+      "exportGeneratedAt": "Generated at",
+      "exportNotice": "Note",
+      "reconstructionNotice": "Reconstruction based on sales and goods receipts since this date. Manual stock corrections and marketplace syncs are not included.",
+      "poApproximation": "For purchase orders without a receipt date, the last modification date was used as an approximation.",
+      "negativeWarning": "Reconstructed stock was negative and is shown as 0."
     }
   }
 }

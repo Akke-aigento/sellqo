@@ -969,6 +969,33 @@
       "successTitle": "Terugbetaling verwerkt",
       "successDescription": "De Stripe-terugbetaling en de creditnota zijn aangemaakt.",
       "errorTitle": "Terugbetaling mislukt"
+    },
+    "stockReport": {
+      "title": "Voorraadrapport",
+      "subtitle": "Gewaardeerde voorraadlijst op een gekozen datum",
+      "filters": "Filters",
+      "searchPlaceholder": "Zoek op naam of SKU...",
+      "allCategories": "Alle categorieën",
+      "hideZeroStock": "Verberg nulvoorraad",
+      "colSku": "SKU",
+      "colName": "Product",
+      "colVariant": "Variant",
+      "colStock": "Voorraad",
+      "colCostPrice": "Kostprijs",
+      "colStockValue": "Voorraadwaarde",
+      "colSalesPrice": "Verkoopprijs",
+      "colSalesValue": "Verkoopwaarde",
+      "totals": "Totaal",
+      "empty": "Geen producten gevonden voor deze selectie.",
+      "exportCsv": "CSV",
+      "exportXlsx": "Excel",
+      "exportTenant": "Onderneming",
+      "exportDate": "Rapportdatum",
+      "exportGeneratedAt": "Gegenereerd op",
+      "exportNotice": "Opmerking",
+      "reconstructionNotice": "Reconstructie op basis van verkopen en ontvangsten sinds deze datum. Handmatige voorraadcorrecties en marketplace-syncs zijn niet inbegrepen.",
+      "poApproximation": "Voor inkooporders zonder ontvangstdatum is de laatste wijzigingsdatum gebruikt als benadering.",
+      "negativeWarning": "Gereconstrueerde voorraad was negatief en is als 0 weergegeven."
     }
   }
 }
