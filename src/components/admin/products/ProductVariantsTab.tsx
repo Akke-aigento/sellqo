@@ -532,7 +532,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         <div>
                           <span className="text-xs text-muted-foreground block">Voorraad</span>
                           {trackInventory ? (
-                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                            <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} />
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Niet bijgehouden</span>
                           )}
@@ -676,7 +676,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             editingVariantId === variant.id ? (
                               <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
-                              <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => updateVariant.mutate({ id: variant.id, data: { stock: newStock } })} />
+                              <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} />
                             )
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>
@@ -794,6 +794,14 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <StockLedgerDialog
+        open={ledgerVariantId !== null}
+        onOpenChange={(o) => { if (!o) setLedgerVariantId(null); }}
+        productId={productId}
+        variantId={ledgerVariantId}
+        title={variants.find(v => v.id === ledgerVariantId)?.title ?? undefined}
+      />
+
     </div>
   );
 }
