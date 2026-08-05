@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl, enUS, fr, de } from 'date-fns/locale';
@@ -22,7 +22,7 @@ import {
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
 import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
 import { PaymentMethodCard } from '@/components/admin/billing/PaymentMethodCard';
-import { PlanChangeConfirmDialog } from '@/components/admin/billing/PlanChangeConfirmDialog';
+import { PlanActivationWizard } from '@/components/admin/billing/PlanActivationWizard';
 import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +49,11 @@ export default function BillingPage() {
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
 
-  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const {
+    data: billingStatus,
+    isLoading: statusLoading,
+    refetch: refetchBillingStatus,
+  } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
@@ -58,6 +62,13 @@ export default function BillingPage() {
   const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
   const [downgradeCandidate, setDowngradeCandidate] = useState<PricingPlan | null>(null);
   const [mandateUrl, setMandateUrl] = useState<string | null>(null);
+  /** Mandate link shown inside the wizard (separate from the manage-card link). */
+  const [wizardMandateUrl, setWizardMandateUrl] = useState<string | null>(null);
+  /** Half-state resume: only plan id + interval are persisted. */
+  const [resumeSelection, setResumeSelection] = useState<{
+    plan_id: string;
+    interval: 'monthly' | 'yearly';
+  } | null>(null);
   /** Chosen before there is a billing subscription; applied right after activate. */
   const [pendingMode, setPendingMode] = useState<PlatformPaymentMode | null>(null);
 
