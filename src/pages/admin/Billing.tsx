@@ -48,11 +48,7 @@ export default function BillingPage() {
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
 
-  const {
-    data: billingStatus,
-    isLoading: statusLoading,
-    refetch: refetchBillingStatus,
-  } = usePlatformBillingStatus();
+  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
