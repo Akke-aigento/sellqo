@@ -102,10 +102,11 @@ serve(async (req) => {
           await supabase.from("notifications").insert({
             tenant_id: cycle.tenant_id,
             category: "subscriptions",
+            type: "billing_cycle_expired",
             priority: "high",
             title: `Betalingsverzoek ${cycle.payment_request_number ?? ""} verlopen`.trim(),
             message: "Het betalingsverzoek is verlopen. De klant kan nog steeds betalen via de betaallink; daarna volgt de factuur automatisch.",
-            link: "/admin/subscriptions",
+            action_url: "/admin/subscriptions",
           });
 
           summary.expired++;
