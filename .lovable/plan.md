@@ -1,122 +1,93 @@
-# CYCLE-2 — Betalingsverzoek + herinnering/expiry-spoor (plan)
+# 2a·2 — Billing.tsx omhangen naar de native billing-engine
 
-Sluitstuk van de pay-first engine: het betalingsverzoek-document met betaallink, de mail, en het vriendelijke herinnering/expiry-spoor. Geen frontend, geen wijziging aan het invoice_first-pad of de bestaande dunning.
+Doel: `/admin/billing` wordt weer self-service. De tenant_admin ziet zijn abonnement, stelt zijn betaalwijze in (SEPA-mandaat of betalingsverzoek per periode) en wijzigt zijn plan via `sync-tenant-plan`. SAFEGUARD-1 gaat eraf.
 
-## 1. Architectuur betalingsverzoek
+## 1. Recon-uitkomst: de exacte interface van sync-tenant-plan
 
-Drie kleine bouwstenen plus een dunne orkestrator, in plaats van één grote functie:
-
-**a) `generate-payment-request-pdf` (nieuw)**
-- Input `{ billing_cycle_id }`. Service-role, geen JWT (alleen intern aangeroepen).
-- Zelfde patroon als `generate-subscription-invoice-pdf`: pdf-lib, A4, logo-embed, tenant-/klantblok, totalenblok, `Intl.NumberFormat`, alle numerics via `Number()`.
-- Eigen template, duidelijk géén factuur:
-  - Kop `BETALINGSVERZOEK` + PR-nummer (i.p.v. `FACTUUR`).
-  - Disclaimer prominent onder de kop: "Dit is geen factuur. Uw factuur volgt direct na ontvangst van de betaling."
-  - Periode (`period_start` t/m `period_end`), vervaldatum (`due_date`), één regel met de abonnementsnaam, subtotaal/btw/totaal exact uit de cycle-kolommen.
-  - Afzender = tenant van de cycle (voor platformabonnementen de interne SellQo-tenant), geadresseerde = `customers`-rij van `customer_id`.
-  - Geen OGM/IBAN-instructies wanneer er een betaallink is; de betaallink wel als tekst onderaan.
-- Opslag: bestaande bucket `invoices`, pad `<tenant_id>/payment-requests/<PR-nummer>.pdf` (`upsert: true`). Alleen het **pad** in de DB (`billing_cycles.pdf_path`), nooit een signed URL. Geen UBL — een betalingsverzoek is geen fiscaal document.
-
-**b) `create-cycle-payment-link` (nieuw)**
-- Input `{ billing_cycle_id }`; idempotent volgens `create-invoice-payment-link`: sessie < 24 u hergebruiken, anders nieuwe.
-- Stripe Checkout via `getStripeContext(tenant)` (Direct Charge voor connected tenants, platformaccount voor de interne tenant), `mode: 'payment'`, `line_items` met `price_data` (`Betalingsverzoek <PR-nummer>`), `customer_email` van de klant.
-- Betaalmethodes: **geen** `payment_method_types` meesturen, zodat Stripe automatisch kaart/Bancontact/iDEAL/wallets aanbiedt (bewuste afwijking van `create-invoice-payment-link`, dat de lijst hardcodeert).
-- Metadata: sessie-metadata `{ billing_cycle_id, tenant_id, payment_request_number }` **én** `payment_intent_data.metadata: { billing_cycle_id, tenant_id }`.
-- success/cancel: `${PUBLIC_APP_URL}/pay/success?pr=<PR>` en `/pay/cancelled?pr=<PR>` (bestaande publieke routes; geen nieuwe pagina in deze batch).
-- Slaat `checkout_session_id` / `_url` / `_created_at` op de cycle op.
-
-**c) `send-payment-request-email` (nieuw)**
-- Resend + `EMAIL_SENDERS` + `getTenantBrand`/`renderTenantEmail`/`formatAmount`/`t` — exact de stack van `send-invoice-email`.
-- Onderwerp: `Betalingsverzoek <PR-nummer> — <tenantnaam>`.
-- Body: vriendelijke toon, periode + bedrag + vervaldatum, prominente betaalknop naar de checkout-URL, plus de disclaimer dat de factuur direct na betaling volgt.
-- PDF als bijlage via `storage.from('invoices').download(pdf_path)` (service-role, base64 zoals in `send-invoice-email`) — geen signed URL in de mail nodig.
-- Herinneringsvarianten via optionele `reminder_level: 1|2|3` (3 = laatste kennisgeving bij expiry), zelfde patroon als `send-invoice-email`.
-- Pay-first mailt altijd; `subscriptions.auto_send` wordt niet gelezen (consistent met CYCLE-3).
-
-**Orkestratie: `dispatch-payment-request` (nieuw, dun)**
-- Input `{ billing_cycle_id, reminder_level? }`: cycle laden → guard (`status in ('awaiting_payment','reopened')`, `invoice_id is null`) → PR-nummer garanderen via `generate_payment_request_number` als het leeg is → paylink → PDF → mail → `request_sent_at` / `last_reminder_at` bijwerken.
-- Dit is het enige adres dat de runner en de reminder-cron kennen; beide roepen het **best-effort** aan (in een `safe()`-wrapper, faalt nooit de runner).
-
-**Aanroeppunten**
-- Runner (`generate-subscription-invoices`): in `handlePendingCycle`, ná `toAwaitingPayment()`, in beide takken die op `awaiting_payment` uitkomen — `mode='manual'` én het vangnet `mode='mandate'` zonder actief mandaat. Best-effort; faalt de dispatch, dan pikt de reminder-cron de cycle de volgende dag op (`request_sent_at is null`).
-- Verder niets in de webhook.
-
-## 2. Checkout → payment_intent metadata
-
-`payment_intent_data.metadata` op de sessie wordt door Stripe letterlijk gekopieerd naar het aangemaakte PaymentIntent. Daardoor draagt `payment_intent.succeeded` de `billing_cycle_id` en pikt de bestaande CYCLE-3-tak (`handleCycleCharge`) hem op **zonder enige wijziging**: factuur `paid` aanmaken, cycle `settled`, PDF + mail. Dat geldt ook voor een cycle op `expired`, want CYCLE-3 filtert alleen op `settled`/`invoice_id`.
-
-Conclusie: `checkout.session.completed` hoeft **niets** te doen; we voegen geen handler toe. Twee kanttekeningen die het ontwerp expliciet afdekt:
-- Vertraagde methodes (SEPA via Checkout) leveren pas later `payment_intent.succeeded`. De cycle blijft tot dan `awaiting_payment` en zou een herinnering kunnen krijgen terwijl er al betaald wordt. Mitigatie: bestaat er een `checkout_session_id` jonger dan 7 dagen, dan slaan we niveau-verhoging over en loggen dat (geen extra Stripe-call).
-- `stripe-connect-webhook` geeft `payment_intent.succeeded` van connected accounts al door aan de shared handler (sinds CYCLE-3); we verifiëren dat en deployen hem mee als er iets aan `_shared` wijzigt.
-
-## 3. Herinnering/expiry-cron
-
-Nieuwe functie `process-cycle-reminders`, opgebouwd volgens `process-invoice-dunning` (service-role client, `safe()`-wrapper i.p.v. `.catch()`, summary in de response, optionele `{ billing_cycle_id }` voor een handmatige run).
-
-Selectie: `billing_cycles` met `status in ('awaiting_payment','reopened')`, `invoice_id is null`, `limit 500`.
-
-Niveaus (vriendelijke toon, geen aanmaning, geen boete, geen rente):
-
-| Situatie | Actie |
-|---|---|
-| `request_sent_at is null` | eerste verzending (dispatch zonder reminder_level) |
-| vandaag ≥ `due_date` en `reminder_level < 1` | niveau 1 |
-| vandaag ≥ midpoint(`due_date`, `grace_until`) en `reminder_level < 2` | niveau 2 |
-| vandaag > `grace_until` | `status='expired'` + niveau 3 (laatste kennisgeving) |
-
-Elke actie: dispatch best-effort, dan `reminder_level` / `last_reminder_at` bijwerken. Bij expiry ook een `notifications`-rij (categorie `billing`, prioriteit `high`) voor de platformadmin, zoals dunning doet.
-
-Idempotentie/veiligheid:
-- Verhoging alleen naar een hoger niveau, plus dag-guard: overslaan als `last_reminder_at::date = today`.
-- Update-guards: `.eq('status', <verwachte status>)` + `.is('invoice_id', null)`, zodat een cycle die intussen door de webhook is gesettled nooit wordt teruggezet of geëxpireerd.
-- Expiry raakt uitsluitend `billing_cycles.status`; `subscriptions` en `tenant_subscriptions` blijven onaangeraakt (suspensie = LOCK-1).
-
-Cron: nieuwe pg_cron-job `process-cycle-reminders-daily`, `30 7 * * *`, exact het `net.http_post` + `vault.decrypted_secrets` / `cron_service_role_key`-patroon van job 47/61, met `cron.unschedule`-guard vooraf. Wordt via runtime-SQL gezet (geen migratie met projectspecifieke keys).
-
-## 4. Migratie (kolommen die nog missen)
-
-`billing_cycles` (CYCLE-1) heeft geen opslagvelden voor PDF/checkout/verzending. Eén additieve migratie, geen DROP:
+`sync-tenant-plan` accepteert **precies drie acties** — er is **geen preview/calculate-actie**:
 
 ```text
-ALTER TABLE public.billing_cycles
-  ADD COLUMN IF NOT EXISTS pdf_path text,
-  ADD COLUMN IF NOT EXISTS checkout_session_id text,
-  ADD COLUMN IF NOT EXISTS checkout_session_url text,
-  ADD COLUMN IF NOT EXISTS checkout_session_created_at timestamptz,
-  ADD COLUMN IF NOT EXISTS request_sent_at timestamptz;
-
-CREATE INDEX IF NOT EXISTS billing_cycles_reminder_scan_idx
-  ON public.billing_cycles (status, grace_until) WHERE invoice_id IS NULL;
+body: { tenant_id, plan_id, billing_interval: 'monthly'|'yearly', action: 'activate'|'switch'|'cancel' }
+auth: Bearer JWT — platform_admin of tenant_admin van dat tenant_id
 ```
 
-RLS/GRANTs blijven zoals CYCLE-1 (tenant-scoped, `service_role` ALL).
+Gedrag en antwoorden (ongewijzigd laten):
+- `activate` → maakt/hergebruikt de interne billing-subscription, zet `tenant_subscriptions` actief, triggert direct de eerste factuur. Antwoord: `{ success, action:'activate', billing_subscription_id, billing_customer_id, invoice_generation_invoked }` of `{ noop:true }`.
+- `switch` bij upgrade → direct actief + pro-rata one-off factuur.
+- `switch` bij downgrade/interval-verlaging → `{ success, action:'switch', downgrade:true, effective_at, pending_plan_id, pending_interval }`.
+- `switch` zonder bestaande billing-subscription → **400 met "use action=activate"**. De UI kiest dus zelf: `activate` als er geen `billing_subscription_id` is, anders `switch`.
+- Free plan of `cancel` → opzegging per periode-einde.
 
-Optioneel: `get-document-url` uitbreiden met `doc_type: 'payment_request'` (tabel `billing_cycles`, bucket `invoices`, pad-kolom `pdf_path`, nummerkolom `payment_request_number`) zodat 2a·4 de PDF veilig kan downloaden. Puur code, geen DDL — meenemen tenzij je het bij de frontend-batch wil.
+Omdat er geen preview bestaat, wordt de UI-stap een **bevestigingsdialoog zonder bedragbelofte**: hij legt de twee wetten uit (upgrade = direct, met pro-rata verrekening op de eerstvolgende factuur; downgrade = gaat in op de periodegrens) en noemt het nieuwe periodetarief van het gekozen plan/interval — geen berekend pro-rata-bedrag, want dat kennen we client-side niet.
 
-## 5. Hergebruik
+## 2. Betaalwijze-blok
 
-| Bestaand | Gebruikt voor |
-|---|---|
-| `generate-subscription-invoice-pdf` | template- en storage-patroon van de PDF |
-| `create-invoice-payment-link` | idempotente Checkout-sessie + `getStripeContext` |
-| `send-invoice-email` | Resend, `EMAIL_SENDERS`, tenant-branding, bijlage-download, reminder_level |
-| `process-invoice-dunning` | cron-skelet, `safe()`, summary, notifications |
-| `_shared/subscriptionCharge.ts` | ongewijzigd — vangt de Checkout-betaling al af |
-| cron-jobs 47/61 | vault-service-role cron-patroon |
+Schema-bevindingen die het ontwerp bepalen:
+- `subscriptions.payment_mode` (`mandate` | `manual`) en `subscriptions.billing_model` (`pay_first`) bestaan al, met defaults `mandate` / `pay_first`. `sync-tenant-plan` zet ze niet expliciet → nieuwe subs staan op `mandate`.
+- `customer_payment_mandates` heeft alleen `method_type`, `status`, `stripe_*` — **geen last4/brand-kolommen**. De UI toont dus type (SEPA-incasso / kaart) en status, geen laatste 4 cijfers.
+- RLS-blokkade: de mandaatrij en de billing-subscription staan op de **interne SellQo-tenant**. `customer_payment_mandates` en `subscriptions` hebben tenant-gescopeerde SELECT-policies, dus een tenant_admin van bv. VanXcel kan zijn eigen platform-mandaat **niet** direct uit de browser lezen — een client-side query geeft stil nul rijen.
 
-## 6. Risico's
+Daarom één kleine nieuwe leesfunctie:
 
-1. **Dubbele mail** als dispatch slaagt maar de `request_sent_at`-update faalt; beperkt door de dag-guard, in het slechtste geval één duplicaat.
-2. **Verouderde betaallink**: een sessie > 24 u wordt vervangen, maar een oude PDF bij de klant houdt de oude URL. Elke herinnering regenereert daarom PDF én link samen.
-3. **Vertraagde betaalmethodes** kunnen een onnodige herinnering triggeren — gemitigeerd met de 7-daagse sessie-guard, niet volledig uitgesloten.
-4. **Toon/juridisch**: teksten expliciet als verzoek; nergens "aanmaning", "vordering" of "wettelijke rente".
-5. **Interne tenant als afzender**: onvolledige adres-/btw-gegevens maken de PDF karig. De functie faalt daar niet op, maar het is een datacheck vóór de eerste echte verzending.
-6. **Bucket-hergebruik**: betalingsverzoeken in de `invoices`-bucket in een submap houdt het overzichtelijk maar mengt documenttypes; alternatief is een aparte bucket.
+- **`get-platform-billing-status`** (nieuwe edge function, service-role read, auth = `authenticateRequest` + `requireRole(tenant_id, ['tenant_admin'])`, platform_admin mag ook): geeft `{ has_billing_customer, mandate: { status, method_type } | null, payment_mode, billing_model, next_invoice_date, billing_subscription_id }` voor het aanvragende tenant.
 
-## 7. Open vragen
+Blok-gedrag:
+- Geen billing-customer of geen mandaat → "Nog geen automatische incasso ingesteld", met twee keuzes:
+  1. **Automatische incasso instellen** → `create-platform-mandate-setup` (2a·1) → URL in een dialoog met kopieer- en openen-knop (patroon van `MandateLinkDialog`), daarna status verversen.
+  2. **Betalingsverzoek per periode** (manual) → zet `payment_mode='manual'` op de interne subscription.
+- Actief mandaat → type + statusbadge + uitleg dat facturatie automatisch verloopt; knop "Betaalwijze vervangen" mint een nieuwe mandaatlink.
+- Manual-modus → uitleg dat er elke periode een betalingsverzoek per e-mail komt (CYCLE-2) + knop om alsnog naar incasso te schakelen.
 
-1. PDF in de bestaande `invoices`-bucket onder `payment-requests/`, of een nieuwe private bucket `payment-requests`?
-2. `get-document-url` nu al uitbreiden met `payment_request`, of pas bij 2a·4?
-3. Mailtaal: vaste NL-teksten (zoals de huidige subscription-mails), of meteen via `tenantEmailI18n` op klanttaal?
-4. Bij niveau 2/3 ook een `notifications`-rij voor de platformadmin, of alleen bij expiry?
-5. Success-URL: bestaande `/pay/success` hergebruiken, of een eigen `/pay/pr-success` met "je factuur volgt per mail"?
+Manual-modus schrijven kan niet client-side (RLS op `subscriptions` van de interne tenant). Kleinste nette uitbreiding: dezelfde functie krijgt een `set_payment_mode`-actie met identieke rolcheck. Bestaat er nog geen subscription, dan houdt de UI de keuze in state en past die direct na `activate` toe.
+
+`sync-tenant-plan` blijft ongewijzigd: de payment_mode wordt ná `activate`/`switch` gezet via die kleine functie, dus de twee wetten en de pro-rata-logica worden niet aangeraakt.
+
+## 3. Paginastates en wat elk toont
+
+| State | Detectie | Toont |
+|---|---|---|
+| Trial / free | trialing, geen sub, of plan free | huidig plan + verloopdatum, plankeuze actief, betaalwijze-stap verplicht vóór activeren |
+| Actief met mandaat | sub actief + mandaat `active` | plan/interval/volgende factuurdatum, mandaat-blok groen, plankeuze actief |
+| Actief manual | sub actief + `payment_mode='manual'` | idem, met "betalingsverzoek per e-mail"-uitleg |
+| Downgrade gepland | `pending_plan_id` gevuld | banner: welk plan, per welke datum |
+| past_due | `status='past_due'` | waarschuwing + verwijzing naar de open betaling; upgrade blijft toegestaan |
+| Enterprise | plan-slug `enterprise` | "Neem contact op" i.p.v. keuzeknop — niet self-service |
+| Geannuleerd per periode-einde | `cancel_at_period_end` | bestaande waarschuwing + reactiveren via plankeuze |
+
+Poortwachter: geen actief mandaat **en** geen expliciete manual-keuze → de plankeuze opent eerst het betaalwijze-blok in plaats van te activeren.
+
+## 4. Wat er uit Billing.tsx verdwijnt
+
+- `selectionDisabled` op `PlanComparisonCards` en de `Alert` met `billing.plan_change_via_team` (i18n-keys blijven bestaan).
+- De lege `onSelectPlan` no-op → nieuwe flow.
+- `useCalculatePlanSwitch` / `useExecutePlanSwitch` + `PlanSwitchPreviewCard` en de bijhorende state — vervangen door de eigen bevestigingsdialoog. `DowngradeWarningDialog` blijft, maar gevoed door plan-vergelijking i.p.v. de preview-respons.
+- `createCheckout` en `openCustomerPortal` worden niet meer aangeroepen; de `{false && ...}`-portalkaart met het hardcoded "VISA •••• 4242"-blok gaat definitief weg.
+- `window.location.reload()` → gerichte react-query invalidatie.
+- De `platform_invoices`-tabel blijft als read-only archief (echte facturen = 2a·4).
+- De edge functions `calculate-plan-switch`, `execute-plan-switch` en `platform-customer-portal` blijven bestaan (opruimen = Fase B).
+
+## 5. i18n
+
+`billing` heeft nu 20 keys in nl, 12 in en en **slechts 1 in fr en de**. Alle gebruikte keys — bestaande én nieuwe (`billing.payment_mode.*`, `billing.mandate.*`, `billing.plan_change.*`, statuslabels, dialoogteksten) — worden viertalig aangevuld, en de component gaat volledig op `t()` (de hardcoded NL-strings zoals "Wissel van Plan", "Beheer je abonnement…" en de verbruikslabels gaan mee).
+
+## 6. Technische details
+
+- Nieuwe edge function `get-platform-billing-status` met `action: 'status' | 'set_payment_mode'`, auth via `_shared/auth.ts`, service-role read/write op de interne tenant.
+- Nieuwe hook `usePlatformBillingStatus` (query) + mutaties voor mandaatlink, payment_mode en plan-sync; invalidatie van `tenant-subscription` en de nieuwe statusquery.
+- Nieuwe componenten `PaymentMethodCard` en `PlanChangeConfirmDialog` onder `src/components/admin/billing/`.
+- `Number()` op alle prijsvelden; geen signed URLs in de DB; `.select()` na mutaties waar persistentie bewezen moet worden.
+- Geen wijziging aan `MandateActivation.tsx`, de CYCLE-functies, de webhook of `sync-tenant-plan`.
+
+## 7. Risico's en open vragen
+
+Risico's:
+- Zonder preview-endpoint kan de UI het exacte pro-rata-bedrag niet tonen; verwachtingsmanagement zit in de dialoogtekst. Het bedrag wordt pas op de factuur zichtbaar.
+- `switch` faalt met 400 zonder bestaande billing-subscription; de UI moet correct kiezen, inclusief het geval "tenant_subscriptions bestaat, `billing_subscription_id` leeg".
+- Een SEPA-mandaat kan nog `processing` zijn direct na terugkomst. Voorstel: activeren toestaan zodra er een mandaatrij bestaat die niet `failed` is, met status "in verwerking".
+- Enterprise-detectie op plan-slug is fragiel als slugs wijzigen.
+
+Open vragen:
+1. Payment_mode-setter als `action` in `get-platform-billing-status` (mijn voorkeur) of als aparte functie `set-platform-payment-mode`?
+2. Mag manual-modus voor élk plan, of alleen voor handmatig beheerde/enterprise-tenants?
+3. Moet een geplande downgrade in deze batch annuleerbaar zijn (vraagt een extra actie in `sync-tenant-plan`), of later?
+4. Mag een tenant met `status='past_due'` zelf upgraden, of eerst de openstaande betaling afronden?
