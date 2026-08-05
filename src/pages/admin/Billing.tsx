@@ -380,7 +380,7 @@ export default function BillingPage() {
                     <span className="text-sm font-medium">
                       Je hebt je limiet overschreden
                     </span>
-                    <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
+                    <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick}>
                       Upgrade nu
                     </Button>
                   </div>
@@ -392,7 +392,7 @@ export default function BillingPage() {
                     <span className="text-sm">
                       {t('billing.upgrade_needed')}
                     </span>
-                    <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
+                    <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick}>
                       Upgrade
                     </Button>
                   </div>
@@ -405,20 +405,24 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* SAFEGUARD-1: plan changes temporarily via support */}
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>{t('billing.plan_change_via_team')}</AlertDescription>
-      </Alert>
+      {/* 2a·2: self-service payment method (SEPA mandate or payment request) */}
+      <div id="payment-method-section">
+        <PaymentMethodCard
+          status={billingStatus}
+          isLoading={statusLoading}
+          pendingMode={pendingMode}
+          isMutating={createMandateLink.isPending || setPaymentMode.isPending}
+          onSetupMandate={handleSetupMandate}
+          onChooseManual={handleChooseManual}
+        />
+      </div>
 
       {/* Plan Comparison Cards */}
       {plans.length > 0 && currentPlan && (
         <Card id="plan-comparison-section">
           <CardHeader>
-            <CardTitle>Wissel van Plan</CardTitle>
-            <CardDescription>
-              Vergelijk alle plannen en bekijk wat je krijgt of verliest bij een wijziging
-            </CardDescription>
+            <CardTitle>{t('billing.switch_plan_title')}</CardTitle>
+            <CardDescription>{t('billing.switch_plan_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <PlanComparisonCards
@@ -426,46 +430,14 @@ export default function BillingPage() {
               currentPlanId={currentPlan.id}
               currentInterval={subscription?.billing_interval || 'monthly'}
               selectedInterval={selectedInterval}
-              isLoading={calculatePlanSwitch.isPending || createCheckout.isPending}
+              isLoading={syncPlan.isPending}
               onIntervalChange={setSelectedInterval}
-              selectionDisabled
-              onSelectPlan={() => {
-                /* SAFEGUARD-1: plan changes temporarily handled by the SellQo team. */
-              }}
+              onSelectPlan={handleSelectPlan}
             />
           </CardContent>
         </Card>
       )}
-      {false && subscription?.stripe_payment_method_id && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              {t('billing.payment_method')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-16 bg-muted rounded flex items-center justify-center text-xs font-medium">
-                  VISA
-                </div>
-                <div>
-                  <p className="font-medium">•••• •••• •••• 4242</p>
-                  <p className="text-sm text-muted-foreground">Vervalt 12/26</p>
-                </div>
-              </div>
-              <Button 
-                variant="outline"
-                onClick={() => openCustomerPortal.mutate()}
-                disabled={openCustomerPortal.isPending}
-              >
-                {t('billing.update_payment_method')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Invoices */}
       <Card>
