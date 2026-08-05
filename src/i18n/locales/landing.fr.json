@@ -1145,6 +1145,26 @@
         "stock_report": {
           "title": "Rapport de stock à n'importe quelle date",
           "description": "Générez une liste de stock valorisée (quantités × prix de revient) pour aujourd'hui ou une date passée — avec export CSV et Excel, prêt pour votre comptable."
+        },
+        "plan_interval_switch_billing": {
+          "title": "Facturation correcte lors d'un changement d'intervalle",
+          "description": "Lors d'une mise à niveau de plan avec passage entre facturation mensuelle et annuelle, le montant au prorata et la prochaine date de facturation sont désormais calculés correctement, sans double facturation."
+        },
+        "stock_ledger": {
+          "title": "Grand livre de stock : chaque mouvement enregistré",
+          "description": "SellQo enregistre désormais chaque mouvement de stock — ventes, retours, achats, synchronisations et corrections manuelles — pour un stock exact à n'importe quelle date et entièrement traçable."
+        },
+        "upgrade_invoice_docs_email": {
+          "title": "Document de facture et e-mail lors d'une mise à niveau",
+          "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
+        },
+        "subscription_payment_options_foundation": {
+          "title": "Base pour des options de paiement flexibles des abonnements",
+          "description": "Les fondations sont posées pour offrir plus de choix dans le paiement des abonnements."
+        },
+        "subscription_instant_payment_invoice": {
+          "title": "Facture immédiatement après le paiement d'un abonnement",
+          "description": "Dès qu'un paiement d'abonnement aboutit, la facture est créée automatiquement comme preuve de paiement et envoyée par e-mail au client."
         }
       },
       "copyLink": "Copier le lien",
@@ -1163,14 +1183,6 @@
         "bugfix": "Correctifs",
         "security": "Sécurité"
       },
-      "plan_interval_switch_billing": {
-        "title": "Facturation correcte lors d'un changement d'intervalle",
-        "description": "Lors d'une mise à niveau de plan avec passage entre facturation mensuelle et annuelle, le montant au prorata et la prochaine date de facturation sont désormais calculés correctement, sans double facturation."
-      },
-      "stock_ledger": {
-        "title": "Grand livre de stock : chaque mouvement enregistré",
-        "description": "SellQo enregistre désormais chaque mouvement de stock — ventes, retours, achats, synchronisations et corrections manuelles — pour un stock exact à n'importe quelle date et entièrement traçable."
-      },
       "subscribeButton": "S'abonner",
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
       "subscribeNote": "Uniquement des mises à jour pertinentes, pas de spam. Vous pouvez vous désabonner à tout moment.",
@@ -1179,14 +1191,6 @@
       "subscribeSuccess": "Vous recevrez désormais les mises à jour du changelog par e-mail !",
       "subscribeText": "Recevez les changelogs et les mises à jour produit directement dans votre boîte mail.",
       "subscribeTitle": "Restez informé des mises à jour",
-      "subscription_instant_payment_invoice": {
-        "title": "Facture immédiatement après le paiement d'un abonnement",
-        "description": "Dès qu'un paiement d'abonnement aboutit, la facture est créée automatiquement comme preuve de paiement et envoyée par e-mail au client."
-      },
-      "subscription_payment_options_foundation": {
-        "title": "Base pour des options de paiement flexibles des abonnements",
-        "description": "Les fondations sont posées pour offrir plus de choix dans le paiement des abonnements."
-      },
       "subtitle": "Toutes les mises à jour et améliorations de SellQo",
       "title": "Changelog",
       "types": {
@@ -1196,10 +1200,6 @@
         "security": "Sécurité"
       },
       "updatesCount": "{{count}} mises à jour",
-      "upgrade_invoice_docs_email": {
-        "title": "Document de facture et e-mail lors d'une mise à niveau",
-        "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
-      },
       "version": "Version {{version}}"
     }
   }

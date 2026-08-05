@@ -1145,6 +1145,26 @@
         "stock_report": {
           "title": "Voorraadrapport op elke datum",
           "description": "Trek een gewaardeerde voorraadlijst (aantallen × kostprijs) voor vandaag of een datum in het verleden — met CSV- en Excel-export, klaar voor je boekhouder."
+        },
+        "plan_interval_switch_billing": {
+          "title": "Correcte facturatie bij wisselen van facturatie-interval",
+          "description": "Bij een plan-upgrade waarbij je ook overschakelt tussen maand- en jaarfacturatie worden het pro-rata-bedrag en de volgende factuurdatum nu correct berekend, zodat er niet dubbel gefactureerd wordt."
+        },
+        "stock_ledger": {
+          "title": "Voorraadgrootboek: elke mutatie geregistreerd",
+          "description": "SellQo houdt nu elke voorraadbeweging bij — verkoop, retour, inkoop, synchronisatie en handmatige correctie — zodat je voorraad op elke datum exact klopt en volledig traceerbaar is."
+        },
+        "upgrade_invoice_docs_email": {
+          "title": "Factuurdocument en e-mail bij plan-upgrade",
+          "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."
+        },
+        "subscription_payment_options_foundation": {
+          "title": "Fundament voor flexibele betaalopties bij abonnementen",
+          "description": "De basis is gelegd voor meer keuze in hoe abonnementen betaald worden."
+        },
+        "subscription_instant_payment_invoice": {
+          "title": "Factuur direct na abonnementsbetaling",
+          "description": "Zodra een abonnementsbetaling gelukt is, wordt de factuur automatisch aangemaakt als betaalbewijs en naar de klant gemaild."
         }
       },
       "copyLink": "Kopieer link",
@@ -1163,14 +1183,6 @@
         "bugfix": "Bugfixes",
         "security": "Security"
       },
-      "plan_interval_switch_billing": {
-        "title": "Correcte facturatie bij wisselen van facturatie-interval",
-        "description": "Bij een plan-upgrade waarbij je ook overschakelt tussen maand- en jaarfacturatie worden het pro-rata-bedrag en de volgende factuurdatum nu correct berekend, zodat er niet dubbel gefactureerd wordt."
-      },
-      "stock_ledger": {
-        "title": "Voorraadgrootboek: elke mutatie geregistreerd",
-        "description": "SellQo houdt nu elke voorraadbeweging bij — verkoop, retour, inkoop, synchronisatie en handmatige correctie — zodat je voorraad op elke datum exact klopt en volledig traceerbaar is."
-      },
       "subscribeButton": "Inschrijven",
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
       "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven.",
@@ -1179,14 +1191,6 @@
       "subscribeSuccess": "Je ontvangt nu changelog-updates per e-mail!",
       "subscribeText": "Ontvang changelogs en product-updates rechtstreeks in je inbox.",
       "subscribeTitle": "Blijf op de hoogte van updates",
-      "subscription_instant_payment_invoice": {
-        "title": "Factuur direct na abonnementsbetaling",
-        "description": "Zodra een abonnementsbetaling gelukt is, wordt de factuur automatisch aangemaakt als betaalbewijs en naar de klant gemaild."
-      },
-      "subscription_payment_options_foundation": {
-        "title": "Fundament voor flexibele betaalopties bij abonnementen",
-        "description": "De basis is gelegd voor meer keuze in hoe abonnementen betaald worden."
-      },
       "subtitle": "Alle updates en verbeteringen aan SellQo",
       "title": "Changelog",
       "types": {
@@ -1196,10 +1200,6 @@
         "security": "Security"
       },
       "updatesCount": "{{count}} updates",
-      "upgrade_invoice_docs_email": {
-        "title": "Factuurdocument en e-mail bij plan-upgrade",
-        "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."
-      },
       "version": "Versie {{version}}"
     }
   }

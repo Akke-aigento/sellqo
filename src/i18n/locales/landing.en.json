@@ -1145,6 +1145,26 @@
         "stock_report": {
           "title": "Stock report for any date",
           "description": "Generate a valued stock list (quantities × cost price) for today or a date in the past — with CSV and Excel export, ready for your accountant."
+        },
+        "plan_interval_switch_billing": {
+          "title": "Correct billing when switching billing interval",
+          "description": "When upgrading a plan and switching between monthly and yearly billing, the pro-rata amount and next invoice date are now calculated correctly, preventing double billing."
+        },
+        "stock_ledger": {
+          "title": "Stock ledger: every movement recorded",
+          "description": "SellQo now records every stock movement — sales, returns, purchases, syncs and manual corrections — so your stock is exact on any date and fully traceable."
+        },
+        "upgrade_invoice_docs_email": {
+          "title": "Invoice document and email for plan upgrades",
+          "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
+        },
+        "subscription_payment_options_foundation": {
+          "title": "Foundation for flexible subscription payment options",
+          "description": "The groundwork is in place for more choice in how subscriptions are paid."
+        },
+        "subscription_instant_payment_invoice": {
+          "title": "Invoice right after a subscription payment",
+          "description": "As soon as a subscription payment succeeds, the invoice is created automatically as proof of payment and emailed to the customer."
         }
       },
       "copyLink": "Copy link",
@@ -1163,14 +1183,6 @@
         "bugfix": "Bugfixes",
         "security": "Security"
       },
-      "plan_interval_switch_billing": {
-        "title": "Correct billing when switching billing interval",
-        "description": "When upgrading a plan and switching between monthly and yearly billing, the pro-rata amount and next invoice date are now calculated correctly, preventing double billing."
-      },
-      "stock_ledger": {
-        "title": "Stock ledger: every movement recorded",
-        "description": "SellQo now records every stock movement — sales, returns, purchases, syncs and manual corrections — so your stock is exact on any date and fully traceable."
-      },
       "subscribeButton": "Subscribe",
       "subscribeError": "Subscription failed. Please try again later.",
       "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime.",
@@ -1179,14 +1191,6 @@
       "subscribeSuccess": "You'll now receive changelog updates by email!",
       "subscribeText": "Receive changelogs and product updates straight to your inbox.",
       "subscribeTitle": "Stay up to date",
-      "subscription_instant_payment_invoice": {
-        "title": "Invoice right after a subscription payment",
-        "description": "As soon as a subscription payment succeeds, the invoice is created automatically as proof of payment and emailed to the customer."
-      },
-      "subscription_payment_options_foundation": {
-        "title": "Foundation for flexible subscription payment options",
-        "description": "The groundwork is in place for more choice in how subscriptions are paid."
-      },
       "subtitle": "All updates and improvements to SellQo",
       "title": "Changelog",
       "types": {
@@ -1196,10 +1200,6 @@
         "security": "Security"
       },
       "updatesCount": "{{count}} updates",
-      "upgrade_invoice_docs_email": {
-        "title": "Invoice document and email for plan upgrades",
-        "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
-      },
       "version": "Version {{version}}"
     }
   }
