@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Subscription failed. Please try again later.",
+      "subscription_payment_options_foundation": {
+        "title": "Foundation for flexible subscription payment options",
+        "description": "The groundwork is in place for more choice in how subscriptions are paid."
+      },
       "upgrade_invoice_docs_email": {
         "title": "Invoice document and email for plan upgrades",
         "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
