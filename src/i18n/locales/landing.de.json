@@ -569,6 +569,32 @@
         "button": "Kostenlose Testphase starten"
       }
     },
+    "pay": {
+      "success": {
+        "meta": {
+          "title": "Zahlung erhalten — SellQo",
+          "description": "Vielen Dank für Ihre Zahlung. Sie erhalten eine Bestätigung per E-Mail."
+        },
+        "title": "Zahlung erhalten",
+        "subtitle": "Vielen Dank für Ihre Zahlung!",
+        "prDescription": "Ihre Rechnung erhalten Sie in Kürze per E-Mail.",
+        "invoiceDescription": "Sie erhalten eine Bestätigung per E-Mail.",
+        "genericDescription": "Wir haben Ihre Zahlung erhalten.",
+        "prLabel": "Zahlungsaufforderung",
+        "invoiceLabel": "Rechnung"
+      },
+      "cancelled": {
+        "meta": {
+          "title": "Zahlung nicht abgeschlossen — SellQo",
+          "description": "Ihre Zahlung wurde nicht abgeschlossen. Es wurde nichts abgebucht."
+        },
+        "title": "Zahlung nicht abgeschlossen",
+        "subtitle": "Keine Sorge — es wurde nichts abgebucht.",
+        "description": "Sie können den Zahlungslink aus Ihrer E-Mail jederzeit erneut öffnen.",
+        "prLabel": "Zahlungsaufforderung",
+        "invoiceLabel": "Rechnung"
+      }
+    },
     "integrations": {
       "title": "Integrationen",
       "subtitle": "Verbinden Sie SellQo mit Ihren Lieblingstools und -plattformen",
@@ -982,6 +1008,10 @@
     },
     "changelog": {
       "changes": {
+        "payment_landing_pages": {
+          "title": "Aufgeräumte Bestätigungsseite nach Zahlung per Link",
+          "description": "Nach einer Zahlung über einen Zahlungslink siehst du jetzt eine ordentliche Bestätigungsseite statt eines 404-Fehlers."
+        },
         "refund_button_states": {
           "title": "Erstattungs-Button zeigt jetzt den richtigen Status",
           "description": "Die Erstattungsaktion bei Rechnungen zeigt jetzt korrekt an, ob eine Erstattung oder Gutschrift bereits existiert, und kann eine unterbrochene Erstattung nachträglich abschließen."

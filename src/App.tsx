@@ -89,6 +89,8 @@ import Status from "./pages/public/Status";
 import Integrations from "./pages/public/Integrations";
 import ApiDocs from "./pages/public/ApiDocs";
 import PublicChangelog from "./pages/public/PublicChangelog";
+import PaySuccess from "./pages/public/PaySuccess";
+import PayCancelled from "./pages/public/PayCancelled";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import POSTerminalPage from "./pages/admin/POSTerminal";
@@ -340,6 +342,8 @@ const App = () => (
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/changelog" element={<PublicChangelog />} />
+            <Route path="/pay/success" element={<PaySuccess />} />
+            <Route path="/pay/cancelled" element={<PayCancelled />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

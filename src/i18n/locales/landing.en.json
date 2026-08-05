@@ -569,6 +569,32 @@
         "button": "Start Free Trial"
       }
     },
+    "pay": {
+      "success": {
+        "meta": {
+          "title": "Payment received — SellQo",
+          "description": "Thank you for your payment. You will receive a confirmation by email."
+        },
+        "title": "Payment received",
+        "subtitle": "Thank you for your payment!",
+        "prDescription": "Your invoice will follow by email shortly.",
+        "invoiceDescription": "You will receive a confirmation by email.",
+        "genericDescription": "We have received your payment.",
+        "prLabel": "Payment request",
+        "invoiceLabel": "Invoice"
+      },
+      "cancelled": {
+        "meta": {
+          "title": "Payment not completed — SellQo",
+          "description": "Your payment was not completed. Nothing was charged."
+        },
+        "title": "Payment not completed",
+        "subtitle": "Don't worry — nothing was charged.",
+        "description": "You can reopen the payment link from your email at any time.",
+        "prLabel": "Payment request",
+        "invoiceLabel": "Invoice"
+      }
+    },
     "integrations": {
       "title": "Integrations",
       "subtitle": "Connect SellQo with your favourite tools and platforms",
@@ -982,6 +1008,10 @@
     },
     "changelog": {
       "changes": {
+        "payment_landing_pages": {
+          "title": "Clean confirmation page after payment via payment link",
+          "description": "After paying via a payment link you now see a proper confirmation page instead of a 404 error."
+        },
         "refund_button_states": {
           "title": "Refund button now shows the right state",
           "description": "The refund action on invoices now correctly shows whether a refund or credit note already exists, and can complete an interrupted refund."

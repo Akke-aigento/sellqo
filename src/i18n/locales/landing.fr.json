@@ -569,6 +569,32 @@
         "button": "Démarrer l'essai gratuit"
       }
     },
+    "pay": {
+      "success": {
+        "meta": {
+          "title": "Paiement reçu — SellQo",
+          "description": "Merci pour votre paiement. Vous recevrez une confirmation par e-mail."
+        },
+        "title": "Paiement reçu",
+        "subtitle": "Merci pour votre paiement !",
+        "prDescription": "Votre facture vous sera envoyée par e-mail sous peu.",
+        "invoiceDescription": "Vous recevrez une confirmation par e-mail.",
+        "genericDescription": "Nous avons bien reçu votre paiement.",
+        "prLabel": "Demande de paiement",
+        "invoiceLabel": "Facture"
+      },
+      "cancelled": {
+        "meta": {
+          "title": "Paiement non finalisé — SellQo",
+          "description": "Votre paiement n'a pas été finalisé. Aucun montant n'a été prélevé."
+        },
+        "title": "Paiement non finalisé",
+        "subtitle": "Pas d'inquiétude — aucun montant n'a été prélevé.",
+        "description": "Vous pouvez rouvrir le lien de paiement de votre e-mail à tout moment.",
+        "prLabel": "Demande de paiement",
+        "invoiceLabel": "Facture"
+      }
+    },
     "integrations": {
       "title": "Intégrations",
       "subtitle": "Connectez SellQo à vos outils et plateformes préférés",
@@ -982,6 +1008,10 @@
     },
     "changelog": {
       "changes": {
+        "payment_landing_pages": {
+          "title": "Page de confirmation propre après paiement par lien",
+          "description": "Après un paiement via un lien de paiement, vous voyez désormais une page de confirmation au lieu d'une erreur 404."
+        },
         "refund_button_states": {
           "title": "Le bouton de remboursement affiche le bon état",
           "description": "L'action de remboursement sur les factures indique désormais correctement si un remboursement ou une note de crédit existe déjà, et peut finaliser un remboursement interrompu."
