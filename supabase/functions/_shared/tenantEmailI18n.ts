@@ -75,6 +75,7 @@ type Strings = {
     unsubscribe: string;
     poweredBy: string;
   };
+  paymentRequest?: PaymentRequestStrings;
 };
 
 // CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
