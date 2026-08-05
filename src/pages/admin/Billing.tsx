@@ -465,7 +465,29 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* 2a·2: self-service payment method (SEPA mandate or payment request) */}
+      {/* UX-UNIFY-1: resume a half-finished activation (payment set, no plan) */}
+      {showResumeAlert && (
+        <Alert>
+          <CalendarClock className="h-4 w-4" />
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="flex-1">
+              {t('billing.wizard.resume_alert', { plan: resumePlan?.name ?? '' })}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!resumePlan || !resumeSelection) return;
+                setSelectedInterval(resumeSelection.interval);
+                setConfirmPlan({ plan: resumePlan, isUpgrade: true });
+              }}
+            >
+              {t('billing.wizard.resume_action')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* 2a·2 / UX-UNIFY-1: payment method management (hidden when nothing to manage) */}
       <div id="payment-method-section">
         <PaymentMethodCard
           status={billingStatus}
@@ -474,6 +496,7 @@ export default function BillingPage() {
           isMutating={createMandateLink.isPending || setPaymentMode.isPending}
           onSetupMandate={handleSetupMandate}
           onChooseManual={handleChooseManual}
+          hasSubscription={hasBillingSubscription}
         />
       </div>
 
