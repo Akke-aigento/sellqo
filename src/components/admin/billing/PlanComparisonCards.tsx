@@ -111,6 +111,7 @@ export function PlanComparisonCards({
   currentInterval,
   selectedInterval,
   isLoading,
+  selectionDisabled,
   onSelectPlan,
   onIntervalChange,
 }: PlanComparisonCardsProps) {
@@ -371,7 +372,7 @@ export function PlanComparisonCards({
                       className="w-full"
                       variant="outline"
                       onClick={() => onSelectPlan(plan.id, false)}
-                      disabled={isLoading}
+                      disabled={isLoading || selectionDisabled}
                     >
                       <ArrowDown className="h-4 w-4 mr-1" />
                       Downgrade
@@ -380,7 +381,7 @@ export function PlanComparisonCards({
                     <Button
                       className="w-full h-auto py-3 flex-col gap-0 shadow-lg transition-all duration-200 hover:shadow-xl"
                       onClick={() => onSelectPlan(plan.id, true)}
-                      disabled={isLoading}
+                      disabled={isLoading || selectionDisabled}
                     >
                       <span className="text-xs font-normal opacity-90">Upgrade naar</span>
                       <span className="text-sm font-semibold">{plan.name}</span>
@@ -390,7 +391,7 @@ export function PlanComparisonCards({
                       className="w-full"
                       variant="outline"
                       onClick={() => onSelectPlan(plan.id, false)}
-                      disabled={isLoading}
+                      disabled={isLoading || selectionDisabled}
                     >
                       <ArrowDown className="h-4 w-4 mr-1" />
                       Downgrade
@@ -419,7 +420,7 @@ export function PlanComparisonCards({
         onOpenChange={(open) => { if (!open) setDetailPlan(null); }}
         onSelectPlan={onSelectPlan}
         currentPlanSortOrder={currentPlan?.sort_order ?? 0}
-        isLoading={isLoading}
+        isLoading={isLoading || selectionDisabled}
       />
     </>
   );
