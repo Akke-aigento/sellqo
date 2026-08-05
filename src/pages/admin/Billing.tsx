@@ -632,7 +632,6 @@ export default function BillingPage() {
         onOpenChange={(open) => {
           if (!open) {
             setConfirmPlan(null);
-            setWizardMandateUrl(null);
           }
         }}
         plan={confirmPlan?.plan ?? null}
@@ -642,12 +641,9 @@ export default function BillingPage() {
         isFree={isFreePlan(confirmPlan?.plan)}
         isActivating={syncPlan.isPending || setPaymentMode.isPending}
         isCreatingMandate={createMandateLink.isPending}
-        mandateUrl={wizardMandateUrl}
         onCreateMandate={handleWizardCreateMandate}
         onChooseManual={handleWizardManual}
-        onRefreshStatus={handleRefreshStatus}
         onConfirm={() => handleConfirmPlanChange()}
-        onIncomplete={handleWizardIncomplete}
       />
 
       {/* Downgrade warning (feature loss) — precedes the confirmation dialog */}
@@ -665,12 +661,6 @@ export default function BillingPage() {
           }}
         />
       )}
-
-      <MandateLinkDialog
-        open={!!mandateUrl}
-        onOpenChange={(open) => !open && setMandateUrl(null)}
-        url={mandateUrl ?? ''}
-      />
     </div>
   );
 }
