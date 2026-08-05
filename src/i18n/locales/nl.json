@@ -654,6 +654,15 @@
       "option_manual_desc": "Je ontvangt elke periode een betalingsverzoek en betaalt zelf.",
       "resume_alert": "Je betaalwijze staat klaar. Activeer je {{plan}}-abonnement om te starten.",
       "resume_action": "Plan activeren"
+    },
+    "pending_upgrade": {
+      "banner": "Je upgrade naar {{plan}} wacht op betaling van {{amount}}. Zodra de betaling binnen is, gaat het nieuwe plan direct in.",
+      "pay_now": "Nu betalen",
+      "cancel": "Upgrade annuleren",
+      "cancelled": "Upgrade geannuleerd",
+      "cancel_error": "Upgrade annuleren mislukt",
+      "created": "Upgrade naar {{plan}} staat klaar — we hebben je een betalingsverzoek gestuurd.",
+      "blocked": "Er staat al een upgrade open die nog niet betaald is. Betaal of annuleer die eerst."
     }
   },
   "admin_billing": {

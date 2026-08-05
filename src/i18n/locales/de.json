@@ -996,6 +996,15 @@
       "option_manual_desc": "Du erhältst jede Periode eine Zahlungsanfrage und bezahlst selbst.",
       "resume_alert": "Deine Zahlungsweise steht bereit. Aktiviere dein {{plan}}-Abo, um zu starten.",
       "resume_action": "Plan aktivieren"
+    },
+    "pending_upgrade": {
+      "banner": "Dein Upgrade auf {{plan}} wartet auf die Zahlung von {{amount}}. Der neue Plan startet, sobald die Zahlung eingeht.",
+      "pay_now": "Jetzt bezahlen",
+      "cancel": "Upgrade abbrechen",
+      "cancelled": "Upgrade abgebrochen",
+      "cancel_error": "Upgrade konnte nicht abgebrochen werden",
+      "created": "Upgrade auf {{plan}} ist bereit — wir haben dir eine Zahlungsanfrage gesendet.",
+      "blocked": "Es steht bereits ein unbezahltes Upgrade aus. Bezahle oder storniere es zuerst."
     }
   }
 }

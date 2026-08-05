@@ -996,6 +996,15 @@
       "option_manual_desc": "Vous recevez une demande de paiement chaque période et payez vous-même.",
       "resume_alert": "Votre moyen de paiement est prêt. Activez votre abonnement {{plan}} pour démarrer.",
       "resume_action": "Activer le plan"
+    },
+    "pending_upgrade": {
+      "banner": "Votre passage à {{plan}} attend le paiement de {{amount}}. Le nouveau plan démarre dès réception du paiement.",
+      "pay_now": "Payer maintenant",
+      "cancel": "Annuler la mise à niveau",
+      "cancelled": "Mise à niveau annulée",
+      "cancel_error": "Impossible d'annuler la mise à niveau",
+      "created": "Le passage à {{plan}} est prêt — nous vous avons envoyé une demande de paiement.",
+      "blocked": "Une mise à niveau impayée est déjà en attente. Payez-la ou annulez-la d'abord."
     }
   }
 }

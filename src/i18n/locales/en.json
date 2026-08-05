@@ -655,6 +655,15 @@
       "option_manual_desc": "You receive a payment request each period and pay it yourself.",
       "resume_alert": "Your payment method is ready. Activate your {{plan}} subscription to get started.",
       "resume_action": "Activate plan"
+    },
+    "pending_upgrade": {
+      "banner": "Your upgrade to {{plan}} is awaiting payment of {{amount}}. The new plan starts as soon as the payment arrives.",
+      "pay_now": "Pay now",
+      "cancel": "Cancel upgrade",
+      "cancelled": "Upgrade cancelled",
+      "cancel_error": "Could not cancel the upgrade",
+      "created": "Upgrade to {{plan}} is ready — we have sent you a payment request.",
+      "blocked": "There is already an unpaid upgrade pending. Pay or cancel it first."
     }
   },
   "import": {
