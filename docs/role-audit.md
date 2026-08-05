@@ -1,4 +1,30 @@
+# 2026-08-05 — SUB-UNIFY / CYCLE (abonnement-lifecycle, pay-first)
+
+**SUB-UNIFY-0** (commit 08c2b27): PaymentElement in MandateActivation.tsx toonde kaart als eerste betaalmethode. Root cause: geen expliciete paymentMethodOrder — Stripe bepaalt dan zelf de volgorde. Fix: paymentMethodOrder ['sepa_debit','card']. Geen changelog (visuele ordering).
+
+**SUB-UNIFY-1** (verificatie, geen code): sync-tenant-plan regel-voor-regel langs de twee wetten (upgrade direct + pro-rata / downgrade bij volgende facturatie) — conform. SQL-natrek nieuwe-klant-route: interne tenant geseed bevestigd, alleen sandbox doorliep ooit de verenigde route, alle echte tenants billing_subscription_id NULL.
+
+**SUB-UNIFY-1a** (commit 9dec31c, changelog 2026.08j): interval-swap upgrades factureerden dubbel — entitlement op vandaag+nieuw-interval maar subscriptions.next_invoice_date bleef op de oude grens. Root cause: upgrade-tak updatete alleen interval en name. Fix: bij interval-wissel start_date/next_invoice_date mee-gezet; pro-rata = volle nieuwe prijs − credit ongebruikt deel oude periode.
+
+**SUB-UNIFY-1b** (commit 139e707, changelog 2026.08k): pro-rata upgrade-facturen misten pariteit met de runner (geen PDF/UBL, geen mail, bij falen bleef status 'sent' buiten dunning-vangnet). Root cause: verkorte kopie van het runner-patroon. Fix: alle drie toegevoegd in runner-volgorde. NB: wordt herwerkt in UPGRADE-PF-1 (pay-first).
+
+**AUDIT-VONDST (sloop-pre-flight)**: overdracht-conclusie "Stripe Billing-laag bevestigd dood, nul frontend-aanroepers" bleek FOUT — /admin/billing (live gerouteerd) stuurt tenants zonder stripe_subscription_id naar create-platform-checkout (Stripe Checkout), en calculate/execute-plan-switch zijn bereikbaar zodra één checkout voltooit. sync-tenant-plan had juist nul aanroepers. Live bevestigd 5/8: downgrade-klik VanXcel opende live Stripe Checkout €79/mnd (niet afgerekend, geen DB-writes). LES: sloop-batches krijgen ALTIJD een verse aanroeper-grep als pre-flight; "bevestigd dood" uit een vorige sessie is geen bewijs. Gevolg: masterplan v2.0 (pay-first billing-cycle-engine) vervangt het oude SUB-UNIFY-2-plan.
+
+**CYCLE-1** (changelog 2026.08l): billing-cycle-engine fundament — tabel billing_cycles (UNIQUE subscription_id+period_start als idempotentie-sleutel, partieel unique PR-nummer, RLS 4 policies via get_user_tenant_ids(auth.uid())), payment_mode/billing_model op subscriptions (bestaande rijen via default-flip op invoice_first — nul data-UPDATE, nul gedragswijziging), RPC generate_payment_request_number (SECURITY DEFINER, search_path, tenant-guard, anon revoked), pay-first-vertakking in runner (insert-first, 23505 → zelf-herstellende advance, Stripe idempotencyKey cycle:<id>, runner zet nooit 'settled') + pending-sweep >1u. Plan_mode-review vooraf; zes ontwerpvragen expliciet beantwoord vóór de bouw.
+
+**CYCLE-3** (commit 57e1a1f, changelog 2026.08m): webhook is de enige factureer-plek voor pay-first — handleCycleCharge in _shared/subscriptionCharge.ts maakt bij payment_intent.succeeded de factuur als 'paid' (bedragen uit cycle-totalen, BTW-tarief afgeleid met snapping 0/6/12/21), settelt race-veilig via .is('invoice_id', null), PDF + mail altijd. Failed-tak → awaiting_payment met settled-guards; mandaat-flag-logica gedeeld (flagMandateIfDetached). Sweep aangescherpt op invoice_id IS NULL. Odoo/Peppol ongewijzigd via ISSUED_STATUSES ('paid' zit erin). Deploy: platform-stripe-webhook, stripe-connect-webhook, generate-subscription-invoices.
+
+**CHANGELOG-FIX-1** (commit b51ef35): vijf changelog-i18n-keys stonden buiten public.changelog.changes en renderden als rauwe keys — bestond al sinds 2026.08i. Root cause: anchor-gebaseerde inserts ("na subscribeError") plaatsten keys op het verkeerde nestingniveau; de JSON-hersortering in CYCLE-3 legde het bloot. LES: bij i18n-inserts altijd het lookup-pad in de component verifiëren, niet alleen een tekstueel anker.
+
+**SMOKE (lopend)**: pay-first testabonnement aabc0729 (€1,21, interne tenant, SEPA-mandaat) → cycle 30a5e564 'processing' met echte payment_intent pi_3U0zKt2NSrtUWCOr0ct9un9I. Verwacht bij SEPA-settlement deze week: webhook → factuur paid + mail → cycle settled. subscription_invoices bleef leeg (correct), advance correct.
+
+**Overig**: VanXcel current_period_end verlengd naar 2027-03-12 (was verlopen). Nieuw op backlog: SUB-ADMIN-1 (admin-datatools + gift-month op eigen systeem, met audit trail).
+
+---
+
 # Fase 2 — VOLLEDIG AFGESLOTEN (2026-06-09)
+
+
 
 ## LABEL-PATH-1 — verzendlabels: download/print herstel na storage-hardening — 31 juli 2026
 
