@@ -569,6 +569,32 @@
         "button": "Start Gratis Trial"
       }
     },
+    "pay": {
+      "success": {
+        "meta": {
+          "title": "Betaling ontvangen — SellQo",
+          "description": "Bedankt voor je betaling. Je ontvangt een bevestiging per e-mail."
+        },
+        "title": "Betaling ontvangen",
+        "subtitle": "Bedankt voor je betaling!",
+        "prDescription": "Je factuur volgt direct per e-mail.",
+        "invoiceDescription": "Je ontvangt een bevestiging per e-mail.",
+        "genericDescription": "We hebben je betaling in goede orde ontvangen.",
+        "prLabel": "Betalingsverzoek",
+        "invoiceLabel": "Factuur"
+      },
+      "cancelled": {
+        "meta": {
+          "title": "Betaling niet afgerond — SellQo",
+          "description": "Je betaling is niet afgerond. Er is niets afgeschreven."
+        },
+        "title": "Betaling niet afgerond",
+        "subtitle": "Geen zorgen — er is niets afgeschreven.",
+        "description": "Je kunt de betaallink uit je e-mail op elk moment opnieuw openen.",
+        "prLabel": "Betalingsverzoek",
+        "invoiceLabel": "Factuur"
+      }
+    },
     "integrations": {
       "title": "Integraties",
       "subtitle": "Verbind SellQo met je favoriete tools en platforms",
@@ -982,6 +1008,10 @@
     },
     "changelog": {
       "changes": {
+        "payment_landing_pages": {
+          "title": "Nette bevestigingspagina na betaling via betaallink",
+          "description": "Na een betaling via een betaallink zie je nu een nette bevestigingspagina in plaats van een 404-fout."
+        },
         "refund_button_states": {
           "title": "Terugbetaal-knop toont nu de juiste status",
           "description": "De terugbetaal-actie op facturen toont nu correct wanneer een terugbetaling of creditnota al bestaat, en kan een onderbroken terugbetaling alsnog afronden."
