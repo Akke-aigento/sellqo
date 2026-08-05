@@ -423,3 +423,6 @@ verify_jwt = false
 
 [functions.nano-studio]
 verify_jwt = true
+
+[functions.sync-cron-vault-key]
+verify_jwt = false
