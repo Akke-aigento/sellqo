@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
+      "subscription_payment_options_foundation": {
+        "title": "Base pour des options de paiement flexibles des abonnements",
+        "description": "Les fondations sont posées pour offrir plus de choix dans le paiement des abonnements."
+      },
       "upgrade_invoice_docs_email": {
         "title": "Document de facture et e-mail lors d'une mise à niveau",
         "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
