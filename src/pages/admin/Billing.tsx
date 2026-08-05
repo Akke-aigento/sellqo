@@ -182,6 +182,12 @@ export default function BillingPage() {
     const plan = plans.find(p => p.id === planId);
     if (!plan) return;
 
+    // UPGRADE-PF-1: one open pro-rata upgrade at a time (the backend returns 409).
+    if (pendingUpgrade) {
+      toast.warning(t('billing.pending_upgrade.blocked'));
+      return;
+    }
+
     if (isEnterprise(plan)) {
       toast.info(t('billing.enterprise_contact'));
       return;
