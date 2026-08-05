@@ -605,15 +605,28 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Plan change confirmation — explains the two laws, no pro-rata promise */}
-      <PlanChangeConfirmDialog
+      {/* UX-UNIFY-1: plan-first wizard — the only entry point (and the gatekeeper) */}
+      <PlanActivationWizard
         open={!!confirmPlan}
-        onOpenChange={(open) => !open && setConfirmPlan(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmPlan(null);
+            setWizardMandateUrl(null);
+          }
+        }}
         plan={confirmPlan?.plan ?? null}
         interval={selectedInterval}
         isUpgrade={confirmPlan?.isUpgrade ?? true}
-        isPending={syncPlan.isPending || setPaymentMode.isPending}
-        onConfirm={handleConfirmPlanChange}
+        hasPaymentPath={hasPaymentPath}
+        isFree={isFreePlan(confirmPlan?.plan)}
+        isActivating={syncPlan.isPending || setPaymentMode.isPending}
+        isCreatingMandate={createMandateLink.isPending}
+        mandateUrl={wizardMandateUrl}
+        onCreateMandate={handleWizardCreateMandate}
+        onChooseManual={handleWizardManual}
+        onRefreshStatus={handleRefreshStatus}
+        onConfirm={() => handleConfirmPlanChange()}
+        onIncomplete={handleWizardIncomplete}
       />
 
       {/* Downgrade warning (feature loss) — precedes the confirmation dialog */}
