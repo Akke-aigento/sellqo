@@ -47,6 +47,9 @@ Deno.serve(async (req) => {
     if (typeof tenantId !== "string" || !tenantId) {
       return json({ success: false, error: "tenant_id is required" }, 400);
     }
+    // UX-UNIFY-1 (optional): plan context so the mandate page is never a blank cheque.
+    const planId = typeof body?.plan_id === "string" && body.plan_id ? body.plan_id : null;
+    const billingInterval = body?.billing_interval === "yearly" ? "yearly" : "monthly";
 
     // The caller must be tenant_admin of exactly this tenant (platform_admin
     // bypasses via requireRole for support purposes).
@@ -75,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: currentSub, error: csErr } = await supabase
       .from("tenant_subscriptions")
-      .select("id, billing_customer_id")
+      .select("id, billing_customer_id, plan_id, billing_interval")
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (csErr) throw csErr;
@@ -179,11 +182,40 @@ Deno.serve(async (req) => {
     }
 
     const token = randomToken();
+
+    // Context: explicitly requested plan, else the running subscription. No match → NULL.
+    let mandateContext: Record<string, unknown> | null = null;
+    const ctxPlanId = planId ?? ((currentSub as any)?.plan_id as string | null) ?? null;
+    const ctxInterval = planId
+      ? billingInterval
+      : ((currentSub as any)?.billing_interval === "yearly" ? "yearly" : "monthly");
+    if (ctxPlanId) {
+      const { data: plan } = await supabase
+        .from("pricing_plans")
+        .select("id, name, monthly_price, yearly_price")
+        .eq("id", ctxPlanId)
+        .maybeSingle();
+      if (plan) {
+        const price = Number(
+          ctxInterval === "yearly" ? (plan as any).yearly_price : (plan as any).monthly_price,
+        );
+        if (price > 0) {
+          mandateContext = {
+            plan_id: plan.id,
+            plan_name: (plan as any).name,
+            price,
+            interval: ctxInterval,
+          };
+        }
+      }
+    }
+
     const { error: tokErr } = await supabase.from("mandate_setup_tokens").insert({
       tenant_id: internalTenantId,
       customer_id: billingCustomerId,
       token,
       stripe_customer_id: stripeCustomerId,
+      context: mandateContext,
     });
     if (tokErr) throw tokErr;
 
