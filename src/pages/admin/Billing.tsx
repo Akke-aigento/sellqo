@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
 
 const SUPPORT_EMAIL = 'info@sellqo.app';
+const INVOICE_PAGE_SIZE = 10;
 
 export default function BillingPage() {
   const { t, i18n } = useTranslation();
