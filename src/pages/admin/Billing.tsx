@@ -1,26 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { nl, enUS } from 'date-fns/locale';
-import { 
-  CreditCard, 
-  Download, 
-  ExternalLink, 
+import { nl, enUS, fr, de } from 'date-fns/locale';
+import { toast } from 'sonner';
+import {
+  Download,
+  ExternalLink,
   AlertTriangle,
   TrendingUp,
-  Settings,
-  Info,
+  CalendarClock,
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
-import { useCalculatePlanSwitch, useExecutePlanSwitch, type PlanSwitchPreview } from '@/hooks/usePlanSwitch';
-import { PlanSwitchPreviewCard } from '@/components/admin/billing/PlanSwitchPreview';
+import {
+  usePlatformBillingStatus,
+  useCreatePlatformMandateLink,
+  useSetPlatformPaymentMode,
+  useSyncTenantPlan,
+  type PlatformPaymentMode,
+} from '@/hooks/usePlatformBillingStatus';
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
 import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
+import { PaymentMethodCard } from '@/components/admin/billing/PaymentMethodCard';
+import { PlanChangeConfirmDialog } from '@/components/admin/billing/PlanChangeConfirmDialog';
+import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,34 +33,158 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
+
+const SUPPORT_EMAIL = 'info@sellqo.app';
 
 export default function BillingPage() {
   const { t, i18n } = useTranslation();
-  const { 
-    subscription, 
-    invoices, 
-    usage, 
-    isLoading, 
+  const {
+    subscription,
+    invoices,
+    usage,
+    isLoading,
     invoicesLoading,
     usageLoading,
-    createCheckout,
-    openCustomerPortal 
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
-  const calculatePlanSwitch = useCalculatePlanSwitch();
-  const executePlanSwitch = useExecutePlanSwitch();
-  
-  // Plan switch state
-  const [showPlanSwitchDialog, setShowPlanSwitchDialog] = useState(false);
-  const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
-  const [planSwitchPreview, setPlanSwitchPreview] = useState<PlanSwitchPreview | null>(null);
-  const [selectedTargetPlanId, setSelectedTargetPlanId] = useState<string | null>(null);
-  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
 
-  const dateLocale = i18n.language === 'nl' ? nl : enUS;
+  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const createMandateLink = useCreatePlatformMandateLink();
+  const setPaymentMode = useSetPlatformPaymentMode();
+  const syncPlan = useSyncTenantPlan();
+
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
+  const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
+  const [downgradeCandidate, setDowngradeCandidate] = useState<PricingPlan | null>(null);
+  const [mandateUrl, setMandateUrl] = useState<string | null>(null);
+  /** Chosen before there is a billing subscription; applied right after activate. */
+  const [pendingMode, setPendingMode] = useState<PlatformPaymentMode | null>(null);
+
+  const dateLocale =
+    i18n.language === 'nl' ? nl : i18n.language === 'fr' ? fr : i18n.language === 'de' ? de : enUS;
 
   // Determine current plan
   const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+
+  const mandate = billingStatus?.mandate ?? null;
+  const hasUsableMandate = !!mandate && mandate.status !== 'failed';
+  const effectiveMode: PlatformPaymentMode | null = billingStatus?.payment_mode ?? pendingMode;
+  const hasPaymentPath = hasUsableMandate || effectiveMode === 'manual';
+  const pendingPlanId =
+    (subscription as unknown as { pending_plan_id?: string | null } | null)?.pending_plan_id ?? null;
+  const pendingPlan = useMemo(
+    () => plans.find(p => p.id === pendingPlanId) ?? null,
+    [plans, pendingPlanId],
+  );
+
+  const isEnterprise = (plan?: PricingPlan | null) =>
+    !!plan && (plan.slug === 'enterprise' || plan.name.toLowerCase().includes('enterprise'));
+
+  const scrollToPayment = () => {
+    document.getElementById('payment-method-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  };
+
+  const lostFeatureKeys = (target: PricingPlan | null): string[] => {
+    if (!target || !currentPlan?.features || !target.features) return [];
+    const cur = currentPlan.features as PricingPlanFeatures;
+    const tgt = target.features as PricingPlanFeatures;
+    return (Object.keys(cur) as (keyof PricingPlanFeatures)[])
+      .filter(k => cur[k] && !tgt[k])
+      .map(String);
+  };
+
+  const handleSetupMandate = async () => {
+    try {
+      const res = await createMandateLink.mutateAsync();
+      setMandateUrl(res.url);
+    } catch (err) {
+      toast.error(t('billing.payment.mandate_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  const handleChooseManual = async () => {
+    if (!billingStatus?.billing_subscription_id) {
+      // No billing subscription yet — remember the choice and apply after activate.
+      setPendingMode('manual');
+      toast.success(t('billing.payment.manual_selected'));
+      return;
+    }
+    try {
+      await setPaymentMode.mutateAsync('manual');
+      setPendingMode(null);
+      toast.success(t('billing.payment.manual_selected'));
+    } catch (err) {
+      toast.error(t('billing.payment.mode_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  const handleSelectPlan = (planId: string, isUpgrade: boolean) => {
+    const plan = plans.find(p => p.id === planId);
+    if (!plan) return;
+
+    if (isEnterprise(plan)) {
+      toast.info(t('billing.enterprise_contact'));
+      return;
+    }
+
+    const isFree = plan.slug === 'free' || Number(plan.monthly_price) === 0;
+    if (!hasPaymentPath && !isFree) {
+      toast.info(t('billing.payment.required_title'), {
+        description: t('billing.payment.required_desc'),
+      });
+      scrollToPayment();
+      return;
+    }
+
+    if (!isUpgrade && lostFeatureKeys(plan).length > 0) {
+      setDowngradeCandidate(plan);
+      return;
+    }
+    setConfirmPlan({ plan, isUpgrade });
+  };
+
+  const handleConfirmPlanChange = async () => {
+    if (!confirmPlan) return;
+    const { plan, isUpgrade } = confirmPlan;
+    // The UI decides activate vs switch — sync-tenant-plan returns 400 for a
+    // switch without a live billing subscription, which must never surface.
+    const action = billingStatus?.billing_subscription_id ? 'switch' : 'activate';
+    try {
+      const res = await syncPlan.mutateAsync({
+        planId: plan.id,
+        interval: selectedInterval,
+        action,
+      });
+
+      if (pendingMode === 'manual') {
+        try {
+          await setPaymentMode.mutateAsync('manual');
+          setPendingMode(null);
+        } catch {
+          toast.warning(t('billing.payment.mode_error'));
+        }
+      }
+
+      setConfirmPlan(null);
+      if (res.downgrade) {
+        toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
+      } else {
+        toast.success(t('billing.plan_change.success_upgrade', { plan: plan.name }));
+      }
+    } catch (err) {
+      toast.error(t('billing.plan_change.error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
 
   // Find the best upgrade target based on current usage overages
   const findUpgradeTarget = (): string | null => {
@@ -104,62 +231,12 @@ export default function BillingPage() {
       past_due: 'destructive',
       canceled: 'outline',
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    return (
+      <Badge variant={variants[status] || 'outline'}>
+        {t(`billing.status.${status}`, { defaultValue: status })}
+      </Badge>
+    );
   };
-
-  // Plan switch handlers
-  const handlePreviewPlanSwitch = async (targetPlanId: string) => {
-    setSelectedTargetPlanId(targetPlanId);
-    
-    const preview = await calculatePlanSwitch.mutateAsync({
-      target_plan_id: targetPlanId,
-      target_interval: selectedInterval,
-      tenant_id: subscription?.tenant_id,
-    });
-    
-    setPlanSwitchPreview(preview);
-    
-    // Show downgrade warning if this is a downgrade
-    if (!preview.is_upgrade) {
-      setShowDowngradeWarning(true);
-    } else {
-      setShowPlanSwitchDialog(true);
-    }
-  };
-
-  const handleConfirmDowngrade = () => {
-    setShowDowngradeWarning(false);
-    setShowPlanSwitchDialog(true);
-  };
-
-  const handleExecutePlanSwitch = async () => {
-    if (!selectedTargetPlanId) return;
-    
-    await executePlanSwitch.mutateAsync({
-      target_plan_id: selectedTargetPlanId,
-      target_interval: selectedInterval,
-      tenant_id: subscription?.tenant_id,
-      proration_behavior: 'create_prorations',
-    });
-    
-    setShowPlanSwitchDialog(false);
-    setPlanSwitchPreview(null);
-    setSelectedTargetPlanId(null);
-    // Refresh page to show new subscription
-    window.location.reload();
-  };
-
-  const handleCancelPlanSwitch = () => {
-    setShowPlanSwitchDialog(false);
-    setShowDowngradeWarning(false);
-    setPlanSwitchPreview(null);
-    setSelectedTargetPlanId(null);
-  };
-
-  // currentPlan already declared above
-  
-  // Filter plans that can be switched to (exclude current plan)
-  const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
 
   if (isLoading) {
     return (
@@ -178,7 +255,7 @@ export default function BillingPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t('billing.title')}</h1>
         <p className="text-muted-foreground">
-          Beheer je abonnement, bekijk facturen en wijzig je betaalmethode.
+          {t('billing.subtitle')}
         </p>
       </div>
 
@@ -220,18 +297,27 @@ export default function BillingPage() {
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
-              {subscription?.stripe_subscription_id && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => openCustomerPortal.mutate()}
-                  disabled={openCustomerPortal.isPending}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Beheer abonnement
-                </Button>
-              )}
-            </div>
+            {billingStatus?.next_invoice_date && (
+              <p className="text-sm text-muted-foreground">
+                {t('billing.next_invoice')}:{' '}
+                {format(new Date(billingStatus.next_invoice_date), 'PPP', { locale: dateLocale })}
+              </p>
+            )}
+
+            {pendingPlan && (
+              <Alert>
+                <CalendarClock className="h-4 w-4" />
+                <AlertDescription>
+                  {t('billing.pending_downgrade', {
+                    plan: pendingPlan.name,
+                    date: subscription?.current_period_end
+                      ? format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })
+                      : '',
+                  })}{' '}
+                  {t('billing.pending_downgrade_cancel', { email: SUPPORT_EMAIL })}
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -239,7 +325,7 @@ export default function BillingPage() {
         <Card>
           <CardHeader>
             <CardTitle>{t('billing.usage')}</CardTitle>
-            <CardDescription>Jouw verbruik deze maand</CardDescription>
+            <CardDescription>{t('billing.usage_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {usageLoading ? (
@@ -251,20 +337,14 @@ export default function BillingPage() {
             ) : usage ? (
               <>
                 {Object.entries(usage).map(([key, value]) => {
-                  const labels: Record<string, string> = {
-                    products: 'Producten',
-                    orders: 'Orders',
-                    customers: 'Klanten',
-                    storage: 'Opslag (GB)',
-                    users: 'Team',
-                  };
+                  const label = t(`billing.usage_labels.${key}`, { defaultValue: key });
                   const isNearLimit = value.percentage >= 80 && value.percentage < 100;
                   const isOverLimit = value.percentage >= 100;
                   
                   return (
                     <div key={key} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span>{labels[key] || key}</span>
+                        <span>{label}</span>
                         <span className={cn(
                           isOverLimit && 'text-destructive font-medium',
                           isNearLimit && !isOverLimit && 'text-amber-500 font-medium'
@@ -281,7 +361,7 @@ export default function BillingPage() {
                       />
                       {isOverLimit && (
                         <p className="text-xs text-destructive font-medium">
-                          Limiet overschreden — upgrade je plan
+                          {t('billing.limit_exceeded')}
                         </p>
                       )}
                     </div>
@@ -292,10 +372,10 @@ export default function BillingPage() {
                   <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-sm font-medium">
-                      Je hebt je limiet overschreden
+                      {t('billing.limit_exceeded_title')}
                     </span>
-                    <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
-                      Upgrade nu
+                    <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick}>
+                      {t('billing.upgrade_now')}
                     </Button>
                   </div>
                 )}
@@ -306,33 +386,37 @@ export default function BillingPage() {
                     <span className="text-sm">
                       {t('billing.upgrade_needed')}
                     </span>
-                    <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick} disabled={createCheckout.isPending}>
-                      Upgrade
+                    <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick}>
+                      {t('billing.upgrade')}
                     </Button>
                   </div>
                 )}
               </>
             ) : (
-              <p className="text-muted-foreground text-sm">Geen gegevens beschikbaar</p>
+              <p className="text-muted-foreground text-sm">{t('billing.no_data')}</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* SAFEGUARD-1: plan changes temporarily via support */}
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>{t('billing.plan_change_via_team')}</AlertDescription>
-      </Alert>
+      {/* 2a·2: self-service payment method (SEPA mandate or payment request) */}
+      <div id="payment-method-section">
+        <PaymentMethodCard
+          status={billingStatus}
+          isLoading={statusLoading}
+          pendingMode={pendingMode}
+          isMutating={createMandateLink.isPending || setPaymentMode.isPending}
+          onSetupMandate={handleSetupMandate}
+          onChooseManual={handleChooseManual}
+        />
+      </div>
 
       {/* Plan Comparison Cards */}
       {plans.length > 0 && currentPlan && (
         <Card id="plan-comparison-section">
           <CardHeader>
-            <CardTitle>Wissel van Plan</CardTitle>
-            <CardDescription>
-              Vergelijk alle plannen en bekijk wat je krijgt of verliest bij een wijziging
-            </CardDescription>
+            <CardTitle>{t('billing.switch_plan_title')}</CardTitle>
+            <CardDescription>{t('billing.switch_plan_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <PlanComparisonCards
@@ -340,68 +424,36 @@ export default function BillingPage() {
               currentPlanId={currentPlan.id}
               currentInterval={subscription?.billing_interval || 'monthly'}
               selectedInterval={selectedInterval}
-              isLoading={calculatePlanSwitch.isPending || createCheckout.isPending}
+              isLoading={syncPlan.isPending}
               onIntervalChange={setSelectedInterval}
-              selectionDisabled
-              onSelectPlan={() => {
-                /* SAFEGUARD-1: plan changes temporarily handled by the SellQo team. */
-              }}
+              onSelectPlan={handleSelectPlan}
             />
           </CardContent>
         </Card>
       )}
-      {false && subscription?.stripe_payment_method_id && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              {t('billing.payment_method')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-16 bg-muted rounded flex items-center justify-center text-xs font-medium">
-                  VISA
-                </div>
-                <div>
-                  <p className="font-medium">•••• •••• •••• 4242</p>
-                  <p className="text-sm text-muted-foreground">Vervalt 12/26</p>
-                </div>
-              </div>
-              <Button 
-                variant="outline"
-                onClick={() => openCustomerPortal.mutate()}
-                disabled={openCustomerPortal.isPending}
-              >
-                {t('billing.update_payment_method')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Invoices */}
       <Card>
         <CardHeader>
           <CardTitle>{t('billing.invoices')}</CardTitle>
-          <CardDescription>Bekijk en download je facturen</CardDescription>
+          <CardDescription>{t('billing.invoices_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
           {invoicesLoading ? (
             <Skeleton className="h-48" />
           ) : invoices.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Nog geen facturen
+              {t('billing.no_invoices')}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Nummer</TableHead>
-                  <TableHead>Bedrag</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('billing.col_date')}</TableHead>
+                  <TableHead>{t('billing.col_number')}</TableHead>
+                  <TableHead>{t('billing.col_amount')}</TableHead>
+                  <TableHead>{t('billing.col_status')}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -417,7 +469,7 @@ export default function BillingPage() {
                     <TableCell>{formatPrice(invoice.amount, invoice.currency)}</TableCell>
                     <TableCell>
                       <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
-                        {invoice.status === 'paid' ? '✓ Betaald' : invoice.status}
+                        {invoice.status === 'paid' ? `✓ ${t('billing.paid')}` : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -431,7 +483,7 @@ export default function BillingPage() {
                                 </a>
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Download PDF</TooltipContent>
+                            <TooltipContent>{t('billing.download_pdf')}</TooltipContent>
                           </Tooltip>
                         )}
                         {invoice.hosted_invoice_url && (
@@ -444,7 +496,7 @@ export default function BillingPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+                              {invoice.status === 'paid' ? t('billing.view_invoice') : t('billing.pay_invoice')}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -464,31 +516,38 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Plan Switch Preview Dialog */}
-      <Dialog open={showPlanSwitchDialog} onOpenChange={setShowPlanSwitchDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden">
-          {planSwitchPreview && (
-            <PlanSwitchPreviewCard
-              preview={planSwitchPreview}
-              isLoading={executePlanSwitch.isPending}
-              onConfirm={handleExecutePlanSwitch}
-              onCancel={handleCancelPlanSwitch}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Plan change confirmation — explains the two laws, no pro-rata promise */}
+      <PlanChangeConfirmDialog
+        open={!!confirmPlan}
+        onOpenChange={(open) => !open && setConfirmPlan(null)}
+        plan={confirmPlan?.plan ?? null}
+        interval={selectedInterval}
+        isUpgrade={confirmPlan?.isUpgrade ?? true}
+        isPending={syncPlan.isPending || setPaymentMode.isPending}
+        onConfirm={handleConfirmPlanChange}
+      />
 
-      {/* Downgrade Warning Dialog */}
-      {planSwitchPreview && (
+      {/* Downgrade warning (feature loss) — precedes the confirmation dialog */}
+      {downgradeCandidate && (
         <DowngradeWarningDialog
-          open={showDowngradeWarning}
-          onOpenChange={setShowDowngradeWarning}
-          featuresLost={planSwitchPreview.features.lost}
-          currentPlanName={planSwitchPreview.current_plan.name}
-          targetPlanName={planSwitchPreview.target_plan.name}
-          onConfirm={handleConfirmDowngrade}
+          open={!!downgradeCandidate}
+          onOpenChange={(open) => !open && setDowngradeCandidate(null)}
+          featuresLost={lostFeatureKeys(downgradeCandidate)}
+          currentPlanName={currentPlan?.name ?? ''}
+          targetPlanName={downgradeCandidate.name}
+          onConfirm={() => {
+            const plan = downgradeCandidate;
+            setDowngradeCandidate(null);
+            setConfirmPlan({ plan, isUpgrade: false });
+          }}
         />
       )}
+
+      <MandateLinkDialog
+        open={!!mandateUrl}
+        onOpenChange={(open) => !open && setMandateUrl(null)}
+        url={mandateUrl ?? ''}
+      />
     </div>
   );
 }

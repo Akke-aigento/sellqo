@@ -1173,7 +1173,8 @@
         "subscription_payment_requests": {
           "title": "Payment requests with a payment link for subscriptions",
           "description": "Subscriptions without automatic collection now receive a payment request with a direct payment link and friendly reminders."
-        }
+        },
+        "self_service_billing": "Manage your subscription and payment method entirely yourself: direct debit or a payment request per period, and change plan whenever you want."
       },
       "copyLink": "Copy link",
       "copySuccess": "Link copied!",

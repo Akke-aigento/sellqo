@@ -1173,7 +1173,8 @@
         "subscription_payment_requests": {
           "title": "Demandes de paiement avec lien de paiement pour les abonnements",
           "description": "Les abonnements sans prélèvement automatique reçoivent désormais une demande de paiement avec lien direct et des rappels amicaux."
-        }
+        },
+        "self_service_billing": "Gérez vous-même votre abonnement et votre moyen de paiement : domiciliation ou demande de paiement par période, et changez de plan quand vous le souhaitez."
       },
       "copyLink": "Copier le lien",
       "copySuccess": "Lien copié !",

@@ -1173,7 +1173,8 @@
         "subscription_payment_requests": {
           "title": "Betalingsverzoeken met betaallink voor abonnementen",
           "description": "Abonnementen zonder automatische incasso krijgen nu een betalingsverzoek met directe betaallink en vriendelijke herinneringen."
-        }
+        },
+        "self_service_billing": "Beheer je abonnement en betaalwijze volledig zelf: automatische incasso of een betalingsverzoek per periode, en wissel van plan wanneer je wil."
       },
       "copyLink": "Kopieer link",
       "copySuccess": "Link gekopieerd!",
