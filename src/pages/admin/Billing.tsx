@@ -522,31 +522,38 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Plan Switch Preview Dialog */}
-      <Dialog open={showPlanSwitchDialog} onOpenChange={setShowPlanSwitchDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden">
-          {planSwitchPreview && (
-            <PlanSwitchPreviewCard
-              preview={planSwitchPreview}
-              isLoading={executePlanSwitch.isPending}
-              onConfirm={handleExecutePlanSwitch}
-              onCancel={handleCancelPlanSwitch}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Plan change confirmation — explains the two laws, no pro-rata promise */}
+      <PlanChangeConfirmDialog
+        open={!!confirmPlan}
+        onOpenChange={(open) => !open && setConfirmPlan(null)}
+        plan={confirmPlan?.plan ?? null}
+        interval={selectedInterval}
+        isUpgrade={confirmPlan?.isUpgrade ?? true}
+        isPending={syncPlan.isPending || setPaymentMode.isPending}
+        onConfirm={handleConfirmPlanChange}
+      />
 
-      {/* Downgrade Warning Dialog */}
-      {planSwitchPreview && (
+      {/* Downgrade warning (feature loss) — precedes the confirmation dialog */}
+      {downgradeCandidate && (
         <DowngradeWarningDialog
-          open={showDowngradeWarning}
-          onOpenChange={setShowDowngradeWarning}
-          featuresLost={planSwitchPreview.features.lost}
-          currentPlanName={planSwitchPreview.current_plan.name}
-          targetPlanName={planSwitchPreview.target_plan.name}
-          onConfirm={handleConfirmDowngrade}
+          open={!!downgradeCandidate}
+          onOpenChange={(open) => !open && setDowngradeCandidate(null)}
+          featuresLost={lostFeatureKeys(downgradeCandidate)}
+          currentPlanName={currentPlan?.name ?? ''}
+          targetPlanName={downgradeCandidate.name}
+          onConfirm={() => {
+            const plan = downgradeCandidate;
+            setDowngradeCandidate(null);
+            setConfirmPlan({ plan, isUpgrade: false });
+          }}
         />
       )}
+
+      <MandateLinkDialog
+        open={!!mandateUrl}
+        onOpenChange={(open) => !open && setMandateUrl(null)}
+        url={mandateUrl ?? ''}
+      />
     </div>
   );
 }
