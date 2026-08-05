@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
+      "plan_interval_switch_billing": {
+        "title": "Facturation correcte lors d'un changement d'intervalle",
+        "description": "Lors d'une mise à niveau de plan avec passage entre facturation mensuelle et annuelle, le montant au prorata et la prochaine date de facturation sont désormais calculés correctement, sans double facturation."
+      },
       "stock_ledger": {
         "title": "Grand livre de stock : chaque mouvement enregistré",
         "description": "SellQo enregistre désormais chaque mouvement de stock — ventes, retours, achats, synchronisations et corrections manuelles — pour un stock exact à n'importe quelle date et entièrement traçable."
