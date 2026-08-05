@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "subscription_payment_options_foundation": {
+        "title": "Grundlage für flexible Zahlungsoptionen bei Abonnements",
+        "description": "Die Basis für mehr Auswahl bei der Bezahlung von Abonnements ist gelegt."
+      },
       "upgrade_invoice_docs_email": {
         "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
         "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
