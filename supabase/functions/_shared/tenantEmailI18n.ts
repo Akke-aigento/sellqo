@@ -77,6 +77,28 @@ type Strings = {
   };
 };
 
+// CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
+// request wording only — never dunning/legal-claim language.
+type PaymentRequestStrings = {
+  subject: string;
+  heading: string;
+  intro: string;
+  notice: string;
+  payNow: string;
+  numberLabel: string;
+  periodLabel: string;
+  dueLabel: string;
+  amountLabel: string;
+  attached: string;
+  poweredBy: string;
+  reminderSubject1: string;
+  reminderSubject2: string;
+  reminderSubject3: string;
+  reminderIntro1: string;
+  reminderIntro2: string;
+  reminderIntro3: string;
+};
+
 export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
   nl: {
     order: {
