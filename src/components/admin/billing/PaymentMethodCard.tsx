@@ -14,6 +14,8 @@ interface PaymentMethodCardProps {
   isMutating: boolean;
   onSetupMandate: () => void;
   onChooseManual: () => void;
+  /** UX-UNIFY-1: there is a live (paid) platform subscription. */
+  hasSubscription: boolean;
 }
 
 export function PaymentMethodCard({
@@ -23,6 +25,7 @@ export function PaymentMethodCard({
   isMutating,
   onSetupMandate,
   onChooseManual,
+  hasSubscription,
 }: PaymentMethodCardProps) {
   const { t } = useTranslation();
 
@@ -33,10 +36,16 @@ export function PaymentMethodCard({
   const effectiveMode: PlatformPaymentMode | null = status?.payment_mode ?? pendingMode;
   const isManual = effectiveMode === 'manual';
 
+  // UX-UNIFY-1: the card is management-only. Without a subscription AND without
+  // a payment method there is nothing to manage — the plan picker is the CTA.
+  if (!isLoading && !hasSubscription && !mandate && !isManual) return null;
+
   const methodLabel =
     mandate?.method_type === 'card'
       ? t('billing.payment.method_card')
       : t('billing.payment.method_sepa');
+
+  const showHalfStateHint = !hasSubscription && (!!mandate || isManual) && !mandateFailed;
 
   return (
     <Card>
@@ -62,6 +71,9 @@ export function PaymentMethodCard({
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">{t('billing.payment.mandate_desc')}</p>
+            {showHalfStateHint && (
+              <p className="text-sm font-medium">{t('billing.payment.half_hint')}</p>
+            )}
             <Button variant="outline" size="sm" onClick={onSetupMandate} disabled={isMutating}>
               {isMutating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('billing.payment.replace')}
@@ -75,6 +87,9 @@ export function PaymentMethodCard({
               <Badge variant="secondary">{t('billing.payment.manual_badge')}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">{t('billing.payment.manual_desc')}</p>
+            {showHalfStateHint && (
+              <p className="text-sm font-medium">{t('billing.payment.half_hint')}</p>
+            )}
             <Button variant="outline" size="sm" onClick={onSetupMandate} disabled={isMutating}>
               {isMutating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('billing.payment.switch_to_mandate')}
