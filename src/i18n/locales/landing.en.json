@@ -981,39 +981,6 @@
       }
     },
     "changelog": {
-      "title": "Changelog",
-      "subtitle": "All updates and improvements to SellQo",
-      "types": {
-        "feature": "New",
-        "improvement": "Improved",
-        "bugfix": "Bugfix",
-        "security": "Security"
-      },
-      "filters": {
-        "all": "All",
-        "feature": "Features",
-        "improvement": "Improvements",
-        "bugfix": "Bugfixes",
-        "security": "Security"
-      },
-      "version": "Version {{version}}",
-      "copyLink": "Copy link",
-      "copySuccess": "Link copied!",
-      "updatesCount": "{{count}} updates",
-      "subscribeTitle": "Stay up to date",
-      "subscribeText": "Receive changelogs and product updates straight to your inbox.",
-      "subscribePlaceholder": "Your email address",
-      "subscribeButton": "Subscribe",
-      "subscribeSubmitting": "Working...",
-      "subscribeSuccess": "You'll now receive changelog updates by email!",
-      "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime.",
-      "dates": {
-        "jul_2026": "July 2026",
-        "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024",
-        "q2_2026": "Q2 2026",
-        "aug_2026": "August 2026"
-      },
       "changes": {
         "refund_button_states": {
           "title": "Refund button now shows the right state",
@@ -1180,14 +1147,21 @@
           "description": "Generate a valued stock list (quantities × cost price) for today or a date in the past — with CSV and Excel export, ready for your accountant."
         }
       },
-      "subscribeError": "Subscription failed. Please try again later.",
-      "subscription_payment_options_foundation": {
-        "title": "Foundation for flexible subscription payment options",
-        "description": "The groundwork is in place for more choice in how subscriptions are paid."
+      "copyLink": "Copy link",
+      "copySuccess": "Link copied!",
+      "dates": {
+        "jul_2026": "July 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026",
+        "aug_2026": "August 2026"
       },
-      "upgrade_invoice_docs_email": {
-        "title": "Invoice document and email for plan upgrades",
-        "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
+      "filters": {
+        "all": "All",
+        "feature": "Features",
+        "improvement": "Improvements",
+        "bugfix": "Bugfixes",
+        "security": "Security"
       },
       "plan_interval_switch_billing": {
         "title": "Correct billing when switching billing interval",
@@ -1196,7 +1170,37 @@
       "stock_ledger": {
         "title": "Stock ledger: every movement recorded",
         "description": "SellQo now records every stock movement — sales, returns, purchases, syncs and manual corrections — so your stock is exact on any date and fully traceable."
-      }
+      },
+      "subscribeButton": "Subscribe",
+      "subscribeError": "Subscription failed. Please try again later.",
+      "subscribeNote": "Only relevant updates, no spam. You can unsubscribe anytime.",
+      "subscribePlaceholder": "Your email address",
+      "subscribeSubmitting": "Working...",
+      "subscribeSuccess": "You'll now receive changelog updates by email!",
+      "subscribeText": "Receive changelogs and product updates straight to your inbox.",
+      "subscribeTitle": "Stay up to date",
+      "subscription_instant_payment_invoice": {
+        "title": "Invoice right after a subscription payment",
+        "description": "As soon as a subscription payment succeeds, the invoice is created automatically as proof of payment and emailed to the customer."
+      },
+      "subscription_payment_options_foundation": {
+        "title": "Foundation for flexible subscription payment options",
+        "description": "The groundwork is in place for more choice in how subscriptions are paid."
+      },
+      "subtitle": "All updates and improvements to SellQo",
+      "title": "Changelog",
+      "types": {
+        "feature": "New",
+        "improvement": "Improved",
+        "bugfix": "Bugfix",
+        "security": "Security"
+      },
+      "updatesCount": "{{count}} updates",
+      "upgrade_invoice_docs_email": {
+        "title": "Invoice document and email for plan upgrades",
+        "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
+      },
+      "version": "Version {{version}}"
     }
   }
 }

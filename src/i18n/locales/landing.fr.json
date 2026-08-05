@@ -981,39 +981,6 @@
       }
     },
     "changelog": {
-      "title": "Changelog",
-      "subtitle": "Toutes les mises à jour et améliorations de SellQo",
-      "types": {
-        "feature": "Nouveau",
-        "improvement": "Amélioré",
-        "bugfix": "Correctif",
-        "security": "Sécurité"
-      },
-      "filters": {
-        "all": "Tout",
-        "feature": "Fonctionnalités",
-        "improvement": "Améliorations",
-        "bugfix": "Correctifs",
-        "security": "Sécurité"
-      },
-      "version": "Version {{version}}",
-      "copyLink": "Copier le lien",
-      "copySuccess": "Lien copié !",
-      "updatesCount": "{{count}} mises à jour",
-      "subscribeTitle": "Restez informé des mises à jour",
-      "subscribeText": "Recevez les changelogs et les mises à jour produit directement dans votre boîte mail.",
-      "subscribePlaceholder": "Votre adresse e-mail",
-      "subscribeButton": "S'abonner",
-      "subscribeSubmitting": "En cours...",
-      "subscribeSuccess": "Vous recevrez désormais les mises à jour du changelog par e-mail !",
-      "subscribeNote": "Uniquement des mises à jour pertinentes, pas de spam. Vous pouvez vous désabonner à tout moment.",
-      "dates": {
-        "jul_2026": "Juillet 2026",
-        "q1_2025": "T1 2025",
-        "q4_2024": "T4 2024",
-        "q2_2026": "T2 2026",
-        "aug_2026": "Août 2026"
-      },
       "changes": {
         "refund_button_states": {
           "title": "Le bouton de remboursement affiche le bon état",
@@ -1180,14 +1147,21 @@
           "description": "Générez une liste de stock valorisée (quantités × prix de revient) pour aujourd'hui ou une date passée — avec export CSV et Excel, prêt pour votre comptable."
         }
       },
-      "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
-      "subscription_payment_options_foundation": {
-        "title": "Base pour des options de paiement flexibles des abonnements",
-        "description": "Les fondations sont posées pour offrir plus de choix dans le paiement des abonnements."
+      "copyLink": "Copier le lien",
+      "copySuccess": "Lien copié !",
+      "dates": {
+        "jul_2026": "Juillet 2026",
+        "q1_2025": "T1 2025",
+        "q4_2024": "T4 2024",
+        "q2_2026": "T2 2026",
+        "aug_2026": "Août 2026"
       },
-      "upgrade_invoice_docs_email": {
-        "title": "Document de facture et e-mail lors d'une mise à niveau",
-        "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
+      "filters": {
+        "all": "Tout",
+        "feature": "Fonctionnalités",
+        "improvement": "Améliorations",
+        "bugfix": "Correctifs",
+        "security": "Sécurité"
       },
       "plan_interval_switch_billing": {
         "title": "Facturation correcte lors d'un changement d'intervalle",
@@ -1196,7 +1170,37 @@
       "stock_ledger": {
         "title": "Grand livre de stock : chaque mouvement enregistré",
         "description": "SellQo enregistre désormais chaque mouvement de stock — ventes, retours, achats, synchronisations et corrections manuelles — pour un stock exact à n'importe quelle date et entièrement traçable."
-      }
+      },
+      "subscribeButton": "S'abonner",
+      "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
+      "subscribeNote": "Uniquement des mises à jour pertinentes, pas de spam. Vous pouvez vous désabonner à tout moment.",
+      "subscribePlaceholder": "Votre adresse e-mail",
+      "subscribeSubmitting": "En cours...",
+      "subscribeSuccess": "Vous recevrez désormais les mises à jour du changelog par e-mail !",
+      "subscribeText": "Recevez les changelogs et les mises à jour produit directement dans votre boîte mail.",
+      "subscribeTitle": "Restez informé des mises à jour",
+      "subscription_instant_payment_invoice": {
+        "title": "Facture immédiatement après le paiement d'un abonnement",
+        "description": "Dès qu'un paiement d'abonnement aboutit, la facture est créée automatiquement comme preuve de paiement et envoyée par e-mail au client."
+      },
+      "subscription_payment_options_foundation": {
+        "title": "Base pour des options de paiement flexibles des abonnements",
+        "description": "Les fondations sont posées pour offrir plus de choix dans le paiement des abonnements."
+      },
+      "subtitle": "Toutes les mises à jour et améliorations de SellQo",
+      "title": "Changelog",
+      "types": {
+        "feature": "Nouveau",
+        "improvement": "Amélioré",
+        "bugfix": "Correctif",
+        "security": "Sécurité"
+      },
+      "updatesCount": "{{count}} mises à jour",
+      "upgrade_invoice_docs_email": {
+        "title": "Document de facture et e-mail lors d'une mise à niveau",
+        "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
+      },
+      "version": "Version {{version}}"
     }
   }
 }
