@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.08t', dateKey: 'aug_2026', changes: [{ id: 'payment_landing_pages', type: 'bugfix' }] },
   { version: '2026.08s', dateKey: 'aug_2026', changes: [{ id: 'direct_mandate_redirect', type: 'improvement' }] },
   { version: '2026.08r', dateKey: 'aug_2026', changes: [{ id: 'trial_pro_features', type: 'improvement' }] },
   { version: '2026.08q', dateKey: 'aug_2026', changes: [{ id: 'unified_plan_activation', type: 'improvement' }] },
