@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const { data: tok, error: tokErr } = await supabase
       .from("mandate_setup_tokens")
-      .select("id, tenant_id, customer_id, expires_at, used_at, stripe_customer_id")
+      .select("id, tenant_id, customer_id, expires_at, used_at, stripe_customer_id, context")
       .eq("token", token)
       .maybeSingle();
     if (tokErr) throw tokErr;
@@ -109,6 +109,8 @@ Deno.serve(async (req) => {
         publishable_key: publishableKey,
         stripe_account: ctx.onPlatformAccount ? null : tenant.stripe_account_id,
         tenant: { id: tenant.id, name: tenant.name, primary_color: tenant.primary_color },
+        // UX-UNIFY-1: optional plan context (null for classic tenant→customer mandates)
+        context: (tok as any).context ?? null,
         customer: {
           id: customer.id,
           email: customer.email,
