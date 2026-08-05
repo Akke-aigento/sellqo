@@ -67,7 +67,7 @@ function MandateForm({ token, info, onDone }: { token: string; info: Info; onDon
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement options={{ layout: 'tabs', defaultValues: { billingDetails: { name: info.customer.name, email: info.customer.email ?? undefined } } }} />
+      <PaymentElement options={{ layout: 'tabs', paymentMethodOrder: ['sepa_debit', 'card'], defaultValues: { billingDetails: { name: info.customer.name, email: info.customer.email ?? undefined } } }} />
       <p className="text-xs text-muted-foreground leading-relaxed">
         {t('mandate.sepa_mandate_text', { creditor: info.tenant.name })}
       </p>
