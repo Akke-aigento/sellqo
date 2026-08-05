@@ -663,6 +663,20 @@
       "cancel_error": "Upgrade annuleren mislukt",
       "created": "Upgrade naar {{plan}} staat klaar — we hebben je een betalingsverzoek gestuurd.",
       "blocked": "Er staat al een upgrade open die nog niet betaald is. Betaal of annuleer die eerst."
+    },
+    "documents": {
+      "payment_requests": "Open betalingsverzoeken",
+      "payment_requests_desc": "Betaal je abonnement of upgrade om hem te activeren.",
+      "subscription_request": "Abonnement",
+      "upgrade_request": "Upgrade",
+      "due_date": "Te betalen vóór {{date}}",
+      "pay": "Betalen",
+      "pdf": "PDF",
+      "credit_notes": "Creditnota's",
+      "credit_notes_desc": "Terugbetalingen en correcties op je facturen.",
+      "col_original": "Oorspronkelijke factuur",
+      "credited_via": "Gecrediteerd via {{numbers}}",
+      "show_more": "Toon {{count}} oudere facturen"
     }
   },
   "admin_billing": {

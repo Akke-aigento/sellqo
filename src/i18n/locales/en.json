@@ -664,6 +664,20 @@
       "cancel_error": "Could not cancel the upgrade",
       "created": "Upgrade to {{plan}} is ready — we have sent you a payment request.",
       "blocked": "There is already an unpaid upgrade pending. Pay or cancel it first."
+    },
+    "documents": {
+      "payment_requests": "Open payment requests",
+      "payment_requests_desc": "Pay your subscription or upgrade to activate it.",
+      "subscription_request": "Subscription",
+      "upgrade_request": "Upgrade",
+      "due_date": "Due before {{date}}",
+      "pay": "Pay",
+      "pdf": "PDF",
+      "credit_notes": "Credit notes",
+      "credit_notes_desc": "Refunds and corrections on your invoices.",
+      "col_original": "Original invoice",
+      "credited_via": "Credited via {{numbers}}",
+      "show_more": "Show {{count}} older invoices"
     }
   },
   "import": {

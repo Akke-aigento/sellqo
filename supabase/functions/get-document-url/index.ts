@@ -99,7 +99,7 @@ serve(async (req) => {
 
     const { data: rows, error: rowsErr } = await admin
       .from(table)
-      .select(`id, tenant_id, ${numberCol}, ${pathCol}`)
+      .select(`id, tenant_id, customer_id, ${numberCol}, ${pathCol}`)
       .in("id", ids);
 
     if (rowsErr) {
@@ -123,8 +123,38 @@ serve(async (req) => {
     }
     const tenantId = tenantIds[0] as string;
 
-    // Auth against the resolved tenant. Throws 401/403 as needed.
-    await authenticateRequest(req, tenantId);
+    // Auth against the resolved tenant. Throws 401 on a bad token.
+    const auth = await authenticateRequest(req);
+    const hasTenantAccess = auth.is_platform_admin || auth.tenant_ids.includes(tenantId);
+
+    if (!hasTenantAccess) {
+      // 2a·4 — surgical exception: documents of a tenant's own SellQo
+      // subscription live on the INTERNAL tenant with the tenant as customer.
+      // Allow it only when every requested document belongs to a billing
+      // customer that is linked to one of the caller's own tenants.
+      const { data: internalTenant } = await admin
+        .from("tenants")
+        .select("id")
+        .eq("is_internal_tenant", true)
+        .maybeSingle();
+
+      let allowed = false;
+      if (internalTenant?.id === tenantId && auth.tenant_ids.length > 0) {
+        const { data: subs } = await admin
+          .from("tenant_subscriptions")
+          .select("billing_customer_id")
+          .in("tenant_id", auth.tenant_ids);
+        const ownCustomerIds = new Set(
+          (subs ?? [])
+            .map((s: any) => s.billing_customer_id as string | null)
+            .filter((v): v is string => !!v),
+        );
+        allowed =
+          ownCustomerIds.size > 0 &&
+          (rows as any[]).every((r) => r.customer_id && ownCustomerIds.has(r.customer_id));
+      }
+      if (!allowed) throw new AuthError("No access to this tenant", 403);
+    }
 
     // Single-doc form: enforce 404 on missing path.
     if (doc_id) {

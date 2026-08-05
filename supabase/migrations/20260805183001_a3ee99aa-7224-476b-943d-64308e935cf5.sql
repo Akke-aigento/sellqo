@@ -1,0 +1,5 @@
+UPDATE public.doc_articles
+SET content = content || '<h2>Je facturen en documenten</h2><p>Onderaan de abonnementspagina vind je al je SellQo-documenten:</p><ul><li><strong>Facturen</strong>: nummer, datum, bedrag en status. Klik op het download-icoon voor de PDF. Standaard zie je de tien meest recente facturen; met "Toon oudere facturen" krijg je de volledige lijst.</li><li><strong>Creditnota''s</strong>: terugbetalingen of correcties, met verwijzing naar de oorspronkelijke factuur. Is een factuur gecrediteerd, dan zie je dat ook bij die factuur staan.</li><li><strong>Open betalingsverzoeken</strong>: staan bovenaan zolang ze niet betaald zijn, met een knop <strong>Betalen</strong> en de PDF van het verzoek.</li></ul><p>Downloadlinks zijn persoonlijk en tijdelijk geldig — deel ze niet, download het bestand liever opnieuw.</p><p>Beschikbaar vanaf elk abonnement, inclusief Free.</p>',
+    tags = ARRAY['abonnement','betaalwijze','facturen','creditnota','betalingsverzoek','download'],
+    updated_at = now()
+WHERE id = '30c5c0b5-5268-4449-9d4a-3c64902c87db';

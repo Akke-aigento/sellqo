@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { usePlatformBillingDocuments } from '@/hooks/usePlatformBillingDocuments';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import {
   usePlatformBillingStatus,
   useCreatePlatformMandateLink,
@@ -37,18 +39,22 @@ import { cn } from '@/lib/utils';
 import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
 
 const SUPPORT_EMAIL = 'info@sellqo.app';
+const INVOICE_PAGE_SIZE = 10;
 
 export default function BillingPage() {
   const { t, i18n } = useTranslation();
   const {
     subscription,
-    invoices,
     usage,
     isLoading,
-    invoicesLoading,
     usageLoading,
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
+  const { data: documents, isLoading: documentsLoading } = usePlatformBillingDocuments();
+  const { openDocument, isDownloading } = useDocumentDownload();
+  const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const allInvoices = documents?.invoices ?? [];
+  const visibleInvoices = showAllInvoices ? allInvoices : allInvoices.slice(0, INVOICE_PAGE_SIZE);
 
   const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
@@ -614,16 +620,77 @@ export default function BillingPage() {
       )}
 
 
-      {/* Invoices */}
+      {/* 2a·4 — open payment requests of the native billing engine */}
+      {(documents?.payment_requests?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('billing.documents.payment_requests')}</CardTitle>
+            <CardDescription>{t('billing.documents.payment_requests_desc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {documents!.payment_requests.map((pr) => (
+              <div
+                key={pr.id}
+                className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm">{pr.payment_request_number ?? '—'}</span>
+                    <Badge variant="secondary">
+                      {pr.cycle_type === 'proration'
+                        ? t('billing.documents.upgrade_request')
+                        : t('billing.documents.subscription_request')}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground break-words">
+                    {pr.description ?? ''}
+                  </p>
+                  {pr.due_date && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('billing.documents.due_date', {
+                        date: format(new Date(pr.due_date), 'dd/MM/yyyy', { locale: dateLocale }),
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{formatPrice(Number(pr.total))}</span>
+                  {pr.checkout_session_url && (
+                    <Button size="sm" asChild>
+                      <a href={pr.checkout_session_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t('billing.documents.pay')}
+                      </a>
+                    </Button>
+                  )}
+                  {pr.has_pdf && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isDownloading}
+                      onClick={() => openDocument('payment_request', pr.id, 'pdf')}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {t('billing.documents.pdf')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Invoices (native billing engine) */}
       <Card>
         <CardHeader>
           <CardTitle>{t('billing.invoices')}</CardTitle>
           <CardDescription>{t('billing.invoices_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
-          {invoicesLoading ? (
+          {documentsLoading ? (
             <Skeleton className="h-48" />
-          ) : invoices.length === 0 ? (
+          ) : visibleInvoices.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               {t('billing.no_invoices')}
             </p>
@@ -639,49 +706,54 @@ export default function BillingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.slice(0, 10).map((invoice) => (
+                {visibleInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell>
-                      {invoice.invoice_date && format(new Date(invoice.invoice_date), 'dd/MM/yyyy')}
+                      {invoice.issue_date &&
+                        format(new Date(invoice.issue_date), 'dd/MM/yyyy', { locale: dateLocale })}
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {invoice.invoice_number}
-                    </TableCell>
-                    <TableCell>{formatPrice(invoice.amount, invoice.currency)}</TableCell>
+                    <TableCell className="font-mono text-sm">{invoice.invoice_number}</TableCell>
+                    <TableCell>{formatPrice(Number(invoice.total))}</TableCell>
                     <TableCell>
-                      <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
-                        {invoice.status === 'paid' ? `✓ ${t('billing.paid')}` : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {invoice.invoice_pdf_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" asChild>
-                                <a href={invoice.invoice_pdf_url} target="_blank" rel="noopener noreferrer">
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('billing.download_pdf')}</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {invoice.hosted_invoice_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" asChild>
-                                <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {invoice.status === 'paid' ? t('billing.view_invoice') : t('billing.pay_invoice')}
-                            </TooltipContent>
-                          </Tooltip>
+                      <div className="space-y-1">
+                        <Badge
+                          variant={
+                            invoice.status === 'paid'
+                              ? 'default'
+                              : invoice.status === 'cancelled'
+                                ? 'outline'
+                                : 'secondary'
+                          }
+                        >
+                          {invoice.status === 'paid'
+                            ? `✓ ${t('billing.paid')}`
+                            : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
+                        </Badge>
+                        {invoice.credited_by.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {t('billing.documents.credited_via', {
+                              numbers: invoice.credited_by.join(', '),
+                            })}
+                          </p>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {invoice.has_pdf && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={isDownloading}
+                              onClick={() => openDocument('invoice', invoice.id, 'pdf')}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('billing.download_pdf')}</TooltipContent>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -689,13 +761,65 @@ export default function BillingPage() {
             </Table>
           )}
 
-          {invoices.length > 10 && (
-            <Button variant="link" className="mt-4">
-              {t('billing.view_all_invoices')}
+          {(documents?.invoices?.length ?? 0) > INVOICE_PAGE_SIZE && !showAllInvoices && (
+            <Button variant="link" className="mt-4" onClick={() => setShowAllInvoices(true)}>
+              {t('billing.documents.show_more', {
+                count: (documents?.invoices?.length ?? 0) - INVOICE_PAGE_SIZE,
+              })}
             </Button>
           )}
         </CardContent>
       </Card>
+
+      {/* Credit notes */}
+      {(documents?.credit_notes?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('billing.documents.credit_notes')}</CardTitle>
+            <CardDescription>{t('billing.documents.credit_notes_desc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto px-0 sm:px-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('billing.col_date')}</TableHead>
+                  <TableHead>{t('billing.col_number')}</TableHead>
+                  <TableHead>{t('billing.documents.col_original')}</TableHead>
+                  <TableHead>{t('billing.col_amount')}</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documents!.credit_notes.map((cn) => (
+                  <TableRow key={cn.id}>
+                    <TableCell>
+                      {cn.issue_date &&
+                        format(new Date(cn.issue_date), 'dd/MM/yyyy', { locale: dateLocale })}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{cn.credit_note_number}</TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {cn.original_invoice_number ?? '—'}
+                    </TableCell>
+                    <TableCell>-{formatPrice(Number(cn.total))}</TableCell>
+                    <TableCell>
+                      {cn.has_pdf && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled={isDownloading}
+                          onClick={() => openDocument('credit_note', cn.id, 'pdf')}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* UX-UNIFY-1: plan-first wizard — the only entry point (and the gatekeeper) */}
       <PlanActivationWizard

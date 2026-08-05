@@ -8,6 +8,11 @@
 //   'status'            -> read the full billing status
 //   'set_payment_mode'  -> set subscriptions.payment_mode ('mandate' | 'manual')
 //   'cancel_upgrade'    -> UPGRADE-PF-1: abort an unpaid pro-rata upgrade
+//   'documents'         -> 2a·4: invoices + credit notes + open payment requests
+//                          of the tenant's own SellQo subscription. A separate
+//                          action (not folded into 'status') so the status
+//                          payload stays small and cacheable, and the document
+//                          list can be fetched/refetched independently.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
     if (typeof tenantId !== "string" || !tenantId) {
       return json({ success: false, error: "tenant_id is required" }, 400);
     }
-    if (!["status", "set_payment_mode", "cancel_upgrade"].includes(action)) {
+    if (!["status", "set_payment_mode", "cancel_upgrade", "documents"].includes(action)) {
       return json({ success: false, error: "action invalid" }, 400);
     }
 
@@ -152,6 +157,103 @@ Deno.serve(async (req) => {
       if (clrErr) throw clrErr;
       log("Pending upgrade cancelled", { tenantId, billing_cycle_id: cycleId });
       return json({ success: true, cancelled_billing_cycle_id: cycleId });
+    }
+
+    // ---------------- documents (2a·4) ----------------
+    // The billing customer is the complete link: it survives subscription
+    // switches, so invoices from before a plan/interval swap stay visible.
+    if (action === "documents") {
+      if (!billingCustomerId) {
+        return json({ success: true, invoices: [], credit_notes: [], payment_requests: [] });
+      }
+
+      const [invRes, cnRes, cycRes] = await Promise.all([
+        supabase
+          .from("invoices")
+          .select("id, invoice_number, status, total, issue_date, created_at, paid_at, pdf_path")
+          .eq("tenant_id", internalTenantId)
+          .eq("customer_id", billingCustomerId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("credit_notes")
+          .select("id, credit_note_number, total, issue_date, original_invoice_id, pdf_path")
+          .eq("tenant_id", internalTenantId)
+          .eq("customer_id", billingCustomerId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("billing_cycles")
+          .select(
+            "id, payment_request_number, total, due_date, checkout_session_url, pdf_path, status, cycle_type, description",
+          )
+          .eq("tenant_id", internalTenantId)
+          .eq("customer_id", billingCustomerId)
+          .in("status", ["awaiting_payment", "processing", "reopened"])
+          .order("created_at", { ascending: false }),
+      ]);
+      if (invRes.error) throw invRes.error;
+      if (cnRes.error) throw cnRes.error;
+      if (cycRes.error) throw cycRes.error;
+
+      const invoiceRows = invRes.data ?? [];
+      const numberById = new Map<string, string>();
+      for (const row of invoiceRows) {
+        numberById.set(row.id as string, (row.invoice_number as string) ?? "");
+      }
+      // A credit note can point at an invoice outside this list (edge case);
+      // resolve those numbers too so the overview is never blank.
+      const missing = (cnRes.data ?? [])
+        .map((c) => c.original_invoice_id as string | null)
+        .filter((id): id is string => !!id && !numberById.has(id));
+      if (missing.length > 0) {
+        const { data: extra, error: exErr } = await supabase
+          .from("invoices")
+          .select("id, invoice_number")
+          .in("id", Array.from(new Set(missing)));
+        if (exErr) throw exErr;
+        for (const row of extra ?? []) {
+          numberById.set(row.id as string, (row.invoice_number as string) ?? "");
+        }
+      }
+
+      const creditNotes = (cnRes.data ?? []).map((c) => ({
+        id: c.id,
+        credit_note_number: c.credit_note_number,
+        total: Number(c.total ?? 0),
+        issue_date: c.issue_date,
+        original_invoice_id: c.original_invoice_id,
+        original_invoice_number: c.original_invoice_id
+          ? numberById.get(c.original_invoice_id as string) ?? null
+          : null,
+        has_pdf: !!c.pdf_path,
+      }));
+
+      return json({
+        success: true,
+        invoices: invoiceRows.map((i) => ({
+          id: i.id,
+          invoice_number: i.invoice_number,
+          status: i.status,
+          total: Number(i.total ?? 0),
+          issue_date: i.issue_date ?? i.created_at,
+          paid_at: i.paid_at,
+          has_pdf: !!i.pdf_path,
+          credited_by: creditNotes
+            .filter((c) => c.original_invoice_id === i.id)
+            .map((c) => c.credit_note_number),
+        })),
+        credit_notes: creditNotes,
+        payment_requests: (cycRes.data ?? []).map((c) => ({
+          id: c.id,
+          payment_request_number: c.payment_request_number,
+          total: Number(c.total ?? 0),
+          due_date: c.due_date,
+          checkout_session_url: c.checkout_session_url,
+          has_pdf: !!c.pdf_path,
+          status: c.status,
+          cycle_type: c.cycle_type,
+          description: c.description,
+        })),
+      });
     }
 
     // ---------------- status ----------------

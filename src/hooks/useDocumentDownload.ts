@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { useToast } from '@/hooks/use-toast';
 
-export type DocType = 'invoice' | 'credit_note' | 'shipping_label';
+export type DocType = 'invoice' | 'credit_note' | 'shipping_label' | 'payment_request';
 export type DocKind = 'pdf' | 'ubl';
 
 interface SingleResp {

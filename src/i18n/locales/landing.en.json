@@ -1223,6 +1223,10 @@
         "pay_first_upgrades": {
           "title": "Upgrades are now fully pay-first",
           "description": "Upgrading mid-period now charges exactly the remaining days, based on what you actually pay today — no more full month or double invoice. With direct debit the new plan starts immediately; with a payment request the upgrade starts as soon as the payment arrives. Your billing page shows the pending upgrade with a pay link and the option to cancel while it is unpaid."
+        },
+        "billing_documents": {
+          "title": "Invoices and payment requests from a single source",
+          "description": "Your billing overview now comes straight from the new billing engine: invoices, credit notes and open payment requests with secure PDF downloads."
         }
       },
       "copyLink": "Copy link",
