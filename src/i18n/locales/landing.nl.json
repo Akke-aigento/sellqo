@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
+      "plan_interval_switch_billing": {
+        "title": "Correcte facturatie bij wisselen van facturatie-interval",
+        "description": "Bij een plan-upgrade waarbij je ook overschakelt tussen maand- en jaarfacturatie worden het pro-rata-bedrag en de volgende factuurdatum nu correct berekend, zodat er niet dubbel gefactureerd wordt."
+      },
       "stock_ledger": {
         "title": "Voorraadgrootboek: elke mutatie geregistreerd",
         "description": "SellQo houdt nu elke voorraadbeweging bij — verkoop, retour, inkoop, synchronisatie en handmatige correctie — zodat je voorraad op elke datum exact klopt en volledig traceerbaar is."

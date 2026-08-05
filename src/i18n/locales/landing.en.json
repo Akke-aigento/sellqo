@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Subscription failed. Please try again later.",
+      "plan_interval_switch_billing": {
+        "title": "Correct billing when switching billing interval",
+        "description": "When upgrading a plan and switching between monthly and yearly billing, the pro-rata amount and next invoice date are now calculated correctly, preventing double billing."
+      },
       "stock_ledger": {
         "title": "Stock ledger: every movement recorded",
         "description": "SellQo now records every stock movement — sales, returns, purchases, syncs and manual corrections — so your stock is exact on any date and fully traceable."

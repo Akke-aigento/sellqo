@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "plan_interval_switch_billing": {
+        "title": "Korrekte Abrechnung beim Wechsel des Abrechnungsintervalls",
+        "description": "Bei einem Plan-Upgrade mit Wechsel zwischen monatlicher und jährlicher Abrechnung werden der Pro-rata-Betrag und das nächste Rechnungsdatum jetzt korrekt berechnet, sodass keine Doppelabrechnung entsteht."
+      },
       "stock_ledger": {
         "title": "Bestandsbuch: jede Bewegung erfasst",
         "description": "SellQo erfasst jetzt jede Bestandsbewegung — Verkauf, Rückgabe, Einkauf, Synchronisierung und manuelle Korrektur — damit Ihr Bestand zu jedem Datum exakt stimmt und vollständig nachvollziehbar ist."
