@@ -1177,6 +1177,10 @@
         "self_service_billing": {
           "title": "Abonnement et moyen de paiement en libre-service",
           "description": "Gérez vous-même votre abonnement et votre moyen de paiement : domiciliation ou demande de paiement par période, et changez de plan quand vous le souhaitez."
+        },
+        "unified_plan_activation": {
+          "title": "Choisir un plan et un moyen de paiement en une étape",
+          "description": "Choisir un plan et configurer votre moyen de paiement se fait maintenant en une seule étape fluide, et la page de mandat indique précisément pour quoi et pour quel montant vous donnez votre autorisation."
         }
       },
       "copyLink": "Copier le lien",

@@ -620,7 +620,8 @@
       "manual_selected": "Payment request per period selected",
       "mode_error": "Could not update the payment method",
       "required_title": "Choose a payment method first",
-      "required_desc": "Set up direct debit or choose a payment request per period."
+      "required_desc": "Set up direct debit or choose a payment request per period.",
+      "half_hint": "Choose a plan to get started."
     },
     "plan_change": {
       "title": "Switch to {{plan}}",
@@ -642,6 +643,27 @@
       "customers": "Customers",
       "storage": "Storage (GB)",
       "users": "Team"
+    },
+    "wizard": {
+      "next_payment": "Next: payment method",
+      "back": "Back",
+      "method_title": "How would you like to pay?",
+      "method_subtitle": "Choose how you pay for your {{plan}} subscription.",
+      "option_mandate_title": "Automatic direct debit",
+      "option_mandate_desc": "You authorise SellQo once; each period is collected automatically.",
+      "option_manual_title": "Payment request per period",
+      "option_manual_desc": "You receive a payment request each period and pay it yourself.",
+      "mandate_title": "Complete the mandate",
+      "mandate_desc": "Open the link and complete the mandate. As soon as it succeeds we activate your plan.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "open_link": "Open link",
+      "done_button": "I completed the mandate",
+      "not_found": "We don't see the mandate yet. Please wait a moment and try again — processing can take up to half a minute.",
+      "close_hint": "You can close this window; your choice is saved and you can continue later.",
+      "later": "Finish later",
+      "resume_alert": "Your payment method is ready. Activate your {{plan}} subscription to get started.",
+      "resume_action": "Activate plan"
     }
   },
   "import": {
@@ -994,6 +1016,12 @@
     "success": {
       "title": "Authorization activated",
       "body": "Future subscription invoices from {{tenant}} will be charged automatically."
+    },
+    "context": {
+      "line": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT).",
+      "per_month": "per month",
+      "per_year": "per year",
+      "cancel_note": "You can cancel this mandate at any time."
     }
   },
   "admin": {

@@ -1177,6 +1177,10 @@
         "self_service_billing": {
           "title": "Abonnement en betaalwijze in eigen beheer",
           "description": "Beheer je abonnement en betaalwijze volledig zelf: automatische incasso of een betalingsverzoek per periode, en wissel van plan wanneer je wil."
+        },
+        "unified_plan_activation": {
+          "title": "Plan kiezen en betaalwijze in één stap",
+          "description": "Een plan kiezen en je betaalwijze instellen gaat nu in één vloeiende stap, en op de machtigingspagina zie je precies waarvoor en voor welk bedrag je machtigt."
         }
       },
       "copyLink": "Kopieer link",

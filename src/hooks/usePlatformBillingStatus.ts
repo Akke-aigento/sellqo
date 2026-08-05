@@ -44,14 +44,22 @@ export function useCreatePlatformMandateLink() {
   const tenantId = tenantContext?.currentTenant?.id ?? null;
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (
+      vars?: { planId?: string | null; interval?: 'monthly' | 'yearly' | null },
+    ) => {
       if (!tenantId) throw new Error('Geen actieve tenant');
       return await invokeWithErrorBody<{
         success: boolean;
         url: string;
         token: string;
         billing_customer_id: string;
-      }>('create-platform-mandate-setup', { body: { tenant_id: tenantId } });
+      }>('create-platform-mandate-setup', {
+        body: {
+          tenant_id: tenantId,
+          ...(vars?.planId ? { plan_id: vars.planId } : {}),
+          ...(vars?.interval ? { billing_interval: vars.interval } : {}),
+        },
+      });
     },
   });
 }

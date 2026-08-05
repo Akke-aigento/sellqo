@@ -1177,6 +1177,10 @@
         "self_service_billing": {
           "title": "Self-service subscription and payment method",
           "description": "Manage your subscription and payment method entirely yourself: direct debit or a payment request per period, and change plan whenever you want."
+        },
+        "unified_plan_activation": {
+          "title": "Choose a plan and payment method in one step",
+          "description": "Choosing a plan and setting up your payment method is now one smooth step, and the mandate page shows exactly what and which amount you are authorising."
         }
       },
       "copyLink": "Copy link",

@@ -14,6 +14,12 @@ type Info = {
   stripe_account: string | null;
   tenant: { id: string; name: string; primary_color?: string | null };
   customer: { id: string; email: string | null; name: string };
+  /** UX-UNIFY-1: optional platform-subscription context (plan + period price). */
+  context?: {
+    plan_name?: string | null;
+    price?: number | null;
+    interval?: 'monthly' | 'yearly' | null;
+  } | null;
 };
 
 function MandateForm({ token, info, onDone }: { token: string; info: Info; onDone: () => void }) {
@@ -86,7 +92,7 @@ function MandateForm({ token, info, onDone }: { token: string; info: Info; onDon
 }
 
 export default function MandateActivation() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { token = '' } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<Info | null>(null);
@@ -134,6 +140,20 @@ export default function MandateActivation() {
     return code;
   };
 
+  const ctx = info?.context ?? null;
+  const contextLine = (() => {
+    if (!ctx?.plan_name) return null;
+    const price = Number(ctx.price ?? 0);
+    if (!price) return null;
+    const amount = new Intl.NumberFormat(i18n.language, {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(price);
+    const period =
+      ctx.interval === 'yearly' ? t('mandate.context.per_year') : t('mandate.context.per_month');
+    return t('mandate.context.line', { plan: ctx.plan_name, amount, period });
+  })();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-lg">
@@ -168,9 +188,17 @@ export default function MandateActivation() {
             </div>
           )}
           {!loading && !error && !done && info && options && stripePromise && (
-            <Elements stripe={stripePromise} options={options}>
-              <MandateForm token={token} info={info} onDone={() => setDone(true)} />
-            </Elements>
+            <>
+              {contextLine && (
+                <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm">
+                  <p className="font-medium">{contextLine}</p>
+                  <p className="text-muted-foreground mt-1">{t('mandate.context.cancel_note')}</p>
+                </div>
+              )}
+              <Elements stripe={stripePromise} options={options}>
+                <MandateForm token={token} info={info} onDone={() => setDone(true)} />
+              </Elements>
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl, enUS, fr, de } from 'date-fns/locale';
@@ -22,7 +22,7 @@ import {
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
 import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
 import { PaymentMethodCard } from '@/components/admin/billing/PaymentMethodCard';
-import { PlanChangeConfirmDialog } from '@/components/admin/billing/PlanChangeConfirmDialog';
+import { PlanActivationWizard } from '@/components/admin/billing/PlanActivationWizard';
 import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +49,11 @@ export default function BillingPage() {
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
 
-  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const {
+    data: billingStatus,
+    isLoading: statusLoading,
+    refetch: refetchBillingStatus,
+  } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
@@ -58,6 +62,13 @@ export default function BillingPage() {
   const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
   const [downgradeCandidate, setDowngradeCandidate] = useState<PricingPlan | null>(null);
   const [mandateUrl, setMandateUrl] = useState<string | null>(null);
+  /** Mandate link shown inside the wizard (separate from the manage-card link). */
+  const [wizardMandateUrl, setWizardMandateUrl] = useState<string | null>(null);
+  /** Half-state resume: only plan id + interval are persisted. */
+  const [resumeSelection, setResumeSelection] = useState<{
+    plan_id: string;
+    interval: 'monthly' | 'yearly';
+  } | null>(null);
   /** Chosen before there is a billing subscription; applied right after activate. */
   const [pendingMode, setPendingMode] = useState<PlatformPaymentMode | null>(null);
 
@@ -81,12 +92,35 @@ export default function BillingPage() {
   const isEnterprise = (plan?: PricingPlan | null) =>
     !!plan && (plan.slug === 'enterprise' || plan.name.toLowerCase().includes('enterprise'));
 
-  const scrollToPayment = () => {
-    document.getElementById('payment-method-section')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
+  const hasBillingSubscription = !!billingStatus?.billing_subscription_id;
+  const isFreePlan = (plan?: PricingPlan | null) =>
+    !!plan && (plan.slug === 'free' || Number(plan.monthly_price) === 0);
+
+  // UX-UNIFY-1 — half state: mandate set but plan never activated.
+  const PENDING_KEY = 'sellqo.pending_plan_selection';
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(PENDING_KEY);
+      if (raw) setResumeSelection(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const clearResume = () => {
+    setResumeSelection(null);
+    try {
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
   };
+
+  const resumePlan = useMemo(
+    () => (resumeSelection ? plans.find(p => p.id === resumeSelection.plan_id) ?? null : null),
+    [plans, resumeSelection],
+  );
+  const showResumeAlert = !!resumePlan && hasPaymentPath && !hasBillingSubscription;
 
   const lostFeatureKeys = (target: PricingPlan | null): string[] => {
     if (!target || !currentPlan?.features || !target.features) return [];
@@ -99,7 +133,7 @@ export default function BillingPage() {
 
   const handleSetupMandate = async () => {
     try {
-      const res = await createMandateLink.mutateAsync();
+      const res = await createMandateLink.mutateAsync({ interval: selectedInterval });
       setMandateUrl(res.url);
     } catch (err) {
       toast.error(t('billing.payment.mandate_error'), {
@@ -135,15 +169,6 @@ export default function BillingPage() {
       return;
     }
 
-    const isFree = plan.slug === 'free' || Number(plan.monthly_price) === 0;
-    if (!hasPaymentPath && !isFree) {
-      toast.info(t('billing.payment.required_title'), {
-        description: t('billing.payment.required_desc'),
-      });
-      scrollToPayment();
-      return;
-    }
-
     if (!isUpgrade && lostFeatureKeys(plan).length > 0) {
       setDowngradeCandidate(plan);
       return;
@@ -151,7 +176,7 @@ export default function BillingPage() {
     setConfirmPlan({ plan, isUpgrade });
   };
 
-  const handleConfirmPlanChange = async () => {
+  const handleConfirmPlanChange = async (modeOverride?: PlatformPaymentMode) => {
     if (!confirmPlan) return;
     const { plan, isUpgrade } = confirmPlan;
     // The UI decides activate vs switch — sync-tenant-plan returns 400 for a
@@ -164,7 +189,7 @@ export default function BillingPage() {
         action,
       });
 
-      if (pendingMode === 'manual') {
+      if ((modeOverride ?? pendingMode) === 'manual') {
         try {
           await setPaymentMode.mutateAsync('manual');
           setPendingMode(null);
@@ -174,6 +199,8 @@ export default function BillingPage() {
       }
 
       setConfirmPlan(null);
+      setWizardMandateUrl(null);
+      clearResume();
       if (res.downgrade) {
         toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
       } else {
@@ -184,6 +211,45 @@ export default function BillingPage() {
         description: err instanceof Error ? err.message : undefined,
       });
     }
+  };
+
+  /** Wizard step 2b — create a mandate link carrying the chosen plan context. */
+  const handleWizardCreateMandate = async () => {
+    if (!confirmPlan) return;
+    try {
+      const res = await createMandateLink.mutateAsync({
+        planId: confirmPlan.plan.id,
+        interval: selectedInterval,
+      });
+      setWizardMandateUrl(res.url);
+    } catch (err) {
+      toast.error(t('billing.payment.mandate_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  /** Refetch status; true when a usable mandate exists. */
+  const handleRefreshStatus = async (): Promise<boolean> => {
+    const res = await refetchBillingStatus();
+    const m = res.data?.mandate ?? null;
+    return !!m && m.status !== 'failed';
+  };
+
+  const handleWizardManual = async () => {
+    setPendingMode('manual');
+    await handleConfirmPlanChange('manual');
+  };
+
+  const handleWizardIncomplete = () => {
+    if (!confirmPlan) return;
+    const payload = { plan_id: confirmPlan.plan.id, interval: selectedInterval };
+    try {
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+    setResumeSelection(payload);
   };
 
   // Find the best upgrade target based on current usage overages
@@ -399,7 +465,29 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* 2a·2: self-service payment method (SEPA mandate or payment request) */}
+      {/* UX-UNIFY-1: resume a half-finished activation (payment set, no plan) */}
+      {showResumeAlert && (
+        <Alert>
+          <CalendarClock className="h-4 w-4" />
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="flex-1">
+              {t('billing.wizard.resume_alert', { plan: resumePlan?.name ?? '' })}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!resumePlan || !resumeSelection) return;
+                setSelectedInterval(resumeSelection.interval);
+                setConfirmPlan({ plan: resumePlan, isUpgrade: true });
+              }}
+            >
+              {t('billing.wizard.resume_action')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* 2a·2 / UX-UNIFY-1: payment method management (hidden when nothing to manage) */}
       <div id="payment-method-section">
         <PaymentMethodCard
           status={billingStatus}
@@ -408,6 +496,7 @@ export default function BillingPage() {
           isMutating={createMandateLink.isPending || setPaymentMode.isPending}
           onSetupMandate={handleSetupMandate}
           onChooseManual={handleChooseManual}
+          hasSubscription={hasBillingSubscription}
         />
       </div>
 
@@ -516,15 +605,28 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Plan change confirmation — explains the two laws, no pro-rata promise */}
-      <PlanChangeConfirmDialog
+      {/* UX-UNIFY-1: plan-first wizard — the only entry point (and the gatekeeper) */}
+      <PlanActivationWizard
         open={!!confirmPlan}
-        onOpenChange={(open) => !open && setConfirmPlan(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmPlan(null);
+            setWizardMandateUrl(null);
+          }
+        }}
         plan={confirmPlan?.plan ?? null}
         interval={selectedInterval}
         isUpgrade={confirmPlan?.isUpgrade ?? true}
-        isPending={syncPlan.isPending || setPaymentMode.isPending}
-        onConfirm={handleConfirmPlanChange}
+        hasPaymentPath={hasPaymentPath}
+        isFree={isFreePlan(confirmPlan?.plan)}
+        isActivating={syncPlan.isPending || setPaymentMode.isPending}
+        isCreatingMandate={createMandateLink.isPending}
+        mandateUrl={wizardMandateUrl}
+        onCreateMandate={handleWizardCreateMandate}
+        onChooseManual={handleWizardManual}
+        onRefreshStatus={handleRefreshStatus}
+        onConfirm={() => handleConfirmPlanChange()}
+        onIncomplete={handleWizardIncomplete}
       />
 
       {/* Downgrade warning (feature loss) — precedes the confirmation dialog */}

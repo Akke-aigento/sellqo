@@ -1177,6 +1177,10 @@
         "self_service_billing": {
           "title": "Abo und Zahlungsweise in Selbstverwaltung",
           "description": "Verwalte dein Abonnement und deine Zahlungsweise komplett selbst: Lastschrift oder Zahlungsaufforderung pro Periode – und wechsle den Plan, wann du willst."
+        },
+        "unified_plan_activation": {
+          "title": "Plan wählen und Zahlungsweise in einem Schritt",
+          "description": "Plan wählen und Zahlungsweise einrichten läuft jetzt in einem flüssigen Schritt, und auf der Mandatsseite siehst du genau, wofür und für welchen Betrag du ein Mandat erteilst."
         }
       },
       "copyLink": "Link kopieren",

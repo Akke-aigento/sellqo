@@ -801,6 +801,12 @@
     "success": {
       "title": "Autorisation activée",
       "body": "Les futures factures d'abonnement de {{tenant}} seront prélevées automatiquement."
+    },
+    "context": {
+      "line": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA).",
+      "per_month": "par mois",
+      "per_year": "par an",
+      "cancel_note": "Vous pouvez révoquer ce mandat à tout moment."
     }
   },
   "admin": {
@@ -953,7 +959,8 @@
       "manual_selected": "Demande de paiement par période choisie",
       "mode_error": "Impossible de mettre à jour le moyen de paiement",
       "required_title": "Choisissez d'abord un moyen de paiement",
-      "required_desc": "Activez la domiciliation ou choisissez une demande de paiement par période."
+      "required_desc": "Activez la domiciliation ou choisissez une demande de paiement par période.",
+      "half_hint": "Choisissez un plan pour démarrer."
     },
     "plan_change": {
       "title": "Passer à {{plan}}",
@@ -975,6 +982,27 @@
       "customers": "Clients",
       "storage": "Stockage (Go)",
       "users": "Équipe"
+    },
+    "wizard": {
+      "next_payment": "Suivant : moyen de paiement",
+      "back": "Retour",
+      "method_title": "Comment souhaitez-vous payer ?",
+      "method_subtitle": "Choisissez comment payer votre abonnement {{plan}}.",
+      "option_mandate_title": "Domiciliation automatique",
+      "option_mandate_desc": "Vous autorisez SellQo une seule fois ; chaque période est prélevée automatiquement.",
+      "option_manual_title": "Demande de paiement par période",
+      "option_manual_desc": "Vous recevez une demande de paiement chaque période et payez vous-même.",
+      "mandate_title": "Finaliser le mandat",
+      "mandate_desc": "Ouvrez le lien et finalisez le mandat. Dès que c'est fait, nous activons votre plan.",
+      "copy": "Copier",
+      "copied": "Copié",
+      "open_link": "Ouvrir le lien",
+      "done_button": "J'ai finalisé le mandat",
+      "not_found": "Nous ne voyons pas encore le mandat. Patientez un instant et réessayez — le traitement peut prendre une demi-minute.",
+      "close_hint": "Vous pouvez fermer cette fenêtre ; votre choix est conservé et vous pourrez continuer plus tard.",
+      "later": "Terminer plus tard",
+      "resume_alert": "Votre moyen de paiement est prêt. Activez votre abonnement {{plan}} pour démarrer.",
+      "resume_action": "Activer le plan"
     }
   }
 }

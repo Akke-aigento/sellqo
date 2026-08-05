@@ -7969,6 +7969,7 @@ export type Database = {
       }
       mandate_setup_tokens: {
         Row: {
+          context: Json | null
           created_at: string
           customer_id: string
           expires_at: string
@@ -7979,6 +7980,7 @@ export type Database = {
           used_at: string | null
         }
         Insert: {
+          context?: Json | null
           created_at?: string
           customer_id: string
           expires_at?: string
@@ -7989,6 +7991,7 @@ export type Database = {
           used_at?: string | null
         }
         Update: {
+          context?: Json | null
           created_at?: string
           customer_id?: string
           expires_at?: string
