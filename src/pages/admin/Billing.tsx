@@ -255,7 +255,7 @@ export default function BillingPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t('billing.title')}</h1>
         <p className="text-muted-foreground">
-          Beheer je abonnement, bekijk facturen en wijzig je betaalmethode.
+          {t('billing.subtitle')}
         </p>
       </div>
 
@@ -325,7 +325,7 @@ export default function BillingPage() {
         <Card>
           <CardHeader>
             <CardTitle>{t('billing.usage')}</CardTitle>
-            <CardDescription>Jouw verbruik deze maand</CardDescription>
+            <CardDescription>{t('billing.usage_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {usageLoading ? (
@@ -338,11 +338,11 @@ export default function BillingPage() {
               <>
                 {Object.entries(usage).map(([key, value]) => {
                   const labels: Record<string, string> = {
-                    products: 'Producten',
-                    orders: 'Orders',
-                    customers: 'Klanten',
-                    storage: 'Opslag (GB)',
-                    users: 'Team',
+                    products: t('nav.products'),
+                    orders: t('nav.orders'),
+                    customers: t('nav.customers'),
+                    storage: t('billing.storage_label', { defaultValue: 'Opslag (GB)' }),
+                    users: t('billing.users_label', { defaultValue: 'Team' }),
                   };
                   const isNearLimit = value.percentage >= 80 && value.percentage < 100;
                   const isOverLimit = value.percentage >= 100;
@@ -367,7 +367,7 @@ export default function BillingPage() {
                       />
                       {isOverLimit && (
                         <p className="text-xs text-destructive font-medium">
-                          Limiet overschreden — upgrade je plan
+                          {t('billing.limit_exceeded')}
                         </p>
                       )}
                     </div>
@@ -378,10 +378,10 @@ export default function BillingPage() {
                   <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-sm font-medium">
-                      Je hebt je limiet overschreden
+                      {t('billing.limit_exceeded_title')}
                     </span>
                     <Button size="sm" variant="destructive" className="ml-auto" onClick={handleUpgradeClick}>
-                      Upgrade nu
+                      {t('billing.upgrade_now')}
                     </Button>
                   </div>
                 )}
@@ -393,13 +393,13 @@ export default function BillingPage() {
                       {t('billing.upgrade_needed')}
                     </span>
                     <Button size="sm" variant="outline" className="ml-auto" onClick={handleUpgradeClick}>
-                      Upgrade
+                      {t('billing.upgrade')}
                     </Button>
                   </div>
                 )}
               </>
             ) : (
-              <p className="text-muted-foreground text-sm">Geen gegevens beschikbaar</p>
+              <p className="text-muted-foreground text-sm">{t('billing.no_data')}</p>
             )}
           </CardContent>
         </Card>
@@ -443,23 +443,23 @@ export default function BillingPage() {
       <Card>
         <CardHeader>
           <CardTitle>{t('billing.invoices')}</CardTitle>
-          <CardDescription>Bekijk en download je facturen</CardDescription>
+          <CardDescription>{t('billing.invoices_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
           {invoicesLoading ? (
             <Skeleton className="h-48" />
           ) : invoices.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Nog geen facturen
+              {t('billing.no_invoices')}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Nummer</TableHead>
-                  <TableHead>Bedrag</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('billing.col_date')}</TableHead>
+                  <TableHead>{t('billing.col_number')}</TableHead>
+                  <TableHead>{t('billing.col_amount')}</TableHead>
+                  <TableHead>{t('billing.col_status')}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -475,7 +475,7 @@ export default function BillingPage() {
                     <TableCell>{formatPrice(invoice.amount, invoice.currency)}</TableCell>
                     <TableCell>
                       <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
-                        {invoice.status === 'paid' ? '✓ Betaald' : invoice.status}
+                        {invoice.status === 'paid' ? `✓ ${t('billing.paid')}` : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -489,7 +489,7 @@ export default function BillingPage() {
                                 </a>
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Download PDF</TooltipContent>
+                            <TooltipContent>{t('billing.download_pdf')}</TooltipContent>
                           </Tooltip>
                         )}
                         {invoice.hosted_invoice_url && (
@@ -502,7 +502,7 @@ export default function BillingPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {invoice.status === 'paid' ? 'Bekijk factuur' : 'Betaal factuur'}
+                              {invoice.status === 'paid' ? t('billing.view_invoice') : t('billing.pay_invoice')}
                             </TooltipContent>
                           </Tooltip>
                         )}
