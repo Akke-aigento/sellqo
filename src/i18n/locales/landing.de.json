@@ -1169,6 +1169,10 @@
         "plan_changes_via_team": {
           "title": "Planänderungen vorübergehend über unser Team",
           "description": "Während wir das erneuerte Bezahlsystem fertigstellen, laufen Planänderungen vorübergehend über unser Team."
+        },
+        "subscription_payment_requests": {
+          "title": "Zahlungsaufforderungen mit Bezahllink für Abonnements",
+          "description": "Abonnements ohne automatischen Einzug erhalten nun eine Zahlungsaufforderung mit direktem Bezahllink und freundlichen Erinnerungen."
         }
       },
       "copyLink": "Link kopieren",

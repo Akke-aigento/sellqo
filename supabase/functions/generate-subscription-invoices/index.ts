@@ -99,21 +99,40 @@ async function handlePendingCycle(
     summary.cycles_awaiting_payment++;
   };
 
-  if (cycle.mode === "manual") {
-    let prNumber = cycle.payment_request_number;
-    if (!prNumber) {
-      const { data: prData, error: prErr } = await supabase.rpc(
-        "generate_payment_request_number",
-        { _tenant_id: cycle.tenant_id },
-      );
-      if (prErr) throw prErr;
-      prNumber = prData as string;
+  // CYCLE-2: best-effort payment request (link + PDF + mail). Never allowed to
+  // break the runner — a failed dispatch is picked up by the reminder cron.
+  const dispatchPaymentRequest = async () => {
+    try {
+      const { error } = await supabase.functions.invoke("dispatch-payment-request", {
+        body: { billing_cycle_id: cycle.id },
+      });
+      if (error) throw error;
+      log("Payment request dispatched", { billing_cycle_id: cycle.id });
+    } catch (e) {
+      log("WARNING: payment request dispatch failed", {
+        billing_cycle_id: cycle.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
+  };
+
+  const ensurePrNumber = async (): Promise<string | null> => {
+    if (cycle.payment_request_number) return cycle.payment_request_number;
+    const { data, error } = await supabase.rpc("generate_payment_request_number", {
+      _tenant_id: cycle.tenant_id,
+    });
+    if (error) throw error;
+    return (data as string) ?? null;
+  };
+
+  if (cycle.mode === "manual") {
+    const prNumber = await ensurePrNumber();
     await toAwaitingPayment({ payment_request_number: prNumber });
     log("Cycle awaiting manual payment", {
       billing_cycle_id: cycle.id,
       payment_request_number: prNumber,
     });
+    await dispatchPaymentRequest();
     return;
   }
 
@@ -129,8 +148,19 @@ async function handlePendingCycle(
 
     if (!mandate || mandate.status !== "active") {
       summary.no_mandate++;
-      await toAwaitingPayment();
+      // Safety net: no active mandate → fall back to a payment request.
+      let prNumber: string | null = null;
+      try {
+        prNumber = await ensurePrNumber();
+      } catch (e) {
+        log("WARNING: PR number generation failed", {
+          billing_cycle_id: cycle.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+      await toAwaitingPayment(prNumber ? { payment_request_number: prNumber } : {});
       log("Cycle has no active mandate — awaiting payment", { billing_cycle_id: cycle.id });
+      if (prNumber) await dispatchPaymentRequest();
       return;
     }
 

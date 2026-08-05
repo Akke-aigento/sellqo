@@ -7,19 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type DocType = "invoice" | "credit_note" | "shipping_label";
+type DocType = "invoice" | "credit_note" | "shipping_label" | "payment_request";
 type Kind = "pdf" | "ubl";
 
 const TABLE: Record<DocType, string> = {
   invoice: "invoices",
   credit_note: "credit_notes",
   shipping_label: "shipping_labels",
+  // CYCLE-2: betalingsverzoeken leven op billing_cycles.
+  payment_request: "billing_cycles",
 };
 
 const BUCKET: Record<DocType, string> = {
   invoice: "invoices",
   credit_note: "credit-notes",
   shipping_label: "shipping-labels",
+  payment_request: "invoices",
 };
 
 const NUMBER_COL: Record<DocType, string> = {
@@ -28,6 +31,7 @@ const NUMBER_COL: Record<DocType, string> = {
   // shipping_labels heeft geen eigen documentnummer; tracking_number is de
   // meest herkenbare identifier voor de gebruiker.
   shipping_label: "tracking_number",
+  payment_request: "payment_request_number",
 };
 
 // Verzendlabels gebruiken `label_path` (geen ubl-variant). We selecteren nooit
@@ -37,6 +41,7 @@ const PATH_COL: Record<DocType, { pdf: string; ubl: string | null }> = {
   invoice: { pdf: "pdf_path", ubl: "ubl_path" },
   credit_note: { pdf: "pdf_path", ubl: "ubl_path" },
   shipping_label: { pdf: "label_path", ubl: null },
+  payment_request: { pdf: "pdf_path", ubl: null },
 };
 
 const SIGNED_TTL = 600; // 10 minutes
@@ -61,9 +66,10 @@ serve(async (req) => {
     if (
       doc_type !== "invoice" &&
       doc_type !== "credit_note" &&
-      doc_type !== "shipping_label"
+      doc_type !== "shipping_label" &&
+      doc_type !== "payment_request"
     ) {
-      return badRequest("doc_type must be 'invoice', 'credit_note' or 'shipping_label'");
+      return badRequest("doc_type must be 'invoice', 'credit_note', 'shipping_label' or 'payment_request'");
     }
     if (kind !== "pdf" && kind !== "ubl") {
       return badRequest("kind must be 'pdf' or 'ubl'");

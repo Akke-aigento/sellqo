@@ -75,6 +75,29 @@ type Strings = {
     unsubscribe: string;
     poweredBy: string;
   };
+  paymentRequest?: PaymentRequestStrings;
+};
+
+// CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
+// request wording only — never dunning/legal-claim language.
+type PaymentRequestStrings = {
+  subject: string;
+  heading: string;
+  intro: string;
+  notice: string;
+  payNow: string;
+  numberLabel: string;
+  periodLabel: string;
+  dueLabel: string;
+  amountLabel: string;
+  attached: string;
+  poweredBy: string;
+  reminderSubject1: string;
+  reminderSubject2: string;
+  reminderSubject3: string;
+  reminderIntro1: string;
+  reminderIntro2: string;
+  reminderIntro3: string;
 };
 
 export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
@@ -149,6 +172,25 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Mogelijk gemaakt door SellQo", greeting: "Beste {customerName},", regards: "Met vriendelijke groet" },
     campaign: { unsubscribe: "Uitschrijven", poweredBy: "Mogelijk gemaakt door SellQo" },
+    paymentRequest: {
+      subject: "Betalingsverzoek {requestNumber} — {tenantName}",
+      heading: "Betalingsverzoek {requestNumber}",
+      intro: "Beste {customerName}, hierbij het betalingsverzoek voor je abonnement. Je kunt direct online betalen via de knop hieronder.",
+      notice: "Dit is geen factuur. Uw factuur volgt direct na ontvangst van de betaling.",
+      payNow: "Betaal nu online",
+      numberLabel: "Verzoeknummer",
+      periodLabel: "Periode",
+      dueLabel: "Gewenste betaaldatum",
+      amountLabel: "Totaalbedrag",
+      attached: "Het betalingsverzoek vind je als PDF in de bijlage.",
+      poweredBy: "Mogelijk gemaakt door SellQo",
+      reminderSubject1: "Vriendelijke herinnering — betalingsverzoek {requestNumber}",
+      reminderSubject2: "Nog even een reminder — betalingsverzoek {requestNumber}",
+      reminderSubject3: "Betalingsverzoek {requestNumber} is verlopen",
+      reminderIntro1: "Beste {customerName}, we zien dat betalingsverzoek {requestNumber} nog openstaat. Mogelijk is het aan je aandacht ontsnapt — je kunt hieronder direct betalen.",
+      reminderIntro2: "Beste {customerName}, betalingsverzoek {requestNumber} staat nog open. Betalen kan met één klik via de knop hieronder.",
+      reminderIntro3: "Beste {customerName}, betalingsverzoek {requestNumber} is verlopen. Wil je de periode alsnog activeren? Betaal dan gewoon via de knop hieronder — daarna ontvang je meteen je factuur.",
+    },
   },
   en: {
     order: {
@@ -221,6 +263,25 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Powered by SellQo", greeting: "Dear {customerName},", regards: "Kind regards" },
     campaign: { unsubscribe: "Unsubscribe", poweredBy: "Powered by SellQo" },
+    paymentRequest: {
+      subject: "Payment request {requestNumber} — {tenantName}",
+      heading: "Payment request {requestNumber}",
+      intro: "Dear {customerName}, here is the payment request for your subscription. You can pay online right away using the button below.",
+      notice: "This is not an invoice. Your invoice will follow immediately after we receive your payment.",
+      payNow: "Pay online now",
+      numberLabel: "Request number",
+      periodLabel: "Period",
+      dueLabel: "Preferred payment date",
+      amountLabel: "Total amount",
+      attached: "You will find the payment request as a PDF attachment.",
+      poweredBy: "Powered by SellQo",
+      reminderSubject1: "Friendly reminder — payment request {requestNumber}",
+      reminderSubject2: "Just a reminder — payment request {requestNumber}",
+      reminderSubject3: "Payment request {requestNumber} has expired",
+      reminderIntro1: "Dear {customerName}, payment request {requestNumber} is still open. It may have slipped your attention — you can pay directly below.",
+      reminderIntro2: "Dear {customerName}, payment request {requestNumber} is still open. Paying takes just one click using the button below.",
+      reminderIntro3: "Dear {customerName}, payment request {requestNumber} has expired. Would you still like to activate this period? Simply pay using the button below and your invoice follows right away.",
+    },
   },
   fr: {
     order: {
@@ -293,6 +354,25 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Propulsé par SellQo", greeting: "Cher/Chère {customerName},", regards: "Cordialement" },
     campaign: { unsubscribe: "Se désabonner", poweredBy: "Propulsé par SellQo" },
+    paymentRequest: {
+      subject: "Demande de paiement {requestNumber} — {tenantName}",
+      heading: "Demande de paiement {requestNumber}",
+      intro: "Bonjour {customerName}, voici la demande de paiement pour votre abonnement. Vous pouvez payer en ligne directement via le bouton ci-dessous.",
+      notice: "Ceci n'est pas une facture. Votre facture suivra dès la réception de votre paiement.",
+      payNow: "Payer en ligne",
+      numberLabel: "Numéro de demande",
+      periodLabel: "Période",
+      dueLabel: "Date de paiement souhaitée",
+      amountLabel: "Montant total",
+      attached: "La demande de paiement est jointe en PDF.",
+      poweredBy: "Propulsé par SellQo",
+      reminderSubject1: "Rappel amical — demande de paiement {requestNumber}",
+      reminderSubject2: "Petit rappel — demande de paiement {requestNumber}",
+      reminderSubject3: "La demande de paiement {requestNumber} a expiré",
+      reminderIntro1: "Bonjour {customerName}, la demande de paiement {requestNumber} est encore ouverte. Elle vous a peut-être échappé — vous pouvez payer directement ci-dessous.",
+      reminderIntro2: "Bonjour {customerName}, la demande de paiement {requestNumber} est toujours ouverte. Un seul clic sur le bouton ci-dessous suffit pour payer.",
+      reminderIntro3: "Bonjour {customerName}, la demande de paiement {requestNumber} a expiré. Vous souhaitez tout de même activer cette période ? Payez simplement via le bouton ci-dessous et votre facture suit immédiatement.",
+    },
   },
   de: {
     order: {
@@ -365,6 +445,25 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Bereitgestellt von SellQo", greeting: "Sehr geehrte/r {customerName},", regards: "Mit freundlichen Grüßen" },
     campaign: { unsubscribe: "Abmelden", poweredBy: "Bereitgestellt von SellQo" },
+    paymentRequest: {
+      subject: "Zahlungsaufforderung {requestNumber} — {tenantName}",
+      heading: "Zahlungsaufforderung {requestNumber}",
+      intro: "Guten Tag {customerName}, hier ist die Zahlungsaufforderung für Ihr Abonnement. Sie können direkt online über den Button unten bezahlen.",
+      notice: "Dies ist keine Rechnung. Ihre Rechnung folgt unmittelbar nach Eingang der Zahlung.",
+      payNow: "Jetzt online bezahlen",
+      numberLabel: "Anfragenummer",
+      periodLabel: "Zeitraum",
+      dueLabel: "Gewünschtes Zahlungsdatum",
+      amountLabel: "Gesamtbetrag",
+      attached: "Die Zahlungsaufforderung finden Sie als PDF im Anhang.",
+      poweredBy: "Bereitgestellt von SellQo",
+      reminderSubject1: "Freundliche Erinnerung — Zahlungsaufforderung {requestNumber}",
+      reminderSubject2: "Kurze Erinnerung — Zahlungsaufforderung {requestNumber}",
+      reminderSubject3: "Zahlungsaufforderung {requestNumber} ist abgelaufen",
+      reminderIntro1: "Guten Tag {customerName}, die Zahlungsaufforderung {requestNumber} ist noch offen. Vielleicht ist sie Ihrer Aufmerksamkeit entgangen — Sie können unten direkt bezahlen.",
+      reminderIntro2: "Guten Tag {customerName}, die Zahlungsaufforderung {requestNumber} ist noch offen. Ein Klick auf den Button unten genügt.",
+      reminderIntro3: "Guten Tag {customerName}, die Zahlungsaufforderung {requestNumber} ist abgelaufen. Möchten Sie diesen Zeitraum dennoch aktivieren? Bezahlen Sie einfach über den Button unten — Ihre Rechnung folgt sofort.",
+    },
   },
 };
 

@@ -1169,6 +1169,10 @@
         "plan_changes_via_team": {
           "title": "Changements de forfait temporairement via notre équipe",
           "description": "Le temps de finaliser notre nouveau système de paiement, les changements de forfait passent temporairement par notre équipe."
+        },
+        "subscription_payment_requests": {
+          "title": "Demandes de paiement avec lien de paiement pour les abonnements",
+          "description": "Les abonnements sans prélèvement automatique reçoivent désormais une demande de paiement avec lien direct et des rappels amicaux."
         }
       },
       "copyLink": "Copier le lien",

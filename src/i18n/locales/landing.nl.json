@@ -1169,6 +1169,10 @@
         "plan_changes_via_team": {
           "title": "Planwijzigingen tijdelijk via ons team",
           "description": "Terwijl we het vernieuwde betaalsysteem afronden, verlopen planwijzigingen tijdelijk via ons team."
+        },
+        "subscription_payment_requests": {
+          "title": "Betalingsverzoeken met betaallink voor abonnementen",
+          "description": "Abonnementen zonder automatische incasso krijgen nu een betalingsverzoek met directe betaallink en vriendelijke herinneringen."
         }
       },
       "copyLink": "Kopieer link",
