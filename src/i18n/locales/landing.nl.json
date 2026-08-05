@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
+      "upgrade_invoice_docs_email": {
+        "title": "Factuurdocument en e-mail bij plan-upgrade",
+        "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."
+      },
       "plan_interval_switch_billing": {
         "title": "Correcte facturatie bij wisselen van facturatie-interval",
         "description": "Bij een plan-upgrade waarbij je ook overschakelt tussen maand- en jaarfacturatie worden het pro-rata-bedrag en de volgende factuurdatum nu correct berekend, zodat er niet dubbel gefactureerd wordt."

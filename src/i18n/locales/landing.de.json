@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "upgrade_invoice_docs_email": {
+        "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
+        "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
+      },
       "plan_interval_switch_billing": {
         "title": "Korrekte Abrechnung beim Wechsel des Abrechnungsintervalls",
         "description": "Bei einem Plan-Upgrade mit Wechsel zwischen monatlicher und jährlicher Abrechnung werden der Pro-rata-Betrag und das nächste Rechnungsdatum jetzt korrekt berechnet, sodass keine Doppelabrechnung entsteht."

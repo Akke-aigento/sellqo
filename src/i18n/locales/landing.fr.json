@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Échec de l’inscription. Veuillez réessayer plus tard.",
+      "upgrade_invoice_docs_email": {
+        "title": "Document de facture et e-mail lors d'une mise à niveau",
+        "description": "Les factures de mise à niveau reçoivent désormais automatiquement un document de facture et un e-mail, et les prélèvements échoués font l'objet d'un suivi correct."
+      },
       "plan_interval_switch_billing": {
         "title": "Facturation correcte lors d'un changement d'intervalle",
         "description": "Lors d'une mise à niveau de plan avec passage entre facturation mensuelle et annuelle, le montant au prorata et la prochaine date de facturation sont désormais calculés correctement, sans double facturation."
