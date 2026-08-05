@@ -1169,6 +1169,10 @@
         "plan_changes_via_team": {
           "title": "Plan changes temporarily via our team",
           "description": "While we finalize the renewed payment system, plan changes temporarily go through our team."
+        },
+        "subscription_payment_requests": {
+          "title": "Payment requests with a payment link for subscriptions",
+          "description": "Subscriptions without automatic collection now receive a payment request with a direct payment link and friendly reminders."
         }
       },
       "copyLink": "Copy link",
