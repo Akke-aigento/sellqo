@@ -41,6 +41,158 @@ function advanceDate(from: string, interval: string, count: number): string {
   return toISODate(dt);
 }
 
+// CYCLE-1: grace period after the due date of a payment request.
+// TODO: make configurable per tenant/plan.
+const GRACE_DAYS = 7;
+
+function addDays(iso: string, days: number): string {
+  const dt = new Date(iso + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return toISODate(dt);
+}
+
+type CycleSummary = {
+  cycles_created: number;
+  cycles_awaiting_payment: number;
+  cycles_processing: number;
+  cycles_swept: number;
+  charge_failed: number;
+  no_mandate: number;
+};
+
+type BillingCycleRow = {
+  id: string;
+  tenant_id: string;
+  customer_id: string | null;
+  total: number | string;
+  mode: "mandate" | "manual";
+  period_start: string;
+  payment_request_number: string | null;
+};
+
+/**
+ * CYCLE-1: takes a freshly created (or stale 'pending') billing cycle from
+ * 'pending' to either 'awaiting_payment' (manual / no mandate / failed charge)
+ * or 'processing' (mandate charge accepted by Stripe).
+ *
+ * The runner NEVER sets 'settled' — the Stripe webhook (CYCLE-3) is the single
+ * place that creates the invoice and settles the cycle.
+ */
+async function handlePendingCycle(
+  supabase: any,
+  cycle: BillingCycleRow,
+  summary: CycleSummary,
+): Promise<void> {
+  const dueDate = cycle.period_start;
+  const graceUntil = addDays(dueDate, GRACE_DAYS);
+
+  const toAwaitingPayment = async (extra: Record<string, unknown> = {}) => {
+    await supabase
+      .from("billing_cycles")
+      .update({
+        status: "awaiting_payment",
+        due_date: dueDate,
+        grace_until: graceUntil,
+        ...extra,
+      })
+      .eq("id", cycle.id);
+    summary.cycles_awaiting_payment++;
+  };
+
+  if (cycle.mode === "manual") {
+    let prNumber = cycle.payment_request_number;
+    if (!prNumber) {
+      const { data: prData, error: prErr } = await supabase.rpc(
+        "generate_payment_request_number",
+        { _tenant_id: cycle.tenant_id },
+      );
+      if (prErr) throw prErr;
+      prNumber = prData as string;
+    }
+    await toAwaitingPayment({ payment_request_number: prNumber });
+    log("Cycle awaiting manual payment", {
+      billing_cycle_id: cycle.id,
+      payment_request_number: prNumber,
+    });
+    return;
+  }
+
+  // mode === 'mandate'
+  try {
+    const { data: mandate, error: mErr } = await supabase
+      .from("customer_payment_mandates")
+      .select("stripe_customer_id, stripe_payment_method_id, method_type, status")
+      .eq("tenant_id", cycle.tenant_id)
+      .eq("customer_id", cycle.customer_id)
+      .maybeSingle();
+    if (mErr) throw mErr;
+
+    if (!mandate || mandate.status !== "active") {
+      summary.no_mandate++;
+      await toAwaitingPayment();
+      log("Cycle has no active mandate — awaiting payment", { billing_cycle_id: cycle.id });
+      return;
+    }
+
+    const { data: tenant, error: tErr } = await supabase
+      .from("tenants")
+      .select("id, is_demo, is_internal_tenant, stripe_account_id")
+      .eq("id", cycle.tenant_id)
+      .maybeSingle();
+    if (tErr) throw tErr;
+    if (!tenant) throw new Error("Tenant not found for cycle charge");
+
+    const ctx = getStripeContext(tenant);
+    const amountCents = Math.round(Number(cycle.total) * 100);
+
+    const intent = await ctx.stripe.paymentIntents.create(
+      {
+        amount: amountCents,
+        currency: "eur",
+        customer: mandate.stripe_customer_id,
+        payment_method: mandate.stripe_payment_method_id,
+        payment_method_types: [mandate.method_type],
+        confirm: true,
+        off_session: true,
+        metadata: {
+          billing_cycle_id: cycle.id,
+          tenant_id: cycle.tenant_id,
+        },
+      },
+      { ...ctx.requestOptions, idempotencyKey: `cycle:${cycle.id}` },
+    );
+
+    if (intent.status === "succeeded" || intent.status === "processing") {
+      // Deliberately NOT 'settled': the webhook creates the invoice.
+      await supabase
+        .from("billing_cycles")
+        .update({
+          status: "processing",
+          stripe_payment_intent_id: intent.id,
+          due_date: dueDate,
+          grace_until: graceUntil,
+        })
+        .eq("id", cycle.id);
+      summary.cycles_processing++;
+      log("Cycle charge accepted", {
+        billing_cycle_id: cycle.id,
+        intent: intent.id,
+        status: intent.status,
+      });
+      return;
+    }
+
+    summary.charge_failed++;
+    await toAwaitingPayment({ stripe_payment_intent_id: intent.id });
+    log("Cycle charge not confirmed", { billing_cycle_id: cycle.id, status: intent.status });
+  } catch (chargeErr) {
+    const msg = chargeErr instanceof Error ? chargeErr.message : String(chargeErr);
+    console.error(`[GEN-SUB-INVOICES] Cycle charge failed for ${cycle.id}: ${msg}`);
+    summary.charge_failed++;
+    await toAwaitingPayment();
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,6 +216,10 @@ Deno.serve(async (req) => {
     documents_generated: 0,
     documents_failed: 0,
     backfilled: 0,
+    cycles_created: 0,
+    cycles_awaiting_payment: 0,
+    cycles_processing: 0,
+    cycles_swept: 0,
     failed: [] as Array<{ subscription_id: string; error: string }>,
   };
 
