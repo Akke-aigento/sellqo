@@ -1,15 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowDown,
   ArrowUp,
   Banknote,
   CalendarClock,
-  Check,
-  Copy,
-  ExternalLink,
   FileText,
-  Info,
   Loader2,
 } from 'lucide-react';
 import {
@@ -21,10 +17,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { PricingPlan } from '@/types/billing';
 
-type Step = 'plan' | 'method' | 'mandate';
+type Step = 'plan' | 'method';
 
 interface PlanActivationWizardProps {
   open: boolean;
@@ -38,23 +33,17 @@ interface PlanActivationWizardProps {
   isFree: boolean;
   isActivating: boolean;
   isCreatingMandate: boolean;
-  mandateUrl: string | null;
+  /** UX-UNIFY-2 — persists the half state and redirects to the mandate page. */
   onCreateMandate: () => Promise<void>;
   onChooseManual: () => Promise<void>;
-  /** Refetches platform billing status; resolves true when a usable mandate exists. */
-  onRefreshStatus: () => Promise<boolean>;
   onConfirm: () => Promise<void>;
-  /** Called when the user closes the dialog while the mandate step is open. */
-  onIncomplete: () => void;
 }
-
-const POLL_INTERVAL_MS = 5000;
-const POLL_MAX_MS = 3 * 60 * 1000;
 
 /**
  * UX-UNIFY-1 — plan-first wizard. Step 1 carries the former
  * PlanChangeConfirmDialog content (the two laws, period price only, never a
  * pro-rata promise). Step 2 only appears when there is no payment path yet.
+ * UX-UNIFY-2 — choosing direct debit redirects straight to the mandate page.
  */
 export function PlanActivationWizard({
   open,
@@ -66,28 +55,15 @@ export function PlanActivationWizard({
   isFree,
   isActivating,
   isCreatingMandate,
-  mandateUrl,
   onCreateMandate,
   onChooseManual,
-  onRefreshStatus,
   onConfirm,
-  onIncomplete,
 }: PlanActivationWizardProps) {
   const { t, i18n } = useTranslation();
   const [step, setStep] = useState<Step>('plan');
-  const [copied, setCopied] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const stepRef = useRef<Step>('plan');
-  stepRef.current = step;
 
   useEffect(() => {
-    if (open) {
-      setStep('plan');
-      setCopied(false);
-      setNotFound(false);
-    }
+    if (open) setStep('plan');
   }, [open]);
 
   const price = plan ? Number(interval === 'yearly' ? plan.yearly_price : plan.monthly_price) : 0;
@@ -102,74 +78,7 @@ export function PlanActivationWizard({
 
   const skipMethodStep = hasPaymentPath || isFree;
 
-  // Auto-poll while the mandate step is open and the tab has focus.
-  useEffect(() => {
-    if (!open || step !== 'mandate') return;
-    const startedAt = Date.now();
-    const timer = window.setInterval(async () => {
-      if (Date.now() - startedAt > POLL_MAX_MS) {
-        window.clearInterval(timer);
-        return;
-      }
-      if (!document.hasFocus()) return;
-      const found = await onRefreshStatus();
-      if (found && stepRef.current === 'mandate') {
-        window.clearInterval(timer);
-        await onConfirm();
-      }
-    }, POLL_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, step]);
-
-  const handleOpenChange = (next: boolean) => {
-    if (!next && step === 'mandate') onIncomplete();
-    onOpenChange(next);
-  };
-
-  const handleCopy = async () => {
-    if (!mandateUrl) return;
-    let ok = false;
-    try {
-      await navigator.clipboard.writeText(mandateUrl);
-      ok = true;
-    } catch {
-      const input = inputRef.current;
-      if (input) {
-        input.focus();
-        input.select();
-        try {
-          ok = document.execCommand('copy');
-        } catch {
-          ok = false;
-        }
-      }
-    }
-    if (ok) {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleMandateOption = async () => {
-    await onCreateMandate();
-    setStep('mandate');
-  };
-
-  const handleDoneClicked = async () => {
-    setChecking(true);
-    setNotFound(false);
-    try {
-      const found = await onRefreshStatus();
-      if (found) {
-        await onConfirm();
-      } else {
-        setNotFound(true);
-      }
-    } finally {
-      setChecking(false);
-    }
-  };
+  const handleOpenChange = (next: boolean) => onOpenChange(next);
 
   const priceBlock = (
     <div className="rounded-lg border bg-muted/40 p-3 text-sm">
@@ -240,7 +149,7 @@ export function PlanActivationWizard({
               {priceBlock}
               <button
                 type="button"
-                onClick={handleMandateOption}
+                onClick={() => onCreateMandate()}
                 disabled={isCreatingMandate}
                 className="w-full text-left rounded-lg border p-3 hover:bg-accent transition-colors disabled:opacity-60"
               >
@@ -278,74 +187,6 @@ export function PlanActivationWizard({
             <DialogFooter className="gap-2">
               <Button variant="ghost" onClick={() => setStep('plan')} disabled={isActivating}>
                 {t('billing.wizard.back')}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-
-        {step === 'mandate' && (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t('billing.wizard.mandate_title')}</DialogTitle>
-              <DialogDescription>{t('billing.wizard.mandate_desc')}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  ref={inputRef}
-                  readOnly
-                  value={mandateUrl ?? ''}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onClick={(e) => e.currentTarget.select()}
-                  className="font-mono text-xs"
-                />
-                <Button
-                  type="button"
-                  variant={copied ? 'secondary' : 'default'}
-                  onClick={handleCopy}
-                  className="shrink-0"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      {t('billing.wizard.copied')}
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-1" />
-                      {t('billing.wizard.copy')}
-                    </>
-                  )}
-                </Button>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  mandateUrl && window.open(mandateUrl, '_blank', 'noopener,noreferrer')
-                }
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                {t('billing.wizard.open_link')}
-              </Button>
-              {notFound && (
-                <p className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                  {t('billing.wizard.not_found')}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">{t('billing.wizard.close_hint')}</p>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-                {t('billing.wizard.later')}
-              </Button>
-              <Button onClick={handleDoneClicked} disabled={checking || isActivating}>
-                {(checking || isActivating) && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                {t('billing.wizard.done_button')}
               </Button>
             </DialogFooter>
           </>

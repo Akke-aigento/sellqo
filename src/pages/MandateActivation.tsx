@@ -99,6 +99,16 @@ export default function MandateActivation() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [stripePromise, setStripePromise] = useState<Promise<StripeJs | null> | null>(null);
+  /** UX-UNIFY-2 — platform-context tokens return to the tenant's own billing page. */
+  const hasPlatformContext = !!info?.context?.plan_name;
+
+  useEffect(() => {
+    if (!done || !hasPlatformContext) return;
+    const timer = window.setTimeout(() => {
+      window.location.assign('/admin/billing');
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [done, hasPlatformContext]);
 
   useEffect(() => {
     let alive = true;
@@ -179,12 +189,27 @@ export default function MandateActivation() {
             </div>
           )}
           {!loading && !error && done && (
-            <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-              <div>
-                <p className="font-medium">{t('mandate.success.title')}</p>
-                <p>{t('mandate.success.body', { tenant: info?.tenant.name ?? '' })}</p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-medium">{t('mandate.success.title')}</p>
+                  <p>{t('mandate.success.body', { tenant: info?.tenant.name ?? '' })}</p>
+                </div>
               </div>
+              {hasPlatformContext && (
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    onClick={() => window.location.assign('/admin/billing')}
+                  >
+                    {t('mandate.success.back_to_billing')}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {t('mandate.success.redirecting')}
+                  </p>
+                </div>
+              )}
             </div>
           )}
           {!loading && !error && !done && info && options && stripePromise && (

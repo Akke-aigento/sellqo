@@ -1185,6 +1185,10 @@
         "trial_pro_features": {
           "title": "Alle Pro-Funktionen während der Testphase",
           "description": "Während deiner kostenlosen 14-tägigen Testphase kannst du jetzt alle Pro-Funktionen ausprobieren, bevor du einen Plan wählst."
+        },
+        "direct_mandate_redirect": {
+          "title": "Direkt zur Mandatsseite",
+          "description": "Wenn du den automatischen Einzug wählst, leiten wir dich jetzt direkt zur Mandatsseite weiter. Nach der Unterzeichnung kommst du automatisch zurück und deine Planaktivierung wird von selbst abgeschlossen."
         }
       },
       "copyLink": "Link kopieren",

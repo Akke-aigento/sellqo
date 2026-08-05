@@ -800,7 +800,9 @@
     },
     "success": {
       "title": "Autorisation activée",
-      "body": "Les futures factures d'abonnement de {{tenant}} seront prélevées automatiquement."
+      "body": "Les futures factures d'abonnement de {{tenant}} seront prélevées automatiquement.",
+      "back_to_billing": "Retour à votre abonnement",
+      "redirecting": "Vous êtes redirigé vers votre page d'abonnement…"
     },
     "context": {
       "line": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA).",
@@ -992,15 +994,6 @@
       "option_mandate_desc": "Vous autorisez SellQo une seule fois ; chaque période est prélevée automatiquement.",
       "option_manual_title": "Demande de paiement par période",
       "option_manual_desc": "Vous recevez une demande de paiement chaque période et payez vous-même.",
-      "mandate_title": "Finaliser le mandat",
-      "mandate_desc": "Ouvrez le lien et finalisez le mandat. Dès que c'est fait, nous activons votre plan.",
-      "copy": "Copier",
-      "copied": "Copié",
-      "open_link": "Ouvrir le lien",
-      "done_button": "J'ai finalisé le mandat",
-      "not_found": "Nous ne voyons pas encore le mandat. Patientez un instant et réessayez — le traitement peut prendre une demi-minute.",
-      "close_hint": "Vous pouvez fermer cette fenêtre ; votre choix est conservé et vous pourrez continuer plus tard.",
-      "later": "Terminer plus tard",
       "resume_alert": "Votre moyen de paiement est prêt. Activez votre abonnement {{plan}} pour démarrer.",
       "resume_action": "Activer le plan"
     }

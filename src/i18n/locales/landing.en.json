@@ -1185,6 +1185,10 @@
         "trial_pro_features": {
           "title": "All Pro features during your trial",
           "description": "During your free 14-day trial you now get to try all Pro features, so you can test the full platform before choosing a plan."
+        },
+        "direct_mandate_redirect": {
+          "title": "Straight to the mandate page",
+          "description": "Choosing automatic direct debit now takes you directly to the mandate page. After signing you return automatically and your plan activation is completed for you."
         }
       },
       "copyLink": "Copy link",

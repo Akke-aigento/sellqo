@@ -1185,6 +1185,10 @@
         "trial_pro_features": {
           "title": "Toutes les fonctions Pro pendant votre essai",
           "description": "Pendant votre essai gratuit de 14 jours, vous profitez désormais de toutes les fonctions Pro, afin de tester la plateforme complète avant de choisir un plan."
+        },
+        "direct_mandate_redirect": {
+          "title": "Directement vers la page de mandat",
+          "description": "Si vous choisissez la domiciliation automatique, nous vous redirigeons désormais directement vers la page de mandat. Après la signature, vous revenez automatiquement et l'activation de votre plan se termine toute seule."
         }
       },
       "copyLink": "Copier le lien",
