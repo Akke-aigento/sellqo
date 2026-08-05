@@ -1260,5 +1260,9 @@
       "updatesCount": "{{count}} Updates",
       "version": "Version {{version}}"
     }
+  },
+  "billing_documents": {
+    "title": "Rechnungen und Zahlungsanfragen aus einer Quelle",
+    "description": "Deine Rechnungsübersicht kommt jetzt direkt aus der neuen Abrechnungs-Engine: Rechnungen, Gutschriften und offene Zahlungsanfragen mit sicheren PDF-Downloads."
   }
 }

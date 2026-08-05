@@ -1260,5 +1260,9 @@
       "updatesCount": "{{count}} updates",
       "version": "Version {{version}}"
     }
+  },
+  "billing_documents": {
+    "title": "Invoices and payment requests from a single source",
+    "description": "Your billing overview now comes straight from the new billing engine: invoices, credit notes and open payment requests with secure PDF downloads."
   }
 }

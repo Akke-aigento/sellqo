@@ -1005,6 +1005,20 @@
       "cancel_error": "Impossible d'annuler la mise à niveau",
       "created": "Le passage à {{plan}} est prêt — nous vous avons envoyé une demande de paiement.",
       "blocked": "Une mise à niveau impayée est déjà en attente. Payez-la ou annulez-la d'abord."
+    },
+    "documents": {
+      "payment_requests": "Demandes de paiement ouvertes",
+      "payment_requests_desc": "Payez votre abonnement ou votre upgrade pour l'activer.",
+      "subscription_request": "Abonnement",
+      "upgrade_request": "Upgrade",
+      "due_date": "À payer avant le {{date}}",
+      "pay": "Payer",
+      "pdf": "PDF",
+      "credit_notes": "Notes de crédit",
+      "credit_notes_desc": "Remboursements et corrections sur vos factures.",
+      "col_original": "Facture d'origine",
+      "credited_via": "Crédité via {{numbers}}",
+      "show_more": "Afficher {{count}} factures plus anciennes"
     }
   }
 }

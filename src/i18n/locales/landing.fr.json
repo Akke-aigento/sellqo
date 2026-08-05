@@ -1260,5 +1260,9 @@
       "updatesCount": "{{count}} mises à jour",
       "version": "Version {{version}}"
     }
+  },
+  "billing_documents": {
+    "title": "Factures et demandes de paiement depuis une seule source",
+    "description": "Votre aperçu de facturation provient désormais directement du nouveau moteur de facturation : factures, notes de crédit et demandes de paiement ouvertes avec téléchargements PDF sécurisés."
   }
 }

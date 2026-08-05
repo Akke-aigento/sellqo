@@ -1005,6 +1005,20 @@
       "cancel_error": "Upgrade konnte nicht abgebrochen werden",
       "created": "Upgrade auf {{plan}} ist bereit — wir haben dir eine Zahlungsanfrage gesendet.",
       "blocked": "Es steht bereits ein unbezahltes Upgrade aus. Bezahle oder storniere es zuerst."
+    },
+    "documents": {
+      "payment_requests": "Offene Zahlungsanfragen",
+      "payment_requests_desc": "Bezahle dein Abo oder Upgrade, um es zu aktivieren.",
+      "subscription_request": "Abo",
+      "upgrade_request": "Upgrade",
+      "due_date": "Zahlbar bis {{date}}",
+      "pay": "Bezahlen",
+      "pdf": "PDF",
+      "credit_notes": "Gutschriften",
+      "credit_notes_desc": "Rückzahlungen und Korrekturen zu deinen Rechnungen.",
+      "col_original": "Ursprüngliche Rechnung",
+      "credited_via": "Gutgeschrieben über {{numbers}}",
+      "show_more": "{{count}} ältere Rechnungen anzeigen"
     }
   }
 }

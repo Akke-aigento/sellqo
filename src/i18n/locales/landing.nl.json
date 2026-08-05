@@ -1260,5 +1260,9 @@
       "updatesCount": "{{count}} updates",
       "version": "Versie {{version}}"
     }
+  },
+  "billing_documents": {
+    "title": "Facturen en betalingsverzoeken uit één bron",
+    "description": "Je factuuroverzicht komt nu rechtstreeks uit de nieuwe facturatie-engine: facturen, creditnota's en open betalingsverzoeken met veilige PDF-downloads."
   }
 }
