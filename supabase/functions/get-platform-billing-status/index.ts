@@ -117,13 +117,17 @@ Deno.serve(async (req) => {
     // ---------------- status ----------------
     let mandate: { status: string; method_type: string } | null = null;
     if (billingCustomerId) {
-      const { data: m, error: mErr } = await supabase
+      // Multiple mandate rows can exist (a failed one plus a fresh one) — take
+      // the newest, so a superseded failure never blocks the tenant.
+      const { data: mRows, error: mErr } = await supabase
         .from("customer_payment_mandates")
-        .select("status, method_type")
+        .select("status, method_type, created_at")
         .eq("tenant_id", internalTenantId)
         .eq("customer_id", billingCustomerId)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
       if (mErr) throw mErr;
+      const m = mRows?.[0];
       if (m) mandate = { status: m.status as string, method_type: m.method_type as string };
     }
 
