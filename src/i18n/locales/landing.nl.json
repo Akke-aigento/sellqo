@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
+      "subscription_payment_options_foundation": {
+        "title": "Fundament voor flexibele betaalopties bij abonnementen",
+        "description": "De basis is gelegd voor meer keuze in hoe abonnementen betaald worden."
+      },
       "upgrade_invoice_docs_email": {
         "title": "Factuurdocument en e-mail bij plan-upgrade",
         "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."

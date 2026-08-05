@@ -41,6 +41,158 @@ function advanceDate(from: string, interval: string, count: number): string {
   return toISODate(dt);
 }
 
+// CYCLE-1: grace period after the due date of a payment request.
+// TODO: make configurable per tenant/plan.
+const GRACE_DAYS = 7;
+
+function addDays(iso: string, days: number): string {
+  const dt = new Date(iso + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return toISODate(dt);
+}
+
+type CycleSummary = {
+  cycles_created: number;
+  cycles_awaiting_payment: number;
+  cycles_processing: number;
+  cycles_swept: number;
+  charge_failed: number;
+  no_mandate: number;
+};
+
+type BillingCycleRow = {
+  id: string;
+  tenant_id: string;
+  customer_id: string | null;
+  total: number | string;
+  mode: "mandate" | "manual";
+  period_start: string;
+  payment_request_number: string | null;
+};
+
+/**
+ * CYCLE-1: takes a freshly created (or stale 'pending') billing cycle from
+ * 'pending' to either 'awaiting_payment' (manual / no mandate / failed charge)
+ * or 'processing' (mandate charge accepted by Stripe).
+ *
+ * The runner NEVER sets 'settled' — the Stripe webhook (CYCLE-3) is the single
+ * place that creates the invoice and settles the cycle.
+ */
+async function handlePendingCycle(
+  supabase: any,
+  cycle: BillingCycleRow,
+  summary: CycleSummary,
+): Promise<void> {
+  const dueDate = cycle.period_start;
+  const graceUntil = addDays(dueDate, GRACE_DAYS);
+
+  const toAwaitingPayment = async (extra: Record<string, unknown> = {}) => {
+    await supabase
+      .from("billing_cycles")
+      .update({
+        status: "awaiting_payment",
+        due_date: dueDate,
+        grace_until: graceUntil,
+        ...extra,
+      })
+      .eq("id", cycle.id);
+    summary.cycles_awaiting_payment++;
+  };
+
+  if (cycle.mode === "manual") {
+    let prNumber = cycle.payment_request_number;
+    if (!prNumber) {
+      const { data: prData, error: prErr } = await supabase.rpc(
+        "generate_payment_request_number",
+        { _tenant_id: cycle.tenant_id },
+      );
+      if (prErr) throw prErr;
+      prNumber = prData as string;
+    }
+    await toAwaitingPayment({ payment_request_number: prNumber });
+    log("Cycle awaiting manual payment", {
+      billing_cycle_id: cycle.id,
+      payment_request_number: prNumber,
+    });
+    return;
+  }
+
+  // mode === 'mandate'
+  try {
+    const { data: mandate, error: mErr } = await supabase
+      .from("customer_payment_mandates")
+      .select("stripe_customer_id, stripe_payment_method_id, method_type, status")
+      .eq("tenant_id", cycle.tenant_id)
+      .eq("customer_id", cycle.customer_id)
+      .maybeSingle();
+    if (mErr) throw mErr;
+
+    if (!mandate || mandate.status !== "active") {
+      summary.no_mandate++;
+      await toAwaitingPayment();
+      log("Cycle has no active mandate — awaiting payment", { billing_cycle_id: cycle.id });
+      return;
+    }
+
+    const { data: tenant, error: tErr } = await supabase
+      .from("tenants")
+      .select("id, is_demo, is_internal_tenant, stripe_account_id")
+      .eq("id", cycle.tenant_id)
+      .maybeSingle();
+    if (tErr) throw tErr;
+    if (!tenant) throw new Error("Tenant not found for cycle charge");
+
+    const ctx = getStripeContext(tenant);
+    const amountCents = Math.round(Number(cycle.total) * 100);
+
+    const intent = await ctx.stripe.paymentIntents.create(
+      {
+        amount: amountCents,
+        currency: "eur",
+        customer: mandate.stripe_customer_id,
+        payment_method: mandate.stripe_payment_method_id,
+        payment_method_types: [mandate.method_type],
+        confirm: true,
+        off_session: true,
+        metadata: {
+          billing_cycle_id: cycle.id,
+          tenant_id: cycle.tenant_id,
+        },
+      },
+      { ...ctx.requestOptions, idempotencyKey: `cycle:${cycle.id}` },
+    );
+
+    if (intent.status === "succeeded" || intent.status === "processing") {
+      // Deliberately NOT 'settled': the webhook creates the invoice.
+      await supabase
+        .from("billing_cycles")
+        .update({
+          status: "processing",
+          stripe_payment_intent_id: intent.id,
+          due_date: dueDate,
+          grace_until: graceUntil,
+        })
+        .eq("id", cycle.id);
+      summary.cycles_processing++;
+      log("Cycle charge accepted", {
+        billing_cycle_id: cycle.id,
+        intent: intent.id,
+        status: intent.status,
+      });
+      return;
+    }
+
+    summary.charge_failed++;
+    await toAwaitingPayment({ stripe_payment_intent_id: intent.id });
+    log("Cycle charge not confirmed", { billing_cycle_id: cycle.id, status: intent.status });
+  } catch (chargeErr) {
+    const msg = chargeErr instanceof Error ? chargeErr.message : String(chargeErr);
+    console.error(`[GEN-SUB-INVOICES] Cycle charge failed for ${cycle.id}: ${msg}`);
+    summary.charge_failed++;
+    await toAwaitingPayment();
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,6 +216,10 @@ Deno.serve(async (req) => {
     documents_generated: 0,
     documents_failed: 0,
     backfilled: 0,
+    cycles_created: 0,
+    cycles_awaiting_payment: 0,
+    cycles_processing: 0,
+    cycles_swept: 0,
     failed: [] as Array<{ subscription_id: string; error: string }>,
   };
 
@@ -134,12 +290,47 @@ Deno.serve(async (req) => {
     }
 
     // Fetch active subscriptions with lines
+    // ------------------------------------------------------------------
+    // CYCLE-1 sweep: billing cycles that were created but never reached
+    // 'awaiting_payment'/'processing' (crash or timeout between insert and
+    // charge). Retried after 1 hour; the Stripe idempotency key makes a
+    // repeated charge attempt safe.
+    // ------------------------------------------------------------------
+    try {
+      const staleBefore = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: stale, error: staleErr } = await supabase
+        .from("billing_cycles")
+        .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
+        .eq("status", "pending")
+        .lt("created_at", staleBefore)
+        .limit(100);
+      if (staleErr) throw staleErr;
+      for (const cycle of (stale ?? []) as BillingCycleRow[]) {
+        try {
+          await handlePendingCycle(supabase, cycle, summary);
+          summary.cycles_swept++;
+        } catch (e) {
+          console.error(
+            `[GEN-SUB-INVOICES] Sweep failed for cycle ${cycle.id}: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+      if ((stale ?? []).length > 0) {
+        log("Pending-cycle sweep", { swept: summary.cycles_swept });
+      }
+    } catch (sweepErr) {
+      console.error(
+        `[GEN-SUB-INVOICES] Pending-cycle sweep failed: ${sweepErr instanceof Error ? sweepErr.message : String(sweepErr)}`,
+      );
+    }
+
     let query = supabase
       .from("subscriptions")
       .select(`
         id, tenant_id, customer_id, name, interval, interval_count,
         next_invoice_date, last_invoice_date, end_date, status,
         auto_send, payment_term_days, generate_days_before,
+        payment_mode, billing_model,
         subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
       `)
       .eq("status", "active")
@@ -151,6 +342,7 @@ Deno.serve(async (req) => {
           id, tenant_id, customer_id, name, interval, interval_count,
           next_invoice_date, last_invoice_date, end_date, status,
           auto_send, payment_term_days, generate_days_before,
+          payment_mode, billing_model,
           subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
         `)
         .eq("status", "active")
@@ -311,6 +503,100 @@ Deno.serve(async (req) => {
           sub.interval,
           Number(sub.interval_count) || 1,
         );
+
+        // ------------------------------------------------------------------
+        // CYCLE-1: pay-first path. No invoice is created here — the runner
+        // registers a billing cycle and (for mandates) starts the charge.
+        // The invoice follows in the Stripe webhook (CYCLE-3).
+        // `subscription_invoices` is never written in this path.
+        // ------------------------------------------------------------------
+        if (sub.billing_model === "pay_first") {
+          const payFirstLines = (sub.subscription_lines ?? []) as any[];
+          if (payFirstLines.length === 0) {
+            summary.skipped_no_lines++;
+            console.warn(`[GEN-SUB-INVOICES] Subscription ${sub.id} has no lines — skipping`);
+            continue;
+          }
+
+          let cycleSubtotal = 0;
+          let cycleVat = 0;
+          for (const ln of payFirstLines) {
+            const qty = Number(ln.quantity ?? 1);
+            const unit = Number(ln.unit_price ?? 0);
+            const rate = Number(ln.vat_rate ?? 0);
+            const net = qty * unit;
+            cycleSubtotal += net;
+            cycleVat += +(net * rate / 100).toFixed(2);
+          }
+          cycleSubtotal = +cycleSubtotal.toFixed(2);
+          cycleVat = +cycleVat.toFixed(2);
+          const cycleTotal = +(cycleSubtotal + cycleVat).toFixed(2);
+          const cycleMode = (sub.payment_mode as "mandate" | "manual") ?? "mandate";
+
+          // Idempotency: insert-first on (subscription_id, period_start).
+          const { data: cycle, error: cycleErr } = await supabase
+            .from("billing_cycles")
+            .insert({
+              subscription_id: sub.id,
+              tenant_id: sub.tenant_id,
+              customer_id: sub.customer_id,
+              period_start: periodStart,
+              period_end: periodEndAdj,
+              subtotal: cycleSubtotal,
+              vat_amount: cycleVat,
+              total: cycleTotal,
+              mode: cycleMode,
+              model: "pay_first",
+              status: "pending",
+            })
+            .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
+            .single();
+
+          if (cycleErr) {
+            if ((cycleErr as any).code === "23505") {
+              // Cycle already exists for this period. Self-healing: if the
+              // subscription's next_invoice_date was never advanced (crash
+              // between cycle insert and advance), advance it now. No charge
+              // is retried here — the sweep handles unfinished cycles.
+              summary.skipped_existing++;
+              if (sub.next_invoice_date === periodStart) {
+                const { error: healErr } = await supabase
+                  .from("subscriptions")
+                  .update({ last_invoice_date: periodStart, next_invoice_date: periodEndAdj })
+                  .eq("id", sub.id);
+                if (healErr) throw healErr;
+                log("Self-healed next_invoice_date after existing cycle", {
+                  subscription_id: sub.id,
+                  period_start: periodStart,
+                });
+              } else {
+                log("Skip existing cycle", { subscription_id: sub.id, period_start: periodStart });
+              }
+              continue;
+            }
+            throw cycleErr;
+          }
+
+          summary.cycles_created++;
+          log("Billing cycle created", {
+            billing_cycle_id: cycle.id,
+            subscription_id: sub.id,
+            period_start: periodStart,
+            period_end: periodEndAdj,
+            mode: cycleMode,
+            total: cycleTotal,
+          });
+
+          await handlePendingCycle(supabase, cycle as BillingCycleRow, summary);
+
+          const { error: advErr } = await supabase
+            .from("subscriptions")
+            .update({ last_invoice_date: periodStart, next_invoice_date: periodEndAdj })
+            .eq("id", sub.id);
+          if (advErr) throw advErr;
+
+          continue;
+        }
 
         // Idempotency: existing invoice for same subscription + period_start?
         const { data: existing, error: existErr } = await supabase
