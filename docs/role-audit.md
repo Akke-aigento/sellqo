@@ -4988,3 +4988,23 @@ service-role en is rol-onafhankelijk.
 **Scope-vangst tijdens post-flight:** oorspronkelijke prompt nam aan dat bol/amazon/ebay inventory-sync lokale stock overschrijven → die zouden 'sync' moeten loggen. Recon toonde dat deze drie OUTBOUND zijn (pushen SellQo-stock naar de marketplace, schrijven geen lokale stock: Bol update marketplace_mappings, Amazon/eBay enkel last_synced_at). Er is dus niets te loggen — geen gat. Bol-VERKOPEN lopen via sync-bol-orders → decrement_stock (logt al). STOCK-2 daarmee volledig; geen STOCK-2b nodig.
 
 **Vervolg/backlog:** STOCK-1 reconstructie kan later vervangen worden door directe ledger-optelling voor datums ná invoering (exacter dan de order/PO-reconstructie). Lovable paste de migratie deels toe zonder git-bestand op één timestamp — DB is de waarheid bij post-flight, niet enkel de repo.
+
+## UPGRADE-PF-1: upgrades volledig pay-first — 5 aug 2026
+
+**Aanleiding:** `sync-tenant-plan` action=switch was het laatste invoice-first eiland. Het zette het plan direct live, maakte daarna een volledige periode-factuur (geen delta) en liet de oude periode ongemoeid → te veel gefactureerd, soms dubbel, en bij interval-swap een verkeerd startplan. Upgrade = direct (na betaling), downgrade = periodegrens.
+
+**Pre-flight (verse grep, les uit de sloop-audit hierboven):** `calculate-plan-switch` / `execute-plan-switch` / `usePlanSwitch` / `PlanSwitchPreview` hadden nul aanroepers → pas daarna gesloopt (code + config.toml + edge functions verwijderd). Kolomtypes gecontroleerd vóór DDL: `pricing_plans.id` en `tenant_subscriptions.plan_id` zijn `character varying`, dus `target_plan_id` idem (geen uuid).
+
+**DDL:** enum `billing_cycle_type` (recurring|proration); `billing_cycles.cycle_type/target_plan_id/target_interval/description`; `cancelled` toegevoegd aan `billing_cycle_status`; `tenant_subscriptions.pending_billing_cycle_id`. Unieke periode-key beperkt tot `cycle_type='recurring'` (partieel) + nieuwe partiële `billing_cycles_open_proration_key`: maximaal één openstaande proration-cyclus per subscription — de DB is de guard, niet enkel de code.
+
+**Pro-rata:** shared `_shared/planProration.ts` rekent op de ECHTE lopende prijs uit `subscription_lines` (niet op de plan-catalogus, die kan afwijken van wat de tenant betaalt): delta = (nieuw − huidig) × resterende dagen / periode-dagen. Periode/btw-bron = laatste cyclus + lijn 0. Interval-swap: nieuwe periode start vandaag, ongebruikte dagen van de oude periode in mindering. Bij delta ≤ 0 → geen cyclus, direct effectueren.
+
+**Effectuatie:** shared `_shared/planEffectuate.ts` is idempotent en de enige plek die een plan live zet (subscription_lines, subscriptions, tenant_subscriptions, tenants). Mandaat-pad: PaymentIntent succeeded/processing → meteen effectueren, webhook is dan no-op. Manueel pad: cyclus blijft `awaiting_payment` met `pending_billing_cycle_id`; de webhook (`subscriptionCharge.effectuateProrationCycle`) effectueert bij settlement en maakt de factuur. Grace = 7 dagen, daarna expiry; runner (`generate-subscription-invoices`) sluit proration-cycli uit van de stale-sweep zodat hij niet met sync-tenant-plan vecht.
+
+**PR-document/mail:** `generate-payment-request-pdf` wrapt nu de omschrijving i.p.v. te truncaten op 60 tekens (pro-rata-strings zijn ~100), `send-payment-request-email` toont de omschrijving in de samenvatting (`descriptionLabel` in 4 talen).
+
+**UI:** `/admin/billing` toont een banner "je upgrade wacht op betaling" met bedrag, betaallink en annuleer-knop zolang onbetaald; planwissel geblokkeerd zolang er een open upgrade is (spiegelt de 409 van de backend); pending-downgrade-banner onderdrukt als er een pending upgrade staat. `get-platform-billing-status` kreeg `cancel_upgrade` + `pending_upgrade` in de status.
+
+**Recon-vondst:** `subscriptions.tenant_id` = de interne SellQo-tenant, `tenant_subscriptions.tenant_id` = de klant. Die splitsing bepaalt waarom de billing-status via een service-role edge function moet en niet via RLS-queries uit de client.
+
+**Slottaken:** changelog 2026.08u (`pay_first_upgrades`) in 4 landing-locales + geregistreerd in PublicChangelog. Billing-i18n `pending_upgrade` in 4 talen. DOCS-1: tenant-artikel `abonnement-en-betaalwijze-beheren` bijgewerkt met de pro-rata-rekenwijze, het "wacht op betaling"-scenario en de 7-dagen-expiry. Geen dataherstel van oude foute facturen (bewust besloten).

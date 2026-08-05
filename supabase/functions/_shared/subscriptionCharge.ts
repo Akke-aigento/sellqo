@@ -7,6 +7,8 @@
 // connected tenants alike.
 
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { effectuatePlanSwitch } from "./planEffectuate.ts";
+import { advanceDate, type Interval } from "./planProration.ts";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -20,6 +22,68 @@ const log = (step: string, details?: unknown) => {
 };
 
 const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+
+/**
+ * UPGRADE-PF-1: turn a settled proration cycle into the live plan.
+ * The cycle's tenant_id is the invoicing (internal) tenant; the tenant whose
+ * plan changes is found through the billing subscription.
+ */
+async function effectuateProrationCycle(supabase: SupabaseLike, cycle: any): Promise<void> {
+  const targetInterval = ((cycle.target_interval as string) || "monthly") as Interval;
+
+  const { data: ts, error: tsErr } = await supabase
+    .from("tenant_subscriptions")
+    .select("tenant_id, current_period_start, current_period_end")
+    .eq("billing_subscription_id", cycle.subscription_id)
+    .maybeSingle();
+  if (tsErr) throw tsErr;
+  if (!ts?.tenant_id) {
+    log("Proration cycle has no tenant_subscription — skipping effectuation", {
+      cycleId: cycle.id,
+      subscriptionId: cycle.subscription_id,
+    });
+    return;
+  }
+
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("interval")
+    .eq("id", cycle.subscription_id)
+    .maybeSingle();
+  const intervalSwap = (sub?.interval ?? targetInterval) !== targetInterval;
+
+  const today = toISODate(new Date());
+  const periodStart = intervalSwap
+    ? today
+    : String(ts.current_period_start ?? cycle.period_start).slice(0, 10);
+  const periodEnd = intervalSwap
+    ? advanceDate(today, targetInterval)
+    : String(ts.current_period_end ?? cycle.period_end).slice(0, 10);
+
+  const { data: tenantRow } = await supabase
+    .from("tenants")
+    .select("name, billing_company_name")
+    .eq("id", ts.tenant_id)
+    .maybeSingle();
+
+  const result = await effectuatePlanSwitch(supabase, {
+    tenantId: ts.tenant_id,
+    billingSubscriptionId: cycle.subscription_id,
+    targetPlanId: String(cycle.target_plan_id),
+    targetInterval,
+    periodStart,
+    periodEnd,
+    intervalSwap,
+    billingNamePrefix: tenantRow?.billing_company_name || tenantRow?.name || null,
+  });
+
+  log(
+    result.applied
+      ? "Proration settled — plan effectuated (manual path)"
+      : "Proration settled — plan already live (mandate path)",
+    { cycleId: cycle.id, tenantId: ts.tenant_id, targetPlanId: cycle.target_plan_id, targetInterval },
+  );
+}
 
 /**
  * If the payment method itself is gone/revoked, flag the mandate as failed so
@@ -180,7 +244,7 @@ async function handleCycleCharge(
   const { data: cycle, error: cErr } = await supabase
     .from("billing_cycles")
     .select(
-      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until",
+      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description",
     )
     .eq("id", cycleId)
     .maybeSingle();
@@ -287,7 +351,11 @@ async function handleCycleCharge(
       .maybeSingle();
     subscriptionName = sub?.name ?? null;
   }
-  const description = `${subscriptionName ?? "Abonnement"} (${nlDate(cycle.period_start)} t/m ${nlDate(cycle.period_end)})`;
+  // UPGRADE-PF-1: a proration cycle carries its own human description
+  // ("Upgrade X → Y (pro rata n/m d, ...)"); fall back to the period text.
+  const description = cycle.description
+    ? String(cycle.description)
+    : `${subscriptionName ?? "Abonnement"} (${nlDate(cycle.period_start)} t/m ${nlDate(cycle.period_end)})`;
 
   const { error: lineErr } = await supabase.from("invoice_lines").insert({
     invoice_id: invoice.id,
@@ -335,6 +403,20 @@ async function handleCycleCharge(
     invoiceNumber: numData,
     intent: intent.id,
   });
+
+  // UPGRADE-PF-1: settlement of a proration cycle effectuates the plan switch.
+  // Mandate mode already applied it in sync-tenant-plan (logged as a no-op
+  // here); manual mode applies it now, on payment.
+  if (cycle.cycle_type === "proration" && cycle.target_plan_id) {
+    try {
+      await effectuateProrationCycle(supabase, cycle);
+    } catch (e) {
+      log("ERROR: proration effectuation failed", {
+        cycleId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
 
   // PDF/UBL — best-effort. Odoo sync picks the paid invoice up on its own.
   try {

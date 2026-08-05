@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   TrendingUp,
   CalendarClock,
+  CreditCard,
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
@@ -17,6 +18,7 @@ import {
   useCreatePlatformMandateLink,
   useSetPlatformPaymentMode,
   useSyncTenantPlan,
+  useCancelPendingUpgrade,
   type PlatformPaymentMode,
 } from '@/hooks/usePlatformBillingStatus';
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
@@ -52,6 +54,7 @@ export default function BillingPage() {
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
+  const cancelUpgrade = useCancelPendingUpgrade();
 
   const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
@@ -80,6 +83,28 @@ export default function BillingPage() {
     () => plans.find(p => p.id === pendingPlanId) ?? null,
     [plans, pendingPlanId],
   );
+
+  /**
+   * UPGRADE-PF-1 — an unpaid pro-rata upgrade blocks new plan changes; the
+   * tenant either pays it or cancels it.
+   */
+  const pendingUpgrade = billingStatus?.pending_upgrade ?? null;
+  const pendingUpgradePlan = useMemo(
+    () => plans.find(p => p.id === pendingUpgrade?.target_plan_id) ?? null,
+    [plans, pendingUpgrade],
+  );
+  const showPendingDowngrade = !!pendingPlan && !pendingUpgrade;
+
+  const handleCancelPendingUpgrade = async () => {
+    try {
+      await cancelUpgrade.mutateAsync();
+      toast.success(t('billing.pending_upgrade.cancelled'));
+    } catch (err) {
+      toast.error(t('billing.pending_upgrade.cancel_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
 
   const isEnterprise = (plan?: PricingPlan | null) =>
     !!plan && (plan.slug === 'enterprise' || plan.name.toLowerCase().includes('enterprise'));
@@ -157,6 +182,12 @@ export default function BillingPage() {
     const plan = plans.find(p => p.id === planId);
     if (!plan) return;
 
+    // UPGRADE-PF-1: one open pro-rata upgrade at a time (the backend returns 409).
+    if (pendingUpgrade) {
+      toast.warning(t('billing.pending_upgrade.blocked'));
+      return;
+    }
+
     if (isEnterprise(plan)) {
       toast.info(t('billing.enterprise_contact'));
       return;
@@ -195,6 +226,9 @@ export default function BillingPage() {
       clearResume();
       if (res.downgrade) {
         toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
+      } else if (res.awaiting_payment) {
+        // Pay-first upgrade without a usable mandate: a payment request was sent.
+        toast.info(t('billing.pending_upgrade.created', { plan: plan.name }));
       } else {
         toast.success(t('billing.plan_change.success_upgrade', { plan: plan.name }));
       }
@@ -387,7 +421,48 @@ export default function BillingPage() {
               </p>
             )}
 
-            {pendingPlan && (
+            {pendingUpgrade && (
+              <Alert>
+                <CreditCard className="h-4 w-4" />
+                <AlertDescription className="space-y-3">
+                  <p>
+                    {t('billing.pending_upgrade.banner', {
+                      plan: pendingUpgradePlan?.name ?? pendingUpgrade.target_plan_id ?? '',
+                      amount: new Intl.NumberFormat(i18n.language, {
+                        style: 'currency',
+                        currency: 'EUR',
+                      }).format(pendingUpgrade.total),
+                    })}
+                  </p>
+                  {pendingUpgrade.description && (
+                    <p className="text-xs text-muted-foreground">{pendingUpgrade.description}</p>
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {pendingUpgrade.checkout_session_url && (
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(pendingUpgrade.checkout_session_url!, '_blank')}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t('billing.pending_upgrade.pay_now')}
+                      </Button>
+                    )}
+                    {pendingUpgrade.cancellable && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={cancelUpgrade.isPending}
+                        onClick={handleCancelPendingUpgrade}
+                      >
+                        {t('billing.pending_upgrade.cancel')}
+                      </Button>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {showPendingDowngrade && (
               <Alert>
                 <CalendarClock className="h-4 w-4" />
                 <AlertDescription>

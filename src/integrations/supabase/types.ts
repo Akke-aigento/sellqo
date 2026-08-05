@@ -3455,6 +3455,8 @@ export type Database = {
           checkout_session_url: string | null
           created_at: string
           customer_id: string | null
+          cycle_type: Database["public"]["Enums"]["billing_cycle_type"]
+          description: string | null
           due_date: string | null
           grace_until: string | null
           id: string
@@ -3472,6 +3474,8 @@ export type Database = {
           stripe_payment_intent_id: string | null
           subscription_id: string
           subtotal: number
+          target_interval: string | null
+          target_plan_id: string | null
           tenant_id: string
           total: number
           updated_at: string
@@ -3483,6 +3487,8 @@ export type Database = {
           checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
+          cycle_type?: Database["public"]["Enums"]["billing_cycle_type"]
+          description?: string | null
           due_date?: string | null
           grace_until?: string | null
           id?: string
@@ -3500,6 +3506,8 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subscription_id: string
           subtotal?: number
+          target_interval?: string | null
+          target_plan_id?: string | null
           tenant_id: string
           total?: number
           updated_at?: string
@@ -3511,6 +3519,8 @@ export type Database = {
           checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
+          cycle_type?: Database["public"]["Enums"]["billing_cycle_type"]
+          description?: string | null
           due_date?: string | null
           grace_until?: string | null
           id?: string
@@ -3528,6 +3538,8 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subscription_id?: string
           subtotal?: number
+          target_interval?: string | null
+          target_plan_id?: string | null
           tenant_id?: string
           total?: number
           updated_at?: string
@@ -3546,6 +3558,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_cycles_target_plan_id_fkey"
+            columns: ["target_plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -16464,6 +16483,7 @@ export type Database = {
           id: string
           last_payment_amount: number | null
           last_payment_date: string | null
+          pending_billing_cycle_id: string | null
           pending_effective_at: string | null
           pending_interval: string | null
           pending_plan_id: string | null
@@ -16489,6 +16509,7 @@ export type Database = {
           id?: string
           last_payment_amount?: number | null
           last_payment_date?: string | null
+          pending_billing_cycle_id?: string | null
           pending_effective_at?: string | null
           pending_interval?: string | null
           pending_plan_id?: string | null
@@ -16514,6 +16535,7 @@ export type Database = {
           id?: string
           last_payment_amount?: number | null
           last_payment_date?: string | null
+          pending_billing_cycle_id?: string | null
           pending_effective_at?: string | null
           pending_interval?: string | null
           pending_plan_id?: string | null
@@ -16540,6 +16562,13 @@ export type Database = {
             columns: ["billing_subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_pending_billing_cycle_id_fkey"
+            columns: ["pending_billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
             referencedColumns: ["id"]
           },
           {
@@ -19099,6 +19128,8 @@ export type Database = {
         | "settled"
         | "expired"
         | "reopened"
+        | "cancelled"
+      billing_cycle_type: "recurring" | "proration"
       billing_model: "pay_first" | "invoice_first"
       billing_payment_mode: "mandate" | "manual"
       changelog_change_type:
@@ -19409,7 +19440,9 @@ export const Constants = {
         "settled",
         "expired",
         "reopened",
+        "cancelled",
       ],
+      billing_cycle_type: ["recurring", "proration"],
       billing_model: ["pay_first", "invoice_first"],
       billing_payment_mode: ["mandate", "manual"],
       changelog_change_type: [

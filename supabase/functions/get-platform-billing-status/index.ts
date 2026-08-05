@@ -7,6 +7,7 @@
 // actions:
 //   'status'            -> read the full billing status
 //   'set_payment_mode'  -> set subscriptions.payment_mode ('mandate' | 'manual')
+//   'cancel_upgrade'    -> UPGRADE-PF-1: abort an unpaid pro-rata upgrade
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
     if (typeof tenantId !== "string" || !tenantId) {
       return json({ success: false, error: "tenant_id is required" }, 400);
     }
-    if (!["status", "set_payment_mode"].includes(action)) {
+    if (!["status", "set_payment_mode", "cancel_upgrade"].includes(action)) {
       return json({ success: false, error: "action invalid" }, 400);
     }
 
@@ -79,7 +80,9 @@ Deno.serve(async (req) => {
 
     const { data: ts, error: tsErr } = await supabase
       .from("tenant_subscriptions")
-      .select("id, billing_customer_id, billing_subscription_id, status, billing_interval")
+      .select(
+        "id, billing_customer_id, billing_subscription_id, status, billing_interval, plan_id, pending_plan_id, pending_interval, pending_effective_at, pending_billing_cycle_id",
+      )
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (tsErr) throw tsErr;
@@ -112,6 +115,43 @@ Deno.serve(async (req) => {
       }
       log("payment_mode set", { tenantId, mode });
       return json({ success: true, payment_mode: updated.payment_mode });
+    }
+
+    // ---------------- cancel_upgrade (UPGRADE-PF-1) ----------------
+    // Allowed as long as the pro-rata cycle is unpaid: cancel the cycle and
+    // clear the pending markers. Never touches a settled cycle or its invoice.
+    if (action === "cancel_upgrade") {
+      const cycleId = (ts?.pending_billing_cycle_id as string | null) ?? null;
+      if (!cycleId) {
+        return json({ success: false, error: "Er staat geen openstaande upgrade" }, 409);
+      }
+      const { data: cancelled, error: cErr } = await supabase
+        .from("billing_cycles")
+        .update({ status: "cancelled" })
+        .eq("id", cycleId)
+        .eq("cycle_type", "proration")
+        .in("status", ["pending", "awaiting_payment", "reopened"])
+        .is("invoice_id", null)
+        .select("id");
+      if (cErr) throw cErr;
+      if (!cancelled || cancelled.length === 0) {
+        return json(
+          { success: false, error: "Deze upgrade kan niet meer geannuleerd worden" },
+          409,
+        );
+      }
+      const { error: clrErr } = await supabase
+        .from("tenant_subscriptions")
+        .update({
+          pending_plan_id: null,
+          pending_interval: null,
+          pending_effective_at: null,
+          pending_billing_cycle_id: null,
+        })
+        .eq("tenant_id", tenantId);
+      if (clrErr) throw clrErr;
+      log("Pending upgrade cancelled", { tenantId, billing_cycle_id: cycleId });
+      return json({ success: true, cancelled_billing_cycle_id: cycleId });
     }
 
     // ---------------- status ----------------
@@ -151,6 +191,35 @@ Deno.serve(async (req) => {
       }
     }
 
+    // UPGRADE-PF-1: the open pro-rata upgrade, so the UI can show
+    // "upgrade waiting for payment" with a pay link and a cancel option.
+    let pendingUpgrade: Record<string, unknown> | null = null;
+    if (ts?.pending_billing_cycle_id) {
+      const { data: pc, error: pcErr } = await supabase
+        .from("billing_cycles")
+        .select(
+          "id, status, total, description, target_plan_id, target_interval, checkout_session_url, payment_request_number, due_date, grace_until",
+        )
+        .eq("id", ts.pending_billing_cycle_id as string)
+        .maybeSingle();
+      if (pcErr) throw pcErr;
+      if (pc && ["pending", "awaiting_payment", "processing", "reopened"].includes(pc.status as string)) {
+        pendingUpgrade = {
+          billing_cycle_id: pc.id,
+          status: pc.status,
+          total: Number(pc.total ?? 0),
+          description: pc.description,
+          target_plan_id: pc.target_plan_id,
+          target_interval: pc.target_interval,
+          checkout_session_url: pc.checkout_session_url,
+          payment_request_number: pc.payment_request_number,
+          due_date: pc.due_date,
+          grace_until: pc.grace_until,
+          cancellable: ["pending", "awaiting_payment", "reopened"].includes(pc.status as string),
+        };
+      }
+    }
+
     return json({
       success: true,
       has_billing_customer: !!billingCustomerId,
@@ -161,6 +230,10 @@ Deno.serve(async (req) => {
       payment_mode: paymentMode,
       billing_model: billingModel,
       next_invoice_date: nextInvoiceDate,
+      pending_upgrade: pendingUpgrade,
+      pending_plan_id: (ts?.pending_plan_id as string | null) ?? null,
+      pending_interval: (ts?.pending_interval as string | null) ?? null,
+      pending_effective_at: (ts?.pending_effective_at as string | null) ?? null,
     });
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);

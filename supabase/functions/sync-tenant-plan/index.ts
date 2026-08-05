@@ -10,6 +10,14 @@
 // pending change before generating the period invoice.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import {
+  computeProration,
+  prorationDescription,
+  resolveRunningPeriod,
+  toISODate as isoDate,
+} from "../_shared/planProration.ts";
+import { effectuatePlanSwitch } from "../_shared/planEffectuate.ts";
+import { getStripeContext } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +36,10 @@ interface SyncBody {
 
 const VAT_RATE = 21;
 const GENERATE_DAYS_BEFORE = 5;
+// UPGRADE-PF-1: same grace window as a regular pay-first cycle, so the existing
+// reminder cadence (due / midpoint / expiry) works on it unchanged.
+const PRORATION_GRACE_DAYS = 7;
+const STALE_PENDING_MS = 60 * 60 * 1000;
 
 function errMsg(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
@@ -463,272 +475,374 @@ Deno.serve(async (req) => {
         });
       }
 
-      // ---- Upgrade: immediate entitlement + pro-rata one-off invoice ----
-      const todayISO = toISODate(new Date());
-      const periodStartISO = currentSub.current_period_start
-        ? String(currentSub.current_period_start).slice(0, 10)
-        : todayISO;
-      const periodEndISO = currentSub.current_period_end
-        ? String(currentSub.current_period_end).slice(0, 10)
-        : advanceDate(periodStartISO, currentInterval);
+      // ================= UPGRADE (pay-first, UPGRADE-PF-1) =================
+      // No invoice is ever created here. A proration billing_cycle is created;
+      // the Stripe webhook (CYCLE-3) remains the only place that invoices.
+      const todayISO = isoDate(new Date());
 
-      const msDay = 86400000;
-      const periodDays = Math.max(
-        1,
-        Math.round(
-          (Date.UTC(
-            ...periodEndISO.split("-").map(Number) as [number, number, number],
-          ) -
-            Date.UTC(
-              ...periodStartISO.split("-").map(Number) as [number, number, number],
-            )) / msDay,
-        ),
-      );
-      const remainingDays = Math.max(
-        0,
-        Math.round(
-          (Date.UTC(
-            ...periodEndISO.split("-").map(Number) as [number, number, number],
-          ) -
-            Date.UTC(
-              ...todayISO.split("-").map(Number) as [number, number, number],
-            )) / msDay,
-        ),
-      );
-
-      const intervalSwap = interval !== currentInterval;
-      const newPeriodEndISO = intervalSwap ? advanceDate(todayISO, interval) : periodEndISO;
-
-      let proRata: number;
-      if (intervalSwap) {
-        // Charge the full new-interval price minus credit for the unused part of the old period.
-        const credit = priceForPlan(currentPlan, currentInterval) * (remainingDays / periodDays);
-        proRata = Math.max(0, +(priceForPlan(targetPlan, interval) - credit).toFixed(2));
-      } else {
-        const priceDiff = Math.max(
-          0,
-          priceForPlan(targetPlan, interval) - priceForPlan(currentPlan, currentInterval),
-        );
-        proRata = +(priceDiff * (remainingDays / periodDays)).toFixed(2);
+      // Load the native billing subscription (period + payment mode + lines).
+      const { data: billingSub, error: bsErr } = await supabase
+        .from("subscriptions")
+        .select("id, customer_id, interval, next_invoice_date, payment_mode, billing_model, status")
+        .eq("id", billingSubId)
+        .maybeSingle();
+      if (bsErr) throw bsErr;
+      if (!billingSub) {
+        return jsonResponse({ success: false, error: "Billing subscription not found" }, 500);
       }
 
-      // Update recurring line on billing subscription to new plan (for future periods).
-      const { data: lines, error: lnErr } = await supabase
+      // ---- Guard: at most one open proration cycle per subscription ----
+      const { data: openProrations, error: opErr } = await supabase
+        .from("billing_cycles")
+        .select("id, status, created_at, payment_request_number, checkout_session_url")
+        .eq("subscription_id", billingSubId)
+        .eq("cycle_type", "proration")
+        .in("status", ["pending", "awaiting_payment", "processing", "reopened"])
+        .order("created_at", { ascending: false });
+      if (opErr) throw opErr;
+
+      const openProration = openProrations?.[0];
+      if (openProration) {
+        const isStalePending =
+          openProration.status === "pending" &&
+          Date.now() - new Date(openProration.created_at as string).getTime() > STALE_PENDING_MS;
+        if (isStalePending) {
+          // Crashed between insert and charge — release it so the tenant is not stuck.
+          await supabase
+            .from("billing_cycles")
+            .update({ status: "cancelled" })
+            .eq("id", openProration.id)
+            .is("invoice_id", null);
+          log("Stale pending proration cycle cancelled", { billing_cycle_id: openProration.id });
+        } else {
+          return jsonResponse(
+            {
+              success: false,
+              error: "Er staat al een upgrade open die nog niet betaald is",
+              code: "proration_cycle_open",
+              billing_cycle_id: openProration.id,
+              payment_request_number: openProration.payment_request_number,
+              checkout_session_url: openProration.checkout_session_url,
+            },
+            409,
+          );
+        }
+      }
+
+      // ---- Pro-rata maths: the subscription line is the truth ----
+      const { data: subLines, error: slErr } = await supabase
         .from("subscription_lines")
-        .select("id")
+        .select("id, quantity, unit_price, vat_rate, sort_order")
         .eq("subscription_id", billingSubId)
         .order("sort_order", { ascending: true });
-      if (lnErr) throw lnErr;
-      if (lines && lines.length > 0) {
-        await supabase
-          .from("subscription_lines")
+      if (slErr) throw slErr;
+
+      const period = await resolveRunningPeriod(
+        supabase,
+        billingSubId,
+        currentInterval,
+        (billingSub.next_invoice_date as string | null) ?? null,
+        todayISO,
+      );
+
+      const proration = computeProration({
+        period,
+        lines: (subLines ?? []) as any[],
+        newNet: priceForPlan(targetPlan, interval),
+        currentInterval,
+        targetInterval: interval,
+        todayISO,
+      });
+
+      log("Proration computed", {
+        tenantId,
+        period_source: proration.source,
+        period: `${proration.period_start}..${proration.period_end}`,
+        remaining_days: proration.remaining_days,
+        period_days: proration.period_days,
+        current_net: proration.current_net,
+        new_net: proration.new_net,
+        delta_net: proration.delta_net,
+        total: proration.total,
+        interval_swap: proration.interval_swap,
+      });
+
+      const billingNamePrefix =
+        ((tenant as any).billing_company_name as string | null) || tenant.name;
+
+      // Delta 0 (upgrade exactly on the period boundary, or equal price):
+      // nothing to collect — apply at the boundary through the pending path.
+      if (proration.delta_net <= 0) {
+        const { error: pErr } = await supabase
+          .from("tenant_subscriptions")
           .update({
-            description: `${targetPlan.name} (${interval})`,
-            unit_price: priceForPlan(targetPlan, interval),
-            vat_rate: VAT_RATE,
-            quantity: 1,
+            pending_plan_id: planId,
+            pending_interval: interval,
+            pending_effective_at: `${proration.period_end}T00:00:00Z`,
+            pending_billing_cycle_id: null,
           })
-          .eq("id", lines[0].id);
+          .eq("tenant_id", tenantId);
+        if (pErr) throw pErr;
+        log("Upgrade with zero delta — scheduled at boundary", {
+          tenantId,
+          effective_at: proration.period_end,
+        });
+        return jsonResponse({
+          success: true,
+          action: "switch",
+          downgrade: false,
+          pending: true,
+          pro_rata_total: 0,
+          effective_at: `${proration.period_end}T00:00:00Z`,
+        });
       }
-      await supabase
-        .from("subscriptions")
-        .update({
-          interval,
-          name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
-          ...(intervalSwap
-            ? { start_date: todayISO, next_invoice_date: newPeriodEndISO }
-            : {}),
-        })
-        .eq("id", billingSubId);
 
-      // Update entitlement immediately
-      const { error: tsErr } = await supabase
-        .from("tenant_subscriptions")
-        .update({
-          plan_id: planId,
-          billing_interval: interval,
-          current_period_start: interval !== currentInterval ? `${todayISO}T00:00:00Z` : currentSub.current_period_start,
-          current_period_end: `${newPeriodEndISO}T00:00:00Z`,
-          pending_plan_id: null,
-          pending_interval: null,
-          pending_effective_at: null,
-        })
-        .eq("tenant_id", tenantId);
-      if (tsErr) throw tsErr;
+      const description = prorationDescription({
+        fromPlanName: currentPlan.name,
+        toPlanName: targetPlan.name,
+        remainingDays: proration.remaining_days,
+        periodDays: proration.period_days,
+        fromISO: todayISO,
+        toISO: proration.period_end,
+        intervalSwap: proration.interval_swap,
+        targetInterval: interval,
+      });
 
-      // Create pro-rata one-off invoice on the internal SellQo tenant
-      let proRataInvoiceId: string | null = null;
-      if (proRata > 0) {
-        const customerId = currentSub.billing_customer_id as string;
-        const { data: invNumData, error: invNumErr } = await supabase.rpc(
-          "generate_invoice_number",
+      const customerId = (currentSub.billing_customer_id as string | null) ??
+        (billingSub.customer_id as string | null);
+      if (!customerId) {
+        return jsonResponse({ success: false, error: "No billing customer for tenant" }, 500);
+      }
+
+      const requestedMode = ((billingSub.payment_mode as string | null) ?? "mandate") as
+        | "mandate"
+        | "manual";
+
+      // Mandate mode falls back to manual when there is no usable mandate.
+      let mandate: any = null;
+      if (requestedMode === "mandate") {
+        const { data: mRows, error: mErr } = await supabase
+          .from("customer_payment_mandates")
+          .select("stripe_customer_id, stripe_payment_method_id, method_type, status, created_at")
+          .eq("tenant_id", internalTenantId)
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (mErr) throw mErr;
+        mandate = mRows?.[0] ?? null;
+      }
+      const useMandate = requestedMode === "mandate" && !!mandate && mandate.status === "active";
+      const cycleMode: "mandate" | "manual" = useMandate ? "mandate" : "manual";
+
+      // ---- Create the proration cycle ----
+      const graceUntilISO = (() => {
+        const dt = new Date(`${todayISO}T00:00:00Z`);
+        dt.setUTCDate(dt.getUTCDate() + PRORATION_GRACE_DAYS);
+        return isoDate(dt);
+      })();
+
+      let prNumber: string | null = null;
+      if (cycleMode === "manual") {
+        const { data: prData, error: prErr } = await supabase.rpc(
+          "generate_payment_request_number",
           { _tenant_id: internalTenantId },
         );
-        if (invNumErr) throw invNumErr;
-        const invoiceNumber = invNumData as string;
-
-        const net = proRata;
-        const vat = +(net * (VAT_RATE / 100)).toFixed(2);
-        const total = +(net + vat).toFixed(2);
-
-        const { data: invoice, error: invErr } = await supabase
-          .from("invoices")
-          .insert({
-            tenant_id: internalTenantId,
-            customer_id: customerId,
-            invoice_number: invoiceNumber,
-            status: "sent",
-            subtotal: net,
-            tax_amount: vat,
-            total,
-            subscription_id: billingSubId,
-            issue_date: todayISO,
-            due_date: todayISO,
-          })
-          .select("id")
-          .single();
-        if (invErr) throw invErr;
-        proRataInvoiceId = invoice.id as string;
-
-        const { error: lineErr } = await supabase.from("invoice_lines").insert({
-          invoice_id: invoice.id,
-          line_type: "product",
-          description: intervalSwap
-            ? `Upgrade ${currentPlan.name} (${currentInterval}) → ${targetPlan.name} (${interval}), credit ${remainingDays}/${periodDays} d`
-            : `Upgrade proration ${currentPlan.name} → ${targetPlan.name} (${remainingDays}/${periodDays} d)`,
-          quantity: 1,
-          unit_price: net,
-          vat_rate: VAT_RATE,
-          vat_amount: vat,
-          line_total: total,
-          net_amount: net,
-          gross_amount: total,
-          sort_order: 0,
-        });
-        if (lineErr) throw lineErr;
-
-        // Generate invoice document (PDF/UBL) — best-effort, same pattern as runner
-        try {
-          const url = Deno.env.get("SUPABASE_URL")!;
-          const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-          const r = await fetch(`${url}/functions/v1/generate-subscription-invoice-pdf`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
-            body: JSON.stringify({ invoice_id: invoice.id }),
-          });
-          if (!r.ok) {
-            console.error(
-              `[SYNC-TENANT-PLAN] Pro-rata document generation returned non-OK ${r.status} for ${invoice.id}`,
-            );
-          }
-        } catch (docErr) {
-          console.error(`[SYNC-TENANT-PLAN] Pro-rata document generation failed: ${errMsg(docErr)}`);
-        }
-
-        // Off-session collect via mandate (best-effort — same pattern as runner)
-        try {
-          const { data: mandate } = await supabase
-            .from("customer_payment_mandates")
-            .select("stripe_customer_id, stripe_payment_method_id, method_type, status")
-            .eq("tenant_id", internalTenantId)
-            .eq("customer_id", customerId)
-            .maybeSingle();
-          if (mandate && mandate.status === "active") {
-            const { getStripeContext } = await import("../_shared/stripe.ts");
-            const { data: itFull } = await supabase
-              .from("tenants")
-              .select("id, is_demo, is_internal_tenant, stripe_account_id")
-              .eq("id", internalTenantId)
-              .maybeSingle();
-            const ctx = getStripeContext(itFull as any);
-            const intent = await ctx.stripe.paymentIntents.create(
-              {
-                amount: Math.round(total * 100),
-                currency: "eur",
-                customer: mandate.stripe_customer_id,
-                payment_method: mandate.stripe_payment_method_id,
-                payment_method_types: [mandate.method_type],
-                confirm: true,
-                off_session: true,
-                metadata: {
-                  invoice_id: invoice.id,
-                  tenant_id: internalTenantId,
-                  subscription_id: billingSubId,
-                  proration: "1",
-                },
-              },
-              ctx.requestOptions,
-            );
-            if (intent.status === "succeeded") {
-              await supabase
-                .from("invoices")
-                .update({ status: "paid", paid_at: new Date().toISOString() })
-                .eq("id", invoice.id);
-            } else if (intent.status === "processing") {
-              await supabase.from("invoices").update({ status: "processing" }).eq("id", invoice.id);
-            } else {
-              // requires_action / requires_payment_method / canceled
-              const nowIso = new Date().toISOString();
-              const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-              await supabase
-                .from("invoices")
-                .update({
-                  status: "unpaid",
-                  charge_attempts: 1,
-                  last_charge_attempt_at: nowIso,
-                  next_action_at: nextAt,
-                })
-                .eq("id", invoice.id);
-              console.error(
-                `[SYNC-TENANT-PLAN] Pro-rata charge not confirmed for ${invoice.id}: ${intent.status}`,
-              );
-            }
-          }
-        } catch (e) {
-          const msg = errMsg(e);
-          console.error(`[SYNC-TENANT-PLAN] Pro-rata charge failed: ${msg}`);
-          const nowIso = new Date().toISOString();
-          const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-          await supabase
-            .from("invoices")
-            .update({
-              status: "unpaid",
-              charge_attempts: 1,
-              last_charge_attempt_at: nowIso,
-              next_action_at: nextAt,
-            })
-            .eq("id", invoice.id);
-        }
-
-        // Send invoice email (best-effort — same pattern as runner)
-        try {
-          const { error: emailErr } = await supabase.functions.invoke("send-invoice-email", {
-            body: { invoice_id: invoice.id },
-          });
-          if (emailErr) throw emailErr;
-        } catch (emailError) {
-          console.error(`[SYNC-TENANT-PLAN] Pro-rata invoice email failed: ${errMsg(emailError)}`);
-        }
+        if (prErr) throw prErr;
+        prNumber = (prData as string) ?? null;
       }
 
-      log("Upgrade applied", {
+      const { data: cycle, error: cycleErr } = await supabase
+        .from("billing_cycles")
+        .insert({
+          subscription_id: billingSubId,
+          tenant_id: internalTenantId,
+          customer_id: customerId,
+          cycle_type: "proration",
+          target_plan_id: planId,
+          target_interval: interval,
+          description,
+          period_start: todayISO,
+          period_end: proration.period_end,
+          subtotal: proration.delta_net,
+          vat_amount: proration.vat_amount,
+          total: proration.total,
+          mode: cycleMode,
+          model: "pay_first",
+          status: "pending",
+          due_date: todayISO,
+          grace_until: graceUntilISO,
+          ...(prNumber ? { payment_request_number: prNumber } : {}),
+        })
+        .select("id")
+        .single();
+      if (cycleErr) {
+        if ((cycleErr as any).code === "23505") {
+          return jsonResponse(
+            {
+              success: false,
+              error: "Er staat al een upgrade open die nog niet betaald is",
+              code: "proration_cycle_open",
+            },
+            409,
+          );
+        }
+        throw cycleErr;
+      }
+      const cycleId = cycle.id as string;
+      log("Proration cycle created", { billing_cycle_id: cycleId, mode: cycleMode, total: proration.total });
+
+      // ---- Mandate mode: charge now; plan goes live on an accepted intent ----
+      if (cycleMode === "mandate") {
+        let intentStatus: string | null = null;
+        try {
+          const { data: itFull } = await supabase
+            .from("tenants")
+            .select("id, is_demo, is_internal_tenant, stripe_account_id")
+            .eq("id", internalTenantId)
+            .maybeSingle();
+          const ctx = getStripeContext(itFull as any);
+          const intent = await ctx.stripe.paymentIntents.create(
+            {
+              amount: Math.round(proration.total * 100),
+              currency: "eur",
+              customer: mandate.stripe_customer_id,
+              payment_method: mandate.stripe_payment_method_id,
+              payment_method_types: [mandate.method_type],
+              confirm: true,
+              off_session: true,
+              metadata: {
+                billing_cycle_id: cycleId,
+                tenant_id: internalTenantId,
+                proration: "1",
+              },
+            },
+            { ...ctx.requestOptions, idempotencyKey: `cycle:${cycleId}` },
+          );
+          intentStatus = intent.status;
+
+          if (intent.status === "succeeded" || intent.status === "processing") {
+            // Deliberately NOT 'settled' — the webhook creates the invoice.
+            await supabase
+              .from("billing_cycles")
+              .update({ status: "processing", stripe_payment_intent_id: intent.id })
+              .eq("id", cycleId);
+
+            await effectuatePlanSwitch(supabase, {
+              tenantId,
+              billingSubscriptionId: billingSubId,
+              targetPlanId: planId,
+              targetInterval: interval,
+              periodStart: proration.new_period_start,
+              periodEnd: proration.new_period_end,
+              intervalSwap: proration.interval_swap,
+              billingNamePrefix,
+            });
+
+            log("Upgrade charged and effectuated", {
+              tenantId,
+              billing_cycle_id: cycleId,
+              intent: intent.id,
+              status: intent.status,
+            });
+            return jsonResponse({
+              success: true,
+              action: "switch",
+              downgrade: false,
+              pending: false,
+              billing_cycle_id: cycleId,
+              pro_rata_total: proration.total,
+              remaining_days: proration.remaining_days,
+              period_days: proration.period_days,
+              interval_swap: proration.interval_swap,
+            });
+          }
+        } catch (chargeErr) {
+          const msg = errMsg(chargeErr);
+          console.error(`[SYNC-TENANT-PLAN] Proration charge failed for ${cycleId}: ${msg}`);
+        }
+
+        // Declined / requires_action / creation error → NEVER silently upgrade.
+        // Fall through to the manual path: payment request + pending switch.
+        log("Proration charge not confirmed — switching to payment request", {
+          billing_cycle_id: cycleId,
+          intent_status: intentStatus,
+        });
+        try {
+          const { data: prData, error: prErr } = await supabase.rpc(
+            "generate_payment_request_number",
+            { _tenant_id: internalTenantId },
+          );
+          if (prErr) throw prErr;
+          prNumber = (prData as string) ?? null;
+        } catch (e) {
+          console.error(`[SYNC-TENANT-PLAN] PR number generation failed: ${errMsg(e)}`);
+        }
+        await supabase
+          .from("billing_cycles")
+          .update({
+            status: "awaiting_payment",
+            mode: "manual",
+            ...(prNumber ? { payment_request_number: prNumber } : {}),
+          })
+          .eq("id", cycleId)
+          .is("invoice_id", null);
+      } else {
+        await supabase
+          .from("billing_cycles")
+          .update({ status: "awaiting_payment" })
+          .eq("id", cycleId)
+          .is("invoice_id", null);
+      }
+
+      // ---- Manual path: payment request + PENDING plan switch ----
+      const { error: pendErr } = await supabase
+        .from("tenant_subscriptions")
+        .update({
+          pending_plan_id: planId,
+          pending_interval: interval,
+          pending_effective_at: null,
+          pending_billing_cycle_id: cycleId,
+        })
+        .eq("tenant_id", tenantId);
+      if (pendErr) throw pendErr;
+
+      let dispatched = false;
+      try {
+        const { error: dErr } = await supabase.functions.invoke("dispatch-payment-request", {
+          body: { billing_cycle_id: cycleId },
+        });
+        if (dErr) throw dErr;
+        dispatched = true;
+      } catch (e) {
+        console.error(`[SYNC-TENANT-PLAN] Payment request dispatch failed: ${errMsg(e)}`);
+      }
+
+      const { data: freshCycle } = await supabase
+        .from("billing_cycles")
+        .select("checkout_session_url, payment_request_number")
+        .eq("id", cycleId)
+        .maybeSingle();
+
+      log("Upgrade pending payment", {
         tenantId,
-        from: currentSub.plan_id,
-        to: planId,
-        proRata,
-        remainingDays,
-        periodDays,
-        interval_swap: intervalSwap,
-        proRataInvoiceId,
+        billing_cycle_id: cycleId,
+        total: proration.total,
+        dispatched,
       });
       return jsonResponse({
         success: true,
         action: "switch",
         downgrade: false,
-        pro_rata_amount: proRata,
-        pro_rata_invoice_id: proRataInvoiceId,
-        remaining_days: remainingDays,
-        period_days: periodDays,
+        pending: true,
+        awaiting_payment: true,
+        billing_cycle_id: cycleId,
+        payment_request_number: freshCycle?.payment_request_number ?? prNumber,
+        checkout_session_url: freshCycle?.checkout_session_url ?? null,
+        pro_rata_total: proration.total,
+        remaining_days: proration.remaining_days,
+        period_days: proration.period_days,
+        interval_swap: proration.interval_swap,
+        payment_request_dispatched: dispatched,
       });
     }
 

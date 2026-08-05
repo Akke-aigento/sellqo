@@ -332,6 +332,10 @@ Deno.serve(async (req) => {
         .from("billing_cycles")
         .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
         .eq("status", "pending")
+        // UPGRADE-PF-1: proration cycles are owned by sync-tenant-plan (it charges
+        // or dispatches the payment request itself, and a stale one is cancelled
+        // there). The sweep must never re-charge or re-dispatch them.
+        .eq("cycle_type", "recurring")
         .is("invoice_id", null)
         .lt("created_at", staleBefore)
         .limit(100);

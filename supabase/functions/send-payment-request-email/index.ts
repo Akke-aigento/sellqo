@@ -49,7 +49,7 @@ serve(async (req) => {
 
     const { data: cycle, error: cErr } = await supabase
       .from("billing_cycles")
-      .select("id, tenant_id, customer_id, period_start, period_end, total, due_date, payment_request_number, pdf_path, checkout_session_url")
+      .select("id, tenant_id, customer_id, period_start, period_end, total, due_date, payment_request_number, pdf_path, checkout_session_url, description")
       .eq("id", billing_cycle_id)
       .maybeSingle();
     if (cErr) throw cErr;
@@ -116,6 +116,7 @@ serve(async (req) => {
     const summary = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr><td style="color:#6b7280;padding:5px 0;">${t(locale, "paymentRequest.numberLabel")}:</td><td style="color:#1f2937;text-align:right;padding:5px 0;"><strong>${prNumber}</strong></td></tr>
+        ${cycle.description ? `<tr><td style="color:#6b7280;padding:5px 0;">${t(locale, "paymentRequest.descriptionLabel")}:</td><td style="color:#1f2937;text-align:right;padding:5px 0;">${cycle.description}</td></tr>` : ""}
         <tr><td style="color:#6b7280;padding:5px 0;">${t(locale, "paymentRequest.periodLabel")}:</td><td style="color:#1f2937;text-align:right;padding:5px 0;">${cycle.period_start} – ${cycle.period_end}</td></tr>
         ${cycle.due_date ? `<tr><td style="color:#6b7280;padding:5px 0;">${t(locale, "paymentRequest.dueLabel")}:</td><td style="color:#1f2937;text-align:right;padding:5px 0;">${cycle.due_date}</td></tr>` : ""}
         <tr><td style="color:#6b7280;padding:5px 0;">${t(locale, "paymentRequest.amountLabel")}:</td><td style="color:#1f2937;text-align:right;padding:5px 0;"><strong>${formatAmount(Number(cycle.total), currency, locale)}</strong></td></tr>

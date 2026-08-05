@@ -1219,6 +1219,10 @@
         "direct_mandate_redirect": {
           "title": "Directement vers la page de mandat",
           "description": "Si vous choisissez la domiciliation automatique, nous vous redirigeons désormais directement vers la page de mandat. Après la signature, vous revenez automatiquement et l'activation de votre plan se termine toute seule."
+        },
+        "pay_first_upgrades": {
+          "title": "Les mises à niveau sont désormais entièrement « payer d'abord »",
+          "description": "Une mise à niveau en cours de période facture désormais exactement les jours restants, sur la base de ce que vous payez aujourd'hui — plus de mois complet ni de double facture. Avec le prélèvement automatique, le nouveau plan démarre immédiatement ; avec une demande de paiement, il démarre dès réception du paiement. Votre page de facturation affiche la mise à niveau en attente avec un lien de paiement et la possibilité de l'annuler tant qu'elle est impayée."
         }
       },
       "copyLink": "Copier le lien",

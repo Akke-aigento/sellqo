@@ -88,6 +88,7 @@ type PaymentRequestStrings = {
   payNow: string;
   numberLabel: string;
   periodLabel: string;
+  descriptionLabel: string;
   dueLabel: string;
   amountLabel: string;
   attached: string;
@@ -180,6 +181,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       payNow: "Betaal nu online",
       numberLabel: "Verzoeknummer",
       periodLabel: "Periode",
+      descriptionLabel: "Omschrijving",
       dueLabel: "Gewenste betaaldatum",
       amountLabel: "Totaalbedrag",
       attached: "Het betalingsverzoek vind je als PDF in de bijlage.",
@@ -271,6 +273,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       payNow: "Pay online now",
       numberLabel: "Request number",
       periodLabel: "Period",
+      descriptionLabel: "Description",
       dueLabel: "Preferred payment date",
       amountLabel: "Total amount",
       attached: "You will find the payment request as a PDF attachment.",
@@ -362,6 +365,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       payNow: "Payer en ligne",
       numberLabel: "Numéro de demande",
       periodLabel: "Période",
+      descriptionLabel: "Description",
       dueLabel: "Date de paiement souhaitée",
       amountLabel: "Montant total",
       attached: "La demande de paiement est jointe en PDF.",
@@ -453,6 +457,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       payNow: "Jetzt online bezahlen",
       numberLabel: "Anfragenummer",
       periodLabel: "Zeitraum",
+      descriptionLabel: "Beschreibung",
       dueLabel: "Gewünschtes Zahlungsdatum",
       amountLabel: "Gesamtbetrag",
       attached: "Die Zahlungsaufforderung finden Sie als PDF im Anhang.",

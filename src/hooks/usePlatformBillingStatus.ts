@@ -5,6 +5,20 @@ import { TenantContext } from '@/hooks/useTenant';
 
 export type PlatformPaymentMode = 'mandate' | 'manual';
 
+export interface PendingUpgrade {
+  billing_cycle_id: string;
+  status: string;
+  total: number;
+  description: string | null;
+  target_plan_id: string | null;
+  target_interval: 'monthly' | 'yearly' | null;
+  checkout_session_url: string | null;
+  payment_request_number: string | null;
+  due_date: string | null;
+  grace_until: string | null;
+  cancellable: boolean;
+}
+
 export interface PlatformBillingStatus {
   success: boolean;
   has_billing_customer: boolean;
@@ -15,6 +29,11 @@ export interface PlatformBillingStatus {
   payment_mode: PlatformPaymentMode | null;
   billing_model: string | null;
   next_invoice_date: string | null;
+  /** UPGRADE-PF-1: open pro-rata upgrade that still awaits payment. */
+  pending_upgrade: PendingUpgrade | null;
+  pending_plan_id: string | null;
+  pending_interval: 'monthly' | 'yearly' | null;
+  pending_effective_at: string | null;
 }
 
 /**
@@ -91,6 +110,40 @@ export interface SyncTenantPlanResult {
   effective_at?: string | null;
   billing_subscription_id?: string | null;
   billing_customer_id?: string | null;
+  /** UPGRADE-PF-1 */
+  pending?: boolean;
+  awaiting_payment?: boolean;
+  billing_cycle_id?: string | null;
+  payment_request_number?: string | null;
+  checkout_session_url?: string | null;
+  pro_rata_total?: number;
+  remaining_days?: number;
+  period_days?: number;
+  interval_swap?: boolean;
+}
+
+/**
+ * UPGRADE-PF-1 — abort an unpaid pro-rata upgrade: the billing cycle is
+ * cancelled and the pending plan markers are cleared.
+ */
+export function useCancelPendingUpgrade() {
+  const tenantContext = useContext(TenantContext);
+  const tenantId = tenantContext?.currentTenant?.id ?? null;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!tenantId) throw new Error('Geen actieve tenant');
+      return await invokeWithErrorBody<{ success: boolean; cancelled_billing_cycle_id: string }>(
+        'get-platform-billing-status',
+        { body: { tenant_id: tenantId, action: 'cancel_upgrade' } },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-billing-status', tenantId] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+    },
+  });
 }
 
 /**
