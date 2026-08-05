@@ -801,6 +801,12 @@
     "success": {
       "title": "Ermächtigung aktiviert",
       "body": "Zukünftige Abonnementrechnungen von {{tenant}} werden automatisch eingezogen."
+    },
+    "context": {
+      "line": "Du erteilst SellQo ein Mandat für dein {{plan}}-Abo ({{amount}} {{period}}, exkl. MwSt.).",
+      "per_month": "pro Monat",
+      "per_year": "pro Jahr",
+      "cancel_note": "Du kannst dieses Mandat jederzeit widerrufen."
     }
   },
   "admin": {
@@ -953,7 +959,8 @@
       "manual_selected": "Zahlungsaufforderung pro Periode gewählt",
       "mode_error": "Zahlungsweise konnte nicht aktualisiert werden",
       "required_title": "Wähle zuerst eine Zahlungsweise",
-      "required_desc": "Richte Lastschrift ein oder wähle eine Zahlungsaufforderung pro Periode."
+      "required_desc": "Richte Lastschrift ein oder wähle eine Zahlungsaufforderung pro Periode.",
+      "half_hint": "Wähle einen Plan, um zu starten."
     },
     "plan_change": {
       "title": "Wechsel zu {{plan}}",
@@ -975,6 +982,27 @@
       "customers": "Kunden",
       "storage": "Speicher (GB)",
       "users": "Team"
+    },
+    "wizard": {
+      "next_payment": "Weiter: Zahlungsweise",
+      "back": "Zurück",
+      "method_title": "Wie möchtest du bezahlen?",
+      "method_subtitle": "Wähle, wie du dein {{plan}}-Abo bezahlst.",
+      "option_mandate_title": "Automatischer Einzug",
+      "option_mandate_desc": "Du erteilst SellQo einmalig ein Mandat; jede Periode wird automatisch eingezogen.",
+      "option_manual_title": "Zahlungsanfrage pro Periode",
+      "option_manual_desc": "Du erhältst jede Periode eine Zahlungsanfrage und bezahlst selbst.",
+      "mandate_title": "Mandat abschließen",
+      "mandate_desc": "Öffne den Link und schließe das Mandat ab. Sobald das geklappt hat, aktivieren wir deinen Plan.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "open_link": "Link öffnen",
+      "done_button": "Ich habe das Mandat abgeschlossen",
+      "not_found": "Wir sehen das Mandat noch nicht. Warte einen Moment und versuche es erneut — die Verarbeitung kann eine halbe Minute dauern.",
+      "close_hint": "Du kannst dieses Fenster schließen; deine Auswahl bleibt gespeichert und du kannst später weitermachen.",
+      "later": "Später abschließen",
+      "resume_alert": "Deine Zahlungsweise steht bereit. Aktiviere dein {{plan}}-Abo, um zu starten.",
+      "resume_action": "Plan aktivieren"
     }
   }
 }
