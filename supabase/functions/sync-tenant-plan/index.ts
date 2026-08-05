@@ -607,6 +607,24 @@ Deno.serve(async (req) => {
         });
         if (lineErr) throw lineErr;
 
+        // Generate invoice document (PDF/UBL) — best-effort, same pattern as runner
+        try {
+          const url = Deno.env.get("SUPABASE_URL")!;
+          const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const r = await fetch(`${url}/functions/v1/generate-subscription-invoice-pdf`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
+            body: JSON.stringify({ invoice_id: invoice.id }),
+          });
+          if (!r.ok) {
+            console.error(
+              `[SYNC-TENANT-PLAN] Pro-rata document generation returned non-OK ${r.status} for ${invoice.id}`,
+            );
+          }
+        } catch (docErr) {
+          console.error(`[SYNC-TENANT-PLAN] Pro-rata document generation failed: ${errMsg(docErr)}`);
+        }
+
         // Off-session collect via mandate (best-effort — same pattern as runner)
         try {
           const { data: mandate } = await supabase
@@ -648,11 +666,48 @@ Deno.serve(async (req) => {
                 .eq("id", invoice.id);
             } else if (intent.status === "processing") {
               await supabase.from("invoices").update({ status: "processing" }).eq("id", invoice.id);
+            } else {
+              // requires_action / requires_payment_method / canceled
+              const nowIso = new Date().toISOString();
+              const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+              await supabase
+                .from("invoices")
+                .update({
+                  status: "unpaid",
+                  charge_attempts: 1,
+                  last_charge_attempt_at: nowIso,
+                  next_action_at: nextAt,
+                })
+                .eq("id", invoice.id);
+              console.error(
+                `[SYNC-TENANT-PLAN] Pro-rata charge not confirmed for ${invoice.id}: ${intent.status}`,
+              );
             }
           }
         } catch (e) {
           const msg = errMsg(e);
           console.error(`[SYNC-TENANT-PLAN] Pro-rata charge failed: ${msg}`);
+          const nowIso = new Date().toISOString();
+          const nextAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+          await supabase
+            .from("invoices")
+            .update({
+              status: "unpaid",
+              charge_attempts: 1,
+              last_charge_attempt_at: nowIso,
+              next_action_at: nextAt,
+            })
+            .eq("id", invoice.id);
+        }
+
+        // Send invoice email (best-effort — same pattern as runner)
+        try {
+          const { error: emailErr } = await supabase.functions.invoke("send-invoice-email", {
+            body: { invoice_id: invoice.id },
+          });
+          if (emailErr) throw emailErr;
+        } catch (emailError) {
+          console.error(`[SYNC-TENANT-PLAN] Pro-rata invoice email failed: ${errMsg(emailError)}`);
         }
       }
 
