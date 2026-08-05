@@ -968,6 +968,13 @@
       "success_upgrade": "Du bist jetzt auf {{plan}}.",
       "success_downgrade": "Du wechselst zur nächsten Periode zu {{plan}}.",
       "error": "Planwechsel fehlgeschlagen"
+    },
+    "usage_labels": {
+      "products": "Produkte",
+      "orders": "Bestellungen",
+      "customers": "Kunden",
+      "storage": "Speicher (GB)",
+      "users": "Team"
     }
   }
 }

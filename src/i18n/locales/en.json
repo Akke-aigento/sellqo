@@ -635,6 +635,13 @@
       "success_upgrade": "You are now on {{plan}}.",
       "success_downgrade": "You will move to {{plan}} next period.",
       "error": "Plan change failed"
+    },
+    "usage_labels": {
+      "products": "Products",
+      "orders": "Orders",
+      "customers": "Customers",
+      "storage": "Storage (GB)",
+      "users": "Team"
     }
   },
   "import": {

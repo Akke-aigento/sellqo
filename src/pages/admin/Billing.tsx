@@ -337,20 +337,14 @@ export default function BillingPage() {
             ) : usage ? (
               <>
                 {Object.entries(usage).map(([key, value]) => {
-                  const labels: Record<string, string> = {
-                    products: t('nav.products'),
-                    orders: t('nav.orders'),
-                    customers: t('nav.customers'),
-                    storage: t('billing.storage_label', { defaultValue: 'Opslag (GB)' }),
-                    users: t('billing.users_label', { defaultValue: 'Team' }),
-                  };
+                  const label = t(`billing.usage_labels.${key}`, { defaultValue: key });
                   const isNearLimit = value.percentage >= 80 && value.percentage < 100;
                   const isOverLimit = value.percentage >= 100;
                   
                   return (
                     <div key={key} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span>{labels[key] || key}</span>
+                        <span>{label}</span>
                         <span className={cn(
                           isOverLimit && 'text-destructive font-medium',
                           isNearLimit && !isOverLimit && 'text-amber-500 font-medium'

@@ -634,6 +634,13 @@
       "success_upgrade": "Je zit nu op {{plan}}.",
       "success_downgrade": "Je gaat over naar {{plan}} bij de volgende periode.",
       "error": "Planwijziging mislukt"
+    },
+    "usage_labels": {
+      "products": "Producten",
+      "orders": "Bestellingen",
+      "customers": "Klanten",
+      "storage": "Opslag (GB)",
+      "users": "Team"
     }
   },
   "admin_billing": {

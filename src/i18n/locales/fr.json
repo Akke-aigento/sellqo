@@ -968,6 +968,13 @@
       "success_upgrade": "Vous êtes maintenant sur {{plan}}.",
       "success_downgrade": "Vous passerez à {{plan}} à la prochaine période.",
       "error": "Le changement de plan a échoué"
+    },
+    "usage_labels": {
+      "products": "Produits",
+      "orders": "Commandes",
+      "customers": "Clients",
+      "storage": "Stockage (Go)",
+      "users": "Équipe"
     }
   }
 }
