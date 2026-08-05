@@ -887,5 +887,8 @@
         "adjustment": "Correction"
       }
     }
+  },
+  "billing": {
+    "plan_change_via_team": "Les changements de forfait passent actuellement par notre équipe. Contactez-nous à info@sellqo.app — nous vous aidons immédiatement."
   }
 }

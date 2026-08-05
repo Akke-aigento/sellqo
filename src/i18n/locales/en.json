@@ -566,7 +566,8 @@
     "invoices": "Invoices",
     "view_all_invoices": "View all invoices",
     "upgrade_needed": "You're approaching your limit",
-    "subscription_canceled": "Your subscription will end on"
+    "subscription_canceled": "Your subscription will end on",
+    "plan_change_via_team": "Plan changes currently go through our team. Contact us at info@sellqo.app — we will help you right away."
   },
   "import": {
     "title": "Import Data",
