@@ -1181,6 +1181,10 @@
         "unified_plan_activation": {
           "title": "Plan kiezen en betaalwijze in één stap",
           "description": "Een plan kiezen en je betaalwijze instellen gaat nu in één vloeiende stap, en op de machtigingspagina zie je precies waarvoor en voor welk bedrag je machtigt."
+        },
+        "trial_pro_features": {
+          "title": "Alle Pro-functies tijdens je proefperiode",
+          "description": "Tijdens je gratis proefperiode van 14 dagen probeer je nu alle Pro-functies, zodat je het volledige platform kunt uittesten voordat je een plan kiest."
         }
       },
       "copyLink": "Kopieer link",

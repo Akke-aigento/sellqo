@@ -1181,6 +1181,10 @@
         "unified_plan_activation": {
           "title": "Plan wählen und Zahlungsweise in einem Schritt",
           "description": "Plan wählen und Zahlungsweise einrichten läuft jetzt in einem flüssigen Schritt, und auf der Mandatsseite siehst du genau, wofür und für welchen Betrag du ein Mandat erteilst."
+        },
+        "trial_pro_features": {
+          "title": "Alle Pro-Funktionen während der Testphase",
+          "description": "Während deiner kostenlosen 14-tägigen Testphase kannst du jetzt alle Pro-Funktionen ausprobieren, bevor du einen Plan wählst."
         }
       },
       "copyLink": "Link kopieren",

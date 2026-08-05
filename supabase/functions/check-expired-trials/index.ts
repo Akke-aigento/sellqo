@@ -70,6 +70,16 @@ serve(async (req) => {
 
     logStep("Successfully downgraded trials", { count: expiredTrials.length });
 
+    // Keep the denormalized plan label on tenants in sync (header badge source)
+    const { error: tenantUpdateError } = await supabase
+      .from("tenants")
+      .update({ subscription_plan: "free" })
+      .in("id", expiredTrials.map(t => t.tenant_id));
+
+    if (tenantUpdateError) {
+      logStep("Error syncing tenants.subscription_plan", { error: tenantUpdateError.message });
+    }
+
     // Send post-downgrade notifications
     for (const trial of expiredTrials) {
       try {

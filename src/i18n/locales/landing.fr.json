@@ -1181,6 +1181,10 @@
         "unified_plan_activation": {
           "title": "Choisir un plan et un moyen de paiement en une étape",
           "description": "Choisir un plan et configurer votre moyen de paiement se fait maintenant en une seule étape fluide, et la page de mandat indique précisément pour quoi et pour quel montant vous donnez votre autorisation."
+        },
+        "trial_pro_features": {
+          "title": "Toutes les fonctions Pro pendant votre essai",
+          "description": "Pendant votre essai gratuit de 14 jours, vous profitez désormais de toutes les fonctions Pro, afin de tester la plateforme complète avant de choisir un plan."
         }
       },
       "copyLink": "Copier le lien",
