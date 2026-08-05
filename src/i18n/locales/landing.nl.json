@@ -1165,6 +1165,10 @@
         "subscription_instant_payment_invoice": {
           "title": "Factuur direct na abonnementsbetaling",
           "description": "Zodra een abonnementsbetaling gelukt is, wordt de factuur automatisch aangemaakt als betaalbewijs en naar de klant gemaild."
+        },
+        "plan_changes_via_team": {
+          "title": "Planwijzigingen tijdelijk via ons team",
+          "description": "Terwijl we het vernieuwde betaalsysteem afronden, verlopen planwijzigingen tijdelijk via ons team."
         }
       },
       "copyLink": "Kopieer link",

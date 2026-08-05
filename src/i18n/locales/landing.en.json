@@ -1165,6 +1165,10 @@
         "subscription_instant_payment_invoice": {
           "title": "Invoice right after a subscription payment",
           "description": "As soon as a subscription payment succeeds, the invoice is created automatically as proof of payment and emailed to the customer."
+        },
+        "plan_changes_via_team": {
+          "title": "Plan changes temporarily via our team",
+          "description": "While we finalize the renewed payment system, plan changes temporarily go through our team."
         }
       },
       "copyLink": "Copy link",

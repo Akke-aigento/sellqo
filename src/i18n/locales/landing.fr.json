@@ -1165,6 +1165,10 @@
         "subscription_instant_payment_invoice": {
           "title": "Facture immédiatement après le paiement d'un abonnement",
           "description": "Dès qu'un paiement d'abonnement aboutit, la facture est créée automatiquement comme preuve de paiement et envoyée par e-mail au client."
+        },
+        "plan_changes_via_team": {
+          "title": "Changements de forfait temporairement via notre équipe",
+          "description": "Le temps de finaliser notre nouveau système de paiement, les changements de forfait passent temporairement par notre équipe."
         }
       },
       "copyLink": "Copier le lien",

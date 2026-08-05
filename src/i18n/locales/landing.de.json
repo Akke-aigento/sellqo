@@ -1165,6 +1165,10 @@
         "subscription_instant_payment_invoice": {
           "title": "Rechnung direkt nach der Abo-Zahlung",
           "description": "Sobald eine Abo-Zahlung erfolgreich ist, wird die Rechnung automatisch als Zahlungsnachweis erstellt und dem Kunden per E-Mail zugesendet."
+        },
+        "plan_changes_via_team": {
+          "title": "Planänderungen vorübergehend über unser Team",
+          "description": "Während wir das erneuerte Bezahlsystem fertigstellen, laufen Planänderungen vorübergehend über unser Team."
         }
       },
       "copyLink": "Link kopieren",
