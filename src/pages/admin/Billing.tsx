@@ -1,26 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { nl, enUS } from 'date-fns/locale';
-import { 
-  CreditCard, 
-  Download, 
-  ExternalLink, 
+import { nl, enUS, fr, de } from 'date-fns/locale';
+import { toast } from 'sonner';
+import {
+  Download,
+  ExternalLink,
   AlertTriangle,
   TrendingUp,
-  Settings,
-  Info,
+  CalendarClock,
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
-import { useCalculatePlanSwitch, useExecutePlanSwitch, type PlanSwitchPreview } from '@/hooks/usePlanSwitch';
-import { PlanSwitchPreviewCard } from '@/components/admin/billing/PlanSwitchPreview';
+import {
+  usePlatformBillingStatus,
+  useCreatePlatformMandateLink,
+  useSetPlatformPaymentMode,
+  useSyncTenantPlan,
+  type PlatformPaymentMode,
+} from '@/hooks/usePlatformBillingStatus';
 import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarningDialog';
 import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
+import { PaymentMethodCard } from '@/components/admin/billing/PaymentMethodCard';
+import { PlanChangeConfirmDialog } from '@/components/admin/billing/PlanChangeConfirmDialog';
+import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,34 +33,156 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
+
+const SUPPORT_EMAIL = 'info@sellqo.app';
 
 export default function BillingPage() {
   const { t, i18n } = useTranslation();
-  const { 
-    subscription, 
-    invoices, 
-    usage, 
-    isLoading, 
+  const {
+    subscription,
+    invoices,
+    usage,
+    isLoading,
     invoicesLoading,
     usageLoading,
-    createCheckout,
-    openCustomerPortal 
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
-  const calculatePlanSwitch = useCalculatePlanSwitch();
-  const executePlanSwitch = useExecutePlanSwitch();
-  
-  // Plan switch state
-  const [showPlanSwitchDialog, setShowPlanSwitchDialog] = useState(false);
-  const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
-  const [planSwitchPreview, setPlanSwitchPreview] = useState<PlanSwitchPreview | null>(null);
-  const [selectedTargetPlanId, setSelectedTargetPlanId] = useState<string | null>(null);
-  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
 
-  const dateLocale = i18n.language === 'nl' ? nl : enUS;
+  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const createMandateLink = useCreatePlatformMandateLink();
+  const setPaymentMode = useSetPlatformPaymentMode();
+  const syncPlan = useSyncTenantPlan();
+
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
+  const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
+  const [downgradeCandidate, setDowngradeCandidate] = useState<PricingPlan | null>(null);
+  const [mandateUrl, setMandateUrl] = useState<string | null>(null);
+  /** Chosen before there is a billing subscription; applied right after activate. */
+  const [pendingMode, setPendingMode] = useState<PlatformPaymentMode | null>(null);
+
+  const dateLocale =
+    i18n.language === 'nl' ? nl : i18n.language === 'fr' ? fr : i18n.language === 'de' ? de : enUS;
 
   // Determine current plan
   const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+
+  const mandate = billingStatus?.mandate ?? null;
+  const hasUsableMandate = !!mandate && mandate.status !== 'failed';
+  const effectiveMode: PlatformPaymentMode | null = billingStatus?.payment_mode ?? pendingMode;
+  const hasPaymentPath = hasUsableMandate || effectiveMode === 'manual';
+  const pendingPlan = useMemo(
+    () => plans.find(p => p.id === subscription?.pending_plan_id) ?? null,
+    [plans, subscription?.pending_plan_id],
+  );
+
+  const isEnterprise = (plan?: PricingPlan | null) =>
+    !!plan && (plan.slug === 'enterprise' || plan.name.toLowerCase().includes('enterprise'));
+
+  const scrollToPayment = () => {
+    document.getElementById('payment-method-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  };
+
+  const lostFeatureKeys = (target: PricingPlan | null): string[] => {
+    if (!target || !currentPlan?.features || !target.features) return [];
+    const cur = currentPlan.features as PricingPlanFeatures;
+    const tgt = target.features as PricingPlanFeatures;
+    return (Object.keys(cur) as (keyof PricingPlanFeatures)[])
+      .filter(k => cur[k] && !tgt[k])
+      .map(String);
+  };
+
+  const handleSetupMandate = async () => {
+    try {
+      const res = await createMandateLink.mutateAsync();
+      setMandateUrl(res.url);
+    } catch (err) {
+      toast.error(t('billing.payment.mandate_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  const handleChooseManual = async () => {
+    if (!billingStatus?.billing_subscription_id) {
+      // No billing subscription yet — remember the choice and apply after activate.
+      setPendingMode('manual');
+      toast.success(t('billing.payment.manual_selected'));
+      return;
+    }
+    try {
+      await setPaymentMode.mutateAsync('manual');
+      setPendingMode(null);
+      toast.success(t('billing.payment.manual_selected'));
+    } catch (err) {
+      toast.error(t('billing.payment.mode_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  const handleSelectPlan = (planId: string, isUpgrade: boolean) => {
+    const plan = plans.find(p => p.id === planId);
+    if (!plan) return;
+
+    if (isEnterprise(plan)) {
+      toast.info(t('billing.enterprise_contact'));
+      return;
+    }
+
+    const isFree = plan.slug === 'free' || Number(plan.monthly_price) === 0;
+    if (!hasPaymentPath && !isFree) {
+      toast.info(t('billing.payment.required_title'), {
+        description: t('billing.payment.required_desc'),
+      });
+      scrollToPayment();
+      return;
+    }
+
+    if (!isUpgrade && lostFeatureKeys(plan).length > 0) {
+      setDowngradeCandidate(plan);
+      return;
+    }
+    setConfirmPlan({ plan, isUpgrade });
+  };
+
+  const handleConfirmPlanChange = async () => {
+    if (!confirmPlan) return;
+    const { plan, isUpgrade } = confirmPlan;
+    // The UI decides activate vs switch — sync-tenant-plan returns 400 for a
+    // switch without a live billing subscription, which must never surface.
+    const action = billingStatus?.billing_subscription_id ? 'switch' : 'activate';
+    try {
+      const res = await syncPlan.mutateAsync({
+        planId: plan.id,
+        interval: selectedInterval,
+        action,
+      });
+
+      if (pendingMode === 'manual') {
+        try {
+          await setPaymentMode.mutateAsync('manual');
+          setPendingMode(null);
+        } catch {
+          toast.warning(t('billing.payment.mode_error'));
+        }
+      }
+
+      setConfirmPlan(null);
+      if (res.downgrade) {
+        toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
+      } else {
+        toast.success(t('billing.plan_change.success_upgrade', { plan: plan.name }));
+      }
+    } catch (err) {
+      toast.error(t('billing.plan_change.error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
 
   // Find the best upgrade target based on current usage overages
   const findUpgradeTarget = (): string | null => {
@@ -104,62 +229,12 @@ export default function BillingPage() {
       past_due: 'destructive',
       canceled: 'outline',
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    return (
+      <Badge variant={variants[status] || 'outline'}>
+        {t(`billing.status.${status}`, { defaultValue: status })}
+      </Badge>
+    );
   };
-
-  // Plan switch handlers
-  const handlePreviewPlanSwitch = async (targetPlanId: string) => {
-    setSelectedTargetPlanId(targetPlanId);
-    
-    const preview = await calculatePlanSwitch.mutateAsync({
-      target_plan_id: targetPlanId,
-      target_interval: selectedInterval,
-      tenant_id: subscription?.tenant_id,
-    });
-    
-    setPlanSwitchPreview(preview);
-    
-    // Show downgrade warning if this is a downgrade
-    if (!preview.is_upgrade) {
-      setShowDowngradeWarning(true);
-    } else {
-      setShowPlanSwitchDialog(true);
-    }
-  };
-
-  const handleConfirmDowngrade = () => {
-    setShowDowngradeWarning(false);
-    setShowPlanSwitchDialog(true);
-  };
-
-  const handleExecutePlanSwitch = async () => {
-    if (!selectedTargetPlanId) return;
-    
-    await executePlanSwitch.mutateAsync({
-      target_plan_id: selectedTargetPlanId,
-      target_interval: selectedInterval,
-      tenant_id: subscription?.tenant_id,
-      proration_behavior: 'create_prorations',
-    });
-    
-    setShowPlanSwitchDialog(false);
-    setPlanSwitchPreview(null);
-    setSelectedTargetPlanId(null);
-    // Refresh page to show new subscription
-    window.location.reload();
-  };
-
-  const handleCancelPlanSwitch = () => {
-    setShowPlanSwitchDialog(false);
-    setShowDowngradeWarning(false);
-    setPlanSwitchPreview(null);
-    setSelectedTargetPlanId(null);
-  };
-
-  // currentPlan already declared above
-  
-  // Filter plans that can be switched to (exclude current plan)
-  const switchablePlans = plans.filter(p => p.id !== currentPlan?.id && p.id !== 'free');
 
   if (isLoading) {
     return (
