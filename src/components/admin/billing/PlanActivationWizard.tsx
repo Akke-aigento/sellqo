@@ -149,7 +149,7 @@ export function PlanActivationWizard({
               {priceBlock}
               <button
                 type="button"
-                onClick={handleMandateOption}
+                onClick={() => onCreateMandate()}
                 disabled={isCreatingMandate}
                 className="w-full text-left rounded-lg border p-3 hover:bg-accent transition-colors disabled:opacity-60"
               >
@@ -187,74 +187,6 @@ export function PlanActivationWizard({
             <DialogFooter className="gap-2">
               <Button variant="ghost" onClick={() => setStep('plan')} disabled={isActivating}>
                 {t('billing.wizard.back')}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-
-        {step === 'mandate' && (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t('billing.wizard.mandate_title')}</DialogTitle>
-              <DialogDescription>{t('billing.wizard.mandate_desc')}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  ref={inputRef}
-                  readOnly
-                  value={mandateUrl ?? ''}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onClick={(e) => e.currentTarget.select()}
-                  className="font-mono text-xs"
-                />
-                <Button
-                  type="button"
-                  variant={copied ? 'secondary' : 'default'}
-                  onClick={handleCopy}
-                  className="shrink-0"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      {t('billing.wizard.copied')}
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-1" />
-                      {t('billing.wizard.copy')}
-                    </>
-                  )}
-                </Button>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  mandateUrl && window.open(mandateUrl, '_blank', 'noopener,noreferrer')
-                }
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                {t('billing.wizard.open_link')}
-              </Button>
-              {notFound && (
-                <p className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                  {t('billing.wizard.not_found')}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">{t('billing.wizard.close_hint')}</p>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-                {t('billing.wizard.later')}
-              </Button>
-              <Button onClick={handleDoneClicked} disabled={checking || isActivating}>
-                {(checking || isActivating) && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                {t('billing.wizard.done_button')}
               </Button>
             </DialogFooter>
           </>
