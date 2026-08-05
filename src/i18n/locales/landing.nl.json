@@ -981,39 +981,6 @@
       }
     },
     "changelog": {
-      "title": "Changelog",
-      "subtitle": "Alle updates en verbeteringen aan SellQo",
-      "types": {
-        "feature": "Nieuw",
-        "improvement": "Verbeterd",
-        "bugfix": "Bugfix",
-        "security": "Security"
-      },
-      "filters": {
-        "all": "Alles",
-        "feature": "Features",
-        "improvement": "Verbeteringen",
-        "bugfix": "Bugfixes",
-        "security": "Security"
-      },
-      "version": "Versie {{version}}",
-      "copyLink": "Kopieer link",
-      "copySuccess": "Link gekopieerd!",
-      "updatesCount": "{{count}} updates",
-      "subscribeTitle": "Blijf op de hoogte van updates",
-      "subscribeText": "Ontvang changelogs en product-updates rechtstreeks in je inbox.",
-      "subscribePlaceholder": "Je e-mailadres",
-      "subscribeButton": "Inschrijven",
-      "subscribeSubmitting": "Bezig...",
-      "subscribeSuccess": "Je ontvangt nu changelog-updates per e-mail!",
-      "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven.",
-      "dates": {
-        "jul_2026": "Juli 2026",
-        "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024",
-        "q2_2026": "Q2 2026",
-        "aug_2026": "Augustus 2026"
-      },
       "changes": {
         "refund_button_states": {
           "title": "Terugbetaal-knop toont nu de juiste status",
@@ -1180,14 +1147,21 @@
           "description": "Trek een gewaardeerde voorraadlijst (aantallen × kostprijs) voor vandaag of een datum in het verleden — met CSV- en Excel-export, klaar voor je boekhouder."
         }
       },
-      "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
-      "subscription_payment_options_foundation": {
-        "title": "Fundament voor flexibele betaalopties bij abonnementen",
-        "description": "De basis is gelegd voor meer keuze in hoe abonnementen betaald worden."
+      "copyLink": "Kopieer link",
+      "copySuccess": "Link gekopieerd!",
+      "dates": {
+        "jul_2026": "Juli 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026",
+        "aug_2026": "Augustus 2026"
       },
-      "upgrade_invoice_docs_email": {
-        "title": "Factuurdocument en e-mail bij plan-upgrade",
-        "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."
+      "filters": {
+        "all": "Alles",
+        "feature": "Features",
+        "improvement": "Verbeteringen",
+        "bugfix": "Bugfixes",
+        "security": "Security"
       },
       "plan_interval_switch_billing": {
         "title": "Correcte facturatie bij wisselen van facturatie-interval",
@@ -1196,7 +1170,37 @@
       "stock_ledger": {
         "title": "Voorraadgrootboek: elke mutatie geregistreerd",
         "description": "SellQo houdt nu elke voorraadbeweging bij — verkoop, retour, inkoop, synchronisatie en handmatige correctie — zodat je voorraad op elke datum exact klopt en volledig traceerbaar is."
-      }
+      },
+      "subscribeButton": "Inschrijven",
+      "subscribeError": "Inschrijven mislukt. Probeer het later opnieuw.",
+      "subscribeNote": "Alleen relevante updates, geen spam. Je kunt je altijd uitschrijven.",
+      "subscribePlaceholder": "Je e-mailadres",
+      "subscribeSubmitting": "Bezig...",
+      "subscribeSuccess": "Je ontvangt nu changelog-updates per e-mail!",
+      "subscribeText": "Ontvang changelogs en product-updates rechtstreeks in je inbox.",
+      "subscribeTitle": "Blijf op de hoogte van updates",
+      "subscription_instant_payment_invoice": {
+        "title": "Factuur direct na abonnementsbetaling",
+        "description": "Zodra een abonnementsbetaling gelukt is, wordt de factuur automatisch aangemaakt als betaalbewijs en naar de klant gemaild."
+      },
+      "subscription_payment_options_foundation": {
+        "title": "Fundament voor flexibele betaalopties bij abonnementen",
+        "description": "De basis is gelegd voor meer keuze in hoe abonnementen betaald worden."
+      },
+      "subtitle": "Alle updates en verbeteringen aan SellQo",
+      "title": "Changelog",
+      "types": {
+        "feature": "Nieuw",
+        "improvement": "Verbeterd",
+        "bugfix": "Bugfix",
+        "security": "Security"
+      },
+      "updatesCount": "{{count}} updates",
+      "upgrade_invoice_docs_email": {
+        "title": "Factuurdocument en e-mail bij plan-upgrade",
+        "description": "Upgrade-facturen krijgen nu automatisch een factuurdocument en een e-mail, en mislukte automatische incasso's worden correct opgevolgd."
+      },
+      "version": "Versie {{version}}"
     }
   }
 }

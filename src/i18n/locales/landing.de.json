@@ -981,39 +981,6 @@
       }
     },
     "changelog": {
-      "title": "Changelog",
-      "subtitle": "Alle Updates und Verbesserungen an SellQo",
-      "types": {
-        "feature": "Neu",
-        "improvement": "Verbessert",
-        "bugfix": "Bugfix",
-        "security": "Sicherheit"
-      },
-      "filters": {
-        "all": "Alle",
-        "feature": "Funktionen",
-        "improvement": "Verbesserungen",
-        "bugfix": "Bugfixes",
-        "security": "Sicherheit"
-      },
-      "version": "Version {{version}}",
-      "copyLink": "Link kopieren",
-      "copySuccess": "Link kopiert!",
-      "updatesCount": "{{count}} Updates",
-      "subscribeTitle": "Bleiben Sie über Updates informiert",
-      "subscribeText": "Erhalten Sie Changelogs und Produkt-Updates direkt in Ihr Postfach.",
-      "subscribePlaceholder": "Ihre E-Mail-Adresse",
-      "subscribeButton": "Abonnieren",
-      "subscribeSubmitting": "Wird bearbeitet...",
-      "subscribeSuccess": "Sie erhalten jetzt Changelog-Updates per E-Mail!",
-      "subscribeNote": "Nur relevante Updates, kein Spam. Sie können sich jederzeit abmelden.",
-      "dates": {
-        "jul_2026": "Juli 2026",
-        "q1_2025": "Q1 2025",
-        "q4_2024": "Q4 2024",
-        "q2_2026": "Q2 2026",
-        "aug_2026": "August 2026"
-      },
       "changes": {
         "refund_button_states": {
           "title": "Erstattungs-Button zeigt jetzt den richtigen Status",
@@ -1180,14 +1147,21 @@
           "description": "Erstellen Sie eine bewertete Bestandsliste (Mengen × Einstandspreis) für heute oder ein vergangenes Datum — mit CSV- und Excel-Export, bereit für Ihre Buchhaltung."
         }
       },
-      "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
-      "subscription_payment_options_foundation": {
-        "title": "Grundlage für flexible Zahlungsoptionen bei Abonnements",
-        "description": "Die Basis für mehr Auswahl bei der Bezahlung von Abonnements ist gelegt."
+      "copyLink": "Link kopieren",
+      "copySuccess": "Link kopiert!",
+      "dates": {
+        "jul_2026": "Juli 2026",
+        "q1_2025": "Q1 2025",
+        "q4_2024": "Q4 2024",
+        "q2_2026": "Q2 2026",
+        "aug_2026": "August 2026"
       },
-      "upgrade_invoice_docs_email": {
-        "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
-        "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
+      "filters": {
+        "all": "Alle",
+        "feature": "Funktionen",
+        "improvement": "Verbesserungen",
+        "bugfix": "Bugfixes",
+        "security": "Sicherheit"
       },
       "plan_interval_switch_billing": {
         "title": "Korrekte Abrechnung beim Wechsel des Abrechnungsintervalls",
@@ -1196,7 +1170,37 @@
       "stock_ledger": {
         "title": "Bestandsbuch: jede Bewegung erfasst",
         "description": "SellQo erfasst jetzt jede Bestandsbewegung — Verkauf, Rückgabe, Einkauf, Synchronisierung und manuelle Korrektur — damit Ihr Bestand zu jedem Datum exakt stimmt und vollständig nachvollziehbar ist."
-      }
+      },
+      "subscribeButton": "Abonnieren",
+      "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "subscribeNote": "Nur relevante Updates, kein Spam. Sie können sich jederzeit abmelden.",
+      "subscribePlaceholder": "Ihre E-Mail-Adresse",
+      "subscribeSubmitting": "Wird bearbeitet...",
+      "subscribeSuccess": "Sie erhalten jetzt Changelog-Updates per E-Mail!",
+      "subscribeText": "Erhalten Sie Changelogs und Produkt-Updates direkt in Ihr Postfach.",
+      "subscribeTitle": "Bleiben Sie über Updates informiert",
+      "subscription_instant_payment_invoice": {
+        "title": "Rechnung direkt nach der Abo-Zahlung",
+        "description": "Sobald eine Abo-Zahlung erfolgreich ist, wird die Rechnung automatisch als Zahlungsnachweis erstellt und dem Kunden per E-Mail zugesendet."
+      },
+      "subscription_payment_options_foundation": {
+        "title": "Grundlage für flexible Zahlungsoptionen bei Abonnements",
+        "description": "Die Basis für mehr Auswahl bei der Bezahlung von Abonnements ist gelegt."
+      },
+      "subtitle": "Alle Updates und Verbesserungen an SellQo",
+      "title": "Changelog",
+      "types": {
+        "feature": "Neu",
+        "improvement": "Verbessert",
+        "bugfix": "Bugfix",
+        "security": "Sicherheit"
+      },
+      "updatesCount": "{{count}} Updates",
+      "upgrade_invoice_docs_email": {
+        "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
+        "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
+      },
+      "version": "Version {{version}}"
     }
   }
 }
