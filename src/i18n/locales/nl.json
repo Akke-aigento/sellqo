@@ -652,15 +652,6 @@
       "option_mandate_desc": "Je machtigt SellQo eenmalig; elke periode wordt automatisch afgeschreven.",
       "option_manual_title": "Betalingsverzoek per periode",
       "option_manual_desc": "Je ontvangt elke periode een betalingsverzoek en betaalt zelf.",
-      "mandate_title": "Machtiging afronden",
-      "mandate_desc": "Open de link en rond de machtiging af. Zodra dat gelukt is, activeren we je plan.",
-      "copy": "Kopiëren",
-      "copied": "Gekopieerd",
-      "open_link": "Link openen",
-      "done_button": "Ik heb de machtiging afgerond",
-      "not_found": "We zien de machtiging nog niet. Even geduld en probeer het opnieuw — soms duurt de verwerking een halve minuut.",
-      "close_hint": "Je kunt dit venster sluiten; je keuze blijft bewaard en je kunt later verder.",
-      "later": "Later afronden",
       "resume_alert": "Je betaalwijze staat klaar. Activeer je {{plan}}-abonnement om te starten.",
       "resume_action": "Plan activeren"
     }
@@ -1028,7 +1019,9 @@
     },
     "success": {
       "title": "Machtiging geactiveerd",
-      "body": "Toekomstige abonnementsfacturen van {{tenant}} worden automatisch afgeschreven."
+      "body": "Toekomstige abonnementsfacturen van {{tenant}} worden automatisch afgeschreven.",
+      "back_to_billing": "Terug naar je abonnement",
+      "redirecting": "Je wordt automatisch teruggestuurd naar je abonnementspagina…"
     },
     "context": {
       "line": "Je machtigt SellQo voor je {{plan}}-abonnement ({{amount}} {{period}}, excl. btw).",

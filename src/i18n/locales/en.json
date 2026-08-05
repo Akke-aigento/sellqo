@@ -653,15 +653,6 @@
       "option_mandate_desc": "You authorise SellQo once; each period is collected automatically.",
       "option_manual_title": "Payment request per period",
       "option_manual_desc": "You receive a payment request each period and pay it yourself.",
-      "mandate_title": "Complete the mandate",
-      "mandate_desc": "Open the link and complete the mandate. As soon as it succeeds we activate your plan.",
-      "copy": "Copy",
-      "copied": "Copied",
-      "open_link": "Open link",
-      "done_button": "I completed the mandate",
-      "not_found": "We don't see the mandate yet. Please wait a moment and try again — processing can take up to half a minute.",
-      "close_hint": "You can close this window; your choice is saved and you can continue later.",
-      "later": "Finish later",
       "resume_alert": "Your payment method is ready. Activate your {{plan}} subscription to get started.",
       "resume_action": "Activate plan"
     }
@@ -1015,7 +1006,9 @@
     },
     "success": {
       "title": "Authorization activated",
-      "body": "Future subscription invoices from {{tenant}} will be charged automatically."
+      "body": "Future subscription invoices from {{tenant}} will be charged automatically.",
+      "back_to_billing": "Back to your subscription",
+      "redirecting": "You are being redirected to your subscription page…"
     },
     "context": {
       "line": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT).",
