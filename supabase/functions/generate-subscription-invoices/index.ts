@@ -290,12 +290,47 @@ Deno.serve(async (req) => {
     }
 
     // Fetch active subscriptions with lines
+    // ------------------------------------------------------------------
+    // CYCLE-1 sweep: billing cycles that were created but never reached
+    // 'awaiting_payment'/'processing' (crash or timeout between insert and
+    // charge). Retried after 1 hour; the Stripe idempotency key makes a
+    // repeated charge attempt safe.
+    // ------------------------------------------------------------------
+    try {
+      const staleBefore = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: stale, error: staleErr } = await supabase
+        .from("billing_cycles")
+        .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
+        .eq("status", "pending")
+        .lt("created_at", staleBefore)
+        .limit(100);
+      if (staleErr) throw staleErr;
+      for (const cycle of (stale ?? []) as BillingCycleRow[]) {
+        try {
+          await handlePendingCycle(supabase, cycle, summary);
+          summary.cycles_swept++;
+        } catch (e) {
+          console.error(
+            `[GEN-SUB-INVOICES] Sweep failed for cycle ${cycle.id}: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+      if ((stale ?? []).length > 0) {
+        log("Pending-cycle sweep", { swept: summary.cycles_swept });
+      }
+    } catch (sweepErr) {
+      console.error(
+        `[GEN-SUB-INVOICES] Pending-cycle sweep failed: ${sweepErr instanceof Error ? sweepErr.message : String(sweepErr)}`,
+      );
+    }
+
     let query = supabase
       .from("subscriptions")
       .select(`
         id, tenant_id, customer_id, name, interval, interval_count,
         next_invoice_date, last_invoice_date, end_date, status,
         auto_send, payment_term_days, generate_days_before,
+        payment_mode, billing_model,
         subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
       `)
       .eq("status", "active")
@@ -307,6 +342,7 @@ Deno.serve(async (req) => {
           id, tenant_id, customer_id, name, interval, interval_count,
           next_invoice_date, last_invoice_date, end_date, status,
           auto_send, payment_term_days, generate_days_before,
+          payment_mode, billing_model,
           subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
         `)
         .eq("status", "active")
