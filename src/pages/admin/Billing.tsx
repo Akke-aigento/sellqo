@@ -71,9 +71,11 @@ export default function BillingPage() {
   const hasUsableMandate = !!mandate && mandate.status !== 'failed';
   const effectiveMode: PlatformPaymentMode | null = billingStatus?.payment_mode ?? pendingMode;
   const hasPaymentPath = hasUsableMandate || effectiveMode === 'manual';
+  const pendingPlanId =
+    (subscription as unknown as { pending_plan_id?: string | null } | null)?.pending_plan_id ?? null;
   const pendingPlan = useMemo(
-    () => plans.find(p => p.id === subscription?.pending_plan_id) ?? null,
-    [plans, subscription?.pending_plan_id],
+    () => plans.find(p => p.id === pendingPlanId) ?? null,
+    [plans, pendingPlanId],
   );
 
   const isEnterprise = (plan?: PricingPlan | null) =>
@@ -295,18 +297,27 @@ export default function BillingPage() {
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
-              {subscription?.stripe_subscription_id && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => openCustomerPortal.mutate()}
-                  disabled={openCustomerPortal.isPending}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Beheer abonnement
-                </Button>
-              )}
-            </div>
+            {billingStatus?.next_invoice_date && (
+              <p className="text-sm text-muted-foreground">
+                {t('billing.next_invoice')}:{' '}
+                {format(new Date(billingStatus.next_invoice_date), 'PPP', { locale: dateLocale })}
+              </p>
+            )}
+
+            {pendingPlan && (
+              <Alert>
+                <CalendarClock className="h-4 w-4" />
+                <AlertDescription>
+                  {t('billing.pending_downgrade', {
+                    plan: pendingPlan.name,
+                    date: subscription?.current_period_end
+                      ? format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })
+                      : '',
+                  })}{' '}
+                  {t('billing.pending_downgrade_cancel', { email: SUPPORT_EMAIL })}
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
