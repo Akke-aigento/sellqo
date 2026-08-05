@@ -52,6 +52,8 @@ export default function BillingPage() {
   const { data: documents, isLoading: documentsLoading } = usePlatformBillingDocuments();
   const { openDocument, isDownloading } = useDocumentDownload();
   const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const allInvoices = documents?.invoices ?? [];
+  const visibleInvoices = showAllInvoices ? allInvoices : allInvoices.slice(0, INVOICE_PAGE_SIZE);
 
   const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
