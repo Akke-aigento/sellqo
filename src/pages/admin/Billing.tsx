@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Settings,
+  Info,
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
@@ -20,6 +21,7 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -317,6 +319,12 @@ export default function BillingPage() {
         </Card>
       </div>
 
+      {/* SAFEGUARD-1: plan changes temporarily via support */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>{t('billing.plan_change_via_team')}</AlertDescription>
+      </Alert>
+
       {/* Plan Comparison Cards */}
       {plans.length > 0 && currentPlan && (
         <Card id="plan-comparison-section">
@@ -334,23 +342,15 @@ export default function BillingPage() {
               selectedInterval={selectedInterval}
               isLoading={calculatePlanSwitch.isPending || createCheckout.isPending}
               onIntervalChange={setSelectedInterval}
-              onSelectPlan={(planId, isUpgrade) => {
-                if (subscription?.stripe_subscription_id) {
-                  // Existing Stripe subscription → plan switch flow
-                  handlePreviewPlanSwitch(planId);
-                } else {
-                  // No Stripe subscription (trial/free) → new checkout
-                  createCheckout.mutate({
-                    planId,
-                    interval: selectedInterval === 'yearly' ? 'yearly' : 'monthly',
-                  });
-                }
+              selectionDisabled
+              onSelectPlan={() => {
+                /* SAFEGUARD-1: plan changes temporarily handled by the SellQo team. */
               }}
             />
           </CardContent>
         </Card>
       )}
-      {subscription?.stripe_payment_method_id && (
+      {false && subscription?.stripe_payment_method_id && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

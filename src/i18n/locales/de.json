@@ -887,5 +887,8 @@
         "adjustment": "Korrektur"
       }
     }
+  },
+  "billing": {
+    "plan_change_via_team": "Planänderungen laufen derzeit über unser Team. Kontaktieren Sie uns unter info@sellqo.app — wir helfen Ihnen sofort."
   }
 }

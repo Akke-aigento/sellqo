@@ -565,7 +565,8 @@
     "pay_now": "Nu te betalen",
     "confirm_change": "Bevestig wijziging",
     "subscription_canceled": "Je abonnement wordt beëindigd op",
-    "reactivate": "Heractiveer abonnement"
+    "reactivate": "Heractiveer abonnement",
+    "plan_change_via_team": "Planwijzigingen verlopen op dit moment via ons team. Neem contact op via info@sellqo.app — we helpen je direct."
   },
   "admin_billing": {
     "title": "Platform Billing",
