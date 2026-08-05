@@ -3448,6 +3448,93 @@ export type Database = {
           },
         ]
       }
+      billing_cycles: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          due_date: string | null
+          grace_until: string | null
+          id: string
+          invoice_id: string | null
+          last_reminder_at: string | null
+          mode: Database["public"]["Enums"]["billing_payment_mode"]
+          model: Database["public"]["Enums"]["billing_model"]
+          payment_request_number: string | null
+          period_end: string
+          period_start: string
+          reminder_level: number
+          status: Database["public"]["Enums"]["billing_cycle_status"]
+          stripe_payment_intent_id: string | null
+          subscription_id: string
+          subtotal: number
+          tenant_id: string
+          total: number
+          updated_at: string
+          vat_amount: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string | null
+          grace_until?: string | null
+          id?: string
+          invoice_id?: string | null
+          last_reminder_at?: string | null
+          mode: Database["public"]["Enums"]["billing_payment_mode"]
+          model?: Database["public"]["Enums"]["billing_model"]
+          payment_request_number?: string | null
+          period_end: string
+          period_start: string
+          reminder_level?: number
+          status?: Database["public"]["Enums"]["billing_cycle_status"]
+          stripe_payment_intent_id?: string | null
+          subscription_id: string
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          due_date?: string | null
+          grace_until?: string | null
+          id?: string
+          invoice_id?: string | null
+          last_reminder_at?: string | null
+          mode?: Database["public"]["Enums"]["billing_payment_mode"]
+          model?: Database["public"]["Enums"]["billing_model"]
+          payment_request_number?: string | null
+          period_end?: string
+          period_start?: string
+          reminder_level?: number
+          status?: Database["public"]["Enums"]["billing_cycle_status"]
+          stripe_payment_intent_id?: string | null
+          subscription_id?: string
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_cycles_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_cycles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bogo_promotions: {
         Row: {
           buy_category_ids: string[] | null
@@ -14760,6 +14847,7 @@ export type Database = {
       subscriptions: {
         Row: {
           auto_send: boolean | null
+          billing_model: Database["public"]["Enums"]["billing_model"]
           created_at: string | null
           customer_id: string
           end_date: string | null
@@ -14772,6 +14860,7 @@ export type Database = {
           next_invoice_date: string
           notify_before_renewal: boolean | null
           notify_days_before: number | null
+          payment_mode: Database["public"]["Enums"]["billing_payment_mode"]
           payment_term_days: number | null
           start_date: string
           status: string | null
@@ -14783,6 +14872,7 @@ export type Database = {
         }
         Insert: {
           auto_send?: boolean | null
+          billing_model?: Database["public"]["Enums"]["billing_model"]
           created_at?: string | null
           customer_id: string
           end_date?: string | null
@@ -14795,6 +14885,7 @@ export type Database = {
           next_invoice_date: string
           notify_before_renewal?: boolean | null
           notify_days_before?: number | null
+          payment_mode?: Database["public"]["Enums"]["billing_payment_mode"]
           payment_term_days?: number | null
           start_date: string
           status?: string | null
@@ -14806,6 +14897,7 @@ export type Database = {
         }
         Update: {
           auto_send?: boolean | null
+          billing_model?: Database["public"]["Enums"]["billing_model"]
           created_at?: string | null
           customer_id?: string
           end_date?: string | null
@@ -14818,6 +14910,7 @@ export type Database = {
           next_invoice_date?: string
           notify_before_renewal?: boolean | null
           notify_days_before?: number | null
+          payment_mode?: Database["public"]["Enums"]["billing_payment_mode"]
           payment_term_days?: number | null
           start_date?: string
           status?: string | null
@@ -18690,6 +18783,10 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string
       }
+      generate_payment_request_number: {
+        Args: { _tenant_id: string }
+        Returns: string
+      }
       generate_platform_ogm: { Args: never; Returns: string }
       generate_po_number: { Args: { p_tenant_id: string }; Returns: string }
       generate_proforma_number: {
@@ -18977,6 +19074,15 @@ export type Database = {
         | "viewer"
         | "warehouse"
         | "marketing"
+      billing_cycle_status:
+        | "pending"
+        | "awaiting_payment"
+        | "processing"
+        | "settled"
+        | "expired"
+        | "reopened"
+      billing_model: "pay_first" | "invoice_first"
+      billing_payment_mode: "mandate" | "manual"
       changelog_change_type:
         | "breaking"
         | "feature"
@@ -19278,6 +19384,16 @@ export const Constants = {
         "warehouse",
         "marketing",
       ],
+      billing_cycle_status: [
+        "pending",
+        "awaiting_payment",
+        "processing",
+        "settled",
+        "expired",
+        "reopened",
+      ],
+      billing_model: ["pay_first", "invoice_first"],
+      billing_payment_mode: ["mandate", "manual"],
       changelog_change_type: [
         "breaking",
         "feature",
