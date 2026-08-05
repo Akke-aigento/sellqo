@@ -1145,6 +1145,26 @@
         "stock_report": {
           "title": "Bestandsbericht zu jedem Datum",
           "description": "Erstellen Sie eine bewertete Bestandsliste (Mengen × Einstandspreis) für heute oder ein vergangenes Datum — mit CSV- und Excel-Export, bereit für Ihre Buchhaltung."
+        },
+        "plan_interval_switch_billing": {
+          "title": "Korrekte Abrechnung beim Wechsel des Abrechnungsintervalls",
+          "description": "Bei einem Plan-Upgrade mit Wechsel zwischen monatlicher und jährlicher Abrechnung werden der Pro-rata-Betrag und das nächste Rechnungsdatum jetzt korrekt berechnet, sodass keine Doppelabrechnung entsteht."
+        },
+        "stock_ledger": {
+          "title": "Bestandsbuch: jede Bewegung erfasst",
+          "description": "SellQo erfasst jetzt jede Bestandsbewegung — Verkauf, Rückgabe, Einkauf, Synchronisierung und manuelle Korrektur — damit Ihr Bestand zu jedem Datum exakt stimmt und vollständig nachvollziehbar ist."
+        },
+        "upgrade_invoice_docs_email": {
+          "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
+          "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
+        },
+        "subscription_payment_options_foundation": {
+          "title": "Grundlage für flexible Zahlungsoptionen bei Abonnements",
+          "description": "Die Basis für mehr Auswahl bei der Bezahlung von Abonnements ist gelegt."
+        },
+        "subscription_instant_payment_invoice": {
+          "title": "Rechnung direkt nach der Abo-Zahlung",
+          "description": "Sobald eine Abo-Zahlung erfolgreich ist, wird die Rechnung automatisch als Zahlungsnachweis erstellt und dem Kunden per E-Mail zugesendet."
         }
       },
       "copyLink": "Link kopieren",
@@ -1163,14 +1183,6 @@
         "bugfix": "Bugfixes",
         "security": "Sicherheit"
       },
-      "plan_interval_switch_billing": {
-        "title": "Korrekte Abrechnung beim Wechsel des Abrechnungsintervalls",
-        "description": "Bei einem Plan-Upgrade mit Wechsel zwischen monatlicher und jährlicher Abrechnung werden der Pro-rata-Betrag und das nächste Rechnungsdatum jetzt korrekt berechnet, sodass keine Doppelabrechnung entsteht."
-      },
-      "stock_ledger": {
-        "title": "Bestandsbuch: jede Bewegung erfasst",
-        "description": "SellQo erfasst jetzt jede Bestandsbewegung — Verkauf, Rückgabe, Einkauf, Synchronisierung und manuelle Korrektur — damit Ihr Bestand zu jedem Datum exakt stimmt und vollständig nachvollziehbar ist."
-      },
       "subscribeButton": "Abonnieren",
       "subscribeError": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
       "subscribeNote": "Nur relevante Updates, kein Spam. Sie können sich jederzeit abmelden.",
@@ -1179,14 +1191,6 @@
       "subscribeSuccess": "Sie erhalten jetzt Changelog-Updates per E-Mail!",
       "subscribeText": "Erhalten Sie Changelogs und Produkt-Updates direkt in Ihr Postfach.",
       "subscribeTitle": "Bleiben Sie über Updates informiert",
-      "subscription_instant_payment_invoice": {
-        "title": "Rechnung direkt nach der Abo-Zahlung",
-        "description": "Sobald eine Abo-Zahlung erfolgreich ist, wird die Rechnung automatisch als Zahlungsnachweis erstellt und dem Kunden per E-Mail zugesendet."
-      },
-      "subscription_payment_options_foundation": {
-        "title": "Grundlage für flexible Zahlungsoptionen bei Abonnements",
-        "description": "Die Basis für mehr Auswahl bei der Bezahlung von Abonnements ist gelegt."
-      },
       "subtitle": "Alle Updates und Verbesserungen an SellQo",
       "title": "Changelog",
       "types": {
@@ -1196,10 +1200,6 @@
         "security": "Sicherheit"
       },
       "updatesCount": "{{count}} Updates",
-      "upgrade_invoice_docs_email": {
-        "title": "Rechnungsdokument und E-Mail bei Plan-Upgrade",
-        "description": "Upgrade-Rechnungen erhalten jetzt automatisch ein Rechnungsdokument und eine E-Mail, und fehlgeschlagene Einzüge werden korrekt nachverfolgt."
-      },
       "version": "Version {{version}}"
     }
   }
