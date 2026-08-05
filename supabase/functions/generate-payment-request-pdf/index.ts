@@ -57,7 +57,7 @@ serve(async (req) => {
 
     const { data: cycle, error: cErr } = await admin
       .from("billing_cycles")
-      .select("id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, due_date, payment_request_number, checkout_session_url")
+      .select("id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, due_date, payment_request_number, checkout_session_url, description")
       .eq("id", billing_cycle_id)
       .maybeSingle();
     if (cErr) throw cErr;
@@ -176,9 +176,23 @@ serve(async (req) => {
     page.drawText("Omschrijving", { x: margin + 8, y, size: 10, font: bold, color: text });
     page.drawText("Bedrag", { x: 480, y, size: 10, font: bold, color: text });
     y -= 18;
-    const desc = `${subscriptionName} (${cycle.period_start} t/m ${cycle.period_end})`.substring(0, 60);
-    page.drawText(desc, { x: margin + 8, y, size: 10, font: helv, color: text });
+    // UPGRADE-PF-1: a proration cycle carries its own description
+    // ("Upgrade X → Y (pro rata n/m d, ...)"). Wrap instead of truncating.
+    const rawDesc = cycle.description
+      ? String(cycle.description)
+      : `${subscriptionName} (${cycle.period_start} t/m ${cycle.period_end})`;
+    const descLines: string[] = [];
+    for (const word of rawDesc.split(" ")) {
+      const last = descLines[descLines.length - 1];
+      if (last && (last + " " + word).length <= 62) descLines[descLines.length - 1] = `${last} ${word}`;
+      else descLines.push(word);
+      if (descLines.length >= 3) break;
+    }
     page.drawText(fmt(Number(cycle.subtotal), currency), { x: 480, y, size: 10, font: helv, color: text });
+    for (const [i, dl] of descLines.entries()) {
+      page.drawText(dl, { x: margin + 8, y: y - i * 12, size: 10, font: helv, color: text });
+    }
+    y -= (descLines.length - 1) * 12;
     page.drawLine({ start: { x: margin, y: y - 4 }, end: { x: width - margin, y: y - 4 }, thickness: 0.5, color: lightGray });
 
     y -= 26;
