@@ -43,12 +43,6 @@ Deno.serve(async (req) => {
     }
 
     const expected = String(cfg.value);
-    if (
-      provided.length !== expected.length ||
-      !crypto.subtle.timingSafeEqual === undefined
-    ) {
-      // fallthrough to constant-ish comparison below
-    }
     let mismatch = provided.length !== expected.length ? 1 : 0;
     for (let i = 0; i < Math.min(provided.length, expected.length); i++) {
       mismatch |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
