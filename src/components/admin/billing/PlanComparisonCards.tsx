@@ -15,6 +15,7 @@ interface PlanComparisonCardsProps {
   currentInterval: BillingInterval;
   selectedInterval: BillingInterval;
   isLoading?: boolean;
+  selectionDisabled?: boolean;
   onSelectPlan: (planId: string, isUpgrade: boolean) => void;
   onIntervalChange: (interval: BillingInterval) => void;
 }
