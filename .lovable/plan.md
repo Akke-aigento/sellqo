@@ -1,66 +1,122 @@
-# CYCLE-3 — Webhook als enige factureer-plek voor pay-first
+# CYCLE-2 — Betalingsverzoek + herinnering/expiry-spoor (plan)
 
-## Doel
-Bij pay-first abonnementen maakt de runner geen factuur. Zodra de betaling bij Stripe lukt, maakt de webhook de factuur aan als betaalbewijs (status betaald), koppelt die aan de billing cycle, genereert PDF/UBL en mailt de klant. Het bestaande invoice-first pad blijft ongewijzigd.
+Sluitstuk van de pay-first engine: het betalingsverzoek-document met betaallink, de mail, en het vriendelijke herinnering/expiry-spoor. Geen frontend, geen wijziging aan het invoice_first-pad of de bestaande dunning.
 
-## 1. Tak-logica en plaatsing (`_shared/subscriptionCharge.ts`)
+## 1. Architectuur betalingsverzoek
 
-Plaatsing: nieuwe tak **vóór** de bestaande `invoice_id`-tak, direct na de event-type filter.
+Drie kleine bouwstenen plus een dunne orkestrator, in plaats van één grote functie:
+
+**a) `generate-payment-request-pdf` (nieuw)**
+- Input `{ billing_cycle_id }`. Service-role, geen JWT (alleen intern aangeroepen).
+- Zelfde patroon als `generate-subscription-invoice-pdf`: pdf-lib, A4, logo-embed, tenant-/klantblok, totalenblok, `Intl.NumberFormat`, alle numerics via `Number()`.
+- Eigen template, duidelijk géén factuur:
+  - Kop `BETALINGSVERZOEK` + PR-nummer (i.p.v. `FACTUUR`).
+  - Disclaimer prominent onder de kop: "Dit is geen factuur. Uw factuur volgt direct na ontvangst van de betaling."
+  - Periode (`period_start` t/m `period_end`), vervaldatum (`due_date`), één regel met de abonnementsnaam, subtotaal/btw/totaal exact uit de cycle-kolommen.
+  - Afzender = tenant van de cycle (voor platformabonnementen de interne SellQo-tenant), geadresseerde = `customers`-rij van `customer_id`.
+  - Geen OGM/IBAN-instructies wanneer er een betaallink is; de betaallink wel als tekst onderaan.
+- Opslag: bestaande bucket `invoices`, pad `<tenant_id>/payment-requests/<PR-nummer>.pdf` (`upsert: true`). Alleen het **pad** in de DB (`billing_cycles.pdf_path`), nooit een signed URL. Geen UBL — een betalingsverzoek is geen fiscaal document.
+
+**b) `create-cycle-payment-link` (nieuw)**
+- Input `{ billing_cycle_id }`; idempotent volgens `create-invoice-payment-link`: sessie < 24 u hergebruiken, anders nieuwe.
+- Stripe Checkout via `getStripeContext(tenant)` (Direct Charge voor connected tenants, platformaccount voor de interne tenant), `mode: 'payment'`, `line_items` met `price_data` (`Betalingsverzoek <PR-nummer>`), `customer_email` van de klant.
+- Betaalmethodes: **geen** `payment_method_types` meesturen, zodat Stripe automatisch kaart/Bancontact/iDEAL/wallets aanbiedt (bewuste afwijking van `create-invoice-payment-link`, dat de lijst hardcodeert).
+- Metadata: sessie-metadata `{ billing_cycle_id, tenant_id, payment_request_number }` **én** `payment_intent_data.metadata: { billing_cycle_id, tenant_id }`.
+- success/cancel: `${PUBLIC_APP_URL}/pay/success?pr=<PR>` en `/pay/cancelled?pr=<PR>` (bestaande publieke routes; geen nieuwe pagina in deze batch).
+- Slaat `checkout_session_id` / `_url` / `_created_at` op de cycle op.
+
+**c) `send-payment-request-email` (nieuw)**
+- Resend + `EMAIL_SENDERS` + `getTenantBrand`/`renderTenantEmail`/`formatAmount`/`t` — exact de stack van `send-invoice-email`.
+- Onderwerp: `Betalingsverzoek <PR-nummer> — <tenantnaam>`.
+- Body: vriendelijke toon, periode + bedrag + vervaldatum, prominente betaalknop naar de checkout-URL, plus de disclaimer dat de factuur direct na betaling volgt.
+- PDF als bijlage via `storage.from('invoices').download(pdf_path)` (service-role, base64 zoals in `send-invoice-email`) — geen signed URL in de mail nodig.
+- Herinneringsvarianten via optionele `reminder_level: 1|2|3` (3 = laatste kennisgeving bij expiry), zelfde patroon als `send-invoice-email`.
+- Pay-first mailt altijd; `subscriptions.auto_send` wordt niet gelezen (consistent met CYCLE-3).
+
+**Orkestratie: `dispatch-payment-request` (nieuw, dun)**
+- Input `{ billing_cycle_id, reminder_level? }`: cycle laden → guard (`status in ('awaiting_payment','reopened')`, `invoice_id is null`) → PR-nummer garanderen via `generate_payment_request_number` als het leeg is → paylink → PDF → mail → `request_sent_at` / `last_reminder_at` bijwerken.
+- Dit is het enige adres dat de runner en de reminder-cron kennen; beide roepen het **best-effort** aan (in een `safe()`-wrapper, faalt nooit de runner).
+
+**Aanroeppunten**
+- Runner (`generate-subscription-invoices`): in `handlePendingCycle`, ná `toAwaitingPayment()`, in beide takken die op `awaiting_payment` uitkomen — `mode='manual'` én het vangnet `mode='mandate'` zonder actief mandaat. Best-effort; faalt de dispatch, dan pikt de reminder-cron de cycle de volgende dag op (`request_sent_at is null`).
+- Verder niets in de webhook.
+
+## 2. Checkout → payment_intent metadata
+
+`payment_intent_data.metadata` op de sessie wordt door Stripe letterlijk gekopieerd naar het aangemaakte PaymentIntent. Daardoor draagt `payment_intent.succeeded` de `billing_cycle_id` en pikt de bestaande CYCLE-3-tak (`handleCycleCharge`) hem op **zonder enige wijziging**: factuur `paid` aanmaken, cycle `settled`, PDF + mail. Dat geldt ook voor een cycle op `expired`, want CYCLE-3 filtert alleen op `settled`/`invoice_id`.
+
+Conclusie: `checkout.session.completed` hoeft **niets** te doen; we voegen geen handler toe. Twee kanttekeningen die het ontwerp expliciet afdekt:
+- Vertraagde methodes (SEPA via Checkout) leveren pas later `payment_intent.succeeded`. De cycle blijft tot dan `awaiting_payment` en zou een herinnering kunnen krijgen terwijl er al betaald wordt. Mitigatie: bestaat er een `checkout_session_id` jonger dan 7 dagen, dan slaan we niveau-verhoging over en loggen dat (geen extra Stripe-call).
+- `stripe-connect-webhook` geeft `payment_intent.succeeded` van connected accounts al door aan de shared handler (sinds CYCLE-3); we verifiëren dat en deployen hem mee als er iets aan `_shared` wijzigt.
+
+## 3. Herinnering/expiry-cron
+
+Nieuwe functie `process-cycle-reminders`, opgebouwd volgens `process-invoice-dunning` (service-role client, `safe()`-wrapper i.p.v. `.catch()`, summary in de response, optionele `{ billing_cycle_id }` voor een handmatige run).
+
+Selectie: `billing_cycles` met `status in ('awaiting_payment','reopened')`, `invoice_id is null`, `limit 500`.
+
+Niveaus (vriendelijke toon, geen aanmaning, geen boete, geen rente):
+
+| Situatie | Actie |
+|---|---|
+| `request_sent_at is null` | eerste verzending (dispatch zonder reminder_level) |
+| vandaag ≥ `due_date` en `reminder_level < 1` | niveau 1 |
+| vandaag ≥ midpoint(`due_date`, `grace_until`) en `reminder_level < 2` | niveau 2 |
+| vandaag > `grace_until` | `status='expired'` + niveau 3 (laatste kennisgeving) |
+
+Elke actie: dispatch best-effort, dan `reminder_level` / `last_reminder_at` bijwerken. Bij expiry ook een `notifications`-rij (categorie `billing`, prioriteit `high`) voor de platformadmin, zoals dunning doet.
+
+Idempotentie/veiligheid:
+- Verhoging alleen naar een hoger niveau, plus dag-guard: overslaan als `last_reminder_at::date = today`.
+- Update-guards: `.eq('status', <verwachte status>)` + `.is('invoice_id', null)`, zodat een cycle die intussen door de webhook is gesettled nooit wordt teruggezet of geëxpireerd.
+- Expiry raakt uitsluitend `billing_cycles.status`; `subscriptions` en `tenant_subscriptions` blijven onaangeraakt (suspensie = LOCK-1).
+
+Cron: nieuwe pg_cron-job `process-cycle-reminders-daily`, `30 7 * * *`, exact het `net.http_post` + `vault.decrypted_secrets` / `cron_service_role_key`-patroon van job 47/61, met `cron.unschedule`-guard vooraf. Wordt via runtime-SQL gezet (geen migratie met projectspecifieke keys).
+
+## 4. Migratie (kolommen die nog missen)
+
+`billing_cycles` (CYCLE-1) heeft geen opslagvelden voor PDF/checkout/verzending. Eén additieve migratie, geen DROP:
 
 ```text
-payment_intent.succeeded|payment_failed
-  ├─ metadata.billing_cycle_id aanwezig?  → nieuwe pay-first tak → return true
-  ├─ metadata.invoice_id aanwezig?        → bestaande tak (byte-voor-byte ongewijzigd)
-  └─ anders                               → return false
+ALTER TABLE public.billing_cycles
+  ADD COLUMN IF NOT EXISTS pdf_path text,
+  ADD COLUMN IF NOT EXISTS checkout_session_id text,
+  ADD COLUMN IF NOT EXISTS checkout_session_url text,
+  ADD COLUMN IF NOT EXISTS checkout_session_created_at timestamptz,
+  ADD COLUMN IF NOT EXISTS request_sent_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS billing_cycles_reminder_scan_idx
+  ON public.billing_cycles (status, grace_until) WHERE invoice_id IS NULL;
 ```
 
-Praktisch: de huidige functie wordt de private helper `handleInvoiceCharge()` (inhoud onveranderd, alleen verplaatst), plus een nieuwe `handleCycleCharge()`; `handleSubscriptionChargeWebhook` wordt een dispatcher op metadata. Het `SupabaseLike`-type wordt uitgebreid met `rpc` en `functions.invoke` (nu alleen `from`).
+RLS/GRANTs blijven zoals CYCLE-1 (tenant-scoped, `service_role` ALL).
 
-### succeeded met `billing_cycle_id`
-1. Cycle laden (`billing_cycles`: id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id). Niet gevonden → log + `return true`.
-2. Idempotentie: `status === 'settled' || invoice_id !== null` → log + `return true`. Filter kijkt **uitsluitend** naar deze twee velden, dus `pending`, `processing`, `awaiting_payment`, `expired` en `reopened` lopen alle door dezelfde code — het reopened/expired-geval heeft daarmee geen aparte tak nodig (bevestigd).
-3. `generate_invoice_number(cycle.tenant_id)` via rpc.
-4. Insert in `invoices`: status `paid`, `paid_at = now()`, `issue_date = due_date = vandaag (UTC date)`, `subtotal`/`tax_amount`/`total` = `Number()` van de cycle-kolommen, `subscription_id`, `customer_id`, `tenant_id`, `stripe_payment_intent_id` indien de kolom bestaat (anders overslaan). `.select().single()`.
-5. Eén `invoice_lines`-regel (zie §2).
-6. Cycle updaten: `status='settled'`, `invoice_id`, `stripe_payment_intent_id = intent.id`, met guard `.is('invoice_id', null)` zodat een parallelle webhook nooit overschrijft. 0 rijen geraakt → er was al een factuur: log en stop (weesfactuur-risico, zie risico's).
-7. Best-effort `generate-subscription-invoice-pdf` via service-role fetch (zelfde patroon als de runner). Odoo-sync pakt de betaalde factuur daarna via de bestaande hourly cron op.
-8. Best-effort `send-invoice-email` (`{ invoice_id }`), variant zonder betaalinstructies aangezien de factuur al betaald is. Fouten worden gelogd, nooit gethrowd.
-9. `return true`.
+Optioneel: `get-document-url` uitbreiden met `doc_type: 'payment_request'` (tabel `billing_cycles`, bucket `invoices`, pad-kolom `pdf_path`, nummerkolom `payment_request_number`) zodat 2a·4 de PDF veilig kan downloaden. Puur code, geen DDL — meenemen tenzij je het bij de frontend-batch wil.
 
-### payment_failed met `billing_cycle_id`
-- `billing_cycles` update naar `status='awaiting_payment'` met `.neq('status','settled')` en `.is('invoice_id', null)`; `due_date`/`grace_until` worden **niet** aangeraakt (runner zette die al). Alleen als beide leeg zijn worden ze gevuld (due = vandaag, grace = +7 dagen).
-- `last_charge_attempt_at`/attempt-teller wordt alleen bijgewerkt als zulke kolommen op `billing_cycles` bestaan; anders overgeslagen (geen schemawijziging in deze batch).
-- De bestaande mandaat-detach/revoke-detectie wordt gedeeld met de invoice-tak (uitgetrokken naar `flagMandateIfDetached()`) en ook hier aangeroepen.
-- Geen herinneringen of suspensie — dat is CYCLE-2/LOCK-1.
+## 5. Hergebruik
 
-## 2. invoice_lines-ontwerp + trade-off
-Eén regel:
-- `description`: `<subscription.name> (<period_start> t/m <period_end>)` (datums in NL-notatie), fallback `"Abonnement"` als de subscription niet meer te laden is.
-- `quantity: 1`, `unit_price = net_amount = cycle.subtotal`, `vat_amount = cycle.vat_amount`, `line_total = gross_amount = cycle.total`, `line_type: 'product'`, `sort_order: 0`.
-- `vat_rate`: **afgeleid uit de cycle-totalen** — `round(vat_amount / subtotal * 100, 2)`, met `0` als subtotal 0 is.
+| Bestaand | Gebruikt voor |
+|---|---|
+| `generate-subscription-invoice-pdf` | template- en storage-patroon van de PDF |
+| `create-invoice-payment-link` | idempotente Checkout-sessie + `getStripeContext` |
+| `send-invoice-email` | Resend, `EMAIL_SENDERS`, tenant-branding, bijlage-download, reminder_level |
+| `process-invoice-dunning` | cron-skelet, `safe()`, summary, notifications |
+| `_shared/subscriptionCharge.ts` | ongewijzigd — vangt de Checkout-betaling al af |
+| cron-jobs 47/61 | vault-service-role cron-patroon |
 
-Trade-off: de actuele `subscription_lines` bevatten meer detail en een expliciet btw-percentage, maar kunnen tussen cycle-aanmaak en betaling gewijzigd zijn (downgrade, prijswijziging). De cycle-totalen zijn wat er daadwerkelijk geïnd is en dus de waarheid op de factuur. Daarom: bedragen altijd uit de cycle, tarief afgeleid. Bij een niet-standaard afgeleide waarde (bijv. 20,99) rondt de weergave op 2 decimalen; als het afgeleide tarief binnen 0,05 van een gangbaar tarief ligt (0/6/12/21) wordt dat tarief gebruikt zodat de btw-rapportage in de juiste vakken valt.
+## 6. Risico's
 
-## 3. Idempotentie- en race-analyse
-- **Dubbele webhook (zelfde event 2x)**: run 2 ziet `settled`/`invoice_id` en stopt. Bij exact gelijktijdige verwerking beschermt de `.is('invoice_id', null)`-guard op de cycle-update; de verliezer logt en stopt.
-- **Pending-race (instant kaart, runner nog niet klaar)**: de tak filtert niet op status, dus een cycle op `pending` settelt gewoon. De pending-sweep van de runner ziet daarna `settled` en moet die overslaan — de sweep-query wordt gecontroleerd en desnoods aangescherpt op `status='pending'` én `invoice_id is null`.
-- **failed ná succeeded** (retry-volgorde omgedraaid): de failed-update heeft `.neq('status','settled')` + `.is('invoice_id', null)`, dus een gesettelde cycle wordt nooit teruggezet.
-- **succeeded ná failed**: normaal geval, cycle op `awaiting_payment` settelt door (reopened-pad).
-- **Crash tussen invoice-insert en cycle-update**: de factuur bestaat dan zonder cycle-link. Facturen worden nooit verwijderd; herstel is een handmatige/administratieve actie. Beperkend: de cycle-update volgt direct op de insert, vóór PDF en mail.
+1. **Dubbele mail** als dispatch slaagt maar de `request_sent_at`-update faalt; beperkt door de dag-guard, in het slechtste geval één duplicaat.
+2. **Verouderde betaallink**: een sessie > 24 u wordt vervangen, maar een oude PDF bij de klant houdt de oude URL. Elke herinnering regenereert daarom PDF én link samen.
+3. **Vertraagde betaalmethodes** kunnen een onnodige herinnering triggeren — gemitigeerd met de 7-daagse sessie-guard, niet volledig uitgesloten.
+4. **Toon/juridisch**: teksten expliciet als verzoek; nergens "aanmaning", "vordering" of "wettelijke rente".
+5. **Interne tenant als afzender**: onvolledige adres-/btw-gegevens maken de PDF karig. De functie faalt daar niet op, maar het is een datacheck vóór de eerste echte verzending.
+6. **Bucket-hergebruik**: betalingsverzoeken in de `invoices`-bucket in een submap houdt het overzichtelijk maar mengt documenttypes; alternatief is een aparte bucket.
 
-## 4. Deploy-lijst
-- `platform-stripe-webhook`
-- `stripe-connect-webhook`
+## 7. Open vragen
 
-Beide embedden `_shared`, dus beide moeten opnieuw uitgerold worden. `stripe-connect-webhook` heeft verder niets extra nodig: hij roept de handler al met een service-role client aan en vangt de payment_intent-events al af; de tak gebruikt dezelfde client. De runner wordt alleen opnieuw gedeployed als de sweep-query aangescherpt moet worden.
-
-## 5. Risico's
-- Weesfactuur als de cycle-update faalt na de invoice-insert (zie boven) — zichtbaar in logs, factuur blijft staan.
-- Afgeleid btw-tarief kan afwijken van het bedoelde tarief bij gemengde tarieven binnen één abonnement; de cycle houdt maar één totaal bij. Voor abonnementen met meerdere tarieven blijft invoice-first veiliger.
-- Factuurnummers worden pas bij betaling uitgegeven, dus de nummering volgt de betaal- en niet de periode-volgorde.
-- Mail en PDF zijn best-effort: bij uitval krijgt de klant de belofte "factuur direct na betaling" niet waargemaakt; er is nog geen retry-mechanisme (kandidaat voor CYCLE-2).
-
-## 6. Open vragen
-1. Bestaat er op `billing_cycles` al een kolom voor het intent-id en/of attempt-teller die de failed-tak mag vullen, of laten we die velden hier volledig ongemoeid?
-2. Moet de mail ook uitgaan als `subscriptions.auto_send` uit staat? Voorstel: bij pay-first altijd mailen, omdat de factuur het betaalbewijs is.
-3. Bij `expired` → betaald: eerst kort naar `reopened` en dan `settled`, of in één stap naar `settled`? Voorstel: één stap, met logregel dat het een heropening was.
+1. PDF in de bestaande `invoices`-bucket onder `payment-requests/`, of een nieuwe private bucket `payment-requests`?
+2. `get-document-url` nu al uitbreiden met `payment_request`, of pas bij 2a·4?
+3. Mailtaal: vaste NL-teksten (zoals de huidige subscription-mails), of meteen via `tenantEmailI18n` op klanttaal?
+4. Bij niveau 2/3 ook een `notifications`-rij voor de platformadmin, of alleen bij expiry?
+5. Success-URL: bestaande `/pay/success` hergebruiken, of een eigen `/pay/pr-success` met "je factuur volgt per mail"?
