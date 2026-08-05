@@ -302,6 +302,7 @@ Deno.serve(async (req) => {
         .from("billing_cycles")
         .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
         .eq("status", "pending")
+        .is("invoice_id", null)
         .lt("created_at", staleBefore)
         .limit(100);
       if (staleErr) throw staleErr;
