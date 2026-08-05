@@ -1223,6 +1223,10 @@
         "pay_first_upgrades": {
           "title": "Upgrades laufen jetzt vollständig nach dem Prinzip 'zuerst zahlen'",
           "description": "Ein Upgrade mitten in der Periode berechnet jetzt genau die restlichen Tage auf Basis dessen, was du heute zahlst — kein ganzer Monat und keine doppelte Rechnung mehr. Mit Lastschrift startet der neue Plan sofort; bei einer Zahlungsanfrage startet er, sobald die Zahlung eingeht. Auf deiner Abrechnungsseite siehst du das offene Upgrade mit Zahlungslink und der Möglichkeit, es zu stornieren, solange es unbezahlt ist."
+        },
+        "billing_documents": {
+          "title": "Rechnungen und Zahlungsanfragen aus einer Quelle",
+          "description": "Deine Rechnungsübersicht kommt jetzt direkt aus der neuen Abrechnungs-Engine: Rechnungen, Gutschriften und offene Zahlungsanfragen mit sicheren PDF-Downloads."
         }
       },
       "copyLink": "Link kopieren",
@@ -1260,9 +1264,5 @@
       "updatesCount": "{{count}} Updates",
       "version": "Version {{version}}"
     }
-  },
-  "billing_documents": {
-    "title": "Rechnungen und Zahlungsanfragen aus einer Quelle",
-    "description": "Deine Rechnungsübersicht kommt jetzt direkt aus der neuen Abrechnungs-Engine: Rechnungen, Gutschriften und offene Zahlungsanfragen mit sicheren PDF-Downloads."
   }
 }

@@ -1223,6 +1223,10 @@
         "pay_first_upgrades": {
           "title": "Upgrades zijn nu volledig 'eerst betalen'",
           "description": "Een upgrade tijdens je periode rekent nu exact de resterende dagen af vanaf wat je vandaag betaalt — nooit meer een volle maand of een dubbele factuur. Met automatische incasso gaat het nieuwe plan direct in; betaal je per betalingsverzoek, dan gaat de upgrade in zodra de betaling binnen is. Je ziet de openstaande upgrade op je facturatiepagina, met een betaallink en de mogelijkheid om te annuleren zolang die onbetaald is."
+        },
+        "billing_documents": {
+          "title": "Facturen en betalingsverzoeken uit één bron",
+          "description": "Je factuuroverzicht komt nu rechtstreeks uit de nieuwe facturatie-engine: facturen, creditnota's en open betalingsverzoeken met veilige PDF-downloads."
         }
       },
       "copyLink": "Kopieer link",
@@ -1260,9 +1264,5 @@
       "updatesCount": "{{count}} updates",
       "version": "Versie {{version}}"
     }
-  },
-  "billing_documents": {
-    "title": "Facturen en betalingsverzoeken uit één bron",
-    "description": "Je factuuroverzicht komt nu rechtstreeks uit de nieuwe facturatie-engine: facturen, creditnota's en open betalingsverzoeken met veilige PDF-downloads."
   }
 }

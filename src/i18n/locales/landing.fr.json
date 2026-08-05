@@ -1223,6 +1223,10 @@
         "pay_first_upgrades": {
           "title": "Les mises à niveau sont désormais entièrement « payer d'abord »",
           "description": "Une mise à niveau en cours de période facture désormais exactement les jours restants, sur la base de ce que vous payez aujourd'hui — plus de mois complet ni de double facture. Avec le prélèvement automatique, le nouveau plan démarre immédiatement ; avec une demande de paiement, il démarre dès réception du paiement. Votre page de facturation affiche la mise à niveau en attente avec un lien de paiement et la possibilité de l'annuler tant qu'elle est impayée."
+        },
+        "billing_documents": {
+          "title": "Factures et demandes de paiement depuis une seule source",
+          "description": "Votre aperçu de facturation provient désormais directement du nouveau moteur de facturation : factures, notes de crédit et demandes de paiement ouvertes avec téléchargements PDF sécurisés."
         }
       },
       "copyLink": "Copier le lien",
@@ -1260,9 +1264,5 @@
       "updatesCount": "{{count}} mises à jour",
       "version": "Version {{version}}"
     }
-  },
-  "billing_documents": {
-    "title": "Factures et demandes de paiement depuis une seule source",
-    "description": "Votre aperçu de facturation provient désormais directement du nouveau moteur de facturation : factures, notes de crédit et demandes de paiement ouvertes avec téléchargements PDF sécurisés."
   }
 }
