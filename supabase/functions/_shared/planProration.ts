@@ -194,9 +194,9 @@ export function prorationDescription(params: {
   intervalSwap?: boolean;
   targetInterval?: Interval;
 }): string {
-  const suffix = params.intervalSwap ? ` — ${params.targetInterval === "yearly" ? "jaarlijks" : "maandelijks"}` : "";
+  const suffix = params.intervalSwap ? ` - ${params.targetInterval === "yearly" ? "jaarlijks" : "maandelijks"}` : "";
   return (
-    `Upgrade ${params.fromPlanName} → ${params.toPlanName}${suffix} ` +
+    `Upgrade ${params.fromPlanName} -> ${params.toPlanName}${suffix} ` +
     `(pro rata ${params.remainingDays}/${params.periodDays} d, ${nlDate(params.fromISO)} t/m ${nlDate(params.toISO)})`
   );
 }

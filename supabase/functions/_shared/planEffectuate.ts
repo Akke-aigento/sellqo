@@ -101,7 +101,7 @@ export async function effectuatePlanSwitch(
 
   // 2. Billing subscription: name always, interval/period only on a swap.
   const subPatch: Record<string, unknown> = {
-    name: `${billingNamePrefix || "Tenant"} — ${plan.name} (${targetInterval})`,
+    name: `${billingNamePrefix || "Tenant"} - ${plan.name} (${targetInterval})`,
   };
   if (intervalSwap) {
     subPatch.interval = targetInterval;
