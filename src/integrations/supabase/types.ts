@@ -19037,6 +19037,10 @@ export type Database = {
         }
         Returns: string
       }
+      sync_cron_service_role_key: {
+        Args: { new_value: string }
+        Returns: boolean
+      }
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
