@@ -496,11 +496,21 @@ Deno.serve(async (req) => {
         ),
       );
 
-      const priceDiff = Math.max(
-        0,
-        priceForPlan(targetPlan, interval) - priceForPlan(currentPlan, currentInterval),
-      );
-      const proRata = +(priceDiff * (remainingDays / periodDays)).toFixed(2);
+      const intervalSwap = interval !== currentInterval;
+      const newPeriodEndISO = intervalSwap ? advanceDate(todayISO, interval) : periodEndISO;
+
+      let proRata: number;
+      if (intervalSwap) {
+        // Charge the full new-interval price minus credit for the unused part of the old period.
+        const credit = priceForPlan(currentPlan, currentInterval) * (remainingDays / periodDays);
+        proRata = Math.max(0, +(priceForPlan(targetPlan, interval) - credit).toFixed(2));
+      } else {
+        const priceDiff = Math.max(
+          0,
+          priceForPlan(targetPlan, interval) - priceForPlan(currentPlan, currentInterval),
+        );
+        proRata = +(priceDiff * (remainingDays / periodDays)).toFixed(2);
+      }
 
       // Update recurring line on billing subscription to new plan (for future periods).
       const { data: lines, error: lnErr } = await supabase
@@ -525,11 +535,13 @@ Deno.serve(async (req) => {
         .update({
           interval,
           name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
+          ...(intervalSwap
+            ? { start_date: todayISO, next_invoice_date: newPeriodEndISO }
+            : {}),
         })
         .eq("id", billingSubId);
 
       // Update entitlement immediately
-      const newPeriodEndISO = interval !== currentInterval ? advanceDate(todayISO, interval) : periodEndISO;
       const { error: tsErr } = await supabase
         .from("tenant_subscriptions")
         .update({
@@ -581,7 +593,9 @@ Deno.serve(async (req) => {
         const { error: lineErr } = await supabase.from("invoice_lines").insert({
           invoice_id: invoice.id,
           line_type: "product",
-          description: `Upgrade proration ${currentPlan.name} → ${targetPlan.name} (${remainingDays}/${periodDays} d)`,
+          description: intervalSwap
+            ? `Upgrade ${currentPlan.name} (${currentInterval}) → ${targetPlan.name} (${interval}), credit ${remainingDays}/${periodDays} d`
+            : `Upgrade proration ${currentPlan.name} → ${targetPlan.name} (${remainingDays}/${periodDays} d)`,
           quantity: 1,
           unit_price: net,
           vat_rate: VAT_RATE,
@@ -649,6 +663,7 @@ Deno.serve(async (req) => {
         proRata,
         remainingDays,
         periodDays,
+        interval_swap: intervalSwap,
         proRataInvoiceId,
       });
       return jsonResponse({
