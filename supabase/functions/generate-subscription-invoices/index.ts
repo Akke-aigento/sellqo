@@ -504,6 +504,100 @@ Deno.serve(async (req) => {
           Number(sub.interval_count) || 1,
         );
 
+        // ------------------------------------------------------------------
+        // CYCLE-1: pay-first path. No invoice is created here — the runner
+        // registers a billing cycle and (for mandates) starts the charge.
+        // The invoice follows in the Stripe webhook (CYCLE-3).
+        // `subscription_invoices` is never written in this path.
+        // ------------------------------------------------------------------
+        if (sub.billing_model === "pay_first") {
+          const payFirstLines = (sub.subscription_lines ?? []) as any[];
+          if (payFirstLines.length === 0) {
+            summary.skipped_no_lines++;
+            console.warn(`[GEN-SUB-INVOICES] Subscription ${sub.id} has no lines — skipping`);
+            continue;
+          }
+
+          let cycleSubtotal = 0;
+          let cycleVat = 0;
+          for (const ln of payFirstLines) {
+            const qty = Number(ln.quantity ?? 1);
+            const unit = Number(ln.unit_price ?? 0);
+            const rate = Number(ln.vat_rate ?? 0);
+            const net = qty * unit;
+            cycleSubtotal += net;
+            cycleVat += +(net * rate / 100).toFixed(2);
+          }
+          cycleSubtotal = +cycleSubtotal.toFixed(2);
+          cycleVat = +cycleVat.toFixed(2);
+          const cycleTotal = +(cycleSubtotal + cycleVat).toFixed(2);
+          const cycleMode = (sub.payment_mode as "mandate" | "manual") ?? "mandate";
+
+          // Idempotency: insert-first on (subscription_id, period_start).
+          const { data: cycle, error: cycleErr } = await supabase
+            .from("billing_cycles")
+            .insert({
+              subscription_id: sub.id,
+              tenant_id: sub.tenant_id,
+              customer_id: sub.customer_id,
+              period_start: periodStart,
+              period_end: periodEndAdj,
+              subtotal: cycleSubtotal,
+              vat_amount: cycleVat,
+              total: cycleTotal,
+              mode: cycleMode,
+              model: "pay_first",
+              status: "pending",
+            })
+            .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
+            .single();
+
+          if (cycleErr) {
+            if ((cycleErr as any).code === "23505") {
+              // Cycle already exists for this period. Self-healing: if the
+              // subscription's next_invoice_date was never advanced (crash
+              // between cycle insert and advance), advance it now. No charge
+              // is retried here — the sweep handles unfinished cycles.
+              summary.skipped_existing++;
+              if (sub.next_invoice_date === periodStart) {
+                const { error: healErr } = await supabase
+                  .from("subscriptions")
+                  .update({ last_invoice_date: periodStart, next_invoice_date: periodEndAdj })
+                  .eq("id", sub.id);
+                if (healErr) throw healErr;
+                log("Self-healed next_invoice_date after existing cycle", {
+                  subscription_id: sub.id,
+                  period_start: periodStart,
+                });
+              } else {
+                log("Skip existing cycle", { subscription_id: sub.id, period_start: periodStart });
+              }
+              continue;
+            }
+            throw cycleErr;
+          }
+
+          summary.cycles_created++;
+          log("Billing cycle created", {
+            billing_cycle_id: cycle.id,
+            subscription_id: sub.id,
+            period_start: periodStart,
+            period_end: periodEndAdj,
+            mode: cycleMode,
+            total: cycleTotal,
+          });
+
+          await handlePendingCycle(supabase, cycle as BillingCycleRow, summary);
+
+          const { error: advErr } = await supabase
+            .from("subscriptions")
+            .update({ last_invoice_date: periodStart, next_invoice_date: periodEndAdj })
+            .eq("id", sub.id);
+          if (advErr) throw advErr;
+
+          continue;
+        }
+
         // Idempotency: existing invoice for same subscription + period_start?
         const { data: existing, error: existErr } = await supabase
           .from("subscription_invoices")
