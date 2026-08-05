@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl, enUS, fr, de } from 'date-fns/locale';
@@ -23,7 +23,6 @@ import { DowngradeWarningDialog } from '@/components/admin/billing/DowngradeWarn
 import { PlanComparisonCards } from '@/components/admin/billing/PlanComparisonCards';
 import { PaymentMethodCard } from '@/components/admin/billing/PaymentMethodCard';
 import { PlanActivationWizard } from '@/components/admin/billing/PlanActivationWizard';
-import { MandateLinkDialog } from '@/components/admin/MandateLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,9 +60,6 @@ export default function BillingPage() {
   const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [confirmPlan, setConfirmPlan] = useState<{ plan: PricingPlan; isUpgrade: boolean } | null>(null);
   const [downgradeCandidate, setDowngradeCandidate] = useState<PricingPlan | null>(null);
-  const [mandateUrl, setMandateUrl] = useState<string | null>(null);
-  /** Mandate link shown inside the wizard (separate from the manage-card link). */
-  const [wizardMandateUrl, setWizardMandateUrl] = useState<string | null>(null);
   /** Half-state resume: only plan id + interval are persisted. */
   const [resumeSelection, setResumeSelection] = useState<{
     plan_id: string;
@@ -131,10 +127,11 @@ export default function BillingPage() {
       .map(String);
   };
 
+  /** UX-UNIFY-2 — management card: redirect straight to the mandate page. */
   const handleSetupMandate = async () => {
     try {
       const res = await createMandateLink.mutateAsync({ interval: selectedInterval });
-      setMandateUrl(res.url);
+      window.location.assign(res.url);
     } catch (err) {
       toast.error(t('billing.payment.mandate_error'), {
         description: err instanceof Error ? err.message : undefined,
@@ -199,7 +196,6 @@ export default function BillingPage() {
       }
 
       setConfirmPlan(null);
-      setWizardMandateUrl(null);
       clearResume();
       if (res.downgrade) {
         toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
@@ -213,35 +209,11 @@ export default function BillingPage() {
     }
   };
 
-  /** Wizard step 2b — create a mandate link carrying the chosen plan context. */
+  /**
+   * UX-UNIFY-2 — wizard direct-debit choice: persist the half state FIRST, then
+   * redirect to the mandate page in the same tab.
+   */
   const handleWizardCreateMandate = async () => {
-    if (!confirmPlan) return;
-    try {
-      const res = await createMandateLink.mutateAsync({
-        planId: confirmPlan.plan.id,
-        interval: selectedInterval,
-      });
-      setWizardMandateUrl(res.url);
-    } catch (err) {
-      toast.error(t('billing.payment.mandate_error'), {
-        description: err instanceof Error ? err.message : undefined,
-      });
-    }
-  };
-
-  /** Refetch status; true when a usable mandate exists. */
-  const handleRefreshStatus = async (): Promise<boolean> => {
-    const res = await refetchBillingStatus();
-    const m = res.data?.mandate ?? null;
-    return !!m && m.status !== 'failed';
-  };
-
-  const handleWizardManual = async () => {
-    setPendingMode('manual');
-    await handleConfirmPlanChange('manual');
-  };
-
-  const handleWizardIncomplete = () => {
     if (!confirmPlan) return;
     const payload = { plan_id: confirmPlan.plan.id, interval: selectedInterval };
     try {
@@ -250,7 +222,56 @@ export default function BillingPage() {
       /* ignore */
     }
     setResumeSelection(payload);
+    try {
+      const res = await createMandateLink.mutateAsync({
+        planId: confirmPlan.plan.id,
+        interval: selectedInterval,
+      });
+      window.location.assign(res.url);
+    } catch (err) {
+      toast.error(t('billing.payment.mandate_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
   };
+
+  const handleWizardManual = async () => {
+    setPendingMode('manual');
+    await handleConfirmPlanChange('manual');
+  };
+
+  /**
+   * UX-UNIFY-2 — auto-finish after returning from the mandate page. Only fires
+   * when the selection came from sessionStorage (an explicit earlier choice).
+   */
+  const autoActivatedRef = useRef(false);
+  useEffect(() => {
+    if (autoActivatedRef.current) return;
+    if (statusLoading || !resumeSelection || !resumePlan) return;
+    if (!hasUsableMandate || hasBillingSubscription) return;
+    autoActivatedRef.current = true;
+    (async () => {
+      const action = 'activate' as const;
+      try {
+        const res = await syncPlan.mutateAsync({
+          planId: resumePlan.id,
+          interval: resumeSelection.interval,
+          action,
+        });
+        clearResume();
+        if (res.downgrade) {
+          toast.success(t('billing.plan_change.success_downgrade', { plan: resumePlan.name }));
+        } else {
+          toast.success(t('billing.plan_change.success_upgrade', { plan: resumePlan.name }));
+        }
+      } catch (err) {
+        toast.error(t('billing.plan_change.error'), {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusLoading, resumeSelection, resumePlan, hasUsableMandate, hasBillingSubscription]);
 
   // Find the best upgrade target based on current usage overages
   const findUpgradeTarget = (): string | null => {
