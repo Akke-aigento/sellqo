@@ -195,7 +195,7 @@ serve(async (req) => {
           const msg =
             `Creditnota-bedrag (${cnTotal.toFixed(2)}) overschrijdt het resterende crediteerbare bedrag ` +
             `van factuur ${inv.invoice_number} (${remaining.toFixed(2)}; ` +
-            `origineel ${invoiceTotal.toFixed(2)} − reeds gecrediteerd ${alreadyCredited.toFixed(2)}).`;
+            `origineel ${invoiceTotal.toFixed(2)} - reeds gecrediteerd ${alreadyCredited.toFixed(2)}).`;
           return new Response(JSON.stringify({ success: false, error: msg }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
