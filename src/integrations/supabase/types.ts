@@ -3450,6 +3450,9 @@ export type Database = {
       }
       billing_cycles: {
         Row: {
+          checkout_session_created_at: string | null
+          checkout_session_id: string | null
+          checkout_session_url: string | null
           created_at: string
           customer_id: string | null
           due_date: string | null
@@ -3460,9 +3463,11 @@ export type Database = {
           mode: Database["public"]["Enums"]["billing_payment_mode"]
           model: Database["public"]["Enums"]["billing_model"]
           payment_request_number: string | null
+          pdf_path: string | null
           period_end: string
           period_start: string
           reminder_level: number
+          request_sent_at: string | null
           status: Database["public"]["Enums"]["billing_cycle_status"]
           stripe_payment_intent_id: string | null
           subscription_id: string
@@ -3473,6 +3478,9 @@ export type Database = {
           vat_amount: number
         }
         Insert: {
+          checkout_session_created_at?: string | null
+          checkout_session_id?: string | null
+          checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
@@ -3483,9 +3491,11 @@ export type Database = {
           mode: Database["public"]["Enums"]["billing_payment_mode"]
           model?: Database["public"]["Enums"]["billing_model"]
           payment_request_number?: string | null
+          pdf_path?: string | null
           period_end: string
           period_start: string
           reminder_level?: number
+          request_sent_at?: string | null
           status?: Database["public"]["Enums"]["billing_cycle_status"]
           stripe_payment_intent_id?: string | null
           subscription_id: string
@@ -3496,6 +3506,9 @@ export type Database = {
           vat_amount?: number
         }
         Update: {
+          checkout_session_created_at?: string | null
+          checkout_session_id?: string | null
+          checkout_session_url?: string | null
           created_at?: string
           customer_id?: string | null
           due_date?: string | null
@@ -3506,9 +3519,11 @@ export type Database = {
           mode?: Database["public"]["Enums"]["billing_payment_mode"]
           model?: Database["public"]["Enums"]["billing_model"]
           payment_request_number?: string | null
+          pdf_path?: string | null
           period_end?: string
           period_start?: string
           reminder_level?: number
+          request_sent_at?: string | null
           status?: Database["public"]["Enums"]["billing_cycle_status"]
           stripe_payment_intent_id?: string | null
           subscription_id?: string
