@@ -1181,6 +1181,10 @@
         }
       },
       "subscribeError": "Subscription failed. Please try again later.",
+      "upgrade_invoice_docs_email": {
+        "title": "Invoice document and email for plan upgrades",
+        "description": "Upgrade invoices now automatically receive an invoice document and an email, and failed automatic collections are properly followed up."
+      },
       "plan_interval_switch_billing": {
         "title": "Correct billing when switching billing interval",
         "description": "When upgrading a plan and switching between monthly and yearly billing, the pro-rata amount and next invoice date are now calculated correctly, preventing double billing."
