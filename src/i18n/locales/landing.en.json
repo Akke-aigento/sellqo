@@ -1181,6 +1181,10 @@
         "unified_plan_activation": {
           "title": "Choose a plan and payment method in one step",
           "description": "Choosing a plan and setting up your payment method is now one smooth step, and the mandate page shows exactly what and which amount you are authorising."
+        },
+        "trial_pro_features": {
+          "title": "All Pro features during your trial",
+          "description": "During your free 14-day trial you now get to try all Pro features, so you can test the full platform before choosing a plan."
         }
       },
       "copyLink": "Copy link",
