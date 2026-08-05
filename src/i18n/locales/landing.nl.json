@@ -1185,6 +1185,10 @@
         "trial_pro_features": {
           "title": "Alle Pro-functies tijdens je proefperiode",
           "description": "Tijdens je gratis proefperiode van 14 dagen probeer je nu alle Pro-functies, zodat je het volledige platform kunt uittesten voordat je een plan kiest."
+        },
+        "direct_mandate_redirect": {
+          "title": "Direct naar de machtigingspagina",
+          "description": "Kies je voor automatische incasso, dan sturen we je nu meteen door naar de machtigingspagina. Na het ondertekenen kom je automatisch terug en wordt je planactivering vanzelf afgerond."
         }
       },
       "copyLink": "Kopieer link",
