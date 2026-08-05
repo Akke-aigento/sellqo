@@ -1219,6 +1219,10 @@
         "direct_mandate_redirect": {
           "title": "Direct naar de machtigingspagina",
           "description": "Kies je voor automatische incasso, dan sturen we je nu meteen door naar de machtigingspagina. Na het ondertekenen kom je automatisch terug en wordt je planactivering vanzelf afgerond."
+        },
+        "pay_first_upgrades": {
+          "title": "Upgrades zijn nu volledig 'eerst betalen'",
+          "description": "Een upgrade tijdens je periode rekent nu exact de resterende dagen af vanaf wat je vandaag betaalt — nooit meer een volle maand of een dubbele factuur. Met automatische incasso gaat het nieuwe plan direct in; betaal je per betalingsverzoek, dan gaat de upgrade in zodra de betaling binnen is. Je ziet de openstaande upgrade op je facturatiepagina, met een betaallink en de mogelijkheid om te annuleren zolang die onbetaald is."
         }
       },
       "copyLink": "Kopieer link",

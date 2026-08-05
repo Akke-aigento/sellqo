@@ -1219,6 +1219,10 @@
         "direct_mandate_redirect": {
           "title": "Direkt zur Mandatsseite",
           "description": "Wenn du den automatischen Einzug wählst, leiten wir dich jetzt direkt zur Mandatsseite weiter. Nach der Unterzeichnung kommst du automatisch zurück und deine Planaktivierung wird von selbst abgeschlossen."
+        },
+        "pay_first_upgrades": {
+          "title": "Upgrades laufen jetzt vollständig nach dem Prinzip 'zuerst zahlen'",
+          "description": "Ein Upgrade mitten in der Periode berechnet jetzt genau die restlichen Tage auf Basis dessen, was du heute zahlst — kein ganzer Monat und keine doppelte Rechnung mehr. Mit Lastschrift startet der neue Plan sofort; bei einer Zahlungsanfrage startet er, sobald die Zahlung eingeht. Auf deiner Abrechnungsseite siehst du das offene Upgrade mit Zahlungslink und der Möglichkeit, es zu stornieren, solange es unbezahlt ist."
         }
       },
       "copyLink": "Link kopieren",
