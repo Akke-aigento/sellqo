@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { usePlatformBillingDocuments } from '@/hooks/usePlatformBillingDocuments';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import {
   usePlatformBillingStatus,
   useCreatePlatformMandateLink,
@@ -42,13 +44,14 @@ export default function BillingPage() {
   const { t, i18n } = useTranslation();
   const {
     subscription,
-    invoices,
     usage,
     isLoading,
-    invoicesLoading,
     usageLoading,
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
+  const { data: documents, isLoading: documentsLoading } = usePlatformBillingDocuments();
+  const { openDocument, isDownloading } = useDocumentDownload();
+  const [showAllInvoices, setShowAllInvoices] = useState(false);
 
   const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
   const createMandateLink = useCreatePlatformMandateLink();
