@@ -92,12 +92,35 @@ export default function BillingPage() {
   const isEnterprise = (plan?: PricingPlan | null) =>
     !!plan && (plan.slug === 'enterprise' || plan.name.toLowerCase().includes('enterprise'));
 
-  const scrollToPayment = () => {
-    document.getElementById('payment-method-section')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
+  const hasBillingSubscription = !!billingStatus?.billing_subscription_id;
+  const isFreePlan = (plan?: PricingPlan | null) =>
+    !!plan && (plan.slug === 'free' || Number(plan.monthly_price) === 0);
+
+  // UX-UNIFY-1 — half state: mandate set but plan never activated.
+  const PENDING_KEY = 'sellqo.pending_plan_selection';
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(PENDING_KEY);
+      if (raw) setResumeSelection(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const clearResume = () => {
+    setResumeSelection(null);
+    try {
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
   };
+
+  const resumePlan = useMemo(
+    () => (resumeSelection ? plans.find(p => p.id === resumeSelection.plan_id) ?? null : null),
+    [plans, resumeSelection],
+  );
+  const showResumeAlert = !!resumePlan && hasPaymentPath && !hasBillingSubscription;
 
   const lostFeatureKeys = (target: PricingPlan | null): string[] => {
     if (!target || !currentPlan?.features || !target.features) return [];
@@ -110,7 +133,7 @@ export default function BillingPage() {
 
   const handleSetupMandate = async () => {
     try {
-      const res = await createMandateLink.mutateAsync();
+      const res = await createMandateLink.mutateAsync({ interval: selectedInterval });
       setMandateUrl(res.url);
     } catch (err) {
       toast.error(t('billing.payment.mandate_error'), {
@@ -146,15 +169,6 @@ export default function BillingPage() {
       return;
     }
 
-    const isFree = plan.slug === 'free' || Number(plan.monthly_price) === 0;
-    if (!hasPaymentPath && !isFree) {
-      toast.info(t('billing.payment.required_title'), {
-        description: t('billing.payment.required_desc'),
-      });
-      scrollToPayment();
-      return;
-    }
-
     if (!isUpgrade && lostFeatureKeys(plan).length > 0) {
       setDowngradeCandidate(plan);
       return;
@@ -162,7 +176,7 @@ export default function BillingPage() {
     setConfirmPlan({ plan, isUpgrade });
   };
 
-  const handleConfirmPlanChange = async () => {
+  const handleConfirmPlanChange = async (modeOverride?: PlatformPaymentMode) => {
     if (!confirmPlan) return;
     const { plan, isUpgrade } = confirmPlan;
     // The UI decides activate vs switch — sync-tenant-plan returns 400 for a
@@ -175,7 +189,7 @@ export default function BillingPage() {
         action,
       });
 
-      if (pendingMode === 'manual') {
+      if ((modeOverride ?? pendingMode) === 'manual') {
         try {
           await setPaymentMode.mutateAsync('manual');
           setPendingMode(null);
@@ -185,6 +199,8 @@ export default function BillingPage() {
       }
 
       setConfirmPlan(null);
+      setWizardMandateUrl(null);
+      clearResume();
       if (res.downgrade) {
         toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
       } else {
@@ -195,6 +211,45 @@ export default function BillingPage() {
         description: err instanceof Error ? err.message : undefined,
       });
     }
+  };
+
+  /** Wizard step 2b — create a mandate link carrying the chosen plan context. */
+  const handleWizardCreateMandate = async () => {
+    if (!confirmPlan) return;
+    try {
+      const res = await createMandateLink.mutateAsync({
+        planId: confirmPlan.plan.id,
+        interval: selectedInterval,
+      });
+      setWizardMandateUrl(res.url);
+    } catch (err) {
+      toast.error(t('billing.payment.mandate_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  /** Refetch status; true when a usable mandate exists. */
+  const handleRefreshStatus = async (): Promise<boolean> => {
+    const res = await refetchBillingStatus();
+    const m = res.data?.mandate ?? null;
+    return !!m && m.status !== 'failed';
+  };
+
+  const handleWizardManual = async () => {
+    setPendingMode('manual');
+    await handleConfirmPlanChange('manual');
+  };
+
+  const handleWizardIncomplete = () => {
+    if (!confirmPlan) return;
+    const payload = { plan_id: confirmPlan.plan.id, interval: selectedInterval };
+    try {
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+    setResumeSelection(payload);
   };
 
   // Find the best upgrade target based on current usage overages
