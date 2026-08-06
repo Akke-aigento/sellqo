@@ -1232,6 +1232,10 @@
         "billing_document_polish": {
           "title": "Readable invoices and credit notes",
           "description": "Long descriptions now wrap across multiple lines in invoice and credit note PDFs. Also: a brief network hiccup during a plan change is retried automatically, and the mandate page shows the scheduled plan change with its start date."
+        },
+        "vat_display_consistency": {
+          "title": "Prices consistently shown excluding VAT",
+          "description": "All price displays now clearly and consistently indicate that they exclude VAT."
         }
       },
       "copyLink": "Copy link",

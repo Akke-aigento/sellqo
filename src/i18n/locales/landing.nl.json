@@ -1232,6 +1232,10 @@
         "billing_document_polish": {
           "title": "Facturen en creditnota’s leesbaar",
           "description": "Lange omschrijvingen worden nu netjes over meerdere regels afgebroken in factuur- en creditnota-PDF’s. Ook: een korte netwerkhapering bij een planwissel wordt automatisch opnieuw geprobeerd, en de machtigingspagina toont de geplande planwissel met startdatum."
+        },
+        "vat_display_consistency": {
+          "title": "Prijzen consistent exclusief btw",
+          "description": "Alle prijsvermeldingen tonen nu overal duidelijk en consistent dat ze exclusief btw zijn."
         }
       },
       "copyLink": "Kopieer link",

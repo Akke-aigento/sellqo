@@ -1232,6 +1232,10 @@
         "billing_document_polish": {
           "title": "Lesbare Rechnungen und Gutschriften",
           "description": "Lange Beschreibungen werden in Rechnungs- und Gutschrift-PDFs jetzt über mehrere Zeilen umgebrochen. Außerdem: ein kurzer Netzwerkaussetzer beim Planwechsel wird automatisch wiederholt, und die Mandatsseite zeigt den geplanten Planwechsel mit Startdatum."
+        },
+        "vat_display_consistency": {
+          "title": "Preise durchgehend zzgl. MwSt.",
+          "description": "Alle Preisangaben zeigen jetzt einheitlich und deutlich, dass sie zzgl. MwSt. sind."
         }
       },
       "copyLink": "Link kopieren",
