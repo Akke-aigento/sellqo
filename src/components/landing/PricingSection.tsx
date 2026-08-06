@@ -144,6 +144,11 @@ export function PricingSection() {
                     {t('landing.pricing.yearlyHint', { price: plan.yearlyPrice })}
                   </p>
                 )}
+                {plan.price > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('landing.pricing.exclVatShort')}
+                  </p>
+                )}
               </div>
 
               {/* Features list with flex-grow to push button to bottom */}
