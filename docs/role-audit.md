@@ -1,3 +1,9 @@
+# 2026-08-06 (late namiddag) — STOREFRONT-CONFIG-SOCIALS-FIX-1
+
+**STOREFRONT-CONFIG-SOCIALS-FIX-1**: `getConfig` in `storefront-api` las socials uit niet-bestaande `tenant.social_*` kolommen; alle waarden waren daarom altijd `null`. Socials worden opgeslagen in `tenant_theme_settings.social_links` (JSONB, vorm `{ "instagram": "...", "facebook": "...", ... }`). Het social-blok in `getConfig` is omgezet naar `themeSettings.social_links` met veilige fallback, zelfde 6 keys en onveranderde responsvorm. Socials werken nu storefront-breed. Scope: alleen de social-opbouw in `getConfig`; store/contact/languages/features/payments/appearance onaangeroerd; cacheControl op `get_config` behouden.
+
+---
+
 # 2026-08-06 (namiddag) — STOREFRONT-PAGES-FIX-1
 
 **STOREFRONT-PAGES-FIX-1**: get_pages en get_sitemap_data in storefront-api lazen uit een niet-bestaande tabel `pages`; de sellqo-proxy maskeerde de upstream-fout als `{"data":[]}`, waardoor legal pages bij geen enkele tenant op de storefront verschenen. Omgezet naar `public.legal_pages` met per-taal kolommen (nl/en/fr/de) + NL-fallback; `page_type` is de canonieke slug. Lijstvorm `{slug, title, url}`, detailvorm `{slug, title, content}`; sitemap-vorm onveranderd. content_translations niet meer gebruikt in deze functie. Legal pages werken nu storefront-breed voor alle tenants.
