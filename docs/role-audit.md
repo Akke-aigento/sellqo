@@ -1,3 +1,9 @@
+# 2026-08-06 (avond) — STOREFRONT-CONFIG-BANK-SECURITY-1
+
+**STOREFRONT-CONFIG-BANK-SECURITY-1**: `getConfig` in `storefront-api` gaf in de publieke, ongeauthenticeerde `/settings`-respons een `bank_details`-object mee met `account_holder`, `iban` en `bic`. Dit was opvraagbaar zonder aankoop en vormt een spoofing-/factuurfraude-risico. Het `bank_details`-blok is verwijderd uit `getConfig`; de boolean `bank_transfer_enabled` blijft behouden voor backward-compatibiliteit. De bankgegevens die een klant nodig heeft voor een bankoverschrijving of QR-code worden legitiem en onveranderd opgebouwd in `checkout_complete` (eigen tenant-query). Andere functies, de database en `cacheControl` zijn onaangeroerd. Scope: alleen het bank-blok in `getConfig`.
+
+---
+
 # 2026-08-06 (late namiddag) — STOREFRONT-CONFIG-SOCIALS-FIX-1
 
 **STOREFRONT-CONFIG-SOCIALS-FIX-1**: `getConfig` in `storefront-api` las socials uit niet-bestaande `tenant.social_*` kolommen; alle waarden waren daarom altijd `null`. Socials worden opgeslagen in `tenant_theme_settings.social_links` (JSONB, vorm `{ "instagram": "...", "facebook": "...", ... }`). Het social-blok in `getConfig` is omgezet naar `themeSettings.social_links` met veilige fallback, zelfde 6 keys en onveranderde responsvorm. Socials werken nu storefront-breed. Scope: alleen de social-opbouw in `getConfig`; store/contact/languages/features/payments/appearance onaangeroerd; cacheControl op `get_config` behouden.
