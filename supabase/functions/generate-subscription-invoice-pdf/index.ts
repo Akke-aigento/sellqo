@@ -172,14 +172,24 @@ serve(async (req) => {
     y -= 18;
 
     for (const ln of (lines ?? [])) {
-      const desc = String((ln as any).description || "").substring(0, 42);
-      page.drawText(desc, { x: margin + 8, y, size: 10, font: helv, color: text });
+      // UX-POLISH-1 — omschrijving wrapt binnen de kolombreedte i.p.v. afkappen.
+      const descLines = wrapTextToWidth(
+        String((ln as any).description || ""),
+        helv,
+        10,
+        320 - (margin + 8) - 10,
+      );
+      descLines.forEach((dl, i) => {
+        page.drawText(dl, { x: margin + 8, y: y - i * 12, size: 10, font: helv, color: text });
+      });
       page.drawText(String((ln as any).quantity || 1), { x: 320, y, size: 10, font: helv, color: text });
       page.drawText(`${Number((ln as any).vat_rate || 0)}%`, { x: 370, y, size: 10, font: helv, color: text });
       page.drawText(fmt(Number((ln as any).unit_price || 0), currency), { x: 420, y, size: 10, font: helv, color: text });
       page.drawText(fmt(Number((ln as any).line_total || 0), currency), { x: 490, y, size: 10, font: helv, color: text });
-      page.drawLine({ start: { x: margin, y: y - 4 }, end: { x: width - margin, y: y - 4 }, thickness: 0.5, color: lightGray });
-      y -= 14;
+      const blockHeight = 14 + (descLines.length - 1) * 12;
+      const lineY = y - 4 - (descLines.length - 1) * 12;
+      page.drawLine({ start: { x: margin, y: lineY }, end: { x: width - margin, y: lineY }, thickness: 0.5, color: lightGray });
+      y -= blockHeight;
       if (y < 180) break;
     }
 
