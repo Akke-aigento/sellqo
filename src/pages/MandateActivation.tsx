@@ -19,6 +19,8 @@ type Info = {
     plan_name?: string | null;
     price?: number | null;
     interval?: 'monthly' | 'yearly' | null;
+    /** UX-POLISH-1: startdatum bij een geplande planwissel. */
+    effective_from?: string | null;
   } | null;
 };
 
@@ -161,6 +163,18 @@ export default function MandateActivation() {
     }).format(price);
     const period =
       ctx.interval === 'yearly' ? t('mandate.context.per_year') : t('mandate.context.per_month');
+    if (ctx.effective_from) {
+      const date = new Date(ctx.effective_from);
+      const from = Number.isNaN(date.getTime())
+        ? String(ctx.effective_from)
+        : new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(date);
+      return t('mandate.context.line_from', {
+        plan: ctx.plan_name,
+        amount,
+        period,
+        date: from,
+      });
+    }
     return t('mandate.context.line', { plan: ctx.plan_name, amount, period });
   })();
 
