@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.08z', dateKey: 'aug_2026', changes: [{ id: 'billing_engine_migration', type: 'improvement' }] },
   { version: '2026.08y', dateKey: 'aug_2026', changes: [{ id: 'payment_return_experience', type: 'improvement' }] },
   { version: '2026.08x', dateKey: 'aug_2026', changes: [{ id: 'vat_display_consistency', type: 'bugfix' }] },
   { version: '2026.08w', dateKey: 'aug_2026', changes: [{ id: 'billing_document_polish', type: 'bugfix' }] },

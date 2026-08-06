@@ -1244,6 +1244,10 @@
         "payment_return_experience": {
           "title": "Confirmation de paiement claire",
           "description": "Après le paiement d'une demande de paiement, vous voyez immédiatement une confirmation claire et votre page d'abonnement se met à jour automatiquement."
+        },
+        "billing_engine_migration": {
+          "title": "Facturation d'abonnement sur notre propre systeme",
+          "description": "Vos factures d'abonnement, demandes de paiement et notes de credit proviennent desormais entierement de notre propre systeme, avec un apercu clair sur votre page d'abonnement."
         }
       },
       "copyLink": "Copier le lien",

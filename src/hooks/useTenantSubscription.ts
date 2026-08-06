@@ -1,7 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import type { TenantSubscription, PlatformInvoice, TenantUsageWithLimits, PricingPlanFeatures } from '@/types/billing';
 
 import { TenantContext } from '@/hooks/useTenant';
@@ -10,8 +9,6 @@ export function useTenantSubscription() {
   // Safely check if we're within TenantProvider - return null if not
   const tenantContext = useContext(TenantContext);
   const currentTenant = tenantContext?.currentTenant ?? null;
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: subscription, isLoading, error } = useQuery({
     queryKey: ['tenant-subscription', currentTenant?.id],
@@ -116,52 +113,6 @@ export function useTenantSubscription() {
     enabled: !!currentTenant?.id && !!subscription?.pricing_plan,
   });
 
-  const createCheckout = useMutation({
-    mutationFn: async ({ planId, interval }: { planId: string; interval: 'monthly' | 'yearly' }) => {
-      const { data, error } = await supabase.functions.invoke('create-platform-checkout', {
-        body: { planId, interval, tenant_id: currentTenant?.id },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Fout bij checkout',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const openCustomerPortal = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('platform-customer-portal', {
-        body: { tenant_id: currentTenant?.id },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Fout bij openen portaal',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
   return {
     subscription,
     invoices: invoices ?? [],
@@ -169,7 +120,5 @@ export function useTenantSubscription() {
     isLoading,
     invoicesLoading,
     usageLoading,
-    createCheckout,
-    openCustomerPortal,
   };
 }

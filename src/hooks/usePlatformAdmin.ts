@@ -226,7 +226,9 @@ export function usePlatformAdmin() {
     });
   };
 
-  // Fetch tenant invoices
+  // Fetch tenant invoices — HISTORISCH (Stripe Billing-archief + bevestigde
+  // bankbetalingen). Actuele abonnementsfacturen komen uit de native
+  // billing-engine. Zie docs/stripe-billing-deprecated.md
   const useTenantInvoices = (tenantId: string) => {
     return useQuery({
       queryKey: ['platform-tenant-invoices', tenantId],

@@ -330,8 +330,10 @@ export default function PlatformBilling() {
                             size="sm" 
                             variant="ghost"
                             onClick={() => window.open(`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`, '_blank')}
+                            title="Legacy: oud Stripe Billing-abonnement"
                           >
                             <ExternalLink className="h-4 w-4" />
+                            <span className="ml-1 text-xs text-muted-foreground">legacy</span>
                           </Button>
                         )}
                       </div>
@@ -345,6 +347,14 @@ export default function PlatformBilling() {
 
         <TabsContent value="invoices">
           <Card>
+            <div className="p-4 border-b">
+              <p className="text-sm font-medium">Historisch (Stripe)</p>
+              <p className="text-xs text-muted-foreground">
+                Archief uit de oude Stripe Billing-periode en handmatig bevestigde
+                bankbetalingen. Actuele abonnementsfacturen staan in de native
+                billing-engine op de abonnementspagina van de tenant.
+              </p>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>

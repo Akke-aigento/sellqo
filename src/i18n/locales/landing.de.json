@@ -1244,6 +1244,10 @@
         "payment_return_experience": {
           "title": "Klare Zahlungsbestätigung",
           "description": "Nach der Bezahlung einer Zahlungsaufforderung siehst du sofort eine klare Bestätigung und deine Abo-Seite aktualisiert sich selbst."
+        },
+        "billing_engine_migration": {
+          "title": "Abonnementsabrechnung im eigenen System",
+          "description": "Deine Abonnementsrechnungen, Zahlungsanforderungen und Gutschriften kommen jetzt vollstaendig aus unserem eigenen System, mit einer klaren Uebersicht auf deiner Abonnementseite."
         }
       },
       "copyLink": "Link kopieren",

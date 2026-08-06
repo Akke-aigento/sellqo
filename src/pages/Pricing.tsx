@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, X, Star } from 'lucide-react';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { SellqoLogo } from '@/components/SellqoLogo';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
 import { PageMeta } from '@/components/seo/PageMeta';
 
@@ -41,7 +42,9 @@ export default function PricingPage() {
   const { t, i18n } = useTranslation();
   const [isYearly, setIsYearly] = useState(false);
   const { plans, isLoading } = usePricingPlans();
-  const { subscription, createCheckout } = useTenantSubscription();
+  const { subscription } = useTenantSubscription();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat(i18n.language, {
@@ -61,11 +64,19 @@ export default function PricingPage() {
       window.location.href = 'mailto:info@sellqo.app?subject=Enterprise%20Plan';
       return;
     }
-    
-    createCheckout.mutate({ 
-      planId, 
-      interval: isYearly ? 'yearly' : 'monthly' 
+
+    // Plan-activatie loopt volledig via de native billing-engine op /admin/billing.
+    // Publieke bezoekers gaan eerst naar registratie.
+    const params = new URLSearchParams({
+      plan: planId,
+      interval: isYearly ? 'yearly' : 'monthly',
     });
+
+    if (user) {
+      navigate(`/admin/billing?${params.toString()}`);
+    } else {
+      navigate(`/auth?mode=signup&${params.toString()}`);
+    }
   };
 
   if (isLoading) {
@@ -233,7 +244,7 @@ export default function PricingPage() {
                   <Button 
                     className="w-full" 
                     variant={plan.highlighted ? 'default' : 'outline'}
-                    disabled={isCurrentPlan || createCheckout.isPending}
+                    disabled={isCurrentPlan}
                     onClick={() => handleSelectPlan(plan.id)}
                   >
                     {isCurrentPlan 
