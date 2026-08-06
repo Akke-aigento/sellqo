@@ -680,6 +680,11 @@
       "col_original": "Original invoice",
       "credited_via": "Credited via {{numbers}}",
       "show_more": "Show {{count}} older invoices"
+    },
+    "payment_return": {
+      "received": "Payment received — your subscription has been updated",
+      "processing": "We are processing your payment ({{reference}})…",
+      "slow": "Your payment was received. It may take a moment before everything is updated."
     }
   },
   "import": {

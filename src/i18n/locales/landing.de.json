@@ -577,12 +577,16 @@
           "description": "Vielen Dank für Ihre Zahlung. Sie erhalten eine Bestätigung per E-Mail."
         },
         "title": "Zahlung erhalten",
-        "subtitle": "Vielen Dank für Ihre Zahlung!",
-        "prDescription": "Ihre Rechnung erhalten Sie in Kürze per E-Mail.",
-        "invoiceDescription": "Sie erhalten eine Bestätigung per E-Mail.",
-        "genericDescription": "Wir haben Ihre Zahlung erhalten.",
+        "subtitle": "Wir haben deine Zahlung erfolgreich erhalten.",
+        "prDescription": "Dein Abonnement wird jetzt aktualisiert und deine Rechnung ist per E-Mail unterwegs.",
+        "invoiceDescription": "Deine Zahlung wurde verarbeitet. Du erhältst die Bestätigung per E-Mail.",
+        "genericDescription": "Wir haben deine Zahlung erfolgreich erhalten.",
         "prLabel": "Zahlungsaufforderung",
-        "invoiceLabel": "Rechnung"
+        "invoiceLabel": "Rechnung",
+        "headline": "Zahlung erhalten — danke!",
+        "emailNote": "Die Bestätigung kommt per E-Mail — prüfe auch deinen Spam-Ordner.",
+        "ctaSubscription": "Zurück zu deinem Abonnement",
+        "ctaGeneric": "Zum Dashboard"
       },
       "cancelled": {
         "meta": {
@@ -1236,6 +1240,10 @@
         "vat_display_consistency": {
           "title": "Preise durchgehend zzgl. MwSt.",
           "description": "Alle Preisangaben zeigen jetzt einheitlich und deutlich, dass sie zzgl. MwSt. sind."
+        },
+        "payment_return_experience": {
+          "title": "Klare Zahlungsbestätigung",
+          "description": "Nach der Bezahlung einer Zahlungsaufforderung siehst du sofort eine klare Bestätigung und deine Abo-Seite aktualisiert sich selbst."
         }
       },
       "copyLink": "Link kopieren",

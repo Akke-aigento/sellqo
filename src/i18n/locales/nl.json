@@ -679,6 +679,11 @@
       "col_original": "Oorspronkelijke factuur",
       "credited_via": "Gecrediteerd via {{numbers}}",
       "show_more": "Toon {{count}} oudere facturen"
+    },
+    "payment_return": {
+      "received": "Betaling ontvangen — je abonnement is bijgewerkt",
+      "processing": "We verwerken je betaling ({{reference}})…",
+      "slow": "Je betaling is ontvangen. Het kan nog even duren voordat alles is bijgewerkt."
     }
   },
   "admin_billing": {

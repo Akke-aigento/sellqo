@@ -577,12 +577,16 @@
           "description": "Merci pour votre paiement. Vous recevrez une confirmation par e-mail."
         },
         "title": "Paiement reçu",
-        "subtitle": "Merci pour votre paiement !",
-        "prDescription": "Votre facture vous sera envoyée par e-mail sous peu.",
-        "invoiceDescription": "Vous recevrez une confirmation par e-mail.",
+        "subtitle": "Nous avons bien reçu votre paiement.",
+        "prDescription": "Votre abonnement est en cours de mise à jour et votre facture arrive par e-mail.",
+        "invoiceDescription": "Votre paiement a été traité. Vous recevrez la confirmation par e-mail.",
         "genericDescription": "Nous avons bien reçu votre paiement.",
         "prLabel": "Demande de paiement",
-        "invoiceLabel": "Facture"
+        "invoiceLabel": "Facture",
+        "headline": "Paiement reçu — merci !",
+        "emailNote": "La confirmation arrive par e-mail — vérifiez aussi vos spams.",
+        "ctaSubscription": "Retour à votre abonnement",
+        "ctaGeneric": "Vers votre tableau de bord"
       },
       "cancelled": {
         "meta": {
@@ -1236,6 +1240,10 @@
         "vat_display_consistency": {
           "title": "Prix affiches hors TVA partout",
           "description": "Tous les prix indiquent desormais clairement et de maniere coherente qu'ils sont hors TVA."
+        },
+        "payment_return_experience": {
+          "title": "Confirmation de paiement claire",
+          "description": "Après le paiement d'une demande de paiement, vous voyez immédiatement une confirmation claire et votre page d'abonnement se met à jour automatiquement."
         }
       },
       "copyLink": "Copier le lien",

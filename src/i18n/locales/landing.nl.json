@@ -577,12 +577,16 @@
           "description": "Bedankt voor je betaling. Je ontvangt een bevestiging per e-mail."
         },
         "title": "Betaling ontvangen",
-        "subtitle": "Bedankt voor je betaling!",
-        "prDescription": "Je factuur volgt direct per e-mail.",
-        "invoiceDescription": "Je ontvangt een bevestiging per e-mail.",
+        "subtitle": "We hebben je betaling in goede orde ontvangen.",
+        "prDescription": "Je abonnement wordt nu bijgewerkt en je factuur is onderweg per e-mail.",
+        "invoiceDescription": "Je betaling is verwerkt. Je ontvangt de bevestiging per e-mail.",
         "genericDescription": "We hebben je betaling in goede orde ontvangen.",
         "prLabel": "Betalingsverzoek",
-        "invoiceLabel": "Factuur"
+        "invoiceLabel": "Factuur",
+        "headline": "Betaling ontvangen — bedankt!",
+        "emailNote": "De bevestiging komt per e-mail — check ook je spamfolder.",
+        "ctaSubscription": "Terug naar je abonnement",
+        "ctaGeneric": "Naar je dashboard"
       },
       "cancelled": {
         "meta": {
@@ -1236,6 +1240,10 @@
         "vat_display_consistency": {
           "title": "Prijzen consistent exclusief btw",
           "description": "Alle prijsvermeldingen tonen nu overal duidelijk en consistent dat ze exclusief btw zijn."
+        },
+        "payment_return_experience": {
+          "title": "Duidelijke betaalbevestiging",
+          "description": "Na het betalen van een betalingsverzoek zie je meteen een duidelijke bevestiging en werkt je abonnementspagina zichzelf bij."
         }
       },
       "copyLink": "Kopieer link",

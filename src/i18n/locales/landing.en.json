@@ -577,12 +577,16 @@
           "description": "Thank you for your payment. You will receive a confirmation by email."
         },
         "title": "Payment received",
-        "subtitle": "Thank you for your payment!",
-        "prDescription": "Your invoice will follow by email shortly.",
-        "invoiceDescription": "You will receive a confirmation by email.",
-        "genericDescription": "We have received your payment.",
+        "subtitle": "We have successfully received your payment.",
+        "prDescription": "Your subscription is being updated and your invoice is on its way by email.",
+        "invoiceDescription": "Your payment has been processed. You will receive the confirmation by email.",
+        "genericDescription": "We have successfully received your payment.",
         "prLabel": "Payment request",
-        "invoiceLabel": "Invoice"
+        "invoiceLabel": "Invoice",
+        "headline": "Payment received — thank you!",
+        "emailNote": "The confirmation arrives by email — please also check your spam folder.",
+        "ctaSubscription": "Back to your subscription",
+        "ctaGeneric": "Go to your dashboard"
       },
       "cancelled": {
         "meta": {
@@ -1236,6 +1240,10 @@
         "vat_display_consistency": {
           "title": "Prices consistently shown excluding VAT",
           "description": "All price displays now clearly and consistently indicate that they exclude VAT."
+        },
+        "payment_return_experience": {
+          "title": "Clear payment confirmation",
+          "description": "After paying a payment request you immediately see a clear confirmation and your subscription page updates itself."
         }
       },
       "copyLink": "Copy link",
