@@ -1227,6 +1227,10 @@
         "billing_documents": {
           "title": "Facturen en betalingsverzoeken uit één bron",
           "description": "Je factuuroverzicht komt nu rechtstreeks uit de nieuwe facturatie-engine: facturen, creditnota's en open betalingsverzoeken met veilige PDF-downloads."
+        },
+        "billing_document_polish": {
+          "title": "Facturen en creditnota’s leesbaar",
+          "description": "Lange omschrijvingen worden nu netjes over meerdere regels afgebroken in factuur- en creditnota-PDF’s. Ook: een korte netwerkhapering bij een planwissel wordt automatisch opnieuw geprobeerd, en de machtigingspagina toont de geplande planwissel met startdatum."
         }
       },
       "copyLink": "Kopieer link",

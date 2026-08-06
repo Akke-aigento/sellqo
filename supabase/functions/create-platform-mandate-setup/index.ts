@@ -78,7 +78,9 @@ Deno.serve(async (req) => {
 
     const { data: currentSub, error: csErr } = await supabase
       .from("tenant_subscriptions")
-      .select("id, billing_customer_id, plan_id, billing_interval")
+      .select(
+        "id, billing_customer_id, plan_id, billing_interval, pending_plan_id, pending_interval, pending_effective_at",
+      )
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (csErr) throw csErr;
@@ -183,12 +185,42 @@ Deno.serve(async (req) => {
 
     const token = randomToken();
 
-    // Context: explicitly requested plan, else the running subscription. No match → NULL.
+    // UX-POLISH-1 (bevinding B) — context volgorde: expliciet gevraagd plan,
+    // dan een eventuele PENDING planwissel (downgrade per periode-einde), dan
+    // het lopende plan. Zonder match -> NULL.
     let mandateContext: Record<string, unknown> | null = null;
-    const ctxPlanId = planId ?? ((currentSub as any)?.plan_id as string | null) ?? null;
+    const pendingPlanId = ((currentSub as any)?.pending_plan_id as string | null) ?? null;
+    const usePending = !planId && !!pendingPlanId;
+    const ctxPlanId =
+      planId ?? (usePending ? pendingPlanId : ((currentSub as any)?.plan_id as string | null)) ?? null;
     const ctxInterval = planId
       ? billingInterval
-      : ((currentSub as any)?.billing_interval === "yearly" ? "yearly" : "monthly");
+      : usePending
+        ? ((currentSub as any)?.pending_interval === "yearly"
+            ? "yearly"
+            : (currentSub as any)?.pending_interval === "monthly"
+              ? "monthly"
+              : (currentSub as any)?.billing_interval === "yearly"
+                ? "yearly"
+                : "monthly")
+        : ((currentSub as any)?.billing_interval === "yearly" ? "yearly" : "monthly");
+
+    // effective_from voor de pending-variant: de eerstvolgende incassodatum.
+    let effectiveFrom: string | null = null;
+    if (usePending) {
+      effectiveFrom = ((currentSub as any)?.pending_effective_at as string | null) ?? null;
+      if (!effectiveFrom) {
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("next_invoice_date")
+          .eq("tenant_id", internalTenantId)
+          .eq("customer_id", billingCustomerId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        effectiveFrom = ((sub as any)?.next_invoice_date as string | null) ?? null;
+      }
+    }
     if (ctxPlanId) {
       const { data: plan } = await supabase
         .from("pricing_plans")
@@ -205,6 +237,7 @@ Deno.serve(async (req) => {
             plan_name: (plan as any).name,
             price,
             interval: ctxInterval,
+            ...(effectiveFrom ? { effective_from: effectiveFrom } : {}),
           };
         }
       }

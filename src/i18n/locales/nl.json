@@ -1050,7 +1050,8 @@
       "line": "Je machtigt SellQo voor je {{plan}}-abonnement ({{amount}} {{period}}, excl. btw).",
       "per_month": "per maand",
       "per_year": "per jaar",
-      "cancel_note": "Je kunt deze machtiging op elk moment stopzetten."
+      "cancel_note": "Je kunt deze machtiging op elk moment stopzetten.",
+      "line_from": "Je machtigt SellQo voor je {{plan}}-abonnement ({{amount}} {{period}}, excl. btw) vanaf {{date}}."
     }
   },
   "admin": {

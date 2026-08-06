@@ -1227,6 +1227,10 @@
         "billing_documents": {
           "title": "Rechnungen und Zahlungsanfragen aus einer Quelle",
           "description": "Deine Rechnungsübersicht kommt jetzt direkt aus der neuen Abrechnungs-Engine: Rechnungen, Gutschriften und offene Zahlungsanfragen mit sicheren PDF-Downloads."
+        },
+        "billing_document_polish": {
+          "title": "Lesbare Rechnungen und Gutschriften",
+          "description": "Lange Beschreibungen werden in Rechnungs- und Gutschrift-PDFs jetzt über mehrere Zeilen umgebrochen. Außerdem: ein kurzer Netzwerkaussetzer beim Planwechsel wird automatisch wiederholt, und die Mandatsseite zeigt den geplanten Planwechsel mit Startdatum."
         }
       },
       "copyLink": "Link kopieren",
