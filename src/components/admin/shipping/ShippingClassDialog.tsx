@@ -49,7 +49,7 @@ export function ShippingClassDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>
             {shippingClass ? "Verzendklasse bewerken" : "Nieuwe verzendklasse"}
