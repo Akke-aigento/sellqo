@@ -330,8 +330,10 @@ export default function PlatformBilling() {
                             size="sm" 
                             variant="ghost"
                             onClick={() => window.open(`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`, '_blank')}
+                            title="Legacy: oud Stripe Billing-abonnement"
                           >
                             <ExternalLink className="h-4 w-4" />
+                            <span className="ml-1 text-xs text-muted-foreground">legacy</span>
                           </Button>
                         )}
                       </div>

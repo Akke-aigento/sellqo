@@ -141,7 +141,7 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
                     rel="noopener noreferrer"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Bekijk in Stripe
+                    Bekijk in Stripe (legacy)
                   </a>
                 </Button>
               )}
