@@ -1227,6 +1227,10 @@
         "billing_documents": {
           "title": "Factures et demandes de paiement depuis une seule source",
           "description": "Votre aperçu de facturation provient désormais directement du nouveau moteur de facturation : factures, notes de crédit et demandes de paiement ouvertes avec téléchargements PDF sécurisés."
+        },
+        "billing_document_polish": {
+          "title": "Factures et notes de crédit lisibles",
+          "description": "Les longues descriptions sont désormais réparties sur plusieurs lignes dans les PDF de factures et notes de crédit. De plus : une coupure réseau lors d’un changement de formule est retentée automatiquement, et la page de mandat affiche le changement prévu avec sa date de début."
         }
       },
       "copyLink": "Copier le lien",

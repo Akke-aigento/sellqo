@@ -808,7 +808,8 @@
       "line": "Du erteilst SellQo ein Mandat für dein {{plan}}-Abo ({{amount}} {{period}}, exkl. MwSt.).",
       "per_month": "pro Monat",
       "per_year": "pro Jahr",
-      "cancel_note": "Du kannst dieses Mandat jederzeit widerrufen."
+      "cancel_note": "Du kannst dieses Mandat jederzeit widerrufen.",
+      "line_from": "Du erteilst SellQo ab {{date}} ein Mandat für dein {{plan}}-Abo ({{amount}} {{period}}, exkl. MwSt.)."
     }
   },
   "admin": {

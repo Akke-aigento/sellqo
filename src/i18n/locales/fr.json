@@ -808,7 +808,8 @@
       "line": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA).",
       "per_month": "par mois",
       "per_year": "par an",
-      "cancel_note": "Vous pouvez révoquer ce mandat à tout moment."
+      "cancel_note": "Vous pouvez révoquer ce mandat à tout moment.",
+      "line_from": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA) à partir du {{date}}."
     }
   },
   "admin": {

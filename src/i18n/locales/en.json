@@ -1037,7 +1037,8 @@
       "line": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT).",
       "per_month": "per month",
       "per_year": "per year",
-      "cancel_note": "You can cancel this mandate at any time."
+      "cancel_note": "You can cancel this mandate at any time.",
+      "line_from": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT) from {{date}}."
     }
   },
   "admin": {

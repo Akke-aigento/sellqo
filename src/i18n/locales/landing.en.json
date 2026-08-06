@@ -1227,6 +1227,10 @@
         "billing_documents": {
           "title": "Invoices and payment requests from a single source",
           "description": "Your billing overview now comes straight from the new billing engine: invoices, credit notes and open payment requests with secure PDF downloads."
+        },
+        "billing_document_polish": {
+          "title": "Readable invoices and credit notes",
+          "description": "Long descriptions now wrap across multiple lines in invoice and credit note PDFs. Also: a brief network hiccup during a plan change is retried automatically, and the mandate page shows the scheduled plan change with its start date."
         }
       },
       "copyLink": "Copy link",
