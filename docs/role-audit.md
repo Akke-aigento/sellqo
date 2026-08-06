@@ -1,8 +1,15 @@
+# 2026-08-06 (avond) — STOREFRONT-API-IP-THROTTLE-1
+
+**STOREFRONT-API-IP-THROTTLE-1**: IP-throttle (in-memory, 5/IP/10 min) toegevoegd op `newsletter_subscribe` en `submit_contact_form` in `storefront-api` tegen mail-bombing/lijstvervuiling. De throttle zit vóór de dispatch en laat de handlers zelf ongemoeid; `clientIp` wordt afgeleid uit `cf-connecting-ip`, `x-forwarded-for` of terugval naar `unknown`. De bestaande per-tenant `checkRateLimit` blijft als generieke bovengrens. **Verificatiebevinding**: in-memory state blijkt in de serverless/Deno-Deploy-omgeving niet gedeeld tussen requests (elke request krijgt een schone isolate), waardoor de in-memory teller in de praktijk niet oploopt en dus geen 429 afgeeft. De code is conform de opdracht ingebouwd, maar effectieve bescherming vereist een upgrade naar een gedeelde state store (DB-teller, Redis/KV of vergelijkbaar). Geen DB-migratie of nieuwe tabel toegevoegd in deze stap.
+
+---
+
 # 2026-08-06 (avond) — STOREFRONT-CONFIG-BANK-SECURITY-1
 
 **STOREFRONT-CONFIG-BANK-SECURITY-1**: `getConfig` in `storefront-api` gaf in de publieke, ongeauthenticeerde `/settings`-respons een `bank_details`-object mee met `account_holder`, `iban` en `bic`. Dit was opvraagbaar zonder aankoop en vormt een spoofing-/factuurfraude-risico. Het `bank_details`-blok is verwijderd uit `getConfig`; de boolean `bank_transfer_enabled` blijft behouden voor backward-compatibiliteit. De bankgegevens die een klant nodig heeft voor een bankoverschrijving of QR-code worden legitiem en onveranderd opgebouwd in `checkout_complete` (eigen tenant-query). Andere functies, de database en `cacheControl` zijn onaangeroerd. Scope: alleen het bank-blok in `getConfig`.
 
 ---
+
 
 # 2026-08-06 (late namiddag) — STOREFRONT-CONFIG-SOCIALS-FIX-1
 
