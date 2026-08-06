@@ -697,40 +697,52 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
 // ============== GET PAGES ==============
 
+const PAGE_LANGS = ['nl', 'en', 'fr', 'de'] as const;
+type PageLang = typeof PAGE_LANGS[number];
+
+function normalizePageLang(locale: string | undefined): PageLang {
+  const short = (locale || '').slice(0, 2).toLowerCase();
+  return (PAGE_LANGS as readonly string[]).includes(short) ? (short as PageLang) : 'nl';
+}
+
+function pickLocalized(row: any, field: 'title' | 'content', lang: PageLang): string | null {
+  const value = row?.[`${field}_${lang}`];
+  if (value && String(value).trim() !== '') return value;
+  return row?.[`${field}_nl`] ?? null;
+}
+
+// Legal pages live in public.legal_pages with per-language columns (nl/en/fr/de).
+// page_type doubles as the canonical slug.
 async function getPages(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
-  const locale = params.locale as string | undefined;
+  const lang = normalizePageLang(params.locale as string | undefined);
   const slug = params.slug as string | undefined;
 
   if (slug) {
     const { data: page, error } = await supabase
-      .from('pages')
-      .select('id, title, slug, content, meta_title, meta_description, show_in_nav, nav_order, is_published')
-      .eq('tenant_id', tenantId).eq('slug', slug).eq('is_published', true).maybeSingle();
+      .from('legal_pages')
+      .select('id, page_type, title_nl, title_en, title_fr, title_de, content_nl, content_en, content_fr, content_de, updated_at')
+      .eq('tenant_id', tenantId).eq('page_type', slug).eq('is_published', true).maybeSingle();
     if (error) throw error;
     if (!page) throw new Error('Page not found');
 
-    const tMap = locale ? await getTranslations(supabase, tenantId, 'page', [page.id], locale) : {};
-    const t = tMap[page.id] || {};
     return {
-      id: page.id, title: t.title || page.title, slug: page.slug,
-      content: t.content || page.content,
-      meta_title: t.meta_title || page.meta_title, meta_description: t.meta_description || page.meta_description,
+      slug: page.page_type,
+      title: pickLocalized(page, 'title', lang),
+      content: pickLocalized(page, 'content', lang),
     };
   }
 
-  // List all published pages
   const { data: pages, error } = await supabase
-    .from('pages')
-    .select('id, title, slug, show_in_nav, nav_order, is_published')
-    .eq('tenant_id', tenantId).eq('is_published', true)
-    .order('nav_order', { ascending: true });
+    .from('legal_pages')
+    .select('id, page_type, title_nl, title_en, title_fr, title_de, updated_at')
+    .eq('tenant_id', tenantId).eq('is_published', true);
   if (error) throw error;
 
-  const tMap = locale && pages?.length ? await getTranslations(supabase, tenantId, 'page', pages.map((p: any) => p.id), locale) : {};
-  return (pages || []).map((page: any) => {
-    const t = tMap[page.id] || {};
-    return { id: page.id, title: t.title || page.title, slug: page.slug, show_in_nav: page.show_in_nav, nav_order: page.nav_order };
-  });
+  return (pages || []).map((page: any) => ({
+    slug: page.page_type,
+    title: pickLocalized(page, 'title', lang),
+    url: `/${page.page_type}`,
+  }));
 }
 
 // ============== GET HOMEPAGE ==============
@@ -865,7 +877,7 @@ async function getSitemapData(supabase: any, tenantId: string) {
   const [{ data: products }, { data: categories }, { data: pages }, { data: domains }] = await Promise.all([
     supabase.from('products').select('slug, updated_at').eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false),
     supabase.from('categories').select('slug, updated_at').eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false),
-    supabase.from('pages').select('slug, updated_at').eq('tenant_id', tenantId).eq('is_published', true),
+    supabase.from('legal_pages').select('page_type, updated_at').eq('tenant_id', tenantId).eq('is_published', true),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', tenantId).eq('is_active', true),
   ]);
 
@@ -876,7 +888,7 @@ async function getSitemapData(supabase: any, tenantId: string) {
     base_url: baseUrl,
     products: (products || []).map((p: any) => ({ slug: p.slug, updated_at: p.updated_at })),
     categories: (categories || []).map((c: any) => ({ slug: c.slug, updated_at: c.updated_at })),
-    pages: (pages || []).map((p: any) => ({ slug: p.slug, updated_at: p.updated_at })),
+    pages: (pages || []).map((p: any) => ({ slug: p.page_type, updated_at: p.updated_at })),
     domains: domains || [],
   };
 }

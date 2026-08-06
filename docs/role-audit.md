@@ -1,3 +1,7 @@
+# 2026-08-06 (namiddag) — STOREFRONT-PAGES-FIX-1
+
+**STOREFRONT-PAGES-FIX-1**: get_pages en get_sitemap_data in storefront-api lazen uit een niet-bestaande tabel `pages`; de sellqo-proxy maskeerde de upstream-fout als `{"data":[]}`, waardoor legal pages bij geen enkele tenant op de storefront verschenen. Omgezet naar `public.legal_pages` met per-taal kolommen (nl/en/fr/de) + NL-fallback; `page_type` is de canonieke slug. Lijstvorm `{slug, title, url}`, detailvorm `{slug, title, content}`; sitemap-vorm onveranderd. content_translations niet meer gebruikt in deze functie. Legal pages werken nu storefront-breed voor alle tenants.
+
 # 2026-08-06 (middag) — LABEL-PRINT-FIX / BOL-ORDER C000CJ82P1 / INVOICE-MAIL-FIX / SELLQO-GEDEELDE-PADEN SKILL / FASE-B-SLOOP
 
 **LABEL-PRINT-FIX-1** (commit dd5606f): regressie uit 2a·4. De daar toegevoegde customer_id-select in get-document-url draaide voor álle doc-types, maar shipping_labels heeft geen customer_id-kolom → elke labelprint 500'de ("column shipping_labels.customer_id does not exist"), live gevonden op VanXcel #1163. Fix: HAS_CUSTOMER_ID-map per doc_type; customer_id-select én de interne-tenant-fallback-autorisatie (uit 2a·4) alleen nog voor billing-doctypes (invoice/credit_note/payment_request); shipping_label terug op de pure tenant-check. Geverifieerd: get-document-url doet nul writes → label_url-regel onaangetast. LES → nieuwe workspace-skill sellqo-gedeelde-paden G1.
