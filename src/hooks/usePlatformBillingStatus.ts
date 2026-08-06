@@ -42,7 +42,7 @@ export interface PlatformBillingStatus {
  * `get-platform-billing-status` edge function (tenant-scoped RLS otherwise
  * returns zero rows).
  */
-export function usePlatformBillingStatus() {
+export function usePlatformBillingStatus(options?: { poll?: boolean }) {
   const tenantContext = useContext(TenantContext);
   const tenantId = tenantContext?.currentTenant?.id ?? null;
 
@@ -55,6 +55,9 @@ export function usePlatformBillingStatus() {
       });
     },
     enabled: !!tenantId,
+    // PAY-UX-1 — poll while an open payment request is pending (read-only).
+    refetchInterval: options?.poll ? 5000 : false,
+    refetchOnWindowFocus: true,
   });
 }
 
