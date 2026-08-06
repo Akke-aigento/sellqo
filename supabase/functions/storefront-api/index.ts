@@ -3153,7 +3153,23 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Too many requests' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
 
+    // IP-based throttling for abuse-prone public write endpoints
+    const clientIp = (req.headers.get('cf-connecting-ip')
+      || req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+      || 'unknown');
+
+    if (action === 'newsletter_subscribe' || action === 'submit_contact_form') {
+      const rlKey = `${action}:${tenant_id}:${clientIp}`;
+      if (!checkIpActionRateLimit(rlKey, 5, 10 * 60 * 1000)) {
+        return new Response(
+          JSON.stringify({ success: false, error: { code: 'RATE_LIMITED', message: 'Te veel aanvragen. Probeer het over enkele minuten opnieuw.' } }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
+        );
+      }
+    }
+
     const userAgent = req.headers.get('user-agent') ?? '';
+
 
     let result: unknown;
     let cacheControl: string | null = null;
