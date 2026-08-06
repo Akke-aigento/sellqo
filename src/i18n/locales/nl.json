@@ -544,7 +544,9 @@
       "advanced_analytics": "Geavanceerde analytics",
       "white_label": "White-label"
     },
-    "all_plans_include": "Alle plannen bevatten"
+    "all_plans_include": "Alle plannen bevatten",
+    "vat_note": "Alle prijzen zijn exclusief btw",
+    "excl_vat_short": "excl. btw"
   },
   "billing": {
     "title": "Facturatie",

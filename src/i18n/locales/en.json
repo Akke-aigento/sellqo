@@ -553,7 +553,9 @@
       "advanced_analytics": "Advanced analytics",
       "white_label": "White-label"
     },
-    "all_plans_include": "All plans include"
+    "all_plans_include": "All plans include",
+    "vat_note": "All prices exclude VAT",
+    "excl_vat_short": "excl. VAT"
   },
   "billing": {
     "title": "Billing",

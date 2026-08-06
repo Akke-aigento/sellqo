@@ -278,7 +278,8 @@
       "footnoteTipTitle": "Save on transaction fees:",
       "footnoteTipBody": "With our Bank Transfer QR codes customers pay directly from their bank app — €0 transaction fees for you!",
       "footnoteStripe": "Stripe payments: 1.5% + €0.25 per transaction (standard Stripe rates)",
-      "footnoteVat": "All prices include VAT",
+      "footnoteVat": "All prices exclude VAT",
+      "exclVatShort": "excl. VAT",
       "plans": {
         "free": {
           "name": "Free",

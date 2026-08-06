@@ -278,7 +278,8 @@
       "footnoteTipTitle": "Spare bei Transaktionsgebühren:",
       "footnoteTipBody": "Mit unseren Banküberweisungs-QR-Codes zahlen Kunden direkt aus ihrer Bank-App — €0 Transaktionsgebühren für Dich!",
       "footnoteStripe": "Stripe-Zahlungen: 1,5% + €0,25 pro Transaktion (Standard-Stripe-Tarife)",
-      "footnoteVat": "Alle Preise inkl. MwSt.",
+      "footnoteVat": "Alle Preise zzgl. MwSt.",
+      "exclVatShort": "zzgl. MwSt.",
       "plans": {
         "free": {
           "name": "Free",

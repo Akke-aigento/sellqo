@@ -278,7 +278,8 @@
       "footnoteTipTitle": "Économisez sur les frais de transaction :",
       "footnoteTipBody": "Avec nos QR codes de virement bancaire, vos clients paient directement depuis leur app bancaire — 0 € de frais pour vous !",
       "footnoteStripe": "Paiements Stripe : 1,5 % + 0,25 € par transaction (tarifs Stripe standards)",
-      "footnoteVat": "Tous les prix sont TTC",
+      "footnoteVat": "Tous les prix sont hors TVA",
+      "exclVatShort": "hors TVA",
       "plans": {
         "free": {
           "name": "Free",

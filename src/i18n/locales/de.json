@@ -1,4 +1,8 @@
 {
+  "pricing": {
+    "vat_note": "Alle Preise zzgl. MwSt.",
+    "excl_vat_short": "zzgl. MwSt."
+  },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",

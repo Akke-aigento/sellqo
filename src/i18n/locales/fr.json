@@ -1,4 +1,8 @@
 {
+  "pricing": {
+    "vat_note": "Tous les prix sont hors TVA",
+    "excl_vat_short": "hors TVA"
+  },
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
