@@ -50,13 +50,23 @@ export default function BillingPage() {
     usageLoading,
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
-  const { data: documents, isLoading: documentsLoading } = usePlatformBillingDocuments();
+  /** PAY-UX-1 — polling is enabled as long as an open payment request exists. */
+  const [shouldPoll, setShouldPoll] = useState(false);
+  const {
+    data: documents,
+    isLoading: documentsLoading,
+    refetch: refetchDocuments,
+  } = usePlatformBillingDocuments({ poll: shouldPoll });
   const { openDocument, isDownloading } = useDocumentDownload();
   const [showAllInvoices, setShowAllInvoices] = useState(false);
   const allInvoices = documents?.invoices ?? [];
   const visibleInvoices = showAllInvoices ? allInvoices : allInvoices.slice(0, INVOICE_PAGE_SIZE);
 
-  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const {
+    data: billingStatus,
+    isLoading: statusLoading,
+    refetch: refetchStatus,
+  } = usePlatformBillingStatus({ poll: shouldPoll });
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
