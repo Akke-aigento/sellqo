@@ -78,6 +78,13 @@ export function LandingFooter() {
                   <social.icon className="w-5 h-5" />
                 </a>
               ))}
+              <button
+                type="button"
+                onClick={openPlatformCookieSettings}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t('cookieConsent.manage')}
+              </button>
             </div>
           </div>
 
