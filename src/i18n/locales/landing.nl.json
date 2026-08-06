@@ -1244,6 +1244,10 @@
         "payment_return_experience": {
           "title": "Duidelijke betaalbevestiging",
           "description": "Na het betalen van een betalingsverzoek zie je meteen een duidelijke bevestiging en werkt je abonnementspagina zichzelf bij."
+        },
+        "billing_engine_migration": {
+          "title": "Abonnementsfacturatie op eigen systeem",
+          "description": "Je abonnementsfacturen, betalingsverzoeken en creditnota's komen nu volledig uit ons eigen systeem, met één duidelijk overzicht op je abonnementspagina."
         }
       },
       "copyLink": "Kopieer link",

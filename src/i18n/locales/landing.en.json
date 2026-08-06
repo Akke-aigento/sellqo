@@ -1244,6 +1244,10 @@
         "payment_return_experience": {
           "title": "Clear payment confirmation",
           "description": "After paying a payment request you immediately see a clear confirmation and your subscription page updates itself."
+        },
+        "billing_engine_migration": {
+          "title": "Subscription billing on our own system",
+          "description": "Your subscription invoices, payment requests and credit notes now come entirely from our own system, with one clear overview on your subscription page."
         }
       },
       "copyLink": "Copy link",
