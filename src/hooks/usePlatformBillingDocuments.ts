@@ -49,7 +49,7 @@ export interface PlatformBillingDocuments {
  * tenant as customer, so tenant-scoped RLS makes them unreachable from the
  * client: everything goes through the service-role edge function.
  */
-export function usePlatformBillingDocuments() {
+export function usePlatformBillingDocuments(options?: { poll?: boolean }) {
   const tenantContext = useContext(TenantContext);
   const tenantId = tenantContext?.currentTenant?.id ?? null;
 
@@ -62,5 +62,8 @@ export function usePlatformBillingDocuments() {
       });
     },
     enabled: !!tenantId,
+    // PAY-UX-1 — poll while an open payment request is pending (read-only).
+    refetchInterval: options?.poll ? 5000 : false,
+    refetchOnWindowFocus: true,
   });
 }

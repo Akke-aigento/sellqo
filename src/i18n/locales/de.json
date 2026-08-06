@@ -1024,6 +1024,11 @@
       "col_original": "Ursprüngliche Rechnung",
       "credited_via": "Gutgeschrieben über {{numbers}}",
       "show_more": "{{count}} ältere Rechnungen anzeigen"
+    },
+    "payment_return": {
+      "received": "Zahlung erhalten — dein Abonnement wurde aktualisiert",
+      "processing": "Wir verarbeiten deine Zahlung ({{reference}})…",
+      "slow": "Deine Zahlung ist eingegangen. Es kann einen Moment dauern, bis alles aktualisiert ist."
     }
   }
 }

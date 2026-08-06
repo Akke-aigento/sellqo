@@ -50,13 +50,23 @@ export default function BillingPage() {
     usageLoading,
   } = useTenantSubscription();
   const { plans } = usePricingPlans();
-  const { data: documents, isLoading: documentsLoading } = usePlatformBillingDocuments();
+  /** PAY-UX-1 — polling is enabled as long as an open payment request exists. */
+  const [shouldPoll, setShouldPoll] = useState(false);
+  const {
+    data: documents,
+    isLoading: documentsLoading,
+    refetch: refetchDocuments,
+  } = usePlatformBillingDocuments({ poll: shouldPoll });
   const { openDocument, isDownloading } = useDocumentDownload();
   const [showAllInvoices, setShowAllInvoices] = useState(false);
   const allInvoices = documents?.invoices ?? [];
   const visibleInvoices = showAllInvoices ? allInvoices : allInvoices.slice(0, INVOICE_PAGE_SIZE);
 
-  const { data: billingStatus, isLoading: statusLoading } = usePlatformBillingStatus();
+  const {
+    data: billingStatus,
+    isLoading: statusLoading,
+    refetch: refetchStatus,
+  } = usePlatformBillingStatus({ poll: shouldPoll });
   const createMandateLink = useCreatePlatformMandateLink();
   const setPaymentMode = useSetPlatformPaymentMode();
   const syncPlan = useSyncTenantPlan();
@@ -100,6 +110,77 @@ export default function BillingPage() {
     [plans, pendingUpgrade],
   );
   const showPendingDowngrade = !!pendingPlan && !pendingUpgrade;
+
+  /**
+   * PAY-UX-1 (deel A) — the page detects payment completion itself, for every
+   * return path (same tab, separate tab from the payment-request mail, slow
+   * webhook). Read-only: polling + refetch, never a mutation.
+   */
+  const openPaymentRequests = useMemo(
+    () =>
+      (documents?.payment_requests ?? []).filter(pr =>
+        ['awaiting_payment', 'processing', 'open', 'pending'].includes(pr.status),
+      ),
+    [documents],
+  );
+  const hasOpenPayment = openPaymentRequests.length > 0 || !!pendingUpgrade;
+
+  const [paidReference, setPaidReference] = useState<string | null>(null);
+  const [paidTimedOut, setPaidTimedOut] = useState(false);
+  const paidToastShownRef = useRef(false);
+  const hadOpenPaymentRef = useRef(false);
+
+  // ?paid=<pr> from the public success page: show a "processing" status and
+  // strip the param so a refresh does not repeat it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paid = params.get('paid') ?? params.get('paid_invoice');
+    if (!paid) return;
+    setPaidReference(paid);
+    params.delete('paid');
+    params.delete('paid_invoice');
+    const query = params.toString();
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}`,
+    );
+    const timer = window.setTimeout(() => setPaidTimedOut(true), 30000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (documentsLoading || statusLoading) return;
+    setShouldPoll(hasOpenPayment);
+
+    if (hasOpenPayment) {
+      hadOpenPaymentRef.current = true;
+      return;
+    }
+
+    // Settled: either we saw an open request earlier, or we returned with ?paid.
+    if ((hadOpenPaymentRef.current || paidReference) && !paidToastShownRef.current) {
+      paidToastShownRef.current = true;
+      hadOpenPaymentRef.current = false;
+      setPaidReference(null);
+      toast.success(t('billing.payment_return.received'));
+    }
+  }, [hasOpenPayment, documentsLoading, statusLoading, paidReference, t]);
+
+  // Refetch when the tab regains focus (returning from the payment page).
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      void refetchDocuments();
+      void refetchStatus();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [refetchDocuments, refetchStatus]);
 
   const handleCancelPendingUpgrade = async () => {
     try {
@@ -382,6 +463,18 @@ export default function BillingPage() {
         </p>
       </div>
 
+      {/* PAY-UX-1 — return from the payment page: show progress, never an error. */}
+      {paidReference && (
+        <Alert>
+          <CalendarClock className="h-4 w-4" />
+          <AlertDescription>
+            {paidTimedOut
+              ? t('billing.payment_return.slow')
+              : t('billing.payment_return.processing', { reference: paidReference })}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Current Plan */}
         <Card>
@@ -447,7 +540,7 @@ export default function BillingPage() {
                     {pendingUpgrade.checkout_session_url && (
                       <Button
                         size="sm"
-                        onClick={() => window.open(pendingUpgrade.checkout_session_url!, '_blank')}
+                        onClick={() => window.location.assign(pendingUpgrade.checkout_session_url!)}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         {t('billing.pending_upgrade.pay_now')}
@@ -656,11 +749,12 @@ export default function BillingPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{formatPrice(Number(pr.total))}</span>
                   {pr.checkout_session_url && (
-                    <Button size="sm" asChild>
-                      <a href={pr.checkout_session_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        {t('billing.documents.pay')}
-                      </a>
+                    <Button
+                      size="sm"
+                      onClick={() => window.location.assign(pr.checkout_session_url!)}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      {t('billing.documents.pay')}
                     </Button>
                   )}
                   {pr.has_pdf && (

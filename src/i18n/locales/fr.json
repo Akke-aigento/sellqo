@@ -1024,6 +1024,11 @@
       "col_original": "Facture d'origine",
       "credited_via": "Crédité via {{numbers}}",
       "show_more": "Afficher {{count}} factures plus anciennes"
+    },
+    "payment_return": {
+      "received": "Paiement reçu — votre abonnement a été mis à jour",
+      "processing": "Nous traitons votre paiement ({{reference}})…",
+      "slow": "Votre paiement a été reçu. La mise à jour complète peut prendre un instant."
     }
   }
 }
