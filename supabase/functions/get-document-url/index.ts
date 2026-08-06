@@ -46,6 +46,15 @@ const PATH_COL: Record<DocType, { pdf: string; ubl: string | null }> = {
 
 const SIGNED_TTL = 600; // 10 minutes
 
+// `customer_id` bestaat enkel op de billing-doctypes. shipping_labels heeft die
+// kolom niet — selecteren zou de query laten crashen (500).
+const HAS_CUSTOMER_ID: Record<DocType, boolean> = {
+  invoice: true,
+  credit_note: true,
+  shipping_label: false,
+  payment_request: true,
+};
+
 function badRequest(msg: string): Response {
   return new Response(JSON.stringify({ error: msg }), {
     status: 400,
@@ -97,9 +106,14 @@ serve(async (req) => {
 
     const ids = doc_id ? [doc_id] : (doc_ids as string[]);
 
+    const hasCustomerId = HAS_CUSTOMER_ID[doc_type];
+    const selectCols = hasCustomerId
+      ? `id, tenant_id, customer_id, ${numberCol}, ${pathCol}`
+      : `id, tenant_id, ${numberCol}, ${pathCol}`;
+
     const { data: rows, error: rowsErr } = await admin
       .from(table)
-      .select(`id, tenant_id, customer_id, ${numberCol}, ${pathCol}`)
+      .select(selectCols)
       .in("id", ids);
 
     if (rowsErr) {
@@ -127,7 +141,7 @@ serve(async (req) => {
     const auth = await authenticateRequest(req);
     const hasTenantAccess = auth.is_platform_admin || auth.tenant_ids.includes(tenantId);
 
-    if (!hasTenantAccess) {
+    if (!hasTenantAccess && hasCustomerId) {
       // 2a·4 — surgical exception: documents of a tenant's own SellQo
       // subscription live on the INTERNAL tenant with the tenant as customer.
       // Allow it only when every requested document belongs to a billing
@@ -154,6 +168,9 @@ serve(async (req) => {
           (rows as any[]).every((r) => r.customer_id && ownCustomerIds.has(r.customer_id));
       }
       if (!allowed) throw new AuthError("No access to this tenant", 403);
+    } else if (!hasTenantAccess) {
+      // shipping_label e.d.: uitsluitend de normale tenant-toegang.
+      throw new AuthError("No access to this tenant", 403);
     }
 
     // Single-doc form: enforce 404 on missing path.
