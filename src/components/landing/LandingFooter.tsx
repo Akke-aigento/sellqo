@@ -3,6 +3,7 @@ import { SellqoLogo } from '@/components/SellqoLogo';
 import { Linkedin, Twitter, Facebook } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LandingLanguageSwitcher } from './LandingLanguageSwitcher';
+import { openPlatformCookieSettings } from '@/components/PlatformCookieBanner';
 
 const socialLinks = [
   { icon: Linkedin, href: '#', label: 'LinkedIn' },
