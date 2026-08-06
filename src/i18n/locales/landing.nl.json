@@ -1248,6 +1248,10 @@
         "billing_engine_migration": {
           "title": "Abonnementsfacturatie op eigen systeem",
           "description": "Je abonnementsfacturen, betalingsverzoeken en creditnota's komen nu volledig uit ons eigen systeem, met één duidelijk overzicht op je abonnementspagina."
+        },
+        "customer_invoice_email_fix": {
+          "title": "Correcte factuurmails aan je klanten",
+          "description": "Factuurmails aan je klanten tonen niet langer abonnement-specifieke incassotekst; een betaalde factuur wordt netjes als voldaan bevestigd."
         }
       },
       "copyLink": "Kopieer link",
@@ -1258,6 +1262,7 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "Augustus 2026"
+        ,"sep_2026": "September 2026"
       },
       "filters": {
         "all": "Alles",
