@@ -528,7 +528,7 @@ export default function BillingPage() {
                     {pendingUpgrade.checkout_session_url && (
                       <Button
                         size="sm"
-                        onClick={() => window.open(pendingUpgrade.checkout_session_url!, '_blank')}
+                        onClick={() => window.location.assign(pendingUpgrade.checkout_session_url!)}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         {t('billing.pending_upgrade.pay_now')}
@@ -737,11 +737,12 @@ export default function BillingPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{formatPrice(Number(pr.total))}</span>
                   {pr.checkout_session_url && (
-                    <Button size="sm" asChild>
-                      <a href={pr.checkout_session_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        {t('billing.documents.pay')}
-                      </a>
+                    <Button
+                      size="sm"
+                      onClick={() => window.location.assign(pr.checkout_session_url!)}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      {t('billing.documents.pay')}
                     </Button>
                   )}
                   {pr.has_pdf && (
