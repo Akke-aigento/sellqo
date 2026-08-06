@@ -3,6 +3,7 @@ import { SellqoLogo } from '@/components/SellqoLogo';
 import { Linkedin, Twitter, Facebook } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LandingLanguageSwitcher } from './LandingLanguageSwitcher';
+import { openPlatformCookieSettings } from '@/components/PlatformCookieBanner';
 
 const socialLinks = [
   { icon: Linkedin, href: '#', label: 'LinkedIn' },
@@ -78,6 +79,13 @@ export function LandingFooter() {
                   <social.icon className="w-5 h-5" />
                 </a>
               ))}
+              <button
+                type="button"
+                onClick={openPlatformCookieSettings}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t('cookieConsent.manage')}
+              </button>
             </div>
           </div>
 

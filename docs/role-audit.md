@@ -5090,3 +5090,10 @@ service-role en is rol-onafhankelijk.
 **Recon-vondst:** `subscriptions.tenant_id` = de interne SellQo-tenant, `tenant_subscriptions.tenant_id` = de klant. Die splitsing bepaalt waarom de billing-status via een service-role edge function moet en niet via RLS-queries uit de client.
 
 **Slottaken:** changelog 2026.08u (`pay_first_upgrades`) in 4 landing-locales + geregistreerd in PublicChangelog. Billing-i18n `pending_upgrade` in 4 talen. DOCS-1: tenant-artikel `abonnement-en-betaalwijze-beheren` bijgewerkt met de pro-rata-rekenwijze, het "wacht op betaling"-scenario en de 7-dagen-expiry. Geen dataherstel van oude foute facturen (bewust besloten).
+
+## 2026-08-06 (avond) — COOKIE-CONSENT-PUBLIC-1
+
+- Publieke Sellqo-site had geen cookiebanner (GDPR/ePrivacy non-conform).
+- Nieuw: `src/components/PlatformCookieBanner.tsx` — granulaire consent (noodzakelijk/analytisch/marketing), opslag in localStorage `sellqo-cookie-consent` (v1), events `sellqo-cookie-consent-changed`, helpers `hasPlatformConsent()` en `openPlatformCookieSettings()`.
+- Gemount in `App.tsx` binnen de router; uitgesloten op `/shop/*`, `/admin`, `/platform`, `/pos`, `/checkout`, `/betaling` (tenant-storefront houdt zijn eigen `CookieBanner`).
+- Footer: heropen-link "Cookievoorkeuren"; teksten in nl/en/fr/de via `landing.*.json` key `cookieConsent`.
