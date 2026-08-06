@@ -119,15 +119,19 @@ export function ShippingMethodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90dvh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>
             {method ? "Verzendmethode bewerken" : "Nieuwe verzendmethode"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
             <FormField
               control={form.control}
               name="name"
@@ -326,8 +330,9 @@ export function ShippingMethodDialog({
                 )}
               />
             </div>
+            </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 border-t bg-background px-6 py-4">
               <Button
                 type="button"
                 variant="outline"
