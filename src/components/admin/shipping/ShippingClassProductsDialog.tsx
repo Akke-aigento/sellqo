@@ -73,7 +73,7 @@ export function ShippingClassProductsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>Producten koppelen</DialogTitle>
           <DialogDescription>
@@ -96,7 +96,7 @@ export function ShippingClassProductsDialog({
           {selected.size} product(en) geselecteerd
         </p>
 
-        <ScrollArea className="h-[320px] rounded-md border">
+        <ScrollArea className="h-[min(320px,45dvh)] rounded-md border">
           {isLoading ? (
             <div className="space-y-2 p-3">
               {[...Array(5)].map((_, i) => (
