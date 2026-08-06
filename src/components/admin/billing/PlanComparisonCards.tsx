@@ -115,7 +115,7 @@ export function PlanComparisonCards({
   onSelectPlan,
   onIntervalChange,
 }: PlanComparisonCardsProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [detailPlan, setDetailPlan] = useState<PricingPlan | null>(null);
 
   const isYearly = selectedInterval === 'yearly';
