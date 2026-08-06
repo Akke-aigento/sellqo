@@ -3157,9 +3157,9 @@ serve(async (req) => {
     const clientIp = (req.headers.get('cf-connecting-ip')
       || req.headers.get('x-forwarded-for')?.split(',')[0].trim()
       || 'unknown');
-    console.log('[IP-THROTTLE] action=', action, 'clientIp=', clientIp, 'xf=', req.headers.get('x-forwarded-for'), 'cf=', req.headers.get('cf-connecting-ip'));
 
     if (action === 'newsletter_subscribe' || action === 'submit_contact_form') {
+
 
       const rlKey = `${action}:${tenant_id}:${clientIp}`;
       if (!checkIpActionRateLimit(rlKey, 5, 10 * 60 * 1000)) {
