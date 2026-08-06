@@ -463,6 +463,18 @@ export default function BillingPage() {
         </p>
       </div>
 
+      {/* PAY-UX-1 — return from the payment page: show progress, never an error. */}
+      {paidReference && (
+        <Alert>
+          <CalendarClock className="h-4 w-4" />
+          <AlertDescription>
+            {paidTimedOut
+              ? t('billing.payment_return.slow')
+              : t('billing.payment_return.processing', { reference: paidReference })}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Current Plan */}
         <Card>
