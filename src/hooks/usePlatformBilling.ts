@@ -101,6 +101,9 @@ export function usePlatformBilling() {
     enabled: isPlatformAdmin,
   });
 
+  // HISTORISCH (Stripe Billing-archief + bevestigde bankbetalingen).
+  // Actuele abonnementsfacturatie loopt via de native billing-engine.
+  // Zie docs/stripe-billing-deprecated.md
   const { data: allInvoices } = useQuery({
     queryKey: ['platform-all-invoices'],
     queryFn: async () => {
