@@ -1248,6 +1248,10 @@
         "billing_engine_migration": {
           "title": "Abonnementsabrechnung im eigenen System",
           "description": "Deine Abonnementsrechnungen, Zahlungsanforderungen und Gutschriften kommen jetzt vollstaendig aus unserem eigenen System, mit einer klaren Uebersicht auf deiner Abonnementseite."
+        },
+        "customer_invoice_email_fix": {
+          "title": "Korrekte Rechnungs-E-Mails an deine Kunden",
+          "description": "Rechnungs-E-Mails an deine Kunden zeigen keinen abonnementspezifischen Einzugstext mehr; eine bezahlte Rechnung wird als beglichen bestaetigt."
         }
       },
       "copyLink": "Link kopieren",
@@ -1258,6 +1262,7 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026"
+        ,"sep_2026": "September 2026"
       },
       "filters": {
         "all": "Alle",

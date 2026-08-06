@@ -1248,6 +1248,10 @@
         "billing_engine_migration": {
           "title": "Facturation d'abonnement sur notre propre systeme",
           "description": "Vos factures d'abonnement, demandes de paiement et notes de credit proviennent desormais entierement de notre propre systeme, avec un apercu clair sur votre page d'abonnement."
+        },
+        "customer_invoice_email_fix": {
+          "title": "Emails de facture corrects pour vos clients",
+          "description": "Les emails de facture envoyes a vos clients n'affichent plus le texte de prelevement specifique aux abonnements; une facture payee est confirmee comme reglee."
         }
       },
       "copyLink": "Copier le lien",
@@ -1258,6 +1262,7 @@
         "q4_2024": "T4 2024",
         "q2_2026": "T2 2026",
         "aug_2026": "Août 2026"
+        ,"sep_2026": "Septembre 2026"
       },
       "filters": {
         "all": "Tout",

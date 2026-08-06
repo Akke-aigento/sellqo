@@ -173,18 +173,28 @@ serve(async (req) => {
 
     // Auto-collected invoices (charged via active mandate) must NOT include
     // payment instructions — the charge is already in flight or completed.
+    // Auto-collect is ONLY valid for SellQo subscription invoices (mandate-based).
+    // Tenant customer invoices (subscription_id NULL) never run on a mandate.
+    const isSubscriptionInvoice = invoice.subscription_id != null;
     const isAutoCollected =
-      invoice.status === 'processing' || invoice.status === 'paid';
+      isSubscriptionInvoice &&
+      (invoice.status === 'processing' || invoice.status === 'paid');
     const autoVariant: 'processing' | 'paid' | null = isAutoCollected
       ? (invoice.status === 'paid' ? 'paid' : 'processing')
       : null;
+
+    // Already-paid customer invoice: neutral confirmation, no payment call to action.
+    const isPaidCustomerInvoice =
+      !isSubscriptionInvoice && !reminderLevel && invoice.status === 'paid';
 
     const emailSubject = reminderLevel
       ? t(locale, `invoice.reminderSubject${reminderLevel}`, { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
       : (isAutoCollected
           ? t(locale, 'invoice.autoCollectSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
-          : (tenant.invoice_email_subject ||
-              t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })));
+          : (isPaidCustomerInvoice
+              ? t(locale, 'invoice.paidSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
+              : (tenant.invoice_email_subject ||
+                  t(locale, 'invoice.subject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName }))));
 
     // For auto-collected invoices we intentionally IGNORE the tenant's
     // custom invoice_email_body — it typically contains payment terms
@@ -194,7 +204,9 @@ serve(async (req) => {
       ? t(locale, `invoice.reminderIntro${reminderLevel}`, { customerName, invoiceNumber: invoice.invoice_number })
       : (isAutoCollected
           ? t(locale, 'invoice.autoCollectIntro', { customerName })
-          : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName })));
+          : (isPaidCustomerInvoice
+              ? t(locale, 'invoice.paidIntro', { customerName, invoiceNumber: invoice.invoice_number })
+              : (tenant.invoice_email_body || t(locale, 'invoice.intro', { customerName }))));
 
     // Defense: if the invoice has no PDF/UBL yet (document generation
     // failed or is still pending), don't promise an attachment that isn't
@@ -205,7 +217,9 @@ serve(async (req) => {
       ? t(locale, 'invoice.attached')
       : (isAutoCollected
           ? t(locale, autoVariant === 'paid' ? 'invoice.autoCollectPaidNote' : 'invoice.autoCollectProcessingNote')
-          : (hasAnyAttachment ? t(locale, 'invoice.attached') : ''));
+          : (isPaidCustomerInvoice
+              ? (hasAnyAttachment ? t(locale, 'invoice.paidNote') : '')
+              : (hasAnyAttachment ? t(locale, 'invoice.attached') : '')));
 
     const payNowBlock = reminderLevel && checkout_url
       ? `<div style="text-align:center;margin:24px 0;">

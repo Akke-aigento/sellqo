@@ -1248,6 +1248,10 @@
         "billing_engine_migration": {
           "title": "Subscription billing on our own system",
           "description": "Your subscription invoices, payment requests and credit notes now come entirely from our own system, with one clear overview on your subscription page."
+        },
+        "customer_invoice_email_fix": {
+          "title": "Correct invoice emails to your customers",
+          "description": "Invoice emails to your customers no longer show subscription-specific direct debit wording; a paid invoice is confirmed as settled."
         }
       },
       "copyLink": "Copy link",
@@ -1258,6 +1262,7 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026"
+        ,"sep_2026": "September 2026"
       },
       "filters": {
         "all": "All",
