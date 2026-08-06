@@ -347,6 +347,14 @@ export default function PlatformBilling() {
 
         <TabsContent value="invoices">
           <Card>
+            <div className="p-4 border-b">
+              <p className="text-sm font-medium">Historisch (Stripe)</p>
+              <p className="text-xs text-muted-foreground">
+                Archief uit de oude Stripe Billing-periode en handmatig bevestigde
+                bankbetalingen. Actuele abonnementsfacturen staan in de native
+                billing-engine op de abonnementspagina van de tenant.
+              </p>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
