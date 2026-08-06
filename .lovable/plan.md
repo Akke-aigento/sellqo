@@ -1,154 +1,102 @@
-# UPGRADE-PF-1 — Upgrades volledig pay-first
+# FASE-B-SLOOP — sloopplan Stripe Billing (SellQo eigen abonnementen)
 
-## Wat er nu misgaat (geverifieerd in de code)
+Plan only. Geen code, geen verwijderingen. Alle bevindingen komen uit verse greps in deze sessie.
 
-`sync-tenant-plan` action=`switch` heeft in de upgrade-tak nog het volledige legacy invoice-first-blok (regels ~465-710): het berekent proratie, maakt zélf een `invoices`-rij + `invoice_lines`, genereert de PDF, incasseert off-session en mailt. Drie concrete fouten:
+## 0. WAT NIET WORDT AANGERAAKT (heilig)
 
-1. **Proratie 30/30 d** — de periode komt uit `tenant_subscriptions.current_period_start/_end`. Bij pay-first worden die bij activatie op vandaag → vandaag+1 maand gezet en daarna niet per dag bijgewerkt, dus `remainingDays == periodDays`.
-2. **Dubbel factureren** — de al betaalde pay-first-cycle van de lopende periode speelt geen rol; bij een interval-swap wordt zelfs de volle nieuwe prijs gefactureerd.
-3. **Verkeerd vertrekpunt** — de huidige prijs komt uit `pricing_plans` van `tenant_subscriptions.plan_id`, niet uit de werkelijke `subscription_lines.unit_price`.
+Stripe Connect / tenant-omzet — volledig buiten scope:
+- `create-connect-account`, `check-connect-status`, `get-stripe-login-link`, `disconnect-stripe-account`, `cleanup-connected-accounts`, `stripe-connect-webhook`, `get-merchant-payouts`, `get-merchant-transactions`.
+- Storefront-checkout en betaalpaden: `storefront-api`, `storefront-customer-api`, `create-checkout-session`, `create-invoice-payment-link`, `create-quote-payment-link`, `create-bank-transfer-order`, `process-gift-card-purchase`, `process-refund`, `refund-invoice`.
+- POS: `pos-create-payment-intent`, `pos-process-payment`, `pos-refund-payment`, `pos-manage-reader`.
+- Alles rond `stripe_account_id`, `account`, `connected`, `payout`, `transfer`, `application_fee`, `on_behalf_of`, `destination`.
 
-Vaststellingen die het ontwerp bepalen:
-- De echte lopende periode is af te leiden uit `subscriptions.next_invoice_date` (= periode-einde) en `interval`; `billing_cycles.period_start/period_end` van de laatst gesettelde cycle is een nog directere bron. Er is géén `current_period_*` op `subscriptions`.
-- `billing_cycles` heeft geen `cycle_type` en geen doelplan-velden → additieve migratie nodig.
-- `tenant_subscriptions` heeft `pending_plan_id / pending_interval / pending_effective_at` (nu enkel voor downgrades) maar geen manier om "upgrade wacht op betaling" te onderscheiden.
-- De webhook (`_shared/subscriptionCharge.ts` → `handleCycleCharge`) is de enige factureer-plek en herkent cycles via `intent.metadata.billing_cycle_id`. Dat blijft zo.
-- `calculate-plan-switch` en `execute-plan-switch` (+ `src/hooks/usePlanSwitch.ts`) hebben **geen enkele aanroeper** in de app: dode Stripe-Billing-code die het oude pad nabootst.
+Native pay-first engine — blijft volledig intact:
+- `generate-subscription-invoices`, `_shared/subscriptionCharge.ts`, `create-cycle-payment-link`, `generate-payment-request-pdf`, `process-cycle-reminders`, `process-invoice-dunning`, `sync-tenant-plan`, `get-platform-billing-status`, `get-document-url`, `generate-subscription-invoice-pdf`, `generate-credit-note`, `send-invoice-email`, `send-payment-request-email`.
+- Mandaat/incasso: `create-mandate-setup`, `create-platform-mandate-setup`, `mandate-setup-complete`, `mandate-setup-info`, tabellen `customer_payment_mandates`, `mandate_setup_tokens`.
+- Webhook-events die blijven: `payment_intent.succeeded`, `payment_intent.payment_failed` (CYCLE-3-interceptor), `checkout.session.completed`, `payout.created/paid/failed/canceled`.
+- Platform bankoverschrijving: `create-platform-bank-payment`, `pending_platform_payments`, `BankReconciliationUpload`, `PendingPlatformPaymentsPage`.
 
-## Pro-rata-berekening (nieuwe gedeelde helper)
+## 1. 2b·1 — Edge functions
 
-Nieuwe helper `supabase/functions/_shared/planProration.ts`:
+| Functie | Aanroepers (verse grep src/ + supabase/ + config.toml) | Verdict |
+|---|---|---|
+| `create-platform-checkout` | `src/hooks/useTenantSubscription.ts:121` → `src/pages/Pricing.tsx:65` (live route `/pricing` in App.tsx:156) | NIET direct slopen — eerst frontend ontkoppelen (2b·4), daarna slopen |
+| `platform-customer-portal` | alleen `useTenantSubscription.ts:144` (`openCustomerPortal`); **0 hits** op `openCustomerPortal` in UI-componenten | Slopen, samen met de dode hook-mutatie |
+| `confirm-platform-bank-payment` | `src/pages/admin/PendingPlatformPaymentsPage.tsx:92` | TWIJFELGEVAL → behouden (bank-reconciliatie, geen Stripe Billing) |
+| `create-addon-checkout`, `create-ai-credits-checkout`, `platform-gift-month` | eigen levende flows | Behouden, buiten scope |
 
-```text
-periodeEinde  = laatst gesettelde/lopende billing_cycle.period_end
-                (fallback: subscriptions.next_invoice_date)
-periodeStart  = die cycle.period_start
-                (fallback: periodeEinde − 1 interval)
-periodeDagen  = periodeEinde − periodeStart      (in dagen, min. 1)
-restDagen     = clamp(periodeEinde − vandaag, 0, periodeDagen)
+`calculate-plan-switch` / `execute-plan-switch`: **0 hits** in `supabase/functions` — al gesloopt.
+Geen andere sync/reconcile-varianten voor Stripe Billing gevonden.
 
-huidigNetto   = Σ over subscription_lines: quantity × unit_price   (WAARHEID)
-nieuwNetto    = pricing_plans[doelplan][interval-prijs]
-deltaNetto    = (nieuwNetto − huidigNetto) × restDagen / periodeDagen  → 2 dec
-btwPct        = btw van lijn 0 (bestaande snapping 0/6/12/21), default 21
-btw           = round(deltaNetto × btwPct/100, 2)
-totaal        = deltaNetto + btw
-```
+Sloop-lijst: `supabase/functions/platform-customer-portal/`, daarna `supabase/functions/create-platform-checkout/` (beide met hun `config.toml`-blok).
 
-- `deltaNetto ≤ 0` → geen betaling: het bestaande deferred-downgrade-pad (pending_plan_id op periodegrens).
-- Interval-swap monthly→yearly is óók "delta vanaf de huidige lijn", maar tegen een nieuwe periode: `deltaNetto = jaarprijs − (huidige maandlijn × restDagen/periodeDagen als credit)`; de nieuwe periode start vandaag.
-- Verrekening met de al betaalde cycle zit impliciet in het delta-vertrekpunt: de klant heeft de oude prijs voor de hele periode al betaald, dus alleen het verschil over de resterende dagen is verschuldigd. Nooit meer een vol maandbedrag.
+## 2. 2b·2 — Webhook-chirurgie (`platform-stripe-webhook`, 483 regels)
 
-**Voorbeeld** (lijn €2,00/maand → plan €5,00/maand, periode 01/08–01/09 = 31 d, vandaag 17/08 → 15 d rest):
-```text
-delta netto = (5,00 − 2,00) × 15/31 = 1,4516 → €1,45
-btw 21%     = €0,30
-totaal      = €1,75
-```
-Regelomschrijving: `Upgrade Starter → Pro (pro rata 15/31 d, 17/08/2026 t/m 01/09/2026)`.
+WEGGAAN (Stripe Billing; elke case is een zelfstandig blok dat alleen `tenant_subscriptions` / `platform_invoices` raakt):
+- `customer.subscription.created` + `.updated` (r.133-202)
+- `customer.subscription.deleted` (r.203)
+- `invoice.paid` (r.238) — `platform_invoices`-upsert + `tenant_subscriptions.last_payment_*`
+- `invoice.payment_failed` (r.295)
+- `customer.subscription.trial_will_end` (r.332)
 
-## Flow — mandate-modus (`subscriptions.payment_mode = 'mandate'`)
+BLIJVEN:
+- `payment_intent.succeeded` / `payment_intent.payment_failed` — interceptor r.114-126 via `handleSubscriptionChargeWebhook` (CYCLE-3). Onaangeroerd.
+- `checkout.session.completed` (r.353) — nu enkel loggend; blijft staan (mogelijke AI-credits-fulfilment, zie `docs/ai-credits-recon.md`).
+- `payout.created` (364) / `payout.paid` (391) / `payout.failed` (416) / `payout.canceled` (444) — Connect.
+- `default: Unhandled event type` (r.470) vangt oude events netjes op.
 
-```text
-UI: kies hoger plan → sync-tenant-plan action=switch
-  ├─ open proration-cycle aanwezig? → 409 "upgrade al in behandeling"
-  ├─ delta ≤ 0 → bestaand pending-downgrade-pad (ongewijzigd)
-  └─ delta > 0
-       1. INSERT billing_cycles: cycle_type='proration', model='pay_first',
-          mode='mandate', period = vandaag → periodeEinde,
-          target_plan_id / target_interval, status='pending'
-       2. PaymentIntent (off_session, confirm) met
-          metadata.billing_cycle_id, idempotencyKey cycle:<id>
-          ├─ succeeded/processing → cycle 'processing'
-          │      → plan gaat DIRECT in (lijnen + tenant_subscriptions + tenants)
-          │      → webhook maakt straks de betaalde factuur (CYCLE-3)
-          ├─ requires_action / geweigerd → cycle 'awaiting_payment'
-          │      → betalingsverzoek via dispatch-payment-request
-          │      → planwissel PENDING (zie manual-flow)
-          └─ intent-aanmaak faalt (throw) → cycle op 'cancelled',
-                 GEEN planwissel, nette fout naar de UI
-       3. Webhook payment_failed → cycle 'awaiting_payment'; als het plan al
-          direct inging blijft het staan en neemt dunning/reminders het over
-          (identiek aan een mislukte gewone pay-first-cycle).
-```
-**Ontwerpkeuze bevestigd:** bij mandaat volstaat `processing` om het plan direct te laten ingaan. Dat is consistent met `hasUsableMandate` en met de gewone pay-first-cycle (waar de klant ook al toegang heeft terwijl SEPA loopt), en de betalingsplicht blijft geborgd via de cycle + dunning. Wél strikter dan vandaag: bij een *geweigerde* intent wordt het plan niet meer stil doorgezet.
+Bevestigd: de te verwijderen cases delen geen helper of state met de blijvers — alleen `supabase`, `stripe`, `logStep`. Stripe-dashboard event-subscriptions hoeven niet gewijzigd te worden.
 
-## Flow — manual-modus (`payment_mode = 'manual'`)
+## 3. 2b·3 — Kolommen & data (geen DROP)
 
-```text
-UI: kies hoger plan → sync-tenant-plan action=switch
-  └─ delta > 0
-       1. INSERT billing_cycles: cycle_type='proration', mode='manual',
-          status='awaiting_payment', due_date=vandaag, grace_until=+7 d
-       2. dispatch-payment-request (link + PR-PDF + mail) — hergebruik
-       3. tenant_subscriptions: pending_plan_id / pending_interval /
-          pending_effective_at=NULL + pending_billing_cycle_id=<cycle>
-          → plan gaat NIET in; UI toont "upgrade wacht op betaling"
-       4a. Betaling → webhook: factuur (betaald) + cycle 'settled'
-             + EFFECTUEER de planwissel
-       4b. grace verstrijkt → process-cycle-reminders zet 'expired'
-             → pending upgrade vervalt (pending_* leeggemaakt),
-               notificatie "upgrade verlopen — probeer opnieuw"
-```
+Deprecated documenteren + uit selects/writes halen, data blijft archief:
+- `tenant_subscriptions.stripe_subscription_id` / `.stripe_customer_id` — gelezen in `create-platform-checkout:169`, `PlatformBilling.tsx:328/332`, `TenantSubscriptionTab.tsx:136/139` (dashboard-deeplink), types `src/types/billing.ts:90-91`.
+- `pricing_plans.stripe_product_id` / `.stripe_price_id_monthly` / `.stripe_price_id_yearly` — `create-platform-checkout:155-156`, types `src/types/billing.ts:62-64`.
+- `platform_invoices` — read-only archief; alleen de schrijver (webhook `invoice.paid`) verdwijnt, bank-pad blijft schrijven.
 
-## Webhook: proration-settlement herkennen en afhandelen
+NIET AANRAKEN: `tenants.stripe_account_id` en overige Connect-kolommen; `tenants.stripe_customer_id` (dubbelgebruik platformniveau); `tenant_addons.stripe_subscription_id/stripe_price_id` (add-on-flow leeft); `customer_payment_mandates.stripe_customer_id`.
 
-`handleCycleCharge` laadt de cycle al op id. Uitbreiding: ook `cycle_type, target_plan_id, target_interval` selecteren. Na de bestaande factuur+settle-stappen, alleen als `cycle_type='proration'` en `target_plan_id` gezet:
+Deliverable: deprecatie-notitie in `docs/`, geen migratie in deze batch.
 
-1. `subscription_lines` van `cycle.subscription_id`: lijn 0 → `description` = `<plan> (<interval>)`, `unit_price` = nieuwe planprijs, `quantity` 1; overige lijnen ongemoeid.
-2. `subscriptions`: `name` bijwerken; bij interval-swap ook `interval`, `start_date`, `next_invoice_date`.
-3. `tenant_subscriptions`: `plan_id`, `billing_interval`, `current_period_start/_end`, en `pending_plan_id / pending_interval / pending_effective_at / pending_billing_cycle_id` op NULL.
-4. `tenants.subscription_plan` = `targetPlan.slug`.
-5. Notificatie "plan actief".
+## 4. 2b·4 — Frontend-resten
 
-Idempotent: de stap staat achter de bestaande `.is("invoice_id", null)`-race-guard en is no-op als `tenant_subscriptions.plan_id` al het doelplan is (mandate-modus, waar het plan al direct inging).
+- `useTenantSubscription.ts`: `createCheckout` + `openCustomerPortal` weg. `subscription`, `usage`, `invoices` blijven (gebruikt door AdminSidebar, Settings, Marketplaces, Promotions, Billing, useUsageLimits).
+- `src/pages/Pricing.tsx:65`: `handleSelectPlan` niet meer naar Stripe Checkout → registratie / `/admin/billing` (native activatiewizard). Minimale wijziging, plankeuze blijft.
+- `usePlatformBilling.ts:108` en `usePlatformAdmin.ts:235`: `platform_invoices` blijven lezen, maar als "historisch (Stripe)" labelen; waar native data bestaat (`invoices` / `billing_cycles`) die als primaire bron tonen.
+- `TenantSubscriptionTab.tsx` / `PlatformBilling.tsx`: Stripe-dashboard-deeplink alleen bij aanwezige `stripe_subscription_id` (al zo) → als legacy labelen. Geen rebuild.
 
-De factuurregel van een proration-cycle krijgt de pro-rata-omschrijving in plaats van de generieke periodetekst.
+## 5. 2b·5 — Config / cron / secrets
 
-## Wat er wijzigt
+- `supabase/config.toml`: blok r.48 `[functions.create-platform-checkout]` en r.51 `[functions.platform-customer-portal]` mee verwijderen; `[functions.platform-stripe-webhook]` (r.54) blijft.
+- Cron: grep op de te slopen functienamen in `supabase/migrations` → **0 hits**.
+- Secrets: `STRIPE_SECRET_KEY` + platform-webhooksecret blijven nodig voor pay-first en Connect. Geen secret is exclusief van de gesloopte functies.
 
-**Migratie (additief, `IF NOT EXISTS`)**
-- `billing_cycles`: `cycle_type text not null default 'recurring'` (`'recurring' | 'proration'`), `target_plan_id uuid null`, `target_interval text null`.
-- `tenant_subscriptions`: `pending_billing_cycle_id uuid null`.
-- Partiële unieke index: max één niet-afgesloten proration-cycle per subscription.
-- Geen wijziging aan grants/RLS (beide tabellen bestaan al met hun policies).
+## 6. TWIJFELGEVALLEN + aanbeveling
 
-**Nieuw**
-- `supabase/functions/_shared/planProration.ts` — periode-afleiding + delta + btw, gedeeld door switch en webhook.
+1. `confirm-platform-bank-payment` — 1 live aanroeper, schrijft `platform_invoices` + `add_ai_credits`. **Behouden.**
+2. `create-platform-checkout` — live bereikbaar via `/pricing`. **Eerst ontkoppelen, dan in dezelfde batch slopen en verifiëren.**
+3. `checkout.session.completed`-case — mogelijk toekomstige AI-credits-fulfilment. **Laten staan.**
+4. `tenants.stripe_customer_id` — dubbelgebruik. **Niet droppen, niet deprecaten.**
+5. `platform_invoices` — blijft schrijfbaar via bank-pad. **Tabel volledig behouden.**
 
-**Gewijzigd**
-- `supabase/functions/sync-tenant-plan/index.ts` — upgrade-tak herschreven; het hele legacy invoice/PDF/charge/mail-blok verdwijnt. `activate`, `cancel` en het downgrade-pad blijven ongemoeid.
-- `supabase/functions/_shared/subscriptionCharge.ts` — proration-effectuering + pro-rata-regelomschrijving.
-- `supabase/functions/process-cycle-reminders/index.ts` — bij expiry van een proration-cycle de pending upgrade opruimen + notificatie.
-- `supabase/functions/generate-subscription-invoices/index.ts` — proration-cycles uitsluiten van de stale-`pending`-sweep en van de periodecyclus-logica.
-- `src/pages/admin/Billing.tsx` (+ `PlanActivationWizard`) — "upgrade wacht op betaling"-banner met link naar het betalingsverzoek zolang er een open proration-cycle is.
-- `src/hooks/usePlatformBillingStatus.ts` — nieuwe responsevelden (`pending_upgrade`, `billing_cycle_id`, `payment_request_url`).
-- i18n 4-talig (nl/en/fr/de) voor de nieuwe teksten.
+## 7. Volgorde & deploy-strategie
 
-**Verwijderd (dode code, geen aanroepers)**
-- `supabase/functions/calculate-plan-switch/`, `supabase/functions/execute-plan-switch/`, hun `config.toml`-blokken en `src/hooks/usePlanSwitch.ts`.
+Webhook-chirurgie als **laatste**. Zolang de frontend nog een Stripe-abonnement kan starten, is de subscription-/invoice-handling de enige plek die dat administreert; die eerst slopen geeft een venster met betaalde-maar-niet-geadministreerde subscriptions. Omgekeerd is risicoloos: de handlers draaien idle tot er niets meer binnenkomt.
 
-## Randgevallen
+1. Frontend ontkoppelen (`Pricing.tsx` + hook-mutaties).
+2. `platform-customer-portal` verwijderen + config-blok.
+3. `create-platform-checkout` verwijderen + config-blok.
+4. Deprecatie-notitie kolommen; selects/writes eruit (legacy-deeplinks uitgezonderd).
+5. Platform-admin labeling (2b·4).
+6. Webhook-chirurgie: 5 Billing-cases weg, deploy `platform-stripe-webhook`.
+7. Changelog + entry in `docs/role-audit.md`.
 
-| Geval | Gedrag |
-|---|---|
-| Interval-swap monthly→yearly, zelfde plan | Upgrade-pad: delta = jaarprijs − credit resterende dagen oude maandlijn; nieuwe periode start vandaag |
-| Interval-swap yearly→monthly | Rank daalt → bestaand downgrade-pad, periodegrens |
-| Al een open proration-cycle | 409 + melding "upgrade al in behandeling, rond eerst de betaling af" |
-| Upgrade tijdens `trialing` | Geen billing-sub → `switch` geeft nu al 400; de UI kiest `activate`. Ongewijzigd |
-| Meerdere `subscription_lines` | `huidigNetto` = som van alle lijnen; alleen lijn 0 gaat naar het nieuwe plan |
-| `restDagen = 0` (upgrade op periodegrens) | delta = 0 → geen cycle, wissel wordt op de grens door de runner toegepast |
-| Mandaat ontbreekt in mandate-modus | Val terug op de manual-flow (betalingsverzoek + pending) i.p.v. een fout |
+## 8. Verificatie na de sloop
 
-## Risico's & open vragen
-
-1. **Periode-bron** — de laatst gesettelde `billing_cycle` als waarheid, met `subscriptions.next_invoice_date` als fallback. Bij tenants zonder gesettelde cycle (handmatig gemigreerd) is de fallback de enige bron en kan die afwijken van wat de klant feitelijk betaalde.
-2. **Btw-bron** — btw komt van de bestaande subscription-lijn (nu altijd 21). Gaat het platform ooit 0% (intracom B2B) toepassen, dan volgt de proratie automatisch mee.
-3. **Mandate-modus `processing`** — plan direct actief bij een nog niet definitief afgeronde SEPA-incasso; bij later falen blijft de klant op het hogere plan tot dunning ingrijpt. Alternatief (wachten op `succeeded`) kost dagen bij SEPA; ik raad het niet aan.
-4. **Open vraag** — moeten de al gecrediteerde legacy-facturen (SQ-2026-0007/0008) nog iets krijgen? Aanname: nee, afgehandeld, geen dataherstel.
-5. **Open vraag** — grace-window voor een proration-cycle: 7 dagen zoals de gewone cycle, of korter (bv. 3 d) omdat het een upgrade is? Ik plan 7 d tenzij je anders wil.
-
-## Slottaken
-
-- Changelog `2026.08u` (improvement) in de 4 landing-locales + registratie in `src/pages/public/PublicChangelog.tsx`.
-- DOCS-1: `doc_articles` (`doc_level='tenant'`) over plan-upgrades bijwerken — pro rata, direct bij incasso, wachten op betaling bij overschrijving.
+- **Mandaat-smoke**: `/admin/billing` → planwissel met incasso → mandaatpagina → `customer_payment_mandates.status` actief.
+- **PR-betaling**: betaallink betalen → `/pay/success` → `billing_cycles` settled + factuur `paid` + `[SUB-CHARGE-WEBHOOK]`-log.
+- **Pro-rata upgrade**: proration-cycle + PR-PDF → betaling → plan geactiveerd.
+- **Labelprint**: Bol/VVB-label via `get-document-url` (signed URL, `label_url` niet NULL).
+- **Storefront-checkout**: één echte tenant-checkout end-to-end (Direct Charge) + payout-event in de logs — ongewijzigd.
+- **Platform-admin**: TenantSubscriptionTab en PlatformBilling laden zonder fouten, historische facturen met legacy-label.
+- **Regressiecheck**: `/pricing` opent geen Stripe Checkout meer; `rg -n "create-platform-checkout|platform-customer-portal" src supabase` → 0 hits.
