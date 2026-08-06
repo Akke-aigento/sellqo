@@ -166,6 +166,9 @@ export function ComparisonSection() {
         >
           {t('landing.comparison.footnote')}
         </p>
+        <p className="text-center text-xs text-muted-foreground mt-2">
+          {t('landing.pricing.footnoteVat')}
+        </p>
       </div>
     </section>
   );

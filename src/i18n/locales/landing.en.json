@@ -278,7 +278,8 @@
       "footnoteTipTitle": "Save on transaction fees:",
       "footnoteTipBody": "With our Bank Transfer QR codes customers pay directly from their bank app — €0 transaction fees for you!",
       "footnoteStripe": "Stripe payments: 1.5% + €0.25 per transaction (standard Stripe rates)",
-      "footnoteVat": "All prices include VAT",
+      "footnoteVat": "All prices exclude VAT",
+      "exclVatShort": "excl. VAT",
       "plans": {
         "free": {
           "name": "Free",
@@ -1231,6 +1232,10 @@
         "billing_document_polish": {
           "title": "Readable invoices and credit notes",
           "description": "Long descriptions now wrap across multiple lines in invoice and credit note PDFs. Also: a brief network hiccup during a plan change is retried automatically, and the mandate page shows the scheduled plan change with its start date."
+        },
+        "vat_display_consistency": {
+          "title": "Prices consistently shown excluding VAT",
+          "description": "All price displays now clearly and consistently indicate that they exclude VAT."
         }
       },
       "copyLink": "Copy link",

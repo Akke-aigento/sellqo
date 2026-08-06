@@ -278,7 +278,8 @@
       "footnoteTipTitle": "Bespaar op transactiekosten:",
       "footnoteTipBody": "Met onze Bank Transfer QR-codes betalen je klanten direct via hun bank app — €0 transactiekosten voor jou!",
       "footnoteStripe": "Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)",
-      "footnoteVat": "Alle prijzen zijn inclusief BTW",
+      "footnoteVat": "Alle prijzen zijn exclusief btw",
+      "exclVatShort": "excl. btw",
       "plans": {
         "free": {
           "name": "Free",
@@ -1231,6 +1232,10 @@
         "billing_document_polish": {
           "title": "Facturen en creditnota’s leesbaar",
           "description": "Lange omschrijvingen worden nu netjes over meerdere regels afgebroken in factuur- en creditnota-PDF’s. Ook: een korte netwerkhapering bij een planwissel wordt automatisch opnieuw geprobeerd, en de machtigingspagina toont de geplande planwissel met startdatum."
+        },
+        "vat_display_consistency": {
+          "title": "Prijzen consistent exclusief btw",
+          "description": "Alle prijsvermeldingen tonen nu overal duidelijk en consistent dat ze exclusief btw zijn."
         }
       },
       "copyLink": "Kopieer link",
