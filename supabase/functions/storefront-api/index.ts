@@ -199,14 +199,19 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       vat_number: tenant.vat_number || null,
       kvk_number: tenant.kvk_number || null,
     },
-    social: {
-      facebook: tenant.social_facebook || null,
-      instagram: tenant.social_instagram || null,
-      twitter: tenant.social_twitter || null,
-      linkedin: tenant.social_linkedin || null,
-      tiktok: tenant.social_tiktok || null,
-      youtube: tenant.social_youtube || null,
-    },
+    social: (() => {
+      const socialLinks = (themeSettings?.social_links && typeof themeSettings.social_links === 'object')
+        ? themeSettings.social_links as Record<string, string>
+        : {};
+      return {
+        facebook: socialLinks.facebook || null,
+        instagram: socialLinks.instagram || null,
+        twitter: socialLinks.twitter || null,
+        linkedin: socialLinks.linkedin || null,
+        tiktok: socialLinks.tiktok || null,
+        youtube: socialLinks.youtube || null,
+      };
+    })(),
     languages: {
       available: languages,
       default: tenant.default_language || 'nl',
