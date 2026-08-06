@@ -1261,8 +1261,8 @@
         "q1_2025": "Q1 2025",
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
-        "aug_2026": "August 2026"
-        ,"sep_2026": "September 2026"
+        "aug_2026": "August 2026",
+        "sep_2026": "September 2026"
       },
       "filters": {
         "all": "All",
@@ -1290,5 +1290,22 @@
       "updatesCount": "{{count}} updates",
       "version": "Version {{version}}"
     }
+  },
+  "cookieConsent": {
+    "title": "We use cookies",
+    "body": "We use necessary cookies to make Sellqo work. With your consent we also use analytics and marketing cookies.",
+    "necessary": "Necessary",
+    "necessaryDesc": "Always on — required for login and security.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Helps us understand how the site is used.",
+    "marketing": "Marketing",
+    "marketingDesc": "For personalised ads and campaigns.",
+    "acceptAll": "Accept all",
+    "rejectAll": "Necessary only",
+    "customize": "Settings",
+    "save": "Save preferences",
+    "policy": "Cookie policy",
+    "privacy": "Privacy policy",
+    "manage": "Cookie preferences"
   }
 }
