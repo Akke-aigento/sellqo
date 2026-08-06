@@ -3115,7 +3115,21 @@ function checkRateLimit(tenantId: string, limit = 1000, windowMs = 60000): boole
   return entry.count <= limit;
 }
 
+const ipActionRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkIpActionRateLimit(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = ipActionRateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    ipActionRateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
 // ============== MAIN HANDLER ==============
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
