@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { wrapTextToWidth } from "../_shared/pdfText.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -340,7 +341,13 @@ serve(async (req) => {
     const lines = (cn.lines || []) as any[];
     const vatGroups = new Map<number, { taxable: number; vat: number }>();
     for (const ln of lines) {
-      const desc = String(ln.description || "").substring(0, 42);
+      // UX-POLISH-1 — omschrijving wrapt binnen de kolombreedte i.p.v. afkappen.
+      const descLines = wrapTextToWidth(
+        String(ln.description || ""),
+        helv,
+        10,
+        320 - (margin + 8) - 10,
+      );
       const qty = Number(ln.quantity || 1);
       const rate = Number(ln.vat_rate || 0);
       const unit = Math.abs(Number(ln.unit_price || 0));
@@ -349,13 +356,16 @@ serve(async (req) => {
       const grp = vatGroups.get(rate) || { taxable: 0, vat: 0 };
       grp.taxable += total; grp.vat += vat;
       vatGroups.set(rate, grp);
-      page.drawText(desc, { x: margin + 8, y, size: 10, font: helv, color: text });
+      descLines.forEach((dl, i) => {
+        page.drawText(dl, { x: margin + 8, y: y - i * 12, size: 10, font: helv, color: text });
+      });
       page.drawText(String(qty), { x: 320, y, size: 10, font: helv, color: text });
       page.drawText(`${rate}%`, { x: 370, y, size: 10, font: helv, color: text });
       page.drawText(fmt(unit, currency), { x: 420, y, size: 10, font: helv, color: text });
       page.drawText(fmt(total, currency), { x: 490, y, size: 10, font: helv, color: text });
-      page.drawLine({ start: { x: margin, y: y - 4 }, end: { x: width - margin, y: y - 4 }, thickness: 0.5, color: lightGray });
-      y -= 14;
+      const lineY = y - 4 - (descLines.length - 1) * 12;
+      page.drawLine({ start: { x: margin, y: lineY }, end: { x: width - margin, y: lineY }, thickness: 0.5, color: lightGray });
+      y -= 14 + (descLines.length - 1) * 12;
       if (y < 180) break;
     }
 
