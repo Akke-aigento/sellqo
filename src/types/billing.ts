@@ -59,8 +59,11 @@ export interface PricingPlan {
   monthly_price: number;
   yearly_price: number;
   currency: string;
+  /** @deprecated Stripe Billing — archief, niet meer gebruikt. Zie docs/stripe-billing-deprecated.md */
   stripe_product_id: string | null;
+  /** @deprecated Stripe Billing — archief, niet meer gebruikt. */
   stripe_price_id_monthly: string | null;
+  /** @deprecated Stripe Billing — archief, niet meer gebruikt. */
   stripe_price_id_yearly: string | null;
   limit_products: number | null;
   limit_orders: number | null;
@@ -87,7 +90,9 @@ export interface TenantSubscription {
   tenant_id: string;
   plan_id: string;
   billing_interval: BillingInterval;
+  /** @deprecated Stripe Billing — archief, niet meer gebruikt. Zie docs/stripe-billing-deprecated.md */
   stripe_customer_id: string | null;
+  /** @deprecated Stripe Billing — alleen nog voor de legacy dashboard-deeplink in platform-admin. */
   stripe_subscription_id: string | null;
   stripe_payment_method_id: string | null;
   status: SubscriptionStatus;
