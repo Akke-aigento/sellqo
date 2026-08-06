@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+import { invokeWithErrorBody, invokeWithNetworkRetry } from '@/lib/invokeWithErrorBody';
 import { TenantContext } from '@/hooks/useTenant';
 
 export type PlatformPaymentMode = 'mandate' | 'manual';
@@ -134,7 +134,8 @@ export function useCancelPendingUpgrade() {
   return useMutation({
     mutationFn: async () => {
       if (!tenantId) throw new Error('Geen actieve tenant');
-      return await invokeWithErrorBody<{ success: boolean; cancelled_billing_cycle_id: string }>(
+      // UX-POLISH-1 — stille retry bij netwerkhapering.
+      return await invokeWithNetworkRetry<{ success: boolean; cancelled_billing_cycle_id: string }>(
         'get-platform-billing-status',
         { body: { tenant_id: tenantId, action: 'cancel_upgrade' } },
       );
@@ -163,7 +164,8 @@ export function useSyncTenantPlan() {
       action: 'activate' | 'switch' | 'cancel';
     }) => {
       if (!tenantId) throw new Error('Geen actieve tenant');
-      return await invokeWithErrorBody<SyncTenantPlanResult>('sync-tenant-plan', {
+      // UX-POLISH-1 — stille retry bij netwerkhapering (cold start).
+      return await invokeWithNetworkRetry<SyncTenantPlanResult>('sync-tenant-plan', {
         body: {
           tenant_id: tenantId,
           plan_id: vars.planId,
