@@ -231,6 +231,9 @@ export function PlanComparisonCards({
                       {formatPrice(monthlyEquivalent)}
                     </span>
                     <span className="text-muted-foreground text-sm">/mnd</span>
+                    {monthlyEquivalent > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">{t('pricing.excl_vat_short')}</span>
+                    )}
                     {currentInterval === 'yearly' && price > 0 && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {formatPrice(price)}/jaar
@@ -409,7 +412,7 @@ export function PlanComparisonCards({
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Alle prijzen zijn inclusief BTW
+          {t('pricing.vat_note')}
         </p>
       </div>
 

@@ -174,6 +174,9 @@ export default function PricingPage() {
                       {formatPrice(monthlyEquivalent)}
                     </span>
                     <span className="text-muted-foreground">{t('pricing.per_month')}</span>
+                    {monthlyEquivalent > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">{t('pricing.excl_vat_short')}</span>
+                    )}
                     {isYearly && (
                       <div className="text-sm text-muted-foreground mt-1">
                         {formatPrice(price)} / jaar
@@ -270,7 +273,7 @@ export default function PricingPage() {
             </div>
           </div>
           <p className="mt-6 text-sm text-muted-foreground font-medium">
-            Alle prijzen zijn inclusief BTW
+            {t('pricing.vat_note')}
           </p>
         </div>
       </div>
