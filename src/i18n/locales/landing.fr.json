@@ -945,7 +945,19 @@
       "subtitle": "Analyses, astuces et actualités sur l'e-commerce",
       "emptyTitle": "Nos premiers articles arrivent bientôt",
       "emptyText": "Pour les mises à jour de la plateforme et les release notes, vous pouvez consulter notre changelog.",
-      "changelogButton": "Voir le changelog"
+      "changelogButton": "Voir le changelog",
+      "categories": {
+        "product-updates": "Nouveautés produit",
+        "boekhouding": "Comptabilité",
+        "tips": "Astuces",
+        "bedrijfsnieuws": "Actualités"
+      },
+      "readMore": "Lire l'article",
+      "readingTime": "{{count}} min de lecture",
+      "backToBlog": "Retour au blog",
+      "draftBadge": "BROUILLON — cet article n'est pas encore publié et n'est visible que par les administrateurs de la plateforme.",
+      "notFoundTitle": "Article introuvable",
+      "notFoundText": "Cet article n'existe pas ou n'est pas encore publié."
     },
     "contact": {
       "meta": {
@@ -1256,6 +1268,10 @@
         "platform_newsletter_preference": {
           "title": "Préférence de newsletter dans les paramètres",
           "description": "Vous décidez désormais dans vos paramètres si vous souhaitez recevoir par e-mail les mises à jour produit, astuces et actualités de SellQo."
+        },
+        "sellqo_blog": {
+          "title": "Blog SellQo — articles, astuces et actualités au même endroit",
+          "description": "Le blog SellQo est en ligne : des articles détaillés avec des astuces, des éclairages comptables et des nouveautés produit, en néerlandais, anglais, français et allemand."
         }
       },
       "copyLink": "Copier le lien",

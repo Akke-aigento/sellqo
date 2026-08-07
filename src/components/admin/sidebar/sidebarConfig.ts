@@ -242,6 +242,7 @@ const platformItems: NavItem[] = [
   { id: 'platform-feedback', title: 'Feedback', url: '/admin/platform/feedback', icon: MessageCircle },
   { id: 'platform-support', title: 'Support', url: '/admin/platform/support', icon: MessageSquare },
   { id: 'platform-changelog', title: 'Changelog', url: '/admin/platform/changelog', icon: ChangelogIcon },
+  { id: 'platform-blog', title: 'Blog', url: '/admin/platform/blog', icon: BookOpen },
   { id: 'platform-health', title: 'Health Monitor', url: '/admin/platform/health', icon: Activity },
   { id: 'platform-legal', title: 'Juridisch', url: '/admin/platform/legal', icon: LegalIcon },
   { id: 'platform-docs', title: 'Documentatie', url: '/admin/platform/docs', icon: BookOpen },
