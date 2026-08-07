@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
   RefreshCw, Megaphone, UserPlus, Settings, ChevronDown, ChevronRight,
-  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign
+  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -172,6 +173,43 @@ export function NotificationSettings() {
   
   const { enabled: soundEnabled, toggleEnabled: toggleSound } = useNotificationSound();
   const { currentTenant, refreshTenants } = useTenant();
+  const { t } = useTranslation();
+
+  // Platform newsletter opt-in (SellQo product news)
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
+  const [isSavingNewsletter, setIsSavingNewsletter] = useState(false);
+
+  useEffect(() => {
+    if (currentTenant) {
+      setNewsletterOptIn(currentTenant.platform_newsletter_opt_in ?? true);
+    }
+  }, [currentTenant]);
+
+  const handleToggleNewsletter = async (checked: boolean) => {
+    if (!currentTenant) return;
+    const previous = newsletterOptIn;
+    setNewsletterOptIn(checked); // optimistic
+    setIsSavingNewsletter(true);
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .update({ platform_newsletter_opt_in: checked })
+        .eq('id', currentTenant.id)
+        .select('id, platform_newsletter_opt_in');
+
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No row updated');
+
+      await refreshTenants();
+      toast.success(t('settings.platform_newsletter.saved'));
+    } catch (error) {
+      console.error('Error saving platform newsletter opt-in:', error);
+      setNewsletterOptIn(previous);
+      toast.error(t('settings.platform_newsletter.error'));
+    } finally {
+      setIsSavingNewsletter(false);
+    }
+  };
   
   // Alternative email state
   const [useAlternativeEmail, setUseAlternativeEmail] = useState(false);
