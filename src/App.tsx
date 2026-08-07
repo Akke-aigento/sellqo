@@ -12,6 +12,7 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import LandingPage from "./pages/Landing";
+import NativeLandingRedirect from "@/components/NativeLandingRedirect";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
 import ProductsPage from "./pages/admin/Products";
@@ -153,7 +154,7 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             {/* Public landing page */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<NativeLandingRedirect />} />
             
             {/* Public pricing page */}
             <Route path="/pricing" element={<PricingPage />} />
