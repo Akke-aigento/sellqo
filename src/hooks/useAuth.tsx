@@ -218,7 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             prev && prev.id === currentSession.user.id ? prev : currentSession.user
           );
           currentUserIdRef.current = incomingId;
-          void registerPushForUser(incomingId);
+          registerPushForUser(incomingId).catch((err) =>
+            console.error('[push] registration failed', err),
+          );
           // Alleen bij initiële load de guard triggeren; latere refetches
           // lopen op de achtergrond.
           if (!hasResolvedRolesOnceRef.current) {
@@ -252,7 +254,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 prev && prev.id === refreshed.user.id ? prev : refreshed.user
               );
               currentUserIdRef.current = incomingId;
-              void registerPushForUser(incomingId);
+              registerPushForUser(incomingId).catch((err) =>
+                console.error('[push] registration failed', err),
+              );
               if (!hasResolvedRolesOnceRef.current) {
                 setRolesLoading(true);
               }
@@ -313,7 +317,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           prev && prev.id === existingSession.user.id ? prev : existingSession.user
         );
         currentUserIdRef.current = existingSession.user.id;
-        void registerPushForUser(existingSession.user.id);
+        registerPushForUser(existingSession.user.id).catch((err) =>
+          console.error('[push] registration failed', err),
+        );
         if (!hasResolvedRolesOnceRef.current) {
           setRolesLoading(true);
         }

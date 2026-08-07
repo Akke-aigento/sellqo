@@ -10,8 +10,13 @@ let lastRegisteredToken: string | null = null;
 // Dynamic import so the Firebase plugin (which pulls firebase/messaging via
 // an optional peer dep) never lands in the web bundle. Native-only path.
 async function loadMessaging() {
-  const mod = await import('@capacitor-firebase/messaging');
-  return mod.FirebaseMessaging;
+  const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+  // Wrap in a plain object. On Android the plugin is a Capacitor Proxy that
+  // forwards *every* property access (including `.then`) to the native bridge.
+  // Resolving a promise directly with that proxy triggers JS thenable-resolution
+  // → calls `proxy.then()` → "FirebaseMessaging.then() is not implemented on
+  // android", killing the whole registration flow. A plain object isn't thenable.
+  return { FirebaseMessaging };
 }
 
 async function upsertToken(userId: string, token: string, platform: NativePlatform) {
@@ -41,7 +46,7 @@ async function attachListeners() {
   listenersAttached = true;
 
   const platform = Capacitor.getPlatform() as NativePlatform;
-  const FirebaseMessaging = await loadMessaging();
+  const { FirebaseMessaging } = await loadMessaging();
 
   FirebaseMessaging.addListener('tokenReceived', ({ token }) => {
     if (!currentUserId || !token) return;
@@ -55,7 +60,7 @@ export async function registerPushForUser(userId: string): Promise<void> {
   currentUserId = userId;
   await attachListeners();
 
-  const FirebaseMessaging = await loadMessaging();
+  const { FirebaseMessaging } = await loadMessaging();
 
   const perm = await FirebaseMessaging.checkPermissions();
   let receive = perm.receive;
@@ -80,7 +85,7 @@ export async function unregisterPushForUser(): Promise<void> {
   lastRegisteredToken = null;
 
   try {
-    const FirebaseMessaging = await loadMessaging();
+    const { FirebaseMessaging } = await loadMessaging();
     await FirebaseMessaging.deleteToken();
   } catch (e) {
     console.warn('[push] FirebaseMessaging.deleteToken failed', e);
