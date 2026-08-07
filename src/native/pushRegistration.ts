@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 type NativePlatform = 'ios' | 'android';
 
+export type PushPermissionStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
+
 let currentUserId: string | null = null;
 let listenersAttached = false;
 let lastRegisteredToken: string | null = null;
