@@ -315,6 +315,28 @@ export function NotificationSettings() {
           <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
         </div>
 
+        {/* SellQo platform newsletter opt-in */}
+        <div className="flex items-center justify-between gap-4 p-4 border rounded-lg">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-lg bg-muted">
+              <Newspaper className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <Label className="text-sm font-medium">
+                {t('settings.platform_newsletter.title')}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t('settings.platform_newsletter.description')}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={newsletterOptIn}
+            onCheckedChange={handleToggleNewsletter}
+            disabled={isSavingNewsletter || !currentTenant}
+          />
+        </div>
+
         {/* Alternative notification email section */}
         <div className="p-4 border rounded-lg space-y-4">
           <div className="flex items-center gap-3">
