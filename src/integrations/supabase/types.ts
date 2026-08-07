@@ -3569,6 +3569,63 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          author: string
+          category: string
+          content: string
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          meta_description: string | null
+          meta_title: string | null
+          published_at: string | null
+          reading_minutes: number | null
+          slug: string
+          status: string
+          title: string
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          category?: string
+          content: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          reading_minutes?: number | null
+          slug: string
+          status?: string
+          title: string
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          reading_minutes?: number | null
+          slug?: string
+          status?: string
+          title?: string
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bogo_promotions: {
         Row: {
           buy_category_ids: string[] | null
