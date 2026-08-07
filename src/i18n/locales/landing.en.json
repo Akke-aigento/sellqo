@@ -945,7 +945,19 @@
       "subtitle": "Insights, tips and news about e-commerce",
       "emptyTitle": "Our first articles are coming soon",
       "emptyText": "For platform updates and release notes you can meanwhile check out our changelog.",
-      "changelogButton": "View changelog"
+      "changelogButton": "View changelog",
+      "categories": {
+        "product-updates": "Product updates",
+        "boekhouding": "Accounting",
+        "tips": "Tips & tricks",
+        "bedrijfsnieuws": "Company news"
+      },
+      "readMore": "Read article",
+      "readingTime": "{{count}} min read",
+      "backToBlog": "Back to blog",
+      "draftBadge": "DRAFT — this article is not published yet and only visible to platform admins.",
+      "notFoundTitle": "Article not found",
+      "notFoundText": "This article does not exist or has not been published yet."
     },
     "contact": {
       "meta": {
@@ -1256,6 +1268,10 @@
         "platform_newsletter_preference": {
           "title": "Newsletter preference in settings",
           "description": "You can now decide in your settings whether you want to receive product updates, tips and news from SellQo by email."
+        },
+        "sellqo_blog": {
+          "title": "SellQo Blog — articles, tips and updates in one place",
+          "description": "The SellQo blog is live: in-depth articles with tips, accounting insights and product updates, in Dutch, English, French and German."
         }
       },
       "copyLink": "Copy link",

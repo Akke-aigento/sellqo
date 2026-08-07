@@ -945,7 +945,19 @@
       "subtitle": "Inzichten, tips en nieuws over e-commerce",
       "emptyTitle": "Onze eerste artikelen verschijnen binnenkort",
       "emptyText": "Voor platform-updates en release-notes kan je ondertussen terecht op onze changelog.",
-      "changelogButton": "Bekijk changelog"
+      "changelogButton": "Bekijk changelog",
+      "categories": {
+        "product-updates": "Product-updates",
+        "boekhouding": "Boekhouding",
+        "tips": "Tips & tricks",
+        "bedrijfsnieuws": "Bedrijfsnieuws"
+      },
+      "readMore": "Lees artikel",
+      "readingTime": "{{count}} min lezen",
+      "backToBlog": "Terug naar blog",
+      "draftBadge": "CONCEPT — dit artikel is nog niet gepubliceerd en enkel zichtbaar voor platformbeheerders.",
+      "notFoundTitle": "Artikel niet gevonden",
+      "notFoundText": "Dit artikel bestaat niet of is nog niet gepubliceerd."
     },
     "contact": {
       "meta": {
@@ -1256,6 +1268,10 @@
         "platform_newsletter_preference": {
           "title": "Nieuwsbriefvoorkeur in instellingen",
           "description": "Je bepaalt nu zelf in je instellingen of je product-updates, tips en nieuws van SellQo per e-mail wil ontvangen."
+        },
+        "sellqo_blog": {
+          "title": "SellQo Blog — artikelen, tips en updates op één plek",
+          "description": "De SellQo-blog is live: uitgebreide artikelen met tips, boekhoudinzichten en product-updates, in het Nederlands, Engels, Frans en Duits."
         }
       },
       "copyLink": "Kopieer link",
