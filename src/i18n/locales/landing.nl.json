@@ -1252,6 +1252,10 @@
         "customer_invoice_email_fix": {
           "title": "Correcte factuurmails aan je klanten",
           "description": "Factuurmails aan je klanten tonen niet langer abonnement-specifieke incassotekst; een betaalde factuur wordt netjes als voldaan bevestigd."
+        },
+        "platform_newsletter_preference": {
+          "title": "Nieuwsbriefvoorkeur in instellingen",
+          "description": "Je bepaalt nu zelf in je instellingen of je product-updates, tips en nieuws van SellQo per e-mail wil ontvangen."
         }
       },
       "copyLink": "Kopieer link",

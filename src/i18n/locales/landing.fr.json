@@ -1252,6 +1252,10 @@
         "customer_invoice_email_fix": {
           "title": "Emails de facture corrects pour vos clients",
           "description": "Les emails de facture envoyes a vos clients n'affichent plus le texte de prelevement specifique aux abonnements; une facture payee est confirmee comme reglee."
+        },
+        "platform_newsletter_preference": {
+          "title": "Préférence de newsletter dans les paramètres",
+          "description": "Vous décidez désormais dans vos paramètres si vous souhaitez recevoir par e-mail les mises à jour produit, astuces et actualités de SellQo."
         }
       },
       "copyLink": "Copier le lien",

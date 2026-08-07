@@ -1252,6 +1252,10 @@
         "customer_invoice_email_fix": {
           "title": "Correct invoice emails to your customers",
           "description": "Invoice emails to your customers no longer show subscription-specific direct debit wording; a paid invoice is confirmed as settled."
+        },
+        "platform_newsletter_preference": {
+          "title": "Newsletter preference in settings",
+          "description": "You can now decide in your settings whether you want to receive product updates, tips and news from SellQo by email."
         }
       },
       "copyLink": "Copy link",
