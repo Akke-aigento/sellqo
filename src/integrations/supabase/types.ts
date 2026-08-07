@@ -5208,6 +5208,54 @@ export type Database = {
           },
         ]
       }
+      device_tokens: {
+        Row: {
+          created_at: string
+          device_name: string | null
+          id: string
+          last_seen_at: string
+          platform: string
+          tenant_id: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string
+          platform: string
+          tenant_id?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          tenant_id?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       digital_deliveries: {
         Row: {
           access_url: string | null
@@ -16140,6 +16188,7 @@ export type Database = {
           id: string
           in_app_enabled: boolean | null
           notification_type: string
+          push_enabled: boolean
           tenant_id: string
           updated_at: string
         }
@@ -16151,6 +16200,7 @@ export type Database = {
           id?: string
           in_app_enabled?: boolean | null
           notification_type: string
+          push_enabled?: boolean
           tenant_id: string
           updated_at?: string
         }
@@ -16162,6 +16212,7 @@ export type Database = {
           id?: string
           in_app_enabled?: boolean | null
           notification_type?: string
+          push_enabled?: boolean
           tenant_id?: string
           updated_at?: string
         }
