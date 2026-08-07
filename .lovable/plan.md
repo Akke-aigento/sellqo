@@ -1,102 +1,141 @@
-# FASE-B-SLOOP — sloopplan Stripe Billing (SellQo eigen abonnementen)
+# BLOG-1 — Publiek blogsysteem voor SellQo
 
-Plan only. Geen code, geen verwijderingen. Alle bevindingen komen uit verse greps in deze sessie.
+Doel: echte, SEO-vindbare blogartikelen op sellqo.app, 4-talig, semi-automatische workflow (concept → review door Akke → published). Platform-admin beheert; tenants raken dit niet.
 
-## 0. WAT NIET WORDT AANGERAAKT (heilig)
+## 1. Tabel `blog_posts`
 
-Stripe Connect / tenant-omzet — volledig buiten scope:
-- `create-connect-account`, `check-connect-status`, `get-stripe-login-link`, `disconnect-stripe-account`, `cleanup-connected-accounts`, `stripe-connect-webhook`, `get-merchant-payouts`, `get-merchant-transactions`.
-- Storefront-checkout en betaalpaden: `storefront-api`, `storefront-customer-api`, `create-checkout-session`, `create-invoice-payment-link`, `create-quote-payment-link`, `create-bank-transfer-order`, `process-gift-card-purchase`, `process-refund`, `refund-invoice`.
-- POS: `pos-create-payment-intent`, `pos-process-payment`, `pos-refund-payment`, `pos-manage-reader`.
-- Alles rond `stripe_account_id`, `account`, `connected`, `payout`, `transfer`, `application_fee`, `on_behalf_of`, `destination`.
+```sql
+CREATE TABLE public.blog_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  excerpt text,
+  content text NOT NULL,                 -- rijke HTML: h2/h3, p, ul/ol, <img>, blockquote
+  cover_image_url text,                  -- public URL uit bucket marketing-assets
+  category text NOT NULL DEFAULT 'tips',
+  author text NOT NULL DEFAULT 'SellQo',
+  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published')),
+  published_at timestamptz,
+  reading_minutes int,
+  meta_title text,
+  meta_description text,
+  translations jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-Native pay-first engine — blijft volledig intact:
-- `generate-subscription-invoices`, `_shared/subscriptionCharge.ts`, `create-cycle-payment-link`, `generate-payment-request-pdf`, `process-cycle-reminders`, `process-invoice-dunning`, `sync-tenant-plan`, `get-platform-billing-status`, `get-document-url`, `generate-subscription-invoice-pdf`, `generate-credit-note`, `send-invoice-email`, `send-payment-request-email`.
-- Mandaat/incasso: `create-mandate-setup`, `create-platform-mandate-setup`, `mandate-setup-complete`, `mandate-setup-info`, tabellen `customer_payment_mandates`, `mandate_setup_tokens`.
-- Webhook-events die blijven: `payment_intent.succeeded`, `payment_intent.payment_failed` (CYCLE-3-interceptor), `checkout.session.completed`, `payout.created/paid/failed/canceled`.
-- Platform bankoverschrijving: `create-platform-bank-payment`, `pending_platform_payments`, `BankReconciliationUpload`, `PendingPlatformPaymentsPage`.
+GRANT SELECT ON public.blog_posts TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.blog_posts TO authenticated;
+GRANT ALL ON public.blog_posts TO service_role;
 
-## 1. 2b·1 — Edge functions
+CREATE INDEX blog_posts_status_published_idx ON public.blog_posts (status, published_at DESC);
+CREATE INDEX blog_posts_category_idx ON public.blog_posts (category);
 
-| Functie | Aanroepers (verse grep src/ + supabase/ + config.toml) | Verdict |
-|---|---|---|
-| `create-platform-checkout` | `src/hooks/useTenantSubscription.ts:121` → `src/pages/Pricing.tsx:65` (live route `/pricing` in App.tsx:156) | NIET direct slopen — eerst frontend ontkoppelen (2b·4), daarna slopen |
-| `platform-customer-portal` | alleen `useTenantSubscription.ts:144` (`openCustomerPortal`); **0 hits** op `openCustomerPortal` in UI-componenten | Slopen, samen met de dode hook-mutatie |
-| `confirm-platform-bank-payment` | `src/pages/admin/PendingPlatformPaymentsPage.tsx:92` | TWIJFELGEVAL → behouden (bank-reconciliatie, geen Stripe Billing) |
-| `create-addon-checkout`, `create-ai-credits-checkout`, `platform-gift-month` | eigen levende flows | Behouden, buiten scope |
+CREATE TRIGGER blog_posts_updated_at BEFORE UPDATE ON public.blog_posts
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+```
 
-`calculate-plan-switch` / `execute-plan-switch`: **0 hits** in `supabase/functions` — al gesloopt.
-Geen andere sync/reconcile-varianten voor Stripe Billing gevonden.
+`translations` per taal (nl is de basiskolom, en/fr/de in jsonb):
+```json
+{ "en": { "title": "...", "excerpt": "...", "content": "<p>...</p>", "meta_title": "...", "meta_description": "..." } }
+```
+Fallback in de UI: `translations[lang]?.field ?? kolomwaarde` (zelfde patroon als changelog/legal).
 
-Sloop-lijst: `supabase/functions/platform-customer-portal/`, daarna `supabase/functions/create-platform-checkout/` (beide met hun `config.toml`-blok).
+### Advies: categorieën als CHECK of conventie?
+**Conventie, geen CHECK** — met een frontend-constant `BLOG_CATEGORIES` als bron van waarheid. Reden: een CHECK op categorie betekent een migratie voor elke nieuwe rubriek, terwijl de labels toch al in i18n moeten staan. Onbekende categorie valt in de UI terug op een neutrale badge. (Op `status` blijft de CHECK wél staan — daar hangt RLS/zichtbaarheid aan.)
 
-## 2. 2b·2 — Webhook-chirurgie (`platform-stripe-webhook`, 483 regels)
+Labels (i18n `public.blog.categories.*`):
 
-WEGGAAN (Stripe Billing; elke case is een zelfstandig blok dat alleen `tenant_subscriptions` / `platform_invoices` raakt):
-- `customer.subscription.created` + `.updated` (r.133-202)
-- `customer.subscription.deleted` (r.203)
-- `invoice.paid` (r.238) — `platform_invoices`-upsert + `tenant_subscriptions.last_payment_*`
-- `invoice.payment_failed` (r.295)
-- `customer.subscription.trial_will_end` (r.332)
+| key | nl | en | fr | de |
+|---|---|---|---|---|
+| product-updates | Product-updates | Product updates | Nouveautés produit | Produkt-Updates |
+| boekhouding | Boekhouding | Accounting | Comptabilité | Buchhaltung |
+| tips | Tips & tricks | Tips & tricks | Astuces | Tipps & Tricks |
+| bedrijfsnieuws | Bedrijfsnieuws | Company news | Actualités | Unternehmensnews |
 
-BLIJVEN:
-- `payment_intent.succeeded` / `payment_intent.payment_failed` — interceptor r.114-126 via `handleSubscriptionChargeWebhook` (CYCLE-3). Onaangeroerd.
-- `checkout.session.completed` (r.353) — nu enkel loggend; blijft staan (mogelijke AI-credits-fulfilment, zie `docs/ai-credits-recon.md`).
-- `payout.created` (364) / `payout.paid` (391) / `payout.failed` (416) / `payout.canceled` (444) — Connect.
-- `default: Unhandled event type` (r.470) vangt oude events netjes op.
+## 2. RLS
 
-Bevestigd: de te verwijderen cases delen geen helper of state met de blijvers — alleen `supabase`, `stripe`, `logStep`. Stripe-dashboard event-subscriptions hoeven niet gewijzigd te worden.
+```sql
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 
-## 3. 2b·3 — Kolommen & data (geen DROP)
+-- Publiek: alleen gepubliceerd
+CREATE POLICY "Public can read published posts"
+  ON public.blog_posts FOR SELECT TO anon, authenticated
+  USING (status = 'published' AND published_at IS NOT NULL AND published_at <= now());
 
-Deprecated documenteren + uit selects/writes halen, data blijft archief:
-- `tenant_subscriptions.stripe_subscription_id` / `.stripe_customer_id` — gelezen in `create-platform-checkout:169`, `PlatformBilling.tsx:328/332`, `TenantSubscriptionTab.tsx:136/139` (dashboard-deeplink), types `src/types/billing.ts:90-91`.
-- `pricing_plans.stripe_product_id` / `.stripe_price_id_monthly` / `.stripe_price_id_yearly` — `create-platform-checkout:155-156`, types `src/types/billing.ts:62-64`.
-- `platform_invoices` — read-only archief; alleen de schrijver (webhook `invoice.paid`) verdwijnt, bank-pad blijft schrijven.
+-- Platform admin: alles zien (incl. drafts, voor preview + beheer)
+CREATE POLICY "Platform admins can read all posts"
+  ON public.blog_posts FOR SELECT TO authenticated
+  USING (public.is_platform_admin(auth.uid()));
 
-NIET AANRAKEN: `tenants.stripe_account_id` en overige Connect-kolommen; `tenants.stripe_customer_id` (dubbelgebruik platformniveau); `tenant_addons.stripe_subscription_id/stripe_price_id` (add-on-flow leeft); `customer_payment_mandates.stripe_customer_id`.
+CREATE POLICY "Platform admins can insert posts"
+  ON public.blog_posts FOR INSERT TO authenticated
+  WITH CHECK (public.is_platform_admin(auth.uid()));
 
-Deliverable: deprecatie-notitie in `docs/`, geen migratie in deze batch.
+CREATE POLICY "Platform admins can update posts"
+  ON public.blog_posts FOR UPDATE TO authenticated
+  USING (public.is_platform_admin(auth.uid()))
+  WITH CHECK (public.is_platform_admin(auth.uid()));
 
-## 4. 2b·4 — Frontend-resten
+CREATE POLICY "Platform admins can delete posts"
+  ON public.blog_posts FOR DELETE TO authenticated
+  USING (public.is_platform_admin(auth.uid()));
+```
 
-- `useTenantSubscription.ts`: `createCheckout` + `openCustomerPortal` weg. `subscription`, `usage`, `invoices` blijven (gebruikt door AdminSidebar, Settings, Marketplaces, Promotions, Billing, useUsageLimits).
-- `src/pages/Pricing.tsx:65`: `handleSelectPlan` niet meer naar Stripe Checkout → registratie / `/admin/billing` (native activatiewizard). Minimale wijziging, plankeuze blijft.
-- `usePlatformBilling.ts:108` en `usePlatformAdmin.ts:235`: `platform_invoices` blijven lezen, maar als "historisch (Stripe)" labelen; waar native data bestaat (`invoices` / `billing_cycles`) die als primaire bron tonen.
-- `TenantSubscriptionTab.tsx` / `PlatformBilling.tsx`: Stripe-dashboard-deeplink alleen bij aanwezige `stripe_subscription_id` (al zo) → als legacy labelen. Geen rebuild.
+Twee losse SELECT-policies (OR-semantiek) i.p.v. één samengestelde: de publieke policy blijft leesbaar en apart auditeerbaar. Drafts zijn dus voor anon fysiek onzichtbaar — de 404 op `/blog/:slug` volgt automatisch uit een leeg queryresultaat, niet uit frontend-logica.
 
-## 5. 2b·5 — Config / cron / secrets
+## 3. Publieke routes
 
-- `supabase/config.toml`: blok r.48 `[functions.create-platform-checkout]` en r.51 `[functions.platform-customer-portal]` mee verwijderen; `[functions.platform-stripe-webhook]` (r.54) blijft.
-- Cron: grep op de te slopen functienamen in `supabase/migrations` → **0 hits**.
-- Secrets: `STRIPE_SECRET_KEY` + platform-webhooksecret blijven nodig voor pay-first en Connect. Geen secret is exclusief van de gesloopte functies.
+- `/blog` — bestaande route, `src/pages/public/Blog.tsx` wordt herschreven: grid van published posts (cover, categorie-badge, titel, excerpt, leestijd, datum), sortering `published_at desc`, optionele categorie-filter-chips, bestaande lege staat blijft als er 0 posts zijn.
+- `/blog/:slug` — nieuw, `src/pages/public/BlogPost.tsx`: cover, categorie + datum + leestijd, `<h1>` titel, rijke content, "← Terug naar blog", onderaan CTA naar `/changelog`. Onbekende/niet-gepubliceerde slug → `NotFound`-weergave (geen redirect, zodat de URL blijft staan).
+- Draft-preview: platform-admin ziet het artikel met een oranje **CONCEPT**-badge bovenaan; de query is identiek — RLS bepaalt wie iets terugkrijgt. `<PageMeta>` zet bij een draft `noindex`.
 
-## 6. TWIJFELGEVALLEN + aanbeveling
+SEO per artikel: `PageMeta` met `meta_title ?? title`, `meta_description ?? excerpt`, `path=/blog/:slug`, `type="article"`, plus `og:image` = `cover_image_url` (PageMeta wordt hiervoor uitgebreid met een optionele `image`-prop) en Article JSON-LD (headline, image, datePublished, dateModified, author, publisher) via een nieuwe `generateArticleJsonLd` in `src/lib/structuredData.ts`.
 
-1. `confirm-platform-bank-payment` — 1 live aanroeper, schrijft `platform_invoices` + `add_ai_credits`. **Behouden.**
-2. `create-platform-checkout` — live bereikbaar via `/pricing`. **Eerst ontkoppelen, dan in dezelfde batch slopen en verifiëren.**
-3. `checkout.session.completed`-case — mogelijk toekomstige AI-credits-fulfilment. **Laten staan.**
-4. `tenants.stripe_customer_id` — dubbelgebruik. **Niet droppen, niet deprecaten.**
-5. `platform_invoices` — blijft schrijfbaar via bank-pad. **Tabel volledig behouden.**
+Rijke HTML rendert via `dangerouslySetInnerHTML` binnen een `prose`-wrapper. **Risico + mitigatie:** alleen platform-admins kunnen content schrijven, dus dit is geen user-generated input; we saneren met `sanitize-html`/DOMPurify vóór rendering zodat een fout in een geïmporteerd artikel geen script kan uitvoeren.
 
-## 7. Volgorde & deploy-strategie
+## 4. Lichte platform-admin
 
-Webhook-chirurgie als **laatste**. Zolang de frontend nog een Stripe-abonnement kan starten, is de subscription-/invoice-handling de enige plek die dat administreert; die eerst slopen geeft een venster met betaalde-maar-niet-geadministreerde subscriptions. Omgekeerd is risicoloos: de handlers draaien idle tot er niets meer binnenkomt.
+- Nieuwe pagina `src/pages/platform/PlatformBlog.tsx`, route `/admin/platform/blog` achter `<ProtectedRoute requirePlatformAdmin>`.
+- Sidebar-item in `platformItems` (`sidebarConfig.ts`): `platform-blog`, titel "Blog", tussen Changelog en Health.
+- Inhoud: tabel van alle posts (titel, categorie, status-badge, datum, leestijd) met per rij: publiceer/depubliceer-toggle (zet/wist `published_at`), preview-link naar `/blog/:slug`, inline edit-dialog voor titel/excerpt/categorie/cover/meta, en verwijderen met bevestiging. Mobiel: kaartweergave onder 900px conform de admin-designstandaard.
+- Geen WYSIWYG. `content` wordt door jou via SQL/connector ingeschoten; de admin dient om te reviewen en te publiceren.
 
-1. Frontend ontkoppelen (`Pricing.tsx` + hook-mutaties).
-2. `platform-customer-portal` verwijderen + config-blok.
-3. `create-platform-checkout` verwijderen + config-blok.
-4. Deprecatie-notitie kolommen; selects/writes eruit (legacy-deeplinks uitgezonderd).
-5. Platform-admin labeling (2b·4).
-6. Webhook-chirurgie: 5 Billing-cases weg, deploy `platform-stripe-webhook`.
-7. Changelog + entry in `docs/role-audit.md`.
+## 5. Sitemap-integratie — advies
 
-## 8. Verificatie na de sloop
+Bevinding: `supabase/functions/generate-sitemap` bestaat, maar die is **tenant-storefront**-scoped (producten/categorieën per tenant, output als JSON-string) — niet bruikbaar voor sellqo.app. De publieke site gebruikt het statische `public/sitemap.xml` (5 handmatige entries) en `robots.txt` verwijst daarnaar.
 
-- **Mandaat-smoke**: `/admin/billing` → planwissel met incasso → mandaatpagina → `customer_payment_mandates.status` actief.
-- **PR-betaling**: betaallink betalen → `/pay/success` → `billing_cycles` settled + factuur `paid` + `[SUB-CHARGE-WEBHOOK]`-log.
-- **Pro-rata upgrade**: proration-cycle + PR-PDF → betaling → plan geactiveerd.
-- **Labelprint**: Bol/VVB-label via `get-document-url` (signed URL, `label_url` niet NULL).
-- **Storefront-checkout**: één echte tenant-checkout end-to-end (Direct Charge) + payout-event in de logs — ongewijzigd.
-- **Platform-admin**: TenantSubscriptionTab en PlatformBilling laden zonder fouten, historische facturen met legacy-label.
-- **Regressiecheck**: `/pricing` opent geen Stripe Checkout meer; `rg -n "create-platform-checkout|platform-customer-portal" src supabase` → 0 hits.
+Advies: `public/sitemap.xml` **niet** vervangen door een runtime-mechanisme (SPA op static hosting kan geen dynamische `/sitemap.xml` serveren). In plaats daarvan een build-time generator, conform het Lovable-patroon:
+
+- `scripts/generate-sitemap.ts` met de statische routes + een fetch van published slugs uit `blog_posts` via de anon key (publieke SELECT-policy volstaat), `lastmod` = `updated_at` van de post (page-specifiek, dus legitiem; geen build-datum-fallback voor de statische routes).
+- Wired via `predev`/`prebuild` in `package.json`, output blijft `public/sitemap.xml`.
+- Gevolg: nieuwe artikelen komen in de sitemap bij de volgende publish. Dat is voor SEO ruim voldoende; alternatief is een `/blog-sitemap.xml` edge function die we in `robots.txt` als tweede `Sitemap:`-regel opnemen — zeg het als je liever direct-live wil.
+
+## Bestanden
+
+Nieuw:
+- migratie: `blog_posts` + GRANTs + RLS + indexen + updated_at-trigger
+- `src/pages/public/BlogPost.tsx`
+- `src/pages/platform/PlatformBlog.tsx`
+- `src/hooks/useBlogPosts.ts` (publieke lijst + detail, en admin-variant met drafts)
+- `src/lib/blogCategories.ts` (`BLOG_CATEGORIES` + i18n-keys)
+- `scripts/generate-sitemap.ts`
+
+Gewijzigd:
+- `src/pages/public/Blog.tsx` (placeholder → echte lijst)
+- `src/App.tsx` (`/blog/:slug` + `/admin/platform/blog`)
+- `src/components/admin/sidebar/sidebarConfig.ts` (platform-item)
+- `src/components/seo/PageMeta.tsx` (optionele `image` + `noindex`)
+- `src/lib/structuredData.ts` (`generateArticleJsonLd`)
+- `src/i18n/locales/landing.{nl,en,fr,de}.json` (blog-keys)
+- `package.json` (predev/prebuild), `public/sitemap.xml` (gegenereerd)
+
+Slottaken volgens Projectregel: role-audit entry (waarom conventie i.p.v. CHECK op categorie, waarom twee SELECT-policies, waarom HTML-sanitatie), changelog-entry `2026.09c` type `feature` in 4 talen. Geen doc_articles: de blog is publiek, geen tenant-admin-functie.
+
+## Open vragen / risico's
+
+1. **Sitemap live-ness**: build-time generator (eenvoudig, vertraagd) of extra edge-function-sitemap (direct live)? Voorstel: build-time.
+2. **Inline afbeeldingen**: uploaden jullie zelf naar `marketing-assets` (map `blog/<slug>/`)? Ik plan geen upload-UI in deze batch.
+3. **Vertalingen**: worden en/fr/de mee-ingeschoten, of laten we een artikel zonder vertaling terugvallen op NL? Voorstel: fallback op NL, geen blokkade.
+4. **reading_minutes**: handmatig zetten, of automatisch berekenen bij publiceren (woorden/200)? Voorstel: automatisch in de admin-toggle als het veld leeg is.
+5. Blog-link staat al in de footer/navigatie — geen navigatiewijziging nodig buiten de platform-admin.
