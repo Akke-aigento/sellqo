@@ -5193,3 +5193,44 @@ service-role en is rol-onafhankelijk.
 - **Alleen platform-admin schrijft.** INSERT/UPDATE/DELETE staan alle drie op `is_platform_admin(auth.uid())`, mét `WITH CHECK` op INSERT en UPDATE (zonder `WITH CHECK` kan een UPDATE een rij naar een staat schrijven die de policy zelf zou weigeren). GRANTs zijn zo krap als de policies toelaten: `anon` krijgt enkel SELECT.
 - **DOMPurify op de content-rendering.** `content` is rijke HTML en wordt met `dangerouslySetInnerHTML` gerenderd. Schrijfrechten liggen bij platform-admins, dus dit is geen user-generated input — maar de content komt via SQL/connector binnen en kan uit externe bron of AI-generatie stammen. Één `<script>` of `onerror=`-attribuut in zo'n import zou anders stored XSS zijn op een publieke, door iedereen bezochte pagina, in de sessie-context van elke ingelogde bezoeker. `DOMPurify.sanitize` met het html-profiel is de laatste verdedigingslijn op renderniveau, onafhankelijk van hoe zorgvuldig de invoer was.
 - **Geen signed URLs voor beeld (bewust).** Cover-images en inline screenshots staan in de publieke bucket `marketing-assets`. Dit is per definitie openbare marketingcontent; R1 (nooit een signed URL in de DB) blijft gerespecteerd omdat er geen tijdelijke URL wordt opgeslagen, maar een permanent publiek pad.
+
+---
+
+## PUSH-FIX-1: thenable-proxy bug in native push-registratie — 7 augustus 2026
+
+**Symptoom.** Na de eerste succesvolle build op een echt Android-toestel (Pixel 7): app opent en gebruiker is ingelogd, maar er verschijnt **geen** notificatie-permissiepopup en `device_tokens` blijft leeg. Geen zichtbare fout in de UI.
+
+**Root cause.** `src/native/pushRegistration.ts` laadde de plugin via een async helper die de plugin-referentie direct terugliet vloeien:
+```ts
+async function loadMessaging() {
+  const mod = await import('@capacitor-firebase/messaging');
+  return mod.FirebaseMessaging;   // ← bug
+}
+// call-site: const FirebaseMessaging = await loadMessaging();
+```
+Op Android is `FirebaseMessaging` geen gewoon object maar een **Capacitor-Proxy** die élke property-toegang doorstuurt naar de native bridge — inclusief `.then`. Wanneer een `async` functie zijn resultaat *returnt*, draait de JS-spec de *thenable resolution procedure*: als de resolve-waarde een `.then` heeft, wordt die aangeroepen om de promise te "adopteren". Dus `return mod.FirebaseMessaging` → JS roept `FirebaseMessaging.then(resolve, reject)` aan → Capacitor kent geen native methode `then` → gooit `"FirebaseMessaging.then() is not implemented on android"`. De promise van `loadMessaging()` rejecte daardoor, nog vóór `checkPermissions()`/`requestPermissions()`/`getToken()` ooit werd bereikt.
+
+Omdat `registerPushForUser` in `useAuth.tsx` werd aangeroepen als `void registerPushForUser(id)` (zonder `.catch`), werd de rejection een **stille unhandled promise rejection**: de hele push-flow stopte zonder spoor in de UI. Logcat-bewijs (op toestel):
+```
+Msg: [Auth] State change: SIGNED_IN ...
+Msg: Uncaught (in promise) Error: "FirebaseMessaging.then()" is not implemented on android
+```
+en het systeemlog toonde `checkPermission: missing 13 for <uid>` (permissie 13 = POST_NOTIFICATIONS) — bevestiging dat de aanvraag nooit plaatsvond.
+
+**Alleen op echt Android reproduceerbaar, niet op web.** Op web levert `@capacitor-firebase/messaging` een gewoon JS-implementatie-object zonder `.then`, dus niet-thenable → geen crash, flow wordt sowieso door `Capacitor.isNativePlatform()` gepoort. De bug bestaat uitsluitend omdat de native bridge een alles-doorsturende Proxy teruggeeft. Web-testen (en de Vite-build) konden dit dus nooit vangen; het kwam pas boven op de fysieke Pixel 7 via wireless debugging + logcat.
+
+**Fix.** Nooit een promise laten resolven met de kale proxy — wrap in een gewoon (niet-thenable) object:
+```ts
+async function loadMessaging() {
+  const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+  return { FirebaseMessaging };   // plain object → geen proxy.then()
+}
+// call-sites: const { FirebaseMessaging } = await loadMessaging();
+```
+Aangepast op alle drie de call-sites (`attachListeners`, `registerPushForUser`, `unregisterPushForUser`).
+
+**Hardening.** De drie `void registerPushForUser(...)`-aanroepen in `useAuth.tsx` (onAuthStateChange-hoofdpad, stale-storage-refreshpad, en `initializeAuth`) vervangen door `registerPushForUser(id).catch(err => console.error('[push] registration failed', err))`. Een toekomstige fout in de registratie wordt daarmee zichtbaar in de console i.p.v. stil te verdwijnen als unhandled rejection — precies wat het opsporen van deze bug had versneld.
+
+**Verificatie (op toestel).** Na rebuild + redeploy toonde logcat de volledige keten: `[Auth] State change: SIGNED_IN` → `checkPermissions` `{"receive":"prompt"}` → native `requestPermissions` → Android `GrantPermissionsActivity` (de popup verscheen daadwerkelijk). Permissie werd op het toestel eerst geweigerd (Android onderdrukt daarna elke re-prompt); na `adb shell pm grant app.sellqo.admin android.permission.POST_NOTIFICATIONS` + app-herstart liep de flow door naar `{"receive":"granted"}` → native `getToken` zonder fouten → upsert. `device_tokens` bevat sindsdien één rij: `platform='android'`, echte FCM-token (142 tekens), `device_name='android device'`, `tenant_id=NULL` (device-scoped, zie PUSH-DB-1), `created_at`/`last_seen_at` gezet.
+
+**Build-context (nevenwijzigingen in dezelfde commit).** Om überhaupt op het toestel te kunnen bouwen was de Android-toolchain-config bijgewerkt: `android/build.gradle` AGP 8.7.2 → 8.9.1 en `android/variables.gradle` `compileSdkVersion` 35 → 36 (transitief geëist door `androidx.core:1.17.0` via firebase-messaging) en `minSdkVersion` 23 → 24 (geëist door de camera-plugin `io.ionic.libs:ioncamera-android`). Deze zijn functioneel los van de thenable-fix maar zaten in dezelfde build-sessie.
