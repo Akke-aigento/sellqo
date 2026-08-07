@@ -17126,6 +17126,7 @@ export type Database = {
           peppol_id: string | null
           peppol_legal_entity_id: string | null
           phone: string | null
+          platform_newsletter_opt_in: boolean
           postal_code: string | null
           primary_color: string | null
           proforma_prefix: string | null
@@ -17235,6 +17236,7 @@ export type Database = {
           peppol_id?: string | null
           peppol_legal_entity_id?: string | null
           phone?: string | null
+          platform_newsletter_opt_in?: boolean
           postal_code?: string | null
           primary_color?: string | null
           proforma_prefix?: string | null
@@ -17344,6 +17346,7 @@ export type Database = {
           peppol_id?: string | null
           peppol_legal_entity_id?: string | null
           phone?: string | null
+          platform_newsletter_opt_in?: boolean
           postal_code?: string | null
           primary_color?: string | null
           proforma_prefix?: string | null
