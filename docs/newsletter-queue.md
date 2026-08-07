@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.09d — Verbeterde meldingen-instellingen in de app (improvement, 07-08-2026)
+
+**Verbeterde meldingen-instellingen in de app** (september 2026)
+Staan meldingen op je telefoon uit? Dan zag je dat nergens — je miste stil nieuwe
+bestellingen. De app toont dit nu bovenaan, met het exacte pad om ze weer aan te zetten
+(iPhone: Instellingen → Meldingen → SellQo; Android: Instellingen → Apps → SellQo →
+Meldingen).
+Wat betekent dit voor jou? Weigerde je de melding-vraag ooit, dan vraagt je telefoon dat
+nooit meer opnieuw. Deze balk is je herstelpad. Welke gebeurtenissen een melding sturen,
+regel je zoals altijd via Instellingen → Meldingen.
+
+**i18n-keys.** `public.changelog.changes.app_notification_settings` — NL/EN/FR/DE aanwezig.
+
 ### 2026.08e — Verzendklassen instelbaar met voorrangsregel (feature, 02-08-2026)
 
 **Verzendklassen instelbaar met voorrangsregel** (augustus 2026)
