@@ -1272,6 +1272,10 @@
         "sellqo_blog": {
           "title": "SellQo Blog — Artikel, Tipps und Updates an einem Ort",
           "description": "Der SellQo-Blog ist live: ausführliche Artikel mit Tipps, Buchhaltungs-Einblicken und Produkt-Updates, auf Niederländisch, Englisch, Französisch und Deutsch."
+        },
+        "app_notification_settings": {
+          "title": "Verbesserte Benachrichtigungs-Einstellungen in der App",
+          "description": "Sind Benachrichtigungen auf deinem Handy ausgeschaltet, weist die App jetzt darauf hin und erklärt kurz, wie du sie wieder aktivierst — so verpasst du keine Bestellung."
         }
       },
       "copyLink": "Link kopieren",

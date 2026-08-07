@@ -1272,6 +1272,10 @@
         "sellqo_blog": {
           "title": "SellQo Blog — articles, tips and updates in one place",
           "description": "The SellQo blog is live: in-depth articles with tips, accounting insights and product updates, in Dutch, English, French and German."
+        },
+        "app_notification_settings": {
+          "title": "Improved notification settings in the app",
+          "description": "If notifications are switched off on your phone, the app now points this out with a short guide to turn them back on, so you never miss a new order."
         }
       },
       "copyLink": "Copy link",

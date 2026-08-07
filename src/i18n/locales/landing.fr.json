@@ -1272,6 +1272,10 @@
         "sellqo_blog": {
           "title": "Blog SellQo — articles, astuces et actualités au même endroit",
           "description": "Le blog SellQo est en ligne : des articles détaillés avec des astuces, des éclairages comptables et des nouveautés produit, en néerlandais, anglais, français et allemand."
+        },
+        "app_notification_settings": {
+          "title": "Paramètres de notifications améliorés dans l'application",
+          "description": "Si les notifications sont désactivées sur votre téléphone, l'application vous le signale désormais avec une courte explication pour les réactiver, afin de ne manquer aucune commande."
         }
       },
       "copyLink": "Copier le lien",
