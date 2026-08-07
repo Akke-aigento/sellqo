@@ -4966,6 +4966,7 @@ export type Database = {
           last_email_opened_at: string | null
           last_email_sent_at: string | null
           last_name: string | null
+          linked_tenant_id: string | null
           notes: string | null
           original_created_at: string | null
           peppol_id: string | null
@@ -5029,6 +5030,7 @@ export type Database = {
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
+          linked_tenant_id?: string | null
           notes?: string | null
           original_created_at?: string | null
           peppol_id?: string | null
@@ -5092,6 +5094,7 @@ export type Database = {
           last_email_opened_at?: string | null
           last_email_sent_at?: string | null
           last_name?: string | null
+          linked_tenant_id?: string | null
           notes?: string | null
           original_created_at?: string | null
           peppol_id?: string | null
@@ -5132,6 +5135,20 @@ export type Database = {
             columns: ["import_job_id"]
             isOneToOne: false
             referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_linked_tenant_id_fkey"
+            columns: ["linked_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_linked_tenant_id_fkey"
+            columns: ["linked_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
