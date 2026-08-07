@@ -294,3 +294,38 @@ export function validateProductJsonLd(jsonLd: object): {
     warnings,
   };
 }
+
+export interface ArticleStructuredData {
+  headline: string;
+  description?: string | null;
+  image?: string | null;
+  url: string;
+  datePublished?: string | null;
+  dateModified?: string | null;
+  author?: string | null;
+}
+
+export function generateArticleJsonLd(article: ArticleStructuredData): object {
+  const jsonLd: any = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.headline,
+    url: article.url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': article.url },
+    publisher: {
+      '@type': 'Organization',
+      name: 'SellQo',
+      url: 'https://sellqo.app',
+    },
+  };
+
+  if (article.description) jsonLd.description = article.description;
+  if (article.image) jsonLd.image = [article.image];
+  if (article.datePublished) jsonLd.datePublished = article.datePublished;
+  if (article.dateModified) jsonLd.dateModified = article.dateModified;
+  if (article.author) {
+    jsonLd.author = { '@type': 'Organization', name: article.author };
+  }
+
+  return jsonLd;
+}
