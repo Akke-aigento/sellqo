@@ -59,6 +59,8 @@ interface Tenant {
   simplified_vat_acknowledged_at?: string | null;
   // Notification settings
   notification_email?: string | null;
+  // Platform newsletter (SellQo product news) opt-in
+  platform_newsletter_opt_in?: boolean;
   // Reminder settings
   reminders_enabled?: boolean;
   reminder_level1_days?: number;

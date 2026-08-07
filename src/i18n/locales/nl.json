@@ -65,6 +65,12 @@
       "updatedDescription": "Je wachtwoord is succesvol bijgewerkt.",
       "error": "Fout bij wijzigen",
       "errorDescription": "Er is een fout opgetreden bij het wijzigen van je wachtwoord."
+    },
+    "platform_newsletter": {
+      "title": "SellQo nieuwsbrief",
+      "description": "Ontvang product-updates, tips en nieuws van SellQo.",
+      "saved": "Nieuwsbriefvoorkeur opgeslagen",
+      "error": "Kon nieuwsbriefvoorkeur niet opslaan"
     }
   },
   "languages": {

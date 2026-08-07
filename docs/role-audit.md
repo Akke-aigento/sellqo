@@ -1,3 +1,19 @@
+## Platform-nieuwsbrief opt-in per tenant — 7 augustus 2026
+
+**Root cause:** SellQo verstuurde product-updates zonder dat er ergens een vastgelegde voorkeur bestond. `tenant_newsletter_config` gaat over tenant→klant-mail (Mailchimp/Klaviyo) en `tenant_notification_settings` is een per-type × per-kanaal matrix voor transactionele meldingen; geen van beide modelleert "wil de eigenaar marketingmail *van SellQo zelf*". Zonder eigen kolom is er geen bewijsbare consent-status en geen afmeldmogelijkheid.
+
+**Uitgevoerd:**
+- Migratie: `ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS platform_newsletter_opt_in boolean NOT NULL DEFAULT true` — bestaande rijen krijgen `true` via de DEFAULT (natrek: 10/10 rijen `true`, geen aparte backfill).
+- `src/hooks/useTenant.tsx`: `platform_newsletter_opt_in?: boolean` toegevoegd aan de `Tenant`-interface (`select('*')` haalde de kolom al binnen).
+- `src/components/admin/settings/NotificationSettings.tsx`: Switch tussen de geluidsmelding en de e-mailnotificatie-sectie — logisch bij de communicatievoorkeuren, geen bestaande instelling verschoven. Optimistic update met rollback naar de vorige waarde bij fout, `.select()` na `.update()` en `data.length === 0` als faalgeval (stille RLS-weigering wordt zo een echte fout i.p.v. een groen vinkje), daarna `refreshTenants()`.
+- i18n: `settings.platform_newsletter.{title,description,saved,error}` in nl/en/fr/de.
+- Changelog `2026.09b` (type `improvement`) + `changelog.entries.platform_newsletter_preference` in de vier talen.
+- DOCS-1: `doc_articles` `doc_level='tenant'`, slug `sellqo-nieuwsbrief-aan-of-uitzetten`, `context_path='/admin/settings'`, categorie Communicatie, idempotent via `ON CONFLICT (doc_level, slug) DO UPDATE`.
+
+**Security-keuzes:** geen nieuwe policy en geen verruiming. De bestaande UPDATE-policy `Tenant admins can update their own tenant` (`id IN (SELECT get_user_tenant_ids(auth.uid())) AND has_tenant_role(id, ARRAY['tenant_admin'])`, rol `authenticated`) dekt deze kolom automatisch — RLS op `tenants` is rij-, niet kolomgebaseerd, dus een tenant_admin kan enkel de eigen rij zetten en niet-admins (staff/marketing/warehouse/viewer) kunnen niets zetten. Platform admins behouden hun bestaande bypass via `is_platform_admin(auth.uid())`. Bewust géén kolom-grant of aparte policy toegevoegd: dat zou een tweede, divergerende autorisatieweg op dezelfde tabel introduceren (M1: additief vóór destructief, maar hier is niets nodig). `tenant_newsletter_config` en `tenant_notification_settings` zijn niet aangeraakt.
+
+**Vervolg:** de verzendlaag van de platform-nieuwsbrief moet bij implementatie filteren op `platform_newsletter_opt_in = true`; zolang die er niet is, is de kolom louter een vastgelegde voorkeur.
+
 # 2026-08-07 (ochtend) — PUSH-DB-1
 
 **PUSH-DB-1**: DB-fundering voor native push (FCM/APNs via Capacitor). Additief, geen bestaande flow geraakt.

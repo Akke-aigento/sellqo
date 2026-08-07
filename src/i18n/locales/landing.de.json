@@ -1252,6 +1252,10 @@
         "customer_invoice_email_fix": {
           "title": "Korrekte Rechnungs-E-Mails an deine Kunden",
           "description": "Rechnungs-E-Mails an deine Kunden zeigen keinen abonnementspezifischen Einzugstext mehr; eine bezahlte Rechnung wird als beglichen bestaetigt."
+        },
+        "platform_newsletter_preference": {
+          "title": "Newsletter-Einstellung in den Einstellungen",
+          "description": "Du entscheidest jetzt in deinen Einstellungen selbst, ob du Produkt-Updates, Tipps und Neuigkeiten von SellQo per E-Mail erhalten möchtest."
         }
       },
       "copyLink": "Link kopieren",
