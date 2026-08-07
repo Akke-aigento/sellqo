@@ -1,3 +1,19 @@
+# 2026-08-07 (ochtend) — PUSH-DB-1
+
+**PUSH-DB-1**: DB-fundering voor native push (FCM/APNs via Capacitor). Additief, geen bestaande flow geraakt.
+
+Nieuwe tabel `public.device_tokens` (`user_id` FK → `auth.users` ON DELETE CASCADE, `tenant_id` FK → `tenants` NULL, `token` UNIQUE, `platform` CHECK ios/android/web, `device_name`, `created_at`, `last_seen_at`) met index op `user_id`, GRANTs voor `authenticated` + `service_role`, RLS enabled en vier strakke policies op `auth.uid() = user_id`.
+
+**Root cause van het scope-ontwerp**: een push-token identificeert een *fysiek toestel*, niet een winkel. Eén e-mail kan tot 10 tenants beheren (zie multi-tenant per-user access); zou het token tenant-scoped zijn, dan ontstaan duplicaat-rijen per tenant voor hetzelfde device → dezelfde melding meermaals op één telefoon, plus onmogelijke invalidatie wanneer FCM het token roteert (welke rij is de waarheid?). Daarom: `UNIQUE(token)`, device-scoped, `tenant_id` louter als niet-normatieve hint over de laatst actieve context. Filtering op tenant hoort in de verzendlaag (`notifications.tenant_id` × rol/tenant-membership), niet in de tokenopslag.
+
+**Waarom geen platform-admin-bypass in RLS**: push-verzending draait server-side met service-role, die RLS structureel omzeilt. Een admin-policy zou dus enkel leesbaar maken wat de verzender toch al ziet, terwijl het het aanvalsoppervlak vergroot (tokens zijn bearer-achtige credentials waarmee je meldingen naar een toestel kunt sturen). Strak op `user_id` houden is het minimale-rechten-antwoord.
+
+**Waarom `push_enabled` default false** op `tenant_notification_settings`: push is het eerste kanaal dat OS-permissie vereist én buiten de app om aandacht opeist. Default true zou bij deploy stilzwijgend meldingen activeren voor bestaande rijen (backfill zet elke bestaande instelling op `true`) — dat is een opt-out-model op een kanaal waarvoor de gebruiker nooit toestemming gaf. `false` maakt de rij-backfill inert en dwingt expliciete activatie zodra de push-UI landt.
+
+Bewust niet gedaan: geen edge function, geen frontend, geen Capacitor-config, geen changelog/newsletter (interne infra, nog niet tenant-zichtbaar), geen doc_articles.
+
+---
+
 # 2026-08-06 (avond) — STOREFRONT-API-IP-THROTTLE-1
 
 **STOREFRONT-API-IP-THROTTLE-1**: IP-throttle (in-memory, 5/IP/10 min) toegevoegd op `newsletter_subscribe` en `submit_contact_form` in `storefront-api` tegen mail-bombing/lijstvervuiling. De throttle zit vóór de dispatch en laat de handlers zelf ongemoeid; `clientIp` wordt afgeleid uit `cf-connecting-ip`, `x-forwarded-for` of terugval naar `unknown`. De bestaande per-tenant `checkRateLimit` blijft als generieke bovengrens. **Verificatiebevinding**: in-memory state blijkt in de serverless/Deno-Deploy-omgeving niet gedeeld tussen requests (elke request krijgt een schone isolate), waardoor de in-memory teller in de praktijk niet oploopt en dus geen 429 afgeeft. De code is conform de opdracht ingebouwd, maar effectieve bescherming vereist een upgrade naar een gedeelde state store (DB-teller, Redis/KV of vergelijkbaar). Geen DB-migratie of nieuwe tabel toegevoegd in deze stap.
