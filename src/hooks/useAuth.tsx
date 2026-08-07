@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { registerPushForUser, unregisterPushForUser } from '@/native/pushRegistration';
 
 // Storage key used by Supabase auth
 const SUPABASE_AUTH_KEY = 'sb-gczmfcabnoofnmfpzeop-auth-token';
@@ -182,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Handle sign out events - also clear any stale storage
         if (event === 'SIGNED_OUT') {
+          void unregisterPushForUser();
           clearAuthStorage();
           setSession(null);
           setUser(null);
@@ -216,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             prev && prev.id === currentSession.user.id ? prev : currentSession.user
           );
           currentUserIdRef.current = incomingId;
+          void registerPushForUser(incomingId);
           // Alleen bij initiële load de guard triggeren; latere refetches
           // lopen op de achtergrond.
           if (!hasResolvedRolesOnceRef.current) {
@@ -249,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 prev && prev.id === refreshed.user.id ? prev : refreshed.user
               );
               currentUserIdRef.current = incomingId;
+              void registerPushForUser(incomingId);
               if (!hasResolvedRolesOnceRef.current) {
                 setRolesLoading(true);
               }
@@ -309,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           prev && prev.id === existingSession.user.id ? prev : existingSession.user
         );
         currentUserIdRef.current = existingSession.user.id;
+        void registerPushForUser(existingSession.user.id);
         if (!hasResolvedRolesOnceRef.current) {
           setRolesLoading(true);
         }
@@ -527,6 +532,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     // Uitloggen op dit toestel mag je sessie op je telefoon niet meesleuren.
+    await unregisterPushForUser();
     await safeLocalSignOut();
     setRoles([]);
     currentUserIdRef.current = null;

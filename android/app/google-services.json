@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "137638608237",
+    "project_id": "sellqo",
+    "storage_bucket": "sellqo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137638608237:android:c48d884a2c238d4870ae64",
+        "android_client_info": {
+          "package_name": "app.sellqo.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaLmyEkn7Qp5OOtNCVc2ELl1Zu9HE6sNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
