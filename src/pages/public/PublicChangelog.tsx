@@ -14,6 +14,7 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.09d', dateKey: 'sep_2026', changes: [{ id: 'app_notification_settings', type: 'improvement' }] },
   { version: '2026.09c', dateKey: 'sep_2026', changes: [{ id: 'sellqo_blog', type: 'feature' }] },
   { version: '2026.09b', dateKey: 'sep_2026', changes: [{ id: 'platform_newsletter_preference', type: 'improvement' }] },
   { version: '2026.09a', dateKey: 'sep_2026', changes: [{ id: 'customer_invoice_email_fix', type: 'bugfix' }] },
