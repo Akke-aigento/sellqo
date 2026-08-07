@@ -75,6 +75,7 @@ import PlatformDashboard from "./pages/platform/PlatformDashboard";
 import PlatformFeedback from "./pages/platform/PlatformFeedback";
 import PlatformSupport from "./pages/platform/PlatformSupport";
 import PlatformChangelog from "./pages/platform/PlatformChangelog";
+import PlatformBlog from "./pages/platform/PlatformBlog";
 import PlatformHealth from "./pages/platform/PlatformHealth";
 import PlatformLegal from "./pages/platform/PlatformLegal";
 import { PendingPlatformPaymentsPage } from "./pages/admin/PendingPlatformPaymentsPage";
@@ -82,6 +83,7 @@ import SellqoLegal from "./pages/SellqoLegal";
 import About from "./pages/public/About";
 import Contact from "./pages/public/Contact";
 import Blog from "./pages/public/Blog";
+import BlogPost from "./pages/public/BlogPost";
 import Partners from "./pages/public/Partners";
 import Careers from "./pages/public/Careers";
 import HelpCenter from "./pages/public/HelpCenter";
@@ -297,6 +299,11 @@ const App = () => (
                   <PlatformChangelog />
                 </ProtectedRoute>
               } />
+              <Route path="platform/blog" element={
+                <ProtectedRoute requirePlatformAdmin>
+                  <PlatformBlog />
+                </ProtectedRoute>
+              } />
               <Route path="platform/health" element={
                 <ProtectedRoute requirePlatformAdmin>
                   <PlatformHealth />
@@ -336,6 +343,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/partners" element={<Partners />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/help" element={<HelpCenter />} />
