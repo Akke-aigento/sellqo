@@ -5246,3 +5246,17 @@ Aangepast op alle drie de call-sites (`attachListeners`, `registerPushForUser`, 
 **Waarom een loader tegen flikkering.** `useAuth` start met `loading: true` en `user: null`; direct op `user` beslissen zou in de app eerst een frame naar `/auth` sturen en na sessie-restore terug naar `/admin`. Daarom renderen we bij `loading` een neutrale spinner en pas ná de auth-beslissing een `<Navigate replace />`. `replace` voorkomt dat `/` in de native history blijft staan, zodat de hardware-back-button niet terug in de redirect valt. De landing wordt op native nooit gerenderd — de `isNative`-check staat vóór de loading-branch.
 
 **Scope.** Alleen de nieuwe wrapper-component en één regel in `src/App.tsx`. Geen wijziging aan auth-logica, andere routes of native config. Geen changelog/newsletter (web-tenants merken niets) en geen `doc_articles` (interne app-routing, niet tenant-facing).
+
+## PUSH-PERM-1 — Herstelbanner voor geweigerde push-permissie (7 augustus 2026)
+
+**Waarom nodig.** `registerPushForUser()` in `src/native/pushRegistration.ts` stopt stil bij `receive !== 'granted'`. Zowel Android (POST_NOTIFICATIONS) als iOS tonen de permissie-prompt na een weigering **niet** opnieuw — `requestPermissions()` retourneert dan direct `denied` zonder UI. Zonder in-app signaal blijft een tenant dus permanent zonder push, zonder enige aanwijzing waarom orders niet doorkomen. Dit is precies de situatie die tijdens de PUSH-EDGE-1-test op de Pixel 7 optrad (herstel was daar alleen mogelijk via `adb shell pm grant`).
+
+**Native-only.** `getPushPermissionStatus()` retourneert `'unsupported'` als `Capacitor.isNativePlatform()` false is; de banner rendert dan null. Web-tenants hebben geen FCM-registratieflow en zouden een onoplosbaar bericht zien.
+
+**Detectie.** `checkPermissions()` is read-only en prompt nooit, dus veilig op mount. Alleen `'denied'` triggert de banner — `'prompt'` betekent dat de normale registratieflow de prompt nog gaat tonen, daar hoort geen waarschuwing bij.
+
+**Gekozen settings-aanpak: geen plugin, manuele instructie.** Er is in dit project geen schone weg om de OS-instellingen te openen: `@capacitor/app` is niet geïnstalleerd (alleen `core`, `ios`, `android`, `camera`, `cli`) en `@capacitor-firebase/messaging` biedt geen `openSettings()`. Een nieuwe plugin (`capacitor-native-settings`) vereist `npx cap sync` + native rebuild en valt buiten de opdrachtscope ("geen nieuwe plugins zonder melding", "geen native config"). Daarom is `openAppNotificationSettings()` een gedocumenteerde no-op en toont de banner in plaats van een knop het platform-specifieke pad (iOS: Instellingen → Meldingen → SellQo; Android: Instellingen → Apps → SellQo → Meldingen). Bij een volgende native release kan de plugin toegevoegd worden en de no-op vervangen; de call-site en detectie hoeven dan niet te wijzigen.
+
+**Dismiss via `useState`, niet localStorage.** Bewust: de permissie kan buiten de app veranderen en localStorage-persistentie zou de enige aanwijzing permanent verbergen. Her-tonen bij de volgende app-open is het gewenste gedrag.
+
+**Scope.** Twee nieuwe exports in `pushRegistration.ts`, nieuwe `src/components/PushPermissionBanner.tsx`, één regel in `AdminLayout.tsx`. De bestaande registratieflow is onaangeroerd.
