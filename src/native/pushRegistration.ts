@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 type NativePlatform = 'ios' | 'android';
 
+export type PushPermissionStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
+
 let currentUserId: string | null = null;
 let listenersAttached = false;
 let lastRegisteredToken: string | null = null;
@@ -94,4 +96,33 @@ export async function unregisterPushForUser(): Promise<void> {
   if (!token) return;
   const { error } = await supabase.from('device_tokens').delete().eq('token', token);
   if (error) console.warn('[push] device_tokens delete failed', error);
+}
+
+/**
+ * Read-only permission probe. Never prompts — safe to call on mount.
+ * Web has no native push surface here, so it reports 'unsupported'.
+ */
+export async function getPushPermissionStatus(): Promise<PushPermissionStatus> {
+  if (!Capacitor.isNativePlatform()) return 'unsupported';
+
+  try {
+    const { FirebaseMessaging } = await loadMessaging();
+    const { receive } = await FirebaseMessaging.checkPermissions();
+    if (receive === 'granted') return 'granted';
+    if (receive === 'denied') return 'denied';
+    return 'prompt';
+  } catch (e) {
+    console.warn('[push] checkPermissions failed', e);
+    return 'unsupported';
+  }
+}
+
+/**
+ * No Capacitor plugin in this project can open the OS notification settings
+ * (@capacitor/app is not installed and @capacitor-firebase/messaging exposes no
+ * openSettings()). Adding a plugin requires a native rebuild, so for now this
+ * is a documented no-op and the UI shows manual instructions instead.
+ */
+export async function openAppNotificationSettings(): Promise<void> {
+  console.info('[push] openAppNotificationSettings: no plugin available, showing manual instructions');
 }

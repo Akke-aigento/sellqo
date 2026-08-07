@@ -13,6 +13,7 @@ import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
 import { PlatformViewModeProvider } from '@/hooks/usePlatformViewMode';
 import { AdminMobileBottomNav } from './AdminMobileBottomNav';
 import { SandboxBanner } from '@/components/SandboxBanner';
+import { PushPermissionBanner } from '@/components/PushPermissionBanner';
 import { useTenant } from '@/hooks/useTenant';
 
 function AdminLayoutContent() {
@@ -38,6 +39,8 @@ function AdminLayoutContent() {
           <AdminHeader />
           {/* Sandbox banner - only for demo tenants */}
           <SandboxBanner isDemo={currentTenant?.is_demo === true} />
+          {/* Native-only: recovery path when OS notification permission was denied */}
+          <PushPermissionBanner />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
           <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-20 md:pb-6">

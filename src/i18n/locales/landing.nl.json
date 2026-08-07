@@ -1272,6 +1272,10 @@
         "sellqo_blog": {
           "title": "SellQo Blog — artikelen, tips en updates op één plek",
           "description": "De SellQo-blog is live: uitgebreide artikelen met tips, boekhoudinzichten en product-updates, in het Nederlands, Engels, Frans en Duits."
+        },
+        "app_notification_settings": {
+          "title": "Verbeterde meldingen-instellingen in de app",
+          "description": "Staan meldingen op je telefoon uit? De app laat dat nu zien met een korte uitleg hoe je ze weer aanzet, zodat je nieuwe bestellingen niet mist."
         }
       },
       "copyLink": "Kopieer link",
