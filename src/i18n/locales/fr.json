@@ -85,6 +85,12 @@
       "updatedDescription": "Votre mot de passe a été mis à jour avec succès.",
       "error": "Erreur de changement",
       "errorDescription": "Une erreur s'est produite lors du changement de votre mot de passe."
+    },
+    "platform_newsletter": {
+      "title": "Newsletter SellQo",
+      "description": "Recevez les mises à jour produit, astuces et actualités de SellQo.",
+      "saved": "Préférence de newsletter enregistrée",
+      "error": "Impossible d'enregistrer la préférence de newsletter"
     }
   },
   "languages": {

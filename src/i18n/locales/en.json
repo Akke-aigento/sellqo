@@ -74,6 +74,12 @@
       "updatedDescription": "Your password has been updated successfully.",
       "error": "Change error",
       "errorDescription": "An error occurred while changing your password."
+    },
+    "platform_newsletter": {
+      "title": "SellQo newsletter",
+      "description": "Receive product updates, tips and news from SellQo.",
+      "saved": "Newsletter preference saved",
+      "error": "Could not save newsletter preference"
     }
   },
   "languages": {

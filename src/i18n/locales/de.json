@@ -85,6 +85,12 @@
       "updatedDescription": "Ihr Passwort wurde erfolgreich aktualisiert.",
       "error": "Änderungsfehler",
       "errorDescription": "Beim Ändern Ihres Passworts ist ein Fehler aufgetreten."
+    },
+    "platform_newsletter": {
+      "title": "SellQo Newsletter",
+      "description": "Erhalte Produkt-Updates, Tipps und Neuigkeiten von SellQo.",
+      "saved": "Newsletter-Einstellung gespeichert",
+      "error": "Newsletter-Einstellung konnte nicht gespeichert werden"
     }
   },
   "languages": {
