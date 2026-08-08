@@ -1280,6 +1280,10 @@
         "security_compliance_docs": {
           "title": "Publieke security- en compliance-documentatie",
           "description": "SellQo publiceert nu zijn security-beleid op sellqo.app/security: informatiebeveiliging, toegangsbeheer, dataclassificatie en encryptie, incidentrespons en kwetsbaarhedenbeheer — handig als een partner of klant naar je beveiliging vraagt."
+        },
+        "legal_pages_fix": {
+          "title": "Juridische pagina's worden weer correct weergegeven",
+          "description": "De publieke pagina's voor voorwaarden, privacy, cookies, SLA, acceptabel gebruik en de verwerkersovereenkomst toonden ten onrechte 'Pagina niet gevonden'. Ze laten nu weer de juiste, gepubliceerde tekst zien."
         }
       },
       "copyLink": "Kopieer link",
