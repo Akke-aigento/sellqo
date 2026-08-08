@@ -1,31 +1,73 @@
-# Compliance-vraag: fysieke regio van Supabase-infrastructuur
+# Onderzoek: publieke legal-pagina's tonen "Pagina niet gevonden"
 
-## Vraag
-In welk fysieke land draait de primaire Supabase-dataopslag voor dit project?
+## 1. Routes in `src/App.tsx` (regels 338-343)
 
-## Bevindingen
-
-### 1. Supabase project-regio
-De regio is af te leiden uit de **pooler connection string** die Supabase voor dit project rapporteert:
-
+```tsx
+<Route path="/terms" element={<SellqoLegal />} />
+<Route path="/privacy" element={<SellqoLegal />} />
+<Route path="/cookies" element={<SellqoLegal />} />
+<Route path="/sla" element={<SellqoLegal />} />
+<Route path="/acceptable-use" element={<SellqoLegal />} />
+<Route path="/dpa" element={<SellqoLegal />} />
 ```
-postgresql://postgres.gczmfcabnoofnmfpzeop:[YOUR-PASSWORD]@aws-1-eu-north-1.pooler.supabase.com:6543/postgres
+
+Geen enkele route bevat een `:slug`-parameter.
+
+## 2. `src/pages/SellqoLegal.tsx`
+
+```tsx
+const { slug } = useParams<{ slug: string }>();
+const { page, isLoading, error } = usePublicLegalPage(slug || '');
 ```
 
-- **Regio-code:** `eu-north-1`
-- **DNS-verificatie:** `aws-1-eu-north-1.pooler.supabase.com` resolved naar `pool-tcp-eun11-...elb.eu-north-1.amazonaws.com`.
-- **Database-server IPv6:** `2a05:d016:571:a40f:fd81:a7b3:64f7:38b2/128` valt eveneens binnen het AWS `eu-north-1` bereik.
+De hook (`src/hooks/useSellqoLegal.ts`, regel 138-155) doet:
+`.eq('slug', slug).eq('is_published', true).single()` met `enabled: !!slug`.
 
-### 2. Concreet land
-| Regio-code | Land |
-|------------|------|
-| `eu-north-1` | **Zweden** (Stockholm) |
+Verwachte waarde: de slug-string zoals opgeslagen in `public.sellqo_legal_pages`.
 
-### 3. Cloudflare-context
-De project-URL `https://gczmfcabnoofnmfpzeop.supabase.co` resolved naar Cloudflare-edge IPs (`172.64.149.246`, `104.18.38.10`). Dat is het wereldwijde CDN/cache-laagje, niet de primaire dataopslag. Voor compliance telt de primaire database-opslag, en die staat in **eu-north-1 / Zweden**.
+## 3. Conclusie: bevestigde bug — alle 6 pagina's zijn stuk
 
-## Antwoord voor de vragenlijst
-- **Regio-code:** `eu-north-1`
-- **Land van primaire dataopslag:** Zweden
+Omdat de routes geen `:slug` definiëren, is `useParams().slug` altijd `undefined`. De query wordt dus nooit uitgevoerd (`enabled: false`), `page` blijft `undefined` en `isLoading` is `false` → de component valt direct in de `!page`-branch en toont "Pagina niet gevonden".
 
-Geen wijzigingen aangebracht; dit is een puur informatief rapport.
+Read-only browsertest tegen de live preview (alle 6 paden):
+
+```text
+/terms          -> Pagina niet gevonden
+/privacy        -> Pagina niet gevonden
+/cookies        -> Pagina niet gevonden
+/sla            -> Pagina niet gevonden
+/acceptable-use -> Pagina niet gevonden
+/dpa            -> Pagina niet gevonden
+```
+
+De data is niet het probleem: alle 6 records bestaan en zijn gepubliceerd, met slugs die exact overeenkomen met de paden:
+
+| slug | title | versie | gepubliceerd |
+|---|---|---|---|
+| acceptable-use | Acceptable Use Policy | 1 | ja |
+| cookies | Cookie Policy | 2 | ja |
+| dpa | Data Processing Agreement | 1 | ja |
+| privacy | Privacy Policy | 2 | ja |
+| sla | Service Level Agreement | 1 | ja |
+| terms | Terms of Service | 2 | ja |
+
+## 4. Minimale fix (nog niet uitgevoerd)
+
+Voorkeur — slug uit het pad afleiden in `SellqoLegal.tsx`, één regel, routes onaangeroepen:
+
+```tsx
+import { useLocation, useParams } from "react-router-dom";
+...
+const { slug: paramSlug } = useParams<{ slug: string }>();
+const { pathname } = useLocation();
+const slug = paramSlug ?? pathname.replace(/^\/+|\/+$/g, "");
+```
+
+Omdat de slugs in de database exact gelijk zijn aan de paden werkt dit voor alle 6 routes, en blijft het compatibel als er later wél een `:slug`-route bijkomt.
+
+Alternatief (meer wijzigingen): per route een expliciete prop meegeven, bijv. `element={<SellqoLegal slug="dpa" />}`, en `useParams` in het component vervangen door die prop.
+
+Aanbeveling: de eerste variant — één bestand, één afgeleide waarde, geen routewijzigingen.
+
+## Status
+Alleen onderzocht en gerapporteerd. Geen code, routes of database gewijzigd.
