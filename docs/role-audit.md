@@ -5277,3 +5277,25 @@ Aangepast op alle drie de call-sites (`attachListeners`, `registerPushForUser`, 
 **Dismiss via `useState`, niet localStorage.** Bewust: de permissie kan buiten de app veranderen en localStorage-persistentie zou de enige aanwijzing permanent verbergen. Her-tonen bij de volgende app-open is het gewenste gedrag.
 
 **Scope.** Twee nieuwe exports in `pushRegistration.ts`, nieuwe `src/components/PushPermissionBanner.tsx`, één regel in `AdminLayout.tsx`. De bestaande registratieflow is onaangeroerd.
+
+## LEGAL-ROUTE-FIX-1 — Publieke legal-pagina's toonden allemaal "Pagina niet gevonden" (8 augustus 2026)
+
+**Root cause.** De zes publieke legal-routes in `src/App.tsx` zijn als vaste paden gedefinieerd — `/terms`, `/privacy`, `/cookies`, `/sla`, `/acceptable-use`, `/dpa` — alle zes met `element={<SellqoLegal />}` en **zonder** `:slug`-parameter. `SellqoLegal.tsx` haalde de slug echter op met `useParams<{ slug: string }>()`. Zonder route-parameter is `slug` per definitie `undefined`, waardoor `usePublicLegalPage(slug || '')` een lege string kreeg en de query door `enabled: !!slug` nooit werd uitgevoerd. Gevolg: `isLoading === false` en `page === undefined`, dus de component viel direct in de `if (error || !page)`-branch en rende de "Pagina niet gevonden"-state. Dit gold voor alle zes paden, niet alleen `/dpa`.
+
+**De data was correct.** `public.sellqo_legal_pages` bevat alle zes records met `is_published = true` en slugs die exact gelijk zijn aan de URL-paden (`terms`, `privacy`, `cookies`, `sla`, `acceptable-use`, `dpa`). Er is dus niets aan de database, de RLS of de publicatiestatus mankeert — het was zuiver een routing/param-mismatch aan de clientzijde.
+
+**Fix.** Eén bestand, `src/pages/SellqoLegal.tsx`: de slug wordt nu afgeleid uit `useLocation().pathname` wanneer de route geen parameter levert:
+
+```tsx
+const { slug: paramSlug } = useParams<{ slug: string }>();
+const { pathname } = useLocation();
+const slug = paramSlug ?? pathname.replace(/^\/+|\/+$/g, "");
+```
+
+**Waarom pathname-afleiding en niet de routes aanpassen.** Twee alternatieven zijn afgewogen. (1) Een prop per route meegeven (`<SellqoLegal slug="dpa" />`) betekent zes wijzigingen in `App.tsx` plus een props-interface, en dupliceert de slug op twee plaatsen. (2) De routes omzetten naar één `:slug`-route zou de zes expliciete publieke URL's opgeven en zonder whitelist elk willekeurig pad naar de legal-component sturen. De pathname-afleiding raakt precies één bestand, houdt de expliciete route-lijst intact als impliciete whitelist (alleen die zes paden bereiken de component) en blijft forward-compatible: `paramSlug ?? …` geeft voorrang aan een echte route-parameter zodra er ooit een `:slug`-route bijkomt.
+
+**Waarom `??` en niet `||`.** Bij een aanwezige maar lege parameter is een leegwaarde een expliciete "geen pagina"-situatie; `??` valt alleen terug bij `undefined`, wat het onderscheid tussen "geen parameter in de route" en "parameter is leeg" bewaart.
+
+**Verificatie.** Read-only browsertest tegen alle zes paden na de fix: `/terms → Terms of Service`, `/privacy → Privacy Policy`, `/cookies → Cookie Policy`, `/sla → Service Level Agreement`, `/acceptable-use → Acceptable Use Policy`, `/dpa → Data Processing Agreement`. Geen enkele route rendert nog de niet-gevonden-state.
+
+**Scope.** Alleen `src/pages/SellqoLegal.tsx` (functioneel) plus changelog `2026.09f` (`legal_pages_fix`, type `bugfix`, i18n nl/en/fr/de). Routes in `App.tsx`, de hook en de database zijn onaangeroerd. DOCS-1: n.v.t. — geen nieuwe of gewijzigde tenant-feature, de pagina's tonen na de fix exact de content die ze altijd hadden moeten tonen.

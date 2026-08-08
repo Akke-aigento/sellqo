@@ -1280,6 +1280,10 @@
         "security_compliance_docs": {
           "title": "Public security & compliance documentation",
           "description": "SellQo now publishes its security policies at sellqo.app/security: information security, access control, data classification and encryption, incident response and vulnerability management — useful whenever a partner or customer asks about security."
+        },
+        "legal_pages_fix": {
+          "title": "Legal pages now display correctly",
+          "description": "The public pages for terms, privacy, cookies, SLA, acceptable use and the data processing agreement incorrectly showed 'Page not found'. They now display their published content again."
         }
       },
       "copyLink": "Copy link",

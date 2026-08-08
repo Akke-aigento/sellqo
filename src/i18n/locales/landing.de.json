@@ -1280,6 +1280,10 @@
         "security_compliance_docs": {
           "title": "Öffentliche Security- und Compliance-Dokumentation",
           "description": "SellQo veröffentlicht seine Sicherheitsrichtlinien jetzt auf sellqo.app/security: Informationssicherheit, Zugriffskontrolle, Datenklassifizierung und Verschlüsselung, Incident Response und Schwachstellenmanagement — hilfreich, wenn ein Partner oder Kunde nach Sicherheit fragt."
+        },
+        "legal_pages_fix": {
+          "title": "Rechtliche Seiten werden wieder korrekt angezeigt",
+          "description": "Die öffentlichen Seiten für AGB, Datenschutz, Cookies, SLA, akzeptable Nutzung und den Auftragsverarbeitungsvertrag zeigten fälschlicherweise „Seite nicht gefunden“. Sie zeigen nun wieder ihren veröffentlichten Inhalt."
         }
       },
       "copyLink": "Link kopieren",
