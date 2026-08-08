@@ -1276,6 +1276,10 @@
         "app_notification_settings": {
           "title": "Verbeterde meldingen-instellingen in de app",
           "description": "Staan meldingen op je telefoon uit? De app laat dat nu zien met een korte uitleg hoe je ze weer aanzet, zodat je nieuwe bestellingen niet mist."
+        },
+        "security_compliance_docs": {
+          "title": "Publieke security- en compliance-documentatie",
+          "description": "SellQo publiceert nu zijn security-beleid op sellqo.app/security: informatiebeveiliging, toegangsbeheer, dataclassificatie en encryptie, incidentrespons en kwetsbaarhedenbeheer — handig als een partner of klant naar je beveiliging vraagt."
         }
       },
       "copyLink": "Kopieer link",

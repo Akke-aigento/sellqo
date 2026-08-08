@@ -83,6 +83,8 @@ import { PendingPlatformPaymentsPage } from "./pages/admin/PendingPlatformPaymen
 import SellqoLegal from "./pages/SellqoLegal";
 import About from "./pages/public/About";
 import Contact from "./pages/public/Contact";
+import SecurityOverview from "./pages/public/security/SecurityOverview";
+import SecurityPolicyPage from "./pages/public/security/SecurityPolicyPage";
 import Blog from "./pages/public/Blog";
 import BlogPost from "./pages/public/BlogPost";
 import Partners from "./pages/public/Partners";
@@ -343,6 +345,8 @@ const App = () => (
             {/* Public Pages */}
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/security" element={<SecurityOverview />} />
+            <Route path="/security/:slug" element={<SecurityPolicyPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/partners" element={<Partners />} />

@@ -1,3 +1,20 @@
+## SECURITY-PAGES-1 — Publieke Security & Compliance sectie — 8 augustus 2026
+
+**Waarom:** partners en marketplace-integraties vragen naar een aantoonbare security-posture. Die documentatie bestond nergens publiek; alleen juridische pagina's (`sellqo_legal_pages`) waren er.
+
+**Uitgevoerd:**
+- `src/data/securityPolicies.ts`: 5 policies (slug, title, icon, summary, version, effectiveDate, markdown) als constante content-map. Bewust *niet* in de DB: dit is statische, versiebeheerde tekst zonder tenant-scope, dus code is de juiste bron van waarheid en er is geen extra RLS-oppervlak.
+- `src/pages/public/security/SecurityOverview.tsx` (`/security`) en `SecurityPolicyPage.tsx` (`/security/:slug`), beide op het bestaande `PublicPageLayout` + `PageMeta`, markdown via `react-markdown` in prose-styling (reeds in deps, geen nieuwe dependency).
+- `src/App.tsx`: routes uitsluitend in het "Public Pages"-blok; storefront- en admin-blokken ongemoeid, dus geen conflict met tenant-domeinrouting.
+- `src/components/landing/LandingFooter.tsx`: "Security" bij de legal-links voor vindbaarheid.
+- PDF-knop verwijst statisch naar `marketing-assets/security/<slug>.pdf` (publieke bucket). Bewust geen existence-check: dat zou een netwerk-roundtrip per pageview kosten voor een link die alleen cosmetisch faalt.
+- Changelog `2026.09e` (improvement) + i18n `security_compliance_docs` in nl/en/fr/de.
+- DOCS-1: `doc_articles` `doc_level='platform'`, slug `publieke-security-compliance-sectie`, `context_path='/security'` — beschrijft waar de sectie leeft, hoe je een policy bijwerkt en waar de PDF's horen. Platform-level omdat dit onderhoudsinstructie is, geen tenant-feature.
+
+**Security-keuzes:** volledig additief. Geen migratie op `sellqo_legal_pages`, geen wijziging aan bestaande routes, geen nieuwe tabel, geen RLS-wijziging. De policy-teksten zijn publiek bedoeld en bevatten geen infrastructuurdetails die exploitatie vergemakkelijken (geen hostnames, versies, project-refs of interne endpoints). Enige DB-write is de idempotente `doc_articles`-insert via `ON CONFLICT (doc_level, slug) DO UPDATE`.
+
+**Geverifieerd:** tsgo zonder errors; `/security` rendert 5 kaarten en alle 5 detailroutes renderen de juiste titel en policy-inhoud.
+
 ## Platform-nieuwsbrief opt-in per tenant — 7 augustus 2026
 
 **Root cause:** SellQo verstuurde product-updates zonder dat er ergens een vastgelegde voorkeur bestond. `tenant_newsletter_config` gaat over tenant→klant-mail (Mailchimp/Klaviyo) en `tenant_notification_settings` is een per-type × per-kanaal matrix voor transactionele meldingen; geen van beide modelleert "wil de eigenaar marketingmail *van SellQo zelf*". Zonder eigen kolom is er geen bewijsbare consent-status en geen afmeldmogelijkheid.

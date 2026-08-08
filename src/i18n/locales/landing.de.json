@@ -1276,6 +1276,10 @@
         "app_notification_settings": {
           "title": "Verbesserte Benachrichtigungs-Einstellungen in der App",
           "description": "Sind Benachrichtigungen auf deinem Handy ausgeschaltet, weist die App jetzt darauf hin und erklärt kurz, wie du sie wieder aktivierst — so verpasst du keine Bestellung."
+        },
+        "security_compliance_docs": {
+          "title": "Öffentliche Security- und Compliance-Dokumentation",
+          "description": "SellQo veröffentlicht seine Sicherheitsrichtlinien jetzt auf sellqo.app/security: Informationssicherheit, Zugriffskontrolle, Datenklassifizierung und Verschlüsselung, Incident Response und Schwachstellenmanagement — hilfreich, wenn ein Partner oder Kunde nach Sicherheit fragt."
         }
       },
       "copyLink": "Link kopieren",

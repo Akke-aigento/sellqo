@@ -1276,6 +1276,10 @@
         "app_notification_settings": {
           "title": "Improved notification settings in the app",
           "description": "If notifications are switched off on your phone, the app now points this out with a short guide to turn them back on, so you never miss a new order."
+        },
+        "security_compliance_docs": {
+          "title": "Public security & compliance documentation",
+          "description": "SellQo now publishes its security policies at sellqo.app/security: information security, access control, data classification and encryption, incident response and vulnerability management — useful whenever a partner or customer asks about security."
         }
       },
       "copyLink": "Copy link",
