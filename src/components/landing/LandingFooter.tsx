@@ -44,6 +44,7 @@ export function LandingFooter() {
     { label: t('landing.footer.links.terms'), href: '/terms' },
     { label: t('landing.footer.links.cookies'), href: '/cookies' },
     { label: 'Security', href: '/security' },
+    { label: t('landing.footer.links.changelog'), href: '/changelog' },
   ];
 
   const handleAnchorClick = (href: string) => {
