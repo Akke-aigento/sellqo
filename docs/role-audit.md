@@ -5407,3 +5407,13 @@ const slug = paramSlug ?? pathname.replace(/^\/+|\/+$/g, "");
 **Nul wijzigingen aan bestaande edge functions** (`list-printful-sync-products`, `forward-printful-order`, `printful-webhook`, `save-printful-credentials`, `disconnect-printful` ongemoeid): de nieuwe functies zijn eigen paden, zodat het gedeelde-paden-risico (G1) niet opnieuw wordt geïntroduceerd.
 
 **Slottaken.** Changelog `2026.09j` (feature `printful_product_import`, NL/EN/FR/DE, generiek verwoord, tenant-visible), newsletter: gebundeld met het bestaande Printful-item (POD-1a/1b/1c) — niet apart verstuurd, en DOCS-1: tenant-artikel `printful-print-on-demand-koppelen` uitgebreid met de import-flow (voorbeeld eerst, prijs is aanpasbare suggestie, beelden worden overgenomen, varianten automatisch gekoppeld, producten landen niet-actief/verborgen).
+
+## LOVEKE-POD-2-FIX — Volledige beeldenset per product
+
+**Root cause:** de import nam per variant enkel `files[type='preview']` mee; bij een sync-product met dezelfde mockup per variant leverde dat de facto dezelfde thumbnail meerdere keren op i.p.v. de volledige beeldenset.
+
+**Fix:** nieuwe pure helper `collectProductImages(syncProduct, syncVariants)` in `_shared/printfulImport.ts`: `sync_product.thumbnail_url` eerst, daarna álle `files[]`-entries (alle types: mockups, lifestyle, back-prints) over álle sync-varianten, plus `variant.product.image`. Dedup op URL met behoud van volgorde. `apply-printful-import` haalt het productdetail server-side op, downloadt elk uniek beeld en uploadt naar de bestaande `product-images` bucket onder `{tenantId}/printful/{syncProductId}/{index}-…`; `products.images` = volledige lijst bucket-URLs, `featured_image` = eerste beeld. Nooit een Printful-CDN-URL in de DB. Eén mislukte download wordt overgeslagen, de import gaat door. `preview-printful-import` geeft `image_count` terug voor de UI. Variant-`image_url` bleef ongewijzigd (werkte al correct).
+
+**Reimport-vlag:** `apply-printful-import` accepteert optioneel `reimport: boolean`. Default (afwezig/false) blijft de duplicaat-guard op `external_id='@'+syncProductId` skippen (`skipped_duplicate`) — zonder expliciete vlag verandert er dus niets aan bestaande producten. Met `reimport=true` wordt uitsluitend `images` + `featured_image` overschreven; naam, prijs, `is_active`, `hide_from_storefront` en alle marketplace-sync-kolommen blijven ongemoeid omdat de tenant die mogelijk al heeft aangepast. Variant-mappings blijven bestaan (upsert idempotent, nooit verwijderd). Status `reimported_images`. In de UI is dit een expliciet "Beelden bijwerken"-knopje per al geïmporteerd product.
+
+Geen changelog/newsletter/DOCS-wijziging: interne verbetering binnen de nog niet uitgerolde POD-2-feature.

@@ -3,6 +3,8 @@
 // Never touches existing products or any marketplace sync column.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
+import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
+import { collectProductImages, type PrintfulSyncVariantRaw } from '../_shared/printfulImport.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,9 +60,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const body = await req.json() as { tenantId?: string; products?: InProduct[] };
+    const body = await req.json() as { tenantId?: string; products?: InProduct[]; reimport?: boolean };
     const tenantId = body.tenantId;
     const inProducts = Array.isArray(body.products) ? body.products : [];
+    const reimport = body.reimport === true;
     if (!tenantId) return json({ success: false, error: 'tenantId is verplicht' }, 400);
 
     const auth = await authenticateRequest(req, tenantId);
@@ -73,10 +76,55 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // Printful headers, used to fetch the full image set per sync product.
+    let pfHeaders: Record<string, string> | null = null;
+    try {
+      const { data: cred } = await admin
+        .from('tenant_printful_credentials')
+        .select('token_ciphertext, store_id')
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      if (cred?.token_ciphertext) {
+        const token = await decryptPrintfulToken(cred.token_ciphertext);
+        pfHeaders = { Authorization: `Bearer ${token}` };
+        if (cred.store_id) pfHeaders['X-PF-Store-Id'] = cred.store_id;
+      }
+    } catch (err) {
+      console.warn('[apply-printful-import] printful credentials unavailable:', errMsg(err));
+    }
+
+    // All unique image URLs for one sync product (thumbnail first, then every
+    // files[] entry across all variants). Falls back to the client-supplied
+    // URLs when Printful cannot be reached.
+    async function sourceImageUrls(syncProductId: number, p: InProduct): Promise<string[]> {
+      if (pfHeaders) {
+        try {
+          const res = await fetch(`https://api.printful.com/store/products/${syncProductId}`, { headers: pfHeaders });
+          if (res.ok) {
+            const det = await res.json().catch(() => null) as | {
+              result?: {
+                sync_product?: { thumbnail_url?: string };
+                sync_variants?: PrintfulSyncVariantRaw[];
+              };
+            } | null;
+            const urls = collectProductImages(det?.result?.sync_product, det?.result?.sync_variants);
+            if (urls.length > 0) return urls;
+          } else {
+            console.warn(`[apply-printful-import] product detail failed (${res.status})`);
+          }
+        } catch (err) {
+          console.warn('[apply-printful-import] product detail error:', errMsg(err));
+        }
+      }
+      const fallback = [p.featured_source_url, ...(p.variants ?? []).map((v) => v.preview_image_url)]
+        .filter((u): u is string => typeof u === 'string' && u.length > 0);
+      return Array.from(new Set(fallback));
+    }
+
     // Server-side download + upload. Returns the public bucket URL, never the
     // Printful CDN URL: imported images must stay available if Printful rotates
     // its CDN or the design is removed there.
-    async function storeImage(url: string, syncProductId: number, nameHint: string): Promise<string | null> {
+    async function storeImage(url: string, syncProductId: number, nameHint: string, index = 0): Promise<string | null> {
       try {
         const res = await fetch(url);
         if (!res.ok) {
@@ -87,7 +135,7 @@ Deno.serve(async (req) => {
         const bytes = new Uint8Array(await res.arrayBuffer());
         if (bytes.byteLength === 0) return null;
         const ext = extFromUrl(url, contentType);
-        const path = `${tenantId}/printful/${syncProductId}/${slugify(nameHint)}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+        const path = `${tenantId}/printful/${syncProductId}/${index}-${slugify(nameHint)}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
         const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, {
           contentType: contentType && contentType.startsWith('image/') ? contentType : `image/${ext}`,
           upsert: true,
@@ -135,7 +183,7 @@ Deno.serve(async (req) => {
           .eq('import_source', 'printful')
           .maybeSingle();
         if (dupErr) throw new Error(dupErr.message);
-        if (dup) {
+        if (dup && !reimport) {
           results.push({ sync_product_id: syncProductId, status: 'skipped_duplicate', product_id: dup.id });
           continue;
         }
@@ -143,21 +191,43 @@ Deno.serve(async (req) => {
         const name = (p.name ?? `Printful product ${syncProductId}`).trim();
         const variants = Array.isArray(p.variants) ? p.variants.filter((v) => Number.isFinite(Number(v?.sync_variant_id))) : [];
 
-        // 2. Images to our own bucket.
-        const featured = p.featured_source_url
-          ? await storeImage(p.featured_source_url, syncProductId, `${name}-thumb`)
-          : null;
+        // 2. Full image set to our own bucket (never a Printful CDN URL in the DB).
+        const sourceUrls = await sourceImageUrls(syncProductId, p);
+        const stored: string[] = [];
+        for (let i = 0; i < sourceUrls.length; i++) {
+          const up = await storeImage(sourceUrls[i], syncProductId, name, i);
+          if (up) stored.push(up);
+        }
+        const images = Array.from(new Set(stored));
+        const featured = images[0] ?? null;
+
+        // Existing product + explicit reimport: only refresh images/featured_image.
+        // Name, price, activation flags and every sync column stay untouched — the
+        // tenant may have adjusted those already.
+        if (dup) {
+          const { error: updErr } = await admin
+            .from('products')
+            .update({ images, featured_image: featured })
+            .eq('id', dup.id)
+            .eq('tenant_id', tenantId);
+          if (updErr) throw new Error(updErr.message);
+          results.push({
+            sync_product_id: syncProductId,
+            status: 'reimported_images',
+            product_id: dup.id,
+            image_count: images.length,
+          });
+          continue;
+        }
+
         const variantImages = new Map<number, string | null>();
-        for (const v of variants) {
+        for (const [vi, v] of variants.entries()) {
           const src = v.preview_image_url;
           variantImages.set(
             Number(v.sync_variant_id),
-            src ? await storeImage(src, syncProductId, `${name}-${v.title ?? v.sync_variant_id}`) : null,
+            src ? await storeImage(src, syncProductId, `${name}-${v.title ?? v.sync_variant_id}`, 1000 + vi) : null,
           );
         }
-        const uploadedImages = [featured, ...variants.map((v) => variantImages.get(Number(v.sync_variant_id)) ?? null)]
-          .filter((u): u is string => !!u);
-        const images = Array.from(new Set(uploadedImages));
 
         // Price: explicit product price, else the cheapest variant suggestion.
         const variantPrices = variants
@@ -252,6 +322,7 @@ Deno.serve(async (req) => {
       results,
       imported: results.filter((r) => r.status === 'imported').length,
       skipped: results.filter((r) => r.status === 'skipped_duplicate').length,
+      reimported: results.filter((r) => r.status === 'reimported_images').length,
       failed: results.filter((r) => r.status === 'failed').length,
     });
   } catch (err) {

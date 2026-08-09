@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Info, Loader2, Package } from 'lucide-react';
+import { ChevronDown, Images, Info, Loader2, Package } from 'lucide-react';
 import {
   usePrintfulImportApply, usePrintfulImportPreview,
   type ApplyPayloadProduct, type PrintfulImportPreviewProduct,
@@ -29,6 +29,7 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [prices, setPrices] = useState<Record<number, string>>({});
   const [done, setDone] = useState(false);
+  const [reimportingId, setReimportingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -56,10 +57,8 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
     [products, selected],
   );
 
-  const handleImport = () => {
-    const payload: ApplyPayloadProduct[] = products
-      .filter((p) => selected[p.sync_product_id])
-      .map((p) => ({
+  const buildPayload = (list: PrintfulImportPreviewProduct[]): ApplyPayloadProduct[] =>
+    list.map((p) => ({
         sync_product_id: p.sync_product_id,
         name: p.name,
         featured_source_url: p.thumbnail_url,
@@ -76,7 +75,18 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
           };
         }),
       }));
-    apply.mutate(payload, { onSuccess: () => setDone(true) });
+
+  const handleImport = () => {
+    const payload = buildPayload(products.filter((p) => selected[p.sync_product_id]));
+    apply.mutate({ products: payload }, { onSuccess: () => setDone(true) });
+  };
+
+  const handleReimportImages = (p: PrintfulImportPreviewProduct) => {
+    setReimportingId(p.sync_product_id);
+    apply.mutate(
+      { products: buildPayload([p]), reimport: true },
+      { onSettled: () => setReimportingId(null) },
+    );
   };
 
   return (
@@ -132,7 +142,26 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
                     <span className="font-medium text-sm break-words">{p.name}</span>
                     {p.duplicate && <Badge variant="secondary">Al geïmporteerd</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground">{p.variants.length} varianten</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.variants.length} varianten
+                    {typeof p.image_count === 'number' && p.image_count > 0
+                      ? ` · ${p.image_count} beelden worden overgenomen`
+                      : ''}
+                  </p>
+                  {p.duplicate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1 h-7 px-2 text-xs"
+                      disabled={apply.isPending}
+                      onClick={() => handleReimportImages(p)}
+                    >
+                      {reimportingId === p.sync_product_id
+                        ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        : <Images className="w-3 h-3 mr-1" />}
+                      Beelden bijwerken
+                    </Button>
+                  )}
                 </div>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm">

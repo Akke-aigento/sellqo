@@ -81,3 +81,37 @@ export function parseRetailPrice(value: string | number | undefined): number | n
   const n = typeof value === 'number' ? value : Number.parseFloat(String(value).replace(',', '.'));
   return Number.isFinite(n) ? n : null;
 }
+
+/**
+ * LOVEKE-POD-2-FIX — the full image set for one sync product.
+ * Root cause of the earlier behaviour: only files[type='preview'] was used, one
+ * per variant, so the product effectively got the same thumbnail several times.
+ * Here we take the product thumbnail first, then EVERY files[] entry across ALL
+ * sync variants (all types: mockups, lifestyle, back prints), deduplicated on
+ * URL with the incoming order preserved. Pure function: no network, no DB.
+ */
+export function collectProductImages(
+  syncProduct: { thumbnail_url?: string | null } | null | undefined,
+  syncVariants: PrintfulSyncVariantRaw[] | null | undefined,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (url: unknown) => {
+    if (typeof url !== 'string') return;
+    const u = url.trim();
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    out.push(u);
+  };
+
+  push(syncProduct?.thumbnail_url);
+
+  for (const v of Array.isArray(syncVariants) ? syncVariants : []) {
+    for (const f of Array.isArray(v?.files) ? v.files! : []) {
+      push(f?.preview_url ?? f?.url);
+    }
+    push(v?.product?.image);
+  }
+
+  return out;
+}
