@@ -2,6 +2,7 @@ import { CheckCircle, Clock, Link, Settings, ShoppingBag, Package, Store, Shoppi
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 import type { MarketplaceConnection, MarketplaceInfo, MarketplaceType } from '@/types/marketplace';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -31,11 +32,17 @@ export function MarketplaceCard({
 }: MarketplaceCardProps) {
   const isConnected = !!connection?.is_active;
   const Icon = iconMap[info.icon as keyof typeof iconMap] || ShoppingBag;
+  const { isPlatformAdmin } = useAuth();
+
+  // Gating: a live connection always wins over the flag, and platform admins
+  // keep a working connect button (with the badge) so they can test.
+  const showComingSoonBadge = !!info.comingSoon || (!!info.coming_soon && !connection);
+  const blockConnect = (!!info.comingSoon || (!!info.coming_soon && !connection)) && !isPlatformAdmin;
 
   return (
     <div className={cn(
       "bg-card border rounded-xl p-6 hover:shadow-lg transition-all duration-200",
-      info.comingSoon && "opacity-60",
+      blockConnect && "opacity-60",
       !info.type && "border-dashed"
     )}>
       {/* Header */}
@@ -47,7 +54,7 @@ export function MarketplaceCard({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-lg">{info.name}</h3>
-              {info.comingSoon && (
+              {showComingSoonBadge && (
                 <Badge variant="secondary" className="text-xs">Binnenkort</Badge>
               )}
             </div>
@@ -123,7 +130,7 @@ export function MarketplaceCard({
               Verbreek
             </Button>
           </>
-        ) : info.comingSoon ? (
+        ) : blockConnect ? (
           <Button variant="outline" className="flex-1" disabled>
             Binnenkort Beschikbaar
           </Button>
