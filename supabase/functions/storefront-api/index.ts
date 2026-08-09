@@ -496,6 +496,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
+    size_guide: product.size_guide || null,
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
     has_variants: hasVariants,
     is_variant_product: isVariantProduct,
