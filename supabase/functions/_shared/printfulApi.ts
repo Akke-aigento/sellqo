@@ -38,7 +38,7 @@ export async function testPrintfulToken(token: string, storeId?: string | null):
   if (stores.length === 0) {
     return { ok: false, error: 'Geen Printful-winkel gevonden voor dit token' };
   }
-  return { ok: true, storeName: stores[0]?.name ?? null ?? undefined };
+  return { ok: true, storeName: stores[0]?.name ?? undefined };
 }
 
 export async function sha256Hex(input: string): Promise<string> {
