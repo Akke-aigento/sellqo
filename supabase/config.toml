@@ -441,3 +441,9 @@ verify_jwt = false
 
 [functions.printful-webhook]
 verify_jwt = false
+
+[functions.preview-printful-import]
+verify_jwt = false
+
+[functions.apply-printful-import]
+verify_jwt = false

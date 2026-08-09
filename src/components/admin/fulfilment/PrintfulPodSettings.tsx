@@ -8,11 +8,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { CheckCircle2, Info, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Info, Loader2, XCircle } from 'lucide-react';
 import { useCan } from '@/hooks/useCan';
 import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
 import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
 import { PrintfulVariantMapping } from './PrintfulVariantMapping';
+import { PrintfulImportDialog } from './PrintfulImportDialog';
 
 interface Props {
   tenantId: string;
@@ -28,6 +29,7 @@ export function PrintfulPodSettings({ tenantId }: Props) {
   const [token, setToken] = useState('');
   const [storeId, setStoreId] = useState('');
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [autoForward, setAutoForward] = useState(false);
@@ -185,7 +187,29 @@ export function PrintfulPodSettings({ tenantId }: Props) {
         </CardContent>
       </Card>
 
+      {configured && canWrite && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Producten importeren</CardTitle>
+            <CardDescription>
+              Neem je Printful-ontwerpen over als SellQo-producten met varianten, beelden en automatische
+              variant-koppeling. Je bekijkt eerst een voorbeeld en bepaalt zelf de prijzen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Download className="w-4 h-4 mr-2" />
+              Producten importeren uit Printful
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {configured && <PrintfulVariantMapping tenantId={tenantId} />}
+
+      {configured && canWrite && (
+        <PrintfulImportDialog tenantId={tenantId} open={importOpen} onOpenChange={setImportOpen} />
+      )}
 
       <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
         <AlertDialogContent>
