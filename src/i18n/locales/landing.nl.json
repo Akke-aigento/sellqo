@@ -1293,6 +1293,10 @@
           "title": "Duidelijkere weergave van beschikbare en aankomende integraties",
           "description": "In SellQo Connect zie je nu direct welke koppelingen live zijn en welke binnenkort komen. Kanalen die nog niet beschikbaar zijn, krijgen een duidelijk label in plaats van een knop die nog niets doet."
         },
+        "printful_product_import": {
+          "title": "Producten importeren uit Printful",
+          "description": "Je Printful-ontwerpen zijn nu met één klik over te nemen als SellQo-product. Je krijgt eerst een voorbeeld met alle varianten, waar je de voorgestelde prijzen kunt aanpassen. Beelden worden mee overgenomen en de varianten worden automatisch aan Printful gekoppeld, zodat doorsturen direct werkt. Nieuwe producten komen op niet-actief en verborgen te staan, zodat je ze zelf nakijkt en live zet."
+        },
         "printful_shipping_updates": {
           "title": "Automatische verzendupdates van Printful",
           "description": "Zodra Printful je bestelling verzendt, komt de trackinginformatie automatisch in SellQo binnen: de order gaat op verzonden en je klant krijgt automatisch de verzendmail. Ook annuleringen en wachtstatussen bij Printful zie je terug op de orderpagina. Je hoeft hiervoor niets in te stellen — de koppeling regelt dit zelf."
