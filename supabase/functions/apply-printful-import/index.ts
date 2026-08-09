@@ -4,7 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
-import { collectProductImages, type PrintfulSyncVariantRaw } from '../_shared/printfulImport.ts';
+import { collectProductImages, pickCatalogRefs, type PrintfulSyncVariantRaw } from '../_shared/printfulImport.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,10 +93,59 @@ Deno.serve(async (req) => {
       console.warn('[apply-printful-import] printful credentials unavailable:', errMsg(err));
     }
 
+    // LOVEKE-POD-2-SIZEGUIDE — one size guide per catalog product, cached per
+    // request. Strictly non-fatal: any failure leaves size_guide null.
+    const sizeGuideCache = new Map<number, unknown>();
+
+    async function fetchSizeGuide(catalogProductId: number): Promise<unknown | null> {
+      if (!pfHeaders) return null;
+      if (sizeGuideCache.has(catalogProductId)) return sizeGuideCache.get(catalogProductId) ?? null;
+      try {
+        const res = await fetch(
+          `https://api.printful.com/products/${catalogProductId}/sizes?unit=cm,inches`,
+          { headers: pfHeaders },
+        );
+        if (!res.ok) {
+          console.warn(`[apply-printful-import] geen size guide voor catalog product ${catalogProductId} (status ${res.status})`);
+          sizeGuideCache.set(catalogProductId, null);
+          return null;
+        }
+        const body = await res.json().catch(() => null) as { result?: unknown } | null;
+        const guide = body?.result ?? null;
+        if (!guide) console.warn(`[apply-printful-import] geen size guide voor catalog product ${catalogProductId}`);
+        sizeGuideCache.set(catalogProductId, guide);
+        return guide;
+      } catch (err) {
+        console.warn(`[apply-printful-import] geen size guide voor catalog product ${catalogProductId}:`, errMsg(err));
+        sizeGuideCache.set(catalogProductId, null);
+        return null;
+      }
+    }
+
+    async function resolveCatalogProductId(syncVariants: PrintfulSyncVariantRaw[] | undefined): Promise<number | null> {
+      const { catalogProductId, catalogVariantId } = pickCatalogRefs(syncVariants);
+      if (catalogProductId) return catalogProductId;
+      if (!catalogVariantId || !pfHeaders) return null;
+      try {
+        const res = await fetch(`https://api.printful.com/products/variant/${catalogVariantId}`, { headers: pfHeaders });
+        if (!res.ok) {
+          console.warn(`[apply-printful-import] catalog variant lookup mislukt (${res.status})`);
+          return null;
+        }
+        const body = await res.json().catch(() => null) as { result?: { product?: { id?: number } } } | null;
+        const id = Number(body?.result?.product?.id);
+        return Number.isFinite(id) && id > 0 ? id : null;
+      } catch (err) {
+        console.warn('[apply-printful-import] catalog variant lookup error:', errMsg(err));
+        return null;
+      }
+    }
+
     // All unique image URLs for one sync product (thumbnail first, then every
-    // files[] entry across all variants). Falls back to the client-supplied
-    // URLs when Printful cannot be reached.
-    async function sourceImageUrls(syncProductId: number, p: InProduct): Promise<string[]> {
+    // preview file across all variants) plus the Printful size guide. Falls back
+    // to the client-supplied URLs when Printful cannot be reached.
+    async function sourceImageUrls(syncProductId: number, p: InProduct): Promise<{ urls: string[]; sizeGuide: unknown | null }> {
+      let sizeGuide: unknown | null = null;
       if (pfHeaders) {
         try {
           const res = await fetch(`https://api.printful.com/store/products/${syncProductId}`, { headers: pfHeaders });
@@ -107,8 +156,11 @@ Deno.serve(async (req) => {
                 sync_variants?: PrintfulSyncVariantRaw[];
               };
             } | null;
+            const catalogProductId = await resolveCatalogProductId(det?.result?.sync_variants);
+            if (catalogProductId) sizeGuide = await fetchSizeGuide(catalogProductId);
+            else console.warn(`[apply-printful-import] geen size guide voor catalog product (onbekend) van sync product ${syncProductId}`);
             const urls = collectProductImages(det?.result?.sync_product, det?.result?.sync_variants);
-            if (urls.length > 0) return urls;
+            if (urls.length > 0) return { urls, sizeGuide };
           } else {
             console.warn(`[apply-printful-import] product detail failed (${res.status})`);
           }
@@ -118,7 +170,7 @@ Deno.serve(async (req) => {
       }
       const fallback = [p.featured_source_url, ...(p.variants ?? []).map((v) => v.preview_image_url)]
         .filter((u): u is string => typeof u === 'string' && u.length > 0);
-      return Array.from(new Set(fallback));
+      return { urls: Array.from(new Set(fallback)), sizeGuide };
     }
 
     // Server-side download + upload. Returns the public bucket URL, never the
@@ -192,7 +244,7 @@ Deno.serve(async (req) => {
         const variants = Array.isArray(p.variants) ? p.variants.filter((v) => Number.isFinite(Number(v?.sync_variant_id))) : [];
 
         // 2. Full image set to our own bucket (never a Printful CDN URL in the DB).
-        const sourceUrls = await sourceImageUrls(syncProductId, p);
+        const { urls: sourceUrls, sizeGuide } = await sourceImageUrls(syncProductId, p);
         const stored: string[] = [];
         for (let i = 0; i < sourceUrls.length; i++) {
           const up = await storeImage(sourceUrls[i], syncProductId, name, i);
@@ -205,9 +257,11 @@ Deno.serve(async (req) => {
         // Name, price, activation flags and every sync column stay untouched — the
         // tenant may have adjusted those already.
         if (dup) {
+          const update: Record<string, unknown> = { images, featured_image: featured };
+          if (sizeGuide) update.size_guide = sizeGuide;
           const { error: updErr } = await admin
             .from('products')
-            .update({ images, featured_image: featured })
+            .update(update)
             .eq('id', dup.id)
             .eq('tenant_id', tenantId);
           if (updErr) throw new Error(updErr.message);
@@ -253,6 +307,7 @@ Deno.serve(async (req) => {
             imported_at: new Date().toISOString(),
             featured_image: featured ?? images[0] ?? null,
             images,
+            size_guide: sizeGuide ?? null,
             is_active: false,
             hide_from_storefront: true,
             track_inventory: false,
