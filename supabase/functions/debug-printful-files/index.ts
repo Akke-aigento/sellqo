@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
-import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
+import { AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
 
 const corsHeaders = {
@@ -34,14 +34,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // Temporary diagnostics: shared-secret gate instead of tenant auth.
+    const debugKey = new URL(req.url).searchParams.get('debug_key');
+    const expected = Deno.env.get('DEBUG_PRINTFUL_KEY');
+    if (!expected || !debugKey || debugKey !== expected) {
+      return json({ success: false, error: 'Unauthorized' }, 401);
+    }
+
     const { tenantId, syncProductId } = await req.json() as {
       tenantId?: string; syncProductId?: number | string;
     };
     if (!tenantId) return json({ success: false, error: 'tenantId is verplicht' }, 400);
     if (!syncProductId) return json({ success: false, error: 'syncProductId is verplicht' }, 400);
-
-    const auth = await authenticateRequest(req, tenantId);
-    requireRole(auth, tenantId, ['tenant_admin']);
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -115,15 +119,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    console.log('[debug-printful-files] diagnose', {
-      sync_product_id: sp?.id ?? null,
-      variants: variantDiag.length,
-      total_files_across_variants: totalFiles,
-      unique_preview_like_count: previewLike,
-      all_file_types_seen: Array.from(allTypes),
-    });
-
-    return json({
+    const result = {
       success: true,
       sync_product: {
         id: sp?.id ?? null,
@@ -134,7 +130,11 @@ Deno.serve(async (req) => {
       total_files_across_variants: totalFiles,
       unique_preview_like_count: previewLike,
       variants: variantDiag,
-    });
+    };
+
+    console.log('[DIAG-RESULT]', JSON.stringify(result));
+
+    return json(result);
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     const msg = (err as Error)?.message ?? JSON.stringify(err);
