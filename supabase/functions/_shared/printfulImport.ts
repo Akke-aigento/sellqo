@@ -83,12 +83,13 @@ export function parseRetailPrice(value: string | number | undefined): number | n
 }
 
 /**
- * LOVEKE-POD-2-FIX — the full image set for one sync product.
- * Root cause of the earlier behaviour: only files[type='preview'] was used, one
- * per variant, so the product effectively got the same thumbnail several times.
- * Here we take the product thumbnail first, then EVERY files[] entry across ALL
- * sync variants (all types: mockups, lifestyle, back prints), deduplicated on
- * URL with the incoming order preserved. Pure function: no network, no DB.
+ * POD-2-CLEANUP — the real product image set for one sync product.
+ * Printful's /store/products/{id} returns per variant: 'default' (the design /
+ * print file), 'label_inside' (garment label) and 'preview' (the actual product
+ * mockup). Only 'preview' is a product image, so design/label print files are
+ * strictly excluded. We keep sync_product.thumbnail_url first and
+ * variant.product.image as a genuine product fallback. Deduplicated on URL with
+ * incoming order preserved. Pure function: no network, no DB.
  */
 export function collectProductImages(
   syncProduct: { thumbnail_url?: string | null } | null | undefined,
@@ -108,6 +109,7 @@ export function collectProductImages(
 
   for (const v of Array.isArray(syncVariants) ? syncVariants : []) {
     for (const f of Array.isArray(v?.files) ? v.files! : []) {
+      if (f?.type !== 'preview') continue;
       push(f?.preview_url ?? f?.url);
     }
     push(v?.product?.image);

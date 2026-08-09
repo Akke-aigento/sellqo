@@ -447,6 +447,3 @@ verify_jwt = false
 
 [functions.apply-printful-import]
 verify_jwt = false
-
-[functions.debug-printful-files]
-verify_jwt = false
