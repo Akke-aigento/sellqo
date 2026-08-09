@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { encryptPrintfulToken } from '../_shared/printfulCrypto.ts';
-import { testPrintfulToken, sha256Hex } from '../_shared/printfulApi.ts';
+import { testPrintfulToken, sha256Hex, registerPrintfulWebhook } from '../_shared/printfulApi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,18 +46,12 @@ Deno.serve(async (req) => {
     const ciphertext = await encryptPrintfulToken(token.trim());
 
     // Per-tenant webhook secret (POD-1c): only the SHA-256 hash is stored.
-    const { data: existing } = await admin
-      .from('tenant_printful_credentials')
-      .select('webhook_secret_hash')
-      .eq('tenant_id', tenantId)
-      .maybeSingle();
-
-    let webhookSecret: string | null = null;
-    let webhookSecretHash: string | null = existing?.webhook_secret_hash ?? null;
-    if (!webhookSecretHash) {
-      webhookSecret = b64(crypto.getRandomValues(new Uint8Array(32)));
-      webhookSecretHash = await sha256Hex(webhookSecret);
-    }
+    // A fresh secret is minted on every save: the plaintext cannot be
+    // reconstructed from the hash, and the registered webhook URL must match
+    // what we can verify. Overwriting is safe because Printful keeps a single
+    // webhook URL per store, so the new POST replaces the old one.
+    const webhookSecret = b64(crypto.getRandomValues(new Uint8Array(32)));
+    const webhookSecretHash = await sha256Hex(webhookSecret);
 
     const { error: upsertErr } = await admin
       .from('tenant_printful_credentials')
@@ -72,6 +66,13 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'tenant_id' });
     if (upsertErr) throw new Error(upsertErr.message);
+
+    // Register the webhook with the plaintext secret still in scope.
+    // Non-fatal: a tenant stays connected even if registration fails.
+    const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/printful-webhook`
+      + `?t=${encodeURIComponent(tenantId)}&k=${encodeURIComponent(webhookSecret)}`;
+    const reg = await registerPrintfulWebhook(token.trim(), webhookUrl, storeId?.trim() || null);
+    if (!reg.ok) console.error('[save-printful-credentials] webhook registration failed:', reg.error);
 
     // Seed the settings row with defaults if it does not exist yet.
     const { data: settings } = await admin
@@ -90,8 +91,7 @@ Deno.serve(async (req) => {
       success: true,
       ok: true,
       store_name: test.storeName ?? null,
-      // Returned once, only when freshly generated. Not shown in the UI.
-      webhook_secret: webhookSecret,
+      webhook_registered: reg.ok,
     });
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
