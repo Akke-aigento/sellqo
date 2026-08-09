@@ -1,3 +1,20 @@
+## STOREFRONT-SIZEGUIDE — Maatgids in product-detail-response — 9 augustus 2026
+
+**Waarom:** na LOVEKE-POD-2-SIZEGUIDE heeft `products` een `size_guide` JSONB-kolom die bij import uit Printful wordt gevuld, maar `storefront-api` gaf die kolom niet door in `getProduct()`. Custom frontends (zoals Loveke) kunnen de productspecifieke maatgids dus niet tonen.
+
+**Uitgevoerd:**
+- `supabase/functions/storefront-api/index.ts`: in het return-object van `getProduct()` één veld toegevoegd:
+  `size_guide: product.size_guide || null,`
+  geplaatst bij de andere product-metadata (na `tags`).
+- De query gebruikte al `.select('*')`, dus `product.size_guide` was al beschikbaar; geen query-wijziging nodig.
+- `getProducts()` (lijstweergave) ongemoeid gelaten — alleen de product-detail geeft de maatgids mee.
+
+**Security-keuzes:** additief, geen nieuwe policy of RLS-wijziging. `size_guide` bevat publieke productinformatie en wordt net als `weight`, `tags` en `images` in de anonieme storefront-response opgenomen. Geen infrastructuur- of tenantgevoelige data.
+
+**Vervolg:** frontend-weergave van de maatgids (Loveke custom frontend) is een aparte taak buiten deze core-wijziging.
+
+**Geverifieerd:** tsgo zonder errors; `getProduct` response bevat nu `size_guide`.
+
 ## SECURITY-PAGES-1 — Publieke Security & Compliance sectie — 8 augustus 2026
 
 **Waarom:** partners en marketplace-integraties vragen naar een aantoonbare security-posture. Die documentatie bestond nergens publiek; alleen juridische pagina's (`sellqo_legal_pages`) waren er.
