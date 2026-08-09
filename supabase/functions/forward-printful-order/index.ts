@@ -119,7 +119,8 @@ Deno.serve(async (req) => {
       const v = addr[k];
       return typeof v === 'string' && v.trim() ? v.trim() : null;
     };
-    const name = str('name') ?? [str('first_name'), str('last_name')].filter(Boolean).join(' ') || null;
+    const fullName = [str('first_name'), str('last_name')].filter(Boolean).join(' ');
+    const name = str('name') ?? (fullName || null);
     const address1 = str('address1') ?? str('street') ?? str('line1');
     const city = str('city');
     const zip = str('zip') ?? str('postal_code') ?? str('postcode');
