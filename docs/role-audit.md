@@ -5325,3 +5325,29 @@ const slug = paramSlug ?? pathname.replace(/^\/+|\/+$/g, "");
 2. **Printful API v1 heeft geen webhook-signing.** Er is dus geen HMAC om tegen te valideren. Daarom een per-tenant secret in de webhook-URL, met hash-only opslag in `webhook_secret_hash` (constante-tijdvergelijking op de hash in POD-1c). Zodra Printful v2-signing GA is, migreren we naar signature-validatie; de hash-kolom kan dan blijven staan als transitiepad.
 
 **Slottaken.** Changelog `2026.09g` (feature `printful_pod` + improvement `connect_availability`, NL/EN/FR/DE), newsletter-queue-item toegevoegd (niet verstuurd), en DOCS-1: nieuw tenant-artikel voor de Fulfilment-tab + bijwerken van het bestaande Connect-artikel met de live/aankomende kanalenlijst.
+
+## LOVEKE-POD-1b — Printful order-forwarding + variant-mapping UI
+
+**Nieuwe tabel: `public.printful_order_links`** (1 SELECT-policy, 0 write-policies).
+
+| Aspect | Keuze | Motivatie |
+| --- | --- | --- |
+| Tabel i.p.v. kolommen op `orders` | Aparte linktabel met `UNIQUE (tenant_id, order_id)` | Nul wijzigingen aan `orders`/`order_items` = nul risico op gedeelde-paden-regressies (checkout, facturen, marketplace-sync, PDF's lezen alle dezelfde kolommen). De linktabel is puur additief en kan bij een terugdraai zonder gevolgen leeg blijven. |
+| RLS | SELECT voor tenant-leden (`is_platform_admin(auth.uid()) OR tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`); **geen** INSERT/UPDATE/DELETE-policies | Alle writes gebeuren via `forward-printful-order` met de service-role. Een tenant mag nooit zelf een Printful-status "confirmed" kunnen schrijven zonder dat er echt is doorgestuurd. GRANT SELECT aan `authenticated`, GRANT ALL aan `service_role`. |
+
+**Idempotentie-ontwerp.** `external_id = orderId.replace(/-/g,'')` (hyphenloze UUID, 32 tekens — beslissing uit POD-1a) in combinatie met `POST /orders?update_existing=true`. Dubbelklikken, retry na netwerkfout of een tweede "Doorsturen" leidt daardoor tot een *update* van dezelfde Printful-order, nooit tot een duplicaat. De upsert in `printful_order_links` gebruikt `onConflict: tenant_id,order_id`, dus ook aan onze kant blijft er precies één rij per order.
+
+**Gift-card-uitsluiting.** Regels met `order_items.gift_card_id IS NOT NULL` worden vóór de mapping-stap uitgefilterd: een cadeaukaart is geen fysiek te printen artikel en zou bij Printful een onbedoelde productie triggeren. Bestaat een order enkel uit cadeaukaarten, dan volgt een 422 met NL-melding in plaats van een lege Printful-order.
+
+**422-gedrag (fail closed, niets half versturen).**
+- Regel zonder `variant_id` → reden "Geen variant gekoppeld".
+- Regel met variant maar zonder actieve mapping → "Geen Printful-mapping voor variant X".
+- Eén probleemregel volstaat: er wordt **niets** naar Printful gestuurd en de UI krijgt de volledige probleemlijst. Een half doorgestuurde order zou stil onderleveren.
+- Onvolledig `shipping_address` → 422 die expliciet benoemt welk veld ontbreekt (naam, straat en huisnummer, plaats, postcode, land; `state_code` enkel verplicht voor US/CA/AU). Printful weigert zulke orders sowieso; wij geven de bruikbare foutmelding.
+- Printful-fout of netwerkfout → `status='failed'` + `last_error` in de linktabel, zodat de orderpagina een "Opnieuw proberen"-knop kan tonen met de echte reden.
+
+**Rollen.** `forward-printful-order`: `['tenant_admin','staff']` — doorsturen is operationeel dagelijks werk, niet een instellingsbeslissing. Bewust géén `warehouse`: die rol heeft een read-only fulfilment-scope en mag geen externe productie-opdracht plaatsen. `list-printful-sync-products`: `['tenant_admin']` only, omdat het pad het gedecrypte token gebruikt om de volledige Printful-catalogus te lezen (mapping = configuratie).
+
+**Stap-6 status-fix (POD-1a post-flight).** In `test-printful-connection` is `requireRole` voor **uitsluitend** `action === 'status'` verruimd naar `['tenant_admin','viewer']`. Motivatie: het status-pad geeft alleen metadata terug (`configured`, `store_id`, `connected_store_name`, `last_test_at/ok`) en geen enkel geheim, terwijl `tenant_printful_settings` al SELECT-baar is voor `viewer`. Zonder deze fix kreeg een viewer een 403 op de Fulfilment-tab en dus een misleidend "niet verbonden"-beeld. De test-, save-, disconnect- en token-test-paden blijven `tenant_admin` only.
+
+**Slottaken.** Changelog `2026.09h` (feature `printful_order_forwarding`, NL/EN/FR/DE), newsletter-queue: gebundeld met het bestaande POD-1a Printful-item (niet apart verstuurd), en DOCS-1: het tenant-artikel `printful-print-on-demand-koppelen` uitgebreid met varianten koppelen, een order doorsturen, de statussen en de cadeaukaart-uitsluiting.
