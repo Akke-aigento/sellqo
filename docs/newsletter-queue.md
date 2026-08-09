@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.09g — Printful print-on-demand koppeling (feature, 09-08-2026)
+
+**Printful print-on-demand koppeling (beta)** (september 2026)
+SellQo Connect heeft een vierde tabblad: Fulfilment. Daar verbind je je Printful-winkel
+met een private token, zodat je producten op aanvraag kunt laten printen en verzenden —
+geen voorraad, geen inpakken.
+Wat betekent dit voor jou? In deze bètafase leg je de verbinding en de koppeling tussen
+je varianten en je Printful-varianten. Het automatisch doorsturen van bestellingen naar
+Printful volgt in een volgende release; de schakelaars daarvoor staan al klaar en blijven
+tot dan uit. Je vindt het bij SellQo Connect → Fulfilment.
+
+**i18n-keys.** `public.changelog.changes.printful_pod` — NL/EN/FR/DE aanwezig.
+
 ### 2026.09d — Verbeterde meldingen-instellingen in de app (improvement, 07-08-2026)
 
 **Verbeterde meldingen-instellingen in de app** (september 2026)
