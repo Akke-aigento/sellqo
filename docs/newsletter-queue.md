@@ -4,9 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
-### 2026.09g + 2026.09h — Printful print-on-demand koppeling (feature, 09-08-2026)
+### 2026.09g + 2026.09h + 2026.09i — Printful print-on-demand koppeling (feature, 09-08-2026)
 
-> **Bundeling:** dit item dekt POD-1a (verbinding) én POD-1b (bestellingen doorsturen).
+> **Bundeling:** dit item dekt POD-1a (verbinding), POD-1b (bestellingen doorsturen) én
+> POD-1c (automatische verzendupdates).
 > Niet apart versturen — één gezamenlijk Printful-bericht in de eerstvolgende newsletter.
 
 **Printful print-on-demand koppeling (beta)** (september 2026)
@@ -25,7 +26,13 @@ Printful, bevestigd of mislukt — met een knop om het opnieuw te proberen. Cade
 worden nooit doorgestuurd, en ontbreekt er een variant-koppeling of een adresveld, dan
 vertelt SellQo precies wat er mist voordat er iets verstuurd wordt.
 
-**i18n-keys.** `public.changelog.changes.printful_pod`, `public.changelog.changes.printful_order_forwarding` — NL/EN/FR/DE aanwezig.
+**Automatische verzendupdates van Printful** (september 2026)
+Sluitstuk: zodra Printful verzendt, komt de trackinginformatie automatisch binnen. De
+bestelling gaat op verzonden en je klant krijgt automatisch de verzendmail. Annuleringen
+en wachtstatussen bij Printful zie je terug op de orderpagina. Je hoeft niets in te
+stellen — de koppeling regelt dit zelf bij het verbinden.
+
+**i18n-keys.** `public.changelog.changes.printful_pod`, `public.changelog.changes.printful_order_forwarding`, `public.changelog.changes.printful_shipping_updates` — NL/EN/FR/DE aanwezig.
 
 ### 2026.09d — Verbeterde meldingen-instellingen in de app (improvement, 07-08-2026)
 
