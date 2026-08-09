@@ -62,10 +62,11 @@ Deno.serve(async (req) => {
     const tenantId = body.tenantId;
     const inProducts = Array.isArray(body.products) ? body.products : [];
     if (!tenantId) return json({ success: false, error: 'tenantId is verplicht' }, 400);
-    if (inProducts.length === 0) return json({ success: false, error: 'Geen producten meegegeven' }, 400);
 
     const auth = await authenticateRequest(req, tenantId);
     requireRole(auth, tenantId, ['tenant_admin']);
+
+    if (inProducts.length === 0) return json({ success: false, error: 'Geen producten meegegeven' }, 400);
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
