@@ -1292,6 +1292,10 @@
         "connect_availability": {
           "title": "Duidelijkere weergave van beschikbare en aankomende integraties",
           "description": "In SellQo Connect zie je nu direct welke koppelingen live zijn en welke binnenkort komen. Kanalen die nog niet beschikbaar zijn, krijgen een duidelijk label in plaats van een knop die nog niets doet."
+        },
+        "printful_order_forwarding": {
+          "title": "Bestellingen doorsturen naar Printful",
+          "description": "Stuur bestellingen met één klik door naar je gekoppelde Printful-winkel. Koppel eerst je varianten aan Printful-producten; op de orderpagina zie je daarna de status (concept, bevestigd of mislukt) met een knop om het opnieuw te proberen. Cadeaukaarten worden nooit doorgestuurd."
         }
       },
       "copyLink": "Kopieer link",

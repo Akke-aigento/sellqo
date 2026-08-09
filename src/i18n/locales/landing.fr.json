@@ -1292,6 +1292,10 @@
         "connect_availability": {
           "title": "Affichage plus clair des intégrations disponibles et à venir",
           "description": "SellQo Connect indique maintenant clairement quelles intégrations sont actives et lesquelles arrivent bientôt. Les canaux pas encore disponibles reçoivent une mention claire au lieu d'un bouton inactif."
+        },
+        "printful_order_forwarding": {
+          "title": "Transférer les commandes vers Printful",
+          "description": "Envoyez vos commandes vers votre boutique Printful connectée en un clic. Associez d'abord vos variantes aux produits Printful ; la page de commande affiche ensuite le statut (brouillon, confirmé ou échoué) avec un bouton pour réessayer. Les cartes-cadeaux ne sont jamais transférées."
         }
       },
       "copyLink": "Copier le lien",
