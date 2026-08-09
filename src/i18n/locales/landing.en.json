@@ -1293,6 +1293,10 @@
           "title": "Clearer view of available and upcoming integrations",
           "description": "SellQo Connect now shows at a glance which integrations are live and which are coming soon. Channels that are not available yet get a clear label instead of a button that does nothing."
         },
+        "printful_shipping_updates": {
+          "title": "Automatic shipping updates from Printful",
+          "description": "As soon as Printful ships your order, the tracking details arrive in SellQo automatically: the order is marked as shipped and your customer receives the shipping email. Cancellations and holds at Printful also show up on the order page. No setup needed — the integration handles it."
+        },
         "printful_order_forwarding": {
           "title": "Forward orders to Printful",
           "description": "Send orders to your connected Printful store in one click. Link your variants to Printful products first; the order page then shows the status (draft, confirmed or failed) with a retry button. Gift cards are never forwarded."
