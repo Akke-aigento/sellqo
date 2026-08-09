@@ -1284,6 +1284,14 @@
         "legal_pages_fix": {
           "title": "Legal pages now display correctly",
           "description": "The public pages for terms, privacy, cookies, SLA, acceptable use and the data processing agreement incorrectly showed 'Page not found'. They now display their published content again."
+        },
+        "printful_pod": {
+          "title": "Printful print-on-demand integration (beta)",
+          "description": "You can now connect your Printful store in SellQo Connect, under the new Fulfilment tab. Have products printed and shipped on demand; automatic order forwarding follows in a next release."
+        },
+        "connect_availability": {
+          "title": "Clearer view of available and upcoming integrations",
+          "description": "SellQo Connect now shows at a glance which integrations are live and which are coming soon. Channels that are not available yet get a clear label instead of a button that does nothing."
         }
       },
       "copyLink": "Copy link",

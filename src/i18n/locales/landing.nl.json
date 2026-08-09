@@ -1284,6 +1284,14 @@
         "legal_pages_fix": {
           "title": "Juridische pagina's worden weer correct weergegeven",
           "description": "De publieke pagina's voor voorwaarden, privacy, cookies, SLA, acceptabel gebruik en de verwerkersovereenkomst toonden ten onrechte 'Pagina niet gevonden'. Ze laten nu weer de juiste, gepubliceerde tekst zien."
+        },
+        "printful_pod": {
+          "title": "Printful print-on-demand koppeling (beta)",
+          "description": "Je kunt nu je Printful-winkel koppelen in SellQo Connect, onder het nieuwe tabblad Fulfilment. Laat je producten op aanvraag printen en verzenden; het automatisch doorsturen van bestellingen volgt in een volgende release."
+        },
+        "connect_availability": {
+          "title": "Duidelijkere weergave van beschikbare en aankomende integraties",
+          "description": "In SellQo Connect zie je nu direct welke koppelingen live zijn en welke binnenkort komen. Kanalen die nog niet beschikbaar zijn, krijgen een duidelijk label in plaats van een knop die nog niets doet."
         }
       },
       "copyLink": "Kopieer link",
