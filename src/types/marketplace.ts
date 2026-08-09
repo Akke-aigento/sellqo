@@ -133,6 +133,12 @@ export interface MarketplaceInfo {
   description: string;
   features: { text: string; available: boolean }[];
   comingSoon?: boolean;
+  /**
+   * Gating flag: the integration exists in code but has no live tenants yet, so
+   * it is presented as "Binnenkort beschikbaar". An existing connection and
+   * platform admins override this (see MarketplaceCard).
+   */
+  coming_soon?: boolean;
 }
 
 export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceInfo & { type?: MarketplaceType }> = {
@@ -154,6 +160,7 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
     type: 'amazon',
     name: 'Amazon',
     icon: 'Package',
+    coming_soon: true,
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
     description: 'Verbind met Amazon Seller Central voor volledige synchronisatie',
@@ -182,6 +189,7 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
     type: 'woocommerce',
     name: 'WooCommerce',
     icon: 'ShoppingCart',
+    coming_soon: true,
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
     description: 'Integreer met je WordPress WooCommerce webshop',
@@ -212,6 +220,7 @@ export const MARKETPLACE_INFO: Record<MarketplaceType | 'request', MarketplaceIn
     type: 'ebay',
     name: 'eBay',
     icon: 'ShoppingBag',
+    coming_soon: true,
     color: 'text-red-600',
     bgColor: 'bg-red-100',
     description: 'Verkoop op eBay Benelux, Duitsland en meer',
