@@ -76,6 +76,9 @@ export function PrintfulPodSettings({ tenantId }: Props) {
               )}
             </div>
           )}
+          {configured && status.data?.webhook_registered && (
+            <p className="text-xs text-muted-foreground">Verzendupdates: actief</p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="pf-token">Private token</Label>

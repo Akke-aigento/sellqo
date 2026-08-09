@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     if (action === 'status') {
       const { data: row, error: rowErr } = await admin
         .from('tenant_printful_credentials')
-        .select('store_id, connected_store_name, last_test_at, last_test_ok')
+        .select('store_id, connected_store_name, last_test_at, last_test_ok, webhook_secret_hash')
         .eq('tenant_id', tenantId)
         .maybeSingle();
       if (rowErr) throw new Error(rowErr.message);
@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
         connected_store_name: row?.connected_store_name ?? null,
         last_test_at: row?.last_test_at ?? null,
         last_test_ok: row?.last_test_ok ?? null,
+        // Metadata only: never the secret itself.
+        webhook_registered: !!row?.webhook_secret_hash,
       });
     }
 
