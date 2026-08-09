@@ -5423,3 +5423,19 @@ Geen changelog/newsletter/DOCS-wijziging: interne verbetering binnen de nog niet
 1. **Debug weg:** edge function `debug-printful-files` volledig verwijderd (map + `supabase/config.toml`-entry) en de secret `DEBUG_PRINTFUL_KEY` verwijderd. Was tijdelijke read-only diagnostiek, hoort niet in productie.
 2. **Beeldfilter:** `collectProductImages` in `_shared/printfulImport.ts` laat uit `variant.files[]` nu uitsluitend `type === 'preview'` door. Print-/labelbestanden (`default`, `label_inside`, en elk ander niet-preview type) worden overgeslagen — die kwamen eerder als "productbeeld" binnen (het Loveke-logo, het binnenlabel). Behouden: `sync_product.thumbnail_url` eerst en `variant.product.image` als fallback; dedup op URL met behoud van volgorde. Reimport-logica en de rest van apply/preview ongemoeid.
 3. **Bevinding (bewust niet gebouwd):** model-/lifestyle-mockups zijn NIET beschikbaar via `/store/products/{id}`; die komen enkel uit Printful's Mockup Generator API. Dat is een aparte integratie en is bewust niet geïmplementeerd — dergelijke beelden worden voorlopig manueel toegevoegd in de mediabibliotheek.
+
+### LOVEKE-POD-2-SIZEGUIDE — Printful maatgids bij import
+
+**Wat.** `apply-printful-import` haalt nu per product de Printful-maatgids op en slaat die volledig op in de nieuwe kolom `public.products.size_guide` (jsonb, nullable, default null — puur additief, geen constraint/index).
+
+**Catalog product_id-afleiding.** Nieuwe pure helper `pickCatalogRefs()` in `_shared/printfulImport.ts`: eerst `sync_variant.product.product_id` (aanwezig in de meeste sync-variant-details); ontbreekt die, dan de catalog `variant_id` van de eerste geldige sync-variant, opgelost via `GET /products/variant/{variantId}` → `result.product.id`. Daarna één call `GET /products/{catalogProductId}/sizes?unit=cm,inches` met Bearer-token + `X-PF-Store-Id`. De volledige `result` (product_id, available_sizes, size_tables[] met type/description/unit/measurements inclusief de meetuitleg-teksten) wordt opgeslagen, zodat frontends zelf tussen cm en inch kunnen wisselen en de uitleg kunnen renderen.
+
+**Efficiëntie.** Eén size-guide-call per product, hergebruikt via een in-memory cache op catalog product_id binnen dezelfde import-batch. Het product-detail dat al voor de beelden werd opgehaald, wordt hergebruikt — geen extra store-call.
+
+**Non-fataal ontwerp.** Faalt de lookup, is de response niet ok, of ontbreekt de maatgids → `size_guide` blijft null, waarschuwing in de log ("geen size guide voor catalog product X") en de import gaat gewoon door. Een ontbrekende maatgids mag nooit een import laten falen.
+
+**Reimport.** De bestaande `reimport=true`-vlag werkt nu ook de maatgids bij: het update-object bevat `images`, `featured_image` en (alleen als er een maatgids gevonden is) `size_guide`. Naam, prijs, `is_active`, `hide_from_storefront` en alle marketplace-sync-kolommen blijven ongemoeid.
+
+**Scope.** Alleen de migration, `apply-printful-import` en de helper in `_shared/printfulImport.ts`. `preview-printful-import` bewust ongemoeid: een `has_size_guide`-vlag zou een extra API-call per product kosten en de preview merkbaar vertragen — niet essentieel. Geen changelog/newsletter (interne datavoorbereiding binnen nog-niet-uitgerolde POD-2).
+
+**Frontend-weergave is een aparte taak.** Het tonen van de maatgids gebeurt in de Loveke custom frontend en valt expliciet buiten deze batch; SellQo core levert enkel de data. DOCS-1: tenant-artikel `printful-print-on-demand-koppelen` aangevuld met de automatische overname van de maatgids.
