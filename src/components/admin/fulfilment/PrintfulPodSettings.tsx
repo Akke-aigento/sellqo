@@ -183,7 +183,9 @@ export function PrintfulPodSettings({ tenantId }: Props) {
       </Card>
 
       <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+      {configured && <PrintfulVariantMapping tenantId={tenantId} />}
 
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Printful-verbinding verbreken?</AlertDialogTitle>
