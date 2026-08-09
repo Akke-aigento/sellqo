@@ -4,12 +4,33 @@
 
 export interface PrintfulSyncVariantRaw {
   id?: number;
+  variant_id?: number;
   name?: string;
   sku?: string;
   retail_price?: string | number;
-  product?: { image?: string; name?: string; size?: string; color?: string } | null;
+  product?: { image?: string; name?: string; size?: string; color?: string; product_id?: number; variant_id?: number } | null;
   files?: Array<{ type?: string; preview_url?: string; url?: string; thumbnail_url?: string }> | null;
   options?: Array<{ id?: string; value?: unknown }> | null;
+}
+
+/**
+ * LOVEKE-POD-2-SIZEGUIDE — pick the Printful catalog identifiers needed for the
+ * size guide. Prefers an embedded catalog product_id (present in most sync
+ * variant details); otherwise returns the catalog variant_id so the caller can
+ * resolve it via GET /products/variant/{variantId}. Pure function.
+ */
+export function pickCatalogRefs(
+  syncVariants: PrintfulSyncVariantRaw[] | null | undefined,
+): { catalogProductId: number | null; catalogVariantId: number | null } {
+  for (const v of Array.isArray(syncVariants) ? syncVariants : []) {
+    const pid = Number(v?.product?.product_id);
+    if (Number.isFinite(pid) && pid > 0) return { catalogProductId: pid, catalogVariantId: null };
+  }
+  for (const v of Array.isArray(syncVariants) ? syncVariants : []) {
+    const vid = Number(v?.variant_id ?? v?.product?.variant_id);
+    if (Number.isFinite(vid) && vid > 0) return { catalogProductId: null, catalogVariantId: vid };
+  }
+  return { catalogProductId: null, catalogVariantId: null };
 }
 
 const SIZE_TOKENS = new Set([

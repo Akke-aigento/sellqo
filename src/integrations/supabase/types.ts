@@ -11833,6 +11833,7 @@ export type Database = {
           shopify_product_id: string | null
           shopify_variant_id: string | null
           short_description: string | null
+          size_guide: Json | null
           sku: string | null
           slug: string
           social_channels: Json | null
@@ -11963,6 +11964,7 @@ export type Database = {
           shopify_product_id?: string | null
           shopify_variant_id?: string | null
           short_description?: string | null
+          size_guide?: Json | null
           sku?: string | null
           slug: string
           social_channels?: Json | null
@@ -12093,6 +12095,7 @@ export type Database = {
           shopify_product_id?: string | null
           shopify_variant_id?: string | null
           short_description?: string | null
+          size_guide?: Json | null
           sku?: string | null
           slug?: string
           social_channels?: Json | null
