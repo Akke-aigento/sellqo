@@ -6,7 +6,7 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '
 import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
 import {
   parseAttributeValues, buildVariantTitle, pickPreviewImage, parseRetailPrice,
-  type PrintfulSyncVariantRaw,
+  collectProductImages, type PrintfulSyncVariantRaw,
 } from '../_shared/printfulImport.ts';
 
 const corsHeaders = {
@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
         name: productName,
         thumbnail_url: sp.thumbnail_url ?? null,
         duplicate: importedSet.has(`@${sp.id}`),
+        image_count: collectProductImages(sp, rawVariants).length,
         variants,
       });
     }
