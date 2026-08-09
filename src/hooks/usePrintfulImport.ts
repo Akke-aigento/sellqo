@@ -20,14 +20,16 @@ export interface PrintfulImportPreviewProduct {
   name: string;
   thumbnail_url: string | null;
   duplicate: boolean;
+  image_count?: number;
   variants: PrintfulImportPreviewVariant[];
 }
 
 export interface PrintfulImportResult {
   sync_product_id: number;
-  status: 'imported' | 'skipped_duplicate' | 'failed';
+  status: 'imported' | 'skipped_duplicate' | 'reimported_images' | 'failed';
   product_id?: string;
   variant_count?: number;
+  image_count?: number;
   error?: string;
 }
 
@@ -82,17 +84,25 @@ export interface ApplyPayloadProduct {
 export function usePrintfulImportApply(tenantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (products: ApplyPayloadProduct[]) =>
-      invoke<{ results: PrintfulImportResult[]; imported: number; skipped: number; failed: number }>(
+    mutationFn: (vars: ApplyPayloadProduct[] | { products: ApplyPayloadProduct[]; reimport?: boolean }) =>
+      invoke<{ results: PrintfulImportResult[]; imported: number; skipped: number; reimported?: number; failed: number }>(
         'apply-printful-import',
-        { tenantId, products },
+        Array.isArray(vars)
+          ? { tenantId, products: vars }
+          : { tenantId, products: vars.products, reimport: vars.reimport === true },
       ),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['printful-variant-mappings', tenantId] });
       qc.invalidateQueries({ queryKey: ['printful-tenant-variants', tenantId] });
+      if (res.reimported && !res.imported && !res.skipped) {
+        if (res.failed) toast.error('Beelden bijwerken mislukt');
+        else toast.success('Beelden bijgewerkt');
+        return;
+      }
       const parts = [`${res.imported} geïmporteerd`];
       if (res.skipped) parts.push(`${res.skipped} overgeslagen`);
+      if (res.reimported) parts.push(`${res.reimported} beelden bijgewerkt`);
       if (res.failed) parts.push(`${res.failed} mislukt`);
       if (res.failed) toast.error(parts.join(', '));
       else toast.success(parts.join(', '));
