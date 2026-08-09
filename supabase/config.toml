@@ -423,3 +423,12 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.test-printful-connection]
+verify_jwt = false
+
+[functions.save-printful-credentials]
+verify_jwt = false
+
+[functions.disconnect-printful]
+verify_jwt = false
