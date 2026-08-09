@@ -12,6 +12,7 @@ import { CheckCircle2, Info, Loader2, XCircle } from 'lucide-react';
 import { useCan } from '@/hooks/useCan';
 import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
 import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
+import { PrintfulVariantMapping } from './PrintfulVariantMapping';
 
 interface Props {
   tenantId: string;
@@ -180,6 +181,8 @@ export function PrintfulPodSettings({ tenantId }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {configured && <PrintfulVariantMapping tenantId={tenantId} />}
 
       <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
         <AlertDialogContent>

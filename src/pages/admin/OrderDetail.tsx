@@ -39,6 +39,7 @@ import { useCan } from '@/hooks/useCan';
 import { AlertTriangle } from 'lucide-react';
 import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
 import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
+import { PrintfulOrderCard } from '@/components/admin/fulfilment/PrintfulOrderCard';
 
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'In afwachting',
@@ -365,6 +366,10 @@ export default function OrderDetailPage() {
           </Card>
 
           {/* Card 2: Klant & Adressen */}
+          {currentTenant?.id && id && (
+            <PrintfulOrderCard tenantId={currentTenant.id} orderId={id} />
+          )}
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">

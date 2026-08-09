@@ -4,7 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
-### 2026.09g — Printful print-on-demand koppeling (feature, 09-08-2026)
+### 2026.09g + 2026.09h — Printful print-on-demand koppeling (feature, 09-08-2026)
+
+> **Bundeling:** dit item dekt POD-1a (verbinding) én POD-1b (bestellingen doorsturen).
+> Niet apart versturen — één gezamenlijk Printful-bericht in de eerstvolgende newsletter.
 
 **Printful print-on-demand koppeling (beta)** (september 2026)
 SellQo Connect heeft een vierde tabblad: Fulfilment. Daar verbind je je Printful-winkel
@@ -15,7 +18,14 @@ je varianten en je Printful-varianten. Het automatisch doorsturen van bestelling
 Printful volgt in een volgende release; de schakelaars daarvoor staan al klaar en blijven
 tot dan uit. Je vindt het bij SellQo Connect → Fulfilment.
 
-**i18n-keys.** `public.changelog.changes.printful_pod` — NL/EN/FR/DE aanwezig.
+**Bestellingen doorsturen naar Printful** (september 2026)
+Aanvulling op bovenstaande: je koppelt nu je varianten aan Printful-producten en stuurt
+een bestelling met één klik door. Op de orderpagina zie je de status — concept bij
+Printful, bevestigd of mislukt — met een knop om het opnieuw te proberen. Cadeaukaarten
+worden nooit doorgestuurd, en ontbreekt er een variant-koppeling of een adresveld, dan
+vertelt SellQo precies wat er mist voordat er iets verstuurd wordt.
+
+**i18n-keys.** `public.changelog.changes.printful_pod`, `public.changelog.changes.printful_order_forwarding` — NL/EN/FR/DE aanwezig.
 
 ### 2026.09d — Verbeterde meldingen-instellingen in de app (improvement, 07-08-2026)
 
