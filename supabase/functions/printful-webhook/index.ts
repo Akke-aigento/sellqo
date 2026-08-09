@@ -62,6 +62,19 @@ interface PrintfulShipment {
   tracking_url?: string | null;
   carrier?: string | null;
   service?: string | null;
+  [key: string]: unknown;
+}
+
+// Printful v1 has no schema guarantee on casing/type for these fields; try
+// several candidate keys and always end up with a trimmed string or null.
+function pickString(obj: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v === null || v === undefined) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -149,10 +162,16 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
 
     if (type === 'package_shipped') {
-      const shipment = payload.data?.shipment ?? {};
-      const trackingNumber = shipment.tracking_number?.toString().trim() || null;
-      const trackingUrl = shipment.tracking_url?.toString().trim() || null;
-      const carrier = normalizeCarrier(shipment.carrier ?? shipment.service);
+      const shipment = (payload.data?.shipment ?? {}) as PrintfulShipment;
+      const trackingNumber = pickString(shipment, 'tracking_number', 'trackingNumber');
+      const trackingUrl = pickString(shipment, 'tracking_url', 'trackingUrl');
+      const carrier = normalizeCarrier(pickString(shipment, 'carrier', 'service'));
+      if (!trackingNumber) {
+        console.warn(
+          '[printful-webhook] shipped event zonder tracking_number',
+          { shipmentKeys: Object.keys(shipment ?? {}) },
+        );
+      }
 
       const { data: order } = await admin
         .from('orders')
@@ -165,6 +184,14 @@ Deno.serve(async (req) => {
       // Idempotent: same tracking number already stored → nothing to do.
       if (trackingNumber && order.tracking_number === trackingNumber) {
         return json({ received: true, idempotent: true });
+      }
+      // Multi-package order: Printful fires package_shipped per package. The
+      // first package's tracking stays the leading one for the customer.
+      const extraPackage = !!trackingNumber && !!order.tracking_number
+        && order.tracking_number !== trackingNumber;
+      if (extraPackage) {
+        console.log('[printful-webhook] extra pakket, tracking behouden', { order_id: link.order_id });
+        return json({ received: true, extra_package: true });
       }
 
       // Status only ever moves forward.
