@@ -1284,6 +1284,14 @@
         "legal_pages_fix": {
           "title": "Les pages juridiques s'affichent à nouveau correctement",
           "description": "Les pages publiques des conditions, de la confidentialité, des cookies, du SLA, de l'usage acceptable et de l'accord de traitement des données affichaient à tort « Page introuvable ». Elles affichent de nouveau leur contenu publié."
+        },
+        "printful_pod": {
+          "title": "Intégration Printful à la demande (bêta)",
+          "description": "Vous pouvez désormais connecter votre boutique Printful dans SellQo Connect, sous le nouvel onglet Fulfilment. Faites imprimer et expédier vos produits à la demande ; le transfert automatique des commandes suivra dans une prochaine version."
+        },
+        "connect_availability": {
+          "title": "Affichage plus clair des intégrations disponibles et à venir",
+          "description": "SellQo Connect indique maintenant clairement quelles intégrations sont actives et lesquelles arrivent bientôt. Les canaux pas encore disponibles reçoivent une mention claire au lieu d'un bouton inactif."
         }
       },
       "copyLink": "Copier le lien",

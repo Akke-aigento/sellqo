@@ -5299,3 +5299,29 @@ const slug = paramSlug ?? pathname.replace(/^\/+|\/+$/g, "");
 **Verificatie.** Read-only browsertest tegen alle zes paden na de fix: `/terms → Terms of Service`, `/privacy → Privacy Policy`, `/cookies → Cookie Policy`, `/sla → Service Level Agreement`, `/acceptable-use → Acceptable Use Policy`, `/dpa → Data Processing Agreement`. Geen enkele route rendert nog de niet-gevonden-state.
 
 **Scope.** Alleen `src/pages/SellqoLegal.tsx` (functioneel) plus changelog `2026.09f` (`legal_pages_fix`, type `bugfix`, i18n nl/en/fr/de). Routes in `App.tsx`, de hook en de database zijn onaangeroerd. DOCS-1: n.v.t. — geen nieuwe of gewijzigde tenant-feature, de pagina's tonen na de fix exact de content die ze altijd hadden moeten tonen.
+
+## LOVEKE-POD-1a — Printful-fundament + coming-soon gating (9 augustus 2026)
+
+**Scope.** Enkel het fundament van de Printful-koppeling (credentials, settings, variant-mapping, drie edge functions, UI-tab) plus een presentatie-laag die niet-actieve kanalen als "Binnenkort" toont. GEEN order-forwarding, GEEN webhook — die volgen in POD-1b/1c. Bestaande tabellen, hooks en edge functions zijn onaangeroerd; er is niets verwijderd.
+
+**Nieuwe tabellen.**
+
+| Tabel | Rol-toegang | Motivatie |
+| --- | --- | --- |
+| `tenant_printful_credentials` | RLS aan, **geen policies** (deny-all); alleen `service_role` heeft GRANT | Bevat het versleutelde Printful-token (AES-GCM) en de hash van het webhook-secret. Identiek aan `tenant_odoo_credentials`: geheimen mogen nooit via PostgREST bereikbaar zijn, ook niet read-only voor de eigenaar. De UI leest metadata (winkelnaam, laatste test) daarom via een `action: 'status'`-pad in `test-printful-connection`, niet via de tabel. |
+| `tenant_printful_settings` | SELECT: `tenant_admin` + `viewer` binnen eigen tenant (of platform_admin); write: `tenant_admin` only | Spiegelt de `tos_*`-policies van `tenant_odoo_settings`. |
+| `printful_variant_mappings` | SELECT: alle tenant-leden; write: `tenant_admin` only | Mapping is operationele data zonder geheimen; lezen mag breder dan schrijven. Index op `(tenant_id, printful_sync_variant_id)` voor de lookup die POD-1b op de webhook-kant nodig heeft. |
+
+**Bewuste afwijking van het Odoo-patroon: geen `accountant`-rol.** `tenant_odoo_settings` geeft `accountant` schrijfrechten omdat dagboek- en BTW-mapping boekhoudbeslissingen zijn. Fulfilment is dat niet: wie bepaalt of bestellingen naar een externe printer gaan, neemt een operationele en commerciële beslissing. `accountant` krijgt hier dus geen write, en ook geen SELECT (de settings-SELECT eist `tenant_admin` of `viewer`).
+
+**Crypto.** `_shared/printfulCrypto.ts` is een 1-op-1 kopie van het `odooCrypto.ts`-patroon (AES-GCM, `base64(iv).base64(ct)`, key-normalisatie via SHA-256) met eigen env-secret `PRINTFUL_CREDENTIALS_KEY`. Bewust géén gedeelde sleutel met Odoo: compromittering van één integratie mag de andere niet meenemen. Het token wordt nooit gelogd, nooit in een response teruggegeven en na opslaan nooit meer aan de UI getoond (het invoerveld toont enkel een placeholder "Opgeslagen — vul in om te vervangen").
+
+**Edge functions.** `test-printful-connection`, `save-printful-credentials`, `disconnect-printful` — alle drie `authenticateRequest(req, tenantId)` + `requireRole(auth, tenantId, ['tenant_admin'])`, met `AuthError`/`authErrorResponse`, en `verify_jwt = false` in `config.toml` (in-code auth is leidend, consistent met `test-odoo-connection`). `save-printful-credentials` valideert het token eerst live tegen `GET https://api.printful.com/stores`; een niet-werkend token wordt nooit opgeslagen. Het webhook-secret wordt enkel bij eerste opslag gegenereerd en **alleen als SHA-256-hash** bewaard; het plaintext-secret komt precies één keer in de response en wordt door de UI genegeerd. `disconnect-printful` verwijdert de credentials en zet `printful_sync_enabled = false`, maar laat variant-mappings staan — herconnect moet niet betekenen dat een tenant zijn mapping-werk kwijt is.
+
+**Coming-soon gating (presentatie-laag).** SQL-verificatie (2026-08-09) toonde: enkel `bol_com` heeft actieve `marketplace_connections`; `amazon`, `woocommerce`, `ebay` en alle social/messaging-kanalen hebben nul. Tenants zagen dus werkende "Verbind"-knoppen voor koppelingen die in de praktijk nergens live staan. `MARKETPLACE_INFO` krijgt daarom een `coming_soon`-vlag op `amazon`, `woocommerce` en `ebay` (Bol expliciet niet); `MarketplaceCard` en `UnifiedChannelList` tonen dan badge "Binnenkort" + disabled knop. Twee overrides, in deze volgorde: (1) een bestaande connectie wint altijd van de vlag — een tenant die al verbonden is, mag nooit buitengesloten worden; (2) `isPlatformAdmin` uit `useAuth` houdt de knop werkend (badge blijft staan), zodat platformbeheer kan testen zonder de vlag om te zetten. Er is niets verwijderd: alle cards, routes, hooks, edge functions en tabellen blijven bestaan, enkel de weergave verandert.
+
+**Twee recon-beslissingen voor POD-1b/1c.**
+1. **`external_id` = order-UUID zonder hyphens.** Printful beperkt `external_id` in de praktijk tot 32 tekens, wat exact de hyphenloze UUID-vorm is. Postgres' `::uuid`-cast accepteert die vorm, dus `find_order_by_reference` werkt ongewijzigd en er is geen extra kolom of mapping-tabel nodig voor de terugweg.
+2. **Printful API v1 heeft geen webhook-signing.** Er is dus geen HMAC om tegen te valideren. Daarom een per-tenant secret in de webhook-URL, met hash-only opslag in `webhook_secret_hash` (constante-tijdvergelijking op de hash in POD-1c). Zodra Printful v2-signing GA is, migreren we naar signature-validatie; de hash-kolom kan dan blijven staan als transitiepad.
+
+**Slottaken.** Changelog `2026.09g` (feature `printful_pod` + improvement `connect_availability`, NL/EN/FR/DE), newsletter-queue-item toegevoegd (niet verstuurd), en DOCS-1: nieuw tenant-artikel voor de Fulfilment-tab + bijwerken van het bestaande Connect-artikel met de live/aankomende kanalenlijst.

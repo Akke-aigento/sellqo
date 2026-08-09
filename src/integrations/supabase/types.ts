@@ -10860,6 +10860,64 @@ export type Database = {
         }
         Relationships: []
       }
+      printful_variant_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          printful_sync_product_id: number | null
+          printful_sync_variant_id: number
+          printful_variant_name: string | null
+          tenant_id: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          printful_sync_product_id?: number | null
+          printful_sync_variant_id: number
+          printful_variant_name?: string | null
+          tenant_id: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          printful_sync_product_id?: number | null
+          printful_sync_variant_id?: number
+          printful_variant_name?: string | null
+          tenant_id?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printful_variant_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printful_variant_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printful_variant_mappings_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_bundle_items: {
         Row: {
           child_product_id: string
@@ -16468,6 +16526,102 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_odoo_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_printful_credentials: {
+        Row: {
+          connected_store_name: string | null
+          created_at: string
+          last_test_at: string | null
+          last_test_ok: boolean | null
+          store_id: string | null
+          tenant_id: string
+          token_ciphertext: string
+          updated_at: string
+          webhook_secret_hash: string | null
+        }
+        Insert: {
+          connected_store_name?: string | null
+          created_at?: string
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          store_id?: string | null
+          tenant_id: string
+          token_ciphertext: string
+          updated_at?: string
+          webhook_secret_hash?: string | null
+        }
+        Update: {
+          connected_store_name?: string | null
+          created_at?: string
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          store_id?: string | null
+          tenant_id?: string
+          token_ciphertext?: string
+          updated_at?: string
+          webhook_secret_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_printful_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_printful_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_printful_settings: {
+        Row: {
+          auto_confirm: boolean
+          auto_forward_orders: boolean
+          created_at: string
+          forward_on_payment_status: string
+          printful_sync_enabled: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_confirm?: boolean
+          auto_forward_orders?: boolean
+          created_at?: string
+          forward_on_payment_status?: string
+          printful_sync_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_confirm?: boolean
+          auto_forward_orders?: boolean
+          created_at?: string
+          forward_on_payment_status?: string
+          printful_sync_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_printful_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_printful_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"

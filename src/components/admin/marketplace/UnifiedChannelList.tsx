@@ -21,6 +21,7 @@ import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { useMetaMessagingConnections } from '@/hooks/useMetaMessagingConnections';
 import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -153,6 +154,7 @@ interface ActiveFeature {
 
 export function UnifiedChannelList() {
   const { currentTenant } = useTenant();
+  const { isPlatformAdmin } = useAuth();
   const { connections: socialChannels, deleteConnection: deleteSocialChannel, getConnectionByType } = useSocialChannels();
   const { connections: socialConnections, deleteConnection: deleteSocialConnection, getConnectionByPlatform: getAutopostConnection } = useSocialConnections();
   const { connections: metaConnections, deleteConnection: deleteMetaConnection, getConnectionByPlatform: getMetaConnection } = useMetaMessagingConnections();
@@ -224,7 +226,7 @@ export function UnifiedChannelList() {
   };
 
   const handleConnect = async (channel: ChannelConfig) => {
-    if (channel.status === 'coming_soon') return;
+    if (channel.status === 'coming_soon' && !isPlatformAdmin) return;
 
     switch (channel.wizardType) {
       case 'meta':
@@ -304,7 +306,11 @@ export function UnifiedChannelList() {
           const Icon = channel.icon;
           const features = getActiveFeatures(channel.id);
           const isConnected = features.length > 0;
-          const isComingSoon = channel.status === 'coming_soon';
+          // Gating: none of these channels has a live tenant connection yet, so
+          // all of them show as "Binnenkort". A live connection wins over the
+          // flag, and platform admins keep working buttons for testing.
+          const showComingSoonBadge = !isConnected;
+          const isComingSoon = showComingSoonBadge && !isPlatformAdmin;
           const isLoading = connectingAutopost === channel.id;
 
           return (
@@ -317,7 +323,7 @@ export function UnifiedChannelList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-sm">{channel.name}</h3>
-                      {isComingSoon && (
+                      {showComingSoonBadge && (
                         <Badge variant="secondary" className="text-xs">Binnenkort</Badge>
                       )}
                       {isConnected && (

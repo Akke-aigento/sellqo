@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator } from 'lucide-react';
+import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator, Package } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,8 @@ import { ConnectMarketplaceDialog } from '@/components/admin/marketplace/Connect
 import { UnifiedChannelList } from '@/components/admin/marketplace/UnifiedChannelList';
 import { OdooAccountingCard } from '@/components/admin/accounting/OdooAccountingCard';
 import { OdooAccountingSettings } from '@/components/admin/accounting/OdooAccountingSettings';
+import { PrintfulPodCard } from '@/components/admin/fulfilment/PrintfulPodCard';
+import { PrintfulPodSettings } from '@/components/admin/fulfilment/PrintfulPodSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
@@ -25,6 +27,8 @@ import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { useTenant } from '@/hooks/useTenant';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
+import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
+import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
 import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
@@ -50,6 +54,9 @@ export default function MarketplacesPage() {
   const { status: odooStatus } = useOdooConnection(currentTenant?.id);
   const { settings: odooSettings } = useTenantOdooSettings(currentTenant?.id);
   const odooActive = !!odooStatus.data?.configured && !!odooSettings?.odoo_sync_enabled;
+  const { status: printfulStatus } = usePrintfulConnection(currentTenant?.id);
+  const { settings: printfulSettings } = useTenantPrintfulSettings(currentTenant?.id);
+  const printfulActive = !!printfulStatus.data?.configured && !!printfulSettings?.printful_sync_enabled;
   const planName = subscription?.pricing_plan?.name?.toLowerCase() || '';
   const isStarter = planName.includes('starter');
   const isProOrHigher = planName.includes('pro') || planName.includes('enterprise');
@@ -57,10 +64,15 @@ export default function MarketplacesPage() {
   const [connectingType, setConnectingType] = useState<MarketplaceType | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [odooOpen, setOdooOpen] = useState(false);
+  const [printfulOpen, setPrintfulOpen] = useState(false);
 
   // Read tab from URL params
   const urlParams = new URLSearchParams(window.location.search);
-  const defaultTab = urlParams.get('tab') === 'channels' ? 'channels' : 'marketplaces';
+  const tabParam = urlParams.get('tab');
+  const defaultTab = tabParam === 'channels' ? 'channels'
+    : tabParam === 'fulfilment' ? 'fulfilment'
+    : tabParam === 'accounting' ? 'accounting'
+    : 'marketplaces';
 
   const handleConnect = (type: MarketplaceType) => {
     setConnectingType(type);
@@ -92,7 +104,7 @@ export default function MarketplacesPage() {
     : 'Nog niet';
 
   const totalActiveConnections =
-    activeConnections.length + activeSocialConnections.length + (odooActive ? 1 : 0);
+    activeConnections.length + activeSocialConnections.length + (odooActive ? 1 : 0) + (printfulActive ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -198,7 +210,7 @@ export default function MarketplacesPage() {
 
       {/* Simplified Tabs: Marktplaatsen + Kanalen */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             Marktplaatsen
@@ -210,6 +222,10 @@ export default function MarketplacesPage() {
           <TabsTrigger value="accounting" className="flex items-center gap-2">
             <Calculator className="w-4 h-4" />
             Boekhouding
+          </TabsTrigger>
+          <TabsTrigger value="fulfilment" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Fulfilment
           </TabsTrigger>
         </TabsList>
 
@@ -261,6 +277,18 @@ export default function MarketplacesPage() {
             <OdooAccountingCard tenantId={currentTenant?.id} onOpen={() => setOdooOpen(true)} />
           </div>
         </TabsContent>
+
+        <TabsContent value="fulfilment" className="mt-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Fulfilment</h2>
+            <p className="text-muted-foreground">
+              Laat producten op aanvraag printen en verzenden door een fulfilment-partner.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PrintfulPodCard tenantId={currentTenant?.id} onOpen={() => setPrintfulOpen(true)} />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Connect Dialog */}
@@ -284,6 +312,23 @@ export default function MarketplacesPage() {
           </DialogHeader>
           {currentTenant?.id ? (
             <OdooAccountingSettings tenantId={currentTenant.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Geen tenant geselecteerd.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Printful Fulfilment Dialog */}
+      <Dialog open={printfulOpen} onOpenChange={setPrintfulOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Printful print-on-demand</DialogTitle>
+            <DialogDescription>
+              Verbind je Printful-winkel en configureer de fulfilment-instellingen.
+            </DialogDescription>
+          </DialogHeader>
+          {currentTenant?.id ? (
+            <PrintfulPodSettings tenantId={currentTenant.id} />
           ) : (
             <p className="text-sm text-muted-foreground">Geen tenant geselecteerd.</p>
           )}
