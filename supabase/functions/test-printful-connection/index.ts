@@ -25,7 +25,8 @@ Deno.serve(async (req) => {
     if (!tenantId) return json({ success: false, error: 'tenantId is verplicht' }, 400);
 
     const auth = await authenticateRequest(req, tenantId);
-    requireRole(auth, tenantId, ['tenant_admin']);
+    // The status path exposes metadata only (no secrets), so viewers may read it.
+    requireRole(auth, tenantId, action === 'status' ? ['tenant_admin', 'viewer'] : ['tenant_admin']);
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
