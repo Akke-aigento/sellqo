@@ -8,6 +8,7 @@ export interface PrintfulConnectionStatus {
   connected_store_name: string | null;
   last_test_at: string | null;
   last_test_ok: boolean | null;
+  webhook_registered: boolean;
 }
 
 // Mirrors useOdooConnection's invoke(): supabase.functions.invoke hides the

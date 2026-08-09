@@ -438,3 +438,6 @@ verify_jwt = false
 
 [functions.list-printful-sync-products]
 verify_jwt = false
+
+[functions.printful-webhook]
+verify_jwt = false

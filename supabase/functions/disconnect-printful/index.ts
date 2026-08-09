@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
+import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
+import { deletePrintfulWebhook } from '../_shared/printfulApi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +29,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // Best-effort webhook unregistration before the token is gone. Non-fatal.
+    const { data: cred } = await admin
+      .from('tenant_printful_credentials')
+      .select('token_ciphertext, store_id')
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+    if (cred?.token_ciphertext) {
+      try {
+        const plain = await decryptPrintfulToken(cred.token_ciphertext);
+        await deletePrintfulWebhook(plain, cred.store_id);
+      } catch (whErr) {
+        console.error('[disconnect-printful] webhook cleanup failed (non-fatal):', (whErr as Error)?.message);
+      }
+    }
 
     const { error: delErr } = await admin
       .from('tenant_printful_credentials')
