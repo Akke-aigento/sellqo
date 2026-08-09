@@ -10860,6 +10860,77 @@ export type Database = {
         }
         Relationships: []
       }
+      printful_order_links: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          external_id: string
+          forwarded_at: string | null
+          id: string
+          last_error: string | null
+          order_id: string
+          printful_order_id: number | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          external_id: string
+          forwarded_at?: string | null
+          id?: string
+          last_error?: string | null
+          order_id: string
+          printful_order_id?: number | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          external_id?: string
+          forwarded_at?: string | null
+          id?: string
+          last_error?: string | null
+          order_id?: string
+          printful_order_id?: number | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printful_order_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printful_order_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printful_order_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printful_order_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       printful_variant_mappings: {
         Row: {
           created_at: string
