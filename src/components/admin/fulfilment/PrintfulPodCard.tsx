@@ -69,6 +69,9 @@ export function PrintfulPodCard({ tenantId, onOpen }: Props) {
               </p>
             </div>
           </div>
+          {status.data?.webhook_registered && (
+            <p className="text-xs text-muted-foreground mt-2">Verzendupdates: actief</p>
+          )}
         </div>
       )}
 
