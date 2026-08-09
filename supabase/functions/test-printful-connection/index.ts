@@ -19,8 +19,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { tenantId, token, storeId } = await req.json() as {
-      tenantId?: string; token?: string; storeId?: string;
+    const { tenantId, token, storeId, action } = await req.json() as {
+      tenantId?: string; token?: string; storeId?: string; action?: string;
     };
     if (!tenantId) return json({ success: false, error: 'tenantId is verplicht' }, 400);
 
@@ -31,6 +31,25 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // Read-only status for the UI: the credentials table is deny-all for
+    // authenticated roles, so metadata is only reachable through here.
+    if (action === 'status') {
+      const { data: row, error: rowErr } = await admin
+        .from('tenant_printful_credentials')
+        .select('store_id, connected_store_name, last_test_at, last_test_ok')
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      if (rowErr) throw new Error(rowErr.message);
+      return json({
+        success: true,
+        configured: !!row,
+        store_id: row?.store_id ?? null,
+        connected_store_name: row?.connected_store_name ?? null,
+        last_test_at: row?.last_test_at ?? null,
+        last_test_ok: row?.last_test_ok ?? null,
+      });
+    }
 
     // Pre-save mode: test the supplied token. Otherwise use stored credentials.
     if (token) {
