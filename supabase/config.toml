@@ -432,3 +432,9 @@ verify_jwt = false
 
 [functions.disconnect-printful]
 verify_jwt = false
+
+[functions.forward-printful-order]
+verify_jwt = false
+
+[functions.list-printful-sync-products]
+verify_jwt = false
