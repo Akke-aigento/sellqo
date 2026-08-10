@@ -3537,7 +3537,13 @@ serve(async (req) => {
       case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
       case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
-      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+      case 'get_shipping_methods': {
+        const geoCountry = (params.country as string | undefined) || null;
+        result = await getShippingMethods(supabase, tenant_id, undefined, geoCountry);
+        cacheControl = geoCountry ? null : 'public, max-age=300';
+        break;
+      }
+      case 'get_shipping_countries': result = await getShippingCountries(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
       case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
       case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
       case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;
