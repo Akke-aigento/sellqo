@@ -2577,14 +2577,15 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       if (cart.customer_first_name) updateFields.first_name = cart.customer_first_name;
       if (cart.customer_last_name) updateFields.last_name = cart.customer_last_name;
       if (cart.customer_phone) updateFields.phone = cart.customer_phone;
+      Object.assign(updateFields, b2bCustomerFields(cart));
       if (Object.keys(updateFields).length > 0) {
         await supabase.from('customers').update(updateFields).eq('id', existing.id);
       }
     } else {
-      const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
+      const { isB2B } = b2bOrderFields(cart);
       const { data: newCust, error: insertErr } = await supabase
         .from('customers')
-        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c', acquisition_source: 'webshop' })
+        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c', acquisition_source: 'webshop', ...b2bCustomerFields(cart) })
         .select('id').single();
       if (insertErr) {
         console.error(`[STOREFRONT-CUSTOMER] insert failed for ${cart.customer_email} (tenant ${tenantId}):`, insertErr.message);
@@ -2604,7 +2605,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       payment_method: cart.payment_method || 'stripe', subtotal, tax_amount: vatAmount,
       shipping_cost: shippingCost, discount_amount: discountAmount, discount_code: (cart.discount_codes && cart.discount_codes.length > 0) ? cart.discount_codes.join(', ') : null,
       total, customer_email: cart.customer_email,
-      customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
+      customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null, customer_id: customerId,
       shipping_address: cart.shipping_address || null,
       billing_address: cart.billing_address || cart.shipping_address || null,
@@ -2613,6 +2614,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_payment_intent_id: session.payment_intent as string,
       stripe_checkout_session_id: session.id,
       locale: cart.locale || null,
+      ...b2bOrderFields(cart).orderFields,
     })
     .select('id, order_number').single();
 
