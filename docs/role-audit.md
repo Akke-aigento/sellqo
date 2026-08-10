@@ -5784,3 +5784,15 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **NIET aangeraakt:** validatie/phone-required, basisvelden van `updateData`, de `.update()`-call, `buildCartResponse`, `checkoutComplete`, `resolveCartReverseCharge`, `checkoutValidateVat`, migraties, frontend. Geen nieuwe kolommen.
 
 **Changelog-kandidaat (nog niet gepubliceerd):** bugfix/security — "Zakelijke bestelstatus wordt nu correct teruggezet wanneer een klant niet langer zakelijk bestelt, zodat de btw-behandeling altijd klopt."
+
+## B2B-CHECKOUT-BACKEND-3 — B2B-velden in customer-object van buildCartResponse (rehydratie)
+
+**Root cause:** `buildCartResponse` gaf `reverse_charge`/`vat_regime`/`vat_text` wel top-level terug, maar het `customer`-object bevatte alleen `email`, `first_name`, `last_name` en `phone`. Bij terugkeer/herlaad van de checkout kon een frontend dus niet zien dát (en als wié) de klant zakelijk bestelt: leeg formulier met de zakelijk-toggle uit terwijl de prijzen netto zijn (live gereproduceerd).
+
+**Fix (puur additief):** het `customer`-object bevat nu extra `is_b2b`, `company_name`, `vat_number`, `vat_verified`, `vat_country` en `vat_company_name`, gelezen uit de cart-rij. `getCartForCheckout` gebruikt `select('*')` op `storefront_carts`, dus alle kolommen waren al beschikbaar — geen select-wijziging nodig.
+
+**Gedrag:** B2C-cart → `is_b2b: false` en de overige B2B-velden `null`/`false`; B2B-cart → alle velden gevuld. Bestaande velden zijn ongewijzigd, dus geen breaking change.
+
+**NIET aangeraakt:** `checkoutCustomer`, `checkoutComplete`, `createOrderFromCart`, `resolveCartReverseCharge`, `_shared/vat.ts`, btw-/totaalberekening, queries, migraties, frontend.
+
+**Changelog-kandidaat (nog niet gepubliceerd):** enhancement — "Zakelijke gegevens blijven zichtbaar wanneer een klant terugkeert in de checkout."
