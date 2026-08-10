@@ -1293,6 +1293,10 @@
           "title": "Affichage plus clair des intégrations disponibles et à venir",
           "description": "SellQo Connect indique maintenant clairement quelles intégrations sont actives et lesquelles arrivent bientôt. Les canaux pas encore disponibles reçoivent une mention claire au lieu d'un bouton inactif."
         },
+        "dialog_viewport_fix": {
+          "title": "Les fenêtres s'adaptent mieux à votre écran",
+          "description": "Les fenêtres s'adaptent désormais correctement aux écrans plus petits. Les formulaires longs défilent dans la fenêtre, afin que les boutons comme Enregistrer restent toujours accessibles sur ordinateur portable et mobile."
+        },
         "printful_product_import": {
           "title": "Importer des produits depuis Printful",
           "description": "Vos créations Printful peuvent désormais être importées comme produits SellQo en un clic. Vous voyez d'abord un aperçu avec toutes les variantes, où vous pouvez ajuster les prix suggérés. Les images sont reprises et les variantes sont automatiquement liées à Printful, pour que le transfert fonctionne immédiatement. Les nouveaux produits arrivent inactifs et masqués : vous les vérifiez et les publiez vous-même."

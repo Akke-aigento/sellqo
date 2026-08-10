@@ -1293,6 +1293,10 @@
           "title": "Duidelijkere weergave van beschikbare en aankomende integraties",
           "description": "In SellQo Connect zie je nu direct welke koppelingen live zijn en welke binnenkort komen. Kanalen die nog niet beschikbaar zijn, krijgen een duidelijk label in plaats van een knop die nog niets doet."
         },
+        "dialog_viewport_fix": {
+          "title": "Vensters passen zich beter aan je scherm aan",
+          "description": "Vensters passen zich nu correct aan kleinere schermen aan. Lange formulieren scrollen binnen het venster, zodat knoppen zoals Opslaan altijd bereikbaar blijven op laptop en mobiel."
+        },
         "printful_product_import": {
           "title": "Producten importeren uit Printful",
           "description": "Je Printful-ontwerpen zijn nu met één klik over te nemen als SellQo-product. Je krijgt eerst een voorbeeld met alle varianten, waar je de voorgestelde prijzen kunt aanpassen. Beelden worden mee overgenomen en de varianten worden automatisch aan Printful gekoppeld, zodat doorsturen direct werkt. Nieuwe producten komen op niet-actief en verborgen te staan, zodat je ze zelf nakijkt en live zet."

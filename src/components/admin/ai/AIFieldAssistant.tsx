@@ -275,7 +275,7 @@ export function AIFieldAssistant({
 
       {/* Results Dialog - scrollable modal */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+        <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-primary" />
