@@ -31,6 +31,7 @@ import {
   RefreshCw,
   Loader2,
   QrCode,
+  MoreVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +48,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts, usePOSCashMovements } from '@/hooks/usePOS';
 import { useProducts } from '@/hooks/useProducts';
@@ -934,7 +936,7 @@ export default function POSTerminalPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2 overflow-x-auto">
+        <div className="flex items-center gap-2 hidden lg:flex">
           {/* Offline/Sync Status */}
           {!isOnline && (
             <Badge variant="destructive" className="gap-1 shrink-0">
@@ -1038,6 +1040,84 @@ export default function POSTerminalPage() {
               Dag Sluiten
             </Button>
           )}
+        </div>
+
+        {/* Mobile: compacte rij met reader-status + ••• menu (Square-patroon) */}
+        <div className="flex items-center gap-2 lg:hidden">
+          {!isOnline && (
+            <Badge variant="destructive" className="gap-1 shrink-0">
+              <CloudOff className="h-3 w-3" />
+              Offline
+            </Badge>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            onClick={() => setShowReaderDialog(true)}
+          >
+            {connectedReader?.status === 'online' ? (
+              <Wifi className="h-4 w-4 text-green-500" />
+            ) : (
+              <CreditCard className="h-4 w-4" />
+            )}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {pendingCount > 0 && (
+                <DropdownMenuItem
+                  onClick={() => isOnline && syncAll()}
+                  disabled={isSyncing || !isOnline}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {pendingCount} wachtend
+                </DropdownMenuItem>
+              )}
+              {activeSession && (
+                <>
+                  <DropdownMenuItem onClick={() => setShowCashMovementDialog(true)}>
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Kas +/-
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowSessionReportDialog(true)}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Rapport
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowTransactionHistory(true)}>
+                    <ListOrdered className="mr-2 h-4 w-4" />
+                    Retouren
+                  </DropdownMenuItem>
+                </>
+              )}
+              {parkedCarts.length > 0 && (
+                <DropdownMenuItem onClick={() => setShowParkedCartsDialog(true)}>
+                  <PauseCircle className="mr-2 h-4 w-4" />
+                  Geparkeerd ({parkedCarts.length})
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setShowReaderDialog(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Instellingen
+              </DropdownMenuItem>
+              {activeSession && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setShowCloseSessionDialog(true)}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Dag Sluiten
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       
