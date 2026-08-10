@@ -14649,15 +14649,21 @@ export type Database = {
           checkout_status: string | null
           created_at: string
           currency: string
+          customer_company_name: string | null
           customer_email: string | null
           customer_first_name: string | null
           customer_id: string | null
           customer_last_name: string | null
           customer_phone: string | null
+          customer_vat_company_name: string | null
+          customer_vat_country: string | null
+          customer_vat_number: string | null
+          customer_vat_verified: boolean | null
           discount_amount: number | null
           discount_codes: string[] | null
           expires_at: string
           id: string
+          is_b2b: boolean | null
           locale: string | null
           payment_method: string | null
           session_id: string
@@ -14675,15 +14681,21 @@ export type Database = {
           checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_company_name?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_id?: string | null
           customer_last_name?: string | null
           customer_phone?: string | null
+          customer_vat_company_name?: string | null
+          customer_vat_country?: string | null
+          customer_vat_number?: string | null
+          customer_vat_verified?: boolean | null
           discount_amount?: number | null
           discount_codes?: string[] | null
           expires_at?: string
           id?: string
+          is_b2b?: boolean | null
           locale?: string | null
           payment_method?: string | null
           session_id: string
@@ -14701,15 +14713,21 @@ export type Database = {
           checkout_status?: string | null
           created_at?: string
           currency?: string
+          customer_company_name?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_id?: string | null
           customer_last_name?: string | null
           customer_phone?: string | null
+          customer_vat_company_name?: string | null
+          customer_vat_country?: string | null
+          customer_vat_number?: string | null
+          customer_vat_verified?: boolean | null
           discount_amount?: number | null
           discount_codes?: string[] | null
           expires_at?: string
           id?: string
+          is_b2b?: boolean | null
           locale?: string | null
           payment_method?: string | null
           session_id?: string

@@ -1700,6 +1700,38 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   };
 }
 
+// B2B-2a — B2B-data doorgifte van cart naar order/customer. Geen BTW-impact.
+function b2bOrderFields(cart: any) {
+  const isB2B = !!cart.is_b2b;
+  return {
+    isB2B,
+    orderFields: {
+      customer_type: isB2B ? 'b2b' : 'b2c',
+      customer_company_name: cart.customer_company_name || null,
+      customer_vat_number: cart.customer_vat_number || null,
+      customer_vat_verified: !!cart.customer_vat_verified,
+      vat_country: cart.customer_vat_country || null,
+    } as Record<string, any>,
+  };
+}
+
+function b2bCustomerFields(cart: any) {
+  if (!cart.is_b2b) return {} as Record<string, any>;
+  const fields: Record<string, any> = {};
+  if (cart.customer_company_name) fields.company_name = cart.customer_company_name;
+  if (cart.customer_vat_number) fields.vat_number = cart.customer_vat_number;
+  if (cart.customer_vat_verified !== undefined && cart.customer_vat_verified !== null) {
+    fields.vat_verified = !!cart.customer_vat_verified;
+    if (cart.customer_vat_verified) fields.vat_verified_at = new Date().toISOString();
+  }
+  return fields;
+}
+
+function orderCustomerName(cart: any) {
+  if (cart.is_b2b && cart.customer_company_name) return String(cart.customer_company_name).trim();
+  return `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
+}
+
 async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
   // Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
@@ -1758,11 +1790,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       if (cart.customer_first_name) updateFields.first_name = cart.customer_first_name;
       if (cart.customer_last_name) updateFields.last_name = cart.customer_last_name;
       if (cart.customer_phone) updateFields.phone = cart.customer_phone;
+      Object.assign(updateFields, b2bCustomerFields(cart));
       if (Object.keys(updateFields).length > 0) {
         await supabase.from('customers').update(updateFields).eq('id', existing.id);
       }
     } else {
-      const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
+      const { isB2B } = b2bOrderFields(cart);
       const { data: newCust, error: insertErr } = await supabase
         .from('customers')
         .insert({
@@ -1770,6 +1803,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
           first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '',
           phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c',
           acquisition_source: 'webshop',
+          ...b2bCustomerFields(cart),
         })
         .select('id').single();
       if (insertErr) {
@@ -1798,7 +1832,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       discount_code: (cart.discount_codes || []).join(', ') || null,
       total,
       customer_email: cart.customer_email,
-      customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
+      customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null,
       customer_id: customerId,
       shipping_address: cart.shipping_address || null,
@@ -1808,6 +1842,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       stripe_payment_intent_id: stripePaymentIntentId || null,
       expires_at: expiresAt || null,
       locale: cart.locale || null,
+      ...b2bOrderFields(cart).orderFields,
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -1912,6 +1947,14 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
     updated_at: new Date().toISOString(),
   };
   if (params.locale) updateData.locale = params.locale;
+
+  // B2B-2a — optionele B2B-velden opslaan (geen validatie hier, geen BTW-impact)
+  if (customer.is_b2b !== undefined) updateData.is_b2b = !!customer.is_b2b;
+  if (customer.company_name !== undefined) updateData.customer_company_name = customer.company_name || null;
+  if (customer.vat_number !== undefined) updateData.customer_vat_number = customer.vat_number || null;
+  if (customer.vat_verified !== undefined) updateData.customer_vat_verified = !!customer.vat_verified;
+  if (customer.vat_country !== undefined) updateData.customer_vat_country = customer.vat_country || null;
+  if (customer.vat_company_name !== undefined) updateData.customer_vat_company_name = customer.vat_company_name || null;
 
   const { error } = await supabase.from('storefront_carts').update(updateData).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
@@ -2534,14 +2577,15 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       if (cart.customer_first_name) updateFields.first_name = cart.customer_first_name;
       if (cart.customer_last_name) updateFields.last_name = cart.customer_last_name;
       if (cart.customer_phone) updateFields.phone = cart.customer_phone;
+      Object.assign(updateFields, b2bCustomerFields(cart));
       if (Object.keys(updateFields).length > 0) {
         await supabase.from('customers').update(updateFields).eq('id', existing.id);
       }
     } else {
-      const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
+      const { isB2B } = b2bOrderFields(cart);
       const { data: newCust, error: insertErr } = await supabase
         .from('customers')
-        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c', acquisition_source: 'webshop' })
+        .insert({ tenant_id: tenantId, email: cart.customer_email, first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '', phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c', acquisition_source: 'webshop', ...b2bCustomerFields(cart) })
         .select('id').single();
       if (insertErr) {
         console.error(`[STOREFRONT-CUSTOMER] insert failed for ${cart.customer_email} (tenant ${tenantId}):`, insertErr.message);
@@ -2561,7 +2605,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       payment_method: cart.payment_method || 'stripe', subtotal, tax_amount: vatAmount,
       shipping_cost: shippingCost, discount_amount: discountAmount, discount_code: (cart.discount_codes && cart.discount_codes.length > 0) ? cart.discount_codes.join(', ') : null,
       total, customer_email: cart.customer_email,
-      customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
+      customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null, customer_id: customerId,
       shipping_address: cart.shipping_address || null,
       billing_address: cart.billing_address || cart.shipping_address || null,
@@ -2570,6 +2614,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_payment_intent_id: session.payment_intent as string,
       stripe_checkout_session_id: session.id,
       locale: cart.locale || null,
+      ...b2bOrderFields(cart).orderFields,
     })
     .select('id, order_number').single();
 

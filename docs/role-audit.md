@@ -1,3 +1,21 @@
+## B2B-2a — B2B-velden door checkout naar order+customer — 10 augustus 2026
+
+**Root cause:** de checkout-flow verzamelde geen B2B-gegevens. Beide order-creatie-paden in `supabase/functions/storefront-api/index.ts` bevatten een check `!!(cart.customer_btw_number || cart.is_b2b)`, maar `storefront_carts` had géén van beide kolommen — `customer_btw_number` bestond nooit als kolom, dus de check was dode code die altijd `false` opleverde. Gevolg: elke webshop-order werd als `b2c` weggeschreven en bedrijfsnaam/BTW-nummer landden nooit op order of customer.
+
+**Uitgevoerd:**
+- Migratie (idempotent, `ADD COLUMN IF NOT EXISTS`) op `public.storefront_carts`: `is_b2b` (default false), `customer_company_name`, `customer_vat_number`, `customer_vat_verified` (default false), `customer_vat_country`, `customer_vat_company_name` (VIES-naam, apart van klant-invoer).
+- `checkoutCustomer`: accepteert optioneel `is_b2b`, `company_name`, `vat_number`, `vat_verified`, `vat_country`, `vat_company_name` en slaat enkel aanwezige velden op. Geen validatie-afdwinging hier (frontend + `block_invalid_vat_orders` volgt in 2b).
+- Helpers `b2bOrderFields()`, `b2bCustomerFields()` en `orderCustomerName()` toegevoegd, gebruikt in BEIDE order-paden (`createOrderFromCart` en de verify/bank-flow) zodat er geen drift ontstaat: `customer_type`, `customer_company_name`, `customer_vat_number`, `customer_vat_verified`, `vat_country` op de order; `company_name`/`vat_number`/`vat_verified`/`vat_verified_at` op nieuwe én bestaande customers (enkel aanwezige velden, nooit leeg overschrijven); `customer_name` = bedrijfsnaam bij B2B met company_name, anders de bestaande voornaam+achternaam-logica.
+- Dode `customer_btw_number`-check in beide paden verwijderd; nu enkel `cart.is_b2b`.
+
+**Bewust ongemoeid:** de BTW-berekening blijft VOLLEDIG ongewijzigd — geen wijziging aan `_shared/vat.ts`, `extractVatFromGross`, `resolveLineVatBatch/Sync`, `tax_amount`, `total`, `vat_rate` of `vat_amount`. Verlegging (reverse charge) komt in B2B-2b.
+
+**Security-keuzes:** geen RLS- of policy-wijziging; enkel additieve nullable kolommen op een bestaande cart-tabel. Kolomnamen vooraf geverifieerd tegen het live schema (`orders`, `customers`, `storefront_carts`).
+
+**Gedeelde-paden-waarschuwing (G1):** `storefront-api` is een gedeeld pad. B2C-checkouts zonder B2B-velden gedragen zich identiek: `is_b2b` blijft `false`, alle nieuwe order-velden worden `null`/`false` en `customer_type` blijft `'b2c'` — exact het effectieve gedrag van vóór deze batch.
+
+**Verificatie:** `deno check supabase/functions/storefront-api/index.ts` groen; `rg customer_btw_number` levert 0 hits in `supabase/functions/` en `src/`.
+
 ## LOVEKE-PHONE-1 (Deel A) — checkout_phone_required validatie in storefront-api/checkoutCustomer — 10 augustus 2026
 
 **Root cause:** `tenant_theme_settings.checkout_phone_required` bestond al als boolean-kolom, maar werd nooit gelezen in de checkout-flow. De `checkoutCustomer`-handler in `supabase/functions/storefront-api/index.ts` valideerde `email`, `first_name` en `last_name`, terwijl `customer_phone` wel werd opgeslagen zonder verplichtheidscontrole. Voor tenants die telefoon verplicht wilden maken, was er dus geen backend-afdwinging.
