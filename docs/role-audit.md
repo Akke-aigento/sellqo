@@ -1,4 +1,21 @@
+## LOVEKE-PHONE-1 (Deel A) — checkout_phone_required validatie in storefront-api/checkoutCustomer — 10 augustus 2026
+
+**Root cause:** `tenant_theme_settings.checkout_phone_required` bestond al als boolean-kolom, maar werd nooit gelezen in de checkout-flow. De `checkoutCustomer`-handler in `supabase/functions/storefront-api/index.ts` valideerde `email`, `first_name` en `last_name`, terwijl `customer_phone` wel werd opgeslagen zonder verplichtheidscontrole. Voor tenants die telefoon verplicht wilden maken, was er dus geen backend-afdwinging.
+
+**Uitgevoerd:** `supabase/functions/storefront-api/index.ts`, functie `checkoutCustomer` (regels ~1878–1880):
+- Na de `last_name`-check en vóór de `emailRegex`-check een additieve, flag-gated telefoonvalidatie toegevoegd.
+- Leest `tenant_theme_settings.checkout_phone_required` voor de betreffende tenant via `.maybeSingle()`.
+- Alleen als `checkout_phone_required = true` EN `customer.phone` ontbreekt of leeg is, wordt een `VALIDATION_ERROR` teruggegeven met veld `phone`.
+- Geen wijziging aan de opslag van `customer_phone` in `updateData`, geen refactor van bestaande e-mail/voornaam/achternaam-checks, geen aanpassing aan andere handlers of shared files.
+
+**Security-keuzes:** geen nieuwe policy of RLS-wijziging. De validatie leest alleen een bestaande tenant-instelling en is volledig additief. Er wordt geen tenant-gevoelige informatie blootgelegd.
+
+**Gedeelde-paden-waarschuwing (G1):** `storefront-api` is een gedeeld pad voor alle tenants. De wijziging is bewust flag-gated: tenants met `checkout_phone_required = false` of `NULL` ervaren geen enkel gedragsverschil. Alleen tenants die de vlag expliciet op `true` zetten, krijgen de nieuwe verplicht-validatie.
+
+**Vervolg:** geen changelog/newsletter/docs voor dit deel A; puur backend-validatie die pas zichtbaar wordt wanneer een tenant de vlag activeert. Deel B kan de vlag aan de storefront-UI koppelen indien gewenst.
+
 ## POS snelknoppen tekst-overflow op tablet (vervolg 2A-POS) — 10 augustus 2026
+
 
 **Root cause:** de snelknoppen-grid in `src/pages/admin/POSTerminal.tsx` gebruikte `grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2`. Op tablet (md-breekpunt) werden de tegels in 8 kolommen verdeeld, waardoor de vaste `aspect-square`-tegels te smal werden. De productlabels (`<span>` voor naam en prijs) en de Cadeaukaart-labels hadden geen `w-full`/`break-words`/`truncate`, zodat lange teksten zoals "VanXcel 500W...", "Cadeaukaart" en "€ 299,00" horizontaal uit de tegels liepen en deels onleesbaar/visueel gebroken werden.
 
