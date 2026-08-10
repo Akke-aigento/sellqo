@@ -107,6 +107,65 @@ export function rateForRegime(regime: VatRegimeCode, destCountry?: string): numb
   }
 }
 
+/** Regimes waarbij er géén btw wordt aangerekend: bedragen worden netto. */
+export const ZERO_RATED_REGIMES = new Set<VatRegimeCode>([
+  'ic_supply_goods', 'ic_supply_services', 'ic_supply_triangulation',
+  'export_outside_eu', 'domestic_zero', 'exempt_article_44',
+]);
+
+export function isZeroRatedRegime(regime: VatRegimeCode): boolean {
+  return ZERO_RATED_REGIMES.has(regime);
+}
+
+export interface RegimeDecisionInput {
+  customer_country: string;
+  tenant_country: string;
+  is_b2b: boolean;
+  vies_valid: boolean;
+  oss_enabled: boolean;
+  oss_activation_date?: string | null;
+  simplified_vat?: boolean;
+  sales_channel?: SalesChannel;
+  order_date?: string;
+  has_goods?: boolean;
+  has_service?: boolean;
+}
+
+/**
+ * VAT-CHECKOUT-PARITY-1 — pure beslisboom, gedeeld door de factuur-resolver en
+ * de storefront-checkout. Geen DB-toegang: de caller levert de feiten aan.
+ */
+export function decideVatRegime(input: RegimeDecisionInput): { regime: VatRegimeCode; warnings: string[] } {
+  const warnings: string[] = [];
+  const customerCountry = (input.customer_country || input.tenant_country || 'BE').toUpperCase();
+  const tenantCountry = (input.tenant_country || 'BE').toUpperCase();
+  const orderDate = input.order_date || new Date().toISOString().slice(0, 10);
+  const ossActivationDate = input.oss_activation_date || null;
+  const ossActive = !!input.oss_enabled && (!ossActivationDate || orderDate >= ossActivationDate);
+
+  if (customerCountry === tenantCountry) return { regime: 'domestic_standard', warnings };
+  if (!isEu(customerCountry)) return { regime: 'export_outside_eu', warnings };
+
+  if (input.sales_channel === 'marketplace_bolcom' && !input.is_b2b) {
+    return { regime: 'marketplace_deemed_supplier', warnings };
+  }
+  if (input.is_b2b && input.vies_valid) {
+    const hasGoods = input.has_goods !== false;
+    return { regime: hasGoods ? 'ic_supply_goods' : (input.has_service ? 'ic_supply_services' : 'ic_supply_goods'), warnings };
+  }
+  if (!input.is_b2b && input.simplified_vat) return { regime: 'domestic_standard', warnings };
+  if (!input.is_b2b && ossActive) return { regime: 'oss_b2c_eu', warnings };
+
+  if (input.is_b2b) {
+    warnings.push('EU B2B customer without valid VIES — treated as B2C (domestic_standard)');
+  } else if (input.oss_enabled && ossActivationDate && orderDate < ossActivationDate) {
+    warnings.push(`Cross-border EU B2C vóór OSS-activatiedatum ${ossActivationDate} — geclassificeerd als domestic_standard`);
+  } else {
+    warnings.push('Cross-border EU B2C zonder OSS — controleer of jaaromzet onder €10k drempel blijft');
+  }
+  return { regime: 'domestic_standard', warnings };
+}
+
 async function validateViesWithTimeout(
   supabase: SupabaseClient,
   vatNumber: string,
@@ -198,39 +257,25 @@ export async function resolveVatRegime(
       }
     }
 
-    if (customerCountry === tenantCountry) {
-      invoiceLevel.vat_regime = 'domestic_standard';
-    } else if (isEu(customerCountry)) {
-      if (input.sales_channel === 'marketplace_bolcom' && !isB2B) {
-        invoiceLevel.vat_regime = 'marketplace_deemed_supplier';
-      } else if (isB2B && viesValid) {
-        const hasGoods = input.invoice_lines.some(
-          (l) => !l.product_category || ['goods','book','food','medicine'].includes(l.product_category),
-        );
-        const hasService = input.invoice_lines.some(
-          (l) => l.product_category === 'digital_service' || l.product_category === 'professional_service',
-        );
-        invoiceLevel.vat_regime = hasGoods ? 'ic_supply_goods' : (hasService ? 'ic_supply_services' : 'ic_supply_goods');
-      } else if (!isB2B && simplifiedVat) {
-        // PRIORITY 1: simplified VAT mode overrides cross-border complexity
-        invoiceLevel.vat_regime = 'domestic_standard';
-      } else if (!isB2B && ossActive) {
-        // PRIORITY 2: OSS B2C EU (only on/after activation date)
-        invoiceLevel.vat_regime = 'oss_b2c_eu';
-      } else {
-        // PRIORITY 3: fallback domestic_standard (tenant home country rate)
-        invoiceLevel.vat_regime = 'domestic_standard';
-        if (isB2B) {
-          warnings.push('EU B2B customer without valid VIES — treated as B2C (domestic_standard)');
-        } else if (ossEnabled && ossActivationDate && orderDate < ossActivationDate) {
-          warnings.push(`Cross-border EU B2C vóór OSS-activatiedatum ${ossActivationDate} — geclassificeerd als domestic_standard`);
-        } else {
-          warnings.push('Cross-border EU B2C zonder OSS — controleer of jaaromzet onder €10k drempel blijft');
-        }
-      }
-    } else {
-      invoiceLevel.vat_regime = 'export_outside_eu';
-    }
+    const decision = decideVatRegime({
+      customer_country: customerCountry,
+      tenant_country: tenantCountry,
+      is_b2b: isB2B,
+      vies_valid: viesValid,
+      oss_enabled: ossEnabled,
+      oss_activation_date: ossActivationDate,
+      simplified_vat: simplifiedVat,
+      sales_channel: input.sales_channel,
+      order_date: orderDate,
+      has_goods: input.invoice_lines.some(
+        (l) => !l.product_category || ['goods','book','food','medicine'].includes(l.product_category),
+      ),
+      has_service: input.invoice_lines.some(
+        (l) => l.product_category === 'digital_service' || l.product_category === 'professional_service',
+      ),
+    });
+    invoiceLevel.vat_regime = decision.regime;
+    warnings.push(...decision.warnings);
   }
 
   const { data: regimeRows } = await supabase
