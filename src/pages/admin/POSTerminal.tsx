@@ -195,27 +195,8 @@ export default function POSTerminalPage() {
   
   // Calculate totals
   const cartTotals = useMemo(() => {
-    const itemSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const itemDiscount = cart.reduce((sum, item) => sum + item.discount, 0);
-    
-    // Apply cart-level discount
-    let cartDiscountAmount = 0;
-    if (cartDiscount) {
-      if (cartDiscount.type === 'percentage') {
-        cartDiscountAmount = (itemSubtotal * cartDiscount.value) / 100;
-      } else {
-        cartDiscountAmount = cartDiscount.value;
-      }
-    }
-    
-    const totalDiscount = itemDiscount + cartDiscountAmount;
-    const subtotal = itemSubtotal;
-    const taxRate = 21; // Default VAT
-    const taxTotal = (subtotal - totalDiscount) * (taxRate / 100);
-    const total = subtotal - totalDiscount + taxTotal;
-    
-    return { subtotal, discount: totalDiscount, cartDiscountAmount, taxTotal, total };
-  }, [cart, cartDiscount]);
+    return calculatePosTotals(cart, cartDiscount, currentTenant?.default_vat_handling || 'inclusive');
+  }, [cart, cartDiscount, currentTenant?.default_vat_handling]);
   
   // Add product to cart
   const addToCart = useCallback((product: Product) => {
@@ -237,7 +218,7 @@ export default function POSTerminalPage() {
         sku: product.sku || null,
         price: product.price,
         quantity: 1,
-        tax_rate: 21,
+        tax_rate: resolveProductTaxRate(product),
         discount: 0,
         total: product.price,
         image_url: (product as unknown as { image_url?: string }).image_url || null,
@@ -245,7 +226,7 @@ export default function POSTerminalPage() {
       
       return [...prev, newItem];
     });
-  }, []);
+  }, [resolveProductTaxRate]);
   
   // Update quantity
   const updateQuantity = useCallback((itemId: string, delta: number) => {
