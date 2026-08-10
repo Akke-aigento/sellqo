@@ -22,6 +22,18 @@
 **Gedeelde-paden-waarschuwing (G1):** `cartPanelContent` is nu een gedeeld codepad dat twee werelden bedient (desktop-zijpaneel en mobiele Sheet). Wie hier iets wijzigt, wijzigt beide weergaven tegelijk. Bewust NIET aangeraakt: betaal-handlers, cart-state, kortingen, parkeren, `cartTotals`. Enkel container/klassen gewijzigd, zodat lg+ byte-identiek rendert als voorheen.
 **Vervolg:** live 390px/768px-verificatie in de kassa (achter admin-login) door Akke; changelog `2026.09n` staat klaar, newsletter-item in de wachtrij.
 
+## POS-header overflow fix (vervolg 2A-POS) — 10 augustus 2026
+**Root cause:** de POSTerminal-header hield de actieknoppen (reader-status, Geparkeerd, Kas +/-, Rapport, transactie-historie, instellingen, Dag Sluiten) in een flex-rij zonder `overflow-x-auto`. Op smalle schermen liepen "Rapport" en verder buiten het viewport en waren niet bereikbaar. De terminal-naam had geen `min-w-0`/`truncate`, dus een lange naam duwde de knoppenrij verder het scherm uit.
+**Uitgevoerd:** `src/pages/admin/POSTerminal.tsx` — uitsluitend de `<header>`-rij:
+- Rechter knoppen-container: className uitgebreid van `flex items-center gap-2` naar `flex items-center gap-2 overflow-x-auto`.
+- Alle losse knoppen en de offline-badge in die rij kregen `shrink-0` zodat ze niet samendrukken.
+- Linker titel-container kreeg `min-w-0`; de `<h1>` kreeg `truncate`.
+- De `<header>` zelf behield `justify-between`; geen andere elementen in het bestand aangeraakt.
+**Security-keuzes:** n.v.t. — puur presentatie, geen handlers, state, routes of policies gewijzigd.
+**Gedeelde-paden-waarschuwing (G1):** de header is een gedeeld codepad voor desktop en mobiel. De wijziging is bewust alleen CSS-klassen; functionaliteit is ongewijzigd.
+**Vervolg:** valt onder de reeds aangekondigde changelog `2026.09n` "Kassa vlot op tablet/telefoon" (zelfde feature, afgemaakt). Geen nieuwe changelog-versie, geen nieuw newsletter-item, geen docs-wijziging.
+
+
 ## SECURITY-PAGES-1 — Publieke Security & Compliance sectie — 8 augustus 2026
 
 **Waarom:** partners en marketplace-integraties vragen naar een aantoonbare security-posture. Die documentatie bestond nergens publiek; alleen juridische pagina's (`sellqo_legal_pages`) waren er.

@@ -916,12 +916,12 @@ export default function POSTerminalPage() {
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="border-b bg-card px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="font-semibold">{terminal.name}</h1>
+          <div className="min-w-0">
+            <h1 className="font-semibold truncate">{terminal.name}</h1>
             {activeSession && (
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -934,10 +934,10 @@ export default function POSTerminalPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           {/* Offline/Sync Status */}
           {!isOnline && (
-            <Badge variant="destructive" className="gap-1">
+            <Badge variant="destructive" className="gap-1 shrink-0">
               <CloudOff className="h-3 w-3" />
               Offline
             </Badge>
@@ -946,6 +946,7 @@ export default function POSTerminalPage() {
             <Button
               variant={isOnline ? 'outline' : 'secondary'}
               size="sm"
+              className="shrink-0"
               onClick={() => isOnline && syncAll()}
               disabled={isSyncing || !isOnline}
             >
@@ -963,7 +964,7 @@ export default function POSTerminalPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowReaderDialog(true)}
-            className={connectedReader?.status === 'online' ? 'border-green-500' : ''}
+            className={`shrink-0 ${connectedReader?.status === 'online' ? 'border-green-500' : ''}`}
           >
             {connectedReader ? (
               <>
@@ -985,6 +986,7 @@ export default function POSTerminalPage() {
             <Button 
               variant="outline" 
               size="sm"
+              className="shrink-0"
               onClick={() => setShowParkedCartsDialog(true)}
             >
               <PauseCircle className="mr-2 h-4 w-4" />
@@ -996,6 +998,7 @@ export default function POSTerminalPage() {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="shrink-0"
                 onClick={() => setShowCashMovementDialog(true)}
               >
                 <TrendingUp className="mr-2 h-4 w-4" />
@@ -1004,6 +1007,7 @@ export default function POSTerminalPage() {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="shrink-0"
                 onClick={() => setShowSessionReportDialog(true)}
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
@@ -1012,6 +1016,7 @@ export default function POSTerminalPage() {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="shrink-0"
                 onClick={() => setShowTransactionHistory(true)}
               >
                 <ListOrdered className="mr-2 h-4 w-4" />
@@ -1019,13 +1024,14 @@ export default function POSTerminalPage() {
               </Button>
             </>
           )}
-          <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}>
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowReaderDialog(true)}>
             <Settings className="h-4 w-4" />
           </Button>
           {activeSession && (
             <Button 
               variant="outline" 
               size="sm"
+              className="shrink-0"
               onClick={() => setShowCloseSessionDialog(true)}
             >
               <LogOut className="mr-2 h-4 w-4" />
