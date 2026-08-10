@@ -96,6 +96,7 @@ export default function POSTerminalPage() {
   const { readers, listReaders, isProcessing: isStripeProcessing } = useStripeTerminal();
   const { earnPoints, redeemPoints } = usePOSLoyalty();
   const { currentTenant } = useTenant();
+  const { vatRates } = useVatRates();
   const { user } = useAuth();
   
   // Offline sync handler
