@@ -167,13 +167,34 @@ export default function ShopCheckout() {
         const payload = res?.data ?? res;
         if (cancelled) return;
         const list: string[] = Array.isArray(payload?.countries) ? payload.countries : [];
-        setShippableCountries(payload?.unrestricted || list.length === 0 ? null : list);
+        // unrestricted = winkel legt geen landbeperking op → volledige lijst tonen.
+        setShippableCountries(payload?.unrestricted ? null : list);
+        if (payload?.default_country) setDefaultShippingCountry(String(payload.default_country).toUpperCase());
       } catch {
         if (!cancelled) setShippableCountries(null);
       }
     })();
     return () => { cancelled = true; };
   }, [tenant?.id]);
+
+  // SHIP-GEO-2 — landenopties in de actieve taal + auto-correctie van een niet-leverbaar land.
+  const countryOptions = useMemo(
+    () => localizedCountryOptions(shippableCountries, i18n.language),
+    [shippableCountries, i18n.language]
+  );
+  const shipsNowhere = shippableCountries !== null && shippableCountries.length === 0;
+  const singleCountry = countryOptions.length === 1 ? countryOptions[0] : null;
+
+  useEffect(() => {
+    if (shippableCountries === null || shippableCountries.length === 0) return;
+    const current = customerData.country?.toUpperCase();
+    if (current && shippableCountries.includes(current)) return;
+    const fallback =
+      (defaultShippingCountry && shippableCountries.includes(defaultShippingCountry))
+        ? defaultShippingCountry
+        : shippableCountries[0];
+    setCustomerData(prev => ({ ...prev, country: fallback }));
+  }, [shippableCountries, defaultShippingCountry, customerData.country]);
 
   // Address autocomplete debounce
   useEffect(() => {
