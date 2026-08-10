@@ -13959,6 +13959,7 @@ export type Database = {
       }
       shipping_methods: {
         Row: {
+          countries: string[] | null
           created_at: string
           description: string | null
           estimated_days_max: number | null
@@ -13981,6 +13982,7 @@ export type Database = {
           vat_rate_id: string | null
         }
         Insert: {
+          countries?: string[] | null
           created_at?: string
           description?: string | null
           estimated_days_max?: number | null
@@ -14003,6 +14005,7 @@ export type Database = {
           vat_rate_id?: string | null
         }
         Update: {
+          countries?: string[] | null
           created_at?: string
           description?: string | null
           estimated_days_max?: number | null
@@ -17464,6 +17467,7 @@ export type Database = {
           require_vies_validation: boolean | null
           reverse_charge_text: string | null
           secondary_color: string | null
+          shipping_allowed_countries: string[] | null
           shipping_conflict_rule: string
           shipping_enabled: boolean | null
           simplified_vat_acknowledged_at: string | null
@@ -17574,6 +17578,7 @@ export type Database = {
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
+          shipping_allowed_countries?: string[] | null
           shipping_conflict_rule?: string
           shipping_enabled?: boolean | null
           simplified_vat_acknowledged_at?: string | null
@@ -17684,6 +17689,7 @@ export type Database = {
           require_vies_validation?: boolean | null
           reverse_charge_text?: string | null
           secondary_color?: string | null
+          shipping_allowed_countries?: string[] | null
           shipping_conflict_rule?: string
           shipping_enabled?: boolean | null
           simplified_vat_acknowledged_at?: string | null
