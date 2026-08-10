@@ -28,10 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Globe, Package } from "lucide-react";
 import { useShippingClasses } from "@/hooks/useShippingClasses";
 import { ShippingClassProductsDialog } from "@/components/admin/shipping/ShippingClassProductsDialog";
 import type { ShippingMethod } from "@/types/shipping";
+import {
+  ALL_SHIPPING_COUNTRIES,
+  REGION_PRESETS,
+  summarizeCountries,
+} from "@/lib/shippingRegions";
 
 const NO_CLASS = "__none__";
 
@@ -45,6 +52,7 @@ const formSchema = z.object({
   is_active: z.boolean(),
   is_default: z.boolean(),
   shipping_class_id: z.string().optional().nullable(),
+  countries: z.array(z.string()).optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -76,6 +84,7 @@ export function ShippingMethodDialog({
       is_active: true,
       is_default: false,
       shipping_class_id: null,
+      countries: [],
     },
   });
 
@@ -96,6 +105,7 @@ export function ShippingMethodDialog({
         is_active: method.is_active,
         is_default: method.is_default,
         shipping_class_id: method.shipping_class_id || null,
+        countries: method.countries ?? [],
       });
     } else {
       form.reset({
@@ -108,6 +118,7 @@ export function ShippingMethodDialog({
         is_active: true,
         is_default: false,
         shipping_class_id: null,
+        countries: [],
       });
     }
   }, [method, form]);
