@@ -1586,16 +1586,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Get tenant config
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order, country, tax_percentage')
+    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order, country, tax_percentage, block_invalid_vat_orders, oss_enabled, apply_oss_rules, simplified_vat_mode, oss_activation_date, oss_registration_date')
     .eq('id', tenantId).single();
 
-  // B2B-2b — reverse-charge beslissing (centrale helper, geen lokale formule)
-  const reverseCharge = isReverseCharged({
-    is_b2b: !!cart.is_b2b,
-    vat_verified: !!cart.customer_vat_verified,
-    vat_country: cart.customer_vat_country || null,
-    tenant_country: tenant?.country || '',
-  });
+  // VAT-CHECKOUT-PARITY-1 — regime via de centrale beslisboom (zelfde als factuur)
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart, tenant);
+  const reverseCharge = vatCtx.zeroRated;
   const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
 
   const currency = cart.currency || tenant?.currency || 'EUR';
@@ -1733,12 +1729,11 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
     total: Math.max(0, displayTotal),
 
-    // B2B-2b — verleggingsstatus
+    // VAT-CHECKOUT-PARITY-1 — regimestatus altijd meegeven (frontends lezen dit uit)
     reverse_charge: reverseCharge,
-    ...(reverseCharge ? {
-      vat_regime: 'ic_supply_goods',
-      vat_text: 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW',
-    } : {}),
+    vat_regime: vatCtx.regime,
+    vat_rate: vatCtx.rate,
+    vat_text: vatCtx.text,
 
     checkout_status: deriveCartCheckoutStatus(cart),
     customer: cart.customer_email ? {
