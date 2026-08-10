@@ -1,3 +1,20 @@
+## POS snelknoppen tekst-overflow op tablet (vervolg 2A-POS) — 10 augustus 2026
+
+**Root cause:** de snelknoppen-grid in `src/pages/admin/POSTerminal.tsx` gebruikte `grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2`. Op tablet (md-breekpunt) werden de tegels in 8 kolommen verdeeld, waardoor de vaste `aspect-square`-tegels te smal werden. De productlabels (`<span>` voor naam en prijs) en de Cadeaukaart-labels hadden geen `w-full`/`break-words`/`truncate`, zodat lange teksten zoals "VanXcel 500W...", "Cadeaukaart" en "€ 299,00" horizontaal uit de tegels liepen en deels onleesbaar/visueel gebroken werden.
+
+**Uitgevoerd:** `src/pages/admin/POSTerminal.tsx` — uitsluitend de snelknoppen-sectie (regels ~1188–1216):
+- Grid-klassen aangepast van `grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2` naar `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2`. Dit geeft bredere tegels: telefoon 2 kolommen, tablet 4 kolommen, desktop 6 kolommen (was maximaal 8).
+- Productlabel `<span>` (button.label): className uitgebreid van `text-xs font-medium text-center line-clamp-2` naar `text-xs font-medium text-center line-clamp-2 w-full break-words`.
+- Prijs `<span>`: className uitgebreid van `text-xs text-muted-foreground mt-1` naar `text-xs text-muted-foreground mt-1 truncate max-w-full`.
+- Cadeaukaart-tekst `<span>Cadeaukaart</span>`: `w-full break-words` toegevoegd (bestaande `text-xs font-medium text-center` behouden).
+- Cadeaukaart-tekst `<span>Verkopen</span>`: `w-full text-center break-words` toegevoegd (bestaande `text-[10px] text-muted-foreground` behouden).
+
+**Security-keuzes:** n.v.t. — puur presentatie, geen handlers, state, routes, policies of data-flows gewijzigd.
+
+**Gedeelde-paden-waarschuwing (G1):** de snelknoppen-sectie deelt het product-toevoeg-codepad met `addToCart`, maar enkel de container/tekst-klassen zijn aangepast. De sale-flow en quick-button handlers zijn ongewijzigd.
+
+**Vervolg:** valt onder de reeds aangekondigde changelog `2026.09n` "Kassa vlot op tablet/telefoon" (zelfde feature, afgemaakt). Geen nieuwe changelog-versie, geen newsletter-item, geen docs-wijziging.
+
 ## STOREFRONT-SIZEGUIDE — Maatgids in product-detail-response — 9 augustus 2026
 
 **Waarom:** na LOVEKE-POD-2-SIZEGUIDE heeft `products` een `size_guide` JSONB-kolom die bij import uit Printful wordt gevuld, maar `storefront-api` gaf die kolom niet door in `getProduct()`. Custom frontends (zoals Loveke) kunnen de productspecifieke maatgids dus niet tonen.
