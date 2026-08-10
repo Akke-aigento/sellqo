@@ -1007,6 +1007,7 @@ export default function POSTerminalPage() {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="shrink-0"
                 onClick={() => setShowSessionReportDialog(true)}
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
