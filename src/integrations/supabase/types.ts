@@ -9217,6 +9217,7 @@ export type Database = {
           updated_at: string | null
           vat_country: string | null
           vat_rate: number | null
+          vat_regime: string | null
           vat_text: string | null
           vat_type: string | null
         }
@@ -9286,6 +9287,7 @@ export type Database = {
           updated_at?: string | null
           vat_country?: string | null
           vat_rate?: number | null
+          vat_regime?: string | null
           vat_text?: string | null
           vat_type?: string | null
         }
@@ -9355,6 +9357,7 @@ export type Database = {
           updated_at?: string | null
           vat_country?: string | null
           vat_rate?: number | null
+          vat_regime?: string | null
           vat_text?: string | null
           vat_type?: string | null
         }
