@@ -38,6 +38,16 @@ interface CartGift {
 // ============== PROMOTION UTILS ==============
 
 function isMobileUserAgent(ua: string | null | undefined): boolean {
+  return isMobileUA(ua);
+}
+
+function errMsg(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err) return String((err as { message: unknown }).message);
+  return typeof err === 'string' ? err : JSON.stringify(err);
+}
+
+function isMobileUA(ua: string | null | undefined): boolean {
   if (!ua) return false; // defensive: no UA → treat as desktop, show QR
   return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
 }
