@@ -57,6 +57,8 @@ import { usePOSOffline, OfflineTransaction } from '@/hooks/usePOSOffline';
 import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
+import { useVatRates } from '@/hooks/useVatRates';
+import { calculatePosTotals } from '@/lib/calculations/posTotals';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
