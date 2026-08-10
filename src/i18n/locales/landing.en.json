@@ -1025,6 +1025,14 @@
     },
     "changelog": {
       "changes": {
+        "b2b_checkout_custom_frontends": {
+          "title": "B2B checkout for custom storefronts",
+          "description": "Tenants with a custom storefront can now offer B2B ordering with automatic VAT reverse charging. When a valid EU VAT number is provided, intra-Community supply (art. 39bis) is applied automatically and the customer is invoiced net."
+        },
+        "b2b_vat_reverse_charge_fix": {
+          "title": "VAT reverse charge correctly applied at payment",
+          "description": "For B2B orders with a valid EU VAT number, the net amount was shown correctly in checkout but the gross amount was sent to the payment provider. This is resolved: the net amount (excl. VAT) is now correctly processed through to payment."
+        },
         "payment_landing_pages": {
           "title": "Clean confirmation page after payment via payment link",
           "description": "After paying via a payment link you now see a proper confirmation page instead of a 404 error."
