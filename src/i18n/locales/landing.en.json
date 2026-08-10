@@ -1293,6 +1293,10 @@
           "title": "Clearer view of available and upcoming integrations",
           "description": "SellQo Connect now shows at a glance which integrations are live and which are coming soon. Channels that are not available yet get a clear label instead of a button that does nothing."
         },
+        "wide_table_scroll_fix": {
+          "title": "Wide tables now scroll neatly on mobile",
+          "description": "Overviews with many columns can now be scrolled horizontally on smaller screens, instead of running off-screen."
+        },
         "dialog_viewport_fix": {
           "title": "Dialogs now fit smaller screens",
           "description": "Pop-up windows now adapt correctly to smaller screens. Long forms scroll inside the window, so buttons such as Save always stay reachable on laptop and mobile."
