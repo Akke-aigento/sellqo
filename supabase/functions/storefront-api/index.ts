@@ -1726,6 +1726,13 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
       first_name: cart.customer_first_name || null,
       last_name: cart.customer_last_name || null,
       phone: cart.customer_phone || null,
+      // B2B-2c — rehydratie: frontends tonen de zakelijke status bij terugkeer in de checkout.
+      is_b2b: !!cart.is_b2b,
+      company_name: cart.customer_company_name || null,
+      vat_number: cart.customer_vat_number || null,
+      vat_verified: !!cart.customer_vat_verified,
+      vat_country: cart.customer_vat_country || null,
+      vat_company_name: cart.customer_vat_company_name || null,
     } : null,
     shipping_address: cart.shipping_address || null,
     billing_address: cart.billing_address || null,
