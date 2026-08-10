@@ -1309,6 +1309,10 @@
           "title": "Verwaltungsseiten ordnen sich mobil korrekt an",
           "description": "Titel und Schaltflächen auf Verwaltungsseiten stapeln sich jetzt korrekt auf kleineren Bildschirmen."
         },
+        "checkout_country_list": {
+          "title": "Länderliste im Checkout folgt deinen Versandeinstellungen",
+          "description": "Die Länderauswahl im Checkout zeigt nur noch Länder, in die du tatsächlich versendest – in der Sprache deiner Besucher. Versendest du nur in ein Land, wird das Feld automatisch gesetzt, und ein ungültig vorbelegtes Land wird korrigiert. Eigene (Headless-)Frontends erhalten jetzt zusätzlich das Standardland deines Shops."
+        },
         "vat_checkout_parity": {
           "title": "MwSt. im Checkout stimmt jetzt mit der Rechnung uberein",
           "description": "Bestellungen ausserhalb der EU werden im Checkout sofort ohne MwSt. berechnet (Ausfuhr, Artikel 39 belgisches MwSt.-Gesetz), und bei aktiver OSS-Registrierung wenden wir den Satz des Lieferlandes an. Der Checkout verwendet genau dieselben MwSt.-Regeln wie die Rechnung, sodass der von Ihrem Kunden gezahlte Betrag immer mit der Rechnung und Ihrer MwSt.-Erklarung ubereinstimmt."
