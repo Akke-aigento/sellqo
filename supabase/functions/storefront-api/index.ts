@@ -2037,13 +2037,25 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
   };
   if (params.locale) updateData.locale = params.locale;
 
-  // B2B-2a — optionele B2B-velden opslaan (geen validatie hier, geen BTW-impact)
-  if (customer.is_b2b !== undefined) updateData.is_b2b = !!customer.is_b2b;
-  if (customer.company_name !== undefined) updateData.customer_company_name = customer.company_name || null;
-  if (customer.vat_number !== undefined) updateData.customer_vat_number = customer.vat_number || null;
-  if (customer.vat_verified !== undefined) updateData.customer_vat_verified = !!customer.vat_verified;
-  if (customer.vat_country !== undefined) updateData.customer_vat_country = customer.vat_country || null;
-  if (customer.vat_company_name !== undefined) updateData.customer_vat_company_name = customer.vat_company_name || null;
+  // B2B-2a — B2B-status ALTIJD normaliseren op basis van deze call.
+  // Voorkomt dat een cart "vast" blijft op verlegd na uitvinken/refresh
+  // (checkoutCustomer is de enige plek die deze velden op de cart schrijft).
+  const isB2B = customer.is_b2b === true;
+  updateData.is_b2b = isB2B;
+  if (isB2B) {
+    updateData.customer_company_name = customer.company_name || null;
+    updateData.customer_vat_number = customer.vat_number || null;
+    updateData.customer_vat_verified = !!customer.vat_verified;
+    updateData.customer_vat_country = customer.vat_country || null;
+    updateData.customer_vat_company_name = customer.vat_company_name || null;
+  } else {
+    // Terug naar B2C → alle B2B-velden leegmaken zodat verlegging uit gaat.
+    updateData.customer_company_name = null;
+    updateData.customer_vat_number = null;
+    updateData.customer_vat_verified = false;
+    updateData.customer_vat_country = null;
+    updateData.customer_vat_company_name = null;
+  }
 
   const { error } = await supabase.from('storefront_carts').update(updateData).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;

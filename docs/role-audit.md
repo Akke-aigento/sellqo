@@ -5772,3 +5772,15 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **NIET aangeraakt:** `buildCartResponse`, `createOrderFromCart`, `resolveCartReverseCharge`, `_shared/vat.ts`, fee-berekening, andere edge functions, migraties, frontend.
 
 **Changelog-kandidaat (nog niet gepubliceerd):** bugfix — "BTW-verlegging wordt nu correct toegepast op het betaalbedrag voor zakelijke bestellingen met een geldig EU-BTW-nummer."
+
+## B2B-CHECKOUT-BACKEND-2 — B2B-status normaliseren in checkoutCustomer (verlegging bleef hangen na uitvinken/refresh)
+
+**Root cause:** `checkoutCustomer` schreef de B2B-velden alleen wanneer ze in de payload zaten (`if (customer.X !== undefined)`). De status kon dus alleen "aan" gezet worden, nooit terug. Frontends die de velden weglaten bij refresh of na het uitvinken van de zakelijk-toggle lieten de cart op `is_b2b=true` + `customer_vat_verified=true` staan → verlegging bleef ten onrechte actief (te weinig btw geïnd). `checkout_validate_vat` schrijft niet naar de cart; `checkoutCustomer` is de enige schrijfplek voor deze velden.
+
+**Fix:** B2B-status wordt bij elke `checkout_customer`-call genormaliseerd. Verlegging vereist expliciet `customer.is_b2b === true`; in alle andere gevallen worden `is_b2b`, `customer_company_name`, `customer_vat_number`, `customer_vat_verified`, `customer_vat_country` en `customer_vat_company_name` gereset naar null/false.
+
+**Gevallen:** (a) `is_b2b=true` + `vat_verified=true` → velden gezet, verlegging blijft werken. (b) tweede call zonder `is_b2b` of met `false` op dezelfde cart → alle B2B-velden gereset → verlegging uit, klant betaalt weer incl. btw. (c) zuivere B2C → `isB2B=false` → velden op null/false (waren ze al), geen functionele verandering.
+
+**NIET aangeraakt:** validatie/phone-required, basisvelden van `updateData`, de `.update()`-call, `buildCartResponse`, `checkoutComplete`, `resolveCartReverseCharge`, `checkoutValidateVat`, migraties, frontend. Geen nieuwe kolommen.
+
+**Changelog-kandidaat (nog niet gepubliceerd):** bugfix/security — "Zakelijke bestelstatus wordt nu correct teruggezet wanneer een klant niet langer zakelijk bestelt, zodat de btw-behandeling altijd klopt."
