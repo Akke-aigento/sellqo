@@ -78,3 +78,33 @@ export function extractVatFromGross(grossAmount: number, vatRate: number): numbe
   if (!vatRate || vatRate <= 0) return 0;
   return Math.round(grossAmount * (vatRate / (100 + vatRate)) * 100) / 100;
 }
+
+/**
+ * B2B-2b — SINGLE source of truth for the reverse-charge decision.
+ * True ONLY for a validated EU VAT number from a country other than the
+ * tenant's own country (intracommunautaire levering, art. 39bis WBTW).
+ * Domestic B2B (BE -> BE) keeps normal VAT.
+ */
+export function isReverseCharged(opts: {
+  is_b2b: boolean;
+  vat_verified: boolean;
+  vat_country: string | null;
+  tenant_country: string;
+}): boolean {
+  if (!opts.is_b2b) return false;
+  if (!opts.vat_verified) return false;
+  const c = (opts.vat_country || '').trim().toUpperCase();
+  if (!c || !isEuCountry(c)) return false;
+  const t = (opts.tenant_country || '').trim().toUpperCase();
+  if (!t) return false;
+  return c !== t;
+}
+
+/**
+ * B2B-2b — SINGLE source of truth for the reverse-charge arithmetic.
+ * Strips VAT out of a VAT-inclusive gross amount. rate <= 0 → unchanged.
+ */
+export function netFromGross(grossAmount: number, vatRate: number): number {
+  if (!vatRate || vatRate <= 0) return grossAmount;
+  return Math.round((grossAmount / (1 + vatRate / 100)) * 100) / 100;
+}
