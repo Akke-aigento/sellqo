@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/stripe-fees.ts";
-import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross, isReverseCharged, netFromGross } from "../_shared/vat.ts";
+import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross, netFromGross } from "../_shared/vat.ts";
+import { decideVatRegime, isZeroRatedRegime, rateForRegime, type VatRegimeCode } from "../_shared/regimeResolver.ts";
 import { callVies, cleanVatNumber, isEuCountry, parseVatCountry } from "../_shared/vies.ts";
 
 const corsHeaders = {
@@ -1585,16 +1586,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Get tenant config
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order, country, tax_percentage')
+    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order, country, tax_percentage, block_invalid_vat_orders, oss_enabled, apply_oss_rules, simplified_vat_mode, oss_activation_date, oss_registration_date')
     .eq('id', tenantId).single();
 
-  // B2B-2b — reverse-charge beslissing (centrale helper, geen lokale formule)
-  const reverseCharge = isReverseCharged({
-    is_b2b: !!cart.is_b2b,
-    vat_verified: !!cart.customer_vat_verified,
-    vat_country: cart.customer_vat_country || null,
-    tenant_country: tenant?.country || '',
-  });
+  // VAT-CHECKOUT-PARITY-1 — regime via de centrale beslisboom (zelfde als factuur)
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart, tenant);
+  const reverseCharge = vatCtx.zeroRated;
   const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
 
   const currency = cart.currency || tenant?.currency || 'EUR';
@@ -1732,12 +1729,11 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
     total: Math.max(0, displayTotal),
 
-    // B2B-2b — verleggingsstatus
+    // VAT-CHECKOUT-PARITY-1 — regimestatus altijd meegeven (frontends lezen dit uit)
     reverse_charge: reverseCharge,
-    ...(reverseCharge ? {
-      vat_regime: 'ic_supply_goods',
-      vat_text: 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW',
-    } : {}),
+    vat_regime: vatCtx.regime,
+    vat_rate: vatCtx.rate,
+    vat_text: vatCtx.text,
 
     checkout_status: deriveCartCheckoutStatus(cart),
     customer: cart.customer_email ? {
@@ -1797,33 +1793,110 @@ function orderCustomerName(cart: any) {
   return `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
 }
 
-// B2B-2b — gedeelde constante + guards voor de verleggingslogica.
-const REVERSE_CHARGE_TEXT = 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW';
+// VAT-CHECKOUT-PARITY-1 — de checkout beslist het btw-regime via dezelfde
+// beslisboom als generate-invoice (decideVatRegime uit _shared/regimeResolver.ts).
 
-/** Leest tenant-land + block-flag en beslist verlegging via de centrale helper. */
-async function resolveCartReverseCharge(supabase: any, tenantId: string, cart: any) {
-  const { data: t } = await supabase
-    .from('tenants').select('country, block_invalid_vat_orders')
-    .eq('id', tenantId).maybeSingle();
-  const reverseCharge = isReverseCharged({
-    is_b2b: !!cart.is_b2b,
-    vat_verified: !!cart.customer_vat_verified,
-    vat_country: cart.customer_vat_country || null,
-    tenant_country: t?.country || '',
-  });
-  const blocked = !!cart.is_b2b && !cart.customer_vat_verified && !!t?.block_invalid_vat_orders;
-  return { reverseCharge, blocked };
+/** Tenant-kolommen die de regime-beslissing nodig heeft. */
+const VAT_TENANT_COLUMNS =
+  'country, block_invalid_vat_orders, oss_enabled, apply_oss_rules, simplified_vat_mode, oss_activation_date, oss_registration_date';
+
+/** Fallback-teksten als vat_regimes (nog) geen invoice_text_nl heeft. */
+const REGIME_TEXT_FALLBACK: Record<string, string> = {
+  ic_supply_goods: 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW',
+  ic_supply_services: 'Btw verlegd - intracommunautaire dienst - art. 21 §2 WBTW',
+  ic_supply_triangulation: 'Btw verlegd - vereenvoudigde driehoeksverkeer - art. 39bis WBTW',
+  export_outside_eu: 'Vrijgesteld van btw - uitvoer buiten de EU - art. 39 WBTW',
+  oss_b2c_eu: 'Btw van het land van bestemming - OSS-regeling (art. 21bis WBTW)',
+  domestic_zero: 'Nultarief',
+  exempt_article_44: 'Vrijgesteld van btw - art. 44 WBTW',
+};
+
+/** vat_type-kolomwaarde (standard | reverse_charge | export | oss | exempt). */
+const REGIME_TO_VAT_TYPE: Record<string, string> = {
+  ic_supply_goods: 'reverse_charge',
+  ic_supply_services: 'reverse_charge',
+  ic_supply_triangulation: 'reverse_charge',
+  export_outside_eu: 'export',
+  oss_b2c_eu: 'oss',
+  domestic_zero: 'exempt',
+  exempt_article_44: 'exempt',
+};
+
+const regimeTextCache = new Map<string, string | null>();
+async function regimeInvoiceText(supabase: any, code: string): Promise<string | null> {
+  if (regimeTextCache.has(code)) return regimeTextCache.get(code) ?? null;
+  let text: string | null = REGIME_TEXT_FALLBACK[code] ?? null;
+  try {
+    const { data } = await supabase
+      .from('vat_regimes').select('invoice_text_nl').eq('code', code).maybeSingle();
+    if (data?.invoice_text_nl) text = String(data.invoice_text_nl);
+  } catch { /* fallback blijft staan */ }
+  regimeTextCache.set(code, text);
+  return text;
 }
 
-/** Order-velden voor een verlegde order. Leeg object bij niet-verlegd. */
-function reverseChargeOrderFields(reverseCharge: boolean) {
-  if (!reverseCharge) return {} as Record<string, any>;
-  return {
-    vat_regime: 'ic_supply_goods',
-    vat_type: 'reverse_charge',
-    vat_text: REVERSE_CHARGE_TEXT,
-    vat_rate: 0,
-  } as Record<string, any>;
+export interface CartVatContext {
+  regime: VatRegimeCode;
+  /** Btw-tarief van het regime; null = per-product tarieven blijven gelden. */
+  rate: number | null;
+  text: string | null;
+  /** True = geen btw aanrekenen, bedragen worden netto (verlegging, uitvoer). */
+  zeroRated: boolean;
+  blocked: boolean;
+  destinationCountry: string;
+}
+
+/**
+ * Bepaalt het btw-regime van een winkelwagen. Bezorgland is bepalend; bij een
+ * gevalideerd EU-btw-nummer weegt het btw-land mee (zoals bij de factuur).
+ */
+async function resolveCartVatContext(
+  supabase: any, tenantId: string, cart: any, tenantRow?: any,
+): Promise<CartVatContext> {
+  let t = tenantRow;
+  if (!t || t.oss_enabled === undefined) {
+    const { data } = await supabase
+      .from('tenants').select(VAT_TENANT_COLUMNS).eq('id', tenantId).maybeSingle();
+    t = { ...(tenantRow || {}), ...(data || {}) };
+  }
+  const tenantCountry = String(t?.country || 'BE').toUpperCase();
+  const isB2B = !!cart?.is_b2b;
+  const viesValid = !!cart?.customer_vat_verified;
+  const vatCountry = String(cart?.customer_vat_country || '').trim().toUpperCase();
+  const shipCountry = String(cart?.shipping_address?.country || '').trim().toUpperCase();
+  const destinationCountry =
+    (isB2B && viesValid && vatCountry ? vatCountry : (shipCountry || vatCountry || tenantCountry));
+
+  const { regime } = decideVatRegime({
+    customer_country: destinationCountry,
+    tenant_country: tenantCountry,
+    is_b2b: isB2B,
+    vies_valid: viesValid,
+    oss_enabled: t?.oss_enabled === true || t?.apply_oss_rules === true,
+    oss_activation_date: t?.oss_activation_date || t?.oss_registration_date || null,
+    simplified_vat: t?.simplified_vat_mode === true,
+    sales_channel: 'webshop',
+  });
+
+  const zeroRated = isZeroRatedRegime(regime);
+  // Bij OSS blijft het brutobedrag ongewijzigd (zoals generate-invoice doet) en
+  // registreren we enkel het bestemmingstarief; bij nultarief halen we btw eruit.
+  const rate = zeroRated ? 0 : (regime === 'oss_b2c_eu' ? rateForRegime(regime, destinationCountry) : null);
+  const text = regime === 'domestic_standard' ? null : await regimeInvoiceText(supabase, regime);
+  const blocked = isB2B && !viesValid && !!t?.block_invalid_vat_orders;
+  return { regime, rate, text, zeroRated, blocked, destinationCountry };
+}
+
+/** Order-velden voor het btw-regime. Leeg object bij gewone binnenlandse btw. */
+function vatRegimeOrderFields(ctx: CartVatContext) {
+  if (ctx.regime === 'domestic_standard') return {} as Record<string, any>;
+  const fields: Record<string, any> = {
+    vat_regime: ctx.regime,
+    vat_type: REGIME_TO_VAT_TYPE[ctx.regime] || 'standard',
+    vat_text: ctx.text,
+  };
+  if (ctx.rate !== null) fields.vat_rate = ctx.rate;
+  return fields;
 }
 
 async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
@@ -1842,7 +1915,8 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   const discountAmount = Number(cart.discount_amount) || 0;
 
   // B2B-2b — verleggingsbeslissing via centrale helper
-  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
 
   // Per-line VAT resolution (snapshot at order-creation time)
   const cartItems: any[] = Array.isArray(cart.cartItems) ? cart.cartItems : [];
@@ -1957,7 +2031,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       expires_at: expiresAt || null,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
-      ...reverseChargeOrderFields(reverseCharge),
+      ...vatRegimeOrderFields(vatCtx),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -2267,7 +2341,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
 
   // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
-  const { reverseCharge, blocked: vatBlocked } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
+  const vatBlocked = vatCtx.blocked;
   if (vatBlocked) {
     return { success: false, error: { code: 'VAT_REQUIRED', message: 'Een geldig BTW-nummer is verplicht voor zakelijke bestellingen' } };
   }
@@ -2703,7 +2779,8 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   const discountAmount = Number(cart.discount_amount) || 0;
 
   // B2B-2b — verleggingsbeslissing via centrale helper (zelfde check als pad 1)
-  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
 
   const vatMap = await resolveLineVatBatch(
     supabase,
@@ -2792,7 +2869,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_checkout_session_id: session.id,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
-      ...reverseChargeOrderFields(reverseCharge),
+      ...vatRegimeOrderFields(vatCtx),
     })
     .select('id, order_number').single();
 

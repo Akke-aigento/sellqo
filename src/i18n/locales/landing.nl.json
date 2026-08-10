@@ -1309,6 +1309,10 @@
           "title": "Beheerpagina's schikken zich netjes op mobiel",
           "description": "Titels en knoppen op beheerpagina's stapelen nu correct op kleinere schermen."
         },
+        "vat_checkout_parity": {
+          "title": "Btw in de checkout klopt nu met de factuur",
+          "description": "Bestellingen buiten de EU worden in de checkout meteen zonder btw aangerekend (uitvoer, artikel 39 WBTW) en bij een actieve OSS-registratie rekenen we het tarief van het bezorgland. De checkout gebruikt daarvoor exact dezelfde btw-regels als de factuur, zodat het bedrag dat je klant betaalt altijd overeenkomt met wat er op de factuur en in je btw-aangifte staat."
+        },
         "shipping_countries": {
           "title": "Verzendlanden per verzendmethode",
           "description": "Je duidt nu per verzendmethode aan naar welke landen ze geldt, met handige presets voor EU, Benelux en Europa buiten de EU. Klanten zien in de checkout enkel landen waarnaar je effectief verzendt. Bestaande verzendmethodes zijn beperkt tot de 27 EU-landen."

@@ -5815,3 +5815,22 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Verificatie (live, Mancini Milano):** `get_shipping_methods` met `country=US` → `[]`; met `country=NL` → 1 methode; `get_shipping_countries` → 27 EU-landen, `unrestricted:false`.
 
 **Vervolg:** btw-export (0% buiten EU) en OSS-drempel als aparte fase binnen de accounting-revisie — geplande architectuur houdt hier al rekening mee.
+
+## VAT-CHECKOUT-PARITY-1 — Checkout gebruikt de canonieke btw-regime-engine — 10 augustus 2026
+
+**Root cause:** de fiscale motor (`_shared/regimeResolver.ts`) kende alle 12 regimes, maar de storefront-checkout gebruikte hem niet. `storefront-api` besliste zelf via `isReverseCharged()` uit `_shared/vat.ts`, dat enkel intracommunautaire verlegging kent en `false` teruggeeft zodra het land buiten de EU ligt. Gevolg: een order naar de US kreeg in de checkout 21% btw aangerekend, terwijl `generate-invoice` diezelfde order via de resolver als `export_outside_eu` (0%, vak 47) classificeerde en `subtotalExcl = finalTotal` zette. De aangifte klopte, maar de klant betaalde 21% te veel en de omzet stond 21% te hoog in vak 47. Vóór SHIP-GEO-1 was dat pad onbereikbaar (geen verzending buiten de EU), sindsdien wel.
+
+**Uitgevoerd:**
+- `_shared/regimeResolver.ts`: pure `decideVatRegime()` geëxtraheerd uit de beslisboom van `resolveVatRegime()` (gedragsbehoudend — dezelfde functie voedt nu beide paden), plus `ZERO_RATED_REGIMES`/`isZeroRatedRegime()`.
+- `storefront-api`: `resolveCartReverseCharge()` vervangen door `resolveCartVatContext()` → `{ regime, rate, text, zeroRated, blocked, destinationCountry }`. Bezorgland is bepalend; bij een gevalideerd EU-btw-nummer weegt het btw-land mee (zoals bij de factuur). `reverseChargeOrderFields()` werd `vatRegimeOrderFields()` en zet `vat_regime`, `vat_type`, `vat_text` en (waar van toepassing) `vat_rate` voor álle regimes.
+- Regimeteksten komen uit `vat_regimes.invoice_text_nl` (in-memory gecached) met hardcoded fallback; de oude constante `REVERSE_CHARGE_TEXT` is verdwenen.
+- Cart-respons geeft nu altijd `vat_regime`, `vat_rate` en `vat_text` mee; `reverse_charge` blijft als afgeleide boolean bestaan zodat Loveke, VanXcel en Astra ongewijzigd blijven werken.
+- Storefront: `ShopCheckout.tsx` toont de regimemelding en gebruikt de server-`subtotal` in plaats van het lokale (bruto) cart-subtotaal.
+
+**Rekenregels (bewust asymmetrisch, spiegelt `generate-invoice`):** bij nultarief-regimes (verlegging, uitvoer, art. 44) wordt de btw uit de bruto prijs gehaald → de klant betaalt netto en het Stripe-bedrag is netto. Bij OSS blijft het brutobedrag ongewijzigd en registreren we enkel het bestemmingstarief, exact zoals `generate-invoice` het brutototaal als inclusief het OSS-tarief behandelt. Binnenlandse verkoop is rekenkundig ongewijzigd (per-product tarieven blijven gelden, `vat_rate` wordt niet overschreven).
+
+**Security-keuzes:** geen nieuwe tabellen, kolommen of policies. `resolveCartVatContext()` leest tenant-btw-instellingen met de bestaande service-role client van `storefront-api` en filtert strikt op `tenant_id`; de regime-beslissing gebeurt server-side, dus een custom frontend kan geen regime forceren. `vat_verified` blijft — net als in B2B-2b — een clientvlag die na `checkout_validate_vat` wordt gezet; dat gedrag is niet gewijzigd in deze fase.
+
+**Verificatie (live, Mancini Milano, artikel van 240 incl. 21%):** BE B2C → `domestic_standard`, 240. US B2C → `export_outside_eu`, 198,35 (240/1,21), `reverse_charge:true`, tekst "Vrijgesteld van btw - Uitvoer - artikel 39 WBTW". NL B2C zonder OSS → `domestic_standard`, 240 (ongewijzigd). NL B2B met gevalideerd btw-nummer → `ic_supply_goods`, 198,35 (ongewijzigd t.o.v. B2B-2b). OSS-takken los getest op `decideVatRegime`: na activatiedatum → `oss_b2c_eu` met NL-tarief 21%, vóór activatiedatum → `domestic_standard`, `simplified_vat_mode` → `domestic_standard`. Edge functions `storefront-api`, `generate-invoice`, `create-manual-invoice`, `resolve-vat-regime` en `backfill-vat-regimes` opnieuw uitgerold (alle importeren de gewijzigde `_shared/regimeResolver.ts`).
+
+**Niet in scope:** terugwerkend herstel van bestaande orders/facturen, wijzigingen aan aangifte/IC-listing/Peppol/Odoo-export.
