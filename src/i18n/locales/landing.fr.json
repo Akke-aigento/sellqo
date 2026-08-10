@@ -1309,6 +1309,10 @@
           "title": "Les pages d'administration s'affichent proprement sur mobile",
           "description": "Les titres et les boutons des pages d'administration s'empilent maintenant correctement sur les petits écrans."
         },
+        "checkout_country_list": {
+          "title": "La liste des pays au paiement suit vos réglages d'expédition",
+          "description": "Le sélecteur de pays n'affiche plus que les pays vers lesquels vous expédiez réellement, dans la langue du visiteur. Si vous n'expédiez que vers un seul pays, le champ est complété automatiquement, et un pays pré-rempli non valide est corrigé. Les frontends personnalisés (headless) reçoivent désormais aussi le pays par défaut de votre boutique."
+        },
         "vat_checkout_parity": {
           "title": "La TVA au checkout correspond desormais a la facture",
           "description": "Les commandes hors UE sont desormais facturees sans TVA des le checkout (exportation, article 39 du Code de la TVA) et, avec une immatriculation OSS active, nous appliquons le taux du pays de livraison. Le checkout utilise exactement les memes regles de TVA que la facture, de sorte que le montant paye par votre client correspond toujours a la facture et a votre declaration TVA."

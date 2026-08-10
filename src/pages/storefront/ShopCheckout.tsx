@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { ALL_SHIPPING_COUNTRIES } from '@/lib/shippingRegions';
+import { localizedCountryOptions } from '@/lib/shippingRegions';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -66,11 +66,12 @@ export default function ShopCheckout() {
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [step, setStep] = useState<CheckoutStep>('details');
   // SHIP-GEO-1 — enkel landen waarnaar deze winkel effectief verzendt.
   const [shippableCountries, setShippableCountries] = useState<string[] | null>(null);
+  const [defaultShippingCountry, setDefaultShippingCountry] = useState<string | null>(null);
   const [customerData, setCustomerData] = useState<CustomerData>({
     email: '', firstName: '', lastName: '', phone: '', companyName: '',
     street: '', houseNumber: '', postalCode: '', city: '', country: '',
@@ -167,13 +168,34 @@ export default function ShopCheckout() {
         const payload = res?.data ?? res;
         if (cancelled) return;
         const list: string[] = Array.isArray(payload?.countries) ? payload.countries : [];
-        setShippableCountries(payload?.unrestricted || list.length === 0 ? null : list);
+        // unrestricted = winkel legt geen landbeperking op → volledige lijst tonen.
+        setShippableCountries(payload?.unrestricted ? null : list);
+        if (payload?.default_country) setDefaultShippingCountry(String(payload.default_country).toUpperCase());
       } catch {
         if (!cancelled) setShippableCountries(null);
       }
     })();
     return () => { cancelled = true; };
   }, [tenant?.id]);
+
+  // SHIP-GEO-2 — landenopties in de actieve taal + auto-correctie van een niet-leverbaar land.
+  const countryOptions = useMemo(
+    () => localizedCountryOptions(shippableCountries, i18n.language),
+    [shippableCountries, i18n.language]
+  );
+  const shipsNowhere = shippableCountries !== null && shippableCountries.length === 0;
+  const singleCountry = countryOptions.length === 1 ? countryOptions[0] : null;
+
+  useEffect(() => {
+    if (shippableCountries === null || shippableCountries.length === 0) return;
+    const current = customerData.country?.toUpperCase();
+    if (current && shippableCountries.includes(current)) return;
+    const fallback =
+      (defaultShippingCountry && shippableCountries.includes(defaultShippingCountry))
+        ? defaultShippingCountry
+        : shippableCountries[0];
+    setCustomerData(prev => ({ ...prev, country: fallback }));
+  }, [shippableCountries, defaultShippingCountry, customerData.country]);
 
   // Address autocomplete debounce
   useEffect(() => {
@@ -677,22 +699,27 @@ export default function ShopCheckout() {
                     {/* Country selector */}
                     <div className="space-y-2">
                       <Label>{t('checkout.country')} *</Label>
-                      <Select
-                        value={customerData.country}
-                        onValueChange={(value) => handleInputChange('country', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(shippableCountries
-                            ? ALL_SHIPPING_COUNTRIES.filter(c => shippableCountries.includes(c.code))
-                            : ALL_SHIPPING_COUNTRIES
-                          ).map(c => (
-                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {shipsNowhere ? (
+                        <p className="text-sm text-muted-foreground rounded-md border bg-muted p-3">
+                          Deze winkel verzendt momenteel niet.
+                        </p>
+                      ) : singleCountry ? (
+                        <p className="text-sm rounded-md border bg-muted px-3 py-2">{singleCountry.name}</p>
+                      ) : (
+                        <Select
+                          value={customerData.country}
+                          onValueChange={(value) => handleInputChange('country', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countryOptions.map(c => (
+                              <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
 

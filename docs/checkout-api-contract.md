@@ -207,3 +207,22 @@ Error response:
 | `PAYMENT_METHOD_NOT_AVAILABLE` | Payment method not available for this order |
 | `TENANT_CONFIG_ERROR` | Tenant configuration issue |
 | `ORDER_ALREADY_PAID` | Cart already converted to order |
+
+## Landkeuze in de checkout (headless frontends)
+
+Actie: `get_shipping_countries` (publiek, geen auth nodig).
+
+Response:
+```json
+{ "countries": ["BE", "NL", "..."], "unrestricted": false, "default_country": "BE" }
+```
+
+Aanbevolen patroon:
+1. Haal de lijst op zodra de checkout laadt (response is 5 minuten cachebaar).
+2. `unrestricted: true` → geen landbeperking; toon je eigen volledige lijst.
+3. `unrestricted: false` → vul de dropdown uitsluitend met `countries`.
+4. Selecteer `default_country` als startwaarde; staat het bewaarde/voorgevulde land niet in `countries`, reset dan naar `default_country`.
+5. Exact één land → toon een vast label i.p.v. een dropdown.
+6. Lege `countries` met `unrestricted: false` → de winkel verzendt momenteel niet; blokkeer de checkout met een melding.
+
+Landnamen zelf tonen via `Intl.DisplayNames(locale, { type: 'region' })`, zodat de labels de taal van de bezoeker volgen. De landvalidatie gebeurt altijd ook server-side in `checkout_shipping`; een niet-toegestaan land wordt daar geweigerd.

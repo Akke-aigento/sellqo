@@ -1309,6 +1309,10 @@
           "title": "Beheerpagina's schikken zich netjes op mobiel",
           "description": "Titels en knoppen op beheerpagina's stapelen nu correct op kleinere schermen."
         },
+        "checkout_country_list": {
+          "title": "Landenlijst in de checkout volgt je verzendinstellingen",
+          "description": "De landkeuze in de checkout toont enkel landen waarnaar je effectief verzendt, in de taal van je bezoeker. Verzend je naar één land, dan wordt het veld automatisch vast ingevuld, en een ongeldig voorgevuld land wordt automatisch gecorrigeerd. Ook eigen (headless) frontends krijgen nu het standaardland van je winkel mee."
+        },
         "vat_checkout_parity": {
           "title": "Btw in de checkout klopt nu met de factuur",
           "description": "Bestellingen buiten de EU worden in de checkout meteen zonder btw aangerekend (uitvoer, artikel 39 WBTW) en bij een actieve OSS-registratie rekenen we het tarief van het bezorgland. De checkout gebruikt daarvoor exact dezelfde btw-regels als de factuur, zodat het bedrag dat je klant betaalt altijd overeenkomt met wat er op de factuur en in je btw-aangifte staat."

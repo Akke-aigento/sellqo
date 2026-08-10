@@ -3109,15 +3109,24 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
 async function getShippingCountries(supabase: any, tenantId: string) {
   const [{ data: methods }, { data: tenant }] = await Promise.all([
     supabase.from('shipping_methods').select('countries').eq('tenant_id', tenantId).eq('is_active', true),
-    supabase.from('tenants').select('shipping_allowed_countries').eq('id', tenantId).maybeSingle(),
+    supabase.from('tenants').select('shipping_allowed_countries, country').eq('id', tenantId).maybeSingle(),
   ]);
   const allowlist: string[] = (tenant?.shipping_allowed_countries || []).map((c: string) => c.toUpperCase());
   const rows = methods || [];
   const hasOpenMethod = rows.some((m: any) => !Array.isArray(m.countries) || m.countries.length === 0);
 
+  // SHIP-GEO-2 — standaardland voor de checkout-dropdown van (headless) frontends.
+  const tenantCountry = (tenant?.country || '').toUpperCase() || null;
+  const pickDefault = (list: string[], unrestricted: boolean) => {
+    if (unrestricted) return tenantCountry;
+    if (tenantCountry && list.includes(tenantCountry)) return tenantCountry;
+    return list[0] || null;
+  };
+
   if (hasOpenMethod) {
     // Minstens één methode zonder landbeperking → alles wat de winkel toelaat.
-    return { countries: allowlist, unrestricted: allowlist.length === 0 };
+    const unrestricted = allowlist.length === 0;
+    return { countries: allowlist, unrestricted, default_country: pickDefault(allowlist, unrestricted) };
   }
   const set = new Set<string>();
   for (const m of rows) {
@@ -3126,7 +3135,8 @@ async function getShippingCountries(supabase: any, tenantId: string) {
       if (allowlist.length === 0 || allowlist.includes(iso)) set.add(iso);
     }
   }
-  return { countries: [...set].sort(), unrestricted: false };
+  const list = [...set].sort();
+  return { countries: list, unrestricted: false, default_country: pickDefault(list, false) };
 }
 
 async function checkoutGetPaymentMethods(supabase: any, tenantId: string, subtotalCents = 0, country = 'BE') {
