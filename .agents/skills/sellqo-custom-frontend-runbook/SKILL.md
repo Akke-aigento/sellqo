@@ -1,6 +1,6 @@
 ---
 name: sellqo-custom-frontend-runbook
-description: Verplichte patronen bij het bouwen of wijzigen van een SellQo custom frontend (tenant-storefront op de storefront-api) — cart self-healing, B2B-checkout met btw-verlegging, en normalizeCart/CheckoutState-uitbreidingen.
+description: Verplichte patronen bij het bouwen of wijzigen van een SellQo custom frontend (tenant-storefront op de storefront-api) — cart self-healing, B2B-checkout met btw-verlegging, dynamische verzendlandenlijst, en normalizeCart/CheckoutState-uitbreidingen.
 ---
 
 # SellQo Custom Frontend Build Runbook
@@ -73,6 +73,41 @@ Bij Loveke/VanXcel-architectuur (CheckoutContext): voeg nieuwe state-velden (`re
 
 ## CHECKLIST bij elke nieuwe custom frontend
 
+---
+
+## PATROON 4 — Dynamische verzendlandenlijst (SHIP-GEO-2)
+
+**Root cause:** custom frontends hebben vaak een hardcoded `<select>` met landen (BE/NL/FR/DE/LU/...). De tenant kan in SellQo verzendlanden beperken (`shipping_methods.countries` + `tenants.shipping_allowed_countries`), maar de frontend blijft landen tonen waar niet naar verzonden wordt → checkout faalt pas bij het kiezen van een verzendmethode ("geen verzendmethodes beschikbaar"), of de klant bestelt naar een land dat de tenant niet bedient.
+
+### 4a — API-contract
+
+`POST` action `get_shipping_countries` (publiek, geen cart nodig, `Cache-Control: public, max-age=300`):
+
+```json
+{ "countries": ["BE","NL"], "unrestricted": false, "default_country": "BE" }
+```
+
+- `unrestricted: true` → geen beperking; toon de volledige eigen landenlijst.
+- `unrestricted: false` → toon UITSLUITEND `countries` (ISO-2, alfabetisch).
+- `default_country` → preselectie in de dropdown (kan `null` zijn).
+
+### 4b — Frontend-regels
+
+- Nooit een hardcoded landenlijst in een checkout-adresstap. Altijd `get_shipping_countries` bij mount, met de eigen lijst enkel als fallback bij `unrestricted`.
+- Preselecteer `default_country`; is de huidige selectie niet in `countries`, corrigeer automatisch naar `default_country` (geen stille ongeldige staat).
+- Bij precies één land: geen dropdown maar een vast label (leest als bevestiging, niet als keuze).
+- Bij een lege lijst (`countries: []` en `unrestricted: false`): duidelijke melding "momenteel geen verzending mogelijk" en checkout blokkeren.
+- Landnamen lokaliseren via `Intl.DisplayNames` met NL-fallback; sorteer op de gelokaliseerde naam, stuur altijd de ISO-2 code naar de API.
+- Referentie-implementatie: SellQo-core `src/lib/shippingRegions.ts` (`localizedCountryOptions`) + `ShopCheckout.tsx`.
+
+### 4c — Effect op tenants
+
+Zodra de landenlijst dynamisch is, wordt de tenant-configuratie leidend. Controleer per tenant of `shipping_allowed_countries` en de landen per verzendmethode kloppen — een lege configuratie bij een methode betekent "geen beperking", niet "geen landen".
+
+---
+
+## CHECKLIST bij elke nieuwe custom frontend
+
 - [ ] Cart self-healing (patroon 1) — afhankelijk van architectuur
 - [ ] B2B-toggle + VIES on-blur (patroon 2a-2e)
 - [ ] Netto-totalen uit server-response (patroon 2b)
@@ -81,6 +116,7 @@ Bij Loveke/VanXcel-architectuur (CheckoutContext): voeg nieuwe state-velden (`re
 - [ ] Verleggingsmelding in order summary (patroon 2f)
 - [ ] Proxy-underscore-truc of directe call voor VIES (patroon 2a)
 - [ ] `normalizeCart` laat alle nieuwe velden door (patroon 3)
+- [ ] Landenlijst uit `get_shipping_countries`, geen hardcoded landen (patroon 4)
 
 ---
 
