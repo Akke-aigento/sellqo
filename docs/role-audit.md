@@ -5624,3 +5624,33 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Slottaken:** valt onder changelog `2026.09o` (zelfde "mobiel schikken"-thema). **GEEN** nieuwe changelog-versie, **GEEN** newsletter, **GEEN** docs.
 
 **Test:** 390px → veld-grids stapelen, tier-rij 2 kolommen, statkaarten 2 kolommen; tabs leesbaar. ≥640/768px → identiek aan voorheen. `tsgo` zonder errors.
+
+---
+
+## POS berekent btw nu identiek aan de webshop (POS-BEREKENING-1)
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Aanleiding (geldbug).** Bij `tenants.default_vat_handling = 'inclusive'` (de standaard) telde de kassa 21% btw **bovenop** een prijs die de btw al bevatte. Een artikel van € 299 werd als € 361,79 afgerekend.
+
+**Root cause.**
+1. `src/pages/admin/POSTerminal.tsx` (`cartTotals`, ~197): hardcoded `const taxRate = 21` en `total = subtotal − korting + btw` — geen enkele notie van `default_vat_handling`.
+2. `src/hooks/usePOS.ts` (`createTransaction`, ~299): dezelfde formule nogmaals inline, dus ook de boeking/bon was fout.
+3. `addToCart` (~240) zette blind `tax_rate: 21`, ongeacht het `vat_rate_id` van het product.
+
+**Fix.** Nieuwe gedeelde helper `src/lib/calculations/posTotals.ts` → `calculatePosTotals(items, cartDiscount, vatHandling)`, die de canonieke webshop-logica in `supabase/functions/create-checkout-session/index.ts` (~488) **spiegelt** (die functie is niet gewijzigd):
+- `inclusive`: `taxTotal = Σ per tarief round(basis − basis/(1+rate/100), 2)`, `total = subtotal − totaleKorting` (**geen** btw erbovenop).
+- `exclusive`: `taxTotal = Σ per tarief round(basis × rate/100, 2)`, `total = subtotal − totaleKorting + taxTotal`.
+- Btw wordt **per tarief** geaggregeerd en afgerond, conform `src/lib/calculations/ROUNDING_RULES.md` (BIS 3.0, per-rate — niet per-line). De cart-korting wordt proportioneel over de tarief-groepen verdeeld.
+
+**Scherm + boeking gebruiken exact dezelfde helper**, dus de bon is per definitie gelijk aan wat de kassier zag. `addToCart` haalt het echte tarief via `vat_rate_id` uit `useVatRates`, met `tenants.tax_percentage` als fallback (niet blind 21). De cadeaukaart-regel blijft `tax_rate: 0`.
+
+**Kolombetekenis `pos_transactions` onveranderd:** `subtotal` = bruto Σ prijs×aantal, `discount_total` = totale korting, `tax_total` = helper-btw, `total` = helper-total. Rapporten en btw-aangifte hangen hieraan en zijn niet aangepast.
+
+**Expliciet NIET aangeraakt:** webshop/checkout-functies, facturen, creditnota's, rapporten, `ROUNDING_RULES.md`, en de rest van de insert in `createTransaction` (payments, cash, status, `record_transaction`-rpc).
+
+**Verificatie (los script, niet in de app).**
+- Test A — 1× € 299 @ 21% inclusive → `total = 299.00`, `taxTotal = 51.89` (= round(299 − 299/1.21, 2); 51,8926 → 51,89, identiek aan de canonieke checkout-afronding).
+- Test B — 1× € 100 @ 21% exclusive → `total = 121.00`, `taxTotal = 21.00`.
+
+**Slottaken.** Changelog `2026.09p` (bugfix `pos_vat_calculation_fix`, NL/EN/FR/DE, publiek), newsletter-item toegevoegd aan `docs/newsletter-queue.md` (nog niet verstuurd), DOCS-1: tenant-artikel `pos-gebruiken` aangevuld met één zin dat de kassa btw identiek aan de webshop hanteert. `tsgo` zonder errors.
