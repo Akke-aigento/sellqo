@@ -1910,6 +1910,101 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
 }
 
 async function checkoutAddress(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  return checkoutAddressImpl(supabase, tenantId, params);
+}
+
+// B2B-1 — Publieke VIES-validatie tijdens checkout.
+// Cache: 24u per (tenant, vat_number). Rate-limit: 10 nieuwe VIES-calls/tenant/minuut.
+async function checkoutValidateVat(supabase: any, tenantId: string, params: Record<string, unknown>) {
+  const raw = (params.vat_number as string | undefined) ?? '';
+  if (!raw || !String(raw).trim()) {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: 'BTW-nummer is verplicht', fields: { vat_number: 'BTW-nummer is verplicht' } } };
+  }
+
+  const cleanVat = cleanVatNumber(raw);
+  const { countryCode, number } = parseVatCountry(cleanVat);
+
+  if (!isEuCountry(countryCode)) {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: `Ongeldige landcode: ${countryCode}. Alleen EU-landen worden ondersteund.`, fields: { vat_number: 'Ongeldige landcode' } } };
+  }
+
+  // 1) Cache-check (24u)
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: cached } = await supabase
+    .from('vat_validations')
+    .select('is_valid, company_name, company_address, country_code, validated_at')
+    .eq('tenant_id', tenantId)
+    .eq('vat_number', cleanVat)
+    .gt('validated_at', since24h)
+    .order('validated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (cached) {
+    return {
+      success: true,
+      data: {
+        valid: cached.is_valid,
+        company_name: cached.company_name ?? null,
+        address: cached.company_address ?? null,
+        country_code: cached.country_code ?? countryCode,
+        cached: true,
+      },
+    };
+  }
+
+  // 2) Rate-limit: max 10 nieuwe validaties per tenant per minuut
+  const since1m = new Date(Date.now() - 60 * 1000).toISOString();
+  const { count: recentCount } = await supabase
+    .from('vat_validations')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .gt('validated_at', since1m);
+
+  if ((recentCount ?? 0) >= 10) {
+    return { success: false, error: { code: 'RATE_LIMITED', message: 'Te veel validaties, probeer over een minuut opnieuw' } };
+  }
+
+  // 3) VIES-call
+  let vies;
+  try {
+    vies = await callVies(countryCode, number);
+  } catch (err) {
+    console.error('[checkout_validate_vat] VIES call failed:', errMsg(err));
+    return { success: false, error: { code: 'VIES_UNAVAILABLE', message: 'VIES service tijdelijk niet beschikbaar. Probeer later opnieuw.' } };
+  }
+
+  if (vies.service_unavailable) {
+    return { success: false, error: { code: 'VIES_UNAVAILABLE', message: vies.error ?? 'VIES service tijdelijk niet beschikbaar. Probeer later opnieuw.' } };
+  }
+
+  // 4) Log resultaat (customer_id blijft NULL in checkout-fase)
+  const { error: logError } = await supabase.from('vat_validations').insert({
+    tenant_id: tenantId,
+    customer_id: null,
+    vat_number: cleanVat,
+    country_code: countryCode,
+    is_valid: vies.valid,
+    company_name: vies.company_name,
+    company_address: vies.address,
+    validated_at: new Date().toISOString(),
+    vies_request_id: vies.request_identifier,
+  });
+  if (logError) console.error('[checkout_validate_vat] log insert failed:', errMsg(logError));
+
+  return {
+    success: true,
+    data: {
+      valid: vies.valid,
+      company_name: vies.company_name,
+      address: vies.address,
+      country_code: countryCode,
+      cached: false,
+    },
+  };
+}
+
+async function checkoutAddressImpl(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const shippingAddress = params.shipping_address as any;
   const billingSameAsShipping = params.billing_same_as_shipping !== false;
