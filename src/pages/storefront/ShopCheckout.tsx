@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Building2, LogIn, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { ALL_SHIPPING_COUNTRIES } from '@/lib/shippingRegions';
+import { localizedCountryOptions } from '@/lib/shippingRegions';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -66,11 +66,12 @@ export default function ShopCheckout() {
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
   const { items: cartItems, setTenantSlug, getSubtotal, clearCart } = useCart();
   const { searchAddress, suggestions, isSearching } = useAddressValidation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [step, setStep] = useState<CheckoutStep>('details');
   // SHIP-GEO-1 — enkel landen waarnaar deze winkel effectief verzendt.
   const [shippableCountries, setShippableCountries] = useState<string[] | null>(null);
+  const [defaultShippingCountry, setDefaultShippingCountry] = useState<string | null>(null);
   const [customerData, setCustomerData] = useState<CustomerData>({
     email: '', firstName: '', lastName: '', phone: '', companyName: '',
     street: '', houseNumber: '', postalCode: '', city: '', country: '',
