@@ -408,7 +408,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           {productImages.length === 0 ? (
                             <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar.</p>
                           ) : (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                               {productImages.map((img, idx) => (
                                 <button
                                   key={idx}
@@ -511,10 +511,10 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                         <div>
                           <span className="text-xs text-muted-foreground block">SKU</span>
-                          <span>{variant.sku || '—'}</span>
+                          <span className="break-all">{variant.sku || '—'}</span>
                         </div>
                         <div>
                           <span className="text-xs text-muted-foreground block">Prijs</span>

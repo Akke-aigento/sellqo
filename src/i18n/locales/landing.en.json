@@ -1297,6 +1297,10 @@
           "title": "Wide tables now scroll neatly on mobile",
           "description": "Overviews with many columns can now be scrolled horizontally on smaller screens, instead of running off-screen."
         },
+        "product_page_mobile_fix": {
+          "title": "The product page now works smoothly on mobile",
+          "description": "Buttons, tabs and product variants are now displayed correctly on phones and small screens."
+        },
         "dialog_viewport_fix": {
           "title": "Dialogs now fit smaller screens",
           "description": "Pop-up windows now adapt correctly to smaller screens. Long forms scroll inside the window, so buttons such as Save always stay reachable on laptop and mobile."

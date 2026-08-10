@@ -1297,6 +1297,10 @@
           "title": "Brede tabellen scrollen nu netjes op mobiel",
           "description": "Overzichten met veel kolommen zijn nu horizontaal te scrollen op kleinere schermen, in plaats van buiten beeld te vallen."
         },
+        "product_page_mobile_fix": {
+          "title": "Productpagina werkt nu vlot op mobiel",
+          "description": "Knoppen, tabbladen en productvarianten worden nu correct weergegeven op telefoons en kleine schermen."
+        },
         "dialog_viewport_fix": {
           "title": "Vensters passen zich beter aan je scherm aan",
           "description": "Vensters passen zich nu correct aan kleinere schermen aan. Lange formulieren scrollen binnen het venster, zodat knoppen zoals Opslaan altijd bereikbaar blijven op laptop en mobiel."

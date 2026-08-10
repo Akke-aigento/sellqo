@@ -1297,6 +1297,10 @@
           "title": "Breite Tabellen scrollen jetzt sauber auf dem Handy",
           "description": "Übersichten mit vielen Spalten lassen sich auf kleineren Bildschirmen nun horizontal scrollen, anstatt aus dem Bild zu laufen."
         },
+        "product_page_mobile_fix": {
+          "title": "Die Produktseite funktioniert jetzt reibungslos auf dem Handy",
+          "description": "Schaltflächen, Tabs und Produktvarianten werden jetzt auf Smartphones und kleinen Bildschirmen korrekt dargestellt."
+        },
         "dialog_viewport_fix": {
           "title": "Dialogfenster passen sich kleineren Bildschirmen an",
           "description": "Fenster passen sich jetzt korrekt an kleinere Bildschirme an. Lange Formulare scrollen innerhalb des Fensters, sodass Schaltflächen wie Speichern auf Laptop und Mobilgerät immer erreichbar bleiben."

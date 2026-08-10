@@ -5502,3 +5502,20 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 - marketing/EmailPreview.tsx, storefront/PreviewPanel.tsx, storefront/visual-editor/StaticPageEditor.tsx, storefront/visual-editor/VisualEditorCanvas.tsx — iframe/preview-canvas met device-toggle, geen data-tabel.
 
 **Slottaken:** changelog `2026.09l` (bugfix, publiek, NL/EN/FR/DE) dekt B1 + B2 samen — B1 had bewust nog geen entry. Geen newsletter. DOCS-1: geen doc-impact. Geen kolommen/logica/backend/SQL geraakt.
+
+## LAYOUT-2 Spoor 1 — product-flow mobiel (header, tabs, variant-kaart)
+
+**Root-cause (per stuk):** rigide flex/grid zonder mobiele breakpoint.
+
+1. `src/pages/admin/ProductForm.tsx` (~611) — header stond in één `flex items-center gap-4`-rij; op 390px werd de knoppengroep samengeknepen en viel Opslaan buiten beeld.
+   Fix: buitenste div → `flex flex-col gap-4 sm:flex-row sm:items-center`; knoppen-div → `flex gap-2 flex-wrap w-full sm:w-auto`; beide knoppen → `flex-1 sm:flex-none`.
+2. `src/pages/admin/ProductForm.tsx` (~646) — `TabsList` forceerde `grid grid-cols-4`, waardoor 4 labels op mobiel aan elkaar plakten ("MarketplacesAdvertenties").
+   Fix: `flex w-full overflow-x-auto sm:grid sm:grid-cols-4` + `shrink-0` op elke `TabsTrigger`.
+3. `src/components/admin/products/ProductVariantsTab.tsx` — `grid-cols-3` in een smalle kaart deed SKU en Prijs overlappen.
+   Fix: afbeeldingen-grid (~411) → `grid grid-cols-2 gap-2 sm:grid-cols-3`; read-only detailgrid (~514) → `grid grid-cols-2 gap-2 text-sm sm:grid-cols-3`; SKU-waarde-span (~517) → `break-all`. Edit-modus grid (~485, `grid-cols-2`) bewust ongewijzigd.
+
+**Scope:** puur Tailwind responsive-classes; geen handlers, logica, queries, edge functions of SQL. De `sm:`-varianten herstellen exact het huidige desktopgedrag (≥640px identiek).
+
+**Test:** 390px → Opslaan volledig zichtbaar, tab-labels los/scrollbaar, SKU en Prijs zonder overlap; 1366px → ongewijzigd. Visuele browsercheck kon niet zelf worden uitgevoerd (admin-routes achter login).
+
+**Slottaken:** changelog `2026.09m` (bugfix, publiek, NL/EN/FR/DE, key `product_page_mobile_fix`). Geen newsletter. DOCS-1: geen doc-impact.

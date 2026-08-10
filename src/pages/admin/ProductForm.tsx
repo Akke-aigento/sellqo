@@ -608,7 +608,7 @@ export default function ProductForm() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin/products')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -620,11 +620,11 @@ export default function ProductForm() {
             {isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/admin/products')}>
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => navigate('/admin/products')}>
             Annuleren
           </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+          <Button className="flex-1 sm:flex-none" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -643,11 +643,11 @@ export default function ProductForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="product">Product</TabsTrigger>
-              <TabsTrigger value="translations" disabled={!isEditing}>Vertalingen</TabsTrigger>
-              <TabsTrigger value="marketplaces">Marketplaces</TabsTrigger>
-              <TabsTrigger value="ads" disabled={!isEditing}>Advertenties</TabsTrigger>
+            <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4">
+              <TabsTrigger value="product" className="shrink-0">Product</TabsTrigger>
+              <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>Vertalingen</TabsTrigger>
+              <TabsTrigger value="marketplaces" className="shrink-0">Marketplaces</TabsTrigger>
+              <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>Advertenties</TabsTrigger>
             </TabsList>
 
             {/* Product Tab - One-page 2-column layout */}
