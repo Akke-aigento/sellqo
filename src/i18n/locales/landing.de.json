@@ -1309,6 +1309,10 @@
           "title": "Verwaltungsseiten ordnen sich mobil korrekt an",
           "description": "Titel und Schaltflächen auf Verwaltungsseiten stapeln sich jetzt korrekt auf kleineren Bildschirmen."
         },
+        "vat_checkout_parity": {
+          "title": "MwSt. im Checkout stimmt jetzt mit der Rechnung uberein",
+          "description": "Bestellungen ausserhalb der EU werden im Checkout sofort ohne MwSt. berechnet (Ausfuhr, Artikel 39 belgisches MwSt.-Gesetz), und bei aktiver OSS-Registrierung wenden wir den Satz des Lieferlandes an. Der Checkout verwendet genau dieselben MwSt.-Regeln wie die Rechnung, sodass der von Ihrem Kunden gezahlte Betrag immer mit der Rechnung und Ihrer MwSt.-Erklarung ubereinstimmt."
+        },
         "shipping_countries": {
           "title": "Versandlander pro Versandart",
           "description": "Sie legen jetzt pro Versandart fest, fur welche Lander sie gilt, mit praktischen Presets fur EU, Benelux und Europa ausserhalb der EU. Kunden sehen im Checkout nur Lander, in die Sie tatsachlich versenden. Bestehende Versandarten sind auf die 27 EU-Lander begrenzt."

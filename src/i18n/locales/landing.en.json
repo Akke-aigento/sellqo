@@ -1309,6 +1309,10 @@
           "title": "Admin pages lay out neatly on mobile",
           "description": "Titles and buttons on admin pages now stack correctly on smaller screens."
         },
+        "vat_checkout_parity": {
+          "title": "Checkout VAT now matches the invoice",
+          "description": "Orders outside the EU are now charged without VAT straight away in the checkout (export, article 39 of the Belgian VAT code), and with an active OSS registration we apply the rate of the delivery country. The checkout uses exactly the same VAT rules as the invoice, so the amount your customer pays always matches the invoice and your VAT return."
+        },
         "shipping_countries": {
           "title": "Shipping countries per shipping method",
           "description": "You now choose per shipping method which countries it applies to, with handy presets for the EU, Benelux and non-EU Europe. Customers only see countries you actually ship to at checkout. Existing shipping methods are limited to the 27 EU countries."

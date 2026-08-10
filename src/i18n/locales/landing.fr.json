@@ -1309,6 +1309,10 @@
           "title": "Les pages d'administration s'affichent proprement sur mobile",
           "description": "Les titres et les boutons des pages d'administration s'empilent maintenant correctement sur les petits écrans."
         },
+        "vat_checkout_parity": {
+          "title": "La TVA au checkout correspond desormais a la facture",
+          "description": "Les commandes hors UE sont desormais facturees sans TVA des le checkout (exportation, article 39 du Code de la TVA) et, avec une immatriculation OSS active, nous appliquons le taux du pays de livraison. Le checkout utilise exactement les memes regles de TVA que la facture, de sorte que le montant paye par votre client correspond toujours a la facture et a votre declaration TVA."
+        },
         "shipping_countries": {
           "title": "Pays de livraison par methode d'expedition",
           "description": "Vous indiquez desormais par methode d'expedition les pays concernes, avec des presets pratiques pour l'UE, le Benelux et l'Europe hors UE. Les clients ne voient au paiement que les pays que vous livrez reellement. Les methodes existantes sont limitees aux 27 pays de l'UE."
