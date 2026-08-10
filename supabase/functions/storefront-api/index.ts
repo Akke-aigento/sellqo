@@ -1790,11 +1790,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       if (cart.customer_first_name) updateFields.first_name = cart.customer_first_name;
       if (cart.customer_last_name) updateFields.last_name = cart.customer_last_name;
       if (cart.customer_phone) updateFields.phone = cart.customer_phone;
+      Object.assign(updateFields, b2bCustomerFields(cart));
       if (Object.keys(updateFields).length > 0) {
         await supabase.from('customers').update(updateFields).eq('id', existing.id);
       }
     } else {
-      const isB2B = !!(cart.customer_btw_number || cart.is_b2b);
+      const { isB2B } = b2bOrderFields(cart);
       const { data: newCust, error: insertErr } = await supabase
         .from('customers')
         .insert({
@@ -1802,6 +1803,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
           first_name: cart.customer_first_name || '', last_name: cart.customer_last_name || '',
           phone: cart.customer_phone || null, customer_type: isB2B ? 'b2b' : 'b2c',
           acquisition_source: 'webshop',
+          ...b2bCustomerFields(cart),
         })
         .select('id').single();
       if (insertErr) {
@@ -1830,7 +1832,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       discount_code: (cart.discount_codes || []).join(', ') || null,
       total,
       customer_email: cart.customer_email,
-      customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
+      customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null,
       customer_id: customerId,
       shipping_address: cart.shipping_address || null,
@@ -1840,6 +1842,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       stripe_payment_intent_id: stripePaymentIntentId || null,
       expires_at: expiresAt || null,
       locale: cart.locale || null,
+      ...b2bOrderFields(cart).orderFields,
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
