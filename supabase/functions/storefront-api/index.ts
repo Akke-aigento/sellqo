@@ -1700,6 +1700,38 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   };
 }
 
+// B2B-2a — B2B-data doorgifte van cart naar order/customer. Geen BTW-impact.
+function b2bOrderFields(cart: any) {
+  const isB2B = !!cart.is_b2b;
+  return {
+    isB2B,
+    orderFields: {
+      customer_type: isB2B ? 'b2b' : 'b2c',
+      customer_company_name: cart.customer_company_name || null,
+      customer_vat_number: cart.customer_vat_number || null,
+      customer_vat_verified: !!cart.customer_vat_verified,
+      vat_country: cart.customer_vat_country || null,
+    } as Record<string, any>,
+  };
+}
+
+function b2bCustomerFields(cart: any) {
+  if (!cart.is_b2b) return {} as Record<string, any>;
+  const fields: Record<string, any> = {};
+  if (cart.customer_company_name) fields.company_name = cart.customer_company_name;
+  if (cart.customer_vat_number) fields.vat_number = cart.customer_vat_number;
+  if (cart.customer_vat_verified !== undefined && cart.customer_vat_verified !== null) {
+    fields.vat_verified = !!cart.customer_vat_verified;
+    if (cart.customer_vat_verified) fields.vat_verified_at = new Date().toISOString();
+  }
+  return fields;
+}
+
+function orderCustomerName(cart: any) {
+  if (cart.is_b2b && cart.customer_company_name) return String(cart.customer_company_name).trim();
+  return `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
+}
+
 async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
   // Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
