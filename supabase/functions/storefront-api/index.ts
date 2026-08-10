@@ -2999,6 +2999,7 @@ async function checkoutSetAddresses(supabase: any, tenantId: string, params: Rec
 async function checkoutGetShippingOptions(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const subtotal = Number(params.subtotal) || 0;
   const cartId = params.cart_id as string | undefined;
+  let country = (params.country as string | undefined) || null;
 
   let shippingClasses: string[] | undefined;
   if (cartId) {
@@ -3008,14 +3009,40 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
         .map((i: any) => i.product_id)
         .filter((v: any) => !!v);
       shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+      if (!country) country = cart.shipping_address?.country || null;
     }
   }
 
-  const methods = await getShippingMethods(supabase, tenantId, shippingClasses);
+  const methods = await getShippingMethods(supabase, tenantId, shippingClasses, country);
   return methods.map((m: any) => ({
     ...m,
     effective_price: m.free_above && subtotal >= m.free_above ? 0 : m.price,
   }));
+}
+
+// SHIP-GEO-1 — landen waarnaar deze winkel effectief kan verzenden.
+// Frontends gebruiken dit om de landkeuze in de checkout te beperken.
+async function getShippingCountries(supabase: any, tenantId: string) {
+  const [{ data: methods }, { data: tenant }] = await Promise.all([
+    supabase.from('shipping_methods').select('countries').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('tenants').select('shipping_allowed_countries').eq('id', tenantId).maybeSingle(),
+  ]);
+  const allowlist: string[] = (tenant?.shipping_allowed_countries || []).map((c: string) => c.toUpperCase());
+  const rows = methods || [];
+  const hasOpenMethod = rows.some((m: any) => !Array.isArray(m.countries) || m.countries.length === 0);
+
+  if (hasOpenMethod) {
+    // Minstens één methode zonder landbeperking → alles wat de winkel toelaat.
+    return { countries: allowlist, unrestricted: allowlist.length === 0 };
+  }
+  const set = new Set<string>();
+  for (const m of rows) {
+    for (const c of (m.countries || [])) {
+      const iso = String(c).toUpperCase();
+      if (allowlist.length === 0 || allowlist.includes(iso)) set.add(iso);
+    }
+  }
+  return { countries: [...set].sort(), unrestricted: false };
 }
 
 async function checkoutGetPaymentMethods(supabase: any, tenantId: string, subtotalCents = 0, country = 'BE') {
