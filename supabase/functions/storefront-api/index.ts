@@ -928,14 +928,28 @@ async function getShippingMethods(
   supabase: any,
   tenantId: string,
   shippingClassIds?: string[],
+  country?: string | null,
 ) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, shipping_classes(name)')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, countries, shipping_classes(name)')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  const all = (data || []);
+  let all = (data || []);
+
+  // SHIP-GEO-1 — geografische scope: globale tenant-allowlist + landen per methode.
+  const iso = typeof country === 'string' && country.trim() ? country.trim().toUpperCase() : null;
+  if (iso) {
+    const { data: geoTenant } = await supabase
+      .from('tenants').select('shipping_allowed_countries').eq('id', tenantId).maybeSingle();
+    const allowlist: string[] = (geoTenant?.shipping_allowed_countries || []).map((c: string) => c.toUpperCase());
+    if (allowlist.length > 0 && !allowlist.includes(iso)) return [];
+    all = all.filter((m: any) => {
+      const list: string[] = Array.isArray(m.countries) ? m.countries : [];
+      return list.length === 0 || list.map((c) => c.toUpperCase()).includes(iso);
+    });
+  }
 
   let filtered = all;
   let combined: { breakdown: Array<{ class_name: string; method_name: string; price: number }>; total: number } | null = null;
