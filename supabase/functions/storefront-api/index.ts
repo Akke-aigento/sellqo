@@ -2088,13 +2088,18 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     }
   }
 
-  // Mark cart as in checkout — reset only payment-related fields, KEEP shipping & address
-  console.log('[checkoutStart] v4 RESET ACTIVE + appfee=0 for cart:', cartId);
+  // Mark cart as in checkout — reset payment-related fields AND shipping choice.
+  // SHIP-RESET-1: do not keep a stale shipping_method across checkout sessions;
+  // a stale "free" method (no shipping_class) blocks auto-select of the correct
+  // class-based method (e.g. boxspring €100), so the customer must choose again.
+  console.log('[checkoutStart] v5 RESET ACTIVE + appfee=0 + shipping reset for cart:', cartId);
   const { error: resetError } = await supabase.from('storefront_carts').update({
     checkout_status: 'checkout',
     payment_method: null,
     stripe_session_id: null,
     calculated_fee_cents: 0,
+    shipping_method_id: null,
+    shipping_cost: 0,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (resetError) {
