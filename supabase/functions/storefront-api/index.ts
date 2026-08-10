@@ -2227,7 +2227,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
 
   // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
-  const { blocked: vatBlocked } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const { reverseCharge, blocked: vatBlocked } = await resolveCartReverseCharge(supabase, tenantId, cart);
   if (vatBlocked) {
     return { success: false, error: { code: 'VAT_REQUIRED', message: 'Een geldig BTW-nummer is verplicht voor zakelijke bestellingen' } };
   }
@@ -2258,6 +2258,16 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   const discountAmount = Number(cart.discount_amount) || 0;
   const currency = cart.currency || tenantData?.currency || 'EUR';
 
+  // B2B-2b — per-line btw-tarieven, nodig voor netto-berekening bij verlegging.
+  // Buiten de Stripe-tak zodat manual/QR-paden dezelfde bedragen gebruiken.
+  const tenantDefaultRate = Number(tenantData.tax_percentage) || 21;
+  const vatMap = await resolveLineVatBatch(
+    supabase,
+    (cart.cartItems as any[]).map((i: any) => i.product_id),
+    tenantDefaultRate
+  );
+  const netShippingCost = reverseCharge ? netFromGross(shippingCost, tenantDefaultRate) : shippingCost;
+
   // Recalculate fee from scratch — never trust cart.calculated_fee_cents which may be stale
   const subtotalCentsForFee = Math.round((cart.subtotal - discountAmount) * 100);
   let feeCents = 0;
@@ -2268,7 +2278,19 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   console.log('[checkoutComplete] pass_fee:', tenantData.pass_transaction_fee_to_customer);
   console.log('[checkoutComplete] calculated feeCents:', feeCents);
 
-  const total = cart.subtotal - discountAmount + shippingCost + (feeCents / 100);
+  const grossSubtotalFromItems = (cart.cartItems as any[]).reduce(
+    (s: number, it: any) => s + (Number(it.unit_price) || 0) * (Number(it.quantity) || 0), 0
+  );
+  const netSubtotalFromItems = (cart.cartItems as any[]).reduce((s: number, it: any) => {
+    const { vat_rate } = resolveLineVatSync(it.product_id, vatMap, tenantDefaultRate);
+    const unit = Number(it.unit_price) || 0;
+    const netUnit = reverseCharge ? netFromGross(unit, vat_rate) : unit;
+    return s + netUnit * (Number(it.quantity) || 0);
+  }, 0);
+  const effectiveSubtotal = reverseCharge
+    ? netSubtotalFromItems
+    : (Number(cart.subtotal) || grossSubtotalFromItems);
+  const total = effectiveSubtotal - discountAmount + netShippingCost + (feeCents / 100);
 
   // Map fine-grained methods to Stripe payment_method_types
   const stripeMethodMap: Record<string, string> = {
@@ -2286,21 +2308,26 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
 
-    const lineItems = cart.cartItems.map((item: any) => ({
-      price_data: {
-        currency: currency.toLowerCase(),
-        product_data: { name: item.product?.name || 'Product' },
-        unit_amount: Math.round(item.unit_price * 100),
-      },
-      quantity: item.quantity,
-    }));
+    const lineItems = cart.cartItems.map((item: any) => {
+      const { vat_rate } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
+      const unit = Number(item.unit_price) || 0;
+      const netUnit = reverseCharge ? netFromGross(unit, vat_rate) : unit;
+      return {
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: { name: item.product?.name || 'Product' },
+          unit_amount: Math.round(netUnit * 100),
+        },
+        quantity: item.quantity,
+      };
+    });
 
     if (shippingCost > 0) {
       lineItems.push({
         price_data: {
           currency: currency.toLowerCase(),
           product_data: { name: 'Verzending' },
-          unit_amount: Math.round(shippingCost * 100),
+          unit_amount: Math.round(netShippingCost * 100),
         },
         quantity: 1,
       });

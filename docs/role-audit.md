@@ -5752,3 +5752,23 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Expliciet NIET aangeraakt:** de tenant-tarief-kolomnamen zoals ze in de code stonden (`tax_percentage` in pad 1, `default_vat_rate` in pad 2 — die laatste bestaat niet in het schema en valt dus terug op 21; bewust ongewijzigd gelaten conform opdracht), kortingsberekening (blijft op brutobasis), POS, facturatie, en de VIES-validatie zelf.
 
 **Slottaken.** Geen changelog/newsletter (zichtbaar gedrag komt met de frontend-batch). DOCS-1: platform-artikel `checkout-customer-b2b-velden` uitgebreid met de verleggingslogica en de nieuwe `CartResponse`-velden. `deno check` groen; `storefront-api` gedeployed.
+
+## B2B-CHECKOUT-BACKEND-1 — reverse-charge ontbrak op Stripe-bedrag in checkoutComplete
+
+**Root cause:** BTW-verlegging werd correct toegepast in `buildCartResponse` en in de order-opbouw (`createOrderFromCart`), maar `checkoutComplete` gebruikte van `resolveCartReverseCharge` alleen `blocked`. De Stripe `line_items` namen daardoor de BRUTO `item.unit_price` (`Math.round(item.unit_price * 100)`), net als shipping en de `total` voor manual/QR. Gevolg: frontend + order-records netto (bv. EUR 247,11) terwijl Stripe bruto inde (EUR 299).
+
+**Fix (uitsluitend in `checkoutComplete`):**
+- `reverseCharge` uit de bestaande `resolveCartReverseCharge`-call gehaald.
+- `tenantDefaultRate` (`tenants.tax_percentage`, al in de select) + `vatMap` via `resolveLineVatBatch`, opgebouwd buiten de Stripe-tak zodat manual/QR dezelfde bedragen gebruiken.
+- `line_items`: `netUnit = reverseCharge ? netFromGross(unit, vat_rate) : unit`, per lijn via `resolveLineVatSync`.
+- Shipping: `netShippingCost` gebruikt voor het Stripe-bedrag; conditie blijft `shippingCost > 0`.
+- `total`: `effectiveSubtotal` (netto som van lijnen bij verlegging, anders `cart.subtotal`) `- discount + netShippingCost + fee`.
+- Fee-logica ongewijzigd (transactiekost, geen btw). Discount-herverdeling ongewijzigd; die werkt op `li.price_data.unit_amount` en pakt dus automatisch de netto bedragen.
+
+**B2C ongewijzigd:** bij `reverseCharge === false` geldt `netUnit === unit`, `netShippingCost === shippingCost` en `effectiveSubtotal === Number(cart.subtotal)` — byte-identiek gedrag.
+
+**Testcase:** 1 item bruto EUR 299, tarief 21%, NL-btw verified, gratis verzending -> `netFromGross(299,21) = 247.11` -> Stripe `unit_amount = 24711`, `total = 247.11`.
+
+**NIET aangeraakt:** `buildCartResponse`, `createOrderFromCart`, `resolveCartReverseCharge`, `_shared/vat.ts`, fee-berekening, andere edge functions, migraties, frontend.
+
+**Changelog-kandidaat (nog niet gepubliceerd):** bugfix — "BTW-verlegging wordt nu correct toegepast op het betaalbedrag voor zakelijke bestellingen met een geldig EU-BTW-nummer."
