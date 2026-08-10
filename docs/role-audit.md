@@ -5671,3 +5671,29 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 - Test B — 1× € 100 @ 21% exclusive → `total = 121.00`, `taxTotal = 21.00`.
 
 **Slottaken.** Changelog `2026.09p` (bugfix `pos_vat_calculation_fix`, NL/EN/FR/DE, publiek), newsletter-item toegevoegd aan `docs/newsletter-queue.md` (nog niet verstuurd), DOCS-1: tenant-artikel `pos-gebruiken` aangevuld met één zin dat de kassa btw identiek aan de webshop hanteert. `tsgo` zonder errors.
+
+---
+
+## B2B-1 — publieke checkout VIES-validatie + `_shared/vies.ts` extractie
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Root cause (waarom nodig).** De enige VIES-implementatie zat inline in `supabase/functions/validate-vat/index.ts`, achter een harde admin-muur (`authenticateRequest` + `ADMIN_ROLES` = tenant_admin/staff/accountant, met platform_admin/service-role bypass). Storefront-bezoekers hebben geen JWT en konden dus tijdens checkout hun BTW-nummer niet laten valideren. Kopiëren van de VIES-logica zou een tweede bron van waarheid opleveren.
+
+**Fix.**
+1. Nieuwe gedeelde module `supabase/functions/_shared/vies.ts`: `cleanVatNumber`, `parseVatCountry`, `EU_COUNTRIES` (incl. `EL` en `XI`), `isEuCountry`, `callVies` (400 → "Ongeldig BTW-nummer formaat", 503 → service down met `service_unavailable`, overige non-2xx → throw).
+2. `validate-vat/index.ts` gebruikt nu die module. **Gedragsidentiek**: zelfde response-velden (`valid`, `vat_number`, `country_code`, `company_name`, `address`, `request_date`, `request_identifier`), zelfde status-codes en foutteksten. De admin-auth is volledig ongewijzigd.
+3. Nieuwe **publieke** actie `checkout_validate_vat` in `storefront-api/index.ts` (geregistreerd in de action-switch naast `checkout_customer`; geen auth, net als de andere checkout-acties).
+
+**Misbruik-beheersing op het publieke pad.**
+- **Cache 24 u**: bestaat er voor `(tenant_id, vat_number)` een rij in `vat_validations` met `validated_at > now() - 24 uur`, dan wordt dat resultaat teruggegeven met `cached: true` en **géén** VIES-call gedaan.
+- **Rate-limit 10/min**: aantal `vat_validations`-rijen voor de tenant in de laatste minuut ≥ 10 → `{ code: 'RATE_LIMITED' }`. Cache-hits tellen niet mee (die schrijven niets).
+- Niet-EU landcode wordt vóór elke DB/VIES-actie afgekapt als `VALIDATION_ERROR`.
+
+**Logging.** Elke nieuwe validatie schrijft naar `vat_validations` met de reële kolomnamen uit `types.ts`: `tenant_id`, `customer_id` (NULL in checkout-fase), `vat_number` (genormaliseerd), `country_code`, `is_valid`, `company_name`, `company_address`, `validated_at`, `vies_request_id`. Een mislukte insert logt via `errMsg()` en breekt de response niet.
+
+**Expliciet NIET aangeraakt:** alle andere checkout-acties, btw-berekening (`_shared/vat.ts`), cart/order-flow, `useVatValidation.ts` en de admin-auth van `validate-vat`.
+
+**Verificatie.** `deno check` groen op beide functies; live curl tegen `storefront-api`: lege input → `VALIDATION_ERROR`, `BE0888888888` → `cached:false`, herhaling met `BE 0888.888.888` (andere opmaak, zelfde genormaliseerd nummer) → `cached:true` zonder nieuwe VIES-call.
+
+**Slottaken.** Geen changelog/newsletter (nog niet tenant-zichtbaar; UI volgt in B2B-2). DOCS-1: platform-artikel `checkout-vies-validatie` (`doc_level='platform'`).
