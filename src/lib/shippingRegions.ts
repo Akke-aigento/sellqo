@@ -82,6 +82,31 @@ export function countryName(code: string): string {
   return ALL_SHIPPING_COUNTRIES.find((c) => c.code === code.toUpperCase())?.name ?? code.toUpperCase();
 }
 
+/**
+ * SHIP-GEO-2 — landnaam in de actieve storefront-taal.
+ * Valt terug op de Nederlandse naam wanneer Intl.DisplayNames niet beschikbaar is.
+ */
+export function localizedCountryName(code: string, locale?: string): string {
+  const iso = code.toUpperCase();
+  try {
+    const dn = new Intl.DisplayNames([locale || "nl"], { type: "region" });
+    return dn.of(iso) || countryName(iso);
+  } catch {
+    return countryName(iso);
+  }
+}
+
+/** Landenopties (code + gelokaliseerde naam), gesorteerd volgens de actieve taal. */
+export function localizedCountryOptions(codes: string[] | null | undefined, locale?: string): CountryOption[] {
+  const source = codes && codes.length > 0
+    ? codes.map((c) => c.toUpperCase())
+    : ALL_SHIPPING_COUNTRIES.map((c) => c.code);
+  const lang = locale || "nl";
+  return source
+    .map((code) => ({ code, name: localizedCountryName(code, lang) }))
+    .sort((a, b) => a.name.localeCompare(b.name, lang));
+}
+
 /** Korte samenvatting van een landenselectie voor lijstweergaves. */
 export function summarizeCountries(codes: string[] | null | undefined): string {
   if (!codes || codes.length === 0) return "Alle landen";
