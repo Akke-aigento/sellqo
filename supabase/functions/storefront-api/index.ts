@@ -2226,6 +2226,12 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.checkout_status === 'converted') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
 
+  // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
+  const { blocked: vatBlocked } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  if (vatBlocked) {
+    return { success: false, error: { code: 'VAT_REQUIRED', message: 'Een geldig BTW-nummer is verplicht voor zakelijke bestellingen' } };
+  }
+
   // Validate required fields
   if (!cart.customer_email) {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Klantgegevens zijn nog niet ingevuld' } };
