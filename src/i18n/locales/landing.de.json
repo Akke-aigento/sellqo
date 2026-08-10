@@ -1301,6 +1301,10 @@
           "title": "Verwaltungsseiten ordnen sich mobil korrekt an",
           "description": "Titel und Schaltflächen auf Verwaltungsseiten stapeln sich jetzt korrekt auf kleineren Bildschirmen."
         },
+        "pos_vat_calculation_fix": {
+          "title": "Kasse berechnet die Mehrwertsteuer jetzt korrekt",
+          "description": "Die Kasse berechnet die Mehrwertsteuer jetzt genauso wie Ihr Webshop, damit die Beträge überall stimmen."
+        },
         "pos_mobile_layout": {
           "title": "Die Kasse funktioniert jetzt reibungslos auf Tablet und Telefon",
           "description": "Die Kasse ist auf kleineren Bildschirmen nun voll nutzbar, mit einem ausklappbaren Warenkorb."

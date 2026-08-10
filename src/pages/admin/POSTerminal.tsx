@@ -57,6 +57,8 @@ import { usePOSOffline, OfflineTransaction } from '@/hooks/usePOSOffline';
 import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
+import { useVatRates } from '@/hooks/useVatRates';
+import { calculatePosTotals } from '@/lib/calculations/posTotals';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
@@ -94,6 +96,7 @@ export default function POSTerminalPage() {
   const { readers, listReaders, isProcessing: isStripeProcessing } = useStripeTerminal();
   const { earnPoints, redeemPoints } = usePOSLoyalty();
   const { currentTenant } = useTenant();
+  const { vatRates } = useVatRates();
   const { user } = useAuth();
   
   // Offline sync handler
@@ -195,27 +198,17 @@ export default function POSTerminalPage() {
   
   // Calculate totals
   const cartTotals = useMemo(() => {
-    const itemSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const itemDiscount = cart.reduce((sum, item) => sum + item.discount, 0);
-    
-    // Apply cart-level discount
-    let cartDiscountAmount = 0;
-    if (cartDiscount) {
-      if (cartDiscount.type === 'percentage') {
-        cartDiscountAmount = (itemSubtotal * cartDiscount.value) / 100;
-      } else {
-        cartDiscountAmount = cartDiscount.value;
-      }
-    }
-    
-    const totalDiscount = itemDiscount + cartDiscountAmount;
-    const subtotal = itemSubtotal;
-    const taxRate = 21; // Default VAT
-    const taxTotal = (subtotal - totalDiscount) * (taxRate / 100);
-    const total = subtotal - totalDiscount + taxTotal;
-    
-    return { subtotal, discount: totalDiscount, cartDiscountAmount, taxTotal, total };
-  }, [cart, cartDiscount]);
+    return calculatePosTotals(cart, cartDiscount, currentTenant?.default_vat_handling || 'inclusive');
+  }, [cart, cartDiscount, currentTenant?.default_vat_handling]);
+
+  // Resolve the real VAT percentage for a product (vat_rate_id → rate),
+  // falling back to the tenant default rate instead of a hardcoded 21%.
+  const resolveProductTaxRate = useCallback((product: Product): number => {
+    const vatRateId = (product as unknown as { vat_rate_id?: string | null }).vat_rate_id;
+    const match = vatRateId ? vatRates.find(r => r.id === vatRateId) : undefined;
+    if (match) return Number(match.rate);
+    return Number(currentTenant?.tax_percentage ?? 0);
+  }, [vatRates, currentTenant?.tax_percentage]);
   
   // Add product to cart
   const addToCart = useCallback((product: Product) => {
@@ -237,7 +230,7 @@ export default function POSTerminalPage() {
         sku: product.sku || null,
         price: product.price,
         quantity: 1,
-        tax_rate: 21,
+        tax_rate: resolveProductTaxRate(product),
         discount: 0,
         total: product.price,
         image_url: (product as unknown as { image_url?: string }).image_url || null,
@@ -245,7 +238,7 @@ export default function POSTerminalPage() {
       
       return [...prev, newItem];
     });
-  }, []);
+  }, [resolveProductTaxRate]);
   
   // Update quantity
   const updateQuantity = useCallback((itemId: string, delta: number) => {

@@ -1301,6 +1301,10 @@
           "title": "Beheerpagina's schikken zich netjes op mobiel",
           "description": "Titels en knoppen op beheerpagina's stapelen nu correct op kleinere schermen."
         },
+        "pos_vat_calculation_fix": {
+          "title": "Kassa berekent btw nu correct",
+          "description": "De kassa berekent de btw nu op dezelfde manier als je webshop, zodat bedragen overal kloppen."
+        },
         "pos_mobile_layout": {
           "title": "Kassa werkt nu vlot op tablet en telefoon",
           "description": "De kassa is nu volledig bruikbaar op kleinere schermen, met een uitschuifbare winkelwagen."

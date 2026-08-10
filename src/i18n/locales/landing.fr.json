@@ -1301,6 +1301,10 @@
           "title": "Les pages d'administration s'affichent proprement sur mobile",
           "description": "Les titres et les boutons des pages d'administration s'empilent maintenant correctement sur les petits écrans."
         },
+        "pos_vat_calculation_fix": {
+          "title": "La caisse calcule maintenant la TVA correctement",
+          "description": "La caisse calcule désormais la TVA de la même manière que votre boutique en ligne, afin que les montants concordent partout."
+        },
         "pos_mobile_layout": {
           "title": "La caisse fonctionne maintenant parfaitement sur tablette et téléphone",
           "description": "La caisse est désormais entièrement utilisable sur les petits écrans, avec un panier coulissant."

@@ -1301,6 +1301,10 @@
           "title": "Admin pages lay out neatly on mobile",
           "description": "Titles and buttons on admin pages now stack correctly on smaller screens."
         },
+        "pos_vat_calculation_fix": {
+          "title": "Point of sale now calculates VAT correctly",
+          "description": "The point of sale now calculates VAT the same way as your webshop, so amounts add up everywhere."
+        },
         "pos_mobile_layout": {
           "title": "Point of sale now works smoothly on tablet and phone",
           "description": "The point of sale is now fully usable on smaller screens, with a slide-out shopping cart."
