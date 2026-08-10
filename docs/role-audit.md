@@ -15,6 +15,13 @@
 
 **Geverifieerd:** tsgo zonder errors; `getProduct` response bevat nu `size_guide`.
 
+## LAYOUT-2 Spoor 2A-POS — kassa mobiel/tablet bruikbaar — 10 augustus 2026
+**Root cause:** POSTerminal had een tweepaneel-layout waarin het winkelwagen-paneel een vaste `w-96` (384px) had naast een `flex-1` productpaneel, zonder enige mobiele stapeling. Op 390px at de winkelwagen bijna het hele scherm op; op tablet staand bleef er nauwelijks ruimte voor producten.
+**Uitgevoerd:** `src/pages/admin/POSTerminal.tsx` — de volledige winkelwagen-JSX (kop, klant/kortingsbalk, items-ScrollArea, totalen, actie- en betaalknoppen) is naar één variabele `cartPanelContent` vlak vóór de return getild. Die ene bron wordt op twee plaatsen gerenderd: het desktop-zijpaneel (`w-96 border-l bg-card hidden lg:flex flex-col`) en een mobiele `Sheet` (`side="bottom"`, `h-[85dvh] lg:hidden p-0 flex flex-col`). Nieuwe state `mobileCartOpen`. Onder de hoofdcontainer staat een `lg:hidden` vaste onderbalk met aantal artikelen + totaal + knop "Afrekenen" die de Sheet opent. Vier kale grids kregen een mobiele kolom-stap: winkelwagen-actiebalk `grid-cols-2 sm:grid-cols-3`, betaalknoppen `grid-cols-2 sm:grid-cols-4`, en in de contant-dialog de snelbedragen `grid-cols-2 sm:grid-cols-4` en `grid-cols-2 sm:grid-cols-3`.
+**Security-keuzes:** n.v.t. — puur presentatie, geen tabellen, functies, routes of policies aangeraakt.
+**Gedeelde-paden-waarschuwing (G1):** `cartPanelContent` is nu een gedeeld codepad dat twee werelden bedient (desktop-zijpaneel en mobiele Sheet). Wie hier iets wijzigt, wijzigt beide weergaven tegelijk. Bewust NIET aangeraakt: betaal-handlers, cart-state, kortingen, parkeren, `cartTotals`. Enkel container/klassen gewijzigd, zodat lg+ byte-identiek rendert als voorheen.
+**Vervolg:** live 390px/768px-verificatie in de kassa (achter admin-login) door Akke; changelog `2026.09n` staat klaar, newsletter-item in de wachtrij.
+
 ## SECURITY-PAGES-1 — Publieke Security & Compliance sectie — 8 augustus 2026
 
 **Waarom:** partners en marketplace-integraties vragen naar een aantoonbare security-posture. Die documentatie bestond nergens publiek; alleen juridische pagina's (`sellqo_legal_pages`) waren er.
