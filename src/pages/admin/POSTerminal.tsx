@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
@@ -142,6 +143,7 @@ export default function POSTerminalPage() {
   
   // Local State
   const [cart, setCart] = useState<POSCartItem[]>([]);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showOpenSessionDialog, setShowOpenSessionDialog] = useState(false);
   const [showCloseSessionDialog, setShowCloseSessionDialog] = useState(false);
@@ -691,6 +693,225 @@ export default function POSTerminalPage() {
     );
   }
   
+  const cartPanelContent = (
+    <>
+          {/* Cart Header */}
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              <h2 className="font-semibold">Winkelwagen</h2>
+              {cart.length > 0 && (
+                <Badge variant="secondary">{cart.length}</Badge>
+              )}
+            </div>
+            {cart.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearCart}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          
+          {/* Customer & Discount Bar */}
+          {(selectedCustomer || cartDiscount) && (
+            <div className="px-4 py-2 border-b bg-muted/30 space-y-1">
+              {selectedCustomer && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate">
+                      {selectedCustomer.company_name || 
+                       `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim() || 
+                       selectedCustomer.email}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5" 
+                    onClick={() => setSelectedCustomer(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              {cartDiscount && (
+                <div className="flex items-center justify-between text-sm text-green-600">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3 w-3" />
+                    <span>
+                      {cartDiscount.type === 'percentage' 
+                        ? `${cartDiscount.value}% korting` 
+                        : `€${cartDiscount.value} korting`}
+                      {cartDiscount.reason && ` (${cartDiscount.reason})`}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5" 
+                    onClick={() => setCartDiscount(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Cart Items */}
+          <ScrollArea className="flex-1">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+                <ShoppingCart className="h-12 w-12 mb-4 opacity-50" />
+                <p>Winkelwagen is leeg</p>
+                <p className="text-sm">Scan een product of gebruik snelknoppen</p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-3">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                    {item.image_url ? (
+                      <img 
+                        src={item.image_url} 
+                        alt={item.name}
+                        className="w-12 h-12 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
+                        <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(item.price)} × {item.quantity}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={() => updateQuantity(item.id, -1)}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={() => updateQuantity(item.id, 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          
+          {/* Cart Footer */}
+          <div className="border-t p-4 space-y-4">
+            {/* Totals */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotaal</span>
+                <span>{formatCurrency(cartTotals.subtotal)}</span>
+              </div>
+              {cartTotals.discount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Korting</span>
+                  <span>-{formatCurrency(cartTotals.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">BTW (21%)</span>
+                <span>{formatCurrency(cartTotals.taxTotal)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Totaal</span>
+                <span>{formatCurrency(cartTotals.total)}</span>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Button 
+                variant="outline" 
+                disabled={cart.length === 0}
+                onClick={handleParkCart}
+              >
+                <PauseCircle className="mr-2 h-4 w-4" />
+                Parkeren
+              </Button>
+              <Button 
+                variant={selectedCustomer ? 'secondary' : 'outline'}
+                onClick={() => setShowCustomerDialog(true)}
+              >
+                <User className="mr-2 h-4 w-4" />
+                {selectedCustomer ? 'Klant ✓' : 'Klant'}
+              </Button>
+              <Button 
+                variant={cartDiscount ? 'secondary' : 'outline'}
+                disabled={cart.length === 0}
+                onClick={() => setShowDiscountPanel(true)}
+              >
+                <Percent className="mr-2 h-4 w-4" />
+                {cartDiscount ? 'Korting ✓' : 'Korting'}
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Button 
+                className="h-14 text-base"
+                disabled={cart.length === 0}
+                onClick={() => setShowPaymentDialog(true)}
+              >
+                <Banknote className="mr-2 h-5 w-5" />
+                Contant
+              </Button>
+              <Button 
+                className="h-14 text-base"
+                disabled={cart.length === 0 || isStripeProcessing}
+                onClick={handleCardPaymentStart}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                PIN
+              </Button>
+              <Button 
+                variant="outline"
+                className="h-14 text-base"
+                disabled={cart.length === 0 || !currentTenant?.iban}
+                onClick={() => setShowBankTransferDialog(true)}
+              >
+                <QrCode className="mr-2 h-5 w-5" />
+                Bank
+              </Button>
+              <Button 
+                variant="secondary"
+                className="h-14 text-base"
+                disabled={cart.length === 0}
+                onClick={() => setShowMultiPaymentDialog(true)}
+              >
+                <Gift className="mr-2 h-4 w-4" />
+                Meer
+              </Button>
+            </div>
+          </div>
+    </>
+  );
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -925,224 +1146,28 @@ export default function POSTerminalPage() {
           </div>
         </div>
         
-        {/* Right Panel - Cart */}
-        <div className="w-96 border-l bg-card flex flex-col">
-          {/* Cart Header */}
-          <div className="p-4 border-b flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              <h2 className="font-semibold">Winkelwagen</h2>
-              {cart.length > 0 && (
-                <Badge variant="secondary">{cart.length}</Badge>
-              )}
-            </div>
-            {cart.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearCart}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          
-          {/* Customer & Discount Bar */}
-          {(selectedCustomer || cartDiscount) && (
-            <div className="px-4 py-2 border-b bg-muted/30 space-y-1">
-              {selectedCustomer && (
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                    <span className="truncate">
-                      {selectedCustomer.company_name || 
-                       `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim() || 
-                       selectedCustomer.email}
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-5 w-5" 
-                    onClick={() => setSelectedCustomer(null)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-              {cartDiscount && (
-                <div className="flex items-center justify-between text-sm text-green-600">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-3 w-3" />
-                    <span>
-                      {cartDiscount.type === 'percentage' 
-                        ? `${cartDiscount.value}% korting` 
-                        : `€${cartDiscount.value} korting`}
-                      {cartDiscount.reason && ` (${cartDiscount.reason})`}
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-5 w-5" 
-                    onClick={() => setCartDiscount(null)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Cart Items */}
-          <ScrollArea className="flex-1">
-            {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
-                <ShoppingCart className="h-12 w-12 mb-4 opacity-50" />
-                <p>Winkelwagen is leeg</p>
-                <p className="text-sm">Scan een product of gebruik snelknoppen</p>
-              </div>
-            ) : (
-              <div className="p-4 space-y-3">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                    {item.image_url ? (
-                      <img 
-                        src={item.image_url} 
-                        alt={item.name}
-                        className="w-12 h-12 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                        <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(item.price)} × {item.quantity}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        onClick={() => updateQuantity(item.id, -1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        onClick={() => updateQuantity(item.id, 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-          
-          {/* Cart Footer */}
-          <div className="border-t p-4 space-y-4">
-            {/* Totals */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotaal</span>
-                <span>{formatCurrency(cartTotals.subtotal)}</span>
-              </div>
-              {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Korting</span>
-                  <span>-{formatCurrency(cartTotals.discount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">BTW (21%)</span>
-                <span>{formatCurrency(cartTotals.taxTotal)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Totaal</span>
-                <span>{formatCurrency(cartTotals.total)}</span>
-              </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="grid grid-cols-3 gap-2">
-              <Button 
-                variant="outline" 
-                disabled={cart.length === 0}
-                onClick={handleParkCart}
-              >
-                <PauseCircle className="mr-2 h-4 w-4" />
-                Parkeren
-              </Button>
-              <Button 
-                variant={selectedCustomer ? 'secondary' : 'outline'}
-                onClick={() => setShowCustomerDialog(true)}
-              >
-                <User className="mr-2 h-4 w-4" />
-                {selectedCustomer ? 'Klant ✓' : 'Klant'}
-              </Button>
-              <Button 
-                variant={cartDiscount ? 'secondary' : 'outline'}
-                disabled={cart.length === 0}
-                onClick={() => setShowDiscountPanel(true)}
-              >
-                <Percent className="mr-2 h-4 w-4" />
-                {cartDiscount ? 'Korting ✓' : 'Korting'}
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-2">
-              <Button 
-                className="h-14 text-base"
-                disabled={cart.length === 0}
-                onClick={() => setShowPaymentDialog(true)}
-              >
-                <Banknote className="mr-2 h-5 w-5" />
-                Contant
-              </Button>
-              <Button 
-                className="h-14 text-base"
-                disabled={cart.length === 0 || isStripeProcessing}
-                onClick={handleCardPaymentStart}
-              >
-                <CreditCard className="mr-2 h-5 w-5" />
-                PIN
-              </Button>
-              <Button 
-                variant="outline"
-                className="h-14 text-base"
-                disabled={cart.length === 0 || !currentTenant?.iban}
-                onClick={() => setShowBankTransferDialog(true)}
-              >
-                <QrCode className="mr-2 h-5 w-5" />
-                Bank
-              </Button>
-              <Button 
-                variant="secondary"
-                className="h-14 text-base"
-                disabled={cart.length === 0}
-                onClick={() => setShowMultiPaymentDialog(true)}
-              >
-                <Gift className="mr-2 h-4 w-4" />
-                Meer
-              </Button>
-            </div>
-          </div>
+        {/* Right Panel - Cart (desktop only) */}
+        <div className="w-96 border-l bg-card hidden lg:flex flex-col">
+          {cartPanelContent}
         </div>
       </div>
+
+      {/* Mobile cart bar + sheet */}
+      <div className="lg:hidden shrink-0 border-t bg-card px-4 py-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm text-muted-foreground">{cart.length} artikelen</p>
+          <p className="text-lg font-bold leading-tight">{formatCurrency(cartTotals.total)}</p>
+        </div>
+        <Button className="shrink-0" onClick={() => setMobileCartOpen(true)}>
+          <ShoppingCart className="mr-2 h-4 w-4" />
+          Afrekenen
+        </Button>
+      </div>
+      <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
+        <SheetContent side="bottom" className="h-[85dvh] lg:hidden p-0 flex flex-col">
+          {cartPanelContent}
+        </SheetContent>
+      </Sheet>
       
       {/* Open Session Dialog */}
       <Dialog open={showOpenSessionDialog} onOpenChange={setShowOpenSessionDialog}>
@@ -1247,7 +1272,7 @@ export default function POSTerminalPage() {
             )}
             
             {/* Quick amounts */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[5, 10, 20, 50].map((amount) => (
                 <Button
                   key={amount}
@@ -1258,7 +1283,7 @@ export default function POSTerminalPage() {
                 </Button>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[100, 200, 500].map((amount) => (
                 <Button
                   key={amount}

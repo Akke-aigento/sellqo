@@ -1297,6 +1297,10 @@
           "title": "Wide tables now scroll neatly on mobile",
           "description": "Overviews with many columns can now be scrolled horizontally on smaller screens, instead of running off-screen."
         },
+        "pos_mobile_layout": {
+          "title": "Point of sale now works smoothly on tablet and phone",
+          "description": "The point of sale is now fully usable on smaller screens, with a slide-out shopping cart."
+        },
         "product_page_mobile_fix": {
           "title": "The product page now works smoothly on mobile",
           "description": "Buttons, tabs and product variants are now displayed correctly on phones and small screens."

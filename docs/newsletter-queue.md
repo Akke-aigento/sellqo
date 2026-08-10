@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.09n — Kassa vlot op tablet en telefoon (improvement, 10-08-2026)
+
+**Kassa werkt nu vlot op tablet en telefoon** (september 2026)
+De kassa was op smalle schermen nauwelijks te gebruiken: de winkelwagen nam bijna het
+hele beeld in. Nu vult het productpaneel het scherm en schuift de winkelwagen van onderen
+uit via een vaste balk met je totaal en een knop "Afrekenen".
+Wat betekent dit voor jou? Je kunt een verkoop volledig afhandelen op een tablet of
+telefoon — betaalknoppen inbegrepen. Op laptop en desktop blijft alles exact zoals je het
+kent. Je hoeft niets in te stellen.
+
+**i18n-keys.** `public.changelog.changes.pos_mobile_layout` — NL/EN/FR/DE aanwezig.
+
 ### 2026.09g + 2026.09h + 2026.09i — Printful print-on-demand koppeling (feature, 09-08-2026)
 
 > **Bundeling:** dit item dekt POD-1a (verbinding), POD-1b (bestellingen doorsturen) én

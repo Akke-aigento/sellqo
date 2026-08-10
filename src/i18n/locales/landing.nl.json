@@ -1297,6 +1297,10 @@
           "title": "Brede tabellen scrollen nu netjes op mobiel",
           "description": "Overzichten met veel kolommen zijn nu horizontaal te scrollen op kleinere schermen, in plaats van buiten beeld te vallen."
         },
+        "pos_mobile_layout": {
+          "title": "Kassa werkt nu vlot op tablet en telefoon",
+          "description": "De kassa is nu volledig bruikbaar op kleinere schermen, met een uitschuifbare winkelwagen."
+        },
         "product_page_mobile_fix": {
           "title": "Productpagina werkt nu vlot op mobiel",
           "description": "Knoppen, tabbladen en productvarianten worden nu correct weergegeven op telefoons en kleine schermen."
