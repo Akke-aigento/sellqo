@@ -2,6 +2,8 @@
 // Used by storefront-api, stripe-connect-webhook, create-bank-transfer-order,
 // and marketplace sync functions.
 
+import { isEuCountry } from "./vies.ts";
+
 export interface LineVatResolution {
   vat_rate: number;
   vat_rate_id: string | null;
