@@ -54,6 +54,10 @@ export const useShippingMethods = () => {
       if (error) throw error;
       return data;
     },
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shipping-methods"] });
       toast({
