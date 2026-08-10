@@ -5538,3 +5538,24 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Test:** 390px → Opslaan volledig zichtbaar, tab-labels los/scrollbaar, SKU en Prijs zonder overlap; 1366px → ongewijzigd. Visuele browsercheck kon niet zelf worden uitgevoerd (admin-routes achter login).
 
 **Slottaken:** changelog `2026.09m` (bugfix, publiek, NL/EN/FR/DE, key `product_page_mobile_fix`). Geen newsletter. DOCS-1: geen doc-impact.
+
+---
+
+## POS-header mobiel — Square-stijl ••• menu (vervolg LAYOUT-2 Spoor 2A-POS)
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Aanleiding:** de POSTerminal-header propte op telefoon alle 7 actieknoppen op één horizontale scrollrij; de terminalnaam werd afgekapt en sessie-acties waren praktisch onbereikbaar.
+
+**Wijziging (`src/pages/admin/POSTerminal.tsx`, alleen de `<header>`):**
+1. Bestaande knoppen-container: `flex items-center gap-2 overflow-x-auto` → `flex items-center gap-2 hidden lg:flex`. Inhoud byte-identiek — alle knoppen en hun condities ongewijzigd. Desktop (≥1024px) rendert exact zoals voorheen.
+2. Nieuwe mobiele variant ernaast (`flex items-center gap-2 lg:hidden`): offline-Badge (bij `!isOnline`), reader-status als icoon-knop (Wifi groen bij `connectedReader?.status === 'online'`, anders CreditCard) → `setShowReaderDialog(true)`, en een `MoreVertical`-DropdownMenu met alle sessie-acties: Sync (`pendingCount > 0`), Kas +/-, Rapport, Retouren (alle drie bij `activeSession`), Geparkeerd (`parkedCarts.length > 0`), Instellingen, separator, Dag Sluiten (`activeSession`, `text-destructive focus:text-destructive`).
+3. Imports toegevoegd: `MoreVertical` (lucide-react) en het bestaande DropdownMenu-patroon uit `@/components/ui/dropdown-menu`.
+
+**Scope:** uitsluitend header-JSX + twee imports. Geen handlers, panelen, `cartPanelContent`, `cartTotals`, state-logica, queries of SQL aangeraakt. Elke conditie in het mobiele menu is identiek aan de desktop-knop.
+
+**Changelog/newsletter:** valt onder de al aangekondigde changelog `2026.09n` ("Kassa vlot op tablet/telefoon") — zelfde feature afgemaakt. **GEEN** nieuwe changelog-versie, **GEEN** newsletter-item.
+
+**DOCS-1:** tenant-doc `pos-gebruiken` ("Kassa op tablet of telefoon") aangevuld met één zin dat Kas +/-, Rapport, Retouren en Dag sluiten op telefoon via het ••• menu rechtsboven bereikbaar zijn. doc_level `tenant`.
+
+**Test:** 390px → header één compacte regel, titel + starttijd niet afgekapt, reader-icoon + ••• zichtbaar, condities kloppen (geen sessie = geen Kas/Rapport/Retouren/Sluiten). 1440px → ongewijzigd. Livecheck in browser niet zelf uitgevoerd (kassa achter admin-login); `tsgo` slaagt zonder errors.
