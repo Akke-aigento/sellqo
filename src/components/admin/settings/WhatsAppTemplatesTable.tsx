@@ -177,7 +177,8 @@ export function WhatsAppTemplatesTable() {
             Nog geen templates aangemaakt
           </div>
         ) : (
-          <Table>
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Template</TableHead>
@@ -215,6 +216,7 @@ export function WhatsAppTemplatesTable() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
 
         {/* Preview Dialog */}

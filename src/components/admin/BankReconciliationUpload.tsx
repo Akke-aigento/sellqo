@@ -439,7 +439,8 @@ export function BankReconciliationUpload() {
 
             {results.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Datum</TableHead>
@@ -469,6 +470,7 @@ export function BankReconciliationUpload() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             )}
           </>

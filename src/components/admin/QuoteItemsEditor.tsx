@@ -107,7 +107,8 @@ export function QuoteItemsEditor({ items, onChange, taxPercentage }: QuoteItemsE
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <Table>
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40%]">Omschrijving</TableHead>
@@ -178,6 +179,7 @@ export function QuoteItemsEditor({ items, onChange, taxPercentage }: QuoteItemsE
               ))}
             </TableBody>
           </Table>
+          </div>
 
           <div className="border-t bg-muted/30 p-4">
             <div className="flex justify-end">

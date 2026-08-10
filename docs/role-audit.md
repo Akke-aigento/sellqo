@@ -5465,3 +5465,17 @@ Geen changelog/newsletter/DOCS-wijziging: interne verbetering binnen de nog niet
 - **Test:** varianten-dialog past binnen beeld met zichtbare Opslaan-knop op 1366px én 390px; lange dialogs (TenantFormDialog) scrollen binnen het venster; BolCsvImport toont geen dubbele scrollbar.
 - **Changelog:** versie `2026.09b` was al in gebruik (platform newsletter), daarom geregistreerd als `2026.09k`, type bugfix, publiek zichtbaar, i18n NL/EN/FR/DE. Geen newsletter (te kleine wijziging).
 - **DOCS-1:** doc_articles met dialog-screenshots gecontroleerd — enkel gemarkeerd voor eventuele latere screenshot-verversing, geen inhoudelijke wijziging (layoutfix verandert geen flows).
+
+## LAYOUT-1 Batch B1 — tabellen horizontale scroll (kale groep)
+
+**Pattern**: kale `<Table>` gewikkeld in `<div className="w-full overflow-x-auto">` (zelfde pattern als `src/components/ui/responsive-data-table.tsx`). Tabellen met >= 5 kolommen kregen daarbij `min-w-[640px]` zodat kolommen niet samendrukken; smalle 2-4 koloms tabellen niet.
+
+**Gewrapt met `min-w-[640px]`**: BankReconciliationUpload, CreditNoteDialog, ManualInvoiceDialog, QuoteItemsEditor, settings/VatRatesSettings, settings/WhatsAppTemplatesTable, platform/TenantCreditsTab (credit-historie tabel), platform/TenantInvoicesTab, ChannelFieldMappingAdmin, LoyaltyPrograms, MarketplaceDetail (3 tabellen), OrderDetail, PurchaseOrders, Tenants, platform/PlatformBilling (3 tabellen), platform/PlatformCoupons.
+
+**Gewrapt zonder min-w** (smal): import/PreviewValidation (4 kolommen), pos/SessionReportDialog (2-koloms label/waarde kascontrole-tabel), platform/TenantCreditsTab (tweede, 4-koloms tabel).
+
+**Overgeslagen**: `src/components/admin/products/StockLedgerDialog.tsx` — de `<Table>` staat al in `<div className="max-h-[60vh] overflow-auto">`, dus horizontale scroll is er al.
+
+**Scope**: uitsluitend wrapper-divs (+ min-w className). Geen kolommen, sortering, logica, DialogContent, backend, edge functions of SQL geraakt. Typecheck groen.
+
+**Changelog uitgesteld** — wordt bewust gebundeld met Batch B2 tot één gezamenlijke changelog-entry. Geen newsletter. DOCS-1: geen doc-impact (geen flow-wijziging).

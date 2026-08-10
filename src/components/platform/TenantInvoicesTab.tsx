@@ -55,7 +55,8 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
       </CardHeader>
       <CardContent>
         {invoices && invoices.length > 0 ? (
-          <Table>
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Factuurnummer</TableHead>
@@ -122,6 +123,7 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
               ))}
             </TableBody>
           </Table>
+          </div>
         ) : (
           <p className="text-muted-foreground text-sm py-8 text-center">
             Geen facturen gevonden voor deze tenant

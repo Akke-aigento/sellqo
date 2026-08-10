@@ -201,7 +201,8 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
           {/* Invoice Items */}
           <div className="space-y-2">
             <Label>Factuurregels</Label>
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[40%]">Omschrijving</TableHead>
@@ -256,6 +257,7 @@ export function ManualInvoiceDialog({ onSuccess }: ManualInvoiceDialogProps) {
                 ))}
               </TableBody>
             </Table>
+            </div>
             <Button variant="outline" size="sm" onClick={addItem}>
               <Plus className="h-4 w-4 mr-2" />
               Regel toevoegen

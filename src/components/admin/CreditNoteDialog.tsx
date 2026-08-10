@@ -222,7 +222,8 @@ export function CreditNoteDialog({
             <div className="space-y-3">
               <Label>{t('creditnote.select_lines')}</Label>
               <div className="rounded-md border">
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12"></TableHead>
@@ -257,6 +258,7 @@ export function CreditNoteDialog({
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             </div>
           )}
