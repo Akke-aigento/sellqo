@@ -222,45 +222,47 @@ export default function PlatformBlog() {
             <>
               {/* Desktop */}
               <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Titel</TableHead>
-                      <TableHead>Categorie</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Leestijd</TableHead>
-                      <TableHead className="text-right">Acties</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {posts.map((post) => (
-                      <TableRow key={post.id}>
-                        <TableCell className="font-medium max-w-[280px]">
-                          <div className="truncate">{post.title}</div>
-                          <div className="text-xs text-muted-foreground truncate">/{post.slug}</div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{post.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
-                            {post.status === 'published' ? 'Gepubliceerd' : 'Concept'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {post.published_at
-                            ? new Date(post.published_at).toLocaleDateString('nl-BE')
-                            : '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {post.reading_minutes ? `${post.reading_minutes} min` : '—'}
-                        </TableCell>
-                        <TableCell>{rowActions(post)}</TableCell>
+                <div className="w-full overflow-x-auto">
+                  <Table className="min-w-[640px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Titel</TableHead>
+                        <TableHead>Categorie</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Leestijd</TableHead>
+                        <TableHead className="text-right">Acties</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {posts.map((post) => (
+                        <TableRow key={post.id}>
+                          <TableCell className="font-medium max-w-[280px]">
+                            <div className="truncate">{post.title}</div>
+                            <div className="text-xs text-muted-foreground truncate">/{post.slug}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{post.category}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
+                              {post.status === 'published' ? 'Gepubliceerd' : 'Concept'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {post.published_at
+                              ? new Date(post.published_at).toLocaleDateString('nl-BE')
+                              : '—'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {post.reading_minutes ? `${post.reading_minutes} min` : '—'}
+                          </TableCell>
+                          <TableCell>{rowActions(post)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
               {/* Mobile */}

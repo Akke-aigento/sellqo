@@ -1293,6 +1293,10 @@
           "title": "Klarere Darstellung verfügbarer und kommender Integrationen",
           "description": "SellQo Connect zeigt jetzt auf einen Blick, welche Integrationen live sind und welche bald kommen. Noch nicht verfügbare Kanäle erhalten eine klare Kennzeichnung statt einer Schaltfläche ohne Funktion."
         },
+        "wide_table_scroll_fix": {
+          "title": "Breite Tabellen scrollen jetzt sauber auf dem Handy",
+          "description": "Übersichten mit vielen Spalten lassen sich auf kleineren Bildschirmen nun horizontal scrollen, anstatt aus dem Bild zu laufen."
+        },
         "dialog_viewport_fix": {
           "title": "Dialogfenster passen sich kleineren Bildschirmen an",
           "description": "Fenster passen sich jetzt korrekt an kleinere Bildschirme an. Lange Formulare scrollen innerhalb des Fensters, sodass Schaltflächen wie Speichern auf Laptop und Mobilgerät immer erreichbar bleiben."

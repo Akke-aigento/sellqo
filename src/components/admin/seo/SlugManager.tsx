@@ -255,84 +255,86 @@ export function SlugManager({
 
         {/* Table */}
         <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedIds.size === filteredItems.length && filteredItems.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Naam</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Huidige URL</TableHead>
-                <TableHead></TableHead>
-                <TableHead>Suggestie</TableHead>
-                <TableHead className="w-24">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.length === 0 ? (
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[720px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Geen items gevonden
-                  </TableCell>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredItems.length && filteredItems.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Naam</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Huidige URL</TableHead>
+                  <TableHead></TableHead>
+                  <TableHead>Suggestie</TableHead>
+                  <TableHead className="w-24">Status</TableHead>
                 </TableRow>
-              ) : (
-                filteredItems.slice(0, 50).map((item) => {
-                  const isOptimal = item.currentSlug === item.suggestedSlug;
+              </TableHeader>
+              <TableBody>
+                {filteredItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Geen items gevonden
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredItems.slice(0, 50).map((item) => {
+                    const isOptimal = item.currentSlug === item.suggestedSlug;
                   
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(item.id)}
-                          onCheckedChange={() => toggleSelect(item.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {item.entityType === 'product' ? 'Product' : 'Categorie'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {item.currentSlug ? (
-                          <span className={cn(
-                            item.hasConflict && 'text-destructive'
-                          )}>
-                            /{item.currentSlug}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="w-8">
-                        {!isOptimal && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {!isOptimal && (
-                          <span className="text-green-600">/{item.suggestedSlug}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {item.hasConflict ? (
-                          <Badge variant="destructive">Conflict</Badge>
-                        ) : isOptimal ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Badge variant="secondary">Te optimaliseren</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(item.id)}
+                            onCheckedChange={() => toggleSelect(item.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate">
+                          {item.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {item.entityType === 'product' ? 'Product' : 'Categorie'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {item.currentSlug ? (
+                            <span className={cn(
+                              item.hasConflict && 'text-destructive'
+                            )}>
+                              /{item.currentSlug}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="w-8">
+                          {!isOptimal && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {!isOptimal && (
+                            <span className="text-green-600">/{item.suggestedSlug}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {item.hasConflict ? (
+                            <Badge variant="destructive">Conflict</Badge>
+                          ) : isOptimal ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Badge variant="secondary">Te optimaliseren</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {filteredItems.length > 50 && (

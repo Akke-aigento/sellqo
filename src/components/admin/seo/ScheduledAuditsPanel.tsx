@@ -452,51 +452,53 @@ export function ScheduledAuditsPanel() {
               </div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Score</TableHead>
-                      <TableHead>Issues</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auditResults.map((result) => (
-                      <TableRow key={result.id}>
-                        <TableCell className="text-xs">
-                          {format(new Date(result.started_at), 'd MMM HH:mm', { locale: nl })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {AUDIT_TYPES.find(t => t.value === result.audit_type)?.label || result.audit_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-bold ${getScoreColor(result.overall_score)}`}>
-                            {result.overall_score ?? '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {result.issues_found > 0 && (
-                              <Badge variant="outline" className="bg-red-500/10 text-red-500 text-xs">
-                                {result.issues_found} gevonden
-                              </Badge>
-                            )}
-                            {result.issues_fixed > 0 && (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-500 text-xs">
-                                {result.issues_fixed} opgelost
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(result.status)}</TableCell>
+                <div className="w-full overflow-x-auto">
+                  <Table className="min-w-[720px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead>Issues</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {auditResults.map((result) => (
+                        <TableRow key={result.id}>
+                          <TableCell className="text-xs">
+                            {format(new Date(result.started_at), 'd MMM HH:mm', { locale: nl })}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {AUDIT_TYPES.find(t => t.value === result.audit_type)?.label || result.audit_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`font-bold ${getScoreColor(result.overall_score)}`}>
+                              {result.overall_score ?? '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {result.issues_found > 0 && (
+                                <Badge variant="outline" className="bg-red-500/10 text-red-500 text-xs">
+                                  {result.issues_found} gevonden
+                                </Badge>
+                              )}
+                              {result.issues_fixed > 0 && (
+                                <Badge variant="outline" className="bg-green-500/10 text-green-500 text-xs">
+                                  {result.issues_fixed} opgelost
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(result.status)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </CardContent>

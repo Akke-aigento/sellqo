@@ -141,126 +141,128 @@ export function SEOCategoryTable({
         </div>
 
         <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedIds.size === filteredCategories.length && filteredCategories.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Categorie</TableHead>
-                <TableHead className="w-28">
-                  <Button variant="ghost" size="sm" onClick={toggleSort} className="h-auto p-0 font-medium hover:bg-transparent">
-                    Score
-                    {sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-32">Meta Title</TableHead>
-                <TableHead className="w-32">Meta Desc</TableHead>
-                <TableHead className="w-24">Afbeelding</TableHead>
-                <TableHead className="w-24">Issues</TableHead>
-                <TableHead className="w-36"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCategories.length === 0 ? (
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[720px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Geen categorieën gevonden</TableCell>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredCategories.length && filteredCategories.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Categorie</TableHead>
+                  <TableHead className="w-28">
+                    <Button variant="ghost" size="sm" onClick={toggleSort} className="h-auto p-0 font-medium hover:bg-transparent">
+                      Score
+                      {sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="w-32">Meta Title</TableHead>
+                  <TableHead className="w-32">Meta Desc</TableHead>
+                  <TableHead className="w-24">Afbeelding</TableHead>
+                  <TableHead className="w-24">Issues</TableHead>
+                  <TableHead className="w-36"></TableHead>
                 </TableRow>
-              ) : (
-                filteredCategories.map((category) => {
-                  const score = category.seo_score?.overall_score ?? null;
-                  const issues = category.seo_score?.issues?.length ?? 0;
-                  const hasMeta = !!category.meta_title;
-                  const hasDesc = !!category.meta_description;
-                  const hasImage = !!category.image_url;
-                  const needsOptimization = score === null || score < 70;
+              </TableHeader>
+              <TableBody>
+                {filteredCategories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Geen categorieën gevonden</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCategories.map((category) => {
+                    const score = category.seo_score?.overall_score ?? null;
+                    const issues = category.seo_score?.issues?.length ?? 0;
+                    const hasMeta = !!category.meta_title;
+                    const hasDesc = !!category.meta_description;
+                    const hasImage = !!category.image_url;
+                    const needsOptimization = score === null || score < 70;
 
-                  return (
-                    <TableRow key={category.id} className={getRowHighlight(score)}>
-                      <TableCell>
-                        <Checkbox checked={selectedIds.has(category.id)} onCheckedChange={() => toggleSelect(category.id)} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {category.image_url ? (
-                            <img src={category.image_url} alt="" className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                              <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <span className="font-medium truncate max-w-[200px]">{category.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <SEOScoreBadge score={score} />
-                      </TableCell>
-                      <TableCell>
-                        {hasMeta ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {hasDesc ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {hasImage ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {issues > 0 ? <Badge variant="secondary">{issues}</Badge> : <span className="text-muted-foreground">-</span>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {needsOptimization && (
+                    return (
+                      <TableRow key={category.id} className={getRowHighlight(score)}>
+                        <TableCell>
+                          <Checkbox checked={selectedIds.has(category.id)} onCheckedChange={() => toggleSelect(category.id)} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {category.image_url ? (
+                              <img src={category.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="font-medium truncate max-w-[200px]">{category.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <SEOScoreBadge score={score} />
+                        </TableCell>
+                        <TableCell>
+                          {hasMeta ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {hasDesc ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {hasImage ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {issues > 0 ? <Badge variant="secondary">{issues}</Badge> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {needsOptimization && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant={score !== null && score < 50 ? 'destructive' : 'outline'}
+                                    className="h-7 text-xs"
+                                    disabled={isGenerating}
+                                  >
+                                    <Wand2 className="h-3 w-3 mr-1" />
+                                    Optimaliseer
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [category.id])}>Meta Title genereren</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [category.id])}>Meta Description genereren</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('category_description', [category.id])}>Beschrijving optimaliseren</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant={score !== null && score < 50 ? 'destructive' : 'outline'}
-                                  className="h-7 text-xs"
-                                  disabled={isGenerating}
-                                >
-                                  <Wand2 className="h-3 w-3 mr-1" />
-                                  Optimaliseer
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [category.id])}>Meta Title genereren</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [category.id])}>Meta Description genereren</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onGenerateContent('category_description', [category.id])}>Beschrijving optimaliseren</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [category.id])}>
+                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [category.id])}>
+                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Description
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGenerateContent('category_description', [category.id])}>
+                                  <Wand2 className="h-4 w-4 mr-2" />Optimaliseer Beschrijving
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <ExternalLink className="h-4 w-4 mr-2" />Bekijk categorie
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [category.id])}>
-                                <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [category.id])}>
-                                <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Description
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onGenerateContent('category_description', [category.id])}>
-                                <Wand2 className="h-4 w-4 mr-2" />Optimaliseer Beschrijving
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ExternalLink className="h-4 w-4 mr-2" />Bekijk categorie
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>

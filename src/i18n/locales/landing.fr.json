@@ -1293,6 +1293,10 @@
           "title": "Affichage plus clair des intégrations disponibles et à venir",
           "description": "SellQo Connect indique maintenant clairement quelles intégrations sont actives et lesquelles arrivent bientôt. Les canaux pas encore disponibles reçoivent une mention claire au lieu d'un bouton inactif."
         },
+        "wide_table_scroll_fix": {
+          "title": "Les grands tableaux défilent maintenant correctement sur mobile",
+          "description": "Les aperçus comportant de nombreuses colonnes peuvent désormais défiler horizontalement sur les petits écrans, au lieu de sortir de l'écran."
+        },
         "dialog_viewport_fix": {
           "title": "Les fenêtres s'adaptent mieux à votre écran",
           "description": "Les fenêtres s'adaptent désormais correctement aux écrans plus petits. Les formulaires longs défilent dans la fenêtre, afin que les boutons comme Enregistrer restent toujours accessibles sur ordinateur portable et mobile."

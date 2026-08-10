@@ -391,53 +391,55 @@ export function CompetitorAnalysisPanel() {
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Keyword</TableHead>
-                          <TableHead className="text-center">Jouw positie</TableHead>
-                          <TableHead className="text-center">Concurrent</TableHead>
-                          <TableHead className="text-center">Verschil</TableHead>
-                          <TableHead className="text-right">Volume</TableHead>
-                          <TableHead className="text-right">Moeilijkheid</TableHead>
-                          <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {keywordComparisons.map((kw) => (
-                          <TableRow key={kw.id}>
-                            <TableCell className="font-medium">{kw.keyword}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline">{kw.our_position || '-'}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="secondary">{kw.competitor_position || '-'}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {getPositionBadge(kw.our_position, kw.competitor_position)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {kw.search_volume?.toLocaleString() || '-'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={getDifficultyColor(kw.difficulty_score)}>
-                                {kw.difficulty_score || '-'}%
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => deleteKeywordMutation.mutate(kw.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                    <div className="w-full overflow-x-auto">
+                      <Table className="min-w-[720px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Keyword</TableHead>
+                            <TableHead className="text-center">Jouw positie</TableHead>
+                            <TableHead className="text-center">Concurrent</TableHead>
+                            <TableHead className="text-center">Verschil</TableHead>
+                            <TableHead className="text-right">Volume</TableHead>
+                            <TableHead className="text-right">Moeilijkheid</TableHead>
+                            <TableHead className="w-10"></TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {keywordComparisons.map((kw) => (
+                            <TableRow key={kw.id}>
+                              <TableCell className="font-medium">{kw.keyword}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline">{kw.our_position || '-'}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary">{kw.competitor_position || '-'}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {getPositionBadge(kw.our_position, kw.competitor_position)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {kw.search_volume?.toLocaleString() || '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={getDifficultyColor(kw.difficulty_score)}>
+                                  {kw.difficulty_score || '-'}%
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => deleteKeywordMutation.mutate(kw.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </div>

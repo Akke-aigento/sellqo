@@ -1293,6 +1293,10 @@
           "title": "Duidelijkere weergave van beschikbare en aankomende integraties",
           "description": "In SellQo Connect zie je nu direct welke koppelingen live zijn en welke binnenkort komen. Kanalen die nog niet beschikbaar zijn, krijgen een duidelijk label in plaats van een knop die nog niets doet."
         },
+        "wide_table_scroll_fix": {
+          "title": "Brede tabellen scrollen nu netjes op mobiel",
+          "description": "Overzichten met veel kolommen zijn nu horizontaal te scrollen op kleinere schermen, in plaats van buiten beeld te vallen."
+        },
         "dialog_viewport_fix": {
           "title": "Vensters passen zich beter aan je scherm aan",
           "description": "Vensters passen zich nu correct aan kleinere schermen aan. Lange formulieren scrollen binnen het venster, zodat knoppen zoals Opslaan altijd bereikbaar blijven op laptop en mobiel."

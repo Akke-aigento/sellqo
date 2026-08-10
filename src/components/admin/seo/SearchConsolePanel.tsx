@@ -363,43 +363,45 @@ export function SearchConsolePanel() {
               </CardHeader>
               <CardContent>
                 <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Query</TableHead>
-                        <TableHead className="text-right">Klikken</TableHead>
-                        <TableHead className="text-right">Impressies</TableHead>
-                        <TableHead className="text-right">CTR</TableHead>
-                        <TableHead className="text-right">Positie</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {topQueries.map((q, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">{q.query}</TableCell>
-                          <TableCell className="text-right">{q.clicks.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">{q.impressions.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">
-                            <span className={q.ctr > 5 ? 'text-green-500' : q.ctr > 2 ? 'text-yellow-500' : ''}>
-                              {q.ctr.toFixed(1)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                (q.avgPosition || 100) <= 10 ? 'bg-green-500/10 text-green-500' :
-                                (q.avgPosition || 100) <= 20 ? 'bg-yellow-500/10 text-yellow-500' :
-                                'bg-red-500/10 text-red-500'
-                              }
-                            >
-                              {q.avgPosition?.toFixed(1) || '-'}
-                            </Badge>
-                          </TableCell>
+                  <div className="w-full overflow-x-auto">
+                    <Table className="min-w-[720px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Query</TableHead>
+                          <TableHead className="text-right">Klikken</TableHead>
+                          <TableHead className="text-right">Impressies</TableHead>
+                          <TableHead className="text-right">CTR</TableHead>
+                          <TableHead className="text-right">Positie</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {topQueries.map((q, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-medium">{q.query}</TableCell>
+                            <TableCell className="text-right">{q.clicks.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{q.impressions.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={q.ctr > 5 ? 'text-green-500' : q.ctr > 2 ? 'text-yellow-500' : ''}>
+                                {q.ctr.toFixed(1)}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  (q.avgPosition || 100) <= 10 ? 'bg-green-500/10 text-green-500' :
+                                  (q.avgPosition || 100) <= 20 ? 'bg-yellow-500/10 text-yellow-500' :
+                                  'bg-red-500/10 text-red-500'
+                                }
+                              >
+                                {q.avgPosition?.toFixed(1) || '-'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </CardContent>
             </Card>

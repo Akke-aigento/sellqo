@@ -141,118 +141,120 @@ export function SEOProductTable({
         </div>
 
         <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead className="w-28">
-                  <Button variant="ghost" size="sm" onClick={toggleSort} className="h-auto p-0 font-medium hover:bg-transparent">
-                    Score
-                    {sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-32">Meta Title</TableHead>
-                <TableHead className="w-32">Meta Desc</TableHead>
-                <TableHead className="w-24">Issues</TableHead>
-                <TableHead className="w-36"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.length === 0 ? (
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[720px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Geen producten gevonden</TableCell>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="w-28">
+                    <Button variant="ghost" size="sm" onClick={toggleSort} className="h-auto p-0 font-medium hover:bg-transparent">
+                      Score
+                      {sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="w-32">Meta Title</TableHead>
+                  <TableHead className="w-32">Meta Desc</TableHead>
+                  <TableHead className="w-24">Issues</TableHead>
+                  <TableHead className="w-36"></TableHead>
                 </TableRow>
-              ) : (
-                filteredProducts.map((product) => {
-                  const score = product.seo_score?.overall_score ?? null;
-                  const issues = product.seo_score?.issues?.length ?? 0;
-                  const hasMeta = !!product.meta_title;
-                  const hasDesc = !!product.meta_description;
-                  const needsOptimization = score === null || score < 70;
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Geen producten gevonden</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredProducts.map((product) => {
+                    const score = product.seo_score?.overall_score ?? null;
+                    const issues = product.seo_score?.issues?.length ?? 0;
+                    const hasMeta = !!product.meta_title;
+                    const hasDesc = !!product.meta_description;
+                    const needsOptimization = score === null || score < 70;
 
-                  return (
-                    <TableRow key={product.id} className={getRowHighlight(score)}>
-                      <TableCell>
-                        <Checkbox checked={selectedIds.has(product.id)} onCheckedChange={() => toggleSelect(product.id)} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {product.images?.[0] ? (
-                            <img src={product.images[0]} alt="" className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <span className="font-medium truncate max-w-[200px]">{product.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <SEOScoreBadge score={score} />
-                      </TableCell>
-                      <TableCell>
-                        {hasMeta ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {hasDesc ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {issues > 0 ? <Badge variant="secondary">{issues}</Badge> : <span className="text-muted-foreground">-</span>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {needsOptimization && (
+                    return (
+                      <TableRow key={product.id} className={getRowHighlight(score)}>
+                        <TableCell>
+                          <Checkbox checked={selectedIds.has(product.id)} onCheckedChange={() => toggleSelect(product.id)} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {product.images?.[0] ? (
+                              <img src={product.images[0]} alt="" className="w-10 h-10 rounded object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="font-medium truncate max-w-[200px]">{product.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <SEOScoreBadge score={score} />
+                        </TableCell>
+                        <TableCell>
+                          {hasMeta ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {hasDesc ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {issues > 0 ? <Badge variant="secondary">{issues}</Badge> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {needsOptimization && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant={score !== null && score < 50 ? 'destructive' : 'outline'}
+                                    className="h-7 text-xs"
+                                    disabled={isGenerating}
+                                  >
+                                    <Wand2 className="h-3 w-3 mr-1" />
+                                    Optimaliseer
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>Meta Title genereren</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>Meta Description genereren</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('product_description', [product.id])}>Beschrijving optimaliseren</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant={score !== null && score < 50 ? 'destructive' : 'outline'}
-                                  className="h-7 text-xs"
-                                  disabled={isGenerating}
-                                >
-                                  <Wand2 className="h-3 w-3 mr-1" />
-                                  Optimaliseer
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>Meta Title genereren</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>Meta Description genereren</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onGenerateContent('product_description', [product.id])}>Beschrijving optimaliseren</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>
+                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>
+                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Description
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <ExternalLink className="h-4 w-4 mr-2" />Bekijk product
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>
-                                <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>
-                                <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Description
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ExternalLink className="h-4 w-4 mr-2" />Bekijk product
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>
