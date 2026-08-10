@@ -1651,7 +1651,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   }
 
   // Available shipping methods — filtered by shipping-class of the cart
-  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal, cart_id: cartId });
+  // SHIP-GEO-1 — en door het verzendland van de klant.
+  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, {
+    subtotal,
+    cart_id: cartId,
+    country: cart.shipping_address?.country || null,
+  });
 
   // Preview: nog geen methode gekozen, maar er is er maar één mogelijk →
   // toon die prijs alvast, zodat de klant niet voor verrassingen komt te staan.
