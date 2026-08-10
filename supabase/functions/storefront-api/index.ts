@@ -1877,6 +1877,18 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
   if (!customer?.first_name) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Voornaam is verplicht', fields: { first_name: 'Voornaam is verplicht' } } };
   if (!customer?.last_name) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Achternaam is verplicht', fields: { last_name: 'Achternaam is verplicht' } } };
 
+  // LOVEKE-PHONE-1: respect tenant checkout_phone_required flag
+  const { data: phoneCfg } = await supabase
+    .from('tenant_theme_settings')
+    .select('checkout_phone_required')
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (phoneCfg?.checkout_phone_required && !(customer?.phone && String(customer.phone).trim())) {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Telefoonnummer is verplicht', fields: { phone: 'Telefoonnummer is verplicht' } } };
+  }
+
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(customer.email)) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Ongeldig e-mailadres', fields: { email: 'Ongeldig e-mailadres' } } };
 
