@@ -1948,14 +1948,11 @@ async function checkoutValidateVat(supabase: any, tenantId: string, params: Reco
 
   if (cached) {
     return {
-      success: true,
-      data: {
-        valid: cached.is_valid,
-        company_name: cached.company_name ?? null,
-        address: cached.company_address ?? null,
-        country_code: cached.country_code ?? countryCode,
-        cached: true,
-      },
+      valid: cached.is_valid,
+      company_name: cached.company_name ?? null,
+      address: cached.company_address ?? null,
+      country_code: cached.country_code ?? countryCode,
+      cached: true,
     };
   }
 
@@ -1999,14 +1996,11 @@ async function checkoutValidateVat(supabase: any, tenantId: string, params: Reco
   if (logError) console.error('[checkout_validate_vat] log insert failed:', errMsg(logError));
 
   return {
-    success: true,
-    data: {
-      valid: vies.valid,
-      company_name: vies.company_name,
-      address: vies.address,
-      country_code: countryCode,
-      cached: false,
-    },
+    valid: vies.valid,
+    company_name: vies.company_name,
+    address: vies.address,
+    country_code: countryCode,
+    cached: false,
   };
 }
 
