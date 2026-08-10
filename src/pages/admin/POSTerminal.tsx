@@ -1146,7 +1146,6 @@ export default function POSTerminalPage() {
           </div>
         </div>
         
-        {/* Right Panel - Cart */}
         {/* Right Panel - Cart (desktop only) */}
         <div className="w-96 border-l bg-card hidden lg:flex flex-col">
           {cartPanelContent}
