@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.09p — Kassa berekent btw nu correct (bugfix, 10-08-2026)
+
+**Kassa berekent btw nu correct** (september 2026)
+Bij shops die met prijzen inclusief btw werken (de standaardinstelling) telde de kassa de
+btw nog een tweede keer bovenop de prijs. Een artikel van € 299 werd daardoor als
+€ 361,79 afgerekend. De kassa haalt de btw nu uit de prijs, exact zoals je webshop dat al
+deed.
+Wat betekent dit voor jou? Kassa, webshop en bon tonen nu hetzelfde bedrag. Werk je met
+prijzen exclusief btw, dan blijft de btw netjes bovenop komen. Je hoeft niets in te stellen.
+
+**i18n-keys.** `public.changelog.changes.pos_vat_calculation_fix` — NL/EN/FR/DE aanwezig.
+
 ### 2026.09n — Kassa vlot op tablet en telefoon (improvement, 10-08-2026)
 
 **Kassa werkt nu vlot op tablet en telefoon** (september 2026)
