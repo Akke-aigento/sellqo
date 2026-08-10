@@ -157,7 +157,7 @@ export default function LoyaltyProgramsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold">{program.points_per_euro}</div>
                     <div className="text-sm text-muted-foreground">Punten per €1</div>

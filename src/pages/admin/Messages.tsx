@@ -270,7 +270,7 @@ export default function MessagesPage() {
   return (
     <div className="h-[calc(100vh-4rem)]">
       <div className={`${isSinglePanel ? 'px-0 pt-0.5 pb-0' : 'p-6 pb-0'}`}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
               <MessageSquare className={`${isSinglePanel ? 'h-5 w-5' : 'h-6 w-6'}`} />

@@ -5576,3 +5576,25 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **DOCS-1:** tenant-doc `pos-gebruiken` ("Kassa op tablet of telefoon") aangevuld met één zin dat Kas +/-, Rapport, Retouren en Dag sluiten op telefoon via het ••• menu rechtsboven bereikbaar zijn. doc_level `tenant`.
 
 **Test:** 390px → header één compacte regel, titel + starttijd niet afgekapt, reader-icoon + ••• zichtbaar, condities kloppen (geen sessie = geen Kas/Rapport/Retouren/Sluiten). 1440px → ongewijzigd. Livecheck in browser niet zelf uitgevoerd (kassa achter admin-login); `tsgo` slaagt zonder errors.
+
+---
+
+## Pagina-headers responsive (LAYOUT-2 Spoor 2A)
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Aanleiding:** in 17 admin-pagina's gebruikte de pagina-header `flex items-center justify-between` zonder mobiele stapeling → actieknoppen liepen op 390px van het scherm.
+
+**Aanpak:** scriptmatige transformatie met conditionele match — alleen een `flex items-center justify-between`-div met binnen 2 regels een `<h1` als kind werd omgezet naar `flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`. Zo bleven kaart-headers, tabelrijen en list-items (bv. MarketplaceDetail, POSTerminalSettings) ongemoeid. Overige classes op de div bleven staan.
+
+**Gewijzigde regels (bestand → regel):** Analytics 101, AutoDiscounts 66, Bundles 53, Categories 424, ChannelFieldMappingAdmin 122, CustomerGroups 51, Discounts 89, GiftPromotions 60, Help 66, Marketing 70, Messages 273, Notifications 186, POS 92, PendingPlatformPaymentsPage 183, Promotions 192, Tenants 142, VolumeDiscounts 57 (alle in `src/pages/admin/`). Exact 1 transformatie per bestand; bestanden met 2-3 voorkomens hielden hun niet-header-varianten ongewijzigd.
+
+**Knoppen-blokken:** `w-full sm:w-auto` toegevoegd aan het actie-div in Marketing (81), Notifications (193), PendingPlatformPaymentsPage (193). Waar de actie direct een `<Button>`/`<Tabs>`/`<GatedButton>` is (o.a. Analytics, Discounts, Tenants) is niets toegevoegd.
+
+**2 grid-pagina's:** `LoyaltyPrograms.tsx` (~160) `grid grid-cols-3 gap-4 mb-6` → `grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6`; `SyncConflicts.tsx` (~188) `grid grid-cols-3 gap-4` → `grid grid-cols-1 sm:grid-cols-3 gap-4`.
+
+**Scope:** uitsluitend Tailwind-classes. Geen logica, handlers, queries, edge functions of SQL.
+
+**Slottaken:** changelog `2026.09o` (improvement, publiek, NL/EN/FR/DE, key `admin_headers_mobile`). **Geen newsletter** — het gaat om admin-only beheerpagina's, niet klant-facing storefront. Geen DOCS-1 (puur cosmetisch).
+
+**Test:** 390px → titel boven, knoppen eronder volledig breed, grids 1 kolom; 1440px → ongewijzigd. `tsgo` zonder errors.

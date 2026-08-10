@@ -180,7 +180,7 @@ export function PendingPlatformPaymentsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Banknote className="h-6 w-6 text-green-600" />
@@ -190,7 +190,7 @@ export function PendingPlatformPaymentsPage() {
             Beheer openstaande bankbetalingen voor AI credits en add-ons
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

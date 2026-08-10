@@ -119,7 +119,7 @@ export default function ChannelFieldMappingAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Channel Field Mappings</h1>
           <p className="text-muted-foreground text-sm">Beheer hoe SellQo-velden mappen naar kanaalvelden</p>

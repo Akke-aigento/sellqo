@@ -1297,6 +1297,10 @@
           "title": "Wide tables now scroll neatly on mobile",
           "description": "Overviews with many columns can now be scrolled horizontally on smaller screens, instead of running off-screen."
         },
+        "admin_headers_mobile": {
+          "title": "Admin pages lay out neatly on mobile",
+          "description": "Titles and buttons on admin pages now stack correctly on smaller screens."
+        },
         "pos_mobile_layout": {
           "title": "Point of sale now works smoothly on tablet and phone",
           "description": "The point of sale is now fully usable on smaller screens, with a slide-out shopping cart."
