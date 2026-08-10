@@ -174,7 +174,8 @@ export default function TenantsPage() {
       />
 
       <div className="rounded-md border">
-        <Table>
+        <div className="w-full overflow-x-auto">
+        <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[40px]">
@@ -307,6 +308,7 @@ export default function TenantsPage() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <TenantFormDialog

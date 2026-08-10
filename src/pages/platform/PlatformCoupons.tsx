@@ -176,7 +176,8 @@ export default function PlatformCoupons() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Laden...</div>
           ) : filteredCoupons && filteredCoupons.length > 0 ? (
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
@@ -255,6 +256,7 @@ export default function PlatformCoupons() {
                 })}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <div className="text-center py-12">
               <TicketPercent className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />

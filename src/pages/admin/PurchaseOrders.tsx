@@ -152,7 +152,8 @@ export default function PurchaseOrders() {
         <Card>
           <CardContent className="p-0 sm:p-6">
             <div>
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Ordernummer</TableHead>
@@ -256,6 +257,7 @@ export default function PurchaseOrders() {
                 )}
               </TableBody>
             </Table>
+            </div>
             </div>
           </CardContent>
         </Card>

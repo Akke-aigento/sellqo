@@ -222,7 +222,8 @@ export default function OrderDetailPage() {
 
               {/* Desktop table layout */}
               <div className="hidden sm:block">
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
@@ -262,6 +263,7 @@ export default function OrderDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
 
               <Separator className="my-4" />

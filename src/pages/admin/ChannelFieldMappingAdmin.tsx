@@ -159,7 +159,8 @@ export default function ChannelFieldMappingAdmin() {
               <CardDescription>{items.length} mapping{items.length !== 1 ? 's' : ''}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[250px]">SellQo Veld</TableHead>
@@ -211,6 +212,7 @@ export default function ChannelFieldMappingAdmin() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         ))

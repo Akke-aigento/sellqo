@@ -291,6 +291,7 @@ export function SessionReportDialog({
             {/* Cash Reconciliation */}
             <div>
               <h3 className="text-sm font-medium mb-3">Kascontrole</h3>
+              <div className="w-full overflow-x-auto">
               <Table>
                 <TableBody>
                   <TableRow>
@@ -376,6 +377,7 @@ export function SessionReportDialog({
                   )}
                 </TableBody>
               </Table>
+              </div>
             </div>
 
             {/* Cash Movements Detail */}

@@ -246,6 +246,7 @@ export function PreviewValidation({
                     Toont eerste 100 van {records.length} records. Alle records worden geïmporteerd.
                   </div>
                 )}
+                <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -297,6 +298,7 @@ export function PreviewValidation({
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </Card>
             </TabsContent>
           );

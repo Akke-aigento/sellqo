@@ -179,7 +179,8 @@ export default function LoyaltyProgramsPage() {
                       <Crown className="h-4 w-4" />
                       Tiers
                     </h4>
-                    <Table>
+                    <div className="w-full overflow-x-auto">
+                    <Table className="min-w-[640px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Tier</TableHead>
@@ -203,6 +204,7 @@ export default function LoyaltyProgramsPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>

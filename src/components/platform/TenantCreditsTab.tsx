@@ -183,7 +183,8 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
         </CardHeader>
         <CardContent>
           {purchases && purchases.length > 0 ? (
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Datum</TableHead>
@@ -215,6 +216,7 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
                 ))}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <p className="text-muted-foreground text-sm">Geen aankopen gevonden</p>
           )}
@@ -228,6 +230,7 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
         </CardHeader>
         <CardContent>
           {usage && usage.length > 0 ? (
+            <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -248,6 +251,7 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
                 ))}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <p className="text-muted-foreground text-sm">Geen recent gebruik gevonden</p>
           )}

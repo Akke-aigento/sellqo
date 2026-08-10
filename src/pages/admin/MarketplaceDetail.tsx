@@ -645,7 +645,8 @@ export default function MarketplaceDetailPage() {
                   </div>
                 </div>
               ) : (
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Order ID</TableHead>
@@ -685,6 +686,7 @@ export default function MarketplaceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -745,7 +747,8 @@ export default function MarketplaceDetailPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
@@ -820,6 +823,7 @@ export default function MarketplaceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1101,7 +1105,8 @@ export default function MarketplaceDetailPage() {
                   </p>
                 </div>
               ) : (
-                <Table>
+                <div className="w-full overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Timestamp</TableHead>
@@ -1146,6 +1151,7 @@ export default function MarketplaceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

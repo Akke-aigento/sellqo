@@ -184,7 +184,8 @@ export default function PlatformBilling() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
@@ -234,6 +235,7 @@ export default function PlatformBilling() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -281,7 +283,8 @@ export default function PlatformBilling() {
           </div>
 
           <Card>
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
@@ -342,6 +345,7 @@ export default function PlatformBilling() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Card>
         </TabsContent>
 
@@ -355,7 +359,8 @@ export default function PlatformBilling() {
                 billing-engine op de abonnementspagina van de tenant.
               </p>
             </div>
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Datum</TableHead>
@@ -402,6 +407,7 @@ export default function PlatformBilling() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
