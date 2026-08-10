@@ -296,13 +296,16 @@ export function usePOSTransactions(sessionId?: string) {
     }) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
-      const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const discountTotal = items.reduce((sum, item) => sum + item.discount, 0);
-      const taxTotal = items.reduce(
-        (sum, item) => sum + (item.price * item.quantity - item.discount) * (item.tax_rate / 100),
-        0
+      // Same helper as the POS screen → receipt equals what the cashier saw.
+      const totals = calculatePosTotals(
+        items,
+        null,
+        (currentTenant as { default_vat_handling?: string | null }).default_vat_handling || 'inclusive'
       );
-      const total = subtotal - discountTotal + taxTotal;
+      const subtotal = totals.subtotal;
+      const discountTotal = totals.discount;
+      const taxTotal = totals.taxTotal;
+      const total = totals.total;
 
       const { data, error } = await supabase
         .from('pos_transactions')
