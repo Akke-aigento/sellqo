@@ -199,6 +199,15 @@ export default function POSTerminalPage() {
   const cartTotals = useMemo(() => {
     return calculatePosTotals(cart, cartDiscount, currentTenant?.default_vat_handling || 'inclusive');
   }, [cart, cartDiscount, currentTenant?.default_vat_handling]);
+
+  // Resolve the real VAT percentage for a product (vat_rate_id → rate),
+  // falling back to the tenant default rate instead of a hardcoded 21%.
+  const resolveProductTaxRate = useCallback((product: Product): number => {
+    const vatRateId = (product as unknown as { vat_rate_id?: string | null }).vat_rate_id;
+    const match = vatRateId ? vatRates.find(r => r.id === vatRateId) : undefined;
+    if (match) return Number(match.rate);
+    return Number(currentTenant?.tax_percentage ?? 0);
+  }, [vatRates, currentTenant?.tax_percentage]);
   
   // Add product to cart
   const addToCart = useCallback((product: Product) => {
