@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { summarizeCountries } from "@/lib/shippingRegions";
 import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
@@ -234,6 +235,9 @@ export default function ShippingPage() {
                             Standaard
                           </Badge>
                         )}
+                        <Badge variant="outline" className="text-xs">
+                          {summarizeCountries(method.countries)}
+                        </Badge>
                       </div>
                       {method.description && (
                         <p className="text-sm text-muted-foreground mt-0.5">

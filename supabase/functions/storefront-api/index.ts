@@ -928,14 +928,28 @@ async function getShippingMethods(
   supabase: any,
   tenantId: string,
   shippingClassIds?: string[],
+  country?: string | null,
 ) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, shipping_classes(name)')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, countries, shipping_classes(name)')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  const all = (data || []);
+  let all = (data || []);
+
+  // SHIP-GEO-1 — geografische scope: globale tenant-allowlist + landen per methode.
+  const iso = typeof country === 'string' && country.trim() ? country.trim().toUpperCase() : null;
+  if (iso) {
+    const { data: geoTenant } = await supabase
+      .from('tenants').select('shipping_allowed_countries').eq('id', tenantId).maybeSingle();
+    const allowlist: string[] = (geoTenant?.shipping_allowed_countries || []).map((c: string) => c.toUpperCase());
+    if (allowlist.length > 0 && !allowlist.includes(iso)) return [];
+    all = all.filter((m: any) => {
+      const list: string[] = Array.isArray(m.countries) ? m.countries : [];
+      return list.length === 0 || list.map((c) => c.toUpperCase()).includes(iso);
+    });
+  }
 
   let filtered = all;
   let combined: { breakdown: Array<{ class_name: string; method_name: string; price: number }>; total: number } | null = null;
@@ -1637,7 +1651,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   }
 
   // Available shipping methods — filtered by shipping-class of the cart
-  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, { subtotal, cart_id: cartId });
+  // SHIP-GEO-1 — en door het verzendland van de klant.
+  const availableShipping = await checkoutGetShippingOptions(supabase, tenantId, {
+    subtotal,
+    cart_id: cartId,
+    country: cart.shipping_address?.country || null,
+  });
 
   // Preview: nog geen methode gekozen, maar er is er maar één mogelijk →
   // toon die prijs alvast, zodat de klant niet voor verrassingen komt te staan.
@@ -2194,12 +2213,14 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   // Validate that this method is allowed for this cart's shipping-class mix
   const productIds = (cart.cartItems || []).map((i: any) => i.product_id).filter((v: any) => !!v);
   const shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
-  const allowed = await getShippingMethods(supabase, tenantId, shippingClasses);
+  const allowed = await getShippingMethods(
+    supabase, tenantId, shippingClasses, cart.shipping_address?.country || null,
+  );
   const allowedEntry = allowed.find((m: any) => m.id === shippingMethodId);
   if (!allowedEntry) {
     return { success: false, error: {
       code: 'SHIPPING_NOT_ALLOWED',
-      message: 'Deze verzendmethode is niet beschikbaar voor de producten in je winkelwagen',
+      message: 'Deze verzendmethode is niet beschikbaar voor je winkelwagen of bezorgland',
     }};
   }
 
@@ -2985,6 +3006,7 @@ async function checkoutSetAddresses(supabase: any, tenantId: string, params: Rec
 async function checkoutGetShippingOptions(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const subtotal = Number(params.subtotal) || 0;
   const cartId = params.cart_id as string | undefined;
+  let country = (params.country as string | undefined) || null;
 
   let shippingClasses: string[] | undefined;
   if (cartId) {
@@ -2994,14 +3016,40 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
         .map((i: any) => i.product_id)
         .filter((v: any) => !!v);
       shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
+      if (!country) country = cart.shipping_address?.country || null;
     }
   }
 
-  const methods = await getShippingMethods(supabase, tenantId, shippingClasses);
+  const methods = await getShippingMethods(supabase, tenantId, shippingClasses, country);
   return methods.map((m: any) => ({
     ...m,
     effective_price: m.free_above && subtotal >= m.free_above ? 0 : m.price,
   }));
+}
+
+// SHIP-GEO-1 — landen waarnaar deze winkel effectief kan verzenden.
+// Frontends gebruiken dit om de landkeuze in de checkout te beperken.
+async function getShippingCountries(supabase: any, tenantId: string) {
+  const [{ data: methods }, { data: tenant }] = await Promise.all([
+    supabase.from('shipping_methods').select('countries').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('tenants').select('shipping_allowed_countries').eq('id', tenantId).maybeSingle(),
+  ]);
+  const allowlist: string[] = (tenant?.shipping_allowed_countries || []).map((c: string) => c.toUpperCase());
+  const rows = methods || [];
+  const hasOpenMethod = rows.some((m: any) => !Array.isArray(m.countries) || m.countries.length === 0);
+
+  if (hasOpenMethod) {
+    // Minstens één methode zonder landbeperking → alles wat de winkel toelaat.
+    return { countries: allowlist, unrestricted: allowlist.length === 0 };
+  }
+  const set = new Set<string>();
+  for (const m of rows) {
+    for (const c of (m.countries || [])) {
+      const iso = String(c).toUpperCase();
+      if (allowlist.length === 0 || allowlist.includes(iso)) set.add(iso);
+    }
+  }
+  return { countries: [...set].sort(), unrestricted: false };
 }
 
 async function checkoutGetPaymentMethods(supabase: any, tenantId: string, subtotalCents = 0, country = 'BE') {
@@ -3496,7 +3544,13 @@ serve(async (req) => {
       case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
       case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
-      case 'get_shipping_methods': result = await getShippingMethods(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+      case 'get_shipping_methods': {
+        const geoCountry = (params.country as string | undefined) || null;
+        result = await getShippingMethods(supabase, tenant_id, undefined, geoCountry);
+        cacheControl = geoCountry ? null : 'public, max-age=300';
+        break;
+      }
+      case 'get_shipping_countries': result = await getShippingCountries(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
       case 'get_service_points': result = await getServicePoints(supabase, tenant_id, params); break;
       case 'calculate_promotions': result = await calculatePromotions(supabase, tenant_id, params); break;
       case 'validate_discount_code': result = await validateDiscountCode(supabase, tenant_id, params); break;

@@ -28,10 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Globe, Package } from "lucide-react";
 import { useShippingClasses } from "@/hooks/useShippingClasses";
 import { ShippingClassProductsDialog } from "@/components/admin/shipping/ShippingClassProductsDialog";
 import type { ShippingMethod } from "@/types/shipping";
+import {
+  ALL_SHIPPING_COUNTRIES,
+  REGION_PRESETS,
+  summarizeCountries,
+} from "@/lib/shippingRegions";
 
 const NO_CLASS = "__none__";
 
@@ -45,6 +52,7 @@ const formSchema = z.object({
   is_active: z.boolean(),
   is_default: z.boolean(),
   shipping_class_id: z.string().optional().nullable(),
+  countries: z.array(z.string()).optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -76,6 +84,7 @@ export function ShippingMethodDialog({
       is_active: true,
       is_default: false,
       shipping_class_id: null,
+      countries: [],
     },
   });
 
@@ -96,6 +105,7 @@ export function ShippingMethodDialog({
         is_active: method.is_active,
         is_default: method.is_default,
         shipping_class_id: method.shipping_class_id || null,
+        countries: method.countries ?? [],
       });
     } else {
       form.reset({
@@ -108,6 +118,7 @@ export function ShippingMethodDialog({
         is_active: true,
         is_default: false,
         shipping_class_id: null,
+        countries: [],
       });
     }
   }, [method, form]);
@@ -239,6 +250,78 @@ export function ShippingMethodDialog({
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">
+              <FormField
+                control={form.control}
+                name="countries"
+                render={({ field }) => {
+                  const selected: string[] = field.value ?? [];
+                  const toggle = (code: string) =>
+                    field.onChange(
+                      selected.includes(code)
+                        ? selected.filter((c) => c !== code)
+                        : [...selected, code],
+                    );
+                  return (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" /> Verzendlanden
+                      </FormLabel>
+                      <FormDescription>
+                        Kies naar welke landen deze methode geldt. Niets aanvinken =
+                        alle landen. Klanten zien in de checkout enkel landen waar
+                        een verzendmethode voor bestaat.
+                      </FormDescription>
+                      <div className="flex flex-wrap gap-2">
+                        {REGION_PRESETS.map((preset) => (
+                          <Button
+                            key={preset.key}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              field.onChange([
+                                ...new Set([...selected, ...preset.codes]),
+                              ])
+                            }
+                          >
+                            + {preset.label}
+                          </Button>
+                        ))}
+                        {selected.length > 0 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => field.onChange([])}
+                          >
+                            Wissen
+                          </Button>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="w-fit">
+                        {summarizeCountries(selected)}
+                      </Badge>
+                      <div className="max-h-44 space-y-1 overflow-y-auto overscroll-contain rounded-md border p-2">
+                        {ALL_SHIPPING_COUNTRIES.map((c) => (
+                          <label
+                            key={c.code}
+                            className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted"
+                          >
+                            <Checkbox
+                              checked={selected.includes(c.code)}
+                              onCheckedChange={() => toggle(c.code)}
+                            />
+                            <span>{c.name}</span>
+                            <span className="text-muted-foreground">{c.code}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
               <FormField
                 control={form.control}
                 name="shipping_class_id"

@@ -12,6 +12,8 @@ export interface ShippingMethod {
   sort_order: number | null;
   shipping_class: string | null;
   shipping_class_id: string | null;
+  /** SHIP-GEO-1 — ISO-2 landcodes. Leeg/null = alle toegestane landen. */
+  countries: string[] | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -26,6 +28,7 @@ export interface ShippingMethodFormData {
   is_active: boolean;
   is_default: boolean;
   shipping_class_id?: string | null;
+  countries?: string[] | null;
 }
 
 export interface ShippingClass {

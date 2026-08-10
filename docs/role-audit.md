@@ -5796,3 +5796,22 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **NIET aangeraakt:** `checkoutCustomer`, `checkoutComplete`, `createOrderFromCart`, `resolveCartReverseCharge`, `_shared/vat.ts`, btw-/totaalberekening, queries, migraties, frontend.
 
 **Changelog-kandidaat (nog niet gepubliceerd):** enhancement — "Zakelijke gegevens blijven zichtbaar wanneer een klant terugkeert in de checkout."
+
+## SHIP-GEO-1 — Verzendlanden per verzendmethode — 10 augustus 2026
+
+**Root cause:** `shipping_methods` had geen enkel geografisch veld. De checkout bood een hardcoded lijst van 5 landen (BE/NL/DE/FR/LU) in `ShopCheckout.tsx`, terwijl `getShippingMethods`/`checkout_get_shipping_options`/`checkout_shipping` élke landkeuze dezelfde methodes en tarieven gaven. Custom frontends (Loveke, VanXcel, Astra) sturen willekeurige landcodes → een klant kon in principe naar US/AU bestellen tegen een BE-tarief.
+
+**Uitgevoerd:**
+- Migratie: `shipping_methods.countries text[]` en `tenants.shipping_allowed_countries text[]` (IF NOT EXISTS); bestaande methodes gebackfilld naar de EU-27-lijst.
+- `src/lib/shippingRegions.ts` — `ALL_SHIPPING_COUNTRIES`, `EU_COUNTRIES`, `REGION_PRESETS` (EU-27, Benelux, Europa niet-EU), `summarizeCountries()`.
+- Admin: `ShippingMethodDialog.tsx` landen-multiselect + regio-presets + live samenvatting; badge per methode in `Shipping.tsx`; `useShippingMethods.ts` en `types/shipping.ts` uitgebreid.
+- `storefront-api`: landfilter in `getShippingMethods` (respecteert tenant-allowlist), geo-check in `checkout_get_shipping_options` en server-side validatie in `checkout_shipping`; nieuwe publieke actie `get_shipping_countries` (retourneert `{countries, unrestricted}`).
+- Storefront: `ShopCheckout.tsx` vult de landendropdown dynamisch uit `get_shipping_countries`, met `ALL_SHIPPING_COUNTRIES` als fallback wanneer er geen restrictie is.
+
+**Security-keuzes:** geen nieuwe tabellen of policies. `get_shipping_countries` is een publieke (anon) leesactie op `storefront-api`, net als de bestaande `get_shipping_methods`; ze geeft enkel landcodes terug van actieve methodes van de opgevraagde tenant — geen tarieven, geen interne velden, strikt gefilterd op `tenant_id`. Land-validatie gebeurt server-side in `checkout_shipping`, niet enkel in de UI, zodat custom frontends de restrictie niet kunnen omzeilen.
+
+**Vangst uit recon:** de 300s-cache op verzendmethodes wordt overgeslagen zodra er op land gefilterd wordt, anders zou een gecachte lijst de geo-restrictie doorbreken. Verder bleek `_shared/vat.ts` géén export-regime (0% buiten EU) of OSS-drempel te kennen — orders naar de US krijgen nu nog 21% btw.
+
+**Verificatie (live, Mancini Milano):** `get_shipping_methods` met `country=US` → `[]`; met `country=NL` → 1 methode; `get_shipping_countries` → 27 EU-landen, `unrestricted:false`.
+
+**Vervolg:** btw-export (0% buiten EU) en OSS-drempel als aparte fase binnen de accounting-revisie — geplande architectuur houdt hier al rekening mee.

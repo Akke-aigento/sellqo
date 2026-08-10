@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { ALL_SHIPPING_COUNTRIES } from '@/lib/shippingRegions';
 
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
@@ -68,6 +69,8 @@ export default function ShopCheckout() {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<CheckoutStep>('details');
+  // SHIP-GEO-1 — enkel landen waarnaar deze winkel effectief verzendt.
+  const [shippableCountries, setShippableCountries] = useState<string[] | null>(null);
   const [customerData, setCustomerData] = useState<CustomerData>({
     email: '', firstName: '', lastName: '', phone: '', companyName: '',
     street: '', houseNumber: '', postalCode: '', city: '', country: '',
@@ -153,6 +156,24 @@ export default function ShopCheckout() {
       setCustomerData(prev => ({ ...prev, country: tenant.country || 'BE' }));
     }
   }, [tenant]);
+
+  // SHIP-GEO-1 — landkeuze beperken tot landen met een verzendmethode.
+  useEffect(() => {
+    if (!tenant?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await storefrontApi(tenant.id, 'get_shipping_countries');
+        const payload = res?.data ?? res;
+        if (cancelled) return;
+        const list: string[] = Array.isArray(payload?.countries) ? payload.countries : [];
+        setShippableCountries(payload?.unrestricted || list.length === 0 ? null : list);
+      } catch {
+        if (!cancelled) setShippableCountries(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tenant?.id]);
 
   // Address autocomplete debounce
   useEffect(() => {
@@ -664,11 +685,12 @@ export default function ShopCheckout() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="BE">België</SelectItem>
-                          <SelectItem value="NL">Nederland</SelectItem>
-                          <SelectItem value="DE">Deutschland</SelectItem>
-                          <SelectItem value="FR">France</SelectItem>
-                          <SelectItem value="LU">Luxembourg</SelectItem>
+                          {(shippableCountries
+                            ? ALL_SHIPPING_COUNTRIES.filter(c => shippableCountries.includes(c.code))
+                            : ALL_SHIPPING_COUNTRIES
+                          ).map(c => (
+                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

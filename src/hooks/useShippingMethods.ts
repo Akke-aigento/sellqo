@@ -47,6 +47,7 @@ export const useShippingMethods = () => {
           is_active: formData.is_active,
           is_default: formData.is_default,
           shipping_class_id: formData.shipping_class_id || null,
+          countries: formData.countries && formData.countries.length > 0 ? formData.countries : null,
         })
         .select()
         .single();
@@ -90,6 +91,7 @@ export const useShippingMethods = () => {
           is_active: formData.is_active,
           is_default: formData.is_default,
           shipping_class_id: formData.shipping_class_id || null,
+          countries: formData.countries && formData.countries.length > 0 ? formData.countries : null,
         })
         .eq("id", id)
         .select()
