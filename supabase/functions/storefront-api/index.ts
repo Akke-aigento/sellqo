@@ -1909,10 +1909,6 @@ async function checkoutCustomer(supabase: any, tenantId: string, params: Record<
   return buildCartResponse(supabase, tenantId, cartId);
 }
 
-async function checkoutAddress(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  return checkoutAddressImpl(supabase, tenantId, params);
-}
-
 // B2B-1 — Publieke VIES-validatie tijdens checkout.
 // Cache: 24u per (tenant, vat_number). Rate-limit: 10 nieuwe VIES-calls/tenant/minuut.
 async function checkoutValidateVat(supabase: any, tenantId: string, params: Record<string, unknown>) {
@@ -2004,7 +2000,7 @@ async function checkoutValidateVat(supabase: any, tenantId: string, params: Reco
   };
 }
 
-async function checkoutAddressImpl(supabase: any, tenantId: string, params: Record<string, unknown>) {
+async function checkoutAddress(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const shippingAddress = params.shipping_address as any;
   const billingSameAsShipping = params.billing_same_as_shipping !== false;
