@@ -2625,16 +2625,18 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     };
   });
 
-  const subtotal = processedItems.reduce((s: number, i: any) => s + i.line_total, 0);
+  const grossSubtotal = processedItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
   const { data: tenantData } = await supabase
     .from('tenants').select('default_vat_rate, currency, name')
     .eq('id', tenantId).single();
 
   const tenantDefaultRate = Number(tenantData?.default_vat_rate) || 21;
-  const shippingCost = Number(cart.shipping_cost) || 0;
+  const grossShipping = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
-  const total = subtotal - discountAmount + shippingCost;
+
+  // B2B-2b — verleggingsbeslissing via centrale helper (zelfde check als pad 1)
+  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
 
   const vatMap = await resolveLineVatBatch(
     supabase,
@@ -2644,18 +2646,31 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
 
   const enrichedItems = processedItems.map((item: any) => {
     const lineGross = Number(item.line_total) || 0;
-    const lineDiscount = (discountAmount > 0 && subtotal > 0)
-      ? (lineGross / subtotal) * discountAmount
+    const lineDiscount = (discountAmount > 0 && grossSubtotal > 0)
+      ? (lineGross / grossSubtotal) * discountAmount
       : 0;
     const lineNetGross = Math.max(0, lineGross - lineDiscount);
     const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
-    const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
-    return { item, vat_rate, vat_rate_id, lineVatAmount };
+    const lineVatAmount = reverseCharge ? 0 : extractVatFromGross(lineNetGross, vat_rate);
+    return {
+      item,
+      vat_rate: reverseCharge ? 0 : vat_rate,
+      vat_rate_id: reverseCharge ? null : vat_rate_id,
+      lineVatAmount,
+      unitPrice: reverseCharge ? netFromGross(Number(item.unit_price) || 0, vat_rate) : item.unit_price,
+      totalPrice: reverseCharge ? netFromGross(lineGross, vat_rate) : item.line_total,
+    };
   });
 
   const linesVatSum = enrichedItems.reduce((s: number, e: any) => s + e.lineVatAmount, 0);
-  const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
+  const shippingVat = reverseCharge ? 0 : extractVatFromGross(grossShipping, tenantDefaultRate);
   const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
+
+  const subtotal = reverseCharge
+    ? Math.round(enrichedItems.reduce((s: number, e: any) => s + e.totalPrice, 0) * 100) / 100
+    : grossSubtotal;
+  const shippingCost = reverseCharge ? netFromGross(grossShipping, tenantDefaultRate) : grossShipping;
+  const total = Math.round((subtotal - discountAmount + shippingCost) * 100) / 100;
 
   // Find or create customer
   let customerId: string | null = null;
@@ -2710,6 +2725,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_checkout_session_id: session.id,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
+      ...reverseChargeOrderFields(reverseCharge),
     })
     .select('id, order_number').single();
 
@@ -2726,13 +2742,13 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   console.log('[checkoutVerifyPayment] Order created:', newOrder.id, newOrder.order_number);
 
   // Create order items (with per-line VAT snapshot)
-  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }: any) => ({
+  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount, unitPrice, totalPrice }: any) => ({
     order_id: newOrder.id,
     product_id: item.product_id,
     product_name: item.product?.name || '',
     quantity: item.quantity,
-    unit_price: item.unit_price,
-    total_price: item.line_total,
+    unit_price: unitPrice,
+    total_price: totalPrice,
     product_sku: item.product?.sku || null,
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
