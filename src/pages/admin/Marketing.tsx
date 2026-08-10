@@ -78,7 +78,7 @@ export default function MarketingPage() {
             Email campagnes, analytics en klant engagement
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Link to="/admin/marketing/ai">
             <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
               <Sparkles className="mr-2 h-4 w-4" />
