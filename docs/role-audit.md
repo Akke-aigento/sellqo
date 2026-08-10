@@ -5479,3 +5479,26 @@ Geen changelog/newsletter/DOCS-wijziging: interne verbetering binnen de nog niet
 **Scope**: uitsluitend wrapper-divs (+ min-w className). Geen kolommen, sortering, logica, DialogContent, backend, edge functions of SQL geraakt. Typecheck groen.
 
 **Changelog uitgesteld** — wordt bewust gebundeld met Batch B2 tot één gezamenlijke changelog-entry. Geen newsletter. DOCS-1: geen doc-impact (geen flow-wijziging).
+
+## LAYOUT-1 Batch B2 — tabellen met bestaande overflow (+ gebundelde changelog B1+B2)
+
+**Pattern:** deze tabellen zaten al in `<div className="border rounded-lg overflow-hidden">`. Die `overflow-hidden` is bedoeld om de afgeronde hoeken te clippen; hem vervangen door `overflow-x-auto` zou de radius-clip breken (vierkante hoeken op de tabelranden). Daarom is een **geneste** scroll-div toegevoegd:
+`<div className="border rounded-lg overflow-hidden"><div className="w-full overflow-x-auto"><Table className="min-w-[720px]">…`
+De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
+
+**Gewrapt (min-w-[720px], SEO-tabellen zijn breed):**
+- src/components/admin/seo/CompetitorAnalysisPanel.tsx
+- src/components/admin/seo/SEOCategoryTable.tsx
+- src/components/admin/seo/SEOProductTable.tsx
+- src/components/admin/seo/ScheduledAuditsPanel.tsx
+- src/components/admin/seo/SearchConsolePanel.tsx
+- src/components/admin/seo/SlugManager.tsx
+
+**Gewrapt (min-w-[640px]):**
+- src/pages/platform/PlatformBlog.tsx — desktoptabel binnen `hidden md:block`
+
+**Bewust overgeslagen:**
+- StockLedgerDialog.tsx, marketplace/shopify/ShopifyManualImport.tsx — hebben al `overflow-auto`, scrollen dus al horizontaal.
+- marketing/EmailPreview.tsx, storefront/PreviewPanel.tsx, storefront/visual-editor/StaticPageEditor.tsx, storefront/visual-editor/VisualEditorCanvas.tsx — iframe/preview-canvas met device-toggle, geen data-tabel.
+
+**Slottaken:** changelog `2026.09l` (bugfix, publiek, NL/EN/FR/DE) dekt B1 + B2 samen — B1 had bewust nog geen entry. Geen newsletter. DOCS-1: geen doc-impact. Geen kolommen/logica/backend/SQL geraakt.
