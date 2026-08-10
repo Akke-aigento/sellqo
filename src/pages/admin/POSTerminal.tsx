@@ -934,7 +934,7 @@ export default function POSTerminalPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           {/* Offline/Sync Status */}
           {!isOnline && (
             <Badge variant="destructive" className="gap-1">
