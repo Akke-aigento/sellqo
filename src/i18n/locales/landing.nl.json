@@ -1309,6 +1309,10 @@
           "title": "Beheerpagina's schikken zich netjes op mobiel",
           "description": "Titels en knoppen op beheerpagina's stapelen nu correct op kleinere schermen."
         },
+        "shipping_countries": {
+          "title": "Verzendlanden per verzendmethode",
+          "description": "Je duidt nu per verzendmethode aan naar welke landen ze geldt, met handige presets voor EU, Benelux en Europa buiten de EU. Klanten zien in de checkout enkel landen waarnaar je effectief verzendt. Bestaande verzendmethodes zijn beperkt tot de 27 EU-landen."
+        },
         "pos_vat_calculation_fix": {
           "title": "Kassa berekent btw nu correct",
           "description": "De kassa berekent de btw nu op dezelfde manier als je webshop, zodat bedragen overal kloppen."

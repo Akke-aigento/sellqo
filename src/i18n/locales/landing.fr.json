@@ -1309,6 +1309,10 @@
           "title": "Les pages d'administration s'affichent proprement sur mobile",
           "description": "Les titres et les boutons des pages d'administration s'empilent maintenant correctement sur les petits écrans."
         },
+        "shipping_countries": {
+          "title": "Pays de livraison par methode d'expedition",
+          "description": "Vous indiquez desormais par methode d'expedition les pays concernes, avec des presets pratiques pour l'UE, le Benelux et l'Europe hors UE. Les clients ne voient au paiement que les pays que vous livrez reellement. Les methodes existantes sont limitees aux 27 pays de l'UE."
+        },
         "pos_vat_calculation_fix": {
           "title": "La caisse calcule maintenant la TVA correctement",
           "description": "La caisse calcule désormais la TVA de la même manière que votre boutique en ligne, afin que les montants concordent partout."
