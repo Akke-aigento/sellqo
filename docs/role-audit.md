@@ -1,3 +1,30 @@
+## SHIP-RESET-1 — verzendkeuze resetten bij checkout-start — 10 augustus 2026
+
+**Root cause:** `checkoutStart` in `supabase/functions/storefront-api/index.ts` resette bij het (her)starten van de checkout wel de betalingsvelden (`payment_method`, `stripe_session_id`, `calculated_fee_cents`), maar **niet** `shipping_method_id` / `shipping_cost`. Gevolg: een verzendmethode uit een vorige sessie (bijv. "Gratis verzending", die geen `shipping_class` heeft) bleef op de cart hangen. Bij een cart met een product dat een specifieke verzendklasse vereist (bijv. boxspring → `shipping_class` 'boxspring', methode €100) werd die stale gratis-methode nooit vervangen: de frontend zag dat de cart al een `shipping_method_id` had, dus de auto-select van de enige geldige class-methode sloeg niet aan. De klant hield €0 verzending. Geverifieerd in de database: zowel een BE- als NL-cart met boxspring hield `shipping_method_id` = "Gratis verzending" (€0).
+
+**Uitgevoerd:** `supabase/functions/storefront-api/index.ts`, functie `checkoutStart` (regels ~2091–2102):
+- Het bestaande reset-updateblok (`checkout_status`, `payment_method`, `stripe_session_id`, `calculated_fee_cents`) is chirurgisch uitgebreid met `shipping_method_id: null` en `shipping_cost: 0`.
+- Console-log aangepast van `v4 RESET ACTIVE + appfee=0` naar `v5 RESET ACTIVE + appfee=0 + shipping reset`.
+- Commentaar bijgewerkt om expliciet te vermelden dat de verzendkeuze nu ook wordt gereset.
+
+**Bewust ongemoeid:**
+- De rest van `checkoutStart` is onaangeraakt: stock-validatie, `getCartForCheckout`, en de `buildCartResponse`-return zijn identiek gebleven.
+- Geen enkele andere functie is gewijzigd: `checkoutShipping`, `buildCartResponse`, `getShippingMethods`, en `resolveCartShippingClasses` zijn volledig ongemoeid.
+
+**Gedrag na fix:**
+- Elke keer dat de checkout (her)start, begint de verzendkeuze opnieuw leeg.
+- `buildCartResponse` toont dan de `shippingPreview` (de enige geldige methode) of laat de klant kiezen bij meerdere methoden.
+- Voor een boxspring-cart betekent dit dat de €100-methode wordt voorgesteld in plaats van de stale €0-methode.
+- Carts zonder specifieke shipping-class krijgen opnieuw hun (enige) methode voorgesteld; eindresultaat identiek, maar niet meer stale.
+
+**Security-keuzes:** geen RLS- of policy-wijziging. Enkel een additieve reset van twee nullable kolommen op de eigen cart binnen dezelfde tenant-scoped update (`eq('id', cartId).eq('tenant_id', tenantId)`).
+
+**Gedeelde-paden-waarschuwing (G1):** `storefront-api` is een gedeeld pad voor alle tenants. De wijziging is louter een correctie van het reset-gedrag bij checkout-start; er is geen tenant-specifieke branching. Alle checkouts gedragen zich nu consistent: verzendkeuze wordt altijd opnieuw bepaald, wat de verwachte gebruikerservaring is.
+
+**Verificatie:** `deno check supabase/functions/storefront-api/index.ts` groen; geen andere wijzigingen in `checkoutStart` of andere functies.
+
+---
+
 ## B2B-2a — B2B-velden door checkout naar order+customer — 10 augustus 2026
 
 **Root cause:** de checkout-flow verzamelde geen B2B-gegevens. Beide order-creatie-paden in `supabase/functions/storefront-api/index.ts` bevatten een check `!!(cart.customer_btw_number || cart.is_b2b)`, maar `storefront_carts` had géén van beide kolommen — `customer_btw_number` bestond nooit als kolom, dus de check was dode code die altijd `false` opleverde. Gevolg: elke webshop-order werd als `b2c` weggeschreven en bedrijfsnaam/BTW-nummer landden nooit op order of customer.
