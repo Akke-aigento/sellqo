@@ -5715,3 +5715,40 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Verificatie.** `deno check` groen op beide functies; live curl tegen `storefront-api`: lege input → `VALIDATION_ERROR`, `BE0888888888` → `cached:false`, herhaling met `BE 0888.888.888` (andere opmaak, zelfde genormaliseerd nummer) → `cached:true` zonder nieuwe VIES-call.
 
 **Slottaken.** Geen changelog/newsletter (nog niet tenant-zichtbaar; UI volgt in B2B-2). DOCS-1: platform-artikel `checkout-vies-validatie` (`doc_level='platform'`).
+
+---
+
+## B2B-2b — netto reverse-charge (btw-verlegging) in de checkout-BTW
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Root cause (waarom nodig).** Alle checkout-prijzen zijn btw-inclusief en de btw werd altijd uit de brutoprijs geëxtraheerd (`extractVatFromGross`), ongeacht klanttype. Voor een EU-bedrijf met een geldig buitenlands btw-nummer moet de btw juist uit de prijs verdwijnen (art. 39bis WBTW): de klant betaalt netto en `tax_amount` is 0. Er was nergens een verleggingsbeslissing; B2B-2a leverde alleen de data (`is_b2b`, `customer_vat_verified`, `customer_vat_country`) aan.
+
+**Rekenmodel (enige plek: `supabase/functions/_shared/vat.ts`).**
+- `isReverseCharged({is_b2b, vat_verified, vat_country, tenant_country})` → `true` **alleen** als B2B **en** verified **en** `vat_country` in EU (`isEuCountry` uit `_shared/vies.ts`) **en** `vat_country !== tenant_country`. Binnenlands B2B (BE→BE) blijft 21%.
+- `netFromGross(gross, rate)` = `round(gross / (1 + rate/100), 2)`; `rate <= 0` → bedrag ongewijzigd.
+- Geen enkele aanroeper herhaalt de formule of de beslissing; de drie call sites gebruiken uitsluitend deze twee exports (order-paden via de wrapper `resolveCartReverseCharge` + `reverseChargeOrderFields`).
+
+**Drie call sites (`storefront-api/index.ts`).**
+1. `buildCartResponse` — bij verlegging worden `unit_price`/`line_total` per lijn netto gemaakt met het **per-lijn** tarief (`resolveLineVatBatch`/`resolveLineVatSync`, tenant-fallback `tenants.tax_percentage`), `subtotal` = som van de netto lijnen (dus geen centverschil), `shipping_cost` netto tegen het tenant-tarief, `total = subtotal − discount + shipping + fee`. Extra velden: `reverse_charge`, en bij verlegging `vat_regime: 'ic_supply_goods'` + `vat_text`.
+2. `createOrderFromCart` (Stripe/bank-flow) — orderlijnen netto (`unit_price`, `total_price`), `vat_rate = 0`, `vat_amount = 0`; order: `subtotal` = som netto lijnen, `tax_amount = 0`, `total` netto, plus `vat_regime='ic_supply_goods'`, `vat_type='reverse_charge'`, `vat_text=…39bis…`, `vat_rate=0`. `vat_country` blijft het klantland uit B2B-2a.
+3. `checkoutVerifyPayment` (verify-flow) — identiek gedrag met de eigen tenant-tarief-kolom van dat pad.
+
+**Migratie.** `orders.vat_regime` (TEXT, nullable) toegevoegd — bestond nog niet; `vat_type`, `vat_text`, `vat_rate`, `vat_country` bestonden al.
+
+**STAP 4 — `tenants.block_invalid_vat_orders`.** Bij order-creatie (`checkout_complete`) geldt: `is_b2b && !customer_vat_verified` én flag `true` → `{ code:'VAT_REQUIRED', message:'Een geldig BTW-nummer is verplicht voor zakelijke bestellingen' }`. Flag `false` → order gaat door als gewone inclusief-btw order (geen geldig nummer = geen verlegging).
+
+**Testcases (geverifieerd met een Deno-script op de echte helpers, tenant = BE).**
+| # | Situatie | reverse | subtotal/total | tax | regime |
+|---|---|---|---|---|---|
+| 1 | BE-consument, €121@21% | false | 121 | 21 | — |
+| 2 | BE-bedrijf verified bij BE-tenant | false | 121 | 21 | — |
+| 3 | NL-bedrijf verified, €121@21% | true | 100 | 0 | ic_supply_goods |
+| 4 | NL-bedrijf niet verified | false | 121 | 21 | — |
+| 5 | Gemengd €121@21% + €106@6%, NL verified | true | 200 | 0 | ic_supply_goods |
+
+**⚠️ Gedeelde-paden-waarschuwing.** `_shared/vat.ts` wordt óók geïmporteerd door `stripe-connect-webhook`, `create-bank-transfer-order` en de marketplace-sync-functies. De wijziging is **strikt additief**: `resolveLineVatBatch`, `resolveLineVatSync` en `extractVatFromGross` zijn byte-identiek gebleven, dus die consumenten veranderen niet. `buildCartResponse` en beide order-paden vallen bij `reverseCharge === false` terug op exact de bestaande brutoberekening (alleen de lokale variabelen zijn omgedoopt naar `grossSubtotal`/`grossShipping`; totalen worden nu expliciet op 2 decimalen afgerond, wat float-ruis wegneemt maar geen bedrag wijzigt). Wie in de toekomst een vierde consument aan de verlegging toevoegt, moet dat via `isReverseCharged`/`netFromGross` doen — nooit met een eigen `/1.21`.
+
+**Expliciet NIET aangeraakt:** de tenant-tarief-kolomnamen zoals ze in de code stonden (`tax_percentage` in pad 1, `default_vat_rate` in pad 2 — die laatste bestaat niet in het schema en valt dus terug op 21; bewust ongewijzigd gelaten conform opdracht), kortingsberekening (blijft op brutobasis), POS, facturatie, en de VIES-validatie zelf.
+
+**Slottaken.** Geen changelog/newsletter (zichtbaar gedrag komt met de frontend-batch). DOCS-1: platform-artikel `checkout-customer-b2b-velden` uitgebreid met de verleggingslogica en de nieuwe `CartResponse`-velden. `deno check` groen; `storefront-api` gedeployed.
