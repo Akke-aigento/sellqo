@@ -1915,7 +1915,8 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   const discountAmount = Number(cart.discount_amount) || 0;
 
   // B2B-2b — verleggingsbeslissing via centrale helper
-  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
 
   // Per-line VAT resolution (snapshot at order-creation time)
   const cartItems: any[] = Array.isArray(cart.cartItems) ? cart.cartItems : [];
@@ -2030,7 +2031,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       expires_at: expiresAt || null,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
-      ...reverseChargeOrderFields(reverseCharge),
+      ...vatRegimeOrderFields(vatCtx),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -2340,7 +2341,9 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
 
   // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
-  const { reverseCharge, blocked: vatBlocked } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
+  const vatBlocked = vatCtx.blocked;
   if (vatBlocked) {
     return { success: false, error: { code: 'VAT_REQUIRED', message: 'Een geldig BTW-nummer is verplicht voor zakelijke bestellingen' } };
   }
@@ -2776,7 +2779,8 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   const discountAmount = Number(cart.discount_amount) || 0;
 
   // B2B-2b — verleggingsbeslissing via centrale helper (zelfde check als pad 1)
-  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
+  const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
+  const reverseCharge = vatCtx.zeroRated;
 
   const vatMap = await resolveLineVatBatch(
     supabase,
@@ -2865,7 +2869,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_checkout_session_id: session.id,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
-      ...reverseChargeOrderFields(reverseCharge),
+      ...vatRegimeOrderFields(vatCtx),
     })
     .select('id, order_number').single();
 
