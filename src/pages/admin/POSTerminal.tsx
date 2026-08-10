@@ -1185,7 +1185,7 @@ export default function POSTerminalPage() {
                 Configureren
               </Button>
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {quickButtons.map((button) => (
                 <button
                   key={button.id}
@@ -1193,11 +1193,11 @@ export default function POSTerminalPage() {
                   style={{ borderColor: button.color || 'hsl(var(--border))' }}
                   onClick={() => button.product && addToCart(button.product as unknown as Product)}
                 >
-                  <span className="text-xs font-medium text-center line-clamp-2">
+                  <span className="text-xs font-medium text-center line-clamp-2 w-full break-words">
                     {button.label}
                   </span>
                   {button.product && (
-                    <span className="text-xs text-muted-foreground mt-1">
+                    <span className="text-xs text-muted-foreground mt-1 truncate max-w-full">
                       {formatCurrency(button.product.price)}
                     </span>
                   )}
@@ -1211,8 +1211,8 @@ export default function POSTerminalPage() {
                 disabled={!activeSession}
               >
                 <Gift className="h-5 w-5 mb-1 text-primary" />
-                <span className="text-xs font-medium text-center">Cadeaukaart</span>
-                <span className="text-[10px] text-muted-foreground">Verkopen</span>
+                <span className="text-xs font-medium text-center w-full break-words">Cadeaukaart</span>
+                <span className="text-[10px] text-muted-foreground w-full text-center break-words">Verkopen</span>
               </button>
               {quickButtons.length === 0 && (
                 <button
