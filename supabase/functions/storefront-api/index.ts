@@ -1771,6 +1771,35 @@ function orderCustomerName(cart: any) {
   return `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
 }
 
+// B2B-2b — gedeelde constante + guards voor de verleggingslogica.
+const REVERSE_CHARGE_TEXT = 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW';
+
+/** Leest tenant-land + block-flag en beslist verlegging via de centrale helper. */
+async function resolveCartReverseCharge(supabase: any, tenantId: string, cart: any) {
+  const { data: t } = await supabase
+    .from('tenants').select('country, block_invalid_vat_orders')
+    .eq('id', tenantId).maybeSingle();
+  const reverseCharge = isReverseCharged({
+    is_b2b: !!cart.is_b2b,
+    vat_verified: !!cart.customer_vat_verified,
+    vat_country: cart.customer_vat_country || null,
+    tenant_country: t?.country || '',
+  });
+  const blocked = !!cart.is_b2b && !cart.customer_vat_verified && !!t?.block_invalid_vat_orders;
+  return { reverseCharge, blocked };
+}
+
+/** Order-velden voor een verlegde order. Leeg object bij niet-verlegd. */
+function reverseChargeOrderFields(reverseCharge: boolean) {
+  if (!reverseCharge) return {} as Record<string, any>;
+  return {
+    vat_regime: 'ic_supply_goods',
+    vat_type: 'reverse_charge',
+    vat_text: REVERSE_CHARGE_TEXT,
+    vat_rate: 0,
+  } as Record<string, any>;
+}
+
 async function createOrderFromCart(supabase: any, tenantId: string, cart: any, paymentStatus: string = 'pending', stripePaymentIntentId?: string, expiresAt?: string) {
   // Generate order number
   const { data: orderNumber } = await supabase.rpc('generate_order_number', { _tenant_id: tenantId });
@@ -1782,10 +1811,12 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   if (tenantErr) console.error('Tenant query error in order creation:', tenantErr);
 
   const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
-  const subtotal = Number(cart.subtotal) || 0;
-  const shippingCost = Number(cart.shipping_cost) || 0;
+  const grossSubtotal = Number(cart.subtotal) || 0;
+  const grossShipping = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
-  const total = subtotal - discountAmount + shippingCost;
+
+  // B2B-2b — verleggingsbeslissing via centrale helper
+  const { reverseCharge } = await resolveCartReverseCharge(supabase, tenantId, cart);
 
   // Per-line VAT resolution (snapshot at order-creation time)
   const cartItems: any[] = Array.isArray(cart.cartItems) ? cart.cartItems : [];
@@ -1799,20 +1830,38 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     const qty = Number(item.quantity) || 0;
     const unit = Number(item.unit_price) || 0;
     const lineGross = qty * unit;
-    const lineDiscount = (discountAmount > 0 && subtotal > 0)
-      ? (lineGross / subtotal) * discountAmount
+    const lineDiscount = (discountAmount > 0 && grossSubtotal > 0)
+      ? (lineGross / grossSubtotal) * discountAmount
       : 0;
     const lineNetGross = Math.max(0, lineGross - lineDiscount);
 
     const { vat_rate, vat_rate_id } = resolveLineVatSync(item.product_id, vatMap, tenantDefaultRate);
-    const lineVatAmount = extractVatFromGross(lineNetGross, vat_rate);
+    const lineVatAmount = reverseCharge ? 0 : extractVatFromGross(lineNetGross, vat_rate);
 
-    return { item, vat_rate, vat_rate_id, lineVatAmount };
+    const unitPrice = reverseCharge ? netFromGross(unit, vat_rate) : unit;
+    const totalPrice = reverseCharge
+      ? netFromGross(Number(item.line_total) || lineGross, vat_rate)
+      : (Number(item.line_total) || lineGross);
+
+    return {
+      item,
+      vat_rate: reverseCharge ? 0 : vat_rate,
+      vat_rate_id: reverseCharge ? null : vat_rate_id,
+      lineVatAmount,
+      unitPrice,
+      totalPrice,
+    };
   });
 
   const linesVatSum = enrichedItems.reduce((s, e) => s + e.lineVatAmount, 0);
-  const shippingVat = extractVatFromGross(shippingCost, tenantDefaultRate);
+  const shippingVat = reverseCharge ? 0 : extractVatFromGross(grossShipping, tenantDefaultRate);
   const vatAmount = Math.round((linesVatSum + shippingVat) * 100) / 100;
+
+  const subtotal = reverseCharge
+    ? Math.round(enrichedItems.reduce((s, e) => s + e.totalPrice, 0) * 100) / 100
+    : grossSubtotal;
+  const shippingCost = reverseCharge ? netFromGross(grossShipping, tenantDefaultRate) : grossShipping;
+  const total = Math.round((subtotal - discountAmount + shippingCost) * 100) / 100;
 
   // Find or create customer
   let customerId: string | null = null;
@@ -1882,18 +1931,19 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       expires_at: expiresAt || null,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
+      ...reverseChargeOrderFields(reverseCharge),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
 
   // Create order items
-  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount }) => ({
+  const orderItems = enrichedItems.map(({ item, vat_rate, vat_rate_id, lineVatAmount, unitPrice, totalPrice }) => ({
     order_id: order.id,
     product_id: item.product_id,
     product_name: item.product?.name || '',
     quantity: item.quantity,
-    unit_price: item.unit_price,
-    total_price: item.line_total,
+    unit_price: unitPrice,
+    total_price: totalPrice,
     product_sku: item.product?.sku || null,
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
