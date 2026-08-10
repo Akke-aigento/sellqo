@@ -685,11 +685,12 @@ export default function ShopCheckout() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="BE">België</SelectItem>
-                          <SelectItem value="NL">Nederland</SelectItem>
-                          <SelectItem value="DE">Deutschland</SelectItem>
-                          <SelectItem value="FR">France</SelectItem>
-                          <SelectItem value="LU">Luxembourg</SelectItem>
+                          {(shippableCountries
+                            ? ALL_SHIPPING_COUNTRIES.filter(c => shippableCountries.includes(c.code))
+                            : ALL_SHIPPING_COUNTRIES
+                          ).map(c => (
+                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
