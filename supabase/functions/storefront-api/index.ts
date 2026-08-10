@@ -1571,8 +1571,17 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   // Get tenant config
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order')
+    .select('stripe_account_id, stripe_charges_enabled, iban, bic, name, payment_methods_enabled, stripe_payment_methods, pass_transaction_fee_to_customer, transaction_fee_label, currency, payment_section_order, country, tax_percentage')
     .eq('id', tenantId).single();
+
+  // B2B-2b — reverse-charge beslissing (centrale helper, geen lokale formule)
+  const reverseCharge = isReverseCharged({
+    is_b2b: !!cart.is_b2b,
+    vat_verified: !!cart.customer_vat_verified,
+    vat_country: cart.customer_vat_country || null,
+    tenant_country: tenant?.country || '',
+  });
+  const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
 
   const currency = cart.currency || tenant?.currency || 'EUR';
   const subtotal = cart.subtotal;
@@ -1648,7 +1657,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
 
   // Items
-  const items = cart.cartItems.map((item: any) => ({
+  let items = cart.cartItems.map((item: any) => ({
     id: item.id,
     product_id: item.product_id,
     variant_id: item.variant_id,
@@ -1662,13 +1671,36 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     in_stock: item.product?.in_stock ?? true,
   }));
 
+  // B2B-2b — bij verlegging tonen we netto bedragen (btw uit de prijs gehaald).
+  let displaySubtotal = subtotal;
+  let displayShipping = shippingCost;
+  let displayTotal = total;
+  if (reverseCharge) {
+    const vatMap = await resolveLineVatBatch(
+      supabase,
+      cart.cartItems.map((i: any) => i.product_id),
+      tenantDefaultRate
+    );
+    items = items.map((it: any) => {
+      const { vat_rate } = resolveLineVatSync(it.product_id, vatMap, tenantDefaultRate);
+      return {
+        ...it,
+        unit_price: netFromGross(Number(it.unit_price) || 0, vat_rate),
+        line_total: netFromGross(Number(it.line_total) || 0, vat_rate),
+      };
+    });
+    displaySubtotal = Math.round(items.reduce((s: number, i: any) => s + i.line_total, 0) * 100) / 100;
+    displayShipping = netFromGross(shippingCost, tenantDefaultRate);
+    displayTotal = Math.round((displaySubtotal - discountTotal + displayShipping + (fee?.amount || 0)) * 100) / 100;
+  }
+
   return {
     cart_id: cartId,
     currency,
     items,
 
-    subtotal,
-    shipping_cost: shippingCost,
+    subtotal: displaySubtotal,
+    shipping_cost: displayShipping,
     shipping_method: shippingMethod,
     shipping_display_state: shippingDisplayState,
     shipping_preview: shippingPreview,
@@ -1679,7 +1711,14 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     payment_method: paymentMethod,
     fee,
 
-    total: Math.max(0, total),
+    total: Math.max(0, displayTotal),
+
+    // B2B-2b — verleggingsstatus
+    reverse_charge: reverseCharge,
+    ...(reverseCharge ? {
+      vat_regime: 'ic_supply_goods',
+      vat_text: 'Btw verlegd - intracommunautaire levering - art. 39bis WBTW',
+    } : {}),
 
     checkout_status: deriveCartCheckoutStatus(cart),
     customer: cart.customer_email ? {
