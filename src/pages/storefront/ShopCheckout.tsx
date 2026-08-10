@@ -784,7 +784,7 @@ export default function ShopCheckout() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotaal</span>
-                    <span>{formatPrice(subtotal)}</span>
+                    <span>{formatPrice(checkoutData?.subtotal ?? subtotal)}</span>
                   </div>
                   {selectedFee && selectedFee.fee_cents > 0 && (
                     <div className="flex justify-between">
@@ -816,6 +816,20 @@ export default function ShopCheckout() {
                   <span>Totaal</span>
                   <span>{formatPrice(checkoutData?.total ?? (subtotal + (selectedFee?.fee_cents || 0) / 100))}</span>
                 </div>
+
+                {/* VAT-CHECKOUT-PARITY-1 — btw-regime uit de server-response */}
+                {checkoutData?.reverse_charge && (
+                  <div className="mt-3 rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium text-foreground">Alle prijzen zijn exclusief btw</p>
+                    {checkoutData.vat_text && <p>{checkoutData.vat_text}</p>}
+                  </div>
+                )}
+                {!checkoutData?.reverse_charge && checkoutData?.vat_regime === 'oss_b2c_eu' && (
+                  <div className="mt-3 rounded-md bg-muted p-3 text-xs text-muted-foreground">
+                    Btw volgens het tarief van het bezorgland
+                    {typeof checkoutData.vat_rate === 'number' ? ` (${checkoutData.vat_rate}%)` : ''}.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
