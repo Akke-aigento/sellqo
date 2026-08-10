@@ -3320,6 +3320,7 @@ serve(async (req) => {
       // Checkout actions (new stateful flow)
       case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
       case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;
+      case 'checkout_validate_vat': result = await checkoutValidateVat(supabase, tenant_id, params); break;
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
