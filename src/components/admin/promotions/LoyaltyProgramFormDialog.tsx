@@ -184,7 +184,7 @@ export function LoyaltyProgramFormDialog({
               )}
             />
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="points_per_euro"
@@ -247,7 +247,7 @@ export function LoyaltyProgramFormDialog({
               </div>
 
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-5 gap-2 items-end p-3 border rounded-lg">
+                <div key={field.id} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 items-end p-3 border rounded-lg">
                   <FormField
                     control={form.control}
                     name={`tiers.${index}.name`}

@@ -5598,3 +5598,29 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Slottaken:** changelog `2026.09o` (improvement, publiek, NL/EN/FR/DE, key `admin_headers_mobile`). **Geen newsletter** — het gaat om admin-only beheerpagina's, niet klant-facing storefront. Geen DOCS-1 (puur cosmetisch).
 
 **Test:** 390px → titel boven, knoppen eronder volledig breed, grids 1 kolom; 1440px → ongewijzigd. `tsgo` zonder errors.
+
+---
+
+## Component-grids in dialogs responsive (LAYOUT-2 Spoor 2B)
+
+**Datum:** 2026-08-10 · **Rol:** platform-admin
+
+**Aanleiding:** 8 grids in admin-dialogs/componenten hadden `grid-cols-3/4/5` zonder mobiele breakpoint. Per grid is eerst gecontroleerd of het een veld-grid (inputs/statkaarten) of een `TabsList` betreft — de juiste keuze verschilt.
+
+**Gewijzigd (veld-/statgrids):**
+1. `src/components/admin/marketplace/SyncTestModeDialog.tsx` (~192, statkaarten Totaal/Nieuw/…): `grid grid-cols-4 gap-3` → `grid grid-cols-2 sm:grid-cols-4 gap-3`.
+2. `src/components/admin/promotions/GiftPromotionFormDialog.tsx` (~255, Aantal + velden): `grid grid-cols-3 gap-4` → `grid grid-cols-1 sm:grid-cols-3 gap-4`.
+3. `src/components/admin/promotions/LoyaltyProgramFormDialog.tsx` (~187, Punten per €1 e.a.): `grid grid-cols-3 gap-4` → `grid grid-cols-1 sm:grid-cols-3 gap-4`.
+4. `src/components/admin/promotions/LoyaltyProgramFormDialog.tsx` (~250, tier-rij van 5 velden): `grid grid-cols-5 gap-2 items-end` → `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 items-end`.
+
+**Bewust ongewijzigd gelaten:**
+- `src/components/admin/marketplace/shopify/ShopifyManualImport.tsx` (~502, TabsList 4 tabs): de labels (Producten/Orders/Klanten/Kortingen) staan al in `hidden sm:inline`; op telefoon rendert alleen het icoon. Geen overlap → met rust gelaten.
+- `src/components/admin/TenantFormDialog.tsx` (~165, TabsList 3 tabs): Algemeen / Adres / Instellingen — korte eenwoordslabels die op 360px in 3 kolommen passen. Geen overflow-x nodig.
+- `src/components/admin/marketplace/BolCsvImport.tsx` (~338, statkaarten in `max-w-md mx-auto`): kleine kaarten met één getal + kort label binnen een reeds smalle container; 3 kolommen blijven leesbaar op 390px.
+- `src/components/admin/NotificationCenter.tsx` (~143, TabsList 4 tabs): labels zijn `text-xs` met korte teksten + count ("Alle (n)", "Nieuw (n)"); passen binnen de popover-breedte. Geen ingreep.
+
+**Scope:** uitsluitend Tailwind grid-classes op 4 regels. Geen logica, handlers, queries, edge functions, SQL of andere grids.
+
+**Slottaken:** valt onder changelog `2026.09o` (zelfde "mobiel schikken"-thema). **GEEN** nieuwe changelog-versie, **GEEN** newsletter, **GEEN** docs.
+
+**Test:** 390px → veld-grids stapelen, tier-rij 2 kolommen, statkaarten 2 kolommen; tabs leesbaar. ≥640/768px → identiek aan voorheen. `tsgo` zonder errors.

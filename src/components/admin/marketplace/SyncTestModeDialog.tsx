@@ -189,7 +189,7 @@ export function SyncTestModeDialog({
             <ScrollArea className="flex-1">
               <div className="space-y-4 pr-4">
                 {/* Summary Stats */}
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-muted/50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold">{result.wouldProcess}</div>
                     <div className="text-xs text-muted-foreground">Totaal</div>
