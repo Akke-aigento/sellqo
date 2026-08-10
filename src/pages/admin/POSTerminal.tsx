@@ -1024,7 +1024,7 @@ export default function POSTerminalPage() {
               </Button>
             </>
           )}
-          <Button variant="outline" size="icon" onClick={() => setShowReaderDialog(true)}>
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowReaderDialog(true)}>
             <Settings className="h-4 w-4" />
           </Button>
           {activeSession && (
