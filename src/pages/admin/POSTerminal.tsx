@@ -946,6 +946,7 @@ export default function POSTerminalPage() {
             <Button
               variant={isOnline ? 'outline' : 'secondary'}
               size="sm"
+              className="shrink-0"
               onClick={() => isOnline && syncAll()}
               disabled={isSyncing || !isOnline}
             >
