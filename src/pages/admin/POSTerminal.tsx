@@ -964,7 +964,7 @@ export default function POSTerminalPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowReaderDialog(true)}
-            className={connectedReader?.status === 'online' ? 'border-green-500' : ''}
+            className={`shrink-0 ${connectedReader?.status === 'online' ? 'border-green-500' : ''}`}
           >
             {connectedReader ? (
               <>
