@@ -1031,6 +1031,7 @@ export default function POSTerminalPage() {
             <Button 
               variant="outline" 
               size="sm"
+              className="shrink-0"
               onClick={() => setShowCloseSessionDialog(true)}
             >
               <LogOut className="mr-2 h-4 w-4" />
