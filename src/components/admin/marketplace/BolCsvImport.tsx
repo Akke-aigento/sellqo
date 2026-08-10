@@ -197,7 +197,7 @@ export function BolCsvImport({ connectionId, onImportComplete }: BolCsvImportPro
           CSV Import
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Bol.com Orders Importeren via CSV</DialogTitle>
           <DialogDescription>
