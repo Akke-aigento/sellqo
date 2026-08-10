@@ -234,6 +234,9 @@ export default function ShippingPage() {
                             Standaard
                           </Badge>
                         )}
+                        <Badge variant="outline" className="text-xs">
+                          {summarizeCountries(method.countries)}
+                        </Badge>
                       </div>
                       {method.description && (
                         <p className="text-sm text-muted-foreground mt-0.5">
