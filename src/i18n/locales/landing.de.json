@@ -1297,6 +1297,10 @@
           "title": "Breite Tabellen scrollen jetzt sauber auf dem Handy",
           "description": "Übersichten mit vielen Spalten lassen sich auf kleineren Bildschirmen nun horizontal scrollen, anstatt aus dem Bild zu laufen."
         },
+        "pos_mobile_layout": {
+          "title": "Die Kasse funktioniert jetzt reibungslos auf Tablet und Telefon",
+          "description": "Die Kasse ist auf kleineren Bildschirmen nun voll nutzbar, mit einem ausklappbaren Warenkorb."
+        },
         "product_page_mobile_fix": {
           "title": "Die Produktseite funktioniert jetzt reibungslos auf dem Handy",
           "description": "Schaltflächen, Tabs und Produktvarianten werden jetzt auf Smartphones und kleinen Bildschirmen korrekt dargestellt."
