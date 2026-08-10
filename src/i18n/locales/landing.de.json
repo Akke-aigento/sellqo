@@ -1025,6 +1025,14 @@
     },
     "changelog": {
       "changes": {
+        "b2b_checkout_custom_frontends": {
+          "title": "B2B-Bestellungen für individuelle Storefronts",
+          "description": "Tenants mit einem eigenen Storefront können jetzt B2B-Bestellungen mit automatischer Steuerschuldumkehr anbieten. Bei einer gültigen EU-USt-IdNr. wird die innergemeinschaftliche Lieferung (Art. 39bis) automatisch angewendet und der Kunde erhält eine Netto-Rechnung."
+        },
+        "b2b_vat_reverse_charge_fix": {
+          "title": "Reverse-Charge korrekt bis zur Zahlung verarbeitet",
+          "description": "Bei B2B-Bestellungen mit gültiger EU-USt-IdNr. wurde der Nettobetrag in der Checkout-Ansicht korrekt angezeigt, jedoch wurde der Bruttobetrag an den Zahlungsanbieter übermittelt. Behoben: Der Nettobetrag (ohne MwSt.) wird jetzt korrekt bis zur Zahlung verarbeitet."
+        },
         "payment_landing_pages": {
           "title": "Aufgeräumte Bestätigungsseite nach Zahlung per Link",
           "description": "Nach einer Zahlung über einen Zahlungslink siehst du jetzt eine ordentliche Bestätigungsseite statt eines 404-Fehlers."

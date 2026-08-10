@@ -1025,6 +1025,14 @@
     },
     "changelog": {
       "changes": {
+        "b2b_checkout_custom_frontends": {
+          "title": "Commandes professionnelles pour storefronts personnalisés",
+          "description": "Les tenants disposant d'un storefront personnalisé peuvent désormais proposer des commandes B2B avec autoliquidation automatique de la TVA. Avec un numéro de TVA UE valide, la livraison intracommunautaire (art. 39bis) est appliquée automatiquement et le client est facturé hors TVA."
+        },
+        "b2b_vat_reverse_charge_fix": {
+          "title": "Autoliquidation TVA correctement appliquée au paiement",
+          "description": "Pour les commandes B2B avec numéro de TVA UE valide, le montant net était affiché correctement dans le checkout mais le montant brut était transmis au prestataire de paiement. Problème résolu : le montant net (hors TVA) est désormais correctement traité jusqu'au paiement."
+        },
         "payment_landing_pages": {
           "title": "Page de confirmation propre après paiement par lien",
           "description": "Après un paiement via un lien de paiement, vous voyez désormais une page de confirmation au lieu d'une erreur 404."

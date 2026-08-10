@@ -1025,6 +1025,14 @@
     },
     "changelog": {
       "changes": {
+        "b2b_checkout_custom_frontends": {
+          "title": "Zakelijk bestellen voor custom storefronts",
+          "description": "Tenants met een custom storefront kunnen nu zakelijke klanten laten bestellen met automatische btw-verlegging. Bij een geldig EU-BTW-nummer wordt de intracommunautaire levering (art. 39bis WBTW) automatisch toegepast en de klant betaalt netto."
+        },
+        "b2b_vat_reverse_charge_fix": {
+          "title": "BTW-verlegging correct doorgerekend bij betaling",
+          "description": "Bij zakelijke bestellingen met geldig EU-BTW-nummer werd het nettobedrag correct getoond in de checkout maar werd het brutobedrag doorgestuurd naar de betaalprovider. Dit is opgelost: het nettobedrag (excl. btw) wordt nu correct verwerkt tot en met de betaling."
+        },
         "payment_landing_pages": {
           "title": "Nette bevestigingspagina na betaling via betaallink",
           "description": "Na een betaling via een betaallink zie je nu een nette bevestigingspagina in plaats van een 404-fout."
