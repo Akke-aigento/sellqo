@@ -90,6 +90,7 @@ export function ShippingMethodDialog({
 
   const { shippingClasses } = useShippingClasses();
   const [productsDialogOpen, setProductsDialogOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState("");
   const selectedClassId = form.watch("shipping_class_id");
   const selectedClass = shippingClasses.find((c) => c.id === selectedClassId);
 
@@ -301,8 +302,20 @@ export function ShippingMethodDialog({
                       <Badge variant="secondary" className="w-fit">
                         {summarizeCountries(selected)}
                       </Badge>
+                      <Input
+                        value={countryQuery}
+                        onChange={(e) => setCountryQuery(e.target.value)}
+                        placeholder="Zoek land (bv. Oekraïne of UA)"
+                      />
                       <div className="max-h-44 space-y-1 overflow-y-auto overscroll-contain rounded-md border p-2">
-                        {ALL_SHIPPING_COUNTRIES.map((c) => (
+                        {ALL_SHIPPING_COUNTRIES.filter((c) => {
+                          const q = countryQuery.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            c.name.toLowerCase().includes(q) ||
+                            c.code.toLowerCase().includes(q)
+                          );
+                        }).map((c) => (
                           <label
                             key={c.code}
                             className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted"
