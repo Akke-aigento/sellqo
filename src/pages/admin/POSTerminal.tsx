@@ -916,12 +916,12 @@ export default function POSTerminalPage() {
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="border-b bg-card px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="font-semibold">{terminal.name}</h1>
+          <div className="min-w-0">
+            <h1 className="font-semibold truncate">{terminal.name}</h1>
             {activeSession && (
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
