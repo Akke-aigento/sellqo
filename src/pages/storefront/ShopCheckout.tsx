@@ -699,22 +699,27 @@ export default function ShopCheckout() {
                     {/* Country selector */}
                     <div className="space-y-2">
                       <Label>{t('checkout.country')} *</Label>
-                      <Select
-                        value={customerData.country}
-                        onValueChange={(value) => handleInputChange('country', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(shippableCountries
-                            ? ALL_SHIPPING_COUNTRIES.filter(c => shippableCountries.includes(c.code))
-                            : ALL_SHIPPING_COUNTRIES
-                          ).map(c => (
-                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {shipsNowhere ? (
+                        <p className="text-sm text-muted-foreground rounded-md border bg-muted p-3">
+                          Deze winkel verzendt momenteel niet.
+                        </p>
+                      ) : singleCountry ? (
+                        <p className="text-sm rounded-md border bg-muted px-3 py-2">{singleCountry.name}</p>
+                      ) : (
+                        <Select
+                          value={customerData.country}
+                          onValueChange={(value) => handleInputChange('country', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countryOptions.map(c => (
+                              <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
 
