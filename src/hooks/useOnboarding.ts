@@ -126,17 +126,6 @@ export function useOnboarding() {
       return;
     }
 
-    // If user already has access to tenants, skip onboarding entirely
-    // Bypass deze guard wanneer ?new=1 in URL staat: bestaande tenant_admin
-    // mag dan bewust de onboarding doorlopen voor een extra winkel.
-    if (tenants && tenants.length > 0 && !isNewTenantFlow) {
-      await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', user.id);
-      setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-      return;
-    }
 
     try {
       // Fetch profile to check onboarding status + saved data
