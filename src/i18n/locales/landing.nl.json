@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "auth_session_stability": {
+          "title": "Stabielere sessies",
+          "description": "We hebben een zeldzaam probleem opgelost waarbij het instellen van een nieuwe winkel kon vastlopen tijdens het verifiëren van je sessie."
+        },
         "login_setup_polish": {
           "title": "Vlottere login en setup",
           "description": "Je kunt nu eenvoudig terug naar de website vanaf de inlogpagina, en de setup-wizard scrollt voortaan natuurlijker."

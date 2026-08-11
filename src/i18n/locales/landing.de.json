@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "auth_session_stability": {
+          "title": "Stabilere Sitzungen",
+          "description": "Wir haben ein seltenes Problem behoben, bei dem die Einrichtung eines neuen Shops beim Überprüfen der Sitzung hängen bleiben konnte."
+        },
         "login_setup_polish": {
           "title": "Reibungsloseres Anmelden und Einrichten",
           "description": "Sie können jetzt einfach von der Anmeldeseite zur Website zurückkehren, und der Einrichtungsassistent scrollt natürlicher."
