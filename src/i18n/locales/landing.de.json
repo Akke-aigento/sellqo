@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_full_flow": {
+          "title": "Einrichtung läuft vollständig durch",
+          "description": "Wir haben ein Problem behoben, bei dem die Shop-Einrichtung manchmal zu früh abgeschlossen wurde, sodass einige Schritte übersprungen wurden."
+        },
         "onboarding_nav_ready": {
           "title": "Direkt startklar nach der Einrichtung",
           "description": "Nach dem Einrichten Ihres Shops ist das vollständige Menü jetzt sofort verfügbar, ohne die Seite neu laden zu müssen."
