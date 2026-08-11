@@ -234,51 +234,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }, 0);
         } else if (hasStaleAuthStorage()) {
-          // No session but storage exists. Kan een tijdelijke race zijn
-          // (bv. GoTrue vuurt event vlak vóór session-hydration). Probeer
-          // eerst een refresh; alleen bij échte fout alsnog uitloggen.
-          console.warn('[Auth] Stale auth storage detected, attempting refresh before sign-out...');
-          const { data: refreshData, error: refreshError } =
-            await supabase.auth.refreshSession();
-          if (!refreshError && refreshData.session?.user) {
-            const refreshed = refreshData.session;
-            const incomingId = refreshed.user.id;
-            const sameUser =
-              currentUserIdRef.current !== null &&
-              currentUserIdRef.current === incomingId;
-            setSession(refreshed);
-            if (sameUser && hasResolvedRolesOnceRef.current) {
-              // Alleen sessie bijwerken.
-            } else {
-              setUser((prev) =>
-                prev && prev.id === refreshed.user.id ? prev : refreshed.user
-              );
-              currentUserIdRef.current = incomingId;
-              registerPushForUser(incomingId).catch((err) =>
-                console.error('[push] registration failed', err),
-              );
-              if (!hasResolvedRolesOnceRef.current) {
-                setRolesLoading(true);
-              }
-              setTimeout(() => {
-                fetchUserRoles(refreshed.user.id).then((r) => {
-                  setRoles(r);
-                  setRolesLoading(false);
-                  hasResolvedRolesOnceRef.current = true;
-                });
-              }, 0);
-            }
-          } else {
-            console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
-            await safeLocalSignOut();
-            setSession(null);
-
-            setUser(null);
-            setRoles([]);
-            setRolesLoading(false);
-            currentUserIdRef.current = null;
-            hasResolvedRolesOnceRef.current = false;
-          }
+          // AUTH-DEADLOCK-1 — nooit een auth-call awaiten binnen deze
+          // callback: supabase-js houdt hier het auth-lock (navigator.locks)
+          // vast, dus refreshSession/signOut hierbinnen deadlockt tot timeout
+          // ("AbortError: signal is aborted without reason"). Defer het
+          // herstelpad, net zoals het fetchUserRoles-pad hierboven.
+          setTimeout(() => { void handleStaleStorage(); }, 0);
+          return;
         } else {
           setSession(null);
           setUser(null);
@@ -290,6 +252,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     );
+
+    // Stale-storage-herstel, bewust buiten de auth-lock-context uitgevoerd.
+    async function handleStaleStorage() {
+      // No session but storage exists. Kan een tijdelijke race zijn
+      // (bv. GoTrue vuurt event vlak vóór session-hydration). Probeer
+      // eerst een refresh; alleen bij échte fout alsnog uitloggen.
+      console.warn('[Auth] Stale auth storage detected, attempting refresh before sign-out...');
+      const { data: refreshData, error: refreshError } =
+        await supabase.auth.refreshSession();
+      if (!refreshError && refreshData.session?.user) {
+        const refreshed = refreshData.session;
+        const incomingId = refreshed.user.id;
+        const sameUser =
+          currentUserIdRef.current !== null &&
+          currentUserIdRef.current === incomingId;
+        setSession(refreshed);
+        if (sameUser && hasResolvedRolesOnceRef.current) {
+          // Alleen sessie bijwerken.
+        } else {
+          setUser((prev) =>
+            prev && prev.id === refreshed.user.id ? prev : refreshed.user
+          );
+          currentUserIdRef.current = incomingId;
+          registerPushForUser(incomingId).catch((err) =>
+            console.error('[push] registration failed', err),
+          );
+          if (!hasResolvedRolesOnceRef.current) {
+            setRolesLoading(true);
+          }
+          setTimeout(() => {
+            fetchUserRoles(refreshed.user.id).then((r) => {
+              setRoles(r);
+              setRolesLoading(false);
+              hasResolvedRolesOnceRef.current = true;
+            });
+          }, 0);
+        }
+      } else {
+        console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
+        await safeLocalSignOut();
+        setSession(null);
+
+        setUser(null);
+        setRoles([]);
+        setRolesLoading(false);
+        currentUserIdRef.current = null;
+        hasResolvedRolesOnceRef.current = false;
+      }
+
+      setLoading(false);
+    }
 
     // THEN check for existing session with defensive cleanup
     const initializeAuth = async () => {

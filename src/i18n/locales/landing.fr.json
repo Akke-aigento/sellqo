@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "auth_session_stability": {
+          "title": "Sessions plus stables",
+          "description": "Nous avons corrigé un problème rare où la configuration d'une nouvelle boutique pouvait se bloquer lors de la vérification de votre session."
+        },
         "login_setup_polish": {
           "title": "Connexion et configuration simplifiées",
           "description": "Vous pouvez désormais revenir facilement au site depuis la page de connexion, et l'assistant de configuration défile plus naturellement."
