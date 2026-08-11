@@ -60,6 +60,7 @@ const changelogEntries: Array<{
   { version: '2026.09c', dateKey: 'sep_2026', changes: [{ id: 'sellqo_blog', type: 'feature' }] },
   { version: '2026.09b', dateKey: 'sep_2026', changes: [{ id: 'platform_newsletter_preference', type: 'improvement' }] },
   { version: '2026.09a', dateKey: 'sep_2026', changes: [{ id: 'customer_invoice_email_fix', type: 'bugfix' }] },
+  { version: '2026.08ac', dateKey: 'aug_2026', changes: [{ id: 'login_setup_polish', type: 'improvement' }] },
   { version: '2026.08ab', dateKey: 'aug_2026', changes: [{ id: 'b2b_checkout_custom_frontends', type: 'feature' }] },
   { version: '2026.08aa', dateKey: 'aug_2026', changes: [{ id: 'b2b_vat_reverse_charge_fix', type: 'security' }] },
   { version: '2026.08z', dateKey: 'aug_2026', changes: [{ id: 'billing_engine_migration', type: 'improvement' }] },

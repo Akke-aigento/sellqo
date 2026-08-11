@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "login_setup_polish": {
+          "title": "Vlottere login en setup",
+          "description": "Je kunt nu eenvoudig terug naar de website vanaf de inlogpagina, en de setup-wizard scrollt voortaan natuurlijker."
+        },
         "b2b_checkout_custom_frontends": {
           "title": "Zakelijk bestellen voor custom storefronts",
           "description": "Tenants met een custom storefront kunnen nu zakelijke klanten laten bestellen met automatische btw-verlegging. Bij een geldig EU-BTW-nummer wordt de intracommunautaire levering (art. 39bis WBTW) automatisch toegepast en de klant betaalt netto."

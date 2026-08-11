@@ -4,7 +4,6 @@ import { X, Loader2, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { OnboardingProgress } from './OnboardingProgress';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { PlanSelectionStep } from './steps/PlanSelectionStep';
@@ -280,7 +279,7 @@ export function OnboardingWizard() {
       />
       {/* Full-screen overlay */}
       <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <Card className="w-full max-w-2xl h-[90vh] max-h-[90vh] grid grid-rows-[auto_auto_1fr] shadow-2xl overflow-hidden">
+        <Card className="w-full max-w-2xl my-auto shadow-2xl overflow-hidden">
           {/* Header with skip and logout buttons */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="text-sm font-medium text-muted-foreground">
@@ -315,19 +314,17 @@ export function OnboardingWizard() {
             </div>
           )}
 
-          {/* Step content */}
-          <ScrollArea className="min-h-0 h-full">
-            <CardContent className="p-6">
-              {isProcessing ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground">Even geduld...</p>
-                </div>
-              ) : (
-                renderStep()
-              )}
-            </CardContent>
-          </ScrollArea>
+          {/* Step content — grows with content, page itself scrolls */}
+          <CardContent className="p-6">
+            {isProcessing ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Even geduld...</p>
+              </div>
+            ) : (
+              renderStep()
+            )}
+          </CardContent>
         </Card>
       </div>
 

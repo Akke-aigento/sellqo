@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "login_setup_polish": {
+          "title": "Smoother login and setup",
+          "description": "You can now easily return to the website from the login page, and the setup wizard scrolls more naturally."
+        },
         "b2b_checkout_custom_frontends": {
           "title": "B2B checkout for custom storefronts",
           "description": "Tenants with a custom storefront can now offer B2B ordering with automatic VAT reverse charging. When a valid EU VAT number is provided, intra-Community supply (art. 39bis) is applied automatically and the customer is invoiced net."

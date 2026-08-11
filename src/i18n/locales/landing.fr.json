@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "login_setup_polish": {
+          "title": "Connexion et configuration simplifiées",
+          "description": "Vous pouvez désormais revenir facilement au site depuis la page de connexion, et l'assistant de configuration défile plus naturellement."
+        },
         "b2b_checkout_custom_frontends": {
           "title": "Commandes professionnelles pour storefronts personnalisés",
           "description": "Les tenants disposant d'un storefront personnalisé peuvent désormais proposer des commandes B2B avec autoliquidation automatique de la TVA. Avec un numéro de TVA UE valide, la livraison intracommunautaire (art. 39bis) est appliquée automatiquement et le client est facturé hors TVA."
