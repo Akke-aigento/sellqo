@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { z } from 'zod';
 import {
@@ -184,6 +184,15 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <div className="w-full max-w-md">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="px-0 mb-4 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Terug naar sellqo.app
+          </Button>
           <div className="flex justify-center mb-8">
             <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
           </div>
@@ -216,6 +225,15 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
+        <Button
+          variant="link"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="px-0 mb-4 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Terug naar sellqo.app
+        </Button>
         {/* Sellqo Logo with Tagline */}
         <div className="flex justify-center mb-8">
           <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />

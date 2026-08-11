@@ -191,8 +191,10 @@ export function PaymentsStep({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Geen Stripe?</strong> Geen probleem! Je kunt ook betalingen ontvangen via bankoverschrijving. 
-            Dit kun je later instellen.
+            <strong>Alles wordt voor je geregeld.</strong> Je hoeft je geen zorgen te maken over de
+            technische kant — wij beheren het volledige betaalplatform. Je registreert eenmalig via
+            deze wizard, en betalingen via bankoverschrijving kun je altijd later activeren. Geen
+            Stripe nodig om te starten.
           </AlertDescription>
         </Alert>
       </div>
