@@ -74,7 +74,7 @@ const initialData: OnboardingData = {
 };
 
 export function useOnboarding() {
-  const { user, ensureAuthenticated, getVerifiedAccessToken, signOut } = useAuth();
+  const { user, ensureAuthenticated, getVerifiedAccessToken, signOut, refetchRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentTenant, tenants, loading: tenantsLoading, setCurrentTenant, refreshTenants } = useTenant();
@@ -320,13 +320,17 @@ export function useOnboarding() {
       // Without this, the Dashboard shows "Geen winkel gevonden"
       try {
         await refreshTenants();
+        // ONBOARD-ROLES-1 — user_roles wordt server-side aangemaakt; zonder
+        // refetch mist de client de tenant_admin-rol voor de nieuwe tenant en
+        // filtert AdminSidebar (scopedRoles op currentTenant.id) alles weg.
+        await refetchRoles();
       } catch (error) {
         console.warn('[Onboarding] refreshTenants failed on complete:', error);
       }
     }
     
     setState(prev => ({ ...prev, isOpen: false }));
-  }, [user, refreshTenants]);
+  }, [user, refreshTenants, refetchRoles]);
 
   // Restart onboarding from step 1
   const restartOnboarding = useCallback(async () => {
@@ -634,6 +638,10 @@ export function useOnboarding() {
         try {
           await refreshTenants();
           setCurrentTenant(tenant as any);
+          // ONBOARD-ROLES-1 — zie boven: rollen verversen zodat de sidebar
+          // direct de volledige navigatie voor de verse tenant toont
+          // (voorheen pas na een handmatige F5).
+          await refetchRoles();
         } catch (refreshError) {
           console.warn('[Onboarding] refreshTenants failed but tenant exists:', refreshError);
           // Continue anyway - tenant is created
@@ -686,7 +694,7 @@ export function useOnboarding() {
       
       throw error;
     }
-  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, toast, isNewTenantFlow]);
+  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, refetchRoles, toast, isNewTenantFlow]);
 
   // Update tenant with logo
   const updateTenantLogo = useCallback(async (logoUrl: string) => {
