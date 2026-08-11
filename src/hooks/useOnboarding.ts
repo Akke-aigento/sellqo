@@ -157,6 +157,21 @@ export function useOnboarding() {
         return;
       }
 
+      // ONBOARD-EARLY-CLOSE-1 — tenant-guard verplaatst naar ná de profiel-fetch.
+      // Alleen sluiten als het profiel bevestigt dat er GEEN actieve doorloop is
+      // (onboarding_step <= 1). Anders sloot een refreshTenants() na de
+      // tenant-creatie op stap 3 de wizard vroegtijdig (refs zijn weg na remount).
+      const persistedStep = profile?.onboarding_step ?? 1;
+      if (tenants && tenants.length > 0 && !isNewTenantFlow && persistedStep <= 1) {
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', user.id);
+        setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
+        return;
+      }
+
+
       // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;
       
