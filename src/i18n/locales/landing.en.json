@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_full_flow": {
+          "title": "Setup runs all the way through",
+          "description": "We fixed an issue where shop setup could finish too early, causing you to miss a few steps."
+        },
         "onboarding_nav_ready": {
           "title": "Ready to go right after setup",
           "description": "After setting up your shop the full menu is now available immediately, without needing to refresh the page."

@@ -126,17 +126,6 @@ export function useOnboarding() {
       return;
     }
 
-    // If user already has access to tenants, skip onboarding entirely
-    // Bypass deze guard wanneer ?new=1 in URL staat: bestaande tenant_admin
-    // mag dan bewust de onboarding doorlopen voor een extra winkel.
-    if (tenants && tenants.length > 0 && !isNewTenantFlow) {
-      await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', user.id);
-      setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-      return;
-    }
 
     try {
       // Fetch profile to check onboarding status + saved data
@@ -167,6 +156,21 @@ export function useOnboarding() {
         setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
         return;
       }
+
+      // ONBOARD-EARLY-CLOSE-1 — tenant-guard verplaatst naar ná de profiel-fetch.
+      // Alleen sluiten als het profiel bevestigt dat er GEEN actieve doorloop is
+      // (onboarding_step <= 1). Anders sloot een refreshTenants() na de
+      // tenant-creatie op stap 3 de wizard vroegtijdig (refs zijn weg na remount).
+      const persistedStep = profile?.onboarding_step ?? 1;
+      if (tenants && tenants.length > 0 && !isNewTenantFlow && persistedStep <= 1) {
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', user.id);
+        setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
+        return;
+      }
+
 
       // Show onboarding for new users or users who haven't completed setup
       const savedStep = profile?.onboarding_step || 1;

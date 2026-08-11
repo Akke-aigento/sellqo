@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_full_flow": {
+          "title": "La configuration se déroule entièrement",
+          "description": "Nous avons corrigé un problème où la configuration de la boutique pouvait se terminer trop tôt, vous faisant manquer certaines étapes."
+        },
         "onboarding_nav_ready": {
           "title": "Opérationnel dès la configuration",
           "description": "Après la configuration de votre boutique, le menu complet est désormais disponible immédiatement, sans avoir à actualiser la page."

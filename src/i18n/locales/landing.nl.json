@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_full_flow": {
+          "title": "Setup loopt volledig door",
+          "description": "We hebben een probleem opgelost waarbij het instellen van je winkel soms te vroeg werd afgerond, waardoor je enkele stappen miste."
+        },
         "onboarding_nav_ready": {
           "title": "Direct aan de slag na setup",
           "description": "Na het instellen van je winkel is voortaan meteen het volledige menu beschikbaar, zonder de pagina te hoeven verversen."
