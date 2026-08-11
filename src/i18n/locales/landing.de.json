@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "login_setup_polish": {
+          "title": "Reibungsloseres Anmelden und Einrichten",
+          "description": "Sie können jetzt einfach von der Anmeldeseite zur Website zurückkehren, und der Einrichtungsassistent scrollt natürlicher."
+        },
         "b2b_checkout_custom_frontends": {
           "title": "B2B-Bestellungen für individuelle Storefronts",
           "description": "Tenants mit einem eigenen Storefront können jetzt B2B-Bestellungen mit automatischer Steuerschuldumkehr anbieten. Bei einer gültigen EU-USt-IdNr. wird die innergemeinschaftliche Lieferung (Art. 39bis) automatisch angewendet und der Kunde erhält eine Netto-Rechnung."
