@@ -1,100 +1,72 @@
-# Deadlock-analyse onboarding stap 3 (AbortError in ensureAuthenticated)
+# Lege sidebar na onboarding (rollen niet ververst na tenant-creatie)
 
-## 1. Hypothese: BEVESTIGD (met één nuance)
+## 1. Hypothese: BEVESTIGD
 
-`src/hooks/useAuth.tsx` regels 180-292: de `onAuthStateChange`-callback is `async` en doet in het stale-storage-pad een directe `await supabase.auth.refreshSession()` (regels 241-242), en bij mislukking `await safeLocalSignOut()` (regel 273 → `supabase.auth.signOut({scope:'local'})`, regel 44).
+- `src/components/admin/AdminSidebar.tsx` regels 61-72: `scopedRoles` = `roles` gefilterd op `r.tenant_id === currentTenant.id` (regels 65-66), en `isHidden` = `!canWithRoles(scopedRoles, 'read', resource)` (regel 72). Zonder matchende rol voor de actieve tenant valt vrijwel elk item weg.
+- `src/hooks/useOnboarding.ts` regel 77 destructureert uit `useAuth` alleen `{ user, ensureAuthenticated, getVerifiedAccessToken, signOut }` — `refetchRoles` zit er NIET bij, en komt nergens in het bestand voor.
+- Succes-pad `createTenant` (regels 633-640): alleen `await refreshTenants()` + `setCurrentTenant(tenant)`. `completeOnboarding` (regels 319-325): alleen `await refreshTenants()`. Op geen van beide plekken wordt de `roles`-state ververst.
+- De nieuwe `user_roles`-rij wordt server-side gemaakt (create-tenant edge function), dus de client-`roles` uit de sessie-hydratie mist die rij. F5 herstelt het via `initializeAuth`, wat de bevinding "DB correct, alleen client-state" verklaart.
 
-supabase-js serialiseert alle auth-operaties achter een lock (`navigator.locks`); de callback wordt binnen dat lock uitgevoerd. Een auth-call awaiten binnen die callback wacht dus op een lock die de callback zelf vasthoudt → de lock-acquire loopt in de ingebouwde timeout en aborteert met exact `AbortError: signal is aborted without reason`.
+Geen aanvullende oorzaak gevonden: `useTenant.fetchTenants` (regels 126-229) haalt tenants op maar geen rollen; `useTenant` re-runt wél op `roles`-wijziging (regel 239), dus een roles-refetch is veilig richting tenant-state.
 
-Nuance op de trigger: de log stopt ná `[Auth] ensureAuthenticated: checking session...` (regel 355) en dus in `supabase.auth.getSession()` (regel 358) — nog vóór `getVerifiedAccessToken({forceRefresh:true})`. De blokkerende auth-call was dus al bezig toen `createTenant` startte: de achtergrond-autorefresh (of het SIGNED_IN/TOKEN_REFRESHED-event van page-load) had de callback al binnengebracht, die daar op `refreshSession()`/`signOut()` bleef hangen. `getVerifiedAccessToken` is dus niet de trigger — het is de slachtoffer-kant, de deadlockbron blijft het stale-storage-pad in de callback. Het `fetchUserRoles`-pad is al gedeferd (regels 229-235 en 263-269), het refreshSession-pad niet.
+## 2. `refetchRoles()` is de juiste tool
 
-Geen andere oorzaak gevonden: `createTenant` heeft geen eigen AbortController/timeout, dus de AbortError komt uit de supabase auth-lock.
+`src/hooks/useAuth.tsx` regels 161-176: haalt de user via `getUser()`, doet `fetchUserRoles(user.id)` (alle rijen voor de user, dus inclusief de nieuwe tenant), zet `setRoles(fresh)`, `setRolesLoading(false)` en `hasResolvedRolesOnceRef = true`. Daarmee wordt `scopedRoles` in de sidebar correct voor de verse tenant.
 
-## 2. Volledige inventaris awaits op auth-calls
+Neveneffect om te kennen: regel 170 zet bewust `setRolesLoading(true)` tijdens de fetch. `RouteGuard` (regel 41) rendert dan een spinner — geen redirect. `/no-access` wordt pas overwogen als `rolesLoading` false is, dus er is geen flikkering naar `/no-access` of `/auth`. De duur is één `user_roles`-query.
 
-In de `onAuthStateChange`-callback (deadlock-gevoelig):
-- regel 241-242 `await supabase.auth.refreshSession()` — stale-storage-pad. PRIMAIRE BRON.
-- regel 273 `await safeLocalSignOut()` → `supabase.auth.signOut({scope:'local'})` (regel 44) — tweede bron, treedt op wanneer de refresh faalt. Moet mee gedeferd, anders fixen we één deadlock en houden we de andere.
-- Geen andere: alle `setSession/setUser/setRoles` zijn synchroon; `fetchUserRoles` is een DB-call (geen auth-lock) en al gedeferd; `registerPushForUser` is niet geawait.
+## 3. Inhaakpunten
 
-In `initializeAuth` (regels 295-342) — buiten de callback, dus GEEN deadlockrisico:
-- regel 296 `await supabase.auth.getSession()`
-- regel 303 `await safeLocalSignOut()` (error-pad)
-- regel 334 `await safeLocalSignOut()` (stale-storage-pad)
-Deze laten we ongemoeid.
+- `src/hooks/useOnboarding.ts` regel 77: `refetchRoles` toevoegen aan de destructuring van `useAuth`.
+- `createTenant`, direct ná `setCurrentTenant(tenant as any)` (regel 636), binnen hetzelfde try/catch (non-critical follow-up).
+- `completeOnboarding`, ná `await refreshTenants()` (regel 322), binnen hetzelfde try/catch.
+- Dependency-arrays bijwerken: regel 329 (`completeOnboarding`) en regel 689 (`createTenant`).
 
-Buiten de callback en veilig: `refetchRoles` (162), `ensureAuthenticated` (358/372/378/403), `getVerifiedAccessToken` (439/446/455/463/469/471), `signOut` (542).
+## 4. Neveneffecten
 
-## 3. Neveneffecten van de fix (defer met setTimeout(0))
+- Flikkering: nee — `RouteGuard` spint tijdens `rolesLoading` en redirect niet.
+- (a) Extra winkel via `?new=1`: profiteert juist — de rol voor de nieuwe tenant komt binnen vóór het schakelen.
+- (b) `wasExisting`-pad: loopt door hetzelfde succes-blok; de refetch levert dan dezelfde rollen op (idempotent, geen gedragsverandering).
+- (c) Skip-onboarding: `skipOnboarding` wordt niet aangeraakt.
+- Dubbel refetchen is functioneel onschadelijk (idempotente read) maar onnodig. Toch beide behouden: `createTenant` is de primaire fix (rollen zijn er vóór het dashboard rendert), `completeOnboarding` is het net voor paden die de wizard afronden zonder verse creatie (bv. `wasExisting` uit een eerdere sessie of tenant-repair). Kosten: één extra `user_roles`-query per afgeronde wizard.
 
-- State-volgorde: het stale-storage-pad zette vóór de fix niets synchroon; het `setSession/setUser` gebeurde pas ná de await. Na de fix gebeurt dat in dezelfde microtask-orde, alleen buiten het lock. Er ontstaat dus geen extra leeg-sessie-flits. Belangrijk detail: `setLoading(false)` (regel 290) draaide al vóór het einde van dat pad in dezelfde tick-orde; om een flits van "geen sessie" bij RouteGuard te vermijden houdt de fix `setLoading(false)` binnen het gedeferde blok voor dit pad (early `return` in de callback), zodat de guard blijft spinnen tot de refresh beslist is in plaats van kort `user === null` te zien.
-- (a) Verse login/user-switch: pad regels 199-235, niet aangeraakt.
-- (b) Tab-switch/TOKEN_REFRESHED: pad regels 205-213 (`sameUser && hasResolvedRolesOnceRef`), niet aangeraakt → geen roles-reload.
-- (c) Session-restore bij page-load: `initializeAuth`, niet aangeraakt.
-- (d) SIGNED_OUT: regels 185-196, niet aangeraakt.
-- `hasResolvedRolesOnceRef` / `currentUserIdRef` / `rolesLoading`-logica blijft letterlijk identiek; enkel de uitvoeringscontext (buiten het auth-lock) wijzigt.
+## 5. Scope
 
-## 4. Scope
+Uitsluitend `src/hooks/useOnboarding.ts`. Geen wijziging aan `useAuth`, `useTenant`, `AdminSidebar`, RLS of edge functions.
 
-Alleen `src/hooks/useAuth.tsx`. Geen effect op de storefront custom-domain/proxy auth-flow (die gebruikt de storefront-api en niet deze provider), niet op `createTenant`/`useOnboarding` (die profiteren enkel doordat het lock vrijkomt), niet op edge functions of migraties. Expliciet bevestigd: geen andere bestanden.
-
-## 5. Voorgestelde diff
+## 6. Voorgestelde diff
 
 ```diff
---- a/src/hooks/useAuth.tsx
-+++ b/src/hooks/useAuth.tsx
-@@ -236,7 +236,17 @@
-         } else if (hasStaleAuthStorage()) {
-           // No session but storage exists. Kan een tijdelijke race zijn
-           // (bv. GoTrue vuurt event vlak vóór session-hydration). Probeer
-           // eerst een refresh; alleen bij échte fout alsnog uitloggen.
-           console.warn('[Auth] Stale auth storage detected, attempting refresh before sign-out...');
--          const { data: refreshData, error: refreshError } =
--            await supabase.auth.refreshSession();
-+          // AUTH-DEADLOCK-1 — NOOIT een auth-call awaiten binnen deze
-+          // callback: supabase-js houdt hier het auth-lock vast, dus een
-+          // refreshSession/signOut hierbinnen deadlockt tot timeout
-+          // ("AbortError: signal is aborted without reason") en blokkeert
-+          // elke andere auth-call (bv. ensureAuthenticated in de
-+          // onboarding). Zelfde defer-patroon als fetchUserRoles hieronder.
-+          setTimeout(() => { void handleStaleStorage(); }, 0);
-+          return;
-+        } else {
-+          setSession(null);
-+          setUser(null);
-+          setRoles([]);
-+          setRolesLoading(false);
-+          currentUserIdRef.current = null;
-+        }
-+
-+        setLoading(false);
-+      }
-+    );
-+
-+    // Het volledige stale-storage-herstel, buiten het auth-lock uitgevoerd.
-+    async function handleStaleStorage() {
-+      const { data: refreshData, error: refreshError } =
-+        await supabase.auth.refreshSession();
-           if (!refreshError && refreshData.session?.user) {
-             ... (ongewijzigde body, inclusief het bestaande
-                  setTimeout(fetchUserRoles) blok)
-           } else {
-             console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
-             await safeLocalSignOut();
-             ... (ongewijzigde reset van session/user/roles/refs)
-           }
--        } else {
--          setSession(null);
--          ...
--        }
--
--        setLoading(false);
--      }
--    );
-+      setLoading(false);
-+    }
+--- a/src/hooks/useOnboarding.ts
++++ b/src/hooks/useOnboarding.ts
+@@ -77 +77 @@
+-  const { user, ensureAuthenticated, getVerifiedAccessToken, signOut } = useAuth();
++  const { user, ensureAuthenticated, getVerifiedAccessToken, signOut, refetchRoles } = useAuth();
+@@ (completeOnboarding, ~322)
+       try {
+         await refreshTenants();
++        // ONBOARD-ROLES-1 — user_roles wordt server-side aangemaakt; zonder
++        // refetch mist de client de tenant_admin-rol voor de nieuwe tenant en
++        // filtert AdminSidebar (scopedRoles op currentTenant.id) alles weg.
++        await refetchRoles();
+       } catch (error) {
+         console.warn('[Onboarding] refreshTenants failed on complete:', error);
+       }
+@@ (completeOnboarding deps, 329)
+-  }, [user, refreshTenants]);
++  }, [user, refreshTenants, refetchRoles]);
+@@ (createTenant succes-pad, ~634)
+         try {
+           await refreshTenants();
+           setCurrentTenant(tenant as any);
++          // ONBOARD-ROLES-1 — zie boven: rollen verversen zodat de sidebar
++          // direct de volledige navigatie voor de verse tenant toont
++          // (voorheen pas na een handmatige F5).
++          await refetchRoles();
+         } catch (refreshError) {
+@@ (createTenant deps, 689)
+-  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, toast, isNewTenantFlow]);
++  }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, refetchRoles, toast, isNewTenantFlow]);
 ```
-
-Twee blokken, één reden: (1) het stale-storage-pad wordt uit de lock-context gehaald via `setTimeout(0)` + `return`, exact het patroon dat `fetchUserRoles` al gebruikt; (2) de body verhuist ongewijzigd naar een lokale helper `handleStaleStorage()` zodat `refreshSession()` én `safeLocalSignOut()` beide buiten het lock lopen, met `setLoading(false)` aan het einde van dat pad zodat de guard niet kort een lege sessie ziet.
 
 Geen verdere opschoning of refactor.
