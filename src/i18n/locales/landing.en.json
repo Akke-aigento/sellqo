@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_nav_ready": {
+          "title": "Ready to go right after setup",
+          "description": "After setting up your shop the full menu is now available immediately, without needing to refresh the page."
+        },
         "auth_session_stability": {
           "title": "More stable sessions",
           "description": "We fixed a rare issue where setting up a new shop could stall while verifying your session."

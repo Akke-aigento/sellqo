@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_nav_ready": {
+          "title": "Opérationnel dès la configuration",
+          "description": "Après la configuration de votre boutique, le menu complet est désormais disponible immédiatement, sans avoir à actualiser la page."
+        },
         "auth_session_stability": {
           "title": "Sessions plus stables",
           "description": "Nous avons corrigé un problème rare où la configuration d'une nouvelle boutique pouvait se bloquer lors de la vérification de votre session."
