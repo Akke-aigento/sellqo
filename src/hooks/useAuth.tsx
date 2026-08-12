@@ -112,8 +112,11 @@ interface AuthContextType {
    * Force-refetches user_roles from the database and updates context state.
    * Used after server-side INSERTs into user_roles (e.g. invite-accept) so
    * `useCan` reflects the new permissions without a page-refresh.
+   *
+   * ONBOARD-REMOUNT-1 — met `{ silent: true }` blijft `rolesLoading` ongemoeid,
+   * zodat `ProtectedRoute` de admin-boom niet unmount tijdens de refetch.
    */
-  refetchRoles: () => Promise<UserRole[]>;
+  refetchRoles: (opts?: { silent?: boolean }) => Promise<UserRole[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -158,7 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (data || []) as UserRole[];
   };
 
-  const refetchRoles = useCallback(async (): Promise<UserRole[]> => {
+  const refetchRoles = useCallback(async (
+    opts?: { silent?: boolean }
+  ): Promise<UserRole[]> => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {
       setRoles([]);
@@ -167,10 +172,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // refetchRoles() is bewust luid — invite-accept verwacht dat de
     // guard even wacht. Andere paden gebruiken deze functie niet.
-    setRolesLoading(true);
+    // ONBOARD-REMOUNT-1 — behalve met { silent: true }: dan slaan we de
+    // rolesLoading-flip over, want die laat ProtectedRoute de hele admin-boom
+    // (AdminLayout → TenantProvider + OnboardingWizard) unmounten, waardoor
+    // in-memory refs en pending state van de onboarding-wizard verdwijnen.
+    if (!opts?.silent) setRolesLoading(true);
     const fresh = await fetchUserRoles(currentUser.id);
     setRoles(fresh);
-    setRolesLoading(false);
+    if (!opts?.silent) setRolesLoading(false);
     hasResolvedRolesOnceRef.current = true;
     return fresh;
   }, []);

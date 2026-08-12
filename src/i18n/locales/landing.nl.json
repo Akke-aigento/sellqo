@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_stays_on_track": {
+          "title": "Setup blijft op koers",
+          "description": "We hebben een probleem opgelost waarbij je tijdens het opzetten van je winkel onverwacht terugkeerde naar de eerste stap."
+        },
         "onboarding_no_double_create": {
           "title": "Winkel aanmaken zonder haperingen",
           "description": "We hebben een probleem opgelost waarbij het aanmaken van je winkel soms dubbel werd uitgevoerd en je onterecht terugkeerde naar de eerste stap."
