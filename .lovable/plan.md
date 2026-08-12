@@ -1,75 +1,127 @@
-# Recon: bestaande "Tenant verwijderen"-actie (platform-admin)
+# ONBOARD-DOUBLE-CREATE-1 — dubbele tenant-creatie op stap 3
 
-## 1. UI-component
+## Analyse (met exacte regels)
 
-`src/pages/admin/Tenants.tsx`
-- regel 31: iconen incl. `MoreHorizontal`, `Trash2`
-- regel 272: drie-puntjes-trigger in de tabelrij
-- regel ~301: `DropdownMenuItem` "Verwijderen" -> `handleDelete(tenant)`
-- regel 112-115: `handleDelete` zet enkel `tenantToDelete` + opent de AlertDialog
-- regel 322-342: bevestigingsdialoog; `AlertDialogAction` -> `confirmDelete`
-- regel 117-123: `confirmDelete()` -> `deleteTenant.mutate(tenantToDelete.id)`
+### 1a. Knop in BusinessDetailsStep
+`src/components/onboarding/steps/BusinessDetailsStep.tsx`
+- regel 225-232: `<Button type="submit" disabled={!canContinue}>` binnen `<form onSubmit={handleSubmit}>` (regel 62).
+- **Bevestigd**: de knop kent geen processing/loading-state; de component krijgt ook geen `isProcessing` prop (interface regel 15-20).
+- Nuance: `OnboardingWizard.tsx` regel 319-326 vervangt de stapinhoud door een spinner zodra `isProcessing` true is. Discrete click-events flushen synchroon in React 18, dus een *tweede losse klik* ziet doorgaans al de spinner. Een dubbele submit blijft mogelijk bij een echte dubbel-event (dubbelklik/Enter+klik in dezelfde flush) of via een programmatische her-aanroep. Laag B is dus UX-hardening, niet de volledige verklaring.
 
-Er is geen tweede verwijderpad in de platform-UI (`TenantBulkActions.tsx` heeft alleen credits / notificatie / CSV-export, geen delete; het `Trash2`-icoon daar is ongebruikt).
+### 1b. Guard in handleStepTransition
+`src/components/onboarding/OnboardingWizard.tsx` regel 84-91: `case 3: if (!createdTenantId) { await createTenant(); ... }`.
+- **Bevestigd**: `createdTenantId` komt uit hook-state (`setState` in `useOnboarding.ts` regel 654) en is dus pas na de re-render gevuld. Elke aanroep die start vóór die re-render passeert de guard.
 
-## 2. Keten knop -> DB
+### 1c. Re-entrancy in createTenant
+`src/hooks/useOnboarding.ts` regel 377-700.
+- **Bevestigd: geen in-flight guard.** De functie begint direct met de validatie + pre-flight slug-check (regel 388-401) en gaat door naar de edge function (regel 525).
+- `hasCreatedTenantRef` (regel 105) wordt pas ná succes gezet (regel 630) en wordt alleen gelezen in `checkOnboardingStatus` (regel 114). Het blokkeert dus re-checks, **niet** een tweede gelijktijdige creatie. Bevestigd.
+- Gevolg: bij twee gelijktijdige aanroepen slaagt aanroep 1 en botst aanroep 2 op de net aangemaakte slug → edge function 409 → `SlugConflictError` (`createTenantViaFunction.ts` regel 57-77) → `throw new Error('SLUG_CONFLICT')` (`useOnboarding.ts` regel 548) → dialog + "terug naar stap 1". Dit dekt het waargenomen console-patroon exact.
 
-`src/hooks/useTenants.ts` regel 166-189:
+### 3. Retry-flow blijft werken
+`OnboardingWizard.tsx` regel 247-253: `handleSlugAcceptAndRetry` roept `handleStepTransition(3)` pas na `setTimeout(..., 100)` aan, dus ná afronding van de eerdere `createTenant` (de `finally` heeft de ref dan vrijgegeven). De guard blokkeert deze legitieme retry niet.
 
-```ts
-const deleteTenant = useMutation({
-  mutationFn: async (id: string) => {
-    const { error } = await supabase.from('tenants').delete().eq('id', id);
-    ...
+### Andere steps
+`WelcomeStep.tsx` regel 157-160 heeft hetzelfde patroon (`type="submit"`, alleen `!canContinue`), maar stap 1 doet geen server-mutatie in `handleStepTransition` (case 1 is leeg) — geen risico, laten we ongemoeid. `FirstProductStep` krijgt al `isLoading={isProcessing}` (regel 213).
+
+## Fix — twee lagen
+
+**Laag A (essentieel):** synchrone `useRef` in-flight guard in `createTenant`, gezet vóór élke await en vrijgegeven in een `finally` dat de hele body omsluit — dus vrijgegeven bij succes, `SLUG_CONFLICT`, `SESSION_EXPIRED`, `MISSING_SHOP_DATA` en elke andere error. Een tweede gelijktijdige aanroep returnt meteen `null` zonder slug-check of edge-function-call.
+
+**Laag B (UX):** `isProcessing` doorgeven aan `BusinessDetailsStep` en de knop `disabled={!canContinue || isProcessing}` met spinner.
+
+## Scope
+Alleen `src/hooks/useOnboarding.ts`, `src/components/onboarding/OnboardingWizard.tsx`, `src/components/onboarding/steps/BusinessDetailsStep.tsx`. Geen RLS, geen migratie, geen edge function.
+
+## Diffs
+
+### src/hooks/useOnboarding.ts
+```diff
+   const hasCreatedTenantRef = useRef(false);
++  // ONBOARD-DOUBLE-CREATE-1 — synchrone in-flight guard: voorkomt dat een
++  // tweede submit tijdens een lopende creatie de slug van de eerste raakt.
++  const isCreatingTenantRef = useRef(false);
+```
+```diff
+   const createTenant = useCallback(async () => {
+     if (!user) return null;
++
++    if (isCreatingTenantRef.current) {
++      console.warn('[Onboarding] createTenant: al bezig — dubbele aanroep genegeerd');
++      return null;
++    }
++    isCreatingTenantRef.current = true;
++    try {
+ 
+     // CRITICAL VALIDATION: Check if shopName and shopSlug are filled in
+```
+Sluit de bestaande body af (na de bestaande buitenste `try/catch`, vóór de dependency-array):
+```diff
+       throw error;
+     }
++    } finally {
++      isCreatingTenantRef.current = false;
++    }
+   }, [user, state.data, ...]);
+```
+De rest van de body schuift één indentatieniveau in; er verandert geen logica. Alle exit-paden (`return tenant`, `return null` bij SESSION_EXPIRED, throws) passeren de `finally`.
+
+### src/components/onboarding/OnboardingWizard.tsx
+```diff
+           <BusinessDetailsStep
+             data={data}
+             updateData={updateData}
+             onNext={() => handleStepTransition(3)}
+             onPrev={prevStep}
++            isProcessing={isProcessing}
+           />
 ```
 
-Dus: **directe client-side DELETE via PostgREST**. Geen RPC, geen edge function. Er bestaat ook geen `delete-tenant` edge function (aanwezige tenant-functies: `create-tenant`, `repair-tenant-access`, `sync-tenant-plan`, `cleanup-connected-accounts`).
+### src/components/onboarding/steps/BusinessDetailsStep.tsx
+```diff
+-import { Building2, ArrowRight, ArrowLeft } from 'lucide-react';
++import { Building2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+@@
+   onNext: () => void;
+   onPrev: () => void;
++  isProcessing?: boolean;
+ }
+@@
+   onNext,
+   onPrev,
++  isProcessing = false,
+ }: BusinessDetailsStepProps) {
+@@
+   const handleSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
+-    if (canContinue) {
++    if (canContinue && !isProcessing) {
+       onNext();
+     }
+   };
+@@
+-        <Button type="button" variant="outline" onClick={onPrev} className="flex-1">
++        <Button type="button" variant="outline" onClick={onPrev} className="flex-1" disabled={isProcessing}>
+@@
+-        <Button type="submit" className="flex-1" disabled={!canContinue}>
+-          Volgende stap
+-          <ArrowRight className="ml-2 h-4 w-4" />
++        <Button type="submit" className="flex-1" disabled={!canContinue || isProcessing}>
++          {isProcessing ? (
++            <>
++              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
++              Winkel aanmaken...
++            </>
++          ) : (
++            <>
++              Volgende stap
++              <ArrowRight className="ml-2 h-4 w-4" />
++            </>
++          )}
+         </Button>
+```
 
-Autorisatie loopt via RLS-policy op `tenants`: `Platform admins can delete tenants` met `is_platform_admin(auth.uid())` (DELETE). Dus alleen platform-admins slagen, met **anon/authenticated JWT-privileges** — geen service-role.
-
-## 3. Wat wordt WEL en NIET opgeruimd
-
-WEL (automatisch via database-cascades, zie punt 4):
-- vrijwel alle tenant-scoped tabellen: `products`, `orders`, `user_roles`, `tenant_subscriptions`, `customers`-gerelateerde data, invoices, POS, ads, AI, e-mail, storefront-config, enz. (194 cascade-FK's naar `tenants.id`).
-
-NIET:
-- **`auth.users`** — blijft volledig bestaan. Een DELETE via PostgREST kan de `auth`-schema niet raken; dat vereist de Admin API / service-role. E-mailadres blijft dus "bezet".
-- **`profiles`** — hangt alleen aan `auth.users` (`profiles_id_fkey` -> `auth.users` ON DELETE CASCADE) en heeft géén `tenant_id`. Blijft dus staan zolang de auth-user bestaat.
-- **Storage-objecten** — geen enkele bucket wordt door een DB-delete geraakt: `tenant-logos`, `tenant-assets`, `product-images`, `invoices`, `credit-notes`, `shipping-labels`, `digital-products`, `ai-images`, `marketing-assets`, `message-attachments`, `supplier-documents`, `peppol-archive`.
-- **Externe systemen** — Stripe connected account, Cloudflare-domein, marketplace-tokens: niets wordt losgekoppeld.
-
-Je vermoeden is dus deels juist: tenant-*data* cascadeert wel, maar **auth.users + profiles + storage blijven verweesd achter**.
-
-## 4. Foreign keys / cascade-gedrag
-
-Van de 199 FK's die naar `tenants.id` verwijzen:
-- **194x ON DELETE CASCADE** (o.a. `products`, `orders`, `user_roles`, `tenant_subscriptions`, `invoices`, `pos_*`, `ads_*`)
-- **3x ON DELETE SET NULL**: `admin_actions_log`, `support_tickets`, `customers`
-- **2x NO ACTION (blokkeert!)**: `credit_notes.tenant_id`, `ai_credit_purchases.tenant_id`
-
-Gevolg: zodra een tenant één creditnota of één AI-creditaankoop heeft, **faalt de huidige DELETE met een FK-violation** en verschijnt enkel de generieke toast "Fout bij verwijderen". Dat is een tweede, los bevestigd probleem in de bestaande flow.
-
-`user_roles` heeft daarnaast `user_id -> auth.users ON DELETE CASCADE`, dus het verwijderen van de auth-user ruimt rollen ook op.
-
-## 5. Kan de huidige flow `auth.users` verwijderen?
-
-Nee. De call draait in de browser met de gebruikers-JWT (anon key + Authorization header). PostgREST exposeert alleen `public`; `auth.users` is niet bereikbaar en de rol heeft er geen DELETE-recht. Verwijderen van auth-users vereist `supabase.auth.admin.deleteUser()` met de service-role key — dat kan alleen server-side in een edge function (patroon bestaat al in `create-invite-account` en `fetch-invitation`).
-
-## Conclusie
-
-(a) **Waar de fix moet landen:** niet in de client-mutation. Er is een nieuwe **service-role edge function `delete-tenant`** nodig; `useTenants.deleteTenant` wordt omgezet naar `supabase.functions.invoke('delete-tenant', { body: { tenant_id } })`. De UI (dropdown + AlertDialog) blijft ongewijzigd, dus geen parallelle flow.
-
-(b) **Minimale wijzigingen voor de gewenste cascade:**
-1. Edge function `delete-tenant` (service-role, JWT-check dat de aanroeper `is_platform_admin` is):
-   - blokkerende rijen eerst opruimen: `credit_notes` en `ai_credit_purchases` van die tenant (NO ACTION-FK's);
-   - storage-objecten van de tenant verwijderen in de 12 buckets (prefix-based listing per tenant-id);
-   - `DELETE FROM tenants` (194 cascades doen de rest);
-   - per gebruiker met een rol op deze tenant: als hij daarna **geen enkele andere tenant-rol** meer heeft -> `auth.admin.deleteUser(user_id)` (profiles cascadeert mee);
-   - resultaatrapport (verwijderd / overgeslagen / fouten) terug naar de UI.
-2. `src/hooks/useTenants.ts`: `deleteTenant` naar `functions.invoke` + concrete foutmelding in de toast.
-3. Optioneel in dezelfde migratie: de twee NO ACTION-FK's naar `ON DELETE CASCADE` brengen, zodat de tenant-delete niet meer op boekhoudrijen stukloopt.
-
-Openstaande beslissingen voor de implementatie-turn:
-- Moet een tenant met facturatie-historiek (creditnota's, platform-invoices) echt hard verwijderd worden, of is soft-delete/archivering gewenst? Hard delete betekent verlies van boekhoudkundige sporen.
-- Moeten Stripe connected account en Cloudflare-domein in dezelfde actie losgekoppeld worden?
-- Wordt de auth-user van de eigenaar altijd verwijderd, of alleen als hij geen andere tenants bezit (voorstel hierboven = het laatste)?
+## Verificatie
+- Typecheck.
+- Stap 3 met dubbelklik op "Volgende stap": console toont één `createTenant`-run, één edge-function POST, geen 409.
+- Slug-conflict-retry: dialog → "Accepteer" → nieuwe poging draait wel door.
