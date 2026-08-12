@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_stays_on_track": {
+          "title": "Setup stays on track",
+          "description": "We fixed an issue where you could unexpectedly return to the first step while setting up your shop."
+        },
         "onboarding_no_double_create": {
           "title": "Reliable shop creation",
           "description": "We fixed an issue where creating your shop could run twice and incorrectly send you back to the first step."

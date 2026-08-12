@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_stays_on_track": {
+          "title": "Einrichtung bleibt auf Kurs",
+          "description": "Wir haben ein Problem behoben, bei dem Sie beim Einrichten Ihres Shops unerwartet zum ersten Schritt zurückkehren konnten."
+        },
         "onboarding_no_double_create": {
           "title": "Zuverlässige Shop-Erstellung",
           "description": "Wir haben ein Problem behoben, bei dem die Erstellung Ihres Shops doppelt ausgeführt werden konnte und Sie fälschlicherweise zum ersten Schritt zurückkehrten."

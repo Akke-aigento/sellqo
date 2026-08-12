@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_stays_on_track": {
+          "title": "La configuration reste sur les rails",
+          "description": "Nous avons corrigé un problème où vous pouviez revenir de façon inattendue à la première étape lors de la configuration de votre boutique."
+        },
         "onboarding_no_double_create": {
           "title": "Création de boutique sans accroc",
           "description": "Nous avons corrigé un problème où la création de votre boutique pouvait s'exécuter deux fois et vous renvoyer à tort à la première étape."
