@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_no_double_create": {
+          "title": "Winkel aanmaken zonder haperingen",
+          "description": "We hebben een probleem opgelost waarbij het aanmaken van je winkel soms dubbel werd uitgevoerd en je onterecht terugkeerde naar de eerste stap."
+        },
         "tenant_delete_cascade": {
           "title": "Winkels netjes verwijderen",
           "description": "Het verwijderen van een winkel ruimt nu alle bijbehorende gegevens volledig op, zodat een e-mailadres daarna weer beschikbaar is."

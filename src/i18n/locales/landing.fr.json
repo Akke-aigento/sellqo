@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_no_double_create": {
+          "title": "Création de boutique sans accroc",
+          "description": "Nous avons corrigé un problème où la création de votre boutique pouvait s'exécuter deux fois et vous renvoyer à tort à la première étape."
+        },
         "tenant_delete_cascade": {
           "title": "Suppression propre des boutiques",
           "description": "La suppression d'une boutique nettoie désormais entièrement toutes les données associées, afin qu'une adresse e-mail redevienne disponible."
