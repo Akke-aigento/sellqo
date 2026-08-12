@@ -51,6 +51,16 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
+    /* Additive semantic status tokens (used by toast types) */
+    --success: 142 71% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 11%;
+
+    /* Native safe-area (requires viewport-fit=cover) */
+    --safe-top: env(safe-area-inset-top, 0px);
+
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 16 100% 60%;
@@ -99,6 +109,13 @@
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
+
+    /* Additive semantic status tokens (used by toast types) */
+    --success: 142 64% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 11%;
 
     --border: 217 33% 20%;
     --input: 217 33% 20%;

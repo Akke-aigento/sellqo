@@ -9,14 +9,30 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className="toaster"
+      position="top-center"
+      swipeDirections={["top"]}
+      closeButton
+      richColors
+      visibleToasts={3}
+      offset={{ top: "16px" }}
+      mobileOffset={{
+        top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+        left: "8px",
+        right: "8px",
+      }}
       toastOptions={{
         classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          toast: "bg-background text-foreground border border-border shadow-lg",
+          title: "text-foreground font-medium",
+          description: "text-muted-foreground",
+          actionButton: "bg-primary text-primary-foreground",
+          cancelButton: "bg-muted text-muted-foreground",
+          closeButton: "bg-background text-foreground border-border",
+          success: "border-success/40 [&_[data-icon]]:text-success",
+          error: "border-destructive/40 [&_[data-icon]]:text-destructive",
+          warning: "border-warning/40 [&_[data-icon]]:text-warning",
+          info: "border-primary/40 [&_[data-icon]]:text-primary",
         },
       }}
       {...props}
