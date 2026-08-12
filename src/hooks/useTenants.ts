@@ -165,18 +165,37 @@ export function useTenants() {
 
   const deleteTenant = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('tenants')
-        .delete()
-        .eq('id', id);
+      const { data, error } = await supabase.functions.invoke('delete-tenant', {
+        body: { tenant_id: id },
+      });
 
-      if (error) throw error;
+      // Non-2xx: haal de gestructureerde body op via context.
+      if (error) {
+        let body: any = null;
+        try {
+          body = await (error as any).context?.json?.();
+        } catch {
+          /* geen JSON-body */
+        }
+        if (body?.blocked && body.reason === 'has_paid_orders') {
+          throw new Error(
+            `Deze winkel heeft ${body.count} betaalde bestelling(en) en kan niet verwijderd worden.`
+          );
+        }
+        throw new Error(body?.error ?? error.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      return data as {
+        tenant: { name: string };
+        deleted_users: string[];
+        detached_users: Array<{ user_id: string; reason: string }>;
+      };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       toast({
         title: 'Tenant verwijderd',
-        description: 'De tenant is succesvol verwijderd.',
+        description: `${result?.tenant?.name ?? 'De winkel'} is verwijderd — ${result?.deleted_users?.length ?? 0} gebruiker(s) opgeruimd, ${result?.detached_users?.length ?? 0} behouden.`,
       });
     },
     onError: (error) => {
