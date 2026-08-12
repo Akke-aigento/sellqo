@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_existing_customer_fix": {
+          "title": "Shop setup works for existing customers too",
+          "description": "We fixed an issue where creating a shop incorrectly reported that the chosen URL was taken when your email address was already known to SellQo."
+        },
         "onboarding_stays_on_track": {
           "title": "Setup stays on track",
           "description": "We fixed an issue where you could unexpectedly return to the first step while setting up your shop."

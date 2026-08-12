@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_existing_customer_fix": {
+          "title": "La configuration fonctionne aussi pour les clients existants",
+          "description": "Nous avons corrigé un problème où la création d'une boutique indiquait à tort que l'URL choisie était déjà utilisée lorsque votre adresse e-mail était déjà connue de SellQo."
+        },
         "onboarding_stays_on_track": {
           "title": "La configuration reste sur les rails",
           "description": "Nous avons corrigé un problème où vous pouviez revenir de façon inattendue à la première étape lors de la configuration de votre boutique."
