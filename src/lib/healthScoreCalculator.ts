@@ -308,7 +308,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
       label: 'Stripe',
       status: 'critical',
       value: 'Niet gekoppeld',
-      action: { label: 'Koppelen', url: '/admin/settings?tab=payments' },
+      action: { label: 'Koppelen', url: '/admin/settings?section=payments' },
     });
   } else {
     items.push({ label: 'Stripe', status: 'ok', value: 'Actief ✓' });

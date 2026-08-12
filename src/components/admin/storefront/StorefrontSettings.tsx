@@ -130,7 +130,7 @@ export function StorefrontSettings() {
 
           <div className="pt-2">
             <Button variant="outline" size="sm" asChild>
-              <a href="/admin/settings?tab=domains">
+              <a href="/admin/settings?section=domain">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Domeinen beheren
               </a>
@@ -186,7 +186,7 @@ export function StorefrontSettings() {
                   <AlertDescription>
                     Zonder eigen domein zien klanten de technische URL. Koppel een domein zodat klanten altijd je eigen domeinnaam zien.
                     <Button variant="link" size="sm" className="px-0 ml-1" asChild>
-                      <a href="/admin/settings?tab=domains">Domein toevoegen →</a>
+                      <a href="/admin/settings?section=domain">Domein toevoegen →</a>
                     </Button>
                   </AlertDescription>
                 </Alert>

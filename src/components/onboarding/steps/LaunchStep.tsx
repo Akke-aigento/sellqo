@@ -51,19 +51,19 @@ export function LaunchStep({ onComplete }: LaunchStepProps) {
       icon: Truck,
       title: 'Verzendmethoden instellen',
       description: 'Configureer verzendopties en tarieven',
-      link: '/admin/settings?tab=shipping',
+      link: '/admin/shipping',
     },
     {
       icon: Palette,
       title: 'Theme aanpassen',
       description: 'Pas de kleuren en stijl van je webshop aan',
-      link: '/admin/settings?tab=storefront',
+      link: '/admin/storefront?section=design',
     },
     {
       icon: FileText,
       title: 'Juridische pagina\'s',
       description: 'Genereer je algemene voorwaarden en privacy beleid',
-      link: '/admin/settings?tab=legal',
+      link: '/admin/storefront?section=legal',
     },
   ];
 
