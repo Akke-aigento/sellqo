@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_existing_customer_fix": {
+          "title": "Winkelsetup werkt ook voor bestaande klanten",
+          "description": "We hebben een probleem opgelost waarbij het aanmaken van een winkel onterecht meldde dat de gekozen URL bezet was wanneer je e-mailadres al bij SellQo bekend was."
+        },
         "onboarding_stays_on_track": {
           "title": "Setup blijft op koers",
           "description": "We hebben een probleem opgelost waarbij je tijdens het opzetten van je winkel onverwacht terugkeerde naar de eerste stap."

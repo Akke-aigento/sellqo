@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_existing_customer_fix": {
+          "title": "Shop-Einrichtung funktioniert auch für bestehende Kunden",
+          "description": "Wir haben ein Problem behoben, bei dem die Shop-Erstellung fälschlicherweise meldete, dass die gewählte URL vergeben sei, wenn Ihre E-Mail-Adresse SellQo bereits bekannt war."
+        },
         "onboarding_stays_on_track": {
           "title": "Einrichtung bleibt auf Kurs",
           "description": "Wir haben ein Problem behoben, bei dem Sie beim Einrichten Ihres Shops unerwartet zum ersten Schritt zurückkehren konnten."

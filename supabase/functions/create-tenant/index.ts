@@ -199,18 +199,39 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
-      // Handle race condition: duplicate key error
+      // A 23505 can originate from tenants.slug OR from any AFTER INSERT
+      // trigger. Only present a slug conflict after confirming that the slug
+      // itself now exists; otherwise preserve the real failure category.
       if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
-        logStep("Duplicate key error, finding alternative slug", { slug });
-        const suggestedSlug = await findAvailableSlug(supabase, slug);
-        
-        return new Response(JSON.stringify({ 
-          error: "slug_conflict",
-          message: `De URL '${slug}' is al in gebruik.`,
-          original_slug: slug,
-          suggested_slug: suggestedSlug,
-        }), {
-          status: 409,
+        const { data: conflictingSlug, error: slugLookupError } = await supabase
+          .from("tenants")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (conflictingSlug) {
+          logStep("Slug duplicate confirmed after insert race", { slug });
+          const suggestedSlug = await findAvailableSlug(supabase, slug);
+          
+          return new Response(JSON.stringify({ 
+            error: "slug_conflict",
+            message: `De URL '${slug}' is al in gebruik.`,
+            original_slug: slug,
+            suggested_slug: suggestedSlug,
+          }), {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Insert unique violation outside tenants.slug", {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          slugLookupError: slugLookupError?.message,
+        });
+        return new Response(JSON.stringify({ error: "Tenant creation failed" }), {
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

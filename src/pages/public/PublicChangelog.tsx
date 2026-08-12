@@ -60,6 +60,7 @@ const changelogEntries: Array<{
   { version: '2026.09c', dateKey: 'sep_2026', changes: [{ id: 'sellqo_blog', type: 'feature' }] },
   { version: '2026.09b', dateKey: 'sep_2026', changes: [{ id: 'platform_newsletter_preference', type: 'improvement' }] },
   { version: '2026.09a', dateKey: 'sep_2026', changes: [{ id: 'customer_invoice_email_fix', type: 'bugfix' }] },
+  { version: '2026.08aj', dateKey: 'aug_2026', changes: [{ id: 'onboarding_existing_customer_fix', type: 'bugfix' }] },
   { version: '2026.08ai', dateKey: 'aug_2026', changes: [{ id: 'onboarding_stays_on_track', type: 'bugfix' }] },
   { version: '2026.08ah', dateKey: 'aug_2026', changes: [{ id: 'onboarding_no_double_create', type: 'bugfix' }] },
   { version: '2026.08ag', dateKey: 'aug_2026', changes: [{ id: 'tenant_delete_cascade', type: 'improvement' }] },
