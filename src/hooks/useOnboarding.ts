@@ -710,6 +710,11 @@ export function useOnboarding() {
       
       throw error;
     }
+    } finally {
+      // ONBOARD-DOUBLE-CREATE-1 — dekt alle exit-paden: succes (return tenant),
+      // SESSION_EXPIRED (return null) en elke throw (SLUG_CONFLICT, MISSING_SHOP_DATA, overig).
+      isCreatingTenantRef.current = false;
+    }
   }, [user, state.data, ensureAuthenticated, getVerifiedAccessToken, refreshTenants, setCurrentTenant, refetchRoles, toast, isNewTenantFlow]);
 
   // Update tenant with logo
