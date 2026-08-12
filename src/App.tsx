@@ -148,7 +148,6 @@ const App = () => (
       <TooltipProvider>
         <AuthProvider>
           <SimulatedRoleProvider>
-          <Toaster />
           <Sonner />
           <RoleSimulator />
         <BrowserRouter>
