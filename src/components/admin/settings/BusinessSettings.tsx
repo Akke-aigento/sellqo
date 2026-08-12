@@ -13,6 +13,13 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 
+// Verhuisd uit StoreSettings (WEBSHOP-4b).
+const CURRENCIES = [
+  { code: 'EUR', name: 'Euro (€)', symbol: '€' },
+  { code: 'USD', name: 'US Dollar ($)', symbol: '$' },
+  { code: 'GBP', name: 'Brits Pond (£)', symbol: '£' },
+];
+
 // EU countries for VAT purposes
 const EU_COUNTRIES = [
   { code: 'NL', name: 'Nederland' },
@@ -99,6 +106,8 @@ export function BusinessSettings() {
     btw_number: '',
     iban: '',
     bic: '',
+    // Verhuisd uit Winkelinstellingen (WEBSHOP-4b).
+    currency: 'EUR',
   });
 
   useEffect(() => {
@@ -116,6 +125,7 @@ export function BusinessSettings() {
         btw_number: currentTenant.btw_number || '',
         iban: tenantData.iban || '',
         bic: tenantData.bic || '',
+        currency: currentTenant.currency || 'EUR',
       });
     }
   }, [currentTenant]);
@@ -163,6 +173,7 @@ export function BusinessSettings() {
           btw_number: formData.btw_number,
           iban: formData.iban.replace(/\s/g, '').toUpperCase() || null,
           bic: formData.bic.toUpperCase() || null,
+          currency: formData.currency,
         })
         .eq('id', currentTenant.id);
 
@@ -330,6 +341,30 @@ export function BusinessSettings() {
             </Select>
             <p className="text-xs text-muted-foreground">
               Belangrijk voor BTW-berekeningen en -regels
+            </p>
+          </div>
+
+          {/* Valuta — verhuisd uit Winkelinstellingen (WEBSHOP-4b). Staat naast
+              Land omdat het dezelfde soort keuze is: waar je onderneemt. */}
+          <div className="grid gap-2">
+            <Label htmlFor="currency">Valuta</Label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) => handleChange('currency', value)}
+            >
+              <SelectTrigger id="currency">
+                <SelectValue placeholder="Selecteer valuta" />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Gebruikt in je winkel, facturen en creditnota's
             </p>
           </div>
 

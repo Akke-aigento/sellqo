@@ -3,10 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { 
-  User, 
-  Building2, 
-  Store, 
-  CreditCard, 
+  User,
+  Building2,
+  CreditCard,
   Users, 
   Receipt, 
   FileCheck, 
@@ -35,7 +34,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AccountSettings } from '@/components/admin/settings/AccountSettings';
 import { BusinessSettings } from '@/components/admin/settings/BusinessSettings';
 import { BrandingSettings } from '@/components/admin/settings/BrandingSettings';
-import { StoreSettings } from '@/components/admin/settings/StoreSettings';
 import { PaymentSettings } from '@/components/admin/settings/PaymentSettings';
 import { TeamSettings } from '@/components/admin/settings/TeamSettings';
 import { TaxSettings } from '@/components/admin/settings/TaxSettings';
@@ -101,10 +99,12 @@ const settingsGroups: SettingsGroup[] = [
   {
     id: 'webshop',
     title: 'Webshop',
-    description: 'Frontend-modus, algemene webshop-instellingen en functies',
+    // Theme, homepage, pagina's, juridisch, functies en status zitten sinds
+    // WEBSHOP-2 t/m 4 in de Shop Studio op /admin/storefront. Hier blijft
+    // alleen wat over de frontend zelf gaat.
+    description: 'Frontend-modus, storefront API-keys en tracking',
     sections: [
       { id: 'webshop-general', title: 'Webshop-instellingen', icon: Globe, component: StorefrontSettings },
-      { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
     ],
   },
   {

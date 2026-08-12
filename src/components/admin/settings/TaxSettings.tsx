@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert, Send, CheckCircle2, Building2, User, Zap } from 'lucide-react';
+import { Receipt, Save, AlertCircle, Info, AlertTriangle, Calendar, Hash, TrendingUp, Globe, FileText, Shield, ShieldCheck, ShieldAlert, Send, CheckCircle2, Building2, User, Zap, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,9 @@ export function TaxSettings() {
   const { data: ossRevenue, isLoading: ossLoading } = useOssRevenue();
 
 const [formData, setFormData] = useState({
+    // Verhuisd uit Winkelinstellingen (WEBSHOP-4b). Werd hier al op vijf plekken
+    // getoond als "je standaard BTW-tarief", maar was nergens te wijzigen.
+    tax_percentage: 21,
     default_vat_handling: 'inclusive',
     apply_oss_rules: false,
     oss_registration_date: '',
@@ -51,6 +54,7 @@ const [formData, setFormData] = useState({
     if (currentTenant) {
       const tenantData = currentTenant as any;
       setFormData({
+        tax_percentage: tenantData.tax_percentage ?? 21,
         default_vat_handling: tenantData.default_vat_handling || 'inclusive',
         apply_oss_rules: tenantData.apply_oss_rules ?? false,
         oss_registration_date: tenantData.oss_registration_date || '',
@@ -72,6 +76,7 @@ const [formData, setFormData] = useState({
       const { error } = await supabase
         .from('tenants')
         .update({
+          tax_percentage: formData.tax_percentage,
           default_vat_handling: formData.default_vat_handling,
           apply_oss_rules: formData.apply_oss_rules,
           oss_registration_date: formData.oss_registration_date || null,
@@ -126,6 +131,46 @@ const [formData, setFormData] = useState({
           </ul>
         </AlertDescription>
       </Alert>
+
+      {/* Standaard BTW-tarief — verhuisd uit Winkelinstellingen (WEBSHOP-4b).
+          Staat bewust bovenaan: alle regels hieronder verwijzen ernaar. */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Percent className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Standaard BTW-tarief</CardTitle>
+              <CardDescription>
+                Het tarief dat op je producten wordt toegepast
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-xs space-y-2">
+            <Label htmlFor="tax_percentage">Percentage (%)</Label>
+            <Input
+              id="tax_percentage"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={formData.tax_percentage}
+              onChange={(e) =>
+                setFormData(prev => ({
+                  ...prev,
+                  tax_percentage: parseFloat(e.target.value) || 0,
+                }))
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Wordt gebruikt voor facturen, offertes en de kassa.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* B2B Checkout Toggle */}
       <Card>
@@ -1004,6 +1049,7 @@ const [formData, setFormData] = useState({
       <FloatingSaveBar
         isDirty={
           currentTenant ? (
+            formData.tax_percentage !== (currentTenant.tax_percentage ?? 21) ||
             formData.default_vat_handling !== ((currentTenant as any)?.default_vat_handling || 'inclusive') ||
             formData.apply_oss_rules !== ((currentTenant as any)?.apply_oss_rules ?? false) ||
             formData.oss_registration_date !== ((currentTenant as any)?.oss_registration_date || '') ||
@@ -1021,6 +1067,7 @@ const [formData, setFormData] = useState({
           if (currentTenant) {
             const tenantData = currentTenant as any;
             setFormData({
+              tax_percentage: tenantData.tax_percentage ?? 21,
               default_vat_handling: tenantData.default_vat_handling || 'inclusive',
               apply_oss_rules: tenantData.apply_oss_rules ?? false,
               oss_registration_date: tenantData.oss_registration_date || '',
