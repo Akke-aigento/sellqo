@@ -1,80 +1,111 @@
-# ONBOARD-REMOUNT-1 — root cause: de wizard wordt ontmanteld door `refetchRoles()`
+# ONBOARD-CUSTOMER-CONFLICT-1 — tenant-trigger maskeert klantconflict als slugconflict
 
-## Wat er echt gebeurt (bewijs uit de code)
+## Bevestigde oorzaak
 
-De terugval is geen stap-logica-fout in de wizard, maar een **unmount van de hele admin-boom** midden in de succesflow van `createTenant`.
+De fout ontstaat niet door een tweede klik, een remount of een werkelijk bezette slug.
 
-Keten, in exacte volgorde:
+De runtimevolgorde is bevestigd door code, backendlogs en databasegegevens:
 
-1. `createTenant` slaagt → `hasCreatedTenantRef.current = true` (`src/hooks/useOnboarding.ts:642`).
-2. `await refreshTenants()` (`:655`) en `setCurrentTenant(tenant)` (`:656`) — nog prima.
-3. `await refetchRoles()` (`:660`). Die functie is **bewust "luid"**: `setRolesLoading(true)` (`src/hooks/useAuth.tsx:170`, met de comment op `:168-169`).
-4. `ProtectedRoute`: `if (loading || (user && rolesLoading)) return <Loader2 />` (`src/components/ProtectedRoute.tsx:23-29`). De children — dus `AdminLayout` — worden **uit de boom gehaald**.
-5. `AdminLayout` bevat `TenantProvider` (`src/components/admin/AdminLayout.tsx:67`) én `<OnboardingWizard />` (`:54`). Beide unmounten. Daarmee zijn ALLE refs weg: `hasCreatedTenantRef`, `hasInitiallyChecked`, `isCreatingTenantRef` (`useOnboarding.ts:101-112`), plus de nog niet-gerenderde `setState({createdTenantId})` (`:666`).
-6. `setRolesLoading(false)` → `AdminLayout` **remount**. Nieuwe `TenantProvider` start met `tenants=[]` en doet opnieuw de orphan-check → precies de dubbele log `[useTenant] No tenants found, checking for orphaned tenant...` (`src/hooks/useTenant.tsx:153-156`). De wizard rendert eerst `null` (`OnboardingWizard.tsx:66`, want `isOpen=false` / `isLoading=true`) → **het dashboard is een paar seconden zichtbaar**.
-7. De verse `useOnboarding` draait `checkOnboardingStatus` met `hasCreatedTenantRef=false`, dus de guard op `:118` grijpt niet meer. Het profiel heeft `onboarding_step` 3 of 4 (dus > 1), waardoor de ONBOARD-EARLY-CLOSE-1 tenant-guard (`:169`) terecht niet sluit. Daarna:
-   `const isInitialCheck = !hasInitiallyChecked.current;` → **true** (ref is vers)
-   `const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;` (`:185-186`) → `isNewUser` is true (profiel < 5 min) → **startStep = 1**.
-8. `setState({currentStep: 1, isOpen: true, data: restoredData})` (`:209-215`) → wizard opent op stap 1 met `shopSlug:'test'`, en `WelcomeStep` meldt "Deze URL is al in gebruik" omdat de zojuist aangemaakte tenant die slug bezet. Exact de log die je ziet.
+1. `create-tenant` probeert tenant `test` in te voegen.
+2. De slugcheck vindt vooraf geen tenant met die slug.
+3. Tijdens de insert draait de `AFTER INSERT`-trigger `register_tenant_as_sellqo_customer_trigger`.
+4. `register_tenant_as_sellqo_customer()` probeert voor de nieuwe tenant een klant aan te maken in de interne SellQo-tenant met e-mail `test@test.com`.
+5. Voor die SellQo-tenant bestaat al een klant met exact `test@test.com` en `customers` heeft een unieke `(tenant_id, email)`-constraint.
+6. De trigger gebruikt nu alleen `ON CONFLICT (linked_tenant_id) ... DO NOTHING`; die vangt het e-mailconflict niet op. PostgreSQL geeft daarom `23505` en rolt atomair ook de tenant-insert terug. Daarom zijn achteraf noch tenant, noch rol aanwezig en blijft het profiel op stap 3.
+7. `create-tenant` behandelt vervolgens iedere `23505` alsof `tenants.slug` dubbel is en retourneert foutief HTTP 409 `slug_conflict`. Dat veroorzaakt precies de misleidende dialoog uit de screenshot.
 
-De herhaalde `step=1`-logs komen bovendien uit een **tweede hook-instantie**: `useShopHealth` roept ook `useOnboarding()` aan (`src/hooks/useShopHealth.ts:52`); die instantie heeft eigen refs die nooit `hasCreatedTenantRef` zetten, en elke `tenants`-wijziging hervuurt daar de debounced check (`useOnboarding.ts:228-248`).
+De backendlog bevestigt `Inserting tenant` gevolgd door `Duplicate key error`; de database bevestigt tegelijk dat slug `test` niet bestaat, dat de tenant is teruggerold en dat de conflicterende SellQo-klant met `test@test.com` wel bestaat.
 
-## Rangschikking van oorzaken
+## Fix
 
-1. **`refetchRoles()` → `rolesLoading=true` → `ProtectedRoute` unmount → refs weg** (zeker; spinner, kort dashboard en stap 1 volgen hier alle drie uit, en de dubbele TenantProvider-mount bevestigt de remount).
-2. **`isNewUser && isInitialCheck → step 1`** negeert een persisted step > 1 (zeker; dit is de regel die ná de remount stap 1 forceert). Zonder deze regel zou de remount "slechts" op stap 3/4 landen.
-3. Tweede `useOnboarding`-instantie via `useShopHealth` (zeker aanwezig; verklaart de log-ruis en extra profiel-writes, maar is niet de directe veroorzaker van de stap-flip).
+### 1. Maak tenantregistratie als SellQo-klant idempotent
 
-## De fix (3 gerichte lagen)
+Voeg een additieve database-migratie toe die alleen `public.register_tenant_as_sellqo_customer()` vervangt.
 
-**Laag A — stop de unmount.** `refetchRoles` krijgt een `silent`-optie die `rolesLoading` niet aanraakt; `useOnboarding` gebruikt die.
+- Behoud de bestaande anti-lus, lege-e-mailguard, nieuwsbriefvelden en tenantregistratie.
+- Vang conflict op de bestaande `customers_tenant_id_email_key` constraint expliciet af.
+- Als dezelfde SellQo-klant al bestaat:
+  - koppel `linked_tenant_id` alleen wanneer die nog `NULL` is;
+  - behoud een bestaande koppeling, zodat een eigenaar met meerdere winkels niet telkens naar de nieuwste winkel wordt omgehangen;
+  - vul ontbrekende bedrijfs-/naamgegevens aan zonder bestaande klantgegevens te overschrijven;
+  - voeg de tenant-tags samen zonder duplicaten;
+  - maak de tenant-insert nooit afhankelijk van het opnieuw kunnen invoegen van hetzelfde klant-e-mailadres.
 
-```diff
---- src/hooks/useAuth.tsx
--  const refetchRoles = useCallback(async (): Promise<UserRole[]> => {
-+  const refetchRoles = useCallback(async (
-+    opts?: { silent?: boolean }
-+  ): Promise<UserRole[]> => {
-     const { data: { user: currentUser } } = await supabase.auth.getUser();
-     if (!currentUser) { ... }
--    setRolesLoading(true);
-+    // ONBOARD-REMOUNT-1 — silent: geen rolesLoading-flip, zodat ProtectedRoute
-+    // de admin-boom (incl. onboarding-wizard) niet unmount.
-+    if (!opts?.silent) setRolesLoading(true);
-     const fresh = await fetchUserRoles(currentUser.id);
-     setRoles(fresh);
--    setRolesLoading(false);
-+    if (!opts?.silent) setRolesLoading(false);
+Kern van de wijziging:
+
+```sql
+INSERT INTO public.customers (...)
+VALUES (...)
+ON CONFLICT ON CONSTRAINT customers_tenant_id_email_key
+DO UPDATE SET
+  linked_tenant_id = COALESCE(public.customers.linked_tenant_id, EXCLUDED.linked_tenant_id),
+  company_name = COALESCE(public.customers.company_name, EXCLUDED.company_name),
+  first_name = COALESCE(public.customers.first_name, EXCLUDED.first_name),
+  tags = (
+    SELECT ARRAY(
+      SELECT DISTINCT tag
+      FROM unnest(COALESCE(public.customers.tags, '{}') || EXCLUDED.tags) AS tag
+    )
+  );
 ```
 
-Type in de context-interface wordt `refetchRoles: (opts?: { silent?: boolean }) => Promise<UserRole[]>` (`useAuth.tsx:116`). In `useOnboarding.ts:660` en `:334` wordt dit `await refetchRoles({ silent: true })`. `AcceptInvitation.tsx:224` blijft ongewijzigd (luide pad blijft bestaan).
+De migratie maakt geen tabellen aan en wijzigt geen RLS of grants.
 
-**Laag B — stap-1-forcering alleen als er nog geen voortgang is.**
+### 2. Stop met elke unieke fout als slugconflict te labelen
+
+Pas in `supabase/functions/create-tenant/index.ts` uitsluitend de `23505`-afhandeling na de tenant-insert aan.
+
+- Vraag na een `23505` opnieuw op of `tenants.slug = slug` werkelijk bestaat.
+- Alleen als die rij bestaat, retourneer 409 met een slugsuggestie.
+- Als de slug niet bestaat, retourneer 500 met een generieke creatiefout en log de echte databasefout/constraint. Zo wordt een toekomstige trigger- of child-tableconstraint nooit opnieuw als “URL bezet” gemaskeerd.
+
+Indicatieve diff:
 
 ```diff
---- src/hooks/useOnboarding.ts (rond :186)
--      const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;
-+      // ONBOARD-REMOUNT-1 — een verse user mag alleen naar stap 1 geforceerd
-+      // worden zolang er geen persisted voortgang is. Bij savedStep > 1
-+      // respecteren we de persisted stap, ook op een initial check na een
-+      // onverwachte remount.
-+      const startStep = (isNewUser && isInitialCheck && savedStep <= 1) ? 1 : savedStep;
+ if (insertError.code === '23505') {
+-  const suggestedSlug = await findAvailableSlug(supabase, slug);
+-  return slugConflictResponse(suggestedSlug);
++  const { data: conflictingSlug } = await supabase
++    .from('tenants')
++    .select('id')
++    .eq('slug', slug)
++    .maybeSingle();
++
++  if (conflictingSlug) {
++    const suggestedSlug = await findAvailableSlug(supabase, slug);
++    return slugConflictResponse(suggestedSlug);
++  }
++
++  logStep('Insert unique violation outside tenants.slug', {
++    code: insertError.code,
++    message: insertError.message,
++    details: insertError.details,
++  });
++  return new Response(JSON.stringify({ error: 'Tenant creation failed' }), {
++    status: 500,
++    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++  });
+ }
 ```
 
-**Laag C — voortgang vastleggen vóór het risicovolle stuk.** In `createTenant`, direct na de succes-markering (`:642`) en vóór `refreshTenants`/`refetchRoles`, `onboarding_step: 4` op het profiel schrijven. Dan is de persisted stap gegarandeerd 4, ook als de UI tussentijds verdwijnt; `nextStep()` in de wizard schrijft daarna idempotent hetzelfde.
+De bestaande pre-flight slugcheck en echte slug-raceafhandeling blijven behouden.
 
-## Waarom dit de vier bestaande scenario's niet breekt
+## Verificatie
 
-- **Bestaande user met tenant:** `onboarding_completed` → vroege return (`:153`), of tenant-guard met `persistedStep <= 1` (`:169`) sluit zoals nu. Laag B raakt dit pad niet (`isNewUser` is false, dus `savedStep` werd al gebruikt).
-- **`?new=1`:** `isNewTenantFlow` slaat de tenant-guard over; bij een verse tweede winkel staat `savedStep` op 1 → nog steeds stap 1. Ongewijzigd.
-- **Resume partial progress:** `partialProgress = !isNewUser && savedStep > 1` (`:190`) blijft identiek; laag B verandert alleen het `isNewUser`-pad en levert daar juist de gewenste resume op.
-- **Skip:** de `onboarding_skipped_at`-checks (`:159`) blijven onaangeroerd.
-- **Invite-accept:** blijft het luide `refetchRoles()` gebruiken, dus die guard wacht nog steeds.
+1. Controleer het regressiegeval met een nieuw auth-profiel waarvan het e-mailadres al als klant van de interne SellQo-tenant bestaat.
+2. Doorloop stap 1–3 één keer en bevestig:
+   - `create-tenant` retourneert 200;
+   - tenant, `tenant_admin`-rol en standaardrecords bestaan;
+   - bestaande klant veroorzaakt geen duplicaat en krijgt alleen een koppeling als die nog ontbrak;
+   - profiel gaat naar onboarding-stap 4;
+   - de wizard toont de logostap zonder slugdialoog.
+3. Test daarnaast een werkelijk bezette slug: die moet nog steeds 409 plus een geldige suggestie geven.
+4. Test een eigenaar met meerdere winkels: een bestaande `linked_tenant_id` mag niet worden overschreven.
 
-## Geraakte bestanden
+## Geraakte onderdelen
 
-- `src/hooks/useAuth.tsx` — `refetchRoles(opts?)` + type in de context-interface.
-- `src/hooks/useOnboarding.ts` — twee `refetchRoles({ silent: true })`-calls, `startStep`-conditie, `onboarding_step: 4`-write in `createTenant`.
-- Changelog-entry (4 talen) als losse stap na verificatie.
+- Eén additieve database-migratie voor `register_tenant_as_sellqo_customer()`.
+- `supabase/functions/create-tenant/index.ts` voor correcte classificatie van unieke fouten.
+- Changelog-entry in de bestaande vier talen na succesvolle verificatie.
 
-Geen migraties, geen edge functions, geen wijziging aan `ProtectedRoute` of `useTenant`.
+Geen wijzigingen aan de wizard, auth-flow, `ProtectedRoute`, rollen-refresh, styling of andere onboardingstappen.
