@@ -1,91 +1,75 @@
-# Wizard sluit vroegtijdig na tenant-creatie op stap 3 (ONBOARD-EARLY-CLOSE-1)
+# Recon: bestaande "Tenant verwijderen"-actie (platform-admin)
 
-## 1. Hypothese: BEVESTIGD
+## 1. UI-component
 
-In `src/hooks/useOnboarding.ts`:
+`src/pages/admin/Tenants.tsx`
+- regel 31: iconen incl. `MoreHorizontal`, `Trash2`
+- regel 272: drie-puntjes-trigger in de tabelrij
+- regel ~301: `DropdownMenuItem` "Verwijderen" -> `handleDelete(tenant)`
+- regel 112-115: `handleDelete` zet enkel `tenantToDelete` + opent de AlertDialog
+- regel 322-342: bevestigingsdialoog; `AlertDialogAction` -> `confirmDelete`
+- regel 117-123: `confirmDelete()` -> `deleteTenant.mutate(tenantToDelete.id)`
 
-- Regels 132-139: `if (tenants && tenants.length > 0 && !isNewTenantFlow)` schrijft `onboarding_completed = true` en zet `isOpen: false`. Deze guard staat VOOR de profiel-fetch (regels 143-147) en kijkt dus niet naar `onboarding_completed` of `onboarding_step`.
-- Regel 220: de dependency-array van `checkOnboardingStatus` bevat `tenants`; regels 224-240 roepen die debounced (150 ms) aan bij elke wijziging. `createTenant` doet op regel 639 `await refreshTenants()` → `tenants.length > 0` → effect vuurt → de guard sluit de wizard middenin stap 3/4.
-- Regel 626 zet `hasCreatedTenantRef.current = true`, gecheckt op regel 114. Dat is een `useRef`: bij remount (uitloggen/inloggen, harde refresh) weer `false`, dus de bescherming valt weg en de guard grijpt alsnog in.
+Er is geen tweede verwijderpad in de platform-UI (`TenantBulkActions.tsx` heeft alleen credits / notificatie / CSV-export, geen delete; het `Trash2`-icoon daar is ongebruikt).
 
-## 2. Waarom `hasInitiallyChecked` niets afvangt
+## 2. Keten knop -> DB
 
-`hasInitiallyChecked` (regel 101) is óók een in-memory `useRef` en gaat bij dezelfde remount verloren. Hij wordt bovendien pas op regel 185 gezet — ná de tenant-guard — en beïnvloedt alleen `startStep` en `hasPartialProgress`; hij poortwacht de guard niet.
+`src/hooks/useTenants.ts` regel 166-189:
 
-Ook `state.isOpen` en `state.createdTenantId` zijn React-state: na remount `false`/`null`. Het enige persistente signaal is de profielrij: `onboarding_completed`, `onboarding_step` (bij elke `nextStep` weggeschreven, regels 271-276) en `onboarding_skipped_at`.
-
-Geverifieerde productiedata: alle profielen met voltooide/geskipte status hebben `onboarding_completed = true` (steps 0, 4, 5, 6, 7); één profiel heeft `completed = false, step = 0, skipped = true`. Geen enkel bestaand profiel is dus afhankelijk van de tenant-guard om de wizard weg te houden — regel 160 (`onboarding_completed`) en regel 166 (`skipped_at`) dekken die groep al.
-
-## 3. Veiligste guard-conditie
-
-De tenant-guard verhuist naar ná de profiel-fetch en mag alleen vuren als het profiel bevestigt dat er geen actieve doorloop is: `onboarding_step <= 1`. Dat leunt volledig op persistente DB-state, niet op refs.
-
-- `step >= 2` en niet completed → gebruiker zit midden in de flow → guard slaat over, wizard blijft open op `savedStep`.
-- `step <= 1` met een tenant → legacy tenant-eigenaar die de wizard nooit doorliep → backfill `completed = true` en sluiten (huidig gedrag).
-- `completed = true` of `skipped_at` → al afgehandeld door de bestaande checks vóór de nieuwe guard-positie.
-
-`hasCreatedTenantRef` blijft ongemoeid (nuttig binnen één sessie), maar is niet langer de enige bescherming. Geen nieuwe ref.
-
-## 4. Padencheck
-
-- (a) Bestaande users met `completed = true` + tenant → regel 160 sluit vóór de nieuwe guard; wizard opent niet.
-- (b) Verse user maakt tenant op stap 3: `onboarding_step` staat dan al op 3+, dus de guard slaat over; sluiten gebeurt pas via `completeOnboarding`.
-- (c) Remount na tenant-creatie: refs weg, maar `step >= 2` in DB → guard slaat over, resterende stappen blijven beschikbaar.
-- (d) `?new=1`: `isNewTenantFlow` blijft in de conditie, guard blijft onverkort gebypassed.
-- (e) Resume-met-partial-progress: `savedStep`/`hasPartialProgress`-logica (regels 172-186) blijft ongewijzigd; de resume-dialog werkt zoals nu.
-
-Randgeval: een tenant bestaat pas vanaf stap 3, dus "tenant aanwezig met step <= 1" blijft uitsluitend het legacy-geval.
-
-## 5. Scope
-
-Uitsluitend `src/hooks/useOnboarding.ts`. Geen wijziging aan `OnboardingWizard`, `useAuth`, `useTenant`, RLS of edge functions.
-
-## 6. Voorgestelde diff
-
-```diff
---- a/src/hooks/useOnboarding.ts
-+++ b/src/hooks/useOnboarding.ts
-@@ -129,16 +129,6 @@
--    // If user already has access to tenants, skip onboarding entirely
--    // Bypass deze guard wanneer ?new=1 in URL staat: bestaande tenant_admin
--    // mag dan bewust de onboarding doorlopen voor een extra winkel.
--    if (tenants && tenants.length > 0 && !isNewTenantFlow) {
--      await supabase
--        .from('profiles')
--        .update({ onboarding_completed: true })
--        .eq('id', user.id);
--      setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
--      return;
--    }
--
-     try {
+```ts
+const deleteTenant = useMutation({
+  mutationFn: async (id: string) => {
+    const { error } = await supabase.from('tenants').delete().eq('id', id);
+    ...
 ```
-Uitleg: deze guard verdwijnt hier omdat hij vóór de profiel-fetch geen zicht heeft op `onboarding_step` en daardoor een actieve doorloop afbreekt.
 
-```diff
-@@ (na de skipped_at-check, ~regel 169)
-       if (profile?.onboarding_skipped_at && !isNewUser) {
-         setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-         return;
-       }
- 
-+      // ONBOARD-EARLY-CLOSE-1 — tenant-guard verplaatst naar ná de profiel-fetch.
-+      // Alleen sluiten als het profiel bevestigt dat er GEEN actieve doorloop is
-+      // (onboarding_step <= 1). Anders sloot een refreshTenants() na de
-+      // tenant-creatie op stap 3 de wizard vroegtijdig (refs zijn weg na remount).
-+      const persistedStep = profile?.onboarding_step ?? 1;
-+      if (tenants && tenants.length > 0 && !isNewTenantFlow && persistedStep <= 1) {
-+        await supabase
-+          .from('profiles')
-+          .update({ onboarding_completed: true })
-+          .eq('id', user.id);
-+        setState(prev => ({ ...prev, isOpen: false, isLoading: false }));
-+        return;
-+      }
-+
-       // Show onboarding for new users or users who haven't completed setup
-       const savedStep = profile?.onboarding_step || 1;
-```
-Uitleg: identiek gedrag voor legacy tenant-eigenaren (`step <= 1`), maar een halfvoltooide doorloop (`step >= 2`) wordt nooit meer als "voltooid" gemarkeerd.
+Dus: **directe client-side DELETE via PostgREST**. Geen RPC, geen edge function. Er bestaat ook geen `delete-tenant` edge function (aanwezige tenant-functies: `create-tenant`, `repair-tenant-access`, `sync-tenant-plan`, `cleanup-connected-accounts`).
 
-Geen verdere wijzigingen of refactors.
+Autorisatie loopt via RLS-policy op `tenants`: `Platform admins can delete tenants` met `is_platform_admin(auth.uid())` (DELETE). Dus alleen platform-admins slagen, met **anon/authenticated JWT-privileges** — geen service-role.
+
+## 3. Wat wordt WEL en NIET opgeruimd
+
+WEL (automatisch via database-cascades, zie punt 4):
+- vrijwel alle tenant-scoped tabellen: `products`, `orders`, `user_roles`, `tenant_subscriptions`, `customers`-gerelateerde data, invoices, POS, ads, AI, e-mail, storefront-config, enz. (194 cascade-FK's naar `tenants.id`).
+
+NIET:
+- **`auth.users`** — blijft volledig bestaan. Een DELETE via PostgREST kan de `auth`-schema niet raken; dat vereist de Admin API / service-role. E-mailadres blijft dus "bezet".
+- **`profiles`** — hangt alleen aan `auth.users` (`profiles_id_fkey` -> `auth.users` ON DELETE CASCADE) en heeft géén `tenant_id`. Blijft dus staan zolang de auth-user bestaat.
+- **Storage-objecten** — geen enkele bucket wordt door een DB-delete geraakt: `tenant-logos`, `tenant-assets`, `product-images`, `invoices`, `credit-notes`, `shipping-labels`, `digital-products`, `ai-images`, `marketing-assets`, `message-attachments`, `supplier-documents`, `peppol-archive`.
+- **Externe systemen** — Stripe connected account, Cloudflare-domein, marketplace-tokens: niets wordt losgekoppeld.
+
+Je vermoeden is dus deels juist: tenant-*data* cascadeert wel, maar **auth.users + profiles + storage blijven verweesd achter**.
+
+## 4. Foreign keys / cascade-gedrag
+
+Van de 199 FK's die naar `tenants.id` verwijzen:
+- **194x ON DELETE CASCADE** (o.a. `products`, `orders`, `user_roles`, `tenant_subscriptions`, `invoices`, `pos_*`, `ads_*`)
+- **3x ON DELETE SET NULL**: `admin_actions_log`, `support_tickets`, `customers`
+- **2x NO ACTION (blokkeert!)**: `credit_notes.tenant_id`, `ai_credit_purchases.tenant_id`
+
+Gevolg: zodra een tenant één creditnota of één AI-creditaankoop heeft, **faalt de huidige DELETE met een FK-violation** en verschijnt enkel de generieke toast "Fout bij verwijderen". Dat is een tweede, los bevestigd probleem in de bestaande flow.
+
+`user_roles` heeft daarnaast `user_id -> auth.users ON DELETE CASCADE`, dus het verwijderen van de auth-user ruimt rollen ook op.
+
+## 5. Kan de huidige flow `auth.users` verwijderen?
+
+Nee. De call draait in de browser met de gebruikers-JWT (anon key + Authorization header). PostgREST exposeert alleen `public`; `auth.users` is niet bereikbaar en de rol heeft er geen DELETE-recht. Verwijderen van auth-users vereist `supabase.auth.admin.deleteUser()` met de service-role key — dat kan alleen server-side in een edge function (patroon bestaat al in `create-invite-account` en `fetch-invitation`).
+
+## Conclusie
+
+(a) **Waar de fix moet landen:** niet in de client-mutation. Er is een nieuwe **service-role edge function `delete-tenant`** nodig; `useTenants.deleteTenant` wordt omgezet naar `supabase.functions.invoke('delete-tenant', { body: { tenant_id } })`. De UI (dropdown + AlertDialog) blijft ongewijzigd, dus geen parallelle flow.
+
+(b) **Minimale wijzigingen voor de gewenste cascade:**
+1. Edge function `delete-tenant` (service-role, JWT-check dat de aanroeper `is_platform_admin` is):
+   - blokkerende rijen eerst opruimen: `credit_notes` en `ai_credit_purchases` van die tenant (NO ACTION-FK's);
+   - storage-objecten van de tenant verwijderen in de 12 buckets (prefix-based listing per tenant-id);
+   - `DELETE FROM tenants` (194 cascades doen de rest);
+   - per gebruiker met een rol op deze tenant: als hij daarna **geen enkele andere tenant-rol** meer heeft -> `auth.admin.deleteUser(user_id)` (profiles cascadeert mee);
+   - resultaatrapport (verwijderd / overgeslagen / fouten) terug naar de UI.
+2. `src/hooks/useTenants.ts`: `deleteTenant` naar `functions.invoke` + concrete foutmelding in de toast.
+3. Optioneel in dezelfde migratie: de twee NO ACTION-FK's naar `ON DELETE CASCADE` brengen, zodat de tenant-delete niet meer op boekhoudrijen stukloopt.
+
+Openstaande beslissingen voor de implementatie-turn:
+- Moet een tenant met facturatie-historiek (creditnota's, platform-invoices) echt hard verwijderd worden, of is soft-delete/archivering gewenst? Hard delete betekent verlies van boekhoudkundige sporen.
+- Moeten Stripe connected account en Cloudflare-domein in dezelfde actie losgekoppeld worden?
+- Wordt de auth-user van de eigenaar altijd verwijderd, of alleen als hij geen andere tenants bezit (voorstel hierboven = het laatste)?
