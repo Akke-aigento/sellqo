@@ -1,127 +1,80 @@
-# ONBOARD-DOUBLE-CREATE-1 — dubbele tenant-creatie op stap 3
+# ONBOARD-REMOUNT-1 — root cause: de wizard wordt ontmanteld door `refetchRoles()`
 
-## Analyse (met exacte regels)
+## Wat er echt gebeurt (bewijs uit de code)
 
-### 1a. Knop in BusinessDetailsStep
-`src/components/onboarding/steps/BusinessDetailsStep.tsx`
-- regel 225-232: `<Button type="submit" disabled={!canContinue}>` binnen `<form onSubmit={handleSubmit}>` (regel 62).
-- **Bevestigd**: de knop kent geen processing/loading-state; de component krijgt ook geen `isProcessing` prop (interface regel 15-20).
-- Nuance: `OnboardingWizard.tsx` regel 319-326 vervangt de stapinhoud door een spinner zodra `isProcessing` true is. Discrete click-events flushen synchroon in React 18, dus een *tweede losse klik* ziet doorgaans al de spinner. Een dubbele submit blijft mogelijk bij een echte dubbel-event (dubbelklik/Enter+klik in dezelfde flush) of via een programmatische her-aanroep. Laag B is dus UX-hardening, niet de volledige verklaring.
+De terugval is geen stap-logica-fout in de wizard, maar een **unmount van de hele admin-boom** midden in de succesflow van `createTenant`.
 
-### 1b. Guard in handleStepTransition
-`src/components/onboarding/OnboardingWizard.tsx` regel 84-91: `case 3: if (!createdTenantId) { await createTenant(); ... }`.
-- **Bevestigd**: `createdTenantId` komt uit hook-state (`setState` in `useOnboarding.ts` regel 654) en is dus pas na de re-render gevuld. Elke aanroep die start vóór die re-render passeert de guard.
+Keten, in exacte volgorde:
 
-### 1c. Re-entrancy in createTenant
-`src/hooks/useOnboarding.ts` regel 377-700.
-- **Bevestigd: geen in-flight guard.** De functie begint direct met de validatie + pre-flight slug-check (regel 388-401) en gaat door naar de edge function (regel 525).
-- `hasCreatedTenantRef` (regel 105) wordt pas ná succes gezet (regel 630) en wordt alleen gelezen in `checkOnboardingStatus` (regel 114). Het blokkeert dus re-checks, **niet** een tweede gelijktijdige creatie. Bevestigd.
-- Gevolg: bij twee gelijktijdige aanroepen slaagt aanroep 1 en botst aanroep 2 op de net aangemaakte slug → edge function 409 → `SlugConflictError` (`createTenantViaFunction.ts` regel 57-77) → `throw new Error('SLUG_CONFLICT')` (`useOnboarding.ts` regel 548) → dialog + "terug naar stap 1". Dit dekt het waargenomen console-patroon exact.
+1. `createTenant` slaagt → `hasCreatedTenantRef.current = true` (`src/hooks/useOnboarding.ts:642`).
+2. `await refreshTenants()` (`:655`) en `setCurrentTenant(tenant)` (`:656`) — nog prima.
+3. `await refetchRoles()` (`:660`). Die functie is **bewust "luid"**: `setRolesLoading(true)` (`src/hooks/useAuth.tsx:170`, met de comment op `:168-169`).
+4. `ProtectedRoute`: `if (loading || (user && rolesLoading)) return <Loader2 />` (`src/components/ProtectedRoute.tsx:23-29`). De children — dus `AdminLayout` — worden **uit de boom gehaald**.
+5. `AdminLayout` bevat `TenantProvider` (`src/components/admin/AdminLayout.tsx:67`) én `<OnboardingWizard />` (`:54`). Beide unmounten. Daarmee zijn ALLE refs weg: `hasCreatedTenantRef`, `hasInitiallyChecked`, `isCreatingTenantRef` (`useOnboarding.ts:101-112`), plus de nog niet-gerenderde `setState({createdTenantId})` (`:666`).
+6. `setRolesLoading(false)` → `AdminLayout` **remount**. Nieuwe `TenantProvider` start met `tenants=[]` en doet opnieuw de orphan-check → precies de dubbele log `[useTenant] No tenants found, checking for orphaned tenant...` (`src/hooks/useTenant.tsx:153-156`). De wizard rendert eerst `null` (`OnboardingWizard.tsx:66`, want `isOpen=false` / `isLoading=true`) → **het dashboard is een paar seconden zichtbaar**.
+7. De verse `useOnboarding` draait `checkOnboardingStatus` met `hasCreatedTenantRef=false`, dus de guard op `:118` grijpt niet meer. Het profiel heeft `onboarding_step` 3 of 4 (dus > 1), waardoor de ONBOARD-EARLY-CLOSE-1 tenant-guard (`:169`) terecht niet sluit. Daarna:
+   `const isInitialCheck = !hasInitiallyChecked.current;` → **true** (ref is vers)
+   `const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;` (`:185-186`) → `isNewUser` is true (profiel < 5 min) → **startStep = 1**.
+8. `setState({currentStep: 1, isOpen: true, data: restoredData})` (`:209-215`) → wizard opent op stap 1 met `shopSlug:'test'`, en `WelcomeStep` meldt "Deze URL is al in gebruik" omdat de zojuist aangemaakte tenant die slug bezet. Exact de log die je ziet.
 
-### 3. Retry-flow blijft werken
-`OnboardingWizard.tsx` regel 247-253: `handleSlugAcceptAndRetry` roept `handleStepTransition(3)` pas na `setTimeout(..., 100)` aan, dus ná afronding van de eerdere `createTenant` (de `finally` heeft de ref dan vrijgegeven). De guard blokkeert deze legitieme retry niet.
+De herhaalde `step=1`-logs komen bovendien uit een **tweede hook-instantie**: `useShopHealth` roept ook `useOnboarding()` aan (`src/hooks/useShopHealth.ts:52`); die instantie heeft eigen refs die nooit `hasCreatedTenantRef` zetten, en elke `tenants`-wijziging hervuurt daar de debounced check (`useOnboarding.ts:228-248`).
 
-### Andere steps
-`WelcomeStep.tsx` regel 157-160 heeft hetzelfde patroon (`type="submit"`, alleen `!canContinue`), maar stap 1 doet geen server-mutatie in `handleStepTransition` (case 1 is leeg) — geen risico, laten we ongemoeid. `FirstProductStep` krijgt al `isLoading={isProcessing}` (regel 213).
+## Rangschikking van oorzaken
 
-## Fix — twee lagen
+1. **`refetchRoles()` → `rolesLoading=true` → `ProtectedRoute` unmount → refs weg** (zeker; spinner, kort dashboard en stap 1 volgen hier alle drie uit, en de dubbele TenantProvider-mount bevestigt de remount).
+2. **`isNewUser && isInitialCheck → step 1`** negeert een persisted step > 1 (zeker; dit is de regel die ná de remount stap 1 forceert). Zonder deze regel zou de remount "slechts" op stap 3/4 landen.
+3. Tweede `useOnboarding`-instantie via `useShopHealth` (zeker aanwezig; verklaart de log-ruis en extra profiel-writes, maar is niet de directe veroorzaker van de stap-flip).
 
-**Laag A (essentieel):** synchrone `useRef` in-flight guard in `createTenant`, gezet vóór élke await en vrijgegeven in een `finally` dat de hele body omsluit — dus vrijgegeven bij succes, `SLUG_CONFLICT`, `SESSION_EXPIRED`, `MISSING_SHOP_DATA` en elke andere error. Een tweede gelijktijdige aanroep returnt meteen `null` zonder slug-check of edge-function-call.
+## De fix (3 gerichte lagen)
 
-**Laag B (UX):** `isProcessing` doorgeven aan `BusinessDetailsStep` en de knop `disabled={!canContinue || isProcessing}` met spinner.
+**Laag A — stop de unmount.** `refetchRoles` krijgt een `silent`-optie die `rolesLoading` niet aanraakt; `useOnboarding` gebruikt die.
 
-## Scope
-Alleen `src/hooks/useOnboarding.ts`, `src/components/onboarding/OnboardingWizard.tsx`, `src/components/onboarding/steps/BusinessDetailsStep.tsx`. Geen RLS, geen migratie, geen edge function.
-
-## Diffs
-
-### src/hooks/useOnboarding.ts
 ```diff
-   const hasCreatedTenantRef = useRef(false);
-+  // ONBOARD-DOUBLE-CREATE-1 — synchrone in-flight guard: voorkomt dat een
-+  // tweede submit tijdens een lopende creatie de slug van de eerste raakt.
-+  const isCreatingTenantRef = useRef(false);
-```
-```diff
-   const createTenant = useCallback(async () => {
-     if (!user) return null;
-+
-+    if (isCreatingTenantRef.current) {
-+      console.warn('[Onboarding] createTenant: al bezig — dubbele aanroep genegeerd');
-+      return null;
-+    }
-+    isCreatingTenantRef.current = true;
-+    try {
- 
-     // CRITICAL VALIDATION: Check if shopName and shopSlug are filled in
-```
-Sluit de bestaande body af (na de bestaande buitenste `try/catch`, vóór de dependency-array):
-```diff
-       throw error;
-     }
-+    } finally {
-+      isCreatingTenantRef.current = false;
-+    }
-   }, [user, state.data, ...]);
-```
-De rest van de body schuift één indentatieniveau in; er verandert geen logica. Alle exit-paden (`return tenant`, `return null` bij SESSION_EXPIRED, throws) passeren de `finally`.
-
-### src/components/onboarding/OnboardingWizard.tsx
-```diff
-           <BusinessDetailsStep
-             data={data}
-             updateData={updateData}
-             onNext={() => handleStepTransition(3)}
-             onPrev={prevStep}
-+            isProcessing={isProcessing}
-           />
+--- src/hooks/useAuth.tsx
+-  const refetchRoles = useCallback(async (): Promise<UserRole[]> => {
++  const refetchRoles = useCallback(async (
++    opts?: { silent?: boolean }
++  ): Promise<UserRole[]> => {
+     const { data: { user: currentUser } } = await supabase.auth.getUser();
+     if (!currentUser) { ... }
+-    setRolesLoading(true);
++    // ONBOARD-REMOUNT-1 — silent: geen rolesLoading-flip, zodat ProtectedRoute
++    // de admin-boom (incl. onboarding-wizard) niet unmount.
++    if (!opts?.silent) setRolesLoading(true);
+     const fresh = await fetchUserRoles(currentUser.id);
+     setRoles(fresh);
+-    setRolesLoading(false);
++    if (!opts?.silent) setRolesLoading(false);
 ```
 
-### src/components/onboarding/steps/BusinessDetailsStep.tsx
+Type in de context-interface wordt `refetchRoles: (opts?: { silent?: boolean }) => Promise<UserRole[]>` (`useAuth.tsx:116`). In `useOnboarding.ts:660` en `:334` wordt dit `await refetchRoles({ silent: true })`. `AcceptInvitation.tsx:224` blijft ongewijzigd (luide pad blijft bestaan).
+
+**Laag B — stap-1-forcering alleen als er nog geen voortgang is.**
+
 ```diff
--import { Building2, ArrowRight, ArrowLeft } from 'lucide-react';
-+import { Building2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
-@@
-   onNext: () => void;
-   onPrev: () => void;
-+  isProcessing?: boolean;
- }
-@@
-   onNext,
-   onPrev,
-+  isProcessing = false,
- }: BusinessDetailsStepProps) {
-@@
-   const handleSubmit = (e: React.FormEvent) => {
-     e.preventDefault();
--    if (canContinue) {
-+    if (canContinue && !isProcessing) {
-       onNext();
-     }
-   };
-@@
--        <Button type="button" variant="outline" onClick={onPrev} className="flex-1">
-+        <Button type="button" variant="outline" onClick={onPrev} className="flex-1" disabled={isProcessing}>
-@@
--        <Button type="submit" className="flex-1" disabled={!canContinue}>
--          Volgende stap
--          <ArrowRight className="ml-2 h-4 w-4" />
-+        <Button type="submit" className="flex-1" disabled={!canContinue || isProcessing}>
-+          {isProcessing ? (
-+            <>
-+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-+              Winkel aanmaken...
-+            </>
-+          ) : (
-+            <>
-+              Volgende stap
-+              <ArrowRight className="ml-2 h-4 w-4" />
-+            </>
-+          )}
-         </Button>
+--- src/hooks/useOnboarding.ts (rond :186)
+-      const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;
++      // ONBOARD-REMOUNT-1 — een verse user mag alleen naar stap 1 geforceerd
++      // worden zolang er geen persisted voortgang is. Bij savedStep > 1
++      // respecteren we de persisted stap, ook op een initial check na een
++      // onverwachte remount.
++      const startStep = (isNewUser && isInitialCheck && savedStep <= 1) ? 1 : savedStep;
 ```
 
-## Verificatie
-- Typecheck.
-- Stap 3 met dubbelklik op "Volgende stap": console toont één `createTenant`-run, één edge-function POST, geen 409.
-- Slug-conflict-retry: dialog → "Accepteer" → nieuwe poging draait wel door.
+**Laag C — voortgang vastleggen vóór het risicovolle stuk.** In `createTenant`, direct na de succes-markering (`:642`) en vóór `refreshTenants`/`refetchRoles`, `onboarding_step: 4` op het profiel schrijven. Dan is de persisted stap gegarandeerd 4, ook als de UI tussentijds verdwijnt; `nextStep()` in de wizard schrijft daarna idempotent hetzelfde.
+
+## Waarom dit de vier bestaande scenario's niet breekt
+
+- **Bestaande user met tenant:** `onboarding_completed` → vroege return (`:153`), of tenant-guard met `persistedStep <= 1` (`:169`) sluit zoals nu. Laag B raakt dit pad niet (`isNewUser` is false, dus `savedStep` werd al gebruikt).
+- **`?new=1`:** `isNewTenantFlow` slaat de tenant-guard over; bij een verse tweede winkel staat `savedStep` op 1 → nog steeds stap 1. Ongewijzigd.
+- **Resume partial progress:** `partialProgress = !isNewUser && savedStep > 1` (`:190`) blijft identiek; laag B verandert alleen het `isNewUser`-pad en levert daar juist de gewenste resume op.
+- **Skip:** de `onboarding_skipped_at`-checks (`:159`) blijven onaangeroerd.
+- **Invite-accept:** blijft het luide `refetchRoles()` gebruiken, dus die guard wacht nog steeds.
+
+## Geraakte bestanden
+
+- `src/hooks/useAuth.tsx` — `refetchRoles(opts?)` + type in de context-interface.
+- `src/hooks/useOnboarding.ts` — twee `refetchRoles({ silent: true })`-calls, `startStep`-conditie, `onboarding_step: 4`-write in `createTenant`.
+- Changelog-entry (4 talen) als losse stap na verificatie.
+
+Geen migraties, geen edge functions, geen wijziging aan `ProtectedRoute` of `useTenant`.
