@@ -183,7 +183,11 @@ export function useOnboarding() {
       // On subsequent re-checks (after tenant creation, token refresh, etc.), respect the saved step
       // This prevents the wizard from resetting to step 1 mid-session
       const isInitialCheck = !hasInitiallyChecked.current;
-      const startStep = (isNewUser && isInitialCheck) ? 1 : savedStep;
+      // ONBOARD-REMOUNT-1 — een verse user mag alleen naar stap 1 geforceerd
+      // worden zolang er geen persisted voortgang is. Bij savedStep > 1
+      // respecteren we de persisted stap, ook op een initial check na een
+      // onverwachte remount van de admin-boom.
+      const startStep = (isNewUser && isInitialCheck && savedStep <= 1) ? 1 : savedStep;
       
       // Track if returning user has partial progress (not brand new, step > 1)
       // ONLY set this on initial load, not on subsequent re-checks (e.g., after refreshTenants)
@@ -331,7 +335,9 @@ export function useOnboarding() {
         // ONBOARD-ROLES-1 — user_roles wordt server-side aangemaakt; zonder
         // refetch mist de client de tenant_admin-rol voor de nieuwe tenant en
         // filtert AdminSidebar (scopedRoles op currentTenant.id) alles weg.
-        await refetchRoles();
+        // ONBOARD-REMOUNT-1 — silent: geen rolesLoading-flip, anders unmount
+        // ProtectedRoute de hele admin-boom.
+        await refetchRoles({ silent: true });
       } catch (error) {
         console.warn('[Onboarding] refreshTenants failed on complete:', error);
       }
@@ -641,6 +647,14 @@ export function useOnboarding() {
         // FIX 2: Mark that we created a tenant - prevents checkOnboardingStatus re-runs
         hasCreatedTenantRef.current = true;
         
+        // ONBOARD-REMOUNT-1 — leg voortgang vast vóór refreshTenants/refetchRoles,
+        // zodat een onverwachte remount op stap 4 hervat i.p.v. stap 1.
+        try {
+          await supabase.from('profiles').update({ onboarding_step: 4 }).eq('id', user.id);
+        } catch (stepErr) {
+          console.warn('[Onboarding] kon onboarding_step niet vooraf wegschrijven:', stepErr);
+        }
+        
         console.log('[Onboarding] Tenant ' + (wasExisting ? 'found' : 'created') + ' successfully:', tenant.id);
         
         if (wasExisting) {
@@ -657,7 +671,9 @@ export function useOnboarding() {
           // ONBOARD-ROLES-1 — zie boven: rollen verversen zodat de sidebar
           // direct de volledige navigatie voor de verse tenant toont
           // (voorheen pas na een handmatige F5).
-          await refetchRoles();
+          // ONBOARD-REMOUNT-1 — silent, zodat ProtectedRoute de wizard niet
+          // unmount midden in de succesflow.
+          await refetchRoles({ silent: true });
         } catch (refreshError) {
           console.warn('[Onboarding] refreshTenants failed but tenant exists:', refreshError);
           // Continue anyway - tenant is created
