@@ -272,6 +272,28 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     );
   }
 
+  // Zichtbaarheid van de winkel. Bewust "fail open": alleen de expliciete
+  // waarde 'offline' schermt af, zodat een lege of onbekende status altijd
+  // een gewoon zichtbare winkel oplevert. Raakt uitsluitend de ingebouwde
+  // SellQo-winkel — custom frontends lopen via storefront-api en niet hierlangs.
+  if (themeSettings?.storefront_status === 'offline') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        {(ts?.logo_url || tenant.logo_url) && (
+          <img
+            src={ts?.logo_url || tenant.logo_url || ''}
+            alt={tenant.name}
+            className="h-12 w-auto object-contain"
+          />
+        )}
+        <h1 className="text-2xl font-bold">Binnenkort open</h1>
+        <p className="max-w-sm text-muted-foreground">
+          {tenant.name} werkt op dit moment aan de winkel. Kom snel weer eens langs.
+        </p>
+      </div>
+    );
+  }
+
   const basePath = `/shop/${tenantSlug}`;
   const headerStyle = themeSettings?.header_style || 'standard';
   const showAnnouncement = themeSettings?.show_announcement_bar && themeSettings?.announcement_text;

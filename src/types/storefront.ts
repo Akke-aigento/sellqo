@@ -30,6 +30,16 @@ export interface ThemeSettings {
   theme_style?: 'modern' | 'elegant' | 'bold' | 'playful' | string | null;
 }
 
+/**
+ * Zichtbaarheid van de ingebouwde SellQo-winkel.
+ *
+ * 'password' bestaat wel als waarde in de database, maar wordt bewust niet
+ * aangeboden in de UI: `storefront_password` zit niet in de publieke view
+ * `tenant_theme_public`, dus de winkel kan een wachtwoord niet verifiëren.
+ * Een keuze die niets afschermt is misleidend — zie docs/webshop-batch-2-verificatie.md.
+ */
+export type StorefrontStatus = 'online' | 'offline';
+
 export interface TenantThemeSettings {
   id: string;
   tenant_id: string;
@@ -80,7 +90,11 @@ export interface TenantThemeSettings {
   // Publishing
   is_published: boolean;
   published_at: string | null;
-  
+
+  // Zichtbaarheid van de SellQo-winkel. 'offline' toont bezoekers een
+  // binnenkort-open-pagina; elke andere waarde rendert de winkel normaal.
+  storefront_status?: StorefrontStatus | string | null;
+
   created_at: string;
   updated_at: string;
   

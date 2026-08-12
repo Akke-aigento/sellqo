@@ -135,7 +135,7 @@ export function useStorefront() {
         'body_font', 'header_style', 'show_announcement_bar', 'announcement_text',
         'announcement_link', 'show_breadcrumbs', 'show_wishlist', 'product_card_style',
         'products_per_row', 'footer_text', 'custom_css', 'custom_head_scripts',
-        'is_published', 'published_at',
+        'is_published', 'published_at', 'storefront_status',
         // Newsletter settings
         'newsletter_enabled', 'newsletter_provider', 'newsletter_popup_enabled',
         'newsletter_popup_delay_seconds', 'newsletter_incentive_text',
