@@ -26,7 +26,6 @@ import {
   Inbox,
   Undo2,
   Palette,
-  Sliders,
   Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,7 +56,6 @@ import { InboundEmailSettings } from '@/components/admin/settings/InboundEmailSe
 import { PlatformToolsSettings } from '@/components/admin/settings/PlatformToolsSettings';
 import { ReturnSettingsPage } from '@/components/admin/settings/ReturnSettings';
 import { StorefrontSettings } from '@/components/admin/storefront/StorefrontSettings';
-import { StorefrontFeaturesSettings } from '@/components/admin/storefront/StorefrontFeaturesSettings';
 import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
@@ -107,7 +105,6 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'webshop-general', title: 'Webshop-instellingen', icon: Globe, component: StorefrontSettings },
       { id: 'store', title: 'Winkelinstellingen', icon: Store, component: StoreSettings },
-      { id: 'webshop-features', title: 'Webshop-functies', icon: Sliders, component: StorefrontFeaturesSettings },
     ],
   },
   {

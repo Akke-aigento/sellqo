@@ -8,6 +8,7 @@ import {
   Scale,
   Home,
   Power,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ import { StudioHeader } from '@/components/admin/storefront/studio/StudioHeader'
 import { LaunchChecklist } from '@/components/admin/storefront/studio/LaunchChecklist';
 import { CustomFrontendState } from '@/components/admin/storefront/studio/CustomFrontendState';
 import { StatusSection } from '@/components/admin/storefront/studio/StatusSection';
+import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio/StorefrontFeaturesSettings';
 
 const navItems = [
   { id: 'overview', label: 'Overzicht', icon: Home },
@@ -28,6 +30,7 @@ const navItems = [
   { id: 'homepage', label: 'Homepage', icon: LayoutDashboard },
   { id: 'pages', label: "Pagina's", icon: FileText },
   { id: 'legal', label: 'Juridisch', icon: Scale },
+  { id: 'features', label: 'Functies & Gedrag', icon: SlidersHorizontal },
   { id: 'status', label: 'Status', icon: Power },
 ];
 
@@ -84,6 +87,8 @@ export default function StorefrontPage() {
         return <StorefrontPagesManager />;
       case 'legal':
         return <LegalPagesManager />;
+      case 'features':
+        return <StorefrontFeaturesSettings />;
       case 'status':
         return <StatusSection />;
       default:

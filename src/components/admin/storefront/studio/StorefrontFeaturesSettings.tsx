@@ -35,7 +35,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useStorefront } from '@/hooks/useStorefront';
-import { useFrontendMode } from '@/hooks/useFrontendMode';
 import { toast } from 'sonner';
 import {
   NEWSLETTER_PROVIDERS,
@@ -60,8 +59,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export function StorefrontFeaturesSettings() {
   const { themeSettings, saveThemeSettings } = useStorefront();
-  const { isCustomFrontend } = useFrontendMode();
-  
+
   const [formData, setFormData] = useState({
     // Newsletter
     newsletter_enabled: DEFAULT_NEWSLETTER_CONFIG.enabled,
@@ -186,34 +184,11 @@ export function StorefrontFeaturesSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Functies & Gedrag</h2>
-        <p className="text-muted-foreground">
-          Configureer hoe je storefront zich gedraagt en welke features actief zijn
-        </p>
-      </div>
-
-      {isCustomFrontend && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 p-3 text-sm">
-          <Info className="h-4 w-4 mt-0.5 text-amber-600 flex-shrink-0" />
-          <div className="text-amber-900 dark:text-amber-100">
-            <strong className="font-medium">Custom frontend actief.</strong>{' '}
-            Alle instellingen hieronder bepalen alleen het gedrag van de SellQo-webshop (nieuwsbrief-popup,
-            checkout-formulier, product-weergave, cookie banner, navigatie, conversie-boosters, taalwisselaar).
-            Ze hebben geen effect op je eigen frontend — die bepaalt zelf hoe deze features renderen.
-            Frontend-modus wijzigen kan bij{' '}
-            <a href="/admin/settings?section=webshop-general" className="underline font-medium">
-              Webshop-instellingen
-            </a>.
-          </div>
-        </div>
-      )}
-
-      <fieldset
-        disabled={isCustomFrontend}
-        className={isCustomFrontend ? 'opacity-60 pointer-events-none' : ''}
-      >
-      <Accordion type="multiple" defaultValue={isCustomFrontend ? [] : ['newsletter', 'checkout']} className="space-y-4">
+      {/* Kop, waarschuwingsbanner en de fieldset-vergrendeling zijn met
+          WEBSHOP-4a verwijderd. De studio zet zelf de sectiekop, toont de
+          custom-frontend-uitleg één keer op paginaniveau, en laat tenants die
+          daar bewust doorklikken de SellQo-winkel gewoon beheren. */}
+      <Accordion type="multiple" defaultValue={['newsletter', 'checkout']} className="space-y-4">
         {/* Newsletter Section */}
         <AccordionItem value="newsletter" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline py-4">
@@ -787,7 +762,7 @@ export function StorefrontFeaturesSettings() {
               <p className="text-xs text-muted-foreground">
                 Talen worden automatisch geactiveerd wanneer je een domein met die taal koppelt bij <strong>Instellingen → Domeinen</strong>.
               </p>
-              <a href="/admin/settings?tab=domains" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+              <a href="/admin/settings?section=domain" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
                 Domeinen en talen beheren →
               </a>
             </div>
@@ -831,7 +806,6 @@ export function StorefrontFeaturesSettings() {
           {saveThemeSettings.isPending ? 'Opslaan...' : 'Instellingen Opslaan'}
         </Button>
       </div>
-      </fieldset>
     </div>
   );
 }
