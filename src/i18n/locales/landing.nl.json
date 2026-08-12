@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "tenant_delete_cascade": {
+          "title": "Winkels netjes verwijderen",
+          "description": "Het verwijderen van een winkel ruimt nu alle bijbehorende gegevens volledig op, zodat een e-mailadres daarna weer beschikbaar is."
+        },
         "onboarding_full_flow": {
           "title": "Setup loopt volledig door",
           "description": "We hebben een probleem opgelost waarbij het instellen van je winkel soms te vroeg werd afgerond, waardoor je enkele stappen miste."

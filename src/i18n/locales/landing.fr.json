@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "tenant_delete_cascade": {
+          "title": "Suppression propre des boutiques",
+          "description": "La suppression d'une boutique nettoie désormais entièrement toutes les données associées, afin qu'une adresse e-mail redevienne disponible."
+        },
         "onboarding_full_flow": {
           "title": "La configuration se déroule entièrement",
           "description": "Nous avons corrigé un problème où la configuration de la boutique pouvait se terminer trop tôt, vous faisant manquer certaines étapes."

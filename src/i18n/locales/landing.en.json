@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "tenant_delete_cascade": {
+          "title": "Clean shop removal",
+          "description": "Deleting a shop now fully cleans up all associated data, so an email address becomes available again afterwards."
+        },
         "onboarding_full_flow": {
           "title": "Setup runs all the way through",
           "description": "We fixed an issue where shop setup could finish too early, causing you to miss a few steps."
