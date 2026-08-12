@@ -104,6 +104,10 @@ export function useOnboarding() {
   // Refs: Console log analyse - step flip na refreshTenants
   const hasCreatedTenantRef = useRef(false);
 
+  // ONBOARD-DOUBLE-CREATE-1 — synchrone in-flight guard: voorkomt dat een
+  // tweede submit tijdens een lopende creatie de slug van de eerste raakt.
+  const isCreatingTenantRef = useRef(false);
+
   // FIX 2: Track debounce timer for checkOnboardingStatus
   const checkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -377,6 +381,14 @@ export function useOnboarding() {
   const createTenant = useCallback(async () => {
     if (!user) return null;
 
+    // ONBOARD-DOUBLE-CREATE-1 — re-entrancy guard
+    if (isCreatingTenantRef.current) {
+      console.warn('[Onboarding] createTenant: al bezig — dubbele aanroep genegeerd');
+      return null;
+    }
+    isCreatingTenantRef.current = true;
+
+    try {
     // CRITICAL VALIDATION: Check if shopName and shopSlug are filled in
     const { shopName, shopSlug } = state.data;
     if (!shopName?.trim() || !shopSlug?.trim()) {
