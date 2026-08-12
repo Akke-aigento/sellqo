@@ -340,3 +340,56 @@ export function generateThemePaletteLegacy(
 
   return s;
 }
+
+// ---------------------------------------------------------------------------
+// Hex-weergave van een palet
+// ---------------------------------------------------------------------------
+
+export interface PaletteHexColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  foreground: string;
+  card: string;
+  muted: string;
+  border: string;
+  headingFont: string;
+  bodyFont: string;
+}
+
+/**
+ * Zet een gegenereerd palet om naar losse hex-kleuren.
+ *
+ * De generator levert CSS-variabelen als HSL-strings ("210 50% 40%"); kleur-
+ * inputs en de preview werken met hex. Stond eerder als lokale helper in
+ * ThemeWizard; bij het opheffen van die wizard (WEBSHOP-3) hierheen verplaatst
+ * zodat het Design-paneel er ook bij kan.
+ */
+export function paletteToHexColors(
+  brandColor: string,
+  mode: ThemeMode = 'light',
+  style: ThemeStyle = 'modern',
+): PaletteHexColors {
+  const palette = generateThemePalette(brandColor, mode, style);
+  const vars = palette.cssVariables;
+
+  const cssHslToHex = (val: string): string => {
+    if (!val || !val.includes('%')) return '#000000';
+    const parts = val.split(/\s+/);
+    return hslToHex(parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]));
+  };
+
+  return {
+    primary: cssHslToHex(vars['--primary']),
+    secondary: cssHslToHex(vars['--secondary']),
+    accent: cssHslToHex(vars['--accent']),
+    background: cssHslToHex(vars['--background']),
+    foreground: cssHslToHex(vars['--foreground']),
+    card: cssHslToHex(vars['--card']),
+    muted: cssHslToHex(vars['--muted']),
+    border: cssHslToHex(vars['--border']),
+    headingFont: palette.headingFont,
+    bodyFont: palette.bodyFont,
+  };
+}

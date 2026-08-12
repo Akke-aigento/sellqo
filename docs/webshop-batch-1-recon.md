@@ -99,7 +99,7 @@ Toegangspoort staat in `sidebarConfig.ts:126`: `featureKey: 'webshop_builder'`, 
 | **OB-WS-1** | **3 templates bij launch**, op een structuur die uitbreiden triviaal maakt | Kleinere WEBSHOP-3; templates 4-6 als losse contentbatch later |
 | **OB-WS-2** | **Volwaardige menu-editor in scope** | Nieuwe tabellen; krijgt een eigen batch (zie §4) |
 | **OB-WS-5** | **Screenshots in de gallery + live preview na keuze** | `preview_image_url` (bestaand) + `preview_mobile_url` (nieuw); live iframe naast het Design-paneel |
-| **Nieuw: instapmodel** | **Gallery eerst, wizard als optionele hulp** | ThemeWizard wordt gedegradeerd van verplicht startpad naar "Help me kiezen"-knop; de palette-generator blijft behouden |
+| **Nieuw: instapmodel** | **Gallery eerst, wizard als optionele hulp** | ~~ThemeWizard wordt gedegradeerd tot "Help me kiezen"-knop~~ — **herzien, zie §3.2** |
 
 OB-WS-3, OB-WS-4 en OB-WS-6 blijven staan op het voorstel uit het masterplan.
 
@@ -108,7 +108,6 @@ OB-WS-3, OB-WS-4 en OB-WS-6 blijven staan op het voorstel uit het masterplan.
 ```
 Tenant zonder ingerichte shop
   → Gallery: 3 templates, echte screenshots (desktop + mobiel)
-  → optioneel: "✨ Help me kiezen" → ThemeWizard → eindigt in dezelfde seed
   → klik template → bevestiging → seed (theme_id + defaults + secties + pagina's)
   → Design-paneel met live preview van de eigen shop
   → Publiceren
@@ -119,6 +118,40 @@ Tenant met ingerichte shop
 ```
 
 De gallery is dus geen eenmalige onboarding-stap maar een permanent bereikbare sectie binnen Design. Dat sluit aan op de wens: *thema aanklikken, daarna alles aanpassen*.
+
+### 3.2 Herziening na de smoke-test van WEBSHOP-2 (12-08-2026)
+
+**De ThemeWizard verdwijnt volledig.** Dit vervangt de eerdere afspraak om hem als optionele "Help me kiezen"-knop te behouden.
+
+Aanleiding: bij het testen van de studio-shell bleken er feitelijk twee begeleide flows naast elkaar te staan — de launch-checklist op het Overzicht en de 4-staps ThemeWizard in Design. Beide beloven hetzelfde. Dat de wizard voor terugkerende gebruikers naar stap 4 springt (`ThemeWizard.tsx:239`) maakt het onvoorspelbaar: soms zie je stappen, soms niet.
+
+Design wordt daarom één plat paneel, zonder stappen:
+
+```
+┌─ Design ─────────────┬────────────────────┐
+│ [preview] Food       │   live preview     │
+│ Ander template →     │   ┌────────────┐   │
+│                      │   │ jouw shop  │   │
+│ Merkkleur  ●●●●●●●●  │   └────────────┘   │
+│ Stijl [Modern][Bold] │                    │
+│ ▸ Fijnregeling       │                    │
+└──────────────────────┴────────────────────┘
+```
+
+Wat behouden blijft uit de 937 regels van de wizard: de palette-generator (zit al apart in `src/lib/theme-palette.ts`), de merkkleur-kiezer, de stijlpresets, de geavanceerde overrides, `LiveThemePreview` en `BrandingUploader`. Die worden bedieningselementen in dat paneel in plaats van wizard-stappen.
+
+Wat we ervoor terugkrijgen aan risico: iemand zonder ontwerpgevoel wordt niet langer langs één vaste volgorde geleid. Mitigatie: de stijlpresets komen prominent bovenin, zodat één klik nog steeds een compleet, samenhangend palet oplevert.
+
+### 3.3 Tweede bevinding uit de smoke-test: het gekozen thema is onzichtbaar
+
+Er is nergens in de studio UI die toont wélk thema actief is. `ThemeWizard.tsx:200` berekent `selectedTheme`, maar gebruikt dat uitsluitend om fallback-defaults voor fonts en layout op te halen (regel 271-277) — naam, beschrijving en preview worden nooit gerenderd. Het enige component dat het zou tonen, `ThemeGallery.tsx`, is dode code (§1.1).
+
+Daaronder ligt de diepere oorzaak uit §1.2: bij vijf van de zeven tenants is `theme_id` leeg, dus er ís geen gekozen thema om te tonen.
+
+Eisen voor WEBSHOP-3:
+- De Design-sectie opent met een kaart van het actieve template: preview, naam en een knop "Ander template kiezen".
+- Heeft de tenant nog geen template, dan staat daar de gallery in plaats van een lege kaart.
+- Het actieve template wordt ook op het Overzicht getoond, naast de status.
 
 ### 3.2 Menu-editor en §0
 
@@ -136,7 +169,7 @@ Aangepast op de beslissingen hierboven.
 |---|---|---|
 | ~~WEBSHOP-1~~ | Recon + definitieve IA | ✅ dit document |
 | **WEBSHOP-2** | Pagina-shell: Studio-dashboard, linkernavigatie, status-kopkaart, launch-checklist, rustige custom-frontend-staat. Publish-flow gefixt (incl. `create-tenant` default `theme_id`). Bestaande tab-componenten ingehangen. | frontend + `create-tenant` |
-| **WEBSHOP-3** | Template-systeem: additieve uitbreiding `themes`, 3 templates + seeds, gallery aangesloten, seed-logica, screenshots. Wizard gedegradeerd tot "Help me kiezen". | schema (additief) + frontend + seeds |
+| **WEBSHOP-3** | Template-systeem: additieve uitbreiding `themes`, 3 templates + seeds, gallery aangesloten, seed-logica, screenshots. Design wordt één plat paneel met zichtbaar actief template; **ThemeWizard verwijderd** (§3.2, §3.3). | schema (additief) + frontend + seeds |
 | **WEBSHOP-4** | Settings-migratie: Functies & Gedrag → Webshop-pagina; Instellingen → Webshop uitkleden. **4b:** StoreSettings ontmantelen. | frontend |
 | **WEBSHOP-5** | Builder-polish: **fix content-formaat (§2.1) als eerste taak**, visual editor primair, Design-sectie herwerkt, dode sleep-affordance (§2.2) opgelost, `confirm()` → AlertDialog (§2.4). | frontend (+ evt. additieve `content_format`) |
 | **WEBSHOP-5b** | Menu-editor: nieuwe tabellen, meerdere menu's, submenu's, externe links, footer-kolommen. Fallback op bestaande navigatie verplicht. | nieuw schema + frontend |

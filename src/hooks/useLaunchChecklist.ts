@@ -49,7 +49,9 @@ export function useLaunchChecklist() {
 
   const items = useMemo<ChecklistItem[]>(() => {
     const hasLogo = !!(themeSettings?.logo_url || currentTenant?.logo_url);
-    const hasDesign = !!(themeSettings?.theme_id || themeSettings?.brand_color);
+    // Sinds WEBSHOP-3 is een gekozen template het startpunt van de inrichting;
+    // theme_id is daarmee het eerlijke signaal in plaats van brand_color.
+    const hasTemplate = !!themeSettings?.theme_id;
     const hasHomepage = sections.some((s) => s.is_visible);
     const hasPages = pages.length > 0;
     const hasLegal = legalPages.some((p) => p.is_published);
@@ -67,9 +69,9 @@ export function useLaunchChecklist() {
       },
       {
         id: 'design',
-        label: 'Design',
-        description: 'Kleuren, typografie en layout gekozen',
-        done: hasDesign,
+        label: 'Template',
+        description: 'Een startpunt gekozen voor je winkel',
+        done: hasTemplate,
         target: { kind: 'section', section: 'design' },
       },
       {

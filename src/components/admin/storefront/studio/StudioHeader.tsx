@@ -1,4 +1,5 @@
-import { ExternalLink, Rocket, Loader2, Globe, EyeOff } from 'lucide-react';
+import { ExternalLink, Rocket, Loader2, Globe, EyeOff, LayoutTemplate } from 'lucide-react';
+import { TemplatePreview } from './TemplatePreview';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,10 +11,17 @@ import { useTenantDomains } from '@/hooks/useTenantDomains';
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,
  * en één werkende knop om te publiceren.
  */
-export function StudioHeader() {
-  const { themeSettings, publishStorefront } = useStorefront();
+interface StudioHeaderProps {
+  /** Opent de Design-sectie; het template is daar te wisselen. */
+  onOpenDesign?: () => void;
+}
+
+export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
+  const { themeSettings, themes, publishStorefront } = useStorefront();
   const { currentTenant } = useTenant();
   const { canonicalDomain } = useTenantDomains();
+
+  const activeTemplate = themes.find((t) => t.id === themeSettings?.theme_id);
 
   const isOffline = themeSettings?.storefront_status === 'offline';
   const isPublished = !!themeSettings?.is_published;
@@ -36,7 +44,30 @@ export function StudioHeader() {
     <Card>
       <CardContent className="py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 space-y-1.5">
+          {/* Welk template draait deze winkel — dit was nergens zichtbaar. */}
+          <button
+            type="button"
+            onClick={onOpenDesign}
+            className="flex shrink-0 items-center gap-3 rounded-md p-1 text-left transition-colors hover:bg-muted/50"
+          >
+            <div className="h-12 w-16 shrink-0 overflow-hidden rounded border bg-muted">
+              {activeTemplate ? (
+                <TemplatePreview theme={activeTemplate} />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Template</p>
+              <p className="truncate text-sm font-medium">
+                {activeTemplate?.name ?? 'Nog niet gekozen'}
+              </p>
+            </div>
+          </button>
+
+          <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               {isOffline ? (
                 <Badge variant="secondary" className="gap-1">

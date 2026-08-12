@@ -10,6 +10,47 @@ export interface Theme {
   is_active: boolean;
   default_settings: ThemeSettings;
   created_at: string;
+
+  // WEBSHOP-3, additief. Rijen van vóór die batch hebben deze velden niet;
+  // een rij zonder seed_definition is geen template en hoort niet in de gallery.
+  category?: string | null;
+  preview_mobile_url?: string | null;
+  seed_definition?: TemplateSeedDefinition | null;
+  sort_order?: number | null;
+}
+
+/**
+ * Placeholder in seed-content die bij het toepassen wordt vervangen door het
+ * winkelpad van de tenant (`/shop/<slug>`).
+ *
+ * Nodig omdat HeroSection en TextImageSection `button_link` rauw aan
+ * react-router meegeven (`HeroSection.tsx:61`, `TextImageSection.tsx:43`),
+ * zonder het winkelpad ervoor te zetten. Een seed met "/products" zou dus in
+ * de admin-app belanden in plaats van in de winkel.
+ */
+export const SHOP_PATH_PLACEHOLDER = '{{shop}}';
+
+export interface TemplateSeedSection {
+  section_type: HomepageSectionType;
+  title: string | null;
+  subtitle: string | null;
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  sort_order: number;
+  is_visible: boolean;
+}
+
+export interface TemplateSeedPage {
+  slug: string;
+  title: string;
+  content: string;
+  show_in_nav: boolean;
+  nav_order: number;
+}
+
+export interface TemplateSeedDefinition {
+  sections: TemplateSeedSection[];
+  pages: TemplateSeedPage[];
 }
 
 export interface ThemeSettings {

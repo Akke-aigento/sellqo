@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useFrontendMode } from '@/hooks/useFrontendMode';
-import { ThemeWizard } from '@/components/admin/storefront/ThemeWizard';
+import { DesignPanel } from '@/components/admin/storefront/studio/DesignPanel';
 import { HomepageBuilder } from '@/components/admin/storefront/HomepageBuilder';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
@@ -72,12 +72,12 @@ export default function StorefrontPage() {
       case 'overview':
         return (
           <div className="space-y-6">
-            <StudioHeader />
+            <StudioHeader onOpenDesign={() => goToSection('design')} />
             <LaunchChecklist onNavigate={goToSection} />
           </div>
         );
       case 'design':
-        return <ThemeWizard />;
+        return <DesignPanel />;
       case 'homepage':
         return <HomepageBuilder />;
       case 'pages':
