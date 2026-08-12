@@ -188,6 +188,7 @@ export function OnboardingWizard() {
             updateData={updateData}
             onNext={() => handleStepTransition(3)}
             onPrev={prevStep}
+            isProcessing={isProcessing}
           />
         );
 

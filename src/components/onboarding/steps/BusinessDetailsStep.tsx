@@ -1,4 +1,4 @@
-import { Building2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Building2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface BusinessDetailsStepProps {
   updateData: (updates: Partial<OnboardingData>) => void;
   onNext: () => void;
   onPrev: () => void;
+  isProcessing?: boolean;
 }
 
 const EU_COUNTRIES = [
@@ -43,6 +44,7 @@ export function BusinessDetailsStep({
   updateData,
   onNext,
   onPrev,
+  isProcessing = false,
 }: BusinessDetailsStepProps) {
   const canContinue = 
     data.businessName.trim().length >= 2 &&
@@ -53,7 +55,7 @@ export function BusinessDetailsStep({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (canContinue) {
+    if (canContinue && !isProcessing) {
       onNext();
     }
   };
@@ -218,6 +220,7 @@ export function BusinessDetailsStep({
           variant="outline"
           onClick={onPrev}
           className="flex-1"
+          disabled={isProcessing}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Vorige
@@ -225,10 +228,19 @@ export function BusinessDetailsStep({
         <Button
           type="submit"
           className="flex-1"
-          disabled={!canContinue}
+          disabled={!canContinue || isProcessing}
         >
-          Volgende stap
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Winkel aanmaken...
+            </>
+          ) : (
+            <>
+              Volgende stap
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
     </form>

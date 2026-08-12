@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_no_double_create": {
+          "title": "Zuverlässige Shop-Erstellung",
+          "description": "Wir haben ein Problem behoben, bei dem die Erstellung Ihres Shops doppelt ausgeführt werden konnte und Sie fälschlicherweise zum ersten Schritt zurückkehrten."
+        },
         "tenant_delete_cascade": {
           "title": "Saubere Shop-Entfernung",
           "description": "Beim Löschen eines Shops werden nun alle zugehörigen Daten vollständig entfernt, sodass eine E-Mail-Adresse danach wieder verfügbar ist."

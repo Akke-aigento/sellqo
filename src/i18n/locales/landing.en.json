@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "onboarding_no_double_create": {
+          "title": "Reliable shop creation",
+          "description": "We fixed an issue where creating your shop could run twice and incorrectly send you back to the first step."
+        },
         "tenant_delete_cascade": {
           "title": "Clean shop removal",
           "description": "Deleting a shop now fully cleans up all associated data, so an email address becomes available again afterwards."
