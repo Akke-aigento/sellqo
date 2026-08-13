@@ -122,6 +122,12 @@ De echte renderers hebben geen `InlineTextEditor`. De overlay-aanpak moet bewijz
 
 Naast tsc/build/lint: per sectie-type visueel vergelijken tussen editor-canvas en de echte winkelpagina. Dat is de kern van "WYSIWYG" en moet expliciet worden nagelopen, niet aangenomen.
 
+### Lost 5B en passant op — bewust niet eerder repareren
+
+`PreviewPanel` (de iframe in de Homepage-sectie) **ververst niet bij een wijziging**. Het component importeert alleen `useTenant` voor de slug en kent de theme-instellingen niet; de iframe hangt aan een lokale `refreshKey` die uitsluitend door de handmatige verversknop wordt opgehoogd. Het bijschrift *"Preview wordt automatisch bijgewerkt na opslaan"* is daarmee **onwaar** — er bestaat geen mechanisme dat dat doet.
+
+Niet repareren: het hele previewverhaal wordt in deze batch vervangen door het WYSIWYG-canvas op het renderregister. Zie ook OB-F5-3 over de vraag of `PreviewPanel` daarnaast blijft bestaan.
+
 ---
 
 ## 5. Batch 5C — Editor-polish

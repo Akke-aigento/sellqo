@@ -11,6 +11,7 @@ import type { HomepageSection, HeroContent, TextImageContent, NewsletterContent,
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts } from '@/hooks/useProducts';
 import { VisualMediaPicker } from './visual-editor/VisualMediaPicker';
+import { SectionLinkField } from './SectionLinkField';
 
 interface SectionEditorProps {
   section: HomepageSection;
@@ -61,27 +62,11 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
                   placeholder="Shop Nu"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Knop Link</Label>
-                <Select
-                  value={content.button_link || ''}
-                  onValueChange={(value) => handleContentChange('button_link', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecteer pagina" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="/products">Alle Producten</SelectItem>
-                    <SelectItem value="/cart">Winkelwagen</SelectItem>
-                    <SelectItem value="/">Homepage</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={`/products?category=${cat.slug}`}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <SectionLinkField
+                value={content.button_link || ''}
+                onChange={(v) => handleContentChange('button_link', v)}
+                categories={categories}
+              />
             </div>
             <div className="space-y-2">
               <Label>Tekst Uitlijning</Label>
@@ -206,27 +191,11 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
                   placeholder="Lees meer"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Knop Link</Label>
-                <Select
-                  value={content.button_link || ''}
-                  onValueChange={(value) => handleContentChange('button_link', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecteer pagina" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="/products">Alle Producten</SelectItem>
-                    <SelectItem value="/cart">Winkelwagen</SelectItem>
-                    <SelectItem value="/">Homepage</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={`/products?category=${cat.slug}`}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <SectionLinkField
+                value={content.button_link || ''}
+                onChange={(v) => handleContentChange('button_link', v)}
+                categories={categories}
+              />
             </div>
           </div>
         );

@@ -77,3 +77,24 @@ uitsluitend add-on-flows, dus repareren heeft pas waarde zodra add-ons live gaan
 **Ook geparkeerd:** `check-scheduled-notifications` schrijft de URL als `action_url`
 in bestaande notificaties. Een fix werkt alleen vooruit; reeds verstuurde
 notificaties houden de oude link.
+
+## Custom head scripts vuren nooit op de SellQo-winkel (gevonden 2026-08-13)
+
+`ShopLayout.tsx:133` leest `themeSettings.custom_head_scripts` om tracking- en
+meta-tags in de `<head>` te injecteren. Maar `usePublicStorefront` haalt de
+theme-instellingen uit de view `tenant_theme_public`, en die view laat precies
+twee kolommen weg: `custom_head_scripts` en `storefront_password`.
+
+Gevolg: het veld is in te vullen bij Instellingen → Webshop, maar de scripts
+komen nooit in de pagina. Stilzwijgend — er is geen foutmelding.
+
+**Los van WEBSHOP-5A.** De preview-fallback in `usePublicStorefront` selecteert
+dezelfde kolomlijst als de view en laat beide kolommen dus ook weg; dat is daar
+bewust, omdat de preview anders scripts zou tonen die de gepubliceerde winkel
+niet heeft.
+
+**Te beslissen bij het oppakken:** of `custom_head_scripts` in de view hoort
+(dan is het een viewwijziging) of dat de winkel dat veld apart moet ophalen voor
+tenants die het gezet hebben. De eerste optie is eenvoudiger maar zet
+tenant-scripts in een publiek leesbare view; de tweede is preciezer. Raakt geen
+custom frontend: die bouwen hun eigen `<head>`.
