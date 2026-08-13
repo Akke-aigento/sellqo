@@ -47,7 +47,6 @@ const tenantSchema = z.object({
   subscription_status: z.string().optional(),
   currency: z.string().optional(),
   tax_percentage: z.coerce.number().min(0).max(100).optional(),
-  shipping_enabled: z.boolean().optional(),
   is_demo: z.boolean().optional(),
 });
 
@@ -84,7 +83,6 @@ export function TenantFormDialog({
       subscription_status: 'trial',
       currency: 'EUR',
       tax_percentage: 21,
-      shipping_enabled: true,
       is_demo: false,
     },
   });
@@ -107,7 +105,6 @@ export function TenantFormDialog({
         subscription_status: tenant.subscription_status || 'trial',
         currency: tenant.currency || 'EUR',
         tax_percentage: tenant.tax_percentage ?? 21,
-        shipping_enabled: tenant.shipping_enabled ?? true,
         is_demo: tenant.is_demo ?? false,
       });
     } else {
@@ -127,7 +124,6 @@ export function TenantFormDialog({
         subscription_status: 'trial',
         currency: 'EUR',
         tax_percentage: 21,
-        shipping_enabled: true,
         is_demo: false,
       });
     }
@@ -435,27 +431,6 @@ export function TenantFormDialog({
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="shipping_enabled"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                      <div>
-                        <FormLabel>Verzending ingeschakeld</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Schakel verzendopties in voor deze tenant
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

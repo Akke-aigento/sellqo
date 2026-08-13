@@ -21,7 +21,6 @@ export interface Tenant {
   subscription_status: string | null;
   subscription_plan: string | null;
   currency: string | null;
-  shipping_enabled: boolean | null;
   tax_percentage: number | null;
   custom_domain: string | null;
   stripe_account_id: string | null;
@@ -50,7 +49,6 @@ export interface TenantFormData {
   subscription_status?: string;
   currency?: string;
   tax_percentage?: number;
-  shipping_enabled?: boolean;
   auto_generate_invoice?: boolean;
   auto_send_invoice_email?: boolean;
   is_demo?: boolean;
@@ -93,7 +91,6 @@ export function useTenants() {
           subscription_status: data.subscription_status || 'trial',
           currency: data.currency || 'EUR',
           tax_percentage: data.tax_percentage ?? 21,
-          shipping_enabled: data.shipping_enabled ?? true,
         })
         .select()
         .single();
@@ -137,7 +134,6 @@ export function useTenants() {
           subscription_status: data.subscription_status,
           currency: data.currency,
           tax_percentage: data.tax_percentage,
-          shipping_enabled: data.shipping_enabled,
           is_demo: data.is_demo,
         })
         .eq('id', id)

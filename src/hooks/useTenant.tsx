@@ -21,7 +21,6 @@ interface Tenant {
   subscription_status: string;
   subscription_plan: string;
   currency: string;
-  shipping_enabled: boolean;
   tax_percentage: number;
   created_at: string;
   updated_at: string;
