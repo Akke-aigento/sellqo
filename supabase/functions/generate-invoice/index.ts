@@ -1497,7 +1497,37 @@ serve(async (req) => {
         logStep("VAT regime resolution failed — using fallback", { error: regimeErr });
       }
     } else {
-      logStep("VAT regime skipped — guest order, using fallback");
+      // GUEST-VAT-1 — gast-bestellingen (customer_id NULL) hebben geen
+      // customer-record, maar de pure beslisboom heeft die ook niet nodig.
+      const guestCountry = (
+        (order as { shipping_address?: { country?: string } }).shipping_address?.country ||
+        (order as { billing_address?: { country?: string } }).billing_address?.country ||
+        tenant.country ||
+        'BE'
+      ).toUpperCase();
+      const t = tenant as Record<string, unknown>;
+      const { regime, warnings } = decideVatRegime({
+        customer_country: guestCountry,
+        tenant_country: (tenant.country || 'BE') as string,
+        is_b2b: (order as { customer_type?: string }).customer_type === 'b2b',
+        vies_valid: false,
+        oss_enabled: t.oss_enabled === true || t.apply_oss_rules === true,
+        oss_activation_date: (t.oss_activation_date as string | null) ?? (t.oss_registration_date as string | null) ?? null,
+        simplified_vat: t.simplified_vat_mode === true,
+        sales_channel: salesChannel,
+        order_date: String(order.created_at || new Date().toISOString()).slice(0, 10),
+        has_goods: true,
+      });
+      const guestRate = rateForRegime(regime, guestCountry);
+      resolvedRegime = { vat_regime: regime, reporting_country: guestCountry };
+      perLineRegime = regimeLines.map((_l, idx) => ({
+        line_index: idx,
+        vat_regime: regime,
+        vat_box_code: regime === 'oss_b2c_eu' ? '' : (REGIME_TO_BOX[regime] || ''),
+        vat_rate: guestRate,
+        gl_account_code: REGIME_TO_GL[regime] || '700000',
+      }));
+      logStep("VAT regime resolved (guest)", { regime, country: guestCountry, warnings });
     }
 
     // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
