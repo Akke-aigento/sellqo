@@ -10,6 +10,60 @@ import type {
 } from '@/types/storefront';
 import type { TranslationLanguage } from '@/types/translation';
 
+/**
+ * De kolommen van de view `tenant_theme_public`, letterlijk.
+ *
+ * De view laat twee kolommen van `tenant_theme_settings` bewust weg:
+ * `storefront_password` en `custom_head_scripts`. De terugval op de tabel
+ * selecteert daarom expliciet deze lijst en nooit `*`.
+ *
+ * Dat `custom_head_scripts` ontbreekt is essentieel, niet cosmetisch: zou de
+ * terugval die kolom wél leveren, dan injecteert `ShopLayout` tracking-scripts
+ * in de preview die de gepubliceerde winkel niet heeft. De preview moet tonen
+ * wat bezoekers straks zien, niet meer.
+ */
+const PUBLIC_THEME_COLUMNS = [
+  'accent_color', 'announcement_link', 'announcement_text', 'background_color',
+  'body_font', 'brand_color', 'checkout_address_autocomplete', 'checkout_company_field',
+  'checkout_guest_enabled', 'checkout_phone_required', 'cookie_banner_enabled', 'cookie_banner_style',
+  'created_at', 'custom_css', 'custom_frontend_config', 'custom_frontend_url',
+  'exit_intent_popup', 'favicon_url', 'footer_text', 'header_sticky',
+  'header_style', 'heading_font', 'id', 'is_published',
+  'logo_url', 'mobile_bottom_nav', 'nav_style', 'newsletter_enabled',
+  'newsletter_incentive_text', 'newsletter_popup_delay_seconds', 'newsletter_popup_enabled', 'newsletter_provider',
+  'primary_color', 'product_card_style', 'product_image_zoom', 'product_related_mode',
+  'product_reviews_display', 'product_stock_indicator', 'product_variant_style', 'products_per_row',
+  'published_at', 'reviews_aggregate_display', 'reviews_auto_feature_threshold', 'reviews_display_platforms',
+  'reviews_floating_style', 'reviews_homepage_section', 'reviews_hub_enabled', 'reviews_min_rating_filter',
+  'reviews_trust_bar_enabled', 'reviews_widget_position', 'search_display', 'secondary_color',
+  'show_announcement_bar', 'show_breadcrumbs', 'show_recent_purchases', 'show_stock_count',
+  'show_viewers_count', 'show_wishlist', 'social_links', 'storefront_default_language',
+  'storefront_language_selector_style', 'storefront_languages', 'storefront_multilingual_enabled', 'storefront_status',
+  'tenant_id', 'text_color', 'theme_id', 'theme_mode',
+  'theme_style', 'trust_badges', 'updated_at', 'use_custom_frontend',
+].join(', ');
+
+/**
+ * Haalt de theme-instellingen rechtstreeks uit de tabel op.
+ *
+ * Bedoeld als terugval wanneer de view niets levert omdat de winkel nog niet
+ * gepubliceerd is. Bevat opzettelijk geen enkele eigen toegangscontrole: RLS op
+ * `tenant_theme_settings` bepaalt of er iets terugkomt. Een fout betekent hier
+ * "geen toegang", niet "kapot", dus die levert `null` op in plaats van te
+ * gooien — de winkel rendert dan met de standaardstyling, precies zoals vóór
+ * deze terugval bestond.
+ */
+async function fetchOwnThemeSettings(tenantId: string) {
+  const { data, error } = await supabase
+    .from('tenant_theme_settings')
+    .select(PUBLIC_THEME_COLUMNS)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (error) return null;
+  return data;
+}
+
 interface PublicTenant {
   id: string;
   slug: string;
@@ -77,13 +131,29 @@ export function usePublicStorefront(tenantSlug: string) {
   const { data: themeSettings, isLoading: themeLoading } = useQuery({
     queryKey: ['public-theme-settings', tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: viewData, error } = await supabase
         .from('tenant_theme_public' as any)
         .select('*')
         .eq('tenant_id', tenantId!)
         .maybeSingle();
-      
+
       if (error) throw error;
+
+      // De view eindigt op `WHERE is_published = true`, dus een tenant die zijn
+      // winkel nog aan het inrichten is krijgt hier niets terug — ook niet als
+      // hij zelf ingelogd is. Zonder theme-instellingen valt de winkel terug op
+      // de globale :root-variabelen uit index.css, wat de SellQo-huisstijl is in
+      // plaats van die van de tenant. Dat maakte de preview onbruikbaar voor het
+      // doel waarvoor hij bestaat: zien wat je aan het bouwen bent.
+      //
+      // Daarom een terugval op de tabel. De toegang wordt volledig door RLS
+      // bepaald; hier staat bewust geen eigen is_published-check:
+      //   * anoniem + gepubliceerd  -> de view leverde al een rij, dit pad draait niet
+      //   * anoniem + ongepubliceerd -> policy `is_published = true` matcht niet -> niets
+      //   * ingelogde eigenaar       -> policy `select_members` matcht -> eigen concept
+      //   * ingelogde vreemde        -> geen policy matcht -> niets
+      const data = viewData ?? (await fetchOwnThemeSettings(tenantId!));
+
       if (!data) return null;
 
       // Separate themes query (view doesn't support embedded FK)
