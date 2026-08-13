@@ -6334,6 +6334,89 @@ export type Database = {
           },
         ]
       }
+      event_details: {
+        Row: {
+          capacity: number
+          created_at: string
+          end_time: string | null
+          event_date: string
+          id: string
+          location_name: string | null
+          meeting_point: string | null
+          merged_into_event_id: string | null
+          min_attendees: number
+          product_id: string
+          start_time: string
+          status: string
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          end_time?: string | null
+          event_date: string
+          id?: string
+          location_name?: string | null
+          meeting_point?: string | null
+          merged_into_event_id?: string | null
+          min_attendees?: number
+          product_id: string
+          start_time?: string
+          status?: string
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          end_time?: string | null
+          event_date?: string
+          id?: string
+          location_name?: string | null
+          meeting_point?: string | null
+          merged_into_event_id?: string | null
+          min_attendees?: number
+          product_id?: string
+          start_time?: string
+          status?: string
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_details_merged_into_event_id_fkey"
+            columns: ["merged_into_event_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_reviews: {
         Row: {
           author_avatar_url: string | null
@@ -17765,6 +17848,169 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_change_tokens: {
+        Row: {
+          choice: string | null
+          context: Json | null
+          created_at: string
+          event_detail_id: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          ticket_instance_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          choice?: string | null
+          context?: Json | null
+          created_at?: string
+          event_detail_id: string
+          expires_at: string
+          id?: string
+          tenant_id: string
+          ticket_instance_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          choice?: string | null
+          context?: Json | null
+          created_at?: string
+          event_detail_id?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          ticket_instance_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_change_tokens_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_change_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_change_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_change_tokens_ticket_instance_id_fkey"
+            columns: ["ticket_instance_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_instances: {
+        Row: {
+          attendee_email: string | null
+          attendee_name: string | null
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          event_detail_id: string
+          id: string
+          order_id: string
+          order_item_id: string
+          qr_token: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          attendee_email?: string | null
+          attendee_name?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          event_detail_id: string
+          id?: string
+          order_id: string
+          order_item_id: string
+          qr_token: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          attendee_email?: string | null
+          attendee_name?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          event_detail_id?: string
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          qr_token?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_instances_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tracking_import_log: {
         Row: {
           created_at: string | null
@@ -19242,6 +19488,10 @@ export type Database = {
         Returns: number
       }
       get_current_user_email: { Args: never; Returns: string }
+      get_event_signup_count: {
+        Args: { p_event_detail_id: string }
+        Returns: number
+      }
       get_invitation_effective_status: {
         Args: { inv_id: string }
         Returns: Database["public"]["Enums"]["invite_status"]
@@ -19254,6 +19504,22 @@ export type Database = {
           order_item_id: string
           ordered_quantity: number
           returnable_quantity: number
+        }[]
+      }
+      get_public_events: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          capacity: number
+          end_time: string
+          event_date: string
+          id: string
+          location_name: string
+          meeting_point: string
+          min_attendees: number
+          product_id: string
+          start_time: string
+          status: string
+          timezone: string
         }[]
       }
       get_tenant_storage_bytes: {
