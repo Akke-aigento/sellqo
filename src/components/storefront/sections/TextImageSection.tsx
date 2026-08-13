@@ -1,14 +1,19 @@
 import { Link } from 'react-router-dom';
 import type { HomepageSection, TextImageContent } from '@/types/storefront';
+import { resolveShopLink } from '@/lib/shopLinks';
 
 interface TextImageSectionProps {
   section: HomepageSection;
+  tenantId?: string;
+  basePath?: string;
 }
 
-export function TextImageSection({ section }: TextImageSectionProps) {
+export function TextImageSection({ section, basePath = '' }: TextImageSectionProps) {
   const content = section.content as TextImageContent;
   const settings = section.settings;
   const imagePosition = content.image_position || 'right';
+
+  const button = resolveShopLink(content.button_link, basePath);
 
   return (
     <section 
@@ -38,13 +43,24 @@ export function TextImageSection({ section }: TextImageSectionProps) {
                 dangerouslySetInnerHTML={{ __html: content.text }}
               />
             )}
-            {content.button_text && content.button_link && (
-              <Link
-                to={content.button_link}
-                className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                {content.button_text}
-              </Link>
+            {content.button_text && button.href && (
+              button.isExternal ? (
+                <a
+                  href={button.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  {content.button_text}
+                </a>
+              ) : (
+                <Link
+                  to={button.href}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  {content.button_text}
+                </Link>
+              )
             )}
           </div>
 

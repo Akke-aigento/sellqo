@@ -1,14 +1,18 @@
 import { Link } from 'react-router-dom';
 import type { HomepageSection, HeroContent } from '@/types/storefront';
+import { resolveShopLink } from '@/lib/shopLinks';
 
 interface HeroSectionProps {
   section: HomepageSection;
   tenantId?: string;
+  basePath?: string;
 }
 
-export function HeroSection({ section }: HeroSectionProps) {
+export function HeroSection({ section, basePath = '' }: HeroSectionProps) {
   const content = section.content as HeroContent;
   const settings = section.settings;
+
+  const button = resolveShopLink(content.button_link, basePath);
   
   const overlayOpacity = content.overlay_opacity ?? 0.4;
   const textAlign = content.text_alignment || 'center';
@@ -56,13 +60,24 @@ export function HeroSection({ section }: HeroSectionProps) {
               {section.subtitle}
             </p>
           )}
-          {content.button_text && content.button_link && (
-            <Link
-              to={content.button_link}
-              className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-colors"
-            >
-              {content.button_text}
-            </Link>
+          {content.button_text && button.href && (
+            button.isExternal ? (
+              <a
+                href={button.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-colors"
+              >
+                {content.button_text}
+              </a>
+            ) : (
+              <Link
+                to={button.href}
+                className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-colors"
+              >
+                {content.button_text}
+              </Link>
+            )
           )}
         </div>
       </div>

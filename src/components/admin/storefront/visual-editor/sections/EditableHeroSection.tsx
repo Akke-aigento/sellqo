@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { InlineTextEditor } from '../InlineTextEditor';
 import { VisualMediaPicker } from '../VisualMediaPicker';
 import type { HomepageSection, HeroContent } from '@/types/storefront';
+import { resolveShopLink } from '@/lib/shopLinks';
+import { useTenant } from '@/hooks/useTenant';
 
 interface EditableHeroSectionProps {
   section: HomepageSection;
@@ -11,6 +13,14 @@ interface EditableHeroSectionProps {
 export function EditableHeroSection({ section, onUpdate }: EditableHeroSectionProps) {
   const content = section.content as HeroContent;
   const settings = section.settings;
+
+  // Dit component draait in de admin op /admin/storefront, waar useParams geen
+  // tenantSlug kent. Het winkelpad komt daarom uit de tenant-context.
+  const { currentTenant } = useTenant();
+  const button = resolveShopLink(
+    content.button_link,
+    currentTenant ? `/shop/${currentTenant.slug}` : ''
+  );
   
   const overlayOpacity = content.overlay_opacity ?? 0.4;
   const textAlign = content.text_alignment || 'center';
@@ -78,12 +88,23 @@ export function EditableHeroSection({ section, onUpdate }: EditableHeroSectionPr
             sectionType="hero"
           />
           {(content.button_text || content.button_link) && (
-            <Link
-              to={content.button_link || '#'}
-              className="inline-flex items-center justify-center px-8 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
-            >
-              {content.button_text || 'Klik hier'}
-            </Link>
+            button.isExternal ? (
+              <a
+                href={button.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-8 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+              >
+                {content.button_text || 'Klik hier'}
+              </a>
+            ) : (
+              <Link
+                to={button.href || '#'}
+                className="inline-flex items-center justify-center px-8 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+              >
+                {content.button_text || 'Klik hier'}
+              </Link>
+            )
           )}
         </div>
       </div>

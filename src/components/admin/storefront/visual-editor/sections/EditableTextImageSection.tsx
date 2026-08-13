@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { InlineTextEditor } from '../InlineTextEditor';
 import { VisualMediaPicker } from '../VisualMediaPicker';
 import type { HomepageSection, TextImageContent } from '@/types/storefront';
+import { resolveShopLink } from '@/lib/shopLinks';
+import { useTenant } from '@/hooks/useTenant';
 
 interface EditableTextImageSectionProps {
   section: HomepageSection;
@@ -12,6 +14,14 @@ export function EditableTextImageSection({ section, onUpdate }: EditableTextImag
   const content = section.content as TextImageContent;
   const settings = section.settings;
   const imagePosition = content.image_position || 'right';
+
+  // Admin-context: geen tenantSlug in de route, dus het winkelpad uit de
+  // tenant-context in plaats van useParams.
+  const { currentTenant } = useTenant();
+  const button = resolveShopLink(
+    content.button_link,
+    currentTenant ? `/shop/${currentTenant.slug}` : ''
+  );
 
   const updateContent = (key: keyof TextImageContent, value: unknown) => {
     onUpdate({
@@ -62,12 +72,23 @@ export function EditableTextImageSection({ section, onUpdate }: EditableTextImag
               />
             )}
             {(content.button_text || content.button_link) && (
-              <Link
-                to={content.button_link || '#'}
-                className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                {content.button_text || 'Lees meer'}
-              </Link>
+              button.isExternal ? (
+                <a
+                  href={button.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  {content.button_text || 'Lees meer'}
+                </a>
+              ) : (
+                <Link
+                  to={button.href || '#'}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  {content.button_text || 'Lees meer'}
+                </Link>
+              )
             )}
           </div>
 
