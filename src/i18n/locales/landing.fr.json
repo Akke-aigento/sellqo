@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "storefront_section_buttons": {
+          "title": "Les boutons de vos sections d'accueil fonctionnent partout",
+          "description": "Un bouton dans votre section héros ou texte menait parfois les visiteurs vers une page inexistante, car le lien n'était pas rattaché à votre boutique. C'est corrigé : les boutons mènent désormais toujours au bon endroit dans votre boutique en ligne. Si vous renvoyez vers un site externe, celui-ci s'ouvre maintenant dans un nouvel onglet au lieu d'échouer. Rien à modifier de votre côté — vos boutons existants continuent de fonctionner."
+        },
         "onboarding_existing_customer_fix": {
           "title": "La configuration fonctionne aussi pour les clients existants",
           "description": "Nous avons corrigé un problème où la création d'une boutique indiquait à tort que l'URL choisie était déjà utilisée lorsque votre adresse e-mail était déjà connue de SellQo."

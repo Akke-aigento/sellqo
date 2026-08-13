@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "storefront_section_buttons": {
+          "title": "Buttons in deinen Startseiten-Abschnitten funktionieren überall",
+          "description": "Ein Button in deinem Hero- oder Textabschnitt führte Besucher manchmal auf eine nicht vorhandene Seite, weil der Link nicht mit deinem Shop verknüpft war. Das ist behoben: Buttons führen jetzt immer an die richtige Stelle in deinem Webshop. Verweist du auf eine externe Website, öffnet diese nun in einem neuen Tab, statt ins Leere zu laufen. Du musst nichts anpassen — bestehende Buttons funktionieren weiter."
+        },
         "onboarding_existing_customer_fix": {
           "title": "Shop-Einrichtung funktioniert auch für bestehende Kunden",
           "description": "Wir haben ein Problem behoben, bei dem die Shop-Erstellung fälschlicherweise meldete, dass die gewählte URL vergeben sei, wenn Ihre E-Mail-Adresse SellQo bereits bekannt war."

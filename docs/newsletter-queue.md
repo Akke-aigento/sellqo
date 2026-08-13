@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.09t — Knoppen in homepage-secties werken nu overal (bugfix, 13-08-2026)
+
+**Knoppen in je homepage-secties werken nu overal** (september 2026)
+Een knop in je hero- of tekstsectie bracht bezoekers soms op een pagina die niet bestond,
+omdat de link niet aan je winkel werd gekoppeld. Dat is opgelost: knoppen leiden nu altijd
+naar de juiste plek in je webshop. Verwijs je naar een externe website, dan opent die
+voortaan in een nieuw tabblad in plaats van te stranden.
+Wat betekent dit voor jou? Je hoeft niets aan te passen. Bestaande knoppen blijven werken
+en verwijzen voortaan naar de juiste pagina.
+
+**i18n-keys.** `public.changelog.changes.storefront_section_buttons` — NL/EN/FR/DE aanwezig.
+
 ### 2026.09p — Kassa berekent btw nu correct (bugfix, 10-08-2026)
 
 **Kassa berekent btw nu correct** (september 2026)

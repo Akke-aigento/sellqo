@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "storefront_section_buttons": {
+          "title": "Knoppen in je homepage-secties werken nu overal",
+          "description": "Een knop in je hero- of tekstsectie bracht bezoekers soms op een pagina die niet bestond, omdat de link niet aan je winkel werd gekoppeld. Dat is opgelost: knoppen leiden nu altijd naar de juiste plek in je webshop. Verwijs je naar een externe website, dan opent die voortaan in een nieuw tabblad in plaats van te stranden. Je hoeft niets aan te passen — bestaande knoppen blijven werken."
+        },
         "onboarding_existing_customer_fix": {
           "title": "Winkelsetup werkt ook voor bestaande klanten",
           "description": "We hebben een probleem opgelost waarbij het aanmaken van een winkel onterecht meldde dat de gekozen URL bezet was wanneer je e-mailadres al bij SellQo bekend was."
