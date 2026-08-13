@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "guest_checkout_vat_classification": {
+          "title": "Btw klopt nu ook bij bestellingen zonder klantaccount",
+          "description": "Bij een bestelling via gast-checkout werd de btw op de factuur niet altijd volgens het juiste btw-regime geclassificeerd, bijvoorbeeld bij verkoop naar een ander EU-land of buiten de EU. Dat is opgelost: gastbestellingen worden nu op dezelfde manier beoordeeld als bestellingen van klanten met een account. Je hoeft niets aan te passen."
+        },
         "storefront_section_buttons": {
           "title": "Knoppen in je homepage-secties werken nu overal",
           "description": "Een knop in je hero- of tekstsectie bracht bezoekers soms op een pagina die niet bestond, omdat de link niet aan je winkel werd gekoppeld. Dat is opgelost: knoppen leiden nu altijd naar de juiste plek in je webshop. Verwijs je naar een externe website, dan opent die voortaan in een nieuw tabblad in plaats van te stranden. Je hoeft niets aan te passen — bestaande knoppen blijven werken."

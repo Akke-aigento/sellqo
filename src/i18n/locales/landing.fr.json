@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "guest_checkout_vat_classification": {
+          "title": "La TVA est désormais correcte pour les commandes sans compte client",
+          "description": "Pour les commandes passées en tant qu'invité, la TVA sur la facture n'était pas toujours classée dans le bon régime de TVA, par exemple lors de ventes vers un autre pays de l'UE ou hors UE. C'est corrigé : les commandes invitées sont désormais traitées comme celles des clients disposant d'un compte. Aucune action n'est requise de votre part."
+        },
         "storefront_section_buttons": {
           "title": "Les boutons de vos sections d'accueil fonctionnent partout",
           "description": "Un bouton dans votre section héros ou texte menait parfois les visiteurs vers une page inexistante, car le lien n'était pas rattaché à votre boutique. C'est corrigé : les boutons mènent désormais toujours au bon endroit dans votre boutique en ligne. Si vous renvoyez vers un site externe, celui-ci s'ouvre maintenant dans un nouvel onglet au lieu d'échouer. Rien à modifier de votre côté — vos boutons existants continuent de fonctionner."

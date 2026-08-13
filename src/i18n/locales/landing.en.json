@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "guest_checkout_vat_classification": {
+          "title": "VAT is now correct for orders without a customer account",
+          "description": "For guest checkout orders, the VAT on the invoice was not always classified under the correct VAT regime, for example when selling to another EU country or outside the EU. This is fixed: guest orders are now assessed the same way as orders from customers with an account. No action needed on your side."
+        },
         "storefront_section_buttons": {
           "title": "Buttons in your homepage sections now work everywhere",
           "description": "A button in your hero or text section sometimes took visitors to a page that did not exist, because the link was not tied to your shop. That is fixed: buttons now always lead to the right place in your webshop. If you link to an external website, it now opens in a new tab instead of failing. Nothing to change on your end — existing buttons keep working."
