@@ -20,16 +20,15 @@ export interface Theme {
 }
 
 /**
- * Placeholder in seed-content die bij het toepassen wordt vervangen door het
- * winkelpad van de tenant (`/shop/<slug>`).
+ * Links in seed-content zijn shop-relatief (`/products`), net als wat de
+ * sectie-editor opslaat. De renderers lossen ze op tegen het winkelpad via
+ * `resolveShopLink` in `src/lib/shopLinks.ts`.
  *
- * Nodig omdat HeroSection en TextImageSection `button_link` rauw aan
- * react-router meegeven (`HeroSection.tsx:61`, `TextImageSection.tsx:43`),
- * zonder het winkelpad ervoor te zetten. Een seed met "/products" zou dus in
- * de admin-app belanden in plaats van in de winkel.
+ * Tot WEBSHOP-5A stond hier een `{{shop}}`-placeholder die bij het seeden werd
+ * vervangen. Die omzeilde de renderer-bug in plaats van hem op te lossen en
+ * creëerde een tweede conventie; migratie `20260813120000` heeft de drie
+ * template-seeds omgezet en de placeholder is daarmee vervallen.
  */
-export const SHOP_PATH_PLACEHOLDER = '{{shop}}';
-
 export interface TemplateSeedSection {
   section_type: HomepageSectionType;
   title: string | null;

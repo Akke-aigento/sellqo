@@ -1,0 +1,64 @@
+-- WEBSHOP-5A stap 4a: template-seeds naar de relatieve link-conventie
+--
+-- Verwijdert de {{shop}}-placeholder uit seed_definition van de drie
+-- launch-templates, zodat de seeds dezelfde conventie gebruiken als de
+-- sectie-editor. Die biedt in SectionEditor.tsx:66-79 bewust shop-relatieve
+-- paden aan (/products, /cart, /), en sinds WEBSHOP-5A lossen de renderers die
+-- op via resolveShopLink.
+--
+-- Achtergrond: WEBSHOP-3 introduceerde {{shop}} om de renderer-bug te omzeilen
+-- in plaats van hem op te lossen. Daardoor bestonden er twee conventies naast
+-- elkaar. Nu de renderers relatieve paden zelf oplossen, kan de placeholder weg.
+--
+-- REIKWIJDTE — bewust smal:
+--   * raakt UITSLUITEND public.themes, en daarbinnen alleen de drie rijen
+--     tpl-mode, tpl-food en tpl-minimal
+--   * raakt GEEN homepage_sections. De secties van tenants blijven exact zoals
+--     ze zijn, inclusief die van de custom-frontend tenants. Dat is het besluit
+--     uit docs/webshop-batch-5a-recon.md §6: get_homepage serveert content
+--     verbatim aan custom frontends, dus die data blijft onaangeroerd.
+--   * geen kolom toegevoegd, hernoemd, verwijderd of van default gewijzigd
+--   * geen enkele sleutelnaam in content of settings gewijzigd — alleen de
+--     waarde van button_link binnen de drie seed-bouwplannen
+--
+-- VEILIGHEID:
+--   * Idempotent. De WHERE-clausule slaat rijen zonder placeholder over, en een
+--     tweede uitvoering is daardoor een no-op.
+--   * De vervanging is een letterlijke substring-verwijdering. Alle zes de
+--     voorkomens zitten in button_link-waarden ({{shop}}/products,
+--     {{shop}}/page/about, {{shop}}/page/contact) en nergens in beschrijvende
+--     tekst; geverifieerd tegen de bron van migratie 20260812143000.
+--   * {{shop}} bevat geen aanhalingstekens of backslashes, dus de JSON blijft
+--     geldig na de vervanging.
+--
+-- TERUGDRAAIEN (geen DOWN-migratie): zet de placeholder terug met
+--   UPDATE public.themes
+--   SET seed_definition = REPLACE(seed_definition::text, '"/p', '"{{shop}}/p')::jsonb
+--   WHERE slug IN ('tpl-mode','tpl-food','tpl-minimal');
+-- Nodig is dat niet: resolveShopLink is idempotent en verwerkt beide
+-- conventies naar hetzelfde doel.
+
+UPDATE public.themes
+SET seed_definition = REPLACE(seed_definition::text, '{{shop}}', '')::jsonb
+WHERE slug IN ('tpl-mode', 'tpl-food', 'tpl-minimal')
+  AND seed_definition::text LIKE '%{{shop}}%';
+
+-- Controle na afloop. Verwacht: drie rijen, has_placeholder = false,
+-- en button_links die met / beginnen in plaats van met {{shop}}.
+--
+--   SELECT slug,
+--          seed_definition::text LIKE '%{{shop}}%' AS has_placeholder,
+--          jsonb_path_query_array(
+--            seed_definition,
+--            '$.sections[*].content.button_link'
+--          ) AS button_links
+--   FROM public.themes
+--   WHERE slug IN ('tpl-mode', 'tpl-food', 'tpl-minimal')
+--   ORDER BY sort_order;
+--
+-- En ter bevestiging dat er niets buiten themes is geraakt:
+--
+--   SELECT COUNT(*) AS secties_met_placeholder
+--   FROM public.homepage_sections
+--   WHERE content::text LIKE '%{{shop}}%';
+--   -- verwacht 0, zowel voor als na deze migratie

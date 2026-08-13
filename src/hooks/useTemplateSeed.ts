@@ -3,11 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
-import {
-  SHOP_PATH_PLACEHOLDER,
-  type Theme,
-  type TemplateSeedDefinition,
-} from '@/types/storefront';
+import type { Theme, TemplateSeedDefinition } from '@/types/storefront';
 
 export interface SeedOutcome {
   sectionsCreated: number;
@@ -15,29 +11,6 @@ export interface SeedOutcome {
   pagesCreated: number;
   /** Pagina's die al bestonden en dus ongemoeid zijn gelaten. */
   pagesSkipped: string[];
-}
-
-/**
- * Vervangt {{shop}} door het winkelpad van deze tenant, ook diep in objecten.
- *
- * Bewust niet generiek: een recursieve generic liet `tsc` hier vastlopen op
- * inferentie. `unknown` in en uit, casten gebeurt op de aanroepplek.
- */
-function resolveShopPaths(value: unknown, shopPath: string): unknown {
-  if (typeof value === 'string') {
-    return value.split(SHOP_PATH_PLACEHOLDER).join(shopPath);
-  }
-  if (Array.isArray(value)) {
-    return value.map((v) => resolveShopPaths(v, shopPath));
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = resolveShopPaths(v, shopPath);
-    }
-    return out;
-  }
-  return value;
 }
 
 /**
@@ -58,7 +31,6 @@ export function useTemplateSeed() {
       const seed = theme.seed_definition as TemplateSeedDefinition | null | undefined;
       if (!seed) throw new Error('Dit theme heeft geen bouwplan');
 
-      const shopPath = `/shop/${currentTenant.slug}`;
       const defaults = theme.default_settings;
 
       // 1. Theme-keuze en defaults. Dit zet theme_id — de kolom die tot nu toe
@@ -121,13 +93,16 @@ export function useTemplateSeed() {
         sectionsArchived = existingSections.length;
       }
 
-      // 3. Secties uit het bouwplan aanmaken.
+      // 3. Secties uit het bouwplan aanmaken. Content gaat ongewijzigd door:
+      //    de seeds gebruiken sinds WEBSHOP-5A dezelfde relatieve link-conventie
+      //    als de sectie-editor, en de renderers lossen die op via
+      //    resolveShopLink. Geen placeholder-vervanging meer nodig.
       const sectionRows = seed.sections.map((s) => ({
         tenant_id: currentTenant.id,
         section_type: s.section_type,
         title: s.title,
         subtitle: s.subtitle,
-        content: resolveShopPaths(s.content, shopPath) as unknown as Json,
+        content: s.content as unknown as Json,
         settings: s.settings as unknown as Json,
         sort_order: s.sort_order,
         is_visible: s.is_visible,
@@ -162,7 +137,7 @@ export function useTemplateSeed() {
               tenant_id: currentTenant.id,
               slug: p.slug,
               title: p.title,
-              content: resolveShopPaths(p.content, shopPath) as string,
+              content: p.content,
               is_published: true,
               show_in_nav: p.show_in_nav,
               nav_order: p.nav_order,
