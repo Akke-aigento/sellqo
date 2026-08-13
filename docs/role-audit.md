@@ -1,3 +1,36 @@
+## TICKET-1 (fase 1) — schema-fundament event tickets — 13 augustus 2026
+
+**Root cause:** n.v.t. — dit is geen fix maar een additief schema-fundament voor een nieuwe feature. Er bestond nog geen enkele opslag voor evenementdata, verkochte tickets of eenmalige wijzigingslinks.
+
+**Recon (vóór schrijven):**
+- *Betaald-detectie:* `handle_payment_notification` en `handle_order_notification` zijn puur notificatie-triggers op `orders` (reageren op statuswijzigingen), geen bron-van-waarheid. Het feitelijke "betaald" zetten gebeurt in `stripe-connect-webhook` (idempotent per event), in de POS-paden van `storefront-api` en in de bol-imports. Dat zijn de aangewezen punten om in een latere fase idempotent ticket-instances aan te maken — niet de notificatie-triggers.
+- *Tokenpatroon:* `mandate_setup_tokens` heeft `token` (text, unique), `expires_at` (default now() + 7 dagen), `used_at` (nullable), `context` (jsonb, nullable), `created_at`. `ticket_change_tokens` volgt exact dat patroon.
+- *Blast radius `product_type`:* geen exhaustieve switch/match zonder default-tak in `src/` of `supabase/functions/`. Alle checks zijn specifieke gelijkheidstests (bv. `=== 'bundle'`, `=== 'gift_card'`). In `ProductForm.tsx` staat een zod-enum die in fase 2 uitgebreid moet worden; die breekt nu niets omdat er nog geen ticket-producten bestaan. De `products`-tabel is niet aangeraakt: 127 kolommen en 9 policies vóór én na de batch.
+
+**Uitgevoerd:**
+- Migratie 1: `ALTER TYPE public.product_type ADD VALUE IF NOT EXISTS 'ticket'` — enum nu `physical, digital, service, subscription, bundle, gift_card, ticket`.
+- Migratie 2: nieuwe tabellen `public.event_details`, `public.ticket_instances`, `public.ticket_change_tokens` + RLS + de security-definer helpers `public.get_public_events(p_tenant_id uuid)` en `public.get_event_signup_count(p_event_detail_id uuid)`.
+- Migratie 3 (grant-lockdown, zie Security): `REVOKE ALL ... FROM anon` op alle drie de tabellen, `REVOKE ALL ... FROM authenticated` op `ticket_change_tokens` en `ticket_instances`, daarna gericht `GRANT SELECT, UPDATE ON ticket_instances TO authenticated`.
+
+**Security-keuzes:**
+- Eerste migratiepoging faalde op `ERROR 42725: function public.get_user_tenant_ids() is not unique` — er bestaan twee overloads (zonder args en met `_user_id uuid`). Alle policies gebruiken nu de expliciete vorm `tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))`, conform het patroon in de bestaande migraties.
+- **Bevinding om te onthouden:** dit project heeft default privileges die nieuwe public-tabellen automatisch volledige rechten geven aan `anon` én `authenticated` (SELECT/INSERT/UPDATE/DELETE/TRIGGER/TRUNCATE/REFERENCES/MAINTAIN). Een `CREATE TABLE` zonder expliciete `REVOKE` levert dus stil een anon-grant op. RLS blokkeerde de rijen al (geen anon-policy), maar table-level rechten zijn nu weggehaald zodat de grant-laag en de policy-laag hetzelfde zeggen.
+- `event_details`: 4 policies (select/insert/update/delete), alle `TO authenticated` met tenant-check + `has_tenant_role(tenant_id, ARRAY['tenant_admin','staff'])`. Anon heeft geen enkel recht; de publieke weg loopt uitsluitend via `get_public_events`.
+- `ticket_instances`: 2 policies (select/update) voor tenant_admin/staff — bekijken en check-in. Insert/delete bewust niet: die komen in fase 2 van de service-role.
+- `ticket_change_tokens`: RLS aan, **0 policies**, geen grants voor anon of authenticated. Volledig dichtgezet; de e-mailknoppen lopen in een latere fase via een edge function met service-role.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api`, `checkout-engine` en `storefront-resolve` zijn niet aangeraakt. De gedeelde tabellen (`products`, `tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`) zijn niet gewijzigd — geen kolom bij, geen policy aangeraakt. Een nieuwe enum-waarde is voor de vijf custom frontends onzichtbaar zolang geen product hem gebruikt, en de recon toonde aan dat geen enkele consumer op een exhaustieve match zonder default-tak leunt. Het JSON-contract is byte-voor-byte identiek.
+
+**Verificatie:**
+- `products`: 127 kolommen / 9 policies vóór en na — ongewijzigd.
+- Enum bevat `ticket`; RLS staat aan op alle drie de tabellen (`relrowsecurity = true`).
+- Policy-telling: `event_details` 4, `ticket_instances` 2, `ticket_change_tokens` 0 (bedoeld).
+- Grant-natrek via `aclexplode(relacl)` ná de lockdown: `anon` komt op geen van de drie tabellen meer voor; `authenticated` heeft enkel `event_details` (select/insert/update/delete) en `ticket_instances` (select/update); `ticket_change_tokens` heeft voor beide rollen niets.
+- Beide helpers zijn `prosecdef = true` met `search_path = public` en EXECUTE voor anon/authenticated/service_role.
+- Rol-impersonatie via `SET LOCAL ROLE anon` was niet uitvoerbaar: de query-runner weigert met `42501: permission denied to set role "anon"`. De grant-diff hierboven is daarom het bewijs in plaats van een rijtelling per rol; een echte anon-meting volgt in fase 2 zodra `get_public_events` via de storefront wordt aangeroepen.
+
+**Bewust ongemoeid / Vervolg:** geen UI, geen `storefront-api`-wijziging, geen frontend — conform de opdracht. Changelog, `doc_articles` en `docs/newsletter-queue.md` overgeslagen: deze batch verandert geen tenant-zichtbaar gedrag (lege tabellen, geen bereikbare feature); die slottaken horen bij de fase waarin tickets daadwerkelijk verkoopbaar worden. Open voor fase 2: zod-enum in `ProductForm.tsx` uitbreiden, idempotente ticket-creatie in `stripe-connect-webhook` en de POS/bol-betaalpaden, insert-pad voor `ticket_instances` via service-role, en de edge function achter `ticket_change_tokens`.
+
 ## GUEST-VAT-1 — btw-regime bij gast-bestellingen + read-only Odoo-tax recon — 13 augustus 2026
 
 **Root cause:** in `supabase/functions/generate-invoice/index.ts` werd de btw-regime-resolutie alleen uitgevoerd wanneer `order.customer_id` bestond. Gast-bestellingen (`customer_id` NULL) vielen in de `else`-tak met de log `"VAT regime skipped — guest order, using fallback"` en kregen daardoor altijd `domestic_standard`. Cross-border EU B2C gast-verkopen (bv. NL met OSS actief) en verkopen buiten de EU werden zo in het verkeerde btw-vak geboekt. De pure beslisboom `decideVatRegime` in `supabase/functions/_shared/regimeResolver.ts:138` heeft geen customer-record nodig; alleen de DB-variant `resolveVatRegime` doet een verplichte customer-lookup.
