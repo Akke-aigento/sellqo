@@ -17719,6 +17719,7 @@ export type Database = {
       }
       themes: {
         Row: {
+          category: string | null
           created_at: string | null
           default_settings: Json | null
           description: string | null
@@ -17727,9 +17728,13 @@ export type Database = {
           is_premium: boolean | null
           name: string
           preview_image_url: string | null
+          preview_mobile_url: string | null
+          seed_definition: Json | null
           slug: string
+          sort_order: number | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           default_settings?: Json | null
           description?: string | null
@@ -17738,9 +17743,13 @@ export type Database = {
           is_premium?: boolean | null
           name: string
           preview_image_url?: string | null
+          preview_mobile_url?: string | null
+          seed_definition?: Json | null
           slug: string
+          sort_order?: number | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           default_settings?: Json | null
           description?: string | null
@@ -17749,7 +17758,10 @@ export type Database = {
           is_premium?: boolean | null
           name?: string
           preview_image_url?: string | null
+          preview_mobile_url?: string | null
+          seed_definition?: Json | null
           slug?: string
+          sort_order?: number | null
         }
         Relationships: []
       }
