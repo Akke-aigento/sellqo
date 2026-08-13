@@ -1,15 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { ShopLayout } from '@/components/storefront/ShopLayout';
-import { HeroSection } from '@/components/storefront/sections/HeroSection';
-import { FeaturedProductsSection } from '@/components/storefront/sections/FeaturedProductsSection';
-import { CollectionSection } from '@/components/storefront/sections/CollectionSection';
-import { TextImageSection } from '@/components/storefront/sections/TextImageSection';
-import { NewsletterSection } from '@/components/storefront/sections/NewsletterSection';
-import { TestimonialsSection } from '@/components/storefront/sections/TestimonialsSection';
-import { VideoSection } from '@/components/storefront/sections/VideoSection';
-import { ExternalReviewsSection } from '@/components/storefront/sections/ExternalReviewsSection';
-import { AnnouncementSection } from '@/components/storefront/sections/AnnouncementSection';
+import { getSectionRenderer } from '@/components/storefront/sections/registry';
 import type { HomepageSection } from '@/types/storefront';
 import { Helmet } from 'react-helmet-async';
 
@@ -17,31 +9,20 @@ export default function ShopHome() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { tenant, themeSettings, homepageSections } = usePublicStorefront(tenantSlug || '');
 
+  const basePath = `/shop/${tenantSlug}`;
+
   const renderSection = (section: HomepageSection) => {
-    const key = section.id;
-    
-    switch (section.section_type) {
-      case 'hero':
-        return <HeroSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'featured_products':
-        return <FeaturedProductsSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'collection':
-        return <CollectionSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'text_image':
-        return <TextImageSection key={key} section={section} />;
-      case 'newsletter':
-        return <NewsletterSection key={key} section={section} tenantId={tenant?.id} />;
-      case 'testimonials':
-        return <TestimonialsSection key={key} section={section} />;
-      case 'video':
-        return <VideoSection key={key} section={section} />;
-      case 'announcement':
-        return <AnnouncementSection key={key} section={section} />;
-      case 'external_reviews':
-        return <ExternalReviewsSection key={key} section={section} tenantId={tenant?.id} />;
-      default:
-        return null;
-    }
+    const Renderer = getSectionRenderer(section.section_type);
+    if (!Renderer) return null;
+
+    return (
+      <Renderer
+        key={section.id}
+        section={section}
+        tenantId={tenant?.id}
+        basePath={basePath}
+      />
+    );
   };
 
   return (
