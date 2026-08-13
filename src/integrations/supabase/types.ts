@@ -19625,6 +19625,7 @@ export type Database = {
         | "subscription"
         | "bundle"
         | "gift_card"
+        | "ticket"
       purchase_order_status:
         | "draft"
         | "sent"
@@ -19948,6 +19949,7 @@ export const Constants = {
         "subscription",
         "bundle",
         "gift_card",
+        "ticket",
       ],
       purchase_order_status: [
         "draft",
