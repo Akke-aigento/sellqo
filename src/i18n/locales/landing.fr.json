@@ -1026,8 +1026,8 @@
     "changelog": {
       "changes": {
         "guest_checkout_vat_classification": {
-          "title": "La TVA est desormais correcte pour les commandes sans compte client",
-          "description": "Pour les commandes passees en tant qu'invite, la TVA sur la facture n'etait pas toujours classee dans le bon regime de TVA, par exemple lors de ventes vers un autre pays de l'UE ou hors UE. C'est corrige : les commandes invitees sont desormais traitees comme celles des clients disposant d'un compte. Aucune action n'est requise de votre part."
+          "title": "La TVA est désormais correcte pour les commandes sans compte client",
+          "description": "Pour les commandes passées en tant qu'invité, la TVA sur la facture n'était pas toujours classée dans le bon régime de TVA, par exemple lors de ventes vers un autre pays de l'UE ou hors UE. C'est corrigé : les commandes invitées sont désormais traitées comme celles des clients disposant d'un compte. Aucune action n'est requise de votre part."
         },
         "storefront_section_buttons": {
           "title": "Les boutons de vos sections d'accueil fonctionnent partout",
