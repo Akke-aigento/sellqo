@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "guest_checkout_vat_classification": {
+          "title": "Umsatzsteuer stimmt jetzt auch bei Bestellungen ohne Kundenkonto",
+          "description": "Bei Bestellungen ueber den Gast-Checkout wurde die Umsatzsteuer auf der Rechnung nicht immer dem richtigen Steuerregime zugeordnet, etwa beim Verkauf in ein anderes EU-Land oder ausserhalb der EU. Das ist behoben: Gastbestellungen werden nun genauso bewertet wie Bestellungen von Kunden mit Konto. Sie muessen nichts anpassen."
+        },
         "storefront_section_buttons": {
           "title": "Buttons in deinen Startseiten-Abschnitten funktionieren überall",
           "description": "Ein Button in deinem Hero- oder Textabschnitt führte Besucher manchmal auf eine nicht vorhandene Seite, weil der Link nicht mit deinem Shop verknüpft war. Das ist behoben: Buttons führen jetzt immer an die richtige Stelle in deinem Webshop. Verweist du auf eine externe Website, öffnet diese nun in einem neuen Tab, statt ins Leere zu laufen. Du musst nichts anpassen — bestehende Buttons funktionieren weiter."
