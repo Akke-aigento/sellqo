@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_credit_note_tax": {
+          "title": "Mehrwertsteuer auf Erstattungen von EU-Verkäufen wird jetzt mit dem richtigen Satz verbucht",
+          "description": "Bei Erstattungen von Verkäufen an Verbraucher in einem anderen EU-Land wurde in der Buchhaltungsschnittstelle teilweise der belgische Mehrwertsteuersatz statt des Satzes im Land Ihrer Kundschaft verwendet. Das ist behoben: Gutschriften für OSS-Verkäufe werden jetzt mit dem richtigen landesspezifischen Satz verbucht. Sie müssen nichts anpassen."
+        },
         "odoo_oss_tax_selection": {
           "title": "OSS-Verkäufe werden jetzt mit dem richtigen landesspezifischen Mehrwertsteuersatz verbucht",
           "description": "Wenn Sie im Rahmen der EU-OSS-Regelung an Verbraucher in einem anderen EU-Land verkaufen, wurde in der Buchhaltungsanbindung teilweise der belgische Mehrwertsteuersatz statt des Satzes im Land Ihrer Kundschaft verwendet. Das ist behoben: OSS-Verkäufe werden jetzt mit dem richtigen landesspezifischen Satz verbucht. Sie müssen nichts anpassen."

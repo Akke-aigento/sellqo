@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_credit_note_tax": {
+          "title": "Btw op terugbetalingen van EU-verkopen wordt nu met het juiste tarief geboekt",
+          "description": "Bij terugbetalingen van verkopen aan consumenten in een ander EU-land werd in de boekhoudkoppeling soms het Belgische btw-tarief gebruikt in plaats van het tarief van het land van je klant. Dat is opgelost: creditnota's voor OSS-verkopen worden nu met het juiste landspecifieke btw-tarief geboekt. Je hoeft niets aan te passen."
+        },
         "odoo_oss_tax_selection": {
           "title": "OSS-verkopen worden nu met het juiste landspecifieke btw-tarief geboekt",
           "description": "Verkoop je onder de EU-OSS-regeling aan consumenten in een ander EU-land, dan werd in de boekhoudkoppeling soms het Belgische btw-tarief gebruikt in plaats van het tarief van het land van je klant. Dat is opgelost: OSS-verkopen worden nu met het juiste landspecifieke btw-tarief in de boekhouding geboekt. Je hoeft niets aan te passen."
