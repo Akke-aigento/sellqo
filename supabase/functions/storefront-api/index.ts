@@ -3102,6 +3102,13 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // wanneer de order geen ticket_instances heeft, dus niet-ticket orders
   // ondervinden geen gedragswijziging.
   try {
+    // Trigger vuurt AFTER INSERT (vóór de order_items) — idempotente RPC
+    // garandeert dat de tickets bestaan vóór de mail verstuurd wordt.
+    const { error: issueErr } = await supabase.rpc('issue_tickets_for_order', { p_order_id: newOrder.id });
+    if (issueErr) console.warn('issue_tickets_for_order failed:', issueErr.message);
+  } catch {}
+
+  try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
       method: 'POST',
