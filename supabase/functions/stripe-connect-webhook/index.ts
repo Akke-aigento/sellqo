@@ -579,6 +579,12 @@ serve(async (req) => {
             }
           }
 
+          // TICKET-1 fase 4d: idempotente ticket-uitgifte (consistentie met cart-flow).
+          try {
+            const { error: issueErr } = await supabaseClient.rpc('issue_tickets_for_order', { p_order_id: orderId });
+            if (issueErr) logStep('issue_tickets_for_order failed (non-blocking)', { error: issueErr.message });
+          } catch (e) { logStep('issue_tickets_for_order threw (non-blocking)', { error: e instanceof Error ? e.message : String(e) }); }
+
           // Generate invoice
           try {
             const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
