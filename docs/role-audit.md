@@ -12,7 +12,7 @@
 **Gedeelde-paden-waarschuwing** — `storefront-api` bedient vijf custom frontends. De wijziging zit volledig binnen de ticket-tak: een item zonder `event_detail_id` doorloopt exact hetzelfde codepad als vóór deze fase. Het JSON-contract is ongewijzigd (geen nieuwe of hernoemde sleutels in de cart-response); enkel de waarde van `unit_price` kan afwijken, en alleen voor ticketproducten mét early-bird-configuratie.
 
 **Verificatie** (live tegen de gedeployde functie; testevent `17efe0cc…`, regulier € 19,00, early bird € 12,00)
-- **Niet-ticket byte-identiek** (belangrijkste regressietest): Demo Bakkerij-product zonder `event_detail_id`, prijs 29.99 → `unit_price = 29.00`… gemeten: **29.99**, exact `product.price`.
+- **Niet-ticket byte-identiek** (belangrijkste regressietest): Demo Bakkerij-product zonder `event_detail_id`, prijs 29.99 → `unit_price` = **29.99**, exact `product.price`.
 - early_bird_price gezet, geen deadline/quantity → **12.00**.
 - merge: zelfde ticket 2× toevoegen → `quantity = 2`, `unit_price = 12.00` (beide keren de early-bird-prijs).
 - deadline in het verleden (2026-08-01) → **19.00**.
