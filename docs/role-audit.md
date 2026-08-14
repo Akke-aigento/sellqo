@@ -1,3 +1,26 @@
+## TICKET-1 fase 4d — Timing-gat in stripe-connect-webhook (Gat C) — 14 augustus 2026
+
+**Root cause** — De fase-4a trigger `trg_issue_tickets_on_paid` is `AFTER INSERT OR UPDATE OF payment_status ... WHEN payment_status='paid'` op `orders`. De cart-flow in `supabase/functions/stripe-connect-webhook/index.ts` insert de order al mét `payment_status: "paid"` (regel ~395) en pas daarna de regels via `order_items.insert(...)` (regel ~440). Op triggermoment bestaan er dus geen ticketregels: de functie vindt niets en maakt geen `ticket_instances`. Gevolg vóór deze fix: een échte betaalde ticket-order via Stripe leverde geen tickets op en de fase-4b ticket-mail (fetch op ~507) was leeg.
+
+**Uitgevoerd** — strikt additief, twee blokken toegevoegd, geen bestaande regel gewijzigd:
+- `supabase/functions/stripe-connect-webhook/index.ts` — cart-flow: non-blocking `supabaseClient.rpc('issue_tickets_for_order', { p_order_id: newOrder.id })` direct ná `order_items.insert(orderItems)` en vóór "Mark cart as converted" — dus ruim vóór de `send-ticket-confirmation`-fetch, zodat de tickets bestaan wanneer de mail afgaat.
+- Zelfde bestand — legacy-flow (`else if (orderId)`): identieke aanroep met `orderId`, ná de stock-update en vóór de invoice- en `send-ticket-confirmation`-fetches. Daar gaat de order via `UPDATE` naar paid (items bestaan al), dus de trigger werkt; de aanroep is er voor consistentie en is idempotent.
+- Beide blokken hebben een eigen `try/catch` met `logStep`, zodat de webhook nooit kan breken.
+
+**Security-keuzes** — n.v.t.: geen RLS, policies, grants of schemawijzigingen. `issue_tickets_for_order` is `SECURITY DEFINER` en had al `EXECUTE` voor `service_role` (bevestigd via `pg_proc.proacl`); niets toegevoegd of gewijzigd.
+
+**Gedeelde-paden-waarschuwing** — `stripe-connect-webhook` bedient alle tenants inclusief de vijf custom frontends. Veilig omdat: (1) er geen bestaande regel of respons-veld wijzigt; (2) `issue_tickets_for_order` returnt zonder effect voor orderregels zonder `event_detail_id`, dus niet-ticket orders krijgen geen tickets en geen fout; (3) de aanroep is idempotent via de unique index `(order_item_id, seq)`; (4) beide blokken zijn non-blocking, een fout wordt alleen gelogd.
+
+**Verificatie** — zelfopruimende `DO`-block die de exacte webhook-volgorde nabootst op tenant Fonske (`95f6685b-3474-42fe-81ad-a5e6ca3d6806`, product `1daee896-a794-4076-b41e-8f511305f2a6`, event_detail `17efe0cc-e8ec-45b8-b2c6-6d72122249bd`, qty 2):
+- (a) order geïnsert met `payment_status='paid'` zónder items → **0** ticket_instances (bevestigt Gat C)
+- (b) na insert van de order_items met `event_detail_id` → nog steeds **0** (trigger vuurt niet opnieuw)
+- (c) na 1e `issue_tickets_for_order` → **2**
+- (d) na 2e `issue_tickets_for_order` → **2** (idempotent)
+De block faalde bewust met een exception bij elke andere uitkomst; hij liep zonder fout. Testdata volledig verwijderd; natrek: `orders`-rij = 0, `order_items` = 0.
+- `stripe-connect-webhook` gedeployed. `storefront-api` niet aangeraakt.
+
+**Bewust ongemoeid / Vervolg** — Geen changelog- of nieuwsbrief-entry: fase 6 bundelt de publieke communicatie van de ticket-feature. De trigger `trg_issue_tickets_on_paid` blijft ongewijzigd (nog nuttig voor handmatige status-updates in de admin). Overige webhook-takken (`payment_intent`, refunds) niet aangeraakt.
+
 ## TICKET-1 fase 4c — Gratis (€0) ticketpad + ontbrekende ticket-mail — 14 augustus 2026
 
 **Doel** — De backend sluitend maken: zowel betaald als gratis leidt tot `ticket_instances` + bevestigingsmails. Strikt additief in `storefront-api`; Stripe- en bank_transfer-takken ongewijzigd.
