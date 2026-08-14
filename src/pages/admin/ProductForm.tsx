@@ -37,6 +37,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
+import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDatesTab';
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
@@ -278,6 +279,7 @@ export default function ProductForm() {
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
   const isBundle = productType === 'bundle';
+  const isTicket = productType === 'ticket';
   const bundlePricingModel = form.watch('bundle_pricing_model');
 
   // Initialize bundle items from loaded data
@@ -364,7 +366,7 @@ export default function ProductForm() {
 
   const handleProductTypeChange = (type: ProductType) => {
     form.setValue('product_type', type, { shouldDirty: true });
-    if (type === 'digital' || type === 'service' || type === 'gift_card') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card' || type === 'ticket') {
       form.setValue('requires_shipping', false, { shouldDirty: true });
       form.setValue('track_inventory', false, { shouldDirty: true });
     } else if (type === 'physical') {
