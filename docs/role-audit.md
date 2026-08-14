@@ -1,3 +1,26 @@
+## TICKET-1 fase 4c — Gratis (€0) ticketpad + ontbrekende ticket-mail — 14 augustus 2026
+
+**Doel** — De backend sluitend maken: zowel betaald als gratis leidt tot `ticket_instances` + bevestigingsmails. Strikt additief in `storefront-api`; Stripe- en bank_transfer-takken ongewijzigd.
+
+**Uitgevoerd**
+- `supabase/functions/storefront-api/index.ts` — `checkoutComplete`: nieuwe €0-tak direct na de totaalberekening (`totalCents = Math.round(total * 100)`, tak vuurt enkel bij `<= 0`), vóór de Stripe-map. Blauwdruk = het bank_transfer-blok: voorraad afboeken, cart-`payment_method='free'`, `createOrderFromCart(..., 'paid')`, factuur best-effort, en non-blocking `send-order-confirmation` + `send-ticket-confirmation`.
+- `supabase/functions/storefront-api/index.ts` — `checkoutVerifyPayment`: **Gat A** gedicht met een non-blocking `send-ticket-confirmation`-fetch náást de bestaande `send-order-confirmation`-fetch (patroon van `stripe-connect-webhook` ~507). Geen bestaande regel gewijzigd.
+- Beide paden roepen bovendien de bestaande idempotente RPC `issue_tickets_for_order(p_order_id)` expliciet aan.
+
+**Waarom die RPC-aanroep nodig is (nieuw feit)** — de fase-4a trigger `trg_issue_tickets_on_paid` is `AFTER INSERT OR UPDATE OF payment_status` op `orders`. Bij een order die al bij INSERT `paid` is, bestaan de `order_items` nog niet, dus de trigger vindt geen ticketregels en maakt niets aan. De expliciete RPC ná het inserten van de items sluit dat gat; dubbele aanroepen zijn veilig door de partiële unique index `ux_ticket_instances_orderitem_seq (order_item_id, seq)`.
+
+**Security-keuzes** — n.v.t.: geen RLS/policies/grants geraakt. `issue_tickets_for_order` had al `EXECUTE` voor `service_role` (bevestigd via `pg_proc.proacl`); niets toegevoegd. Geen DB-schemawijziging.
+
+**Gedeelde-paden-waarschuwing (G1)** — `checkoutComplete` bedient alle tenants én de vijf custom frontends. Veilig omdat: (1) de €0-tak alleen vuurt bij `Math.round(total*100) <= 0` — bij elk positief totaal valt de code onveranderd door naar de Stripe- respectievelijk bank_transfer-tak; (2) `payment_method='free'` is intern en is **niet** toegevoegd aan `available_payment_methods` (regel ~1821) of aan de methodelijst (`bank_transfer_enabled`, regel ~242) — het JSON-contract is byte-identiek; (3) de `PAYMENT_METHOD_NOT_AVAILABLE`-check op regel ~2405 is bewust ongewijzigd gelaten, zodat de foutvolgorde voor bestaande frontends identiek blijft; een €0-cart krijgt nog steeds een normale methodelijst en de meegestuurde methode wordt simpelweg genegeerd zodra het totaal ≤ 0 is; (4) `send-ticket-confirmation` skipt zichzelf zonder `ticket_instances`, dus niet-ticket orders veranderen niet.
+
+**Verificatie**
+- SQL-test (zelfopruimende `DO`-block op SellQo-testtenant, ticketproduct "Early bird ticket", qty 2): tickets na INSERT-trigger = 0 (bevestigt de timing-gap), na 1e RPC = 2, na 2e RPC = 2 (idempotent). Testdata volledig verwijderd; natrek: `orders LIKE 'TEST-4C%'` = 0, tickets met testmail = 0.
+- Idempotentie order-niveau: dubbel indienen levert geen tweede order — `checkoutComplete` blokkeert op `cart.checkout_status === 'converted'` (regel ~2410) en `createOrderFromCart` zet die status (regel ~2124), exact zoals bank_transfer.
+- `storefront-api` gedeployed; typecheck zonder fouten.
+
+**Bewust ongemoeid / Vervolg**
+- `stripe-connect-webhook` niet aangeraakt (conform opdracht). **Openstaand risico**: die webhook insert de order óók al als `paid` (regel ~395) vóór de `order_items` (regel ~440), dus daar ontstaat dezelfde timing-gap en worden er bij een echte betaalde ticket-order géén `ticket_instances` gemaakt — de fase-4b mail heeft dan niets te sturen. Voorstel voor fase 4d: één additieve `issue_tickets_for_order`-aanroep ná de items-insert, of de trigger verplaatsen naar `order_items`.
+- Geen changelog/newsletter (fase 6 bundelt).
 ## TICKET-1 fase 4b — Bevestigingsmail met QR-tickets — 14 augustus 2026
 
 **Doel** — Bij een betaalde ticket-order één e-mail met alle QR-codes onder elkaar (optie 1), zonder PDF-bijlage. Strikt additief; de mail/betaalflow van niet-ticket orders blijft ongewijzigd.
