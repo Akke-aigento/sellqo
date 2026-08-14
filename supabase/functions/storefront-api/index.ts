@@ -38,6 +38,68 @@ interface CartGift {
 
 // ============== PROMOTION UTILS ==============
 
+// ============== TICKET-1 fase 6a-1: middernacht-veilig eventvenster ==============
+// Een event mag niet uit de lijst vallen zolang het nog bezig is (crawl 21:00 -> 03:00).
+// Query-ondergrens is daarom "gisteren" (kalenderdag), de echte afkap gebeurt in JS
+// op het tijdvenster (end_time, of start_time + 8u marge) in de event-timezone.
+const EVENT_DEFAULT_TZ = 'Europe/Brussels';
+const EVENT_FALLBACK_DURATION_MS = 8 * 60 * 60 * 1000;
+
+function eventQueryLowerBound(now: Date = new Date()): string {
+  return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+// Offset (ms) van een tijdzone t.o.v. UTC op een gegeven moment.
+function tzOffsetMs(utcDate: Date, timeZone: string): number {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone, hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const p: Record<string, string> = {};
+    for (const part of dtf.formatToParts(utcDate)) p[part.type] = part.value;
+    const asUtc = Date.UTC(
+      Number(p.year), Number(p.month) - 1, Number(p.day),
+      Number(p.hour) % 24, Number(p.minute), Number(p.second),
+    );
+    return asUtc - utcDate.getTime();
+  } catch {
+    return 0;
+  }
+}
+
+// Zet "event_date + time" in de event-timezone om naar een UTC-instant.
+function zonedToUtc(dateStr: string, timeStr: string, timeZone: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh = 0, mm = 0, ss = 0] = (timeStr || '00:00:00').split(':').map(Number);
+  const naive = Date.UTC(y, (m || 1) - 1, d || 1, hh, mm, ss);
+  // twee passes voor DST-grenzen
+  let offset = tzOffsetMs(new Date(naive), timeZone);
+  offset = tzOffsetMs(new Date(naive - offset), timeZone);
+  return naive - offset;
+}
+
+// true zolang het event nog bezig of toekomstig is.
+function isEventStillOpen(
+  ev: { event_date: string; start_time?: string | null; end_time?: string | null; timezone?: string | null },
+  now: Date = new Date(),
+): boolean {
+  if (!ev?.event_date) return true;
+  const tz = ev.timezone || EVENT_DEFAULT_TZ;
+  const startUtc = zonedToUtc(ev.event_date, ev.start_time || '00:00:00', tz);
+  let endUtc: number;
+  if (ev.end_time) {
+    endUtc = zonedToUtc(ev.event_date, ev.end_time, tz);
+    // eindtijd vóór starttijd => event loopt over middernacht
+    if (endUtc <= startUtc) endUtc += 24 * 60 * 60 * 1000;
+  } else {
+    endUtc = startUtc + EVENT_FALLBACK_DURATION_MS;
+  }
+  return now.getTime() < endUtc;
+}
+
+
 function isMobileUserAgent(ua: string | null | undefined): boolean {
   return isMobileUA(ua);
 }
@@ -499,11 +561,13 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone')
       .eq('product_id', product.id)
       .eq('tenant_id', tenantId)
-      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .gte('event_date', eventQueryLowerBound())
       .not('status', 'in', '(cancelled,skipped,merged)')
       .order('event_date', { ascending: true });
 
-    const withCounts = await Promise.all((events || []).map(async (e: any) => {
+    const openEvents = (events || []).filter((e: any) => isEventStillOpen(e));
+
+    const withCounts = await Promise.all(openEvents.map(async (e: any) => {
       const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: e.id });
       const sold = typeof cnt === 'number' ? cnt : 0;
       return {
@@ -703,13 +767,14 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   if (ticketProductIds.length > 0) {
     const { data: ticketEvents } = await supabase
       .from('event_details')
-      .select('product_id, event_date')
+      .select('product_id, event_date, start_time, end_time, timezone')
       .eq('tenant_id', tenantId)
       .in('product_id', ticketProductIds)
-      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .gte('event_date', eventQueryLowerBound())
       .not('status', 'in', '(cancelled,skipped,merged)')
       .order('event_date', { ascending: true });
     for (const ev of ticketEvents || []) {
+      if (!isEventStillOpen(ev)) continue;
       if (!nextEventDateMap[ev.product_id]) nextEventDateMap[ev.product_id] = ev.event_date;
     }
   }

@@ -1,3 +1,22 @@
+## TICKET-1 fase 6a-1 — Middernacht-fix in storefront-api event-lijst — 14 augustus 2026
+
+**Root cause** — De event-datumfilter in de gedeelde `storefront-api` kapte op de UTC-kalenderdag af: `.gte('event_date', new Date().toISOString().slice(0, 10))` op twee plekken — `getProduct` (detail, oude r.502) en `getProducts` (lijst, oude r.709). Een crawl die om 21:00 begint en tot 03:00 doorloopt verdween daardoor midden in het lopende event uit de storefront, zodra het in UTC "morgen" werd.
+
+**Uitgevoerd** (strikt additief, alleen de ticket-tak)
+- `supabase/functions/storefront-api/index.ts` — nieuwe helpers boven de promotion-utils: `eventQueryLowerBound()` (ondergrens = gisteren i.p.v. vandaag), `tzOffsetMs()`, `zonedToUtc()` (twee passes voor DST) en `isEventStillOpen()`. Eind van het venster = `event_date + end_time` (met +24u wanneer `end_time <= start_time`, dus over-middernacht), of `start_time + 8u` als `end_time` leeg is. Timezone uit de `timezone`-kolom, fallback `Europe/Brussels`.
+- `getProduct`: query-ondergrens naar `eventQueryLowerBound()`, daarna `openEvents = events.filter(isEventStillOpen)` vóór het tellen. Response-key `event: { upcoming: [...] }` met `tickets_sold`, `spots_left`, `min_reached` ongewijzigd.
+- `getProducts`: `start_time, end_time, timezone` toegevoegd aan de select (nodig voor de venstercheck), ondergrens naar gisteren, en `if (!isEventStillOpen(ev)) continue;` in de bestaande lus. `next_event_date` blijft exact hetzelfde veld.
+
+**Security-keuzes** — n.v.t. Geen RLS, policy of grant geraakt; enkel leesfilters binnen bestaande tenant-gescope queries (`.eq('tenant_id', tenantId)` blijft staan).
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` bedient vijf custom frontends. Beide gewijzigde takken zitten achter `product_type === 'ticket'` respectievelijk een niet-lege `ticketProductIds`-lijst; producten zonder `event_details` raken de gewijzigde code niet. Geen response-veld hernoemd, verwijderd of van type veranderd — alleen nieuwe velden in een interne select. Het niet-ticket pad is byte-identiek.
+
+**Verificatie** — Filterlogica geïsoleerd getest tegen de echte helpers: event vandaag 21:00 zonder `end_time` blijft zichtbaar op 01:00 UTC de volgende dag; event gisteren 21:00-03:00 is zichtbaar op 00:30 UTC (02:30 Brussel) en weg vanaf 01:00 UTC (03:00 Brussel) en op 12:00; event 3 dagen terug weg; event volgende week zichtbaar; ontbrekende `timezone` valt correct terug op Brussel. Query-ondergrens gaf `2026-08-13` bij "vandaag" `2026-08-14`. Geen databaserijen aangemaakt, dus geen opruiming nodig (0 testrijen). `tsgo -p tsconfig.app.json` = 0 fouten; `storefront-api` gedeployed.
+
+**Bewust ongemoeid / Vervolg** — Check-in pad (fase 5) al datum-onafhankelijk, niet aangeraakt. `search_products` levert nog geen `product_type`/eventinfo; `cart_add_item`-datumvalidatie ongemoeid. Changelog en nieuwsbrief worden gebundeld aan het eind van fase 6.
+
+---
+
 ## TICKET-1 fase 5 — Check-in PWA (QR-scannen aan de deur) — 14 augustus 2026
 
 **Doel** — Host/crew scant QR-tickets aan de ingang: token -> validatie -> `status='checked_in'`. Dubbelscan geeft "al ingecheckt", ongeldig wordt afgewezen, host kan terugdraaien.
