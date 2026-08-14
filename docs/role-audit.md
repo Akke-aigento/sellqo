@@ -1,3 +1,31 @@
+## TICKET-1 fase 4b — Bevestigingsmail met QR-tickets — 14 augustus 2026
+
+**Doel** — Bij een betaalde ticket-order één e-mail met alle QR-codes onder elkaar (optie 1), zonder PDF-bijlage. Strikt additief; de mail/betaalflow van niet-ticket orders blijft ongewijzigd.
+
+**Uitgevoerd**
+- `supabase/functions/send-ticket-confirmation/index.ts` (nieuw) — neemt `{ order_id }`, `authenticateRequest`, service-role client. Haalt de order op (`customer_email/name`, `locale`, `tenant_id`, `shipping_address`), daarna `ticket_instances` op `order_id` gesorteerd op `seq`. Geen tickets → `{ skipped: true, reason: 'no ticket_instances' }` (200). Event- en productgegevens worden met twee losse `.in('id', …)`-queries op `event_details` en `order_items` opgehaald i.p.v. PostgREST-embeds — minder afhankelijk van FK-hints. Branding via `getTenantBrand`, taal via `resolveEmailLocale`, teksten via `t()`; render via `renderTenantEmail`. Sender: nieuwe `EMAIL_SENDERS.tickets(tenantName, replyTo)` → `tickets@sellqo.app` met tenantnaam als weergavenaam (patroon van `orders`).
+- `supabase/functions/ticket-qr/index.ts` (nieuw, `verify_jwt = false`) — publieke GET `?token=…&size=…`, levert de QR als binary image (`image/gif`, `Cache-Control: immutable`). Token-regex `^[A-Za-z0-9_-]{8,128}$`, size geklemd op 120–600.
+- `supabase/functions/_shared/emailSenders.ts` — `tickets`-sender + `SenderKey`-uitbreiding (additief).
+- `supabase/functions/_shared/tenantEmailI18n.ts` — optioneel `ticket`-blok in het `Strings`-type plus volledige teksten in nl/en/fr/de (subject, heading, intro, instructions, labels, codeLabel, disclaimer, footerNote, poweredBy). Bestaande blokken onaangeroerd.
+- `supabase/functions/stripe-connect-webhook/index.ts` — twee toevoegingen, chirurgisch: één extra non-blocking `fetch` naar `send-ticket-confirmation` in eigen `try/catch` náást de bestaande `send-order-confirmation`-aanroep, in zowel de cart-flow als het legacy order-pad. Geen bestaande regel gewijzigd.
+- Migratie — `customer_communication_settings` krijgt per tenant een rij `trigger_type = 'ticket_delivery'` (`category = 'orders'`, `email_enabled = true`), idempotent via `WHERE NOT EXISTS`. Terugdraaien staat in commentaar in de migratie.
+- `src/types/customerCommunication.ts` — trigger-definitie "Tickets versturen" toegevoegd zodat de tenant de mail in de admin kan togglen.
+
+**QR-aanpak en waarom** — `<img src="{SUPABASE_URL}/functions/v1/ticket-qr?token=…&size=220">`. Base64-inline (`data:`-URI) is bewust vermeden: Gmail en Outlook blokkeren dat. Een gewone URL wordt door alle clients gerenderd (Gmail proxied hem via googleusercontent). Er is voor een eigen endpoint gekozen i.p.v. een publieke QR-dienst zodat tokens niet bij een derde partij langskomen en er geen externe uptime-afhankelijkheid is. Het endpoint doet géén database-lookup — het encodeert enkel de meegegeven string, dus er lekt niets en er is geen enumeratie-oppervlak. In de QR zit **uitsluitend** de `qr_token`, geen persoonsgegevens; fase 5 (check-in) valideert het token server-side.
+
+**Aanroeppunt + gedeelde-pad-afweging** — Optie (a) uit de opdracht is uitgevoerd. De extra fetch staat op dezelfde plek als de bestaande order-confirmation, is non-blocking en gevat in eigen `try/catch`; een falende ticket-mail kan de orderverwerking niet raken. De fetch is onvoorwaardelijk maar de function skipt zichzelf bij afwezige `ticket_instances`, waardoor er géén extra query in de webhook nodig was en het bestaande verloop van niet-ticket orders identiek blijft (extra HTTP-call zonder neveneffect). `storefront-api` en `checkout-engine` zijn niet aangeraakt; het JSON-contract van de vijf custom frontends is onveranderd.
+
+**Security-keuzes** — Geen RLS/policy-wijzigingen. Ticketgegevens worden alleen server-side met de service-role gelezen. `ticket-qr` is publiek maar stateless en leest niets uit de database. De mail-function vereist `authenticateRequest` (service-role of geldige JWT).
+
+**Verificatie**
+- `ticket-qr` live: HTTP 200, `Content-Type: image/gif`, 2618 bytes voor een testtoken.
+- Mail-HTML lokaal gerenderd voor qty 3: drie QR-blokken met `ticket-qr?token=TOKEN1/2/3&size=220`, labels "Ticket 1 van 3" t/m "Ticket 3 van 3", instructietekst en disclaimer aanwezig.
+- `deno check send-ticket-confirmation/index.ts` → 12 fouten, exact dezelfde baseline als `deno check send-order-confirmation/index.ts` (12), alle in `_shared/sellqoEmail.ts`/`tenantEmail.ts` en bestaand. `deno check ticket-qr/index.ts` → schoon.
+- `send-ticket-confirmation` met een bestaande niet-ticket order kon niet end-to-end getest worden: de service-role key is niet beschikbaar in deze omgeving en de function weigert (correct) een aanroep zonder Authorization-header. De skip-tak is code-matig één early return op een leeg `ticket_instances`-resultaat.
+- Deployed: `ticket-qr`, `send-ticket-confirmation`, `stripe-connect-webhook`.
+
+**Bewust ongemoeid / Vervolg** — Geen changelog- of nieuwsbrief-entry (hele flow wordt in fase 6 gebundeld). Geen PDF-bijlage, geen aparte mail per ticket, geen WhatsApp-variant. Nog te testen door Akke: een echte betaalde ticket-order in SellQo Speeltuin — controleer dat de QR in de mail rendert in Gmail/Apple Mail en dat het token in de afbeelding gelijk is aan `ticket_instances.qr_token`.
+
 ## TICKET-1 fase 4a — Instance-creatie via DB-trigger — 14 augustus 2026
 
 **Doel** — Bij een betaalde ticket-order automatisch `ticket_instances` aanmaken, zonder de betaalpaden aan te raken.
