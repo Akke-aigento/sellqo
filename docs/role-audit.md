@@ -1,3 +1,30 @@
+## EARLY-BIRD FASE B — resolveEventPrice inhaken in cartAddItem — 14 augustus 2026
+
+**Doel** — De betaalkant: de ticketprijs op de cart-regel volgt de early-bird-regel uit fase A. `resolveEventPrice` is daarmee geen dode code meer.
+
+**Root cause / aanleiding** — `cartAddItem` (`supabase/functions/storefront-api/index.ts`) zette de cart-regelprijs onvoorwaardelijk op `product.price` (r.1537) en het event-validatieblok selecteerde alleen `id, product_id, tenant_id, status`. De early-bird-kolommen uit fase A werden dus nergens gelezen.
+
+**Uitgevoerd** — één bestand, `supabase/functions/storefront-api/index.ts`, strikt binnen de `if (eventDetailId)`-tak:
+- r.1553: event-select uitgebreid met `early_bird_price, early_bird_deadline, early_bird_quantity`. Filters (`id`/`product_id`/`tenant_id`) en de status-check (`scheduled`/`confirmed`) ongewijzigd.
+- r.1562-1568 (na de status-check): `get_event_signup_count(p_event_detail_id)` opgehaald → `sold` (fallback 0 bij niet-numeriek), en `unitPrice = resolveEventPrice(eventDetail, product.price, sold, new Date()).price` — **achter een `if (!variantId)`-guard**, zodat de variant-prijs-tak semantisch onaangeroerd blijft.
+- Niets anders aangeraakt: r.1537 (`unitPrice = product.price`), de variant-tak (r.1541-1548), de stock-check (r.1571), de merge-tak (r.1594) en de insert (r.1597) lezen `unitPrice` en zijn dus automatisch consistent — de override staat vóór beide takken.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` bedient vijf custom frontends. De wijziging zit volledig binnen de ticket-tak: een item zonder `event_detail_id` doorloopt exact hetzelfde codepad als vóór deze fase. Het JSON-contract is ongewijzigd (geen nieuwe of hernoemde sleutels in de cart-response); enkel de waarde van `unit_price` kan afwijken, en alleen voor ticketproducten mét early-bird-configuratie.
+
+**Verificatie** (live tegen de gedeployde functie; testevent `17efe0cc…`, regulier € 19,00, early bird € 12,00)
+- **Niet-ticket byte-identiek** (belangrijkste regressietest): Demo Bakkerij-product zonder `event_detail_id`, prijs 29.99 → `unit_price = 29.00`… gemeten: **29.99**, exact `product.price`.
+- early_bird_price gezet, geen deadline/quantity → **12.00**.
+- merge: zelfde ticket 2× toevoegen → `quantity = 2`, `unit_price = 12.00` (beide keren de early-bird-prijs).
+- deadline in het verleden (2026-08-01) → **19.00**.
+- `quantity = 1`, `sold = 0` (onder de grens) → **12.00**.
+- `quantity = 0`, `sold = 0` (grens bereikt, deadline in de toekomst) → **19.00** — vroegste grens wint.
+- Opruiming met gewone `DELETE` (geen migratie): 5 testcarts + hun items weg, `early_bird_*` op het testevent terug op `NULL`. Natrek: 0 achtergebleven carts, 0 achtergebleven items, event-rij weer volledig `NULL`.
+- `npx tsgo --noEmit -p tsconfig.app.json` → 0 fouten.
+
+**FLAG — tijdelijke toon/betaal-desync** — `getProduct` is deze fase NIET aangeraakt (dat is fase C). De storefront toont dus nog de reguliere prijs terwijl de betaalde prijs al early-bird-correct is. Niet tenant-zichtbaar: zolang geen enkel event `early_bird_price` gevuld heeft, is er geen verschil. Vul dus geen early-bird-prijzen in vóór fase C live is.
+
+**Bewust ongemoeid** — `getProduct`, variant-prijs-logica, stock-check, checkout/Stripe-pad, admin-UI (fase D).
+
 ## EARLY-BIRD FASE A — schema + gedeelde prijs-helper — 14 augustus 2026
 
 **Doel** — Fundament voor echte early-bird-prijzen op event-tickets. Deze fase raakt géén live prijsbepaling: schema additief + één pure helper die (nog) nergens aangeroepen wordt.
