@@ -160,11 +160,12 @@ serve(async (req) => {
 
     const total = tickets.length;
     const eventName =
-      (tickets[0] as any)?.order_items?.product_name ||
+      itemMap.get((tickets[0] as any)?.order_item_id)?.product_name ||
       (locale === "nl" ? "je event" : locale === "fr" ? "votre événement" : locale === "de" ? "Ihr Event" : "your event");
 
     const blocks = tickets.map((tk: any, i: number) => {
-      const ev = tk.event_details || {};
+      const ev = eventMap.get(tk.event_detail_id) || {};
+      const item = itemMap.get(tk.order_item_id) || {};
       const qrUrl = `${supabaseUrl}/functions/v1/ticket-qr?token=${encodeURIComponent(tk.qr_token)}&size=220`;
       const rows: string[] = [];
       const addRow = (label: string, value: string) => {
@@ -187,7 +188,7 @@ serve(async (req) => {
             t(locale, "ticket.ticketLabel", { index: i + 1, total }),
           )}</p>
           <p style="margin:0 0 12px;font-size:17px;font-weight:700;color:${brand.textColor};">${esc(
-            tk.order_items?.product_name || eventName,
+            item.product_name || eventName,
           )}</p>
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">${rows.join("")}</table>
           <div style="text-align:center;">
