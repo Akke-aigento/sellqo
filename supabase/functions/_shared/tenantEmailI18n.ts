@@ -75,7 +75,26 @@ type Strings = {
     unsubscribe: string;
     poweredBy: string;
   };
+  ticket?: TicketStrings;
   paymentRequest?: PaymentRequestStrings;
+};
+
+// TICKET-1 fase 4b: ticket-delivery strings (QR-tickets per e-mail).
+type TicketStrings = {
+  subject: string;
+  heading: string;
+  intro: string;
+  instructions: string;
+  ticketLabel: string;
+  attendeeLabel: string;
+  dateLabel: string;
+  timeLabel: string;
+  locationLabel: string;
+  meetingPointLabel: string;
+  codeLabel: string;
+  disclaimer: string;
+  footerNote: string;
+  poweredBy: string;
 };
 
 // CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
