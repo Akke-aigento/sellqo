@@ -2511,6 +2511,14 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     // ticket_instances (idempotent via unique index op order_item + seq).
     const freeOrder = await createOrderFromCart(supabase, tenantId, cart, 'paid');
 
+    // De fase-4a trigger vuurt AFTER INSERT op orders — dus vóórdat de
+    // order_items bestaan. Daarom hier expliciet de idempotente RPC aanroepen
+    // (unique index order_item_id+seq voorkomt dubbele tickets).
+    try {
+      const { error: issueErr } = await supabase.rpc('issue_tickets_for_order', { p_order_id: freeOrder.id });
+      if (issueErr) console.warn('issue_tickets_for_order failed:', issueErr.message);
+    } catch (e) { console.warn('issue_tickets_for_order threw:', e); }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const svcHeaders = {
       'Content-Type': 'application/json',
