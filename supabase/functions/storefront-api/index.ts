@@ -3089,6 +3089,19 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     });
   } catch {}
 
+  // TICKET-1 fase 4c — Gat A: ticketbevestiging met QR (non-blocking).
+  // Zelfde patroon als stripe-connect-webhook; de function skipt zichzelf
+  // wanneer de order geen ticket_instances heeft, dus niet-ticket orders
+  // ondervinden geen gedragswijziging.
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ order_id: newOrder.id }),
+    });
+  } catch {}
+
   // Admin notification for new storefront order (non-blocking)
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
