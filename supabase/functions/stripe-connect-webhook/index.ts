@@ -602,6 +602,18 @@ serve(async (req) => {
           } catch (e) {
             logStep("Order confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
           }
+
+          // TICKET-1 fase 4b: ticket-mail met QR-codes (non-blocking, legacy pad).
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: orderId }),
+            });
+          } catch (e) {
+            logStep("Ticket confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
+          }
         } else {
           logStep("No cart_id or order_id in session metadata");
         }
