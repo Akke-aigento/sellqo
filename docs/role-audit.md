@@ -1,3 +1,47 @@
+## EARLY-BIRD FASE A — schema + gedeelde prijs-helper — 14 augustus 2026
+
+**Doel** — Fundament voor echte early-bird-prijzen op event-tickets. Deze fase raakt géén live prijsbepaling: schema additief + één pure helper die (nog) nergens aangeroepen wordt.
+
+**Root cause / aanleiding** — Er bestond geen enkele plek waar een afwijkende ticketprijs per event-datum kon staan: `cartAddItem` (`supabase/functions/storefront-api/index.ts` r.~1501) neemt `product.price`, en het event-validatieblok (r.~1515-1525) selecteert alleen `id, product_id, tenant_id, status`. `getProduct` (r.~559-583) toont enkel `product.price` + tellers. Zonder kolommen én zonder gedeelde regel zouden fase B (betalen) en fase C (tonen) uiteen kunnen lopen.
+
+**Uitgevoerd**
+- Migratie op `public.event_details`, `ADD COLUMN IF NOT EXISTS`, geen bestaande kolom aangeraakt:
+  - `early_bird_price numeric NULL` — null = geen early bird op dit event
+  - `early_bird_deadline timestamptz NULL` — null = geen tijd-grens
+  - `early_bird_quantity integer NULL` — null = geen aantal-grens
+  Met `COMMENT ON COLUMN` per kolom en een DOWN-instructie in commentaar (drie `DROP COLUMN`).
+- `supabase/functions/storefront-api/index.ts`: `interface EarlyBirdEvent` + `resolveEventPrice(event, regularPrice, ticketsSold, now)` toegevoegd, direct boven `isEventStillOpen`. Puur: geen DB-call, alle input meegegeven. Retourneert `{ price, earlyBirdActive, spotsLeftAtEarlyBird }`.
+  - Regel: actief ⟺ `early_bird_price != null` AND (`deadline == null` OR `now < new Date(deadline)`) AND (`quantity == null` OR `ticketsSold < quantity`). Vroegste grens wint.
+  - `spotsLeftAtEarlyBird = quantity == null ? null : max(0, quantity - ticketsSold)` — ook gevuld als early bird niet meer actief is (0), zodat fase C dat kan tonen.
+  - `early_bird_price` wordt door `Number()` gehaald: Postgres `numeric` komt via PostgREST als string terug.
+
+**Keuze: deadline = timestamptz, géén tijdzone-conversie hier**
+`early_bird_deadline` is een absoluut moment, dus de vergelijking is simpelweg `now < new Date(deadline)`. De 6a-1-helpers (`tzOffsetMs`, `zonedToUtc`) zijn bewust NIET gebruikt: die zetten een lokale `date + time` om naar een instant, en toepassen op een timestamptz zou dubbel converteren (fout ter grootte van de UTC-offset, DST-afhankelijk). Het omzetten van tenant-invoer (lokale datum+tijd in de event-tijdzone) naar timestamptz hoort in de admin-UI van fase D. `event.timezone` wordt deze fase alleen voor weergave/rapportage gebruikt, niet in de resolver.
+
+**Security-keuzes** — n.v.t. voor RLS/policies/grants: geen nieuwe tabel, geen policy-wijziging. `event_details` behoudt z'n bestaande tenant-scoped RLS; de drie nieuwe kolommen erven die policies automatisch. Wel bewust: `storefront-api` selecteert kolommen expliciet (geen `select('*')` op `event_details`), dus de nieuwe kolommen lekken pas naar de publieke API zodra fase C ze expliciet toevoegt — en dat is prijsinformatie, dus publiek acceptabel.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` is een gedeeld pad (vijf custom-frontend tenants). Deze fase voegt daar uitsluitend een niet-aangeroepen functie + interface toe: geen bestaande functie gewijzigd, geen respons-veld toegevoegd of hernoemd, geen JSON-contract geraakt. `cartAddItem` en `getProduct` zijn byte-voor-byte ongewijzigd. `checkout-engine` en `storefront-resolve` niet aangeraakt.
+
+**Verificatie**
+- Pre-flight: `information_schema.columns` op `event_details` → 15 kolommen, geen `early_bird_*`.
+- Post-flight: de drie kolommen bestaan; de enige bestaande rij (Fonske, `17efe0cc…`, 2026-08-21, cap 40, `scheduled`) heeft alle drie `null` en overige waarden ongewijzigd.
+- Unit-bewijs van de helper (geïsoleerd via Bun, `now = 2026-08-14T17:00:00Z`):
+
+```
+1 geen early_bird_price                {"price":25,"earlyBirdActive":false,"spotsLeftAtEarlyBird":null}
+2 price 18, geen deadline/quantity     {"price":18,"earlyBirdActive":true,"spotsLeftAtEarlyBird":null}
+3 deadline verleden                    {"price":25,"earlyBirdActive":false,"spotsLeftAtEarlyBird":null}
+4 deadline toekomst                    {"price":18,"earlyBirdActive":true,"spotsLeftAtEarlyBird":null}
+5 quantity 20, sold 19                 {"price":18,"earlyBirdActive":true,"spotsLeftAtEarlyBird":1}
+6 quantity 20, sold 20                 {"price":25,"earlyBirdActive":false,"spotsLeftAtEarlyBird":0}
+7 deadline toekomst + sold>=quantity   {"price":25,"earlyBirdActive":false,"spotsLeftAtEarlyBird":0}
+```
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0, 0 fouten.
+
+**Bewust ongemoeid** — Geen changelog-entry, geen newsletter-item, geen `doc_articles` (afgesproken: pas wanneer de feature tenant-zichtbaar wordt). Geen admin-UI, geen types-regeneratie-afhankelijke code.
+
+**Vervolg** — Fase B: `resolveEventPrice` aanroepen in `cartAddItem` (event-select uitbreiden met `early_bird_*` + `ticketsSold` via `get_event_signup_count`). Fase C: prijs + `earlyBirdActive` + `spotsLeftAtEarlyBird` in `getProduct`. Fase D: admin-UI met lokale datum+tijd → timestamptz-conversie in de event-tijdzone.
+
 ## EVENT-DASHBOARD — event-centrisch admin-overzicht — 14 augustus 2026
 
 **Doel** — Een tenant kon de stand van z'n events (crawls) alleen zien door in het PRODUCT te duiken (`ProductEventDatesTab`). Nieuwe view `/admin/events` toont per event de bezetting, check-ins en de deelnemerslijst.

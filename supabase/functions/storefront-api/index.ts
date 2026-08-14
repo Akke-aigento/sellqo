@@ -80,6 +80,42 @@ function zonedToUtc(dateStr: string, timeStr: string, timeZone: string): number 
   return naive - offset;
 }
 
+// EARLY-BIRD fase A: pure prijs-resolver voor event-tickets.
+// Geen DB-call: event + ticketsSold + now worden meegegeven, zodat fase B (cartAddItem)
+// en fase C (getProduct) exact dezelfde regel gebruiken.
+// early_bird_deadline is een absoluut moment (timestamptz) — geen tijdzone-conversie hier;
+// het omzetten van lokale invoer naar timestamptz hoort in de admin-UI (fase D).
+interface EarlyBirdEvent {
+  early_bird_price?: number | string | null;
+  early_bird_deadline?: string | null;
+  early_bird_quantity?: number | null;
+}
+
+function resolveEventPrice(
+  event: EarlyBirdEvent | null | undefined,
+  regularPrice: number,
+  ticketsSold: number,
+  now: Date = new Date(),
+): { price: number; earlyBirdActive: boolean; spotsLeftAtEarlyBird: number | null } {
+  const rawPrice = event?.early_bird_price;
+  const ebPrice = rawPrice === null || rawPrice === undefined ? null : Number(rawPrice);
+  const ebDeadline = event?.early_bird_deadline ?? null;
+  const ebQuantity = event?.early_bird_quantity ?? null;
+  const sold = Number.isFinite(ticketsSold) ? ticketsSold : 0;
+
+  const spotsLeftAtEarlyBird = ebQuantity === null ? null : Math.max(0, ebQuantity - sold);
+
+  const withinDeadline = ebDeadline === null || now.getTime() < new Date(ebDeadline).getTime();
+  const withinQuantity = ebQuantity === null || sold < ebQuantity;
+  const earlyBirdActive = ebPrice !== null && Number.isFinite(ebPrice) && withinDeadline && withinQuantity;
+
+  return {
+    price: earlyBirdActive ? (ebPrice as number) : regularPrice,
+    earlyBirdActive,
+    spotsLeftAtEarlyBird,
+  };
+}
+
 // true zolang het event nog bezig of toekomstig is.
 function isEventStillOpen(
   ev: { event_date: string; start_time?: string | null; end_time?: string | null; timezone?: string | null },
