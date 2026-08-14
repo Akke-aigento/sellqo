@@ -1454,7 +1454,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     if (!eventDetail) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_INVALID', message: 'Deze datum hoort niet bij dit product' }));
     }
-    if (eventDetail.status && eventDetail.status !== 'active') {
+    if (!['scheduled', 'confirmed'].includes(eventDetail.status)) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_UNAVAILABLE', message: 'Deze datum is niet meer beschikbaar' }));
     }
   }
