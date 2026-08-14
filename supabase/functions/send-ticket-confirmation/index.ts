@@ -90,8 +90,7 @@ serve(async (req) => {
       .from("ticket_instances")
       .select(`
         id, qr_token, seq, attendee_name, attendee_email, status, order_item_id,
-        event_details!ticket_instances_event_detail_id_fkey ( event_date, start_time, end_time, location_name, meeting_point ),
-        order_items!ticket_instances_order_item_id_fkey ( product_name )
+        event_detail_id
       `)
       .eq("order_id", order_id)
       .order("seq", { ascending: true });
@@ -103,6 +102,28 @@ serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: "no ticket_instances" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Losse lookups i.p.v. PostgREST-embeds: minder afhankelijk van FK-hints.
+    const eventIds = [...new Set(tickets.map((x: any) => x.event_detail_id).filter(Boolean))];
+    const itemIds = [...new Set(tickets.map((x: any) => x.order_item_id).filter(Boolean))];
+
+    const eventMap = new Map<string, any>();
+    if (eventIds.length) {
+      const { data: evs } = await supabase
+        .from("event_details")
+        .select("id, event_date, start_time, end_time, location_name, meeting_point")
+        .in("id", eventIds);
+      for (const e of evs || []) eventMap.set(e.id, e);
+    }
+
+    const itemMap = new Map<string, any>();
+    if (itemIds.length) {
+      const { data: its } = await supabase
+        .from("order_items")
+        .select("id, product_name")
+        .in("id", itemIds);
+      for (const it of its || []) itemMap.set(it.id, it);
     }
 
     const recipient = order.customer_email || tickets.find((x: any) => x.attendee_email)?.attendee_email;
