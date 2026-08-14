@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_smart_date_actions": {
+          "title": "Datums slim beheren",
+          "description": "Plan in een keer meerdere datums met voorbeeldlijst, verplaats een datum naar een andere dag, sla een datum over zonder hem te verwijderen, of voeg twee datums samen tot een."
+        },
         "ticket_product_dates": {
           "title": "Verkoop tickets voor evenementen",
           "description": "Je kunt nu een product van het type Ticket / Event aanmaken en daar zelf datums bij beheren: datum, starttijd, capaciteit, minimum aantal deelnemers, locatie en verzamelpunt. Per datum kies je een status (gepland, bevestigd, geannuleerd of afgerond). Je vindt dit onder Producten > product bewerken, in de sectie Events & Datums, zichtbaar zodra je het producttype Ticket / Event kiest en het product hebt opgeslagen. Bulk-planning van datums volgt in een latere update."

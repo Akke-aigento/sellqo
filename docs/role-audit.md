@@ -1,3 +1,41 @@
+## TICKET-1 fase 3c — Slimme datum-acties (bulk, verplaatsen, overslaan, samenvoegen) — 14 augustus 2026
+
+**Root cause / aanleiding** — Fase 3b (`src/components/admin/products/ProductEventDatesTab.tsx`) leverde enkel losse CRUD op `event_details`. Voor een tenant met een wekelijks terugkerend event betekende dat handmatig datum-per-datum invoeren, en waren "niet deze week" of "we voegen twee avonden samen" alleen mogelijk via verwijderen — destructief en niet terug te draaien.
+
+**Uitgevoerd**
+- `src/hooks/useEventDetails.ts`
+  - `EventStatus` uitgebreid met `'skipped' | 'merged'` (de CHECK op `event_details.status` stond die twee al toe sinds fase 1, migratie `20260813231325`).
+  - `EventDateFormData` uitgebreid met optioneel `merged_into_event_id`, zodat `useUpdateEventDate` de merge-relatie kan schrijven zonder nieuwe hook.
+  - Nieuwe hook `useBulkCreateEventDates(productId)`: één array-insert met `product_id` + `tenant_id` op elke rij, `.select()` voor verificatie, invalidate van `['event-details', productId]` in `onSuccess`. Volgt het bestaande patroon van `useCreateEventDate`.
+- `src/components/admin/products/ProductEventDatesTab.tsx`
+  - Labels/badges voor `skipped` ("Overgeslagen", secondary) en `merged` ("Samengevoegd", outline) via een aparte `ALL_STATUS_LABELS`-map. `STATUS_OPTIONS` (de dropdown-bron) blijft bewust op de vier oorspronkelijke waarden.
+  - **Bulk plannen**: dialog met startdatum (Calendar), aantal weken (default 6, geclamped 1–52), weekdag (auto-gevuld op de weekdag van de startdatum), gedeelde starttijd/capaciteit/minimum. Genereert een preview met een checkbox per datum, alles aangevinkt; al bestaande `event_date`-waarden voor dit product worden uit de generatie gefilterd en subtiel gemeld ("N datum(s) bestonden al en zijn overgeslagen"). Pas op "Aanmaken" volgt de insert.
+  - **Verplaatsen**: per rij een knop (`CalendarClock`) met een dialog met alleen een datumkiezer, voorgevuld op de huidige datum; schrijft enkel `event_date` via `useUpdateEventDate`.
+  - **Overslaan**: knop (`SkipForward`) alleen bij status `scheduled`/`confirmed` → status `skipped`. De rij blijft staan, doorgestreept en gedimd. Bij `skipped` verschijnt "Terugzetten" (`RotateCcw`) → status terug naar `scheduled`. Niet-destructief, één klik ongedaan.
+  - **Samenvoegen**: modus-knop toont checkboxes per rij (alleen selecteerbaar bij `scheduled`/`confirmed`/`skipped`). Bij 2+ selectie opent een dialog met een radio-keuze voor de "winnaar". Verliezers krijgen `status = 'merged'` + `merged_into_event_id = winnaar`; de winnaar blijft ongemoeid. Verliezende rijen renderen gedimd met "Samengevoegd → [datum]". De merge-loop gebruikt per rij try/catch zodat één falende update de rest niet blokkeert.
+- Changelog `2026.09y` (`ticket_smart_date_actions`, type feature) in `PublicChangelog.tsx` + teksten in `landing.{nl,en,fr,de}.json` (95 entries, pariteit in alle vier).
+- Migratie: idempotente `ON CONFLICT (doc_level, slug) DO UPDATE` op `doc_articles` voor `ticket-product-datums`; het artikel beschrijft nu de vier acties en vermeldt expliciet dat kopers-communicatie later komt.
+
+**Waarom `skipped`/`merged` niet handmatig kiesbaar zijn** — Beide statussen dragen een impliciete relatie of intentie die de dropdown niet kan uitdrukken. `merged` is zinloos zonder `merged_into_event_id`; handmatig kiezen zou een verliezer zonder winnaar opleveren en de "Samengevoegd → [datum]"-weergave laten hangen. `skipped` is per definitie het resultaat van een omkeerbare actie met een bijhorende "Terugzetten"-knop; via de dropdown gezet zou de gebruiker geen zichtbaar pad terug hebben. Daarom zet enkel de actie de status, en toont de UI de status wél als badge.
+
+**Kopers-communicatie bewust uitgesteld naar fase 4b** — Verplaatsen en samenvoegen raken in deze fase alleen `event_details`. Bestaande `ticket_instances` worden niet mee verhuisd en er gaat geen mail uit. Dat is een expliciete keuze: de mailflow met ja/refund-keuze en `ticket_change_tokens` is fase 4b en vereist een eigen edge-function plus refund-pad. Beide dialogs melden dit letterlijk: "Kopers worden pas in een latere fase automatisch verwittigd." Zo is er geen stille aanname dat kopers al bericht krijgen.
+
+**Security-keuzes** — Geen. Geen nieuwe tabellen, kolommen, policies, grants of functies. Alle writes lopen via de bestaande `event_details_insert_tenant` / `event_details_update_tenant` policies uit fase 1; de bulk-insert zet `tenant_id` expliciet per rij via `useTenant()`, conform het bestaande patroon. De enige migratie is een `doc_articles`-INSERT/UPDATE (content).
+
+**Gedeelde-paden-waarschuwing** — Niet van toepassing. `storefront-api`, `checkout-engine`, `storefront-resolve` en de gedeelde tabellen (`tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`) zijn niet aangeraakt. `event_details` is een eigen ticket-tabel; de custom-frontend tenants (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) hebben geen ticketproducten en zien geen enkel gedragsverschil. Het `use_custom_frontend`-pad is byte-identiek.
+
+**Verificatie**
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0, 0 fouten.
+- i18n-pariteit: 95 changelog-entries in nl/en/fr/de, gelijk aantal in alle vier de locales.
+- Bestaande basis onveranderd: lijst-render, add/edit-Dialog (inclusief de vier-waarden status-Select), en delete-AlertDialog zijn functioneel ongewijzigd overgenomen; `useCreateEventDate` / `useUpdateEventDate` / `useDeleteEventDate` hebben identieke signature.
+- Mobiel (390px): alle nieuwe dialogs gebruiken `max-w-[calc(100vw-2rem)] sm:max-w-lg` + `max-h-[85vh] overflow-y-auto`; de kopbalk-knoppen stapelen via `flex-col sm:flex-row`; de preview-lijst scrollt binnen `max-h-56`; de actieknoppen per rij wrappen via `flex-wrap` met tekstlabels die enkel op mobiel zichtbaar zijn.
+- Redenering per flow: bulk berekent het eerste voorkomen van de gekozen weekdag vanaf de startdatum via `(targetDow - getDay(start) + 7) % 7` en dan `addWeeks(first, i)` — dus altijd dezelfde weekdag; verplaatsen schrijft enkel `event_date`; overslaan zet `skipped` en "Terugzetten" zet `scheduled`; mergen zet `merged` + `merged_into_event_id` uitsluitend op de niet-gekozen datums.
+
+**Bewust ongemoeid / Vervolg**
+- Geen mail, geen `ticket_instances`-verhuizing, geen `ticket_change_tokens` — fase 4b.
+- Geen storefront-weergave van `skipped`/`merged`; `get_public_events` en `storefront-api` blijven zoals ze zijn. Of een overgeslagen of samengevoegde datum uit de publieke lijst moet verdwijnen is een openstaand beslispunt voor de storefront-fase.
+- Newsletter-item bewust nog niet toegevoegd — wacht op fase 6, conform opdracht.
+
 ## TICKET-1 fase 3b — producttype `ticket` + basis Events & Datums-beheer — 14 augustus 2026
 
 **Root cause / gat:** het schema uit fase 1 (`event_details`) en de storefront-response uit fase 2 bestonden al, maar een tenant kon nergens een ticketproduct aanmaken of datums invoeren. `ticket` ontbrak in de TS-union, `productTypeInfo`, `productTypeIcons` en de zod-enum van `ProductForm`.

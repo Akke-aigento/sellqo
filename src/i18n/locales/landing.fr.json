@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_smart_date_actions": {
+          "title": "Gérez vos dates intelligemment",
+          "description": "Planifiez plusieurs dates d'un coup avec une liste d'aperçu, déplacez une date vers un autre jour, ignorez une date sans la supprimer, ou fusionnez deux dates en une."
+        },
         "ticket_product_dates": {
           "title": "Vendez des billets pour vos evenements",
           "description": "Vous pouvez desormais creer un produit de type Billet / Evenement et gerer vous-meme ses dates : date, heure de debut, capacite, nombre minimum de participants, lieu et point de rencontre. Pour chaque date, vous choisissez un statut (planifie, confirme, annule ou termine). Vous trouverez cela dans Produits > modifier le produit, section Evenements et dates, visible des que vous selectionnez le type de produit Billet / Evenement et que vous avez enregistre le produit. La planification en lot des dates suivra dans une mise a jour ulterieure."

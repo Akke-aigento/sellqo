@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { format, addWeeks, getDay } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { CalendarIcon, Plus, Pencil, Trash2, Loader2, MapPin, Users } from 'lucide-react';
+import {
+  CalendarIcon, Plus, Pencil, Trash2, Loader2, MapPin, Users,
+  CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,9 +24,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   useEventDetails, useCreateEventDate, useUpdateEventDate, useDeleteEventDate,
+  useBulkCreateEventDates,
   type EventDetail, type EventStatus,
 } from '@/hooks/useEventDetails';
 
+/** Handmatig kiesbare statussen. skipped/merged worden enkel via acties gezet. */
 const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: 'scheduled', label: 'Gepland' },
   { value: 'confirmed', label: 'Bevestigd' },
@@ -29,15 +36,41 @@ const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: 'completed', label: 'Afgerond' },
 ];
 
-const statusLabel = (status: string) =>
-  STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
+const ALL_STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Gepland',
+  confirmed: 'Bevestigd',
+  cancelled: 'Geannuleerd',
+  completed: 'Afgerond',
+  skipped: 'Overgeslagen',
+  merged: 'Samengevoegd',
+};
+
+const statusLabel = (status: string) => ALL_STATUS_LABELS[status] ?? status;
 
 const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
   if (status === 'confirmed') return 'default';
   if (status === 'cancelled') return 'destructive';
   if (status === 'completed') return 'secondary';
+  if (status === 'skipped') return 'secondary';
+  if (status === 'merged') return 'outline';
   return 'outline';
 };
+
+const WEEKDAYS = [
+  { value: '1', label: 'Maandag' },
+  { value: '2', label: 'Dinsdag' },
+  { value: '3', label: 'Woensdag' },
+  { value: '4', label: 'Donderdag' },
+  { value: '5', label: 'Vrijdag' },
+  { value: '6', label: 'Zaterdag' },
+  { value: '0', label: 'Zondag' },
+];
+
+const MERGEABLE = new Set(['scheduled', 'confirmed', 'skipped']);
+const COMMS_NOTE = 'Kopers worden pas in een latere fase automatisch verwittigd.';
+
+const toDate = (iso: string) => new Date(`${iso}T00:00:00`);
+const fmtDate = (iso: string) => format(toDate(iso), 'EEE d MMM yyyy', { locale: nl });
 
 interface FormState {
   event_date: Date | undefined;
@@ -64,11 +97,34 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
   const createDate = useCreateEventDate(productId);
   const updateDate = useUpdateEventDate(productId);
   const deleteDate = useDeleteEventDate(productId);
+  const bulkCreate = useBulkCreateEventDates(productId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventDetail | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<EventDetail | null>(null);
+
+  // Verplaatsen
+  const [moveTarget, setMoveTarget] = useState<EventDetail | null>(null);
+  const [moveDate, setMoveDate] = useState<Date | undefined>(undefined);
+
+  // Bulk plannen
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkStart, setBulkStart] = useState<Date | undefined>(undefined);
+  const [bulkWeeks, setBulkWeeks] = useState('6');
+  const [bulkWeekday, setBulkWeekday] = useState<string>('6');
+  const [bulkTime, setBulkTime] = useState('21:00');
+  const [bulkCapacity, setBulkCapacity] = useState('');
+  const [bulkMin, setBulkMin] = useState('0');
+  const [bulkUnchecked, setBulkUnchecked] = useState<Set<string>>(new Set());
+
+  // Merge
+  const [mergeMode, setMergeMode] = useState(false);
+  const [mergeSelected, setMergeSelected] = useState<Set<string>>(new Set());
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeWinner, setMergeWinner] = useState<string>('');
+
+  const existingDates = useMemo(() => new Set(dates.map((d) => d.event_date)), [dates]);
 
   const openCreate = () => {
     setEditing(null);
@@ -79,7 +135,7 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
   const openEdit = (row: EventDetail) => {
     setEditing(row);
     setForm({
-      event_date: row.event_date ? new Date(`${row.event_date}T00:00:00`) : undefined,
+      event_date: row.event_date ? toDate(row.event_date) : undefined,
       start_time: (row.start_time || '21:00').slice(0, 5),
       capacity: String(row.capacity ?? ''),
       min_attendees: String(row.min_attendees ?? 0),
@@ -114,17 +170,160 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
 
   const saving = createDate.isPending || updateDate.isPending;
 
+  // ---- Bulk plannen -------------------------------------------------------
+  const openBulk = () => {
+    setBulkStart(undefined);
+    setBulkWeeks('6');
+    setBulkWeekday('6');
+    setBulkTime('21:00');
+    setBulkCapacity('');
+    setBulkMin('0');
+    setBulkUnchecked(new Set());
+    setBulkOpen(true);
+  };
+
+  const bulkPreview = useMemo(() => {
+    if (!bulkStart) return { rows: [] as string[], skipped: 0 };
+    const weeks = Math.max(1, Math.min(52, Number(bulkWeeks) || 0));
+    const targetDow = Number(bulkWeekday);
+    // eerste voorkomen van de gekozen weekdag vanaf startdatum (inclusief)
+    let first = new Date(bulkStart);
+    const diff = (targetDow - getDay(first) + 7) % 7;
+    first = new Date(first.getFullYear(), first.getMonth(), first.getDate() + diff);
+
+    const rows: string[] = [];
+    let skipped = 0;
+    for (let i = 0; i < weeks; i++) {
+      const iso = format(addWeeks(first, i), 'yyyy-MM-dd');
+      if (existingDates.has(iso)) {
+        skipped++;
+        continue;
+      }
+      rows.push(iso);
+    }
+    return { rows, skipped };
+  }, [bulkStart, bulkWeeks, bulkWeekday, existingDates]);
+
+  const bulkChecked = bulkPreview.rows.filter((iso) => !bulkUnchecked.has(iso));
+  const canBulk = bulkChecked.length > 0 && bulkCapacity !== '' && Number(bulkCapacity) > 0;
+
+  const handleBulkCreate = async () => {
+    if (!canBulk) return;
+    await bulkCreate.mutateAsync(
+      bulkChecked.map((iso) => ({
+        event_date: iso,
+        start_time: bulkTime || '21:00',
+        capacity: Number(bulkCapacity),
+        min_attendees: Number(bulkMin || 0),
+        status: 'scheduled' as EventStatus,
+      })),
+    );
+    setBulkOpen(false);
+  };
+
+  // ---- Verplaatsen --------------------------------------------------------
+  const openMove = (row: EventDetail) => {
+    setMoveTarget(row);
+    setMoveDate(toDate(row.event_date));
+  };
+
+  const handleMove = async () => {
+    if (!moveTarget || !moveDate) return;
+    await updateDate.mutateAsync({
+      id: moveTarget.id,
+      data: { event_date: format(moveDate, 'yyyy-MM-dd') },
+    });
+    setMoveTarget(null);
+  };
+
+  // ---- Overslaan / terugzetten -------------------------------------------
+  const handleSkip = (row: EventDetail) =>
+    updateDate.mutate({ id: row.id, data: { status: 'skipped' } });
+
+  const handleUnskip = (row: EventDetail) =>
+    updateDate.mutate({ id: row.id, data: { status: 'scheduled' } });
+
+  // ---- Mergen -------------------------------------------------------------
+  const toggleMergeMode = () => {
+    setMergeSelected(new Set());
+    setMergeMode((m) => !m);
+  };
+
+  const toggleMergeSelect = (id: string) => {
+    setMergeSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const mergeCandidates = dates.filter((d) => mergeSelected.has(d.id));
+
+  const openMergeDialog = () => {
+    setMergeWinner(mergeCandidates[0]?.id ?? '');
+    setMergeDialogOpen(true);
+  };
+
+  const handleMerge = async () => {
+    if (!mergeWinner) return;
+    const losers = mergeCandidates.filter((d) => d.id !== mergeWinner);
+    for (const loser of losers) {
+      try {
+        await updateDate.mutateAsync({
+          id: loser.id,
+          data: { status: 'merged', merged_into_event_id: mergeWinner },
+        });
+      } catch {
+        // per-rij fout wordt al getoast; overige rijen blijven doorgaan
+      }
+    }
+    setMergeDialogOpen(false);
+    setMergeMode(false);
+    setMergeSelected(new Set());
+  };
+
+  const dateById = (id: string | null) => dates.find((d) => d.id === id) ?? null;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {dates.length === 0 ? 'Nog geen datums gepland.' : `${dates.length} datum(s) gepland.`}
         </p>
-        <Button type="button" onClick={openCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Datum toevoegen
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" variant="outline" onClick={toggleMergeMode} className="w-full sm:w-auto">
+            {mergeMode ? <X className="mr-2 h-4 w-4" /> : <Merge className="mr-2 h-4 w-4" />}
+            {mergeMode ? 'Samenvoegen annuleren' : 'Datums samenvoegen'}
+          </Button>
+          <Button type="button" variant="outline" onClick={openBulk} className="w-full sm:w-auto">
+            <CalendarPlus className="mr-2 h-4 w-4" />
+            Plan meerdere datums
+          </Button>
+          <Button type="button" onClick={openCreate} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Datum toevoegen
+          </Button>
+        </div>
       </div>
+
+      {mergeMode && (
+        <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Selecteer 2 of meer datums om samen te voegen. {mergeSelected.size} geselecteerd.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={openMergeDialog}
+            disabled={mergeCandidates.length < 2}
+            className="w-full sm:w-auto"
+          >
+            <Merge className="mr-2 h-4 w-4" />
+            Samenvoegen
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">
@@ -132,48 +331,88 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {dates.map((row) => (
-            <div key={row.id} className="rounded-lg border p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">
-                      {format(new Date(`${row.event_date}T00:00:00`), 'EEE d MMM yyyy', { locale: nl })}
-                    </span>
-                    <span className="text-sm text-muted-foreground">{(row.start_time || '').slice(0, 5)}</span>
-                    <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Capaciteit {row.capacity} · min. {row.min_attendees}
-                    </span>
-                    {(row.location_name || row.meeting_point) && (
-                      <span className="flex min-w-0 items-center gap-1">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate">
-                          {[row.location_name, row.meeting_point].filter(Boolean).join(' · ')}
-                        </span>
-                      </span>
+          {dates.map((row) => {
+            const isSkipped = row.status === 'skipped';
+            const isMerged = row.status === 'merged';
+            const dimmed = isSkipped || isMerged;
+            const canSkip = row.status === 'scheduled' || row.status === 'confirmed';
+            const selectable = MERGEABLE.has(row.status);
+            const winner = isMerged ? dateById(row.merged_into_event_id) : null;
+
+            return (
+              <div key={row.id} className={cn('rounded-lg border p-3', dimmed && 'opacity-60')}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    {mergeMode && (
+                      <Checkbox
+                        className="mt-1 shrink-0"
+                        checked={mergeSelected.has(row.id)}
+                        disabled={!selectable}
+                        onCheckedChange={() => toggleMergeSelect(row.id)}
+                        aria-label="Selecteer datum om samen te voegen"
+                      />
                     )}
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={cn('font-medium', dimmed && 'line-through')}>
+                          {fmtDate(row.event_date)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">{(row.start_time || '').slice(0, 5)}</span>
+                        <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>
+                        {isMerged && winner && (
+                          <span className="text-xs text-muted-foreground">→ {fmtDate(winner.event_date)}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          Capaciteit {row.capacity} · min. {row.min_attendees}
+                        </span>
+                        {(row.location_name || row.meeting_point) && (
+                          <span className="flex min-w-0 items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                              {[row.location_name, row.meeting_point].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
-                    <Pencil className="h-4 w-4" />
-                    <span className="ml-2 sm:hidden">Bewerken</span>
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                    <span className="ml-2 sm:hidden">Verwijderen</span>
-                  </Button>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
+                      <CalendarClock className="h-4 w-4" />
+                      <span className="ml-2 sm:hidden">Verplaatsen</span>
+                    </Button>
+                    {canSkip && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
+                        <SkipForward className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Overslaan</span>
+                      </Button>
+                    )}
+                    {isSkipped && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
+                        <RotateCcw className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Terugzetten</span>
+                      </Button>
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
+                      <Pencil className="h-4 w-4" />
+                      <span className="ml-2 sm:hidden">Bewerken</span>
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <span className="ml-2 sm:hidden">Verwijderen</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
+      {/* Toevoegen / bewerken */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -275,6 +514,215 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
             <Button type="button" onClick={handleSubmit} disabled={!canSave || saving} className="w-full sm:w-auto">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? 'Opslaan' : 'Toevoegen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk plannen */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Plan meerdere datums</DialogTitle>
+            <DialogDescription>
+              Genereer wekelijkse datums en vink uit wat niet past.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Startdatum *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('w-full justify-start text-left font-normal', !bulkStart && 'text-muted-foreground')}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {bulkStart ? format(bulkStart, 'd MMM yyyy', { locale: nl }) : 'Kies een datum'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={bulkStart}
+                      onSelect={(d) => {
+                        setBulkStart(d);
+                        setBulkUnchecked(new Set());
+                        if (d) setBulkWeekday(String(getDay(d)));
+                      }}
+                      initialFocus
+                      className={cn('p-3 pointer-events-auto')}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Aantal weken</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={52}
+                  value={bulkWeeks}
+                  onChange={(e) => setBulkWeeks(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Weekdag</Label>
+                <Select value={bulkWeekday} onValueChange={(v) => { setBulkWeekday(v); setBulkUnchecked(new Set()); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WEEKDAYS.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>Elke {d.label.toLowerCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Starttijd</Label>
+                <Input type="time" value={bulkTime} onChange={(e) => setBulkTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Capaciteit *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={bulkCapacity}
+                  onChange={(e) => setBulkCapacity(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Minimum deelnemers</Label>
+                <Input type="number" min={0} value={bulkMin} onChange={(e) => setBulkMin(e.target.value)} />
+              </div>
+            </div>
+
+            {bulkStart && (
+              <div className="space-y-2">
+                <Label>Voorbeeld ({bulkChecked.length} van {bulkPreview.rows.length} aangevinkt)</Label>
+                <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2">
+                  {bulkPreview.rows.length === 0 ? (
+                    <p className="p-2 text-sm text-muted-foreground">Geen nieuwe datums om aan te maken.</p>
+                  ) : (
+                    bulkPreview.rows.map((iso) => (
+                      <label key={iso} className="flex items-center gap-2 rounded p-1 text-sm hover:bg-muted/50">
+                        <Checkbox
+                          checked={!bulkUnchecked.has(iso)}
+                          onCheckedChange={() =>
+                            setBulkUnchecked((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(iso)) next.delete(iso);
+                              else next.add(iso);
+                              return next;
+                            })
+                          }
+                        />
+                        <span className="truncate">{fmtDate(iso)}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {bulkPreview.skipped > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {bulkPreview.skipped} datum(s) bestonden al en zijn overgeslagen.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="outline" onClick={() => setBulkOpen(false)} className="w-full sm:w-auto">
+              Annuleren
+            </Button>
+            <Button
+              type="button"
+              onClick={handleBulkCreate}
+              disabled={!canBulk || bulkCreate.isPending}
+              className="w-full sm:w-auto"
+            >
+              {bulkCreate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Aanmaken ({bulkChecked.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verplaatsen */}
+      <Dialog open={!!moveTarget} onOpenChange={(open) => !open && setMoveTarget(null)}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Datum verplaatsen</DialogTitle>
+            <DialogDescription>
+              Kies de nieuwe dag voor deze datum. {COMMS_NOTE}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label>Nieuwe datum</Label>
+            <Calendar
+              mode="single"
+              selected={moveDate}
+              onSelect={setMoveDate}
+              initialFocus
+              className={cn('p-3 pointer-events-auto')}
+            />
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="outline" onClick={() => setMoveTarget(null)} className="w-full sm:w-auto">
+              Annuleren
+            </Button>
+            <Button
+              type="button"
+              onClick={handleMove}
+              disabled={!moveDate || updateDate.isPending}
+              className="w-full sm:w-auto"
+            >
+              {updateDate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Verplaatsen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mergen */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Datums samenvoegen</DialogTitle>
+            <DialogDescription>
+              Kies welke datum blijft doorgaan. De overige datums worden gemarkeerd als samengevoegd. {COMMS_NOTE}
+            </DialogDescription>
+          </DialogHeader>
+
+          <RadioGroup value={mergeWinner} onValueChange={setMergeWinner} className="space-y-2">
+            {mergeCandidates.map((d) => (
+              <label key={d.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+                <RadioGroupItem value={d.id} />
+                <span className="truncate">
+                  {fmtDate(d.event_date)} · {(d.start_time || '').slice(0, 5)}
+                </span>
+              </label>
+            ))}
+          </RadioGroup>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} className="w-full sm:w-auto">
+              Annuleren
+            </Button>
+            <Button
+              type="button"
+              onClick={handleMerge}
+              disabled={!mergeWinner || updateDate.isPending}
+              className="w-full sm:w-auto"
+            >
+              {updateDate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Samenvoegen
             </Button>
           </DialogFooter>
         </DialogContent>

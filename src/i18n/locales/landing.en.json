@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_smart_date_actions": {
+          "title": "Manage dates smartly",
+          "description": "Schedule multiple dates at once with a preview list, move a date to another day, skip a date without deleting it, or merge two dates into one."
+        },
         "ticket_product_dates": {
           "title": "Sell tickets for events",
           "description": "You can now create a product of type Ticket / Event and manage its dates yourself: date, start time, capacity, minimum number of attendees, location and meeting point. For each date you choose a status (scheduled, confirmed, cancelled or completed). You will find this under Products > edit product, in the Events & Dates section, visible as soon as you select the Ticket / Event product type and have saved the product. Bulk date planning will follow in a later update."
