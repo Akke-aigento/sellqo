@@ -62,6 +62,42 @@ export function useEventDetails(productId: string | undefined) {
 }
 
 export function useCreateEventDate(productId: string | undefined) {
+  return useCreateEventDateImpl(productId);
+}
+
+/**
+ * Batch-teller van inschrijvingen per event-datum.
+ * Leest ticket_instances (tenant-scoped RLS, fase 1) en telt client-side.
+ * Tot fase 4 (ticketverkoop) staan alle tellers op 0 — dat is verwacht.
+ */
+export function useEventSignupCounts(productId: string | undefined, eventIds: string[]) {
+  const { currentTenant } = useTenant();
+  const ids = [...eventIds].sort();
+
+  return useQuery({
+    queryKey: ['event-signup-counts', productId, ids.join(',')],
+    queryFn: async () => {
+      if (!currentTenant || ids.length === 0) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from('ticket_instances')
+        .select('event_detail_id')
+        .eq('tenant_id', currentTenant.id)
+        .in('event_detail_id', ids)
+        .in('status', ['valid', 'checked_in']);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data || []) {
+        const key = (row as { event_detail_id: string | null }).event_detail_id;
+        if (!key) continue;
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+      return counts;
+    },
+    enabled: !!currentTenant && ids.length > 0,
+  });
+}
+
+function useCreateEventDateImpl(productId: string | undefined) {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
