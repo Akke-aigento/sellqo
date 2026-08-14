@@ -336,14 +336,14 @@ async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
 async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: inv, error } = await ctx.supabase
     .from('invoices')
-    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id')
+    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id, reporting_country, vat_regime')
     .eq('id', invoiceId)
     .single()
   if (error || !inv) throw new Error(`Invoice not found: ${errMsg(error)}`)
 
   const { data: lines, error: linesErr } = await ctx.supabase
     .from('invoice_lines')
-    .select('description, quantity, unit_price, vat_rate, line_type')
+    .select('description, quantity, unit_price, vat_rate, line_type, vat_box_code, gl_account_code')
     .eq('invoice_id', inv.id)
     .order('sort_order', { ascending: true })
   if (linesErr) throw new Error(`Invoice lines: ${errMsg(linesErr)}`)
@@ -378,7 +378,10 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
     partnerId = p.partnerId
   }
 
-  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[])
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], {
+    vat_regime: (inv as { vat_regime?: string | null }).vat_regime ?? null,
+    reporting_country: (inv as { reporting_country?: string | null }).reporting_country ?? null,
+  })
   const moveData: Record<string, unknown> = {
     move_type: 'out_invoice',
     partner_id: partnerId,
@@ -452,7 +455,9 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
     partnerId = p.partnerId
   }
 
-  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[])
+  // Credit notes keep the pre-existing non-OSS behaviour: the source invoice's
+  // regime is not trivially available here. Known follow-up (see role-audit).
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], { vat_regime: null, reporting_country: null })
   const moveData: Record<string, unknown> = {
     move_type: 'out_refund',
     partner_id: partnerId,
