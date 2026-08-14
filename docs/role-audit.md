@@ -1,3 +1,26 @@
+## TICKET-1 fase 4a — Instance-creatie via DB-trigger — 14 augustus 2026
+
+**Doel** — Bij een betaalde ticket-order automatisch `ticket_instances` aanmaken, zonder de betaalpaden aan te raken.
+
+**Architectuur** — Puur in de database:
+- `public.issue_tickets_for_order(p_order_id uuid)` — SECURITY DEFINER, `SET search_path = public`. Leest de order; bij `payment_status <> 'paid'` direct `RETURN`. Selecteert daarna alleen `order_items` met `event_detail_id IS NOT NULL` (de ticketregels, gezet in fase 3.5) — geen join naar `products`. Zonder ticketregels doet de functie niets: goedkoop pad voor niet-ticket orders. Per ticketregel `FOR i IN 1..quantity` één rij met `tenant_id`, `event_detail_id`, `order_id`, `order_item_id`, `seq`, `status 'valid'` en `attendee_name`/`attendee_email` uit `orders.customer_name`/`customer_email` (geen extra joins).
+- `qr_token`: `replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','')` — 64 hexkarakters, 256 bit entropie, botsing praktisch uitgesloten. `pgcrypto`'s `gen_random_bytes` was niet aanroepbaar vanuit `search_path = public` (42883) en is daarom niet gebruikt.
+- Trigger `trg_issue_tickets_on_paid`: `AFTER INSERT OR UPDATE OF payment_status ON public.orders FOR EACH ROW WHEN (NEW.payment_status = 'paid')` → `trg_issue_tickets_for_order()`. INSERT is meegenomen omdat de webhook cart-flow een order aanmaakt die meteen `paid` is; UPDATE dekt de paden die een bestaande order op paid zetten.
+
+**Idempotentie-sleutel** — `(order_item_id, seq)`. `seq int` additief toegevoegd (`ADD COLUMN IF NOT EXISTS`) plus `ux_ticket_instances_orderitem_seq` (partieel, `WHERE seq IS NOT NULL`). Nodig omdat qty 3 drie rijen met dezelfde `order_item_id` oplevert; `order_item_id` alleen kan dus niet uniek zijn. De insert gebruikt `ON CONFLICT (order_item_id, seq) WHERE seq IS NOT NULL DO NOTHING` — het WHERE-predicaat is verplicht om een partiële index te kunnen inferren (zonder predicaat: 42P10). Dubbele trigger-vuring levert daarmee nooit dubbele tickets. Geen backfill nodig: 0 bestaande rijen.
+
+**Security-keuzes** — Beide functies SECURITY DEFINER met vast `search_path`; `EXECUTE` ingetrokken voor `PUBLIC`, `anon` en `authenticated`, zodat alleen de trigger/service-role ze aanroept. Geen RLS, policies of grants op `ticket_instances` gewijzigd.
+
+**Gedeelde-paden-waarschuwing** — `stripe-connect-webhook` en `storefront-api` zijn niet aangeraakt (byte-identiek); de logica zit volledig in de DB. Voor de vijf custom frontends verandert er niets: het `storefront-api`-contract is onveranderd en de trigger valt bij niet-ticket orders direct terug op `RETURN`.
+
+**Verificatie (geïsoleerd, testdata nadien verwijderd)**
+1. Ticket-order (tenant SellQo Speeltuin, event_detail `17efe0cc-…49bd`, status `scheduled`), order_item qty 3, order eerst `pending` → daarna `paid`: **3** `ticket_instances`, alle met het juiste `event_detail_id` en `tenant_id`, `status = 'valid'`, `seq` 1/2/3, `qr_token` 64 tekens, **3 unieke tokens**, attendee-velden gevuld uit de order.
+2. `issue_tickets_for_order()` nog eens handmatig aangeroepen → **nog steeds 3** (`ticket_order_count: 3, unique_tokens: 3`) — idempotentie bewezen.
+3. Niet-ticket order (order_item zonder `event_detail_id`) op `paid` gezet → **0** `ticket_instances`, geen fout.
+4. Opruiming: `ticket_instances` = 0, testorders = 0. Triggers op `orders`: 8 (de 7 bestaande intact + de nieuwe).
+
+**Bewust ongemoeid / Vervolg** — Geen mail, geen QR-afbeelding, geen scanner (fase 4b/verder). POS (`pos_transactions`) valt buiten scope: dat pad raakt `orders` niet. Attendee-splitsing per ticket (naam per bezoeker) staat open voor 4b. Geen changelog/newsletter — nog geen tenant-zichtbare feature (pas fase 6).
+
 ## TICKET-1 fase 3.5-fix — Status-validatie cartAddItem (bugfix) — 14 augustus 2026
 
 **Root cause** — De in fase 3.5 toegevoegde datum-validatie in `cartAddItem` (`supabase/functions/storefront-api/index.ts`) controleerde op status `'active'`, maar die status bestaat niet op `event_details`: de CHECK-constraint staat alleen `scheduled, confirmed, cancelled, completed, skipped, merged` toe. Gevolg: `eventDetail.status !== 'active'` was altijd waar voor een geldige datum (die `scheduled` of `confirmed` is), dus élke ticket-toevoeging aan de cart werd geweigerd met `EVENT_DATE_UNAVAILABLE` — de hele ticketverkoop was geblokkeerd.
