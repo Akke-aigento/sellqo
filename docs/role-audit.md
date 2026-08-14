@@ -1,4 +1,28 @@
-## ODOO-OSS-1 — regime-bewuste tax-selectie in sync-odoo-invoices — 14 augustus 2026
+## ODOO-OSS-2 — creditnota-sync regime-bewust maken — 14 augustus 2026
+
+**Root cause:** `syncCreditNote` in `supabase/functions/sync-odoo-invoices/index.ts` gaf hardcoded `{ vat_regime: null, reporting_country: null }` door aan `buildOdooLines`. Daardoor landen OSS-creditnota's (terugbetalingen van EU-B2C-verkopen) op de Belgische binnenlandse tax i.p.v. de landspecifieke OSS-tax — exact dezelfde misboeking die ODOO-OSS-1 op het factuur-pad oploste, maar dan bij refunds. Er staan reeds 2 fout geboekte moves: CN-2026-0002 en CN-2026-0004 (beide bron NL/`oss_b2c_eu`).
+
+**Recon (vóór schrijven):** `syncCreditNote` (r415-486) gelezen. Bevestigd dat `syncInvoice` al correct regimeCtx doorgeeft (r381-384) en dat `resolveTax`/`buildOdooLines` de OSS-logica al hebben uit ODOO-OSS-1 — die niet opnieuw aangeraakt. De koppeling naar de bron-factuur bestaat via `credit_notes.original_invoice_id`.
+
+**Uitgevoerd (`supabase/functions/sync-odoo-invoices/index.ts`, enige gewijzigde functiebestand):**
+- `credit_notes`-select uitgebreid met `original_invoice_id`.
+- Na het laden van de creditnota: als `cn.original_invoice_id` bestaat, losse query `select('vat_regime, reporting_country').from('invoices').eq('id', cn.original_invoice_id).maybeSingle()`. Bouw daaruit `regimeCtx`; als geen `original_invoice_id` of geen bron-rij → veilige niet-OSS-terugval `{ vat_regime: null, reporting_country: null }` (geen crash, geen error).
+- `buildOdooLines(ctx, lines, regimeCtx)` i.p.v. de hardcoded null. De verouderde "known follow-up"-comment verwijderd; de follow-up is hiermee gesloten.
+- `syncInvoice`, `resolveTax`, `buildOdooLines` en alle andere functies blijven byte-identiek.
+
+**Security-keuzes:** n.v.t. — geen DB-migratie, geen RLS, geen policies, geen grants. Puur server-side boekhoud-sync-logica met service-role en bestaande Odoo-credentials.
+
+**Gedeelde-paden-waarschuwing:** niet van toepassing. `storefront-api`, `checkout-engine`, `storefront-resolve` en de gedeelde tabellen zijn niet aangeraakt. De vijf custom frontends merken er niets van.
+
+**Verificatie (statisch, geen productie-sync gedraaid):**
+- OSS-creditnota (bron-factuur NL/`oss_b2c_eu`, lijn 21%): `regimeCtx = { vat_regime: 'oss_b2c_eu', reporting_country: 'NL' }` → `buildOdooLines` geeft `{ oss: true, country: 'NL' }` mee → `resolveTax` kiest tax id 120 "21.0% NL BTW". Niet id 3.
+- Binnenlandse creditnota (bron BE/`domestic_standard`): niet-OSS-pad, ongewijzigd → id 3.
+- Handmatige creditnota zonder `original_invoice_id`: `regimeCtx = { vat_regime: null, reporting_country: null }` → niet-OSS-terugval, geen error.
+- Reeds fout geboekte moves 1213 (CN-2026-0002) en 1323 (CN-2026-0004) vergen een aparte handmatige move-correctie in Odoo — de code-fixt alleen nieuwe syncs, niet retroactief.
+
+**Bewust ongemoeid / Vervolg:** partner-logica, journal-keuze, B2C-aggregatie, Peppol, auto-post en `move_type: 'out_refund'` niet aangeraakt. De retroactieve correctie van CN-2026-0002 en CN-2026-0004 in Odoo is een handmatige boekhouderstaak buiten de scope van deze batch. Changelog `2026.09w` uitgerold in 4 talen. `doc_articles` overgeslagen: interne boekhoud-sync-logica, geen tenant-zichtbaar scherm of route. Newsletter overgeslagen: geen aankondigbare functiewijziging voor tenants.
+
+
 
 **Root cause:** `resolveTax` in `supabase/functions/sync-odoo-invoices/index.ts` was regime-blind. De functie zocht uitsluitend op `[['amount','=',rate],['type_tax_use','=','sale']]` met `limit: 1` en nam de eerste treffer. Voor OSS-verkopen naar een ander EU-land (`vat_regime = 'oss_b2c_eu'`) landde een 21%-lijn daardoor op de Belgische BINNENLANDSE tax (VanXcel: id 3 "21%") in plaats van de landspecifieke OSS-tax (id 120 "21.0% NL BTW"). Gevolg: OSS-omzet werd stil als binnenlandse btw geboekt.
 

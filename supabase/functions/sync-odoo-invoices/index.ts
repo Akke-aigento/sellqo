@@ -415,10 +415,27 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
 async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: cn, error } = await ctx.supabase
     .from('credit_notes')
-    .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason')
+    .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason, original_invoice_id')
     .eq('id', cnId)
     .single()
   if (error || !cn) throw new Error(`Credit note not found: ${errMsg(error)}`)
+
+  // Resolve the source invoice's regime so OSS credit notes land on the
+  // correct destination-country tax (mirror of syncInvoice's behaviour).
+  let regimeCtx: RegimeCtx = { vat_regime: null, reporting_country: null }
+  if (cn.original_invoice_id) {
+    const { data: srcInv } = await ctx.supabase
+      .from('invoices')
+      .select('vat_regime, reporting_country')
+      .eq('id', cn.original_invoice_id)
+      .maybeSingle()
+    if (srcInv) {
+      regimeCtx = {
+        vat_regime: srcInv.vat_regime ?? null,
+        reporting_country: srcInv.reporting_country ?? null,
+      }
+    }
+  }
 
   const { data: lines, error: linesErr } = await ctx.supabase
     .from('credit_note_lines')
@@ -455,9 +472,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
     partnerId = p.partnerId
   }
 
-  // Credit notes keep the pre-existing non-OSS behaviour: the source invoice's
-  // regime is not trivially available here. Known follow-up (see role-audit).
-  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], { vat_regime: null, reporting_country: null })
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], regimeCtx)
   const moveData: Record<string, unknown> = {
     move_type: 'out_refund',
     partner_id: partnerId,

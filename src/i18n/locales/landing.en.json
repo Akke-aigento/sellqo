@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_credit_note_tax": {
+          "title": "VAT on refunds of EU sales is now booked with the correct rate",
+          "description": "When refunding sales to consumers in another EU country, the accounting connection sometimes used the Belgian VAT rate instead of your customer's country rate. This is fixed: credit notes for OSS sales are now booked with the correct country-specific VAT rate. No action needed on your side."
+        },
         "odoo_oss_tax_selection": {
           "title": "OSS sales are now booked with the correct country-specific VAT rate",
           "description": "If you sell to consumers in another EU country under the EU OSS scheme, the accounting connection sometimes used the Belgian VAT rate instead of your customer's country rate. This is fixed: OSS sales are now booked with the correct country-specific VAT rate. No action needed on your side."

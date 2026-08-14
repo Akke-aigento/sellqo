@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_credit_note_tax": {
+          "title": "La TVA sur les remboursements de ventes UE est désormais comptabilisée au bon taux",
+          "description": "Lors du remboursement de ventes à des consommateurs d'un autre pays de l'UE, la connexion comptable utilisait parfois le taux de TVA belge au lieu de celui du pays de votre client. C'est corrigé : les avoirs pour les ventes OSS sont désormais comptabilisés au taux de TVA du pays concerné. Aucune action de votre part n'est requise."
+        },
         "odoo_oss_tax_selection": {
           "title": "Les ventes OSS sont désormais comptabilisées au bon taux de TVA national",
           "description": "Si vous vendez à des consommateurs d'un autre pays de l'UE dans le cadre du régime OSS, la connexion comptable utilisait parfois le taux de TVA belge au lieu de celui du pays de votre client. C'est corrigé : les ventes OSS sont désormais comptabilisées au taux de TVA du pays concerné. Aucune action de votre part n'est requise."
