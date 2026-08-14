@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_product_dates": {
+          "title": "Vendez des billets pour vos evenements",
+          "description": "Vous pouvez desormais creer un produit de type Billet / Evenement et gerer vous-meme ses dates : date, heure de debut, capacite, nombre minimum de participants, lieu et point de rencontre. Pour chaque date, vous choisissez un statut (planifie, confirme, annule ou termine). Vous trouverez cela dans Produits > modifier le produit, section Evenements et dates, visible des que vous selectionnez le type de produit Billet / Evenement et que vous avez enregistre le produit. La planification en lot des dates suivra dans une mise a jour ulterieure."
+        },
         "odoo_oss_credit_note_tax": {
           "title": "La TVA sur les remboursements de ventes UE est désormais comptabilisée au bon taux",
           "description": "Lors du remboursement de ventes à des consommateurs d'un autre pays de l'UE, la connexion comptable utilisait parfois le taux de TVA belge au lieu de celui du pays de votre client. C'est corrigé : les avoirs pour les ventes OSS sont désormais comptabilisés au taux de TVA du pays concerné. Aucune action de votre part n'est requise."
