@@ -309,7 +309,7 @@ serve(async (req) => {
           // Get cart items
           const { data: cartItems } = await supabaseClient
             .from("storefront_cart_items")
-            .select("id, product_id, variant_id, quantity, unit_price, products(id, name, sku, images, category_id)")
+            .select("id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, sku, images, category_id)")
             .eq("cart_id", cartId);
 
           // Get variant info
@@ -324,6 +324,7 @@ serve(async (req) => {
             const variant = item.variant_id ? variantMap[item.variant_id] : null;
             return {
               id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
+              event_detail_id: item.event_detail_id || null,
               quantity: item.quantity, unit_price: item.unit_price,
               product: item.products ? { name: item.products.name, sku: variant?.sku || item.products.sku || null, image: variant?.image_url || item.products.images?.[0] || null } : null,
               variant: variant ? { title: variant.title } : null,
@@ -431,6 +432,7 @@ serve(async (req) => {
             product_image: item.product?.image || null,
             variant_id: item.variant_id || null,
             variant_title: item.variant?.title || null,
+            event_detail_id: item.event_detail_id || null,
             vat_rate,
             vat_rate_id,
             vat_amount: Math.round(lineVatAmount * 100) / 100,
