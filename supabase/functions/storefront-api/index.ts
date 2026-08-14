@@ -1550,13 +1550,21 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   // TICKET-1 fase 3.5: optionele event-datum valideren (moet bij dit product + deze tenant horen)
   if (eventDetailId) {
     const { data: eventDetail } = await supabase
-      .from('event_details').select('id, product_id, tenant_id, status')
+      .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity')
       .eq('id', eventDetailId).eq('product_id', productId).eq('tenant_id', tenantId).maybeSingle();
     if (!eventDetail) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_INVALID', message: 'Deze datum hoort niet bij dit product' }));
     }
     if (!['scheduled', 'confirmed'].includes(eventDetail.status)) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_UNAVAILABLE', message: 'Deze datum is niet meer beschikbaar' }));
+    }
+
+    // EARLY-BIRD fase B: prijs op de cart-regel volgt de early-bird-regel.
+    // Alleen in deze ticket-tak; de variant-prijs-logica blijft onaangeroerd.
+    const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: eventDetailId });
+    const sold = typeof cnt === 'number' ? cnt : 0;
+    if (!variantId) {
+      unitPrice = resolveEventPrice(eventDetail, product.price, sold, new Date()).price;
     }
   }
 
