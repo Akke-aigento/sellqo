@@ -1026,8 +1026,8 @@
     "changelog": {
       "changes": {
         "ticket_smart_date_actions": {
-          "title": "Gerez vos dates intelligemment",
-          "description": "Planifiez plusieurs dates d'un coup avec une liste d'apercu, deplacez une date vers un autre jour, ignorez une date sans la supprimer, ou fusionnez deux dates en une."
+          "title": "Gérez vos dates intelligemment",
+          "description": "Planifiez plusieurs dates d'un coup avec une liste d'aperçu, déplacez une date vers un autre jour, ignorez une date sans la supprimer, ou fusionnez deux dates en une."
         },
         "ticket_product_dates": {
           "title": "Vendez des billets pour vos evenements",

@@ -1027,7 +1027,7 @@
       "changes": {
         "ticket_smart_date_actions": {
           "title": "Termine intelligent verwalten",
-          "description": "Planen Sie mehrere Termine auf einmal mit Vorschauliste, verschieben Sie einen Termin auf einen anderen Tag, uberspringen Sie einen Termin ohne ihn zu loschen, oder fassen Sie zwei Termine zu einem zusammen."
+          "description": "Planen Sie mehrere Termine auf einmal mit Vorschauliste, verschieben Sie einen Termin auf einen anderen Tag, überspringen Sie einen Termin ohne ihn zu löschen, oder fassen Sie zwei Termine zu einem zusammen."
         },
         "ticket_product_dates": {
           "title": "Verkaufe Tickets fuer Veranstaltungen",
