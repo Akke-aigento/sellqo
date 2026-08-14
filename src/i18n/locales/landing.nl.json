@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_tax_selection": {
+          "title": "OSS-verkopen worden nu met het juiste landspecifieke btw-tarief geboekt",
+          "description": "Verkoop je onder de EU-OSS-regeling aan consumenten in een ander EU-land, dan werd in de boekhoudkoppeling soms het Belgische btw-tarief gebruikt in plaats van het tarief van het land van je klant. Dat is opgelost: OSS-verkopen worden nu met het juiste landspecifieke btw-tarief in de boekhouding geboekt. Je hoeft niets aan te passen."
+        },
         "guest_checkout_vat_classification": {
           "title": "Btw klopt nu ook bij bestellingen zonder klantaccount",
           "description": "Bij een bestelling via gast-checkout werd de btw op de factuur niet altijd volgens het juiste btw-regime geclassificeerd, bijvoorbeeld bij verkoop naar een ander EU-land of buiten de EU. Dat is opgelost: gastbestellingen worden nu op dezelfde manier beoordeeld als bestellingen van klanten met een account. Je hoeft niets aan te passen."
