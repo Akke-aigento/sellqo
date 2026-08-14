@@ -726,6 +726,9 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
         price_range: priceRange,
+        ...(product.product_type === 'ticket'
+          ? { next_event_date: nextEventDateMap[product.id] ?? null }
+          : {}),
       };
     }),
     pagination: {
