@@ -79,6 +79,11 @@ export const EMAIL_SENDERS = {
     from: `${sanitizeName(tenantName)} <customer-service@sellqo.app>`,
     replyTo: resolveReplyTo(tenantReplyTo),
   }),
+  // TICKET-1 fase 4b — QR-tickets voor events
+  tickets: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
+    from: `${sanitizeName(tenantName)} <tickets@sellqo.app>`,
+    replyTo: resolveReplyTo(tenantReplyTo),
+  }),
 } as const;
 
 export type SenderKey =
@@ -93,4 +98,5 @@ export type SenderKey =
   | "returns"
   | "giftCards"
   | "marketing"
-  | "customerService";
+  | "customerService"
+  | "tickets";
