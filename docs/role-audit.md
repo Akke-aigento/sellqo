@@ -1,3 +1,27 @@
+## TICKET-1 fase 6b-fix — event_detail_id meekopiëren naar order_items (Gat D) — 14 augustus 2026
+
+**Root cause** — In de gedeelde checkout van `supabase/functions/storefront-api/index.ts` viel `event_detail_id` weg tussen cart-item en order-item. Drie plekken in de `createOrderFromCart`-keten: de select in `getCartForCheckout` (r.1673) haalde het veld niet op, de cart-item-mapping (r.1696-1703) nam het niet mee, en de order-item-mapping in `createOrderFromCart` (r.2170-2184) schreef het niet weg. Gevolg: `order_items.event_detail_id = null` bij ticketaankopen → `issue_tickets_for_order` maakte 0 `ticket_instances` → klant kreeg geen QR-ticket. Op `storefront_cart_items` stond de waarde wél correct (fase 3.5). `checkoutVerifyPayment` (r.2963 select, r.3115 mapping) doet het al jaren correct en diende als referentie-implementatie.
+
+**Uitgevoerd** (strikt additief — drie toevoegingen, geen bestaande regel gewijzigd)
+- `supabase/functions/storefront-api/index.ts` r.1673 — `event_detail_id` toegevoegd aan de select uit `storefront_cart_items`.
+- r.1699 — `event_detail_id: item.event_detail_id || null` toegevoegd aan het cart-item-object van `getCartForCheckout`.
+- r.2182 — `event_detail_id: item.event_detail_id || null` toegevoegd aan de order-item-mapping in `createOrderFromCart`.
+
+**Security-keuzes** — n.v.t. Geen RLS, policy, grant of rechtenwijziging; alleen een bestaande nullable kolom (`order_items.event_detail_id`, uuid) die nu gevuld wordt. Geen nieuwe tabel, geen nieuwe response-sleutel naar buiten.
+
+**Gedeelde-paden-waarschuwing** — `createOrderFromCart` en `getCartForCheckout` bedienen de checkout van alle vijf custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) plus de SellQo-storefront, en beide betaalpaden: de €0-tak (r.2577) en de Stripe-tak (r.2744). Veilig omdat de wijziging puur additief is: een niet-ticket cart-item heeft `event_detail_id = null`, de `|| null` levert dan exact dezelfde waarde als de kolomdefault. Geen veld hernoemd, geen veld verwijderd, geen conditie aangepast. Het JSON-contract van `buildCartResponse` blijft ongewijzigd — `event_detail_id` komt alleen op het interne cart-item-object en in de DB-insert, niet in de frontend-response.
+
+**Verificatie**
+- `npx tsgo --noEmit -p tsconfig.app.json` → 0 fouten. `storefront-api` gedeployed.
+- End-to-end tegen de live storefront-api (Fonske-tenant `95f6685b-…`), tijdelijk €0-ticketproduct met `track_inventory=false` + `event_detail`: `cart_create` → `cart_add_item` (met `event_detail_id`, qty 2) → `checkout_start` → `checkout_customer` → `checkout_complete` (`payment_method_id:'free'`) → order `#0001`, `payment_type:'none'`.
+- SQL-natrek: `order_items.event_detail_id = b8bd65ca-…` (gevuld, was null vóór de fix) en 2 `ticket_instances` met status `valid` en 64-hex `qr_token`.
+- Regressiecheck niet-ticket: identieke keten met een `physical` product → `order_items.event_detail_id = null`, 0 `ticket_instances`, geen fout. Byte-identiek gedrag.
+- Alle testdata verwijderd: 2 tickets, 2 order_items, 2 orders, 2 facturen + 2 factuurregels, 6 cart-items, 6 carts, 1 event_detail, 2 producten, 2 testklanten. Natrek daarna: 0 achtergebleven records.
+
+**Bewust ongemoeid / Vervolg** — `checkoutVerifyPayment` niet aangeraakt (deed het al correct). Geen changelog- of nieuwsbrief-entry: fase 6 bundelt de publieke communicatie.
+
+---
+
 ## TICKET-1 fase 6a-1 — Middernacht-fix in storefront-api event-lijst — 14 augustus 2026
 
 **Root cause** — De event-datumfilter in de gedeelde `storefront-api` kapte op de UTC-kalenderdag af: `.gte('event_date', new Date().toISOString().slice(0, 10))` op twee plekken — `getProduct` (detail, oude r.502) en `getProducts` (lijst, oude r.709). Een crawl die om 21:00 begint en tot 03:00 doorloopt verdween daardoor midden in het lopende event uit de storefront, zodra het in UTC "morgen" werd.

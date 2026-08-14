@@ -1670,7 +1670,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, sku, track_inventory, stock, category_id), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, slug, images, price, sku, track_inventory, stock, category_id), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
 
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -1696,6 +1696,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
       quantity: item.quantity, unit_price: effectivePrice,
+      event_detail_id: item.event_detail_id || null,
       compare_at_price: compareAt,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
@@ -2178,6 +2179,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
     variant_title: item.variant?.title || null,
+    event_detail_id: item.event_detail_id || null,
     vat_rate,
     vat_rate_id,
     vat_amount: Math.round(lineVatAmount * 100) / 100,
