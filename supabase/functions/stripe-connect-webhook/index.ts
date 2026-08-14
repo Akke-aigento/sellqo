@@ -499,6 +499,20 @@ serve(async (req) => {
             logStep("Order confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
           }
 
+          // TICKET-1 fase 4b: ticket-mail met QR-codes (non-blocking).
+          // De function skipt zelf als er geen ticket_instances voor deze order zijn,
+          // dus niet-ticket orders veranderen niet van gedrag.
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+              body: JSON.stringify({ order_id: newOrder.id }),
+            });
+          } catch (e) {
+            logStep("Ticket confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
+          }
+
           // Admin notification for new storefront order (non-blocking)
           try {
             const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
