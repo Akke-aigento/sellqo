@@ -1,3 +1,31 @@
+## EVENT-DASHBOARD — event-centrisch admin-overzicht — 14 augustus 2026
+
+**Doel** — Een tenant kon de stand van z'n events (crawls) alleen zien door in het PRODUCT te duiken (`ProductEventDatesTab`). Nieuwe view `/admin/events` toont per event de bezetting, check-ins en de deelnemerslijst.
+
+**Uitgevoerd** (puur additief — geen schema-wijziging, geen storefront-api-wijziging)
+- `src/pages/admin/EventDashboard.tsx` (nieuw): overzichtskaarten (productnaam, datum+tijd, locatie/meeting point, `Progress` verkocht/capaciteit, ingecheckt-teller, statusbadge, min_attendees-indicatie met ✓) en een detailweergave met kern-stats (capaciteit/verkocht/ingecheckt/plaatsen vrij) plus deelnemerslijst (tabel ≥768px, kaarten daaronder voor 390px). Geen CSV-export (bewust buiten scope).
+- `src/App.tsx`: route `events` met dezelfde `RouteGuard requireRole={['tenant_admin','staff']}` als `/admin/checkin`.
+- `src/components/admin/sidebar/sidebarConfig.ts`: item `event-dashboard` ("Events", `CalendarDays`) direct naast `ticket-checkin`, `allowedRoles` identiek (`platform_admin`, `tenant_admin`, `staff`).
+
+**Data-laag: directe client-queries, GEEN SECURITY DEFINER RPC**
+Een RPC zou service-role draaien en dus RLS omzeilen; de tenant-scope zou dan afhangen van een correct meegegeven `p_tenant_id`-parameter, met een nieuw bypass-oppervlak op data die kopers-emails en -namen bevat. Directe queries erven de bestaande RLS, die op alle drie de gelezen tabellen tenant-scoped is:
+- `event_details`: `event_details_select_tenant` — `tenant_id IN get_user_tenant_ids(auth.uid()) AND has_tenant_role(tenant_id, ['tenant_admin','staff'])`
+- `ticket_instances`: `ticket_instances_select_tenant` — identieke conditie
+- `orders`: `Auth users can view tenant orders` — `tenant_id IN get_user_tenant_ids(auth.uid())`
+Daarbovenop filtert elke query expliciet `.eq('tenant_id', currentTenant.id)` als tweede slot. Een lek zou dus zowel een RLS-fout als een clientfout vereisen.
+
+**N+1-mitigatie** — De overzichtstellers komen uit ÉÉN select op `ticket_instances` (`event_detail_id, status`) voor alle event-ids in het venster; aggregatie (verkocht = `valid|checked_in`, ingecheckt = `checked_in`, refunded = `refunded|cancelled`) gebeurt client-side, patroon van `useEventSignupCounts`. Geen count-query per event. Deelnemerslijst is één select met embedded `orders(order_number, customer_email)`; beide tabellen zijn tenant-scoped, dus de join kan nooit een andere tenant tonen.
+
+**MIDDERNACHT** — Ondergrens `event_date >= vandaag - 2 dagen`, geen "vandaag"-afkap; events die over middernacht lopen (21:00 → 03:00) blijven zichtbaar. Identiek aan `TicketCheckin.tsx`.
+
+**Security-keuzes** — Geen nieuwe policies, grants of functies. Een `platform_admin` zonder tenant-rol ziet het dashboard niet (RLS op `event_details`/`ticket_instances` vereist `has_tenant_role`); dat is bewust identiek aan de bestaande check-in-pagina. Een bypass is expliciet niet gebouwd en gaat, indien gewenst, als aparte batch.
+
+**Gedeelde-paden-waarschuwing** — n.v.t. Geen wijziging aan `storefront-api`, `checkout-engine`, `storefront-resolve` of aan gedeelde tabellen; de vijf custom frontends merken hier niets van. Alleen admin-frontend en één routerregel.
+
+**Verificatie** — `npx tsgo --noEmit -p tsconfig.app.json` → 0 fouten (na een volledige `bun install`; `node_modules` was leeg geraakt). Layout opgezet voor 390px (2-koloms stat-tiles, kaartweergave voor deelnemers).
+
+**Bewust ongemoeid / Vervolg** — Geen CSV-export, geen platform-admin-bypass, geen changelog/newsletter/doc_articles (bundelt met de core-slottaakronde ná early-bird). De live end-to-end test met een tijdelijk €0-ticketproduct staat nog open: de sandbox-`psql` mag geen INSERT/DELETE uitvoeren, dus die test hoort in een aparte beurt met de juiste rechten.
+
 ## TICKET-1 fase 6b-fix — event_detail_id meekopiëren naar order_items (Gat D) — 14 augustus 2026
 
 **Root cause** — In de gedeelde checkout van `supabase/functions/storefront-api/index.ts` viel `event_detail_id` weg tussen cart-item en order-item. Drie plekken in de `createOrderFromCart`-keten: de select in `getCartForCheckout` (r.1673) haalde het veld niet op, de cart-item-mapping (r.1696-1703) nam het niet mee, en de order-item-mapping in `createOrderFromCart` (r.2170-2184) schreef het niet weg. Gevolg: `order_items.event_detail_id = null` bij ticketaankopen → `issue_tickets_for_order` maakte 0 `ticket_instances` → klant kreeg geen QR-ticket. Op `storefront_cart_items` stond de waarde wél correct (fase 3.5). `checkoutVerifyPayment` (r.2963 select, r.3115 mapping) doet het al jaren correct en diende als referentie-implementatie.
