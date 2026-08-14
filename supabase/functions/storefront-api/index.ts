@@ -2478,6 +2478,77 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     : (Number(cart.subtotal) || grossSubtotalFromItems);
   const total = effectiveSubtotal - discountAmount + netShippingCost + (feeCents / 100);
 
+  // ── TICKET-1 fase 4c — gratis (€0) ticketpad ───────────────────────────────
+  // NIEUWE tak: vuurt UITSLUITEND als het te betalen totaal (na kortingen,
+  // verzending en fee) in centen ≤ 0 is. Bij elk positief totaal valt de code
+  // door naar de bestaande Stripe- en bank_transfer-takken, die byte-identiek
+  // blijven. payment_method='free' is INTERN: het staat niet in
+  // available_payment_methods en wijzigt het methode-contract naar de vijf
+  // custom frontends niet.
+  const totalCents = Math.round(total * 100);
+  if (totalCents <= 0) {
+    console.log('[checkoutComplete] free order path (total <= 0)', { cartId, totalCents });
+
+    // Voorraad afboeken — zelfde blauwdruk als de bank_transfer-tak.
+    for (const item of cart.cartItems) {
+      if (item.variant_id) {
+        const { error: vsErr } = await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+        if (vsErr) console.warn('decrement_variant_stock failed:', vsErr.message);
+      } else if (item.product_id) {
+        const { error: sErr } = await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        if (sErr) console.warn('decrement_stock failed:', sErr.message);
+      }
+    }
+
+    // Interne betaalmethode vastleggen (niet zichtbaar in de methodelijst).
+    await supabase.from('storefront_carts').update({
+      payment_method: 'free',
+      updated_at: new Date().toISOString(),
+    }).eq('id', cartId).eq('tenant_id', tenantId);
+    cart.payment_method = 'free';
+
+    // 'paid' → fase-4a trigger issue_tickets_for_order vuurt en maakt
+    // ticket_instances (idempotent via unique index op order_item + seq).
+    const freeOrder = await createOrderFromCart(supabase, tenantId, cart, 'paid');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const svcHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+    };
+
+    // Factuur (best-effort) — een €0-factuur is fiscaal geldig.
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
+      }).catch(() => {});
+    } catch {}
+
+    // Orderbevestiging (non-blocking)
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
+        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
+      });
+    } catch {}
+
+    // Ticketbevestiging met QR (non-blocking; skipt zichzelf zonder tickets)
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
+        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
+      });
+    } catch {}
+
+    return {
+      success: true,
+      order_id: freeOrder.id,
+      order_number: freeOrder.order_number,
+      status: 'completed',
+      payment_type: 'none',
+      total: freeOrder.total,
+      currency,
+    };
+  }
+
   // Map fine-grained methods to Stripe payment_method_types
   const stripeMethodMap: Record<string, string> = {
     'bancontact': 'bancontact',
