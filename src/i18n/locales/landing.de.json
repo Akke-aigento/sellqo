@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_smart_date_actions": {
+          "title": "Termine intelligent verwalten",
+          "description": "Planen Sie mehrere Termine auf einmal mit Vorschauliste, verschieben Sie einen Termin auf einen anderen Tag, uberspringen Sie einen Termin ohne ihn zu loschen, oder fassen Sie zwei Termine zu einem zusammen."
+        },
         "ticket_product_dates": {
           "title": "Verkaufe Tickets fuer Veranstaltungen",
           "description": "Du kannst jetzt ein Produkt vom Typ Ticket / Event anlegen und dessen Termine selbst verwalten: Datum, Startzeit, Kapazitaet, Mindestanzahl an Teilnehmern, Ort und Treffpunkt. Pro Termin waehlst du einen Status (geplant, bestaetigt, abgesagt oder abgeschlossen). Du findest das unter Produkte > Produkt bearbeiten im Bereich Events & Termine, sichtbar sobald du den Produkttyp Ticket / Event auswaehlst und das Produkt gespeichert hast. Die Massenplanung von Terminen folgt in einem spaeteren Update."
