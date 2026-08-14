@@ -491,6 +491,32 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     };
   }
 
+  // TICKET-1 fase 2: event-info uitsluitend voor ticket-producten (strikt additief)
+  let eventData: Record<string, unknown> = {};
+  if (product.product_type === 'ticket') {
+    const { data: events } = await supabase
+      .from('event_details')
+      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone')
+      .eq('product_id', product.id)
+      .eq('tenant_id', tenantId)
+      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .not('status', 'in', '(cancelled,skipped,merged)')
+      .order('event_date', { ascending: true });
+
+    const withCounts = await Promise.all((events || []).map(async (e: any) => {
+      const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: e.id });
+      const sold = typeof cnt === 'number' ? cnt : 0;
+      return {
+        ...e,
+        tickets_sold: sold,
+        spots_left: Math.max(0, (e.capacity ?? 0) - sold),
+        min_reached: sold >= (e.min_attendees ?? 0),
+      };
+    }));
+
+    eventData = { event: { upcoming: withCounts } };
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -524,7 +550,6 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
-    ...bundleData,
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -536,6 +561,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       total_count: reviews?.length || 0,
     },
     ...bundleData,
+    ...eventData,
   };
 }
 
