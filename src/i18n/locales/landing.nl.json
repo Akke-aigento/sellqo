@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_product_dates": {
+          "title": "Verkoop tickets voor evenementen",
+          "description": "Je kunt nu een product van het type Ticket / Event aanmaken en daar zelf datums bij beheren: datum, starttijd, capaciteit, minimum aantal deelnemers, locatie en verzamelpunt. Per datum kies je een status (gepland, bevestigd, geannuleerd of afgerond). Je vindt dit onder Producten > product bewerken, in de sectie Events & Datums, zichtbaar zodra je het producttype Ticket / Event kiest en het product hebt opgeslagen. Bulk-planning van datums volgt in een latere update."
+        },
         "odoo_oss_credit_note_tax": {
           "title": "Btw op terugbetalingen van EU-verkopen wordt nu met het juiste tarief geboekt",
           "description": "Bij terugbetalingen van verkopen aan consumenten in een ander EU-land werd in de boekhoudkoppeling soms het Belgische btw-tarief gebruikt in plaats van het tarief van het land van je klant. Dat is opgelost: creditnota's voor OSS-verkopen worden nu met het juiste landspecifieke btw-tarief geboekt. Je hoeft niets aan te passen."

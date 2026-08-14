@@ -29,13 +29,15 @@ import {
   Languages,
   ExternalLink,
   Wand2,
-  Library
+  Library,
+  Ticket
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ProductMarketplaceTab } from '@/components/admin/marketplace/ProductMarketplaceTab';
 import { ProductVariantsTab } from '@/components/admin/products/ProductVariantsTab';
+import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDatesTab';
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
@@ -112,7 +114,7 @@ const productSchema = z.object({
   is_featured: z.boolean().default(false),
   weight: z.coerce.number().min(0).nullable().optional(),
   requires_shipping: z.boolean().default(true),
-  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card']).default('physical'),
+  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card', 'ticket']).default('physical'),
   digital_delivery_type: z.enum(['download', 'license_key', 'access_url', 'email_attachment', 'qr_code', 'external_service']).nullable().optional(),
   download_limit: z.coerce.number().int().min(0).nullable().optional(),
   download_expiry_hours: z.coerce.number().int().min(1).nullable().optional(),
@@ -138,6 +140,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
   subscription: <RefreshCw className="h-6 w-6" />,
   bundle: <Layers className="h-6 w-6" />,
   gift_card: <CreditCard className="h-6 w-6" />,
+  ticket: <Ticket className="h-6 w-6" />,
 };
 
 export default function ProductForm() {
@@ -276,6 +279,7 @@ export default function ProductForm() {
   const isDigital = productType === 'digital';
   const isGiftCard = productType === 'gift_card';
   const isBundle = productType === 'bundle';
+  const isTicket = productType === 'ticket';
   const bundlePricingModel = form.watch('bundle_pricing_model');
 
   // Initialize bundle items from loaded data
@@ -362,7 +366,7 @@ export default function ProductForm() {
 
   const handleProductTypeChange = (type: ProductType) => {
     form.setValue('product_type', type, { shouldDirty: true });
-    if (type === 'digital' || type === 'service' || type === 'gift_card') {
+    if (type === 'digital' || type === 'service' || type === 'gift_card' || type === 'ticket') {
       form.setValue('requires_shipping', false, { shouldDirty: true });
       form.setValue('track_inventory', false, { shouldDirty: true });
     } else if (type === 'physical') {
@@ -1538,6 +1542,28 @@ export default function ProductForm() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Events & Datums (alleen bij ticket) */}
+                  {isTicket && (isEditing && id ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Events & Datums</CardTitle>
+                        <CardDescription>Beheer de datums, tijden en capaciteit van dit evenement.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ProductEventDatesTab productId={id} />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Events & Datums</CardTitle>
+                      </CardHeader>
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">Sla het product eerst op om datums te beheren</p>
+                      </CardContent>
+                    </Card>
+                  ))}
 
                   {/* Technische Specificaties */}
                   {isEditing && id && (

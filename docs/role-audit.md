@@ -1,3 +1,26 @@
+## TICKET-1 fase 3b — producttype `ticket` + basis Events & Datums-beheer — 14 augustus 2026
+
+**Root cause / gat:** het schema uit fase 1 (`event_details`) en de storefront-response uit fase 2 bestonden al, maar een tenant kon nergens een ticketproduct aanmaken of datums invoeren. `ticket` ontbrak in de TS-union, `productTypeInfo`, `productTypeIcons` en de zod-enum van `ProductForm`.
+
+**Uitgevoerd:**
+- `src/types/product.ts`: `'ticket'` toegevoegd aan de `ProductType`-union en een `ticket`-entry in `productTypeInfo` ("Ticket / Event").
+- `src/pages/admin/ProductForm.tsx`: `Ticket`-icoon geïmporteerd uit lucide-react en toegevoegd aan `productTypeIcons`; `'ticket'` toegevoegd aan de zod-enum `product_type`; `isTicket`-boolean naast de bestaande `isDigital`/`isGiftCard`/`isBundle`; in `handleProductTypeChange` valt `ticket` in de bestaande dienst-branche (`requires_shipping = false`, `track_inventory = false`) — geen nieuwe branche nodig, geen bestaande branche gewijzigd.
+- Nieuw: `src/hooks/useEventDetails.ts` — `useEventDetails(productId)` (queryKey `['event-details', productId]`, gefilterd op `product_id` + `tenant_id`, geordend op `event_date` asc) plus `useCreateEventDate`, `useUpdateEventDate`, `useDeleteEventDate` met `tenant_id` van `useTenant()` op insert en `invalidateQueries` in `onSuccess`. Exact het patroon van `useProductVariants.ts` als blauwdruk.
+- Nieuw: `src/components/admin/products/ProductEventDatesTab.tsx` — lijst van datums (datum, starttijd, status-badge, capaciteit/minimum, locatie/verzamelpunt), Dialog voor toevoegen én bewerken (Calendar-in-Popover met `pointer-events-auto`, time-input default 21:00, capaciteit verplicht, min. deelnemers default 0, status-Select met enkel `scheduled|confirmed|cancelled|completed`), verwijderen achter een AlertDialog-bevestiging.
+- `ProductForm.tsx`: Events & Datums-Card toegevoegd direct ná de Varianten-Card, volgens exact hetzelfde patroon: bij `isEditing && id` de tab, anders de placeholder "Sla het product eerst op om datums te beheren".
+- Changelog `2026.09x` (feature, `ticket_product_dates`) met i18n-keys in nl/en/fr/de (94 entries per taal, pariteit gecontroleerd).
+- `doc_articles`: tenant-artikel `ticket-product-datums`, categorie `producten`, `context_path = /admin/products`, idempotent via `ON CONFLICT (doc_level, slug) DO UPDATE`.
+
+**Security-keuzes:** n.v.t. — geen tabel, policy, grant of definer-functie gewijzigd. De nieuwe hook schrijft via de gewone client en is dus volledig afhankelijk van de RLS die in fase 1 op `event_details` gezet is; alle queries filteren bovendien expliciet op `tenant_id` van `useTenant()`.
+
+**Gedeelde-paden-waarschuwing:** `ProductForm.tsx` is de gedeelde product-admin voor álle producttypes. Veilig omdat (1) er niets is hernoemd of verwijderd — enkel een union-lid, een map-entry, een enum-waarde, een boolean en één nieuwe Card toegevoegd; (2) de nieuwe Card zit volledig achter `isTicket`, dus physical/digital/service/subscription/bundle/gift_card renderen identiek; (3) `ticket` valt in de bestaande dienst-branche van `handleProductTypeChange`, waardoor het gedrag van de andere types onaangeroerd blijft; (4) geen enkele storefront-edge-function of gedeelde tabel geraakt in deze batch.
+
+**Verificatie:** `tsgo --noEmit -p tsconfig.app.json` slaagt zonder fouten (de vier plekken landen consistent; de eerdere TS2741/TS2322-fouten na het uitbreiden van de union zijn opgelost door de vier plekken samen te wijzigen). Migratie voor `doc_articles` succesvol toegepast (eerste poging faalde op de `NOT NULL` van `category_id`; opgelost met de bestaande categorie `producten`). Responsiveness: rijen stapelen onder `sm` (`flex-col` → `sm:flex-row`), dialog gebruikt `max-w-[calc(100vw-2rem)]` + `max-h-[85vh] overflow-y-auto`, formuliergrid is `grid-cols-1` → `sm:grid-cols-2`, en knoppen zijn `w-full` op mobiel — geen horizontale overflow op 390px.
+
+**Bewust ongemoeid:** bulk-plannen, verplaatsen, overslaan en mergen (statussen `skipped`/`merged` staan bewust niet in de Select) — dat is fase 3c. Ticketverkoop in de storefront/checkout en `ticket_instances` blijven ongewijzigd.
+
+**Vervolg:** newsletter-item nog OPENSTAAND — pas versturen als de volledige ticketverkoop-flow rond is (fase 6), niet bij deze admin-only stap.
+
 ## TICKET-2 — event-info in storefront-api (fase 2 van event-tickets) — 14 augustus 2026
 
 **Doel:** ticket-producten leveren event-info mee via `storefront-api`; alle andere producttypes houden een identieke response.

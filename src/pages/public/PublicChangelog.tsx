@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.09x', dateKey: 'sep_2026', changes: [
+    { id: 'ticket_product_dates', type: 'feature' },
+  ] },
   { version: '2026.09w', dateKey: 'sep_2026', changes: [
     { id: 'odoo_oss_credit_note_tax', type: 'bugfix' },
   ] },

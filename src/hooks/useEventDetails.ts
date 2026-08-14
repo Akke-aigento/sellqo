@@ -1,0 +1,130 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from './useTenant';
+import { useToast } from './use-toast';
+
+export type EventStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+
+export interface EventDetail {
+  id: string;
+  product_id: string;
+  tenant_id: string;
+  event_date: string;
+  start_time: string;
+  end_time: string | null;
+  timezone: string;
+  capacity: number;
+  min_attendees: number;
+  status: string;
+  meeting_point: string | null;
+  location_name: string | null;
+  merged_into_event_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventDateFormData {
+  event_date: string;
+  start_time: string;
+  end_time?: string | null;
+  capacity: number;
+  min_attendees?: number;
+  status?: EventStatus;
+  meeting_point?: string | null;
+  location_name?: string | null;
+}
+
+export function useEventDetails(productId: string | undefined) {
+  const { currentTenant } = useTenant();
+
+  return useQuery({
+    queryKey: ['event-details', productId],
+    queryFn: async () => {
+      if (!productId || !currentTenant) return [];
+      const { data, error } = await supabase
+        .from('event_details')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('tenant_id', currentTenant.id)
+        .order('event_date', { ascending: true });
+      if (error) throw error;
+      return (data || []) as EventDetail[];
+    },
+    enabled: !!productId && !!currentTenant,
+  });
+}
+
+export function useCreateEventDate(productId: string | undefined) {
+  const { currentTenant } = useTenant();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: EventDateFormData) => {
+      if (!productId || !currentTenant) throw new Error('Geen product of tenant');
+      const { data: row, error } = await supabase
+        .from('event_details')
+        .insert({
+          ...data,
+          product_id: productId,
+          tenant_id: currentTenant.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return row;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      toast({ title: 'Datum toegevoegd' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useUpdateEventDate(productId: string | undefined) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<EventDateFormData> }) => {
+      const { data: row, error } = await supabase
+        .from('event_details')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return row;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      toast({ title: 'Datum bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteEventDate(productId: string | undefined) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('event_details').delete().eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      toast({ title: 'Datum verwijderd' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+}
