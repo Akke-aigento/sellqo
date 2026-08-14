@@ -62,7 +62,33 @@ export function useEventDetails(productId: string | undefined) {
 }
 
 export function useCreateEventDate(productId: string | undefined) {
-  return useCreateEventDateImpl(productId);
+  const { currentTenant } = useTenant();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: EventDateFormData) => {
+      if (!productId || !currentTenant) throw new Error('Geen product of tenant');
+      const { data: row, error } = await supabase
+        .from('event_details')
+        .insert({
+          ...data,
+          product_id: productId,
+          tenant_id: currentTenant.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return row;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      toast({ title: 'Datum toegevoegd' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
 }
 
 /**
@@ -94,36 +120,6 @@ export function useEventSignupCounts(productId: string | undefined, eventIds: st
       return counts;
     },
     enabled: !!currentTenant && ids.length > 0,
-  });
-}
-
-function useCreateEventDateImpl(productId: string | undefined) {
-  const { currentTenant } = useTenant();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: EventDateFormData) => {
-      if (!productId || !currentTenant) throw new Error('Geen product of tenant');
-      const { data: row, error } = await supabase
-        .from('event_details')
-        .insert({
-          ...data,
-          product_id: productId,
-          tenant_id: currentTenant.id,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return row;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
-      toast({ title: 'Datum toegevoegd' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
-    },
   });
 }
 
