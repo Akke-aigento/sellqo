@@ -472,9 +472,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
     partnerId = p.partnerId
   }
 
-  // Credit notes keep the pre-existing non-OSS behaviour: the source invoice's
-  // regime is not trivially available here. Known follow-up (see role-audit).
-  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], { vat_regime: null, reporting_country: null })
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], regimeCtx)
   const moveData: Record<string, unknown> = {
     move_type: 'out_refund',
     partner_id: partnerId,
