@@ -439,6 +439,14 @@ serve(async (req) => {
           }));
           await supabaseClient.from("order_items").insert(orderItems);
 
+          // TICKET-1 fase 4d: de trigger op orders vuurt bij de paid-INSERT, dus vóór
+          // dat de order_items bestaan. Hier expliciet en idempotent uitgeven (unique
+          // index order_item_id+seq). Niet-ticket orders krijgen niets.
+          try {
+            const { error: issueErr } = await supabaseClient.rpc('issue_tickets_for_order', { p_order_id: newOrder.id });
+            if (issueErr) logStep('issue_tickets_for_order failed (non-blocking)', { error: issueErr.message });
+          } catch (e) { logStep('issue_tickets_for_order threw (non-blocking)', { error: e instanceof Error ? e.message : String(e) }); }
+
           // Mark cart as converted
           await supabaseClient.from("storefront_carts").update({
             checkout_status: "converted",
@@ -570,6 +578,12 @@ serve(async (req) => {
               }
             }
           }
+
+          // TICKET-1 fase 4d: idempotente ticket-uitgifte (consistentie met cart-flow).
+          try {
+            const { error: issueErr } = await supabaseClient.rpc('issue_tickets_for_order', { p_order_id: orderId });
+            if (issueErr) logStep('issue_tickets_for_order failed (non-blocking)', { error: issueErr.message });
+          } catch (e) { logStep('issue_tickets_for_order threw (non-blocking)', { error: e instanceof Error ? e.message : String(e) }); }
 
           // Generate invoice
           try {
