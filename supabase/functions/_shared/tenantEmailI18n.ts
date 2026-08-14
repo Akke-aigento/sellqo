@@ -75,7 +75,26 @@ type Strings = {
     unsubscribe: string;
     poweredBy: string;
   };
+  ticket?: TicketStrings;
   paymentRequest?: PaymentRequestStrings;
+};
+
+// TICKET-1 fase 4b: ticket-delivery strings (QR-tickets per e-mail).
+type TicketStrings = {
+  subject: string;
+  heading: string;
+  intro: string;
+  instructions: string;
+  ticketLabel: string;
+  attendeeLabel: string;
+  dateLabel: string;
+  timeLabel: string;
+  locationLabel: string;
+  meetingPointLabel: string;
+  codeLabel: string;
+  disclaimer: string;
+  footerNote: string;
+  poweredBy: string;
 };
 
 // CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
@@ -176,6 +195,22 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Mogelijk gemaakt door SellQo", greeting: "Beste {customerName},", regards: "Met vriendelijke groet" },
     campaign: { unsubscribe: "Uitschrijven", poweredBy: "Mogelijk gemaakt door SellQo" },
+    ticket: {
+      subject: "Je tickets voor {eventName}",
+      heading: "Je tickets zijn klaar",
+      intro: "Hi {customerName}, bedankt voor je bestelling. Hieronder vind je {ticketCount} ticket(s).",
+      instructions: "Toon deze QR-code(s) aan de ingang. Eén QR-code per persoon.",
+      ticketLabel: "Ticket {index} van {total}",
+      attendeeLabel: "Naam",
+      dateLabel: "Datum",
+      timeLabel: "Tijd",
+      locationLabel: "Locatie",
+      meetingPointLabel: "Verzamelpunt",
+      codeLabel: "Ticketcode",
+      disclaimer: "Let op: datums kunnen in uitzonderlijke gevallen verschuiven of worden samengevoegd. Je wordt hier altijd van op de hoogte gebracht.",
+      footerNote: "Vragen over je tickets? Antwoord gewoon op deze e-mail.",
+      poweredBy: "Mogelijk gemaakt door SellQo",
+    },
     paymentRequest: {
       subject: "Betalingsverzoek {requestNumber} — {tenantName}",
       heading: "Betalingsverzoek {requestNumber}",
@@ -271,6 +306,22 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Powered by SellQo", greeting: "Dear {customerName},", regards: "Kind regards" },
     campaign: { unsubscribe: "Unsubscribe", poweredBy: "Powered by SellQo" },
+    ticket: {
+      subject: "Your tickets for {eventName}",
+      heading: "Your tickets are ready",
+      intro: "Hi {customerName}, thanks for your order. Below you'll find {ticketCount} ticket(s).",
+      instructions: "Show these QR code(s) at the entrance. One QR code per person.",
+      ticketLabel: "Ticket {index} of {total}",
+      attendeeLabel: "Name",
+      dateLabel: "Date",
+      timeLabel: "Time",
+      locationLabel: "Location",
+      meetingPointLabel: "Meeting point",
+      codeLabel: "Ticket code",
+      disclaimer: "Please note: in exceptional cases dates may move or be merged. We will always inform you if that happens.",
+      footerNote: "Questions about your tickets? Just reply to this email.",
+      poweredBy: "Powered by SellQo",
+    },
     paymentRequest: {
       subject: "Payment request {requestNumber} — {tenantName}",
       heading: "Payment request {requestNumber}",
@@ -366,6 +417,22 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Propulsé par SellQo", greeting: "Cher/Chère {customerName},", regards: "Cordialement" },
     campaign: { unsubscribe: "Se désabonner", poweredBy: "Propulsé par SellQo" },
+    ticket: {
+      subject: "Vos billets pour {eventName}",
+      heading: "Vos billets sont prêts",
+      intro: "Bonjour {customerName}, merci pour votre commande. Vous trouverez ci-dessous {ticketCount} billet(s).",
+      instructions: "Présentez ce(s) QR code(s) à l'entrée. Un QR code par personne.",
+      ticketLabel: "Billet {index} sur {total}",
+      attendeeLabel: "Nom",
+      dateLabel: "Date",
+      timeLabel: "Heure",
+      locationLabel: "Lieu",
+      meetingPointLabel: "Point de rendez-vous",
+      codeLabel: "Code du billet",
+      disclaimer: "Remarque : dans des cas exceptionnels, les dates peuvent être déplacées ou regroupées. Vous en serez toujours informé.",
+      footerNote: "Des questions sur vos billets ? Répondez simplement à cet e-mail.",
+      poweredBy: "Propulsé par SellQo",
+    },
     paymentRequest: {
       subject: "Demande de paiement {requestNumber} — {tenantName}",
       heading: "Demande de paiement {requestNumber}",
@@ -461,6 +528,22 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
     },
     message: { poweredBy: "Bereitgestellt von SellQo", greeting: "Sehr geehrte/r {customerName},", regards: "Mit freundlichen Grüßen" },
     campaign: { unsubscribe: "Abmelden", poweredBy: "Bereitgestellt von SellQo" },
+    ticket: {
+      subject: "Ihre Tickets für {eventName}",
+      heading: "Ihre Tickets sind bereit",
+      intro: "Hallo {customerName}, vielen Dank für Ihre Bestellung. Unten finden Sie {ticketCount} Ticket(s).",
+      instructions: "Zeigen Sie diese QR-Codes am Eingang. Ein QR-Code pro Person.",
+      ticketLabel: "Ticket {index} von {total}",
+      attendeeLabel: "Name",
+      dateLabel: "Datum",
+      timeLabel: "Uhrzeit",
+      locationLabel: "Ort",
+      meetingPointLabel: "Treffpunkt",
+      codeLabel: "Ticketcode",
+      disclaimer: "Hinweis: In Ausnahmefällen können Termine verschoben oder zusammengelegt werden. Wir informieren Sie in diesem Fall immer.",
+      footerNote: "Fragen zu Ihren Tickets? Antworten Sie einfach auf diese E-Mail.",
+      poweredBy: "Bereitgestellt von SellQo",
+    },
     paymentRequest: {
       subject: "Zahlungsaufforderung {requestNumber} — {tenantName}",
       heading: "Zahlungsaufforderung {requestNumber}",

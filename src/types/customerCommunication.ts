@@ -71,6 +71,17 @@ export const COMMUNICATION_TRIGGERS: CommunicationTriggerDefinition[] = [
     defaultEmailEnabled: false,
     defaultWhatsAppEnabled: false,
   },
+  {
+    id: 'ticket_delivery',
+    type: 'ticket_delivery',
+    category: 'orders',
+    label: 'Tickets versturen',
+    description: 'E-mail met QR-tickets na een betaalde ticketbestelling',
+    supportsEmail: true,
+    supportsWhatsApp: false,
+    defaultEmailEnabled: true,
+    defaultWhatsAppEnabled: false,
+  },
   
   // Shipping
   {
