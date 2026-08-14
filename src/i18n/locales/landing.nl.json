@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_signup_counter": {
+          "title": "Inschrijvingen per datum in één oogopslag",
+          "description": "Zie in één oogopslag hoeveel mensen zijn ingeschreven per datum: een balkje en tekst tonen de bezetting, of het minimum gehaald is en wanneer een datum vol zit. De actieknoppen per datum hebben nu ook uitleg bij hover."
+        },
         "ticket_smart_date_actions": {
           "title": "Datums slim beheren",
           "description": "Plan in een keer meerdere datums met voorbeeldlijst, verplaats een datum naar een andere dag, sla een datum over zonder hem te verwijderen, of voeg twee datums samen tot een."

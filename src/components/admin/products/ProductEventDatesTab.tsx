@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   useEventDetails, useCreateEventDate, useUpdateEventDate, useDeleteEventDate,
-  useBulkCreateEventDates,
+  useBulkCreateEventDates, useEventSignupCounts,
   type EventDetail, type EventStatus,
 } from '@/hooks/useEventDetails';
 
@@ -72,6 +73,55 @@ const COMMS_NOTE = 'Kopers worden pas in een latere fase automatisch verwittigd.
 const toDate = (iso: string) => new Date(`${iso}T00:00:00`);
 const fmtDate = (iso: string) => format(toDate(iso), 'EEE d MMM yyyy', { locale: nl });
 
+/** Inschrijvingsteller: balk + tekst. Puur presentatie. */
+function SignupMeter({ signed, capacity, minAttendees }: { signed: number; capacity: number; minAttendees: number }) {
+  const cap = Math.max(1, capacity || 0);
+  const pct = Math.min(100, (signed / cap) * 100);
+  const minPct = minAttendees > 0 ? Math.min(100, (minAttendees / cap) * 100) : null;
+  const isFull = capacity > 0 && signed >= capacity;
+  const minReached = minAttendees <= 0 || signed >= minAttendees;
+
+  const barColor = isFull ? 'bg-destructive' : minReached ? 'bg-emerald-500' : 'bg-amber-500';
+
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+        <span>
+          {signed} / {capacity} ingeschreven
+        </span>
+        {minAttendees > 0 && (
+          minReached ? (
+            <span className="text-emerald-600 dark:text-emerald-400">· min. {minAttendees} gehaald</span>
+          ) : (
+            <span className="text-amber-600 dark:text-amber-500">· nog {minAttendees - signed} tot minimum</span>
+          )
+        )}
+        {isFull && <span className="text-destructive">· uitverkocht</span>}
+      </div>
+      <div className="relative h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
+        <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${pct}%` }} />
+        {minPct !== null && (
+          <div
+            className="absolute top-0 h-full w-0.5 bg-foreground/40"
+            style={{ left: `${minPct}%` }}
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Icoon-actieknop met desktop-tooltip. */
+function ActionTooltip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface FormState {
   event_date: Date | undefined;
   start_time: string;
@@ -98,6 +148,8 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
   const updateDate = useUpdateEventDate(productId);
   const deleteDate = useDeleteEventDate(productId);
   const bulkCreate = useBulkCreateEventDates(productId);
+  const eventIds = useMemo(() => dates.map((d) => d.id), [dates]);
+  const { data: signupCounts = {} } = useEventSignupCounts(productId, eventIds);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventDetail | null>(null);
@@ -330,6 +382,7 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
+        <TooltipProvider delayDuration={200}>
         <div className="space-y-3">
           {dates.map((row) => {
             const isSkipped = row.status === 'skipped';
@@ -377,39 +430,57 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
                           </span>
                         )}
                       </div>
+                      {!dimmed && (
+                        <SignupMeter
+                          signed={signupCounts[row.id] ?? 0}
+                          capacity={row.capacity}
+                          minAttendees={row.min_attendees ?? 0}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
-                      <CalendarClock className="h-4 w-4" />
-                      <span className="ml-2 sm:hidden">Verplaatsen</span>
-                    </Button>
-                    {canSkip && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
-                        <SkipForward className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Overslaan</span>
+                    <ActionTooltip label="Verplaatsen naar andere dag">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
+                        <CalendarClock className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Verplaatsen</span>
                       </Button>
+                    </ActionTooltip>
+                    {canSkip && (
+                      <ActionTooltip label="Overslaan">
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
+                          <SkipForward className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Overslaan</span>
+                        </Button>
+                      </ActionTooltip>
                     )}
                     {isSkipped && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
-                        <RotateCcw className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Terugzetten</span>
-                      </Button>
+                      <ActionTooltip label="Terugzetten">
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
+                          <RotateCcw className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Terugzetten</span>
+                        </Button>
+                      </ActionTooltip>
                     )}
-                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
-                      <Pencil className="h-4 w-4" />
-                      <span className="ml-2 sm:hidden">Bewerken</span>
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                      <span className="ml-2 sm:hidden">Verwijderen</span>
-                    </Button>
+                    <ActionTooltip label="Bewerken">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Bewerken</span>
+                      </Button>
+                    </ActionTooltip>
+                    <ActionTooltip label="Verwijderen">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <span className="ml-2 sm:hidden">Verwijderen</span>
+                      </Button>
+                    </ActionTooltip>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        </TooltipProvider>
       )}
 
       {/* Toevoegen / bewerken */}
