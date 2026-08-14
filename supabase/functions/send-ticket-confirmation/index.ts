@@ -90,8 +90,8 @@ serve(async (req) => {
       .from("ticket_instances")
       .select(`
         id, qr_token, seq, attendee_name, attendee_email, status, order_item_id,
-        event_details:event_detail_id ( event_date, start_time, end_time, location_name, meeting_point ),
-        order_items:order_item_id ( product_name )
+        event_details!ticket_instances_event_detail_id_fkey ( event_date, start_time, end_time, location_name, meeting_point ),
+        order_items!ticket_instances_order_item_id_fkey ( product_name )
       `)
       .eq("order_id", order_id)
       .order("seq", { ascending: true });
