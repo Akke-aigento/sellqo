@@ -382,6 +382,7 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
+        <TooltipProvider delayDuration={200}>
         <div className="space-y-3">
           {dates.map((row) => {
             const isSkipped = row.status === 'skipped';
@@ -429,39 +430,57 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
                           </span>
                         )}
                       </div>
+                      {!dimmed && (
+                        <SignupMeter
+                          signed={signupCounts[row.id] ?? 0}
+                          capacity={row.capacity}
+                          minAttendees={row.min_attendees ?? 0}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
-                      <CalendarClock className="h-4 w-4" />
-                      <span className="ml-2 sm:hidden">Verplaatsen</span>
-                    </Button>
-                    {canSkip && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
-                        <SkipForward className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Overslaan</span>
+                    <ActionTooltip label="Verplaatsen naar andere dag">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
+                        <CalendarClock className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Verplaatsen</span>
                       </Button>
+                    </ActionTooltip>
+                    {canSkip && (
+                      <ActionTooltip label="Overslaan">
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
+                          <SkipForward className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Overslaan</span>
+                        </Button>
+                      </ActionTooltip>
                     )}
                     {isSkipped && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
-                        <RotateCcw className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Terugzetten</span>
-                      </Button>
+                      <ActionTooltip label="Terugzetten">
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
+                          <RotateCcw className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Terugzetten</span>
+                        </Button>
+                      </ActionTooltip>
                     )}
-                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
-                      <Pencil className="h-4 w-4" />
-                      <span className="ml-2 sm:hidden">Bewerken</span>
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                      <span className="ml-2 sm:hidden">Verwijderen</span>
-                    </Button>
+                    <ActionTooltip label="Bewerken">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Bewerken</span>
+                      </Button>
+                    </ActionTooltip>
+                    <ActionTooltip label="Verwijderen">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <span className="ml-2 sm:hidden">Verwijderen</span>
+                      </Button>
+                    </ActionTooltip>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        </TooltipProvider>
       )}
 
       {/* Toevoegen / bewerken */}
