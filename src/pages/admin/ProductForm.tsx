@@ -29,7 +29,8 @@ import {
   Languages,
   ExternalLink,
   Wand2,
-  Library
+  Library,
+  Ticket
 } from 'lucide-react';
 import { useProduct, useProducts, useProductBundleItems, useSaveBundleItems } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -112,7 +113,7 @@ const productSchema = z.object({
   is_featured: z.boolean().default(false),
   weight: z.coerce.number().min(0).nullable().optional(),
   requires_shipping: z.boolean().default(true),
-  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card']).default('physical'),
+  product_type: z.enum(['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card', 'ticket']).default('physical'),
   digital_delivery_type: z.enum(['download', 'license_key', 'access_url', 'email_attachment', 'qr_code', 'external_service']).nullable().optional(),
   download_limit: z.coerce.number().int().min(0).nullable().optional(),
   download_expiry_hours: z.coerce.number().int().min(1).nullable().optional(),
@@ -138,6 +139,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
   subscription: <RefreshCw className="h-6 w-6" />,
   bundle: <Layers className="h-6 w-6" />,
   gift_card: <CreditCard className="h-6 w-6" />,
+  ticket: <Ticket className="h-6 w-6" />,
 };
 
 export default function ProductForm() {
