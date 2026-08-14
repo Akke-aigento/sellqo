@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_signup_counter": {
+          "title": "Anmeldungen pro Termin auf einen Blick",
+          "description": "Sehen Sie auf einen Blick, wie viele Personen pro Termin angemeldet sind: ein Balken und Text zeigen die Belegung, ob das Minimum erreicht ist und wann ein Termin voll ist. Die Aktionsschaltflächen pro Termin zeigen jetzt zudem einen Hinweis beim Überfahren."
+        },
         "ticket_smart_date_actions": {
           "title": "Termine intelligent verwalten",
           "description": "Planen Sie mehrere Termine auf einmal mit Vorschauliste, verschieben Sie einen Termin auf einen anderen Tag, überspringen Sie einen Termin ohne ihn zu löschen, oder fassen Sie zwei Termine zu einem zusammen."

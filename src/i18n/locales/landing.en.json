@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_signup_counter": {
+          "title": "Signups per date at a glance",
+          "description": "See at a glance how many people signed up for each date: a bar and text show occupancy, whether the minimum has been reached and when a date is full. The action buttons per date now also show a tooltip on hover."
+        },
         "ticket_smart_date_actions": {
           "title": "Manage dates smartly",
           "description": "Schedule multiple dates at once with a preview list, move a date to another day, skip a date without deleting it, or merge two dates into one."

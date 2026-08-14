@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "ticket_signup_counter": {
+          "title": "Les inscriptions par date en un coup d'œil",
+          "description": "Voyez d'un coup d'œil combien de personnes sont inscrites par date : une barre et un texte indiquent le taux de remplissage, si le minimum est atteint et quand une date est complète. Les boutons d'action par date affichent désormais aussi une infobulle au survol."
+        },
         "ticket_smart_date_actions": {
           "title": "Gérez vos dates intelligemment",
           "description": "Planifiez plusieurs dates d'un coup avec une liste d'aperçu, déplacez une date vers un autre jour, ignorez une date sans la supprimer, ou fusionnez deux dates en une."
