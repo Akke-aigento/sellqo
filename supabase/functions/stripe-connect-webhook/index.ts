@@ -588,6 +588,7 @@ serve(async (req) => {
               body: JSON.stringify({ order_id: orderId }),
             });
             const invoiceResult = await invoiceResponse.json();
+
             if (invoiceResult.success && invoiceResult.auto_send && invoiceResult.invoice_id) {
               await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
                 method: "POST",
