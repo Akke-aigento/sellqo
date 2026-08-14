@@ -163,16 +163,59 @@ async function ensureChannelPartner(ctx: SyncCtx, channel: string, displayName: 
   return id
 }
 
-async function resolveTax(ctx: SyncCtx, rate: number): Promise<number> {
-  const key = String(Math.round(rate * 100) / 100)
+interface OdooTaxRow { id: number; name?: string; tax_group_id?: [number, string] | false }
+
+// Does an Odoo tax name reference the destination country ISO? VanXcel names its
+// OSS taxes "<rate> <ISO> BTW" (e.g. "21.0% NL BTW").
+function taxNameMatchesCountry(name: string | undefined, country: string): boolean {
+  if (!name) return false
+  return new RegExp(`(^|[^A-Z])${country.toUpperCase()}([^A-Z]|$)`).test(name.toUpperCase())
+}
+
+async function resolveTax(ctx: SyncCtx, rate: number, opts?: { oss?: boolean; country?: string | null }): Promise<number> {
+  const roundedRate = Math.round(rate * 100) / 100
+  const country = opts?.country ? String(opts.country).toUpperCase() : ''
+
+  // Non-OSS (domestic / IC / export): unchanged behaviour — first matching rate.
+  if (!opts?.oss || !country) {
+    const key = String(roundedRate)
+    const cached = ctx.taxCache.get(key)
+    if (cached) return cached
+    const ids = await execKw(ctx.env, ctx.uid, 'account.tax', 'search',
+      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
+      { limit: 1 }) as number[]
+    if (!ids.length) throw new Error(`No Odoo sales tax found for rate ${rate}% (type_tax_use=sale)`)
+    ctx.taxCache.set(key, ids[0])
+    return ids[0]
+  }
+
+  // OSS: must land on the destination-country specific tax. Never silently fall
+  // back to the domestic tax — that is exactly the misposting we're fixing.
+  const key = `oss:${country}:${roundedRate}`
   const cached = ctx.taxCache.get(key)
   if (cached) return cached
-  const ids = await execKw(ctx.env, ctx.uid, 'account.tax', 'search',
-    [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
-    { limit: 1 }) as number[]
-  if (!ids.length) throw new Error(`No Odoo sales tax found for rate ${rate}% (type_tax_use=sale)`)
-  ctx.taxCache.set(key, ids[0])
-  return ids[0]
+
+  const fields = { fields: ['id', 'name', 'tax_group_id'], limit: 50 }
+  let rows = await execKw(ctx.env, ctx.uid, 'account.tax', 'search_read',
+    [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale'], ['name', 'ilike', 'OSS']]],
+    fields) as OdooTaxRow[]
+  let match = (rows || []).find(r => taxNameMatchesCountry(r.name, country))
+
+  if (!match) {
+    // Fallback: rate-only search, then match on tax group starting with "OSS"
+    // plus the country ISO in the tax name.
+    rows = await execKw(ctx.env, ctx.uid, 'account.tax', 'search_read',
+      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
+      fields) as OdooTaxRow[]
+    match = (rows || []).find(r => {
+      const group = Array.isArray(r.tax_group_id) ? String(r.tax_group_id[1] || '') : ''
+      return group.trim().toUpperCase().startsWith('OSS') && taxNameMatchesCountry(r.name, country)
+    })
+  }
+
+  if (!match) throw new Error(`No Odoo OSS tax for ${country} ${rate}%`)
+  ctx.taxCache.set(key, match.id)
+  return match.id
 }
 
 async function ensureDummyPartner(ctx: SyncCtx): Promise<number> {
@@ -257,12 +300,19 @@ interface SellqoLine {
   quantity: number
   unit_price: number
   vat_rate: number
+  vat_box_code?: string
+  gl_account_code?: string
 }
 
-async function buildOdooLines(ctx: SyncCtx, lines: SellqoLine[]): Promise<unknown[]> {
+interface RegimeCtx { vat_regime: string | null; reporting_country: string | null }
+
+async function buildOdooLines(ctx: SyncCtx, lines: SellqoLine[], regimeCtx: RegimeCtx): Promise<unknown[]> {
+  const isOss = regimeCtx.vat_regime === 'oss_b2c_eu'
   const out: unknown[] = []
   for (const l of lines) {
-    const taxId = await resolveTax(ctx, Number(l.vat_rate) || 0)
+    const taxId = isOss
+      ? await resolveTax(ctx, Number(l.vat_rate) || 0, { oss: true, country: regimeCtx.reporting_country })
+      : await resolveTax(ctx, Number(l.vat_rate) || 0)
     out.push([0, 0, {
       name: l.description || 'Item',
       quantity: Number(l.quantity) || 0,
