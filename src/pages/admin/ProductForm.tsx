@@ -1543,6 +1543,28 @@ export default function ProductForm() {
                     </Card>
                   )}
 
+                  {/* Events & Datums (alleen bij ticket) */}
+                  {isTicket && (isEditing && id ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Events & Datums</CardTitle>
+                        <CardDescription>Beheer de datums, tijden en capaciteit van dit evenement.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ProductEventDatesTab productId={id} />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Events & Datums</CardTitle>
+                      </CardHeader>
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">Sla het product eerst op om datums te beheren</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+
                   {/* Technische Specificaties */}
                   {isEditing && id && (
                     <ProductSpecificationsSection productId={id} />
