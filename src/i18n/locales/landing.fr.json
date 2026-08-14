@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_tax_selection": {
+          "title": "Les ventes OSS sont désormais comptabilisées au bon taux de TVA national",
+          "description": "Si vous vendez à des consommateurs d'un autre pays de l'UE dans le cadre du régime OSS, la connexion comptable utilisait parfois le taux de TVA belge au lieu de celui du pays de votre client. C'est corrigé : les ventes OSS sont désormais comptabilisées au taux de TVA du pays concerné. Aucune action de votre part n'est requise."
+        },
         "guest_checkout_vat_classification": {
           "title": "La TVA est désormais correcte pour les commandes sans compte client",
           "description": "Pour les commandes passées en tant qu'invité, la TVA sur la facture n'était pas toujours classée dans le bon régime de TVA, par exemple lors de ventes vers un autre pays de l'UE ou hors UE. C'est corrigé : les commandes invitées sont désormais traitées comme celles des clients disposant d'un compte. Aucune action n'est requise de votre part."

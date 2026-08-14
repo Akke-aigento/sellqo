@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_tax_selection": {
+          "title": "OSS-Verkäufe werden jetzt mit dem richtigen landesspezifischen Mehrwertsteuersatz verbucht",
+          "description": "Wenn Sie im Rahmen der EU-OSS-Regelung an Verbraucher in einem anderen EU-Land verkaufen, wurde in der Buchhaltungsanbindung teilweise der belgische Mehrwertsteuersatz statt des Satzes im Land Ihrer Kundschaft verwendet. Das ist behoben: OSS-Verkäufe werden jetzt mit dem richtigen landesspezifischen Satz verbucht. Sie müssen nichts anpassen."
+        },
         "guest_checkout_vat_classification": {
           "title": "Umsatzsteuer stimmt jetzt auch bei Bestellungen ohne Kundenkonto",
           "description": "Bei Bestellungen über den Gast-Checkout wurde die Umsatzsteuer auf der Rechnung nicht immer dem richtigen Steuerregime zugeordnet, etwa beim Verkauf in ein anderes EU-Land oder außerhalb der EU. Das ist behoben: Gastbestellungen werden nun genauso bewertet wie Bestellungen von Kunden mit Konto. Sie müssen nichts anpassen."

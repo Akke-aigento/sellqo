@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "odoo_oss_tax_selection": {
+          "title": "OSS sales are now booked with the correct country-specific VAT rate",
+          "description": "If you sell to consumers in another EU country under the EU OSS scheme, the accounting connection sometimes used the Belgian VAT rate instead of your customer's country rate. This is fixed: OSS sales are now booked with the correct country-specific VAT rate. No action needed on your side."
+        },
         "guest_checkout_vat_classification": {
           "title": "VAT is now correct for orders without a customer account",
           "description": "For guest checkout orders, the VAT on the invoice was not always classified under the correct VAT regime, for example when selling to another EU country or outside the EU. This is fixed: guest orders are now assessed the same way as orders from customers with an account. No action needed on your side."

@@ -1,3 +1,28 @@
+## ODOO-OSS-1 — regime-bewuste tax-selectie in sync-odoo-invoices — 14 augustus 2026
+
+**Root cause:** `resolveTax` in `supabase/functions/sync-odoo-invoices/index.ts` was regime-blind. De functie zocht uitsluitend op `[['amount','=',rate],['type_tax_use','=','sale']]` met `limit: 1` en nam de eerste treffer. Voor OSS-verkopen naar een ander EU-land (`vat_regime = 'oss_b2c_eu'`) landde een 21%-lijn daardoor op de Belgische BINNENLANDSE tax (VanXcel: id 3 "21%") in plaats van de landspecifieke OSS-tax (id 120 "21.0% NL BTW"). Gevolg: OSS-omzet werd stil als binnenlandse btw geboekt.
+
+**Recon (vóór schrijven):** `resolveTax` (r166), `buildOdooLines` (r262), `syncInvoice` invoice-/lines-select (r285-298) en interface `SellqoLine` (r255) gelezen. Vastgesteld dat `syncCreditNote` (r362) dezelfde `buildOdooLines`/`resolveTax` deelt. Kolomcontrole via SQL: `invoices.vat_regime`, `invoices.reporting_country`, `invoice_lines.vat_box_code` en `invoice_lines.gl_account_code` bestaan alle vier.
+
+**Uitgevoerd (`supabase/functions/sync-odoo-invoices/index.ts`, enige gewijzigde functiebestand):**
+- Invoice-select uitgebreid met `reporting_country, vat_regime`; lines-select met `vat_box_code, gl_account_code`. `SellqoLine` uitgebreid met optionele `vat_box_code?` en `gl_account_code?`.
+- `resolveTax(ctx, rate, opts?: { oss?: boolean; country?: string | null })`. Zonder `opts.oss` (of zonder land) exact het oude pad: rate + `type_tax_use=sale`, `limit: 1`, cache-key `<rate>`. Met `opts.oss` een `search_read` op `[['amount','=',rate],['type_tax_use','=','sale'],['name','ilike','OSS']]` met velden `id,name,tax_group_id`, waarna in code gefilterd wordt op de tax waarvan de naam het bestemmingsland-ISO bevat (woordgrens-regex, dus "NL" matcht niet binnen een ander woord). Levert dat niets, dan een rate-only `search_read` met match op tax_group-naam die met "OSS" begint plus land-ISO in de naam. Cache-key `oss:<LAND>:<rate>`.
+- Geen stille fallback: vindt het OSS-pad geen landspecifieke tax, dan `throw new Error('No Odoo OSS tax for <LAND> <rate>%')`. Zichtbaar falen boven misboeken.
+- `buildOdooLines(ctx, lines, regimeCtx)` met `regimeCtx: { vat_regime, reporting_country }`. Bij `vat_regime === 'oss_b2c_eu'` gaat `{ oss: true, country: reporting_country }` mee naar `resolveTax`, anders geen opts. `syncInvoice` geeft de waarden van de factuur mee.
+
+**Security-keuzes:** n.v.t. — geen DB-migratie, geen RLS, geen policies, geen grants. De functie draait ongewijzigd met service-role en de bestaande per-tenant Odoo-credentials; de auth-/journal-/partner-logica is niet aangeraakt.
+
+**Gedeelde-paden-waarschuwing:** niet van toepassing. `storefront-api`, `checkout-engine` en `storefront-resolve` zijn niet aangeraakt en er is geen gedeelde tabel gewijzigd. Dit is puur server-side boekhoud-sync-logica; de vijf custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) zien er niets van.
+
+**Verificatie (statisch, geen productie-sync gedraaid):**
+- NL-OSS-factuur (`reporting_country = 'NL'`, `vat_regime = 'oss_b2c_eu'`, lijn 21%): OSS-pad, domein met `name ilike 'OSS'`, naam-match op "NL" → tax id 120 "21.0% NL BTW". Niet id 3.
+- Binnenlandse BE-factuur (`domestic_standard`, 21%): niet-OSS-pad, byte-identiek aan het oude gedrag → id 3.
+- IC-goederen en export buiten EU op 0%: niet-OSS-pad, ongewijzigd → id 13 "0% EU M" / id 15 "0% EX".
+- Onbekend OSS-land zonder passende tax: expliciete `No Odoo OSS tax for <LAND> <rate>%`-error; de sync markeert de factuur als mislukt in plaats van hem verkeerd te boeken.
+- Kolom-audit via SQL bevestigd (zie recon). Typecheck via `tsgo` op de frontend-wijzigingen; de edge function is Deno-code en wordt bij deploy gecontroleerd.
+
+**Bewust ongemoeid / Vervolg:** partner-logica, journal-keuze, B2C-aggregatie, Peppol en auto-post niet aangeraakt. **Bekende follow-up:** `syncCreditNote` deelt `buildOdooLines` maar geeft `{ vat_regime: null, reporting_country: null }` mee, omdat de regime-gegevens van de bron-factuur daar niet triviaal beschikbaar zijn (`credit_notes` wordt geselecteerd zonder join naar de factuur). Creditnota's op OSS-verkopen behouden dus voorlopig het oude niet-OSS-gedrag; dat vraagt een aparte batch die de bron-invoice meeneemt. Changelog `2026.09v` uitgerold in 4 talen. `doc_articles` overgeslagen: interne boekhoud-sync-logica, geen tenant-zichtbaar scherm of route. Newsletter overgeslagen: geen aankondigbare functiewijziging voor tenants.
+
 ## TICKET-1 (fase 1) — schema-fundament event tickets — 13 augustus 2026
 
 **Root cause:** n.v.t. — dit is geen fix maar een additief schema-fundament voor een nieuwe feature. Er bestond nog geen enkele opslag voor evenementdata, verkochte tickets of eenmalige wijzigingslinks.
