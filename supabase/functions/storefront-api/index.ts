@@ -695,6 +695,25 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     }
   }
 
+  // TICKET-1 fase 2: één batch-query voor de eerstvolgende eventdatum per ticket-product
+  const ticketProductIds = filtered
+    .filter((p: any) => p.product_type === 'ticket')
+    .map((p: any) => p.id);
+  const nextEventDateMap: Record<string, string> = {};
+  if (ticketProductIds.length > 0) {
+    const { data: ticketEvents } = await supabase
+      .from('event_details')
+      .select('product_id, event_date')
+      .eq('tenant_id', tenantId)
+      .in('product_id', ticketProductIds)
+      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .not('status', 'in', '(cancelled,skipped,merged)')
+      .order('event_date', { ascending: true });
+    for (const ev of ticketEvents || []) {
+      if (!nextEventDateMap[ev.product_id]) nextEventDateMap[ev.product_id] = ev.event_date;
+    }
+  }
+
   return {
     products: filtered.map((product: any) => {
       const t = tMap[product.id] || {};
