@@ -12,7 +12,7 @@ export interface ProductMarketplaceMappings {
 }
 
 // Product type enum
-export type ProductType = 'physical' | 'digital' | 'service' | 'subscription' | 'bundle' | 'gift_card';
+export type ProductType = 'physical' | 'digital' | 'service' | 'subscription' | 'bundle' | 'gift_card' | 'ticket';
 
 // Digital delivery method enum
 export type DigitalDeliveryType = 'download' | 'license_key' | 'access_url' | 'email_attachment' | 'qr_code' | 'external_service';
@@ -335,6 +335,11 @@ export const productTypeInfo: Record<ProductType, { label: string; description: 
     label: 'Cadeaukaart',
     description: 'Digitale cadeaukaart met waarde',
     icon: 'CreditCard',
+  },
+  ticket: {
+    label: 'Ticket / Event',
+    description: 'Verkoop tickets voor evenementen met datums en capaciteit',
+    icon: 'Ticket',
   },
 };
 
