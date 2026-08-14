@@ -1,10 +1,31 @@
+## TICKET-1 fase 3.5-fix — Status-validatie cartAddItem (bugfix) — 14 augustus 2026
+
+**Root cause** — De in fase 3.5 toegevoegde datum-validatie in `cartAddItem` (`supabase/functions/storefront-api/index.ts`) controleerde op status `'active'`, maar die status bestaat niet op `event_details`: de CHECK-constraint staat alleen `scheduled, confirmed, cancelled, completed, skipped, merged` toe. Gevolg: `eventDetail.status !== 'active'` was altijd waar voor een geldige datum (die `scheduled` of `confirmed` is), dus élke ticket-toevoeging aan de cart werd geweigerd met `EVENT_DATE_UNAVAILABLE` — de hele ticketverkoop was geblokkeerd.
+
+**Uitgevoerd** — Enkel de status-check vervangen:
+```
+- if (eventDetail.status && eventDetail.status !== 'active') {
++ if (!['scheduled', 'confirmed'].includes(eventDetail.status)) {
+```
+Niets anders aangeraakt: kolommen, doorgifte naar `order_items`, merge-check en de rest van fase 3.5 zijn byte-identiek gebleven.
+
+**Security-keuzes** — n.v.t.; geen RLS/policy/grant geraakt. De validatie blijft een security-toevoeging (datum moet bij product + tenant horen), alleen de toegestane statusset is gecorrigeerd naar de echte CHECK-constraint.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` is een gedeeld pad voor alle tenants, inclusief de vijf custom frontends. Veilig: de wijziging is puur in het `event_detail_id`-pad, dat alleen loopt wanneer de parameter aanwezig is (alleen ticket-producten). Bestaande (non-ticket) cart-acties merken er niets van; de response-keys zijn ongewijzigd.
+
+**Verificatie** — `npx tsgo --noEmit -p tsconfig.app.json` → exit 0, 0 fouten. `storefront-api` opnieuw gedeployed. De check laat nu `scheduled`/`confirmed` toe en weigert `cancelled`/`completed`/`skipped`/`merged`, conform de CHECK-constraint op `event_details.status`.
+
+**Bewust ongemoeid / Vervolg** — Geen changelog/newsletter (interne fix, niet tenant-zichtbaar). Fase 4 ongewijzigd.
+
+---
+
 ## TICKET-1 fase 3.5 — Event-datum door de checkout (dataleiding) — 14 augustus 2026
 
 **Root cause / aanleiding** — De fase-4-recon toonde de blocker: de door de klant gekozen event-datum werd nergens vastgelegd. `storefront_cart_items` (8 kolommen) en `order_items` (19 kolommen) hadden geen `event_detail_id`, dus na betaling was niet vast te stellen vóór welke datum een ticket verkocht was. Fase 4 (ticket_instances aanmaken bij betaling) kan zonder die leiding niet bestaan.
 
 **Uitgevoerd**
 - Migratie (idempotent, `ADD COLUMN IF NOT EXISTS`): `storefront_cart_items.event_detail_id uuid NULL REFERENCES event_details(id)` en `order_items.event_detail_id uuid NULL REFERENCES event_details(id)`, plus twee partiële indexen (`WHERE event_detail_id IS NOT NULL`). Geen default, geen backfill. Terugdraaien handmatig: `ALTER TABLE ... DROP COLUMN event_detail_id` (niet doen zolang fase 4 leeft).
-- `supabase/functions/storefront-api/index.ts` — `cartAddItem`: optionele parameter `event_detail_id`. Wordt hij meegestuurd, dan valideert de functie eerst dat de `event_details`-rij bij hetzelfde `product_id` én dezelfde `tenant_id` hoort (`EVENT_DATE_INVALID`) en dat de status `active` is (`EVENT_DATE_UNAVAILABLE`); daarna schrijft hij het veld mee op de insert. De merge-check op bestaande cart-regels kreeg een extra filter (`.eq`/`.is` op `event_detail_id`), zodat twee verschillende datums van hetzelfde product niet samenvallen tot één regel.
+- `supabase/functions/storefront-api/index.ts` — `cartAddItem`: optionele parameter `event_detail_id`. Wordt hij meegestuurd, dan valideert de functie eerst dat de `event_details`-rij bij hetzelfde `product_id` én dezelfde `tenant_id` hoort (`EVENT_DATE_INVALID`) en dat de status `scheduled` of `confirmed` is (`EVENT_DATE_UNAVAILABLE`; oorspronkelijk foutief op `active` gecheckt — gecorrigeerd in fase 3.5-fix, zie boven); daarna schrijft hij het veld mee op de insert. De merge-check op bestaande cart-regels kreeg een extra filter (`.eq`/`.is` op `event_detail_id`), zodat twee verschillende datums van hetzelfde product niet samenvallen tot één regel.
 - `checkoutVerifyPayment` (storefront-api): `event_detail_id` toegevoegd aan de cart-item-`select`, aan `processedItems` en aan de `order_items`-mapping.
 - `supabase/functions/stripe-connect-webhook/index.ts` — cart-flow van `checkout.session.completed`: idem, drie plekken (select, processedItems, order_items-mapping).
 
