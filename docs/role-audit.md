@@ -1,3 +1,34 @@
+## TICKET-1 fase 5 — Check-in PWA (QR-scannen aan de deur) — 14 augustus 2026
+
+**Doel** — Host/crew scant QR-tickets aan de ingang: token -> validatie -> `status='checked_in'`. Dubbelscan geeft "al ingecheckt", ongeldig wordt afgewezen, host kan terugdraaien.
+
+**Kritiek ontwerpprincipe** — Check-in bindt zich aan een **expliciet gekozen `event_detail_id`**, nooit aan "event_date = vandaag". Events lopen over middernacht (crawl 21:00 -> 03:00); naieve datumlogica breekt bij oudejaar/festival-tenants. Zowel de edge function (verplichte `event_detail_id` in de body, `wrong_event` als het ticket bij een andere datum hoort) als de UI (host kiest eerst bewust een event, geen auto-selectie) handhaven dit. Er staat nergens een `current_date`-vergelijking in het check-in pad.
+
+**Uitgevoerd**
+- `supabase/functions/ticket-checkin/index.ts` (nieuw) — acties `checkin` en `undo`. Volgorde: JWT via `authenticateRequest` -> gekozen `event_details` ophalen (bepaalt de tenant-scope) -> tenant-access check -> rolmapping -> ticket ophalen binnen die tenant -> event-binding -> conditionele update.
+- Rolmapping: `host` = `tenant_admin` of `platform_admin` (mag inchecken en terugdraaien), `crew` = `staff` (mag alleen inchecken; `undo` geeft 403).
+- Race-veiligheid: `update ... where status='valid'` (check-in) en `where status='checked_in'` (undo). Nul geraakte rijen = `already` respectievelijk `not_checked_in`, dus twee gelijktijdige scans kunnen niet dubbel inchecken.
+- `undo` wordt gelogd in `admin_actions_log` met `action_type='ticket_checkin_undo'` (traceerbaar wie terugdraaide).
+- `src/pages/admin/TicketCheckin.tsx` (nieuw) — mobiel-eerst PWA-scherm: event-kiezer, camera-scan via `html5-qrcode`, groot kleurvlak per uitkomst (groen ok / oranje al ingecheckt / geel ander event / rood ongeldig), live teller `ingecheckt / totaal` (refetch elke 15s), lijst recente scans met host-only "Terugdraaien" achter een bevestigingsdialoog. Debounce van 3s per token omdat een QR in beeld blijft bij continue scan.
+- `src/App.tsx` — route `checkin` onder `/admin`, achter `RouteGuard requireRole={['tenant_admin','staff']}` (platform_admin bypasst via `useCan`/`useAuth`).
+- `src/components/admin/sidebar/sidebarConfig.ts` — item "Ticket check-in" naast Kassa (POS), `allowedRoles: platform_admin | tenant_admin | staff`.
+- `html5-qrcode@2.3.8` toegevoegd (camera-scan); `react-qr-code` bleef voor generatie.
+
+**Security-keuzes** — Geen schema-, RLS-, policy- of grantwijziging. De functie gebruikt de service-role client maar leidt de tenant-scope **uitsluitend** af uit het gekozen `event_details.tenant_id`, en haalt het ticket op met `.eq('tenant_id', tenantId)`; een token uit een andere tenant valt dus terug op "ongeldig". Client-side rolinformatie wordt niet vertrouwd: de rolcheck gebeurt in de functie op basis van `roles_by_tenant` uit `authenticateRequest`. De QR bevat alleen het token, geen persoonsgegevens.
+
+**Gedeelde-paden-waarschuwing** — n.v.t.: `storefront-api`, `checkout-engine`, `storefront-resolve` en de gedeelde thema-/sectietabellen zijn niet aangeraakt. Puur additief: een nieuwe edge function, een nieuwe adminroute en een nieuw sidebar-item. Het `use_custom_frontend`-pad is ongewijzigd.
+
+**Verificatie**
+- `bunx tsgo --noEmit -p tsconfig.app.json` -> schoon (exit 0, geen output).
+- `ticket-checkin` gedeployed.
+- Auth-gate: POST zonder Authorization-header -> `401 {"success":false,"error":"Missing or invalid Authorization header"}`.
+- Dubbelscan-semantiek op DB-niveau bewezen met testdata op tenant Fonske (`95f6685b-3474-42fe-81ad-a5e6ca3d6806`): tweede testevent (2026-09-04, 21:00-03:00), testorder, testregel en twee tickets (token `aaa...`/`bbb...`). Twee keer dezelfde conditionele update: eerste raakt 1 rij, tweede 0 rijen, eindstatus `checked_in` met gevulde `checked_in_at`. Het ticket van het andere event bleef `valid` (event-binding).
+- Testdata volledig opgeruimd; natrek: 0 tickets, 0 order_items, 0 orders, 0 event_details.
+
+**UNVERIFIED** — De HTTP-paden van `ticket-checkin` (checkin/already/wrong_event/invalid/undo en de 403 voor crew) zijn **niet end-to-end getest**: er was geen ingelogde preview-sessie beschikbaar (`LOVABLE_BROWSER_AUTH_STATUS=signed_out`) en de service-role key is op Lovable Cloud niet opvraagbaar, dus er kon geen geldig JWT gemint worden. Nodig van Akke: inloggen in de preview en een echte scan op een ticket-event, incl. een dubbelscan, een ticket van een andere datum en een undo als crew-gebruiker (moet 403 geven).
+
+**Bewust ongemoeid / Vervolg** — Geen changelog-, `doc_articles`- of nieuwsbrief-entry: net als bij fase 4d bundelt fase 6 de publieke communicatie van de ticket-feature (de feature is nog niet aangekondigd). Geen offline-modus/queue voor scannen zonder netwerk. Geen handmatige zoek-op-naam als camera-alternatief. `trg_issue_tickets_on_paid` en het mailpad onaangeroerd.
+
 ## TICKET-1 fase 4d — Timing-gat in stripe-connect-webhook (Gat C) — 14 augustus 2026
 
 **Root cause** — De fase-4a trigger `trg_issue_tickets_on_paid` is `AFTER INSERT OR UPDATE OF payment_status ... WHEN payment_status='paid'` op `orders`. De cart-flow in `supabase/functions/stripe-connect-webhook/index.ts` insert de order al mét `payment_status: "paid"` (regel ~395) en pas daarna de regels via `order_items.insert(...)` (regel ~440). Op triggermoment bestaan er dus geen ticketregels: de functie vindt niets en maakt geen `ticket_instances`. Gevolg vóór deze fix: een échte betaalde ticket-order via Stripe leverde geen tickets op en de fase-4b ticket-mail (fetch op ~507) was leeg.
