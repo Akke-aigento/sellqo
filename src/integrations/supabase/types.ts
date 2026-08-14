@@ -17948,6 +17948,7 @@ export type Database = {
           order_id: string
           order_item_id: string
           qr_token: string
+          seq: number | null
           status: string
           tenant_id: string
         }
@@ -17962,6 +17963,7 @@ export type Database = {
           order_id: string
           order_item_id: string
           qr_token: string
+          seq?: number | null
           status?: string
           tenant_id: string
         }
@@ -17976,6 +17978,7 @@ export type Database = {
           order_id?: string
           order_item_id?: string
           qr_token?: string
+          seq?: number | null
           status?: string
           tenant_id?: string
         }
@@ -19621,6 +19624,10 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_warehouse_user: { Args: { _user_id: string }; Returns: boolean }
+      issue_tickets_for_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       log_admin_action: {
         Args: {
           p_action_details?: Json
