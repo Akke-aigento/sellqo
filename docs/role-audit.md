@@ -1,3 +1,25 @@
+## TICKET-1 fase 3.5 — Event-datum door de checkout (dataleiding) — 14 augustus 2026
+
+**Root cause / aanleiding** — De fase-4-recon toonde de blocker: de door de klant gekozen event-datum werd nergens vastgelegd. `storefront_cart_items` (8 kolommen) en `order_items` (19 kolommen) hadden geen `event_detail_id`, dus na betaling was niet vast te stellen vóór welke datum een ticket verkocht was. Fase 4 (ticket_instances aanmaken bij betaling) kan zonder die leiding niet bestaan.
+
+**Uitgevoerd**
+- Migratie (idempotent, `ADD COLUMN IF NOT EXISTS`): `storefront_cart_items.event_detail_id uuid NULL REFERENCES event_details(id)` en `order_items.event_detail_id uuid NULL REFERENCES event_details(id)`, plus twee partiële indexen (`WHERE event_detail_id IS NOT NULL`). Geen default, geen backfill. Terugdraaien handmatig: `ALTER TABLE ... DROP COLUMN event_detail_id` (niet doen zolang fase 4 leeft).
+- `supabase/functions/storefront-api/index.ts` — `cartAddItem`: optionele parameter `event_detail_id`. Wordt hij meegestuurd, dan valideert de functie eerst dat de `event_details`-rij bij hetzelfde `product_id` én dezelfde `tenant_id` hoort (`EVENT_DATE_INVALID`) en dat de status `active` is (`EVENT_DATE_UNAVAILABLE`); daarna schrijft hij het veld mee op de insert. De merge-check op bestaande cart-regels kreeg een extra filter (`.eq`/`.is` op `event_detail_id`), zodat twee verschillende datums van hetzelfde product niet samenvallen tot één regel.
+- `checkoutVerifyPayment` (storefront-api): `event_detail_id` toegevoegd aan de cart-item-`select`, aan `processedItems` en aan de `order_items`-mapping.
+- `supabase/functions/stripe-connect-webhook/index.ts` — cart-flow van `checkout.session.completed`: idem, drie plekken (select, processedItems, order_items-mapping).
+
+**Security-keuzes** — Geen RLS/policy/grant gewijzigd. De nieuwe kolommen erven de bestaande policies van hun tabellen. De validatie in `cartAddItem` is juist een security-toevoeging: zonder die check had een client een `event_detail_id` van een ander product of een andere tenant kunnen meesmokkelen. De validatie draait alleen wanneer de parameter aanwezig is, dus geen enkel bestaand pad raakt hem.
+
+**Gedeelde-paden-waarschuwing** — Zowel `storefront-api` als `stripe-connect-webhook` zijn gedeelde paden voor alle tenants, inclusief de vijf custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata). Waarom veilig: (1) de kolommen zijn nullable zonder default, bestaande rijen blijven NULL; (2) `event_detail_id` in `add_to_cart` is optioneel — afwezig betekent exact het gedrag van vóór deze batch; (3) er is geen bestaande response-key hernoemd of verwijderd, enkel `event_detail_id` toegevoegd aan de item-objecten in de verify/webhook-paden; (4) de extra `.is('event_detail_id', null)` op de merge-check komt overeen met de werkelijkheid van alle 123 bestaande cart-regels (allemaal NULL), dus geen gedragswijziging.
+
+**Verificatie**
+- Post-flight kolomtelling: `storefront_cart_items` = 9 kolommen, `order_items` = 20 kolommen, `event_detail_id` in beide aanwezig.
+- Bestaande rijen ongewijzigd: 142 `order_items` en 123 `storefront_cart_items`, waarvan 0 met een niet-lege `event_detail_id`.
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0, 0 fouten.
+- Edge functions `storefront-api` en `stripe-connect-webhook` succesvol gedeployed.
+
+**Bewust ongemoeid / Vervolg** — Geen storefront-UI in deze batch: de datumkeuze voor de klant is fase 6. `cartGet` levert `event_detail_id` nog niet mee in zijn response (niet nodig zolang er geen UI is; strikt additief toe te voegen in fase 6). POS en bol.com-import blijven ongemoeid — tickets lopen via de webshop-checkout. Fase 4 (ticket_instances aanmaken bij betaling, idempotent) kan nu gebouwd worden op `order_items.event_detail_id`.
+
 ## TICKET-1 fase 3d — Tooltips + inschrijvingsteller per datum — 14 augustus 2026
 
 **Root cause / aanleiding** — Fase 3c leverde vijf icoon-only actieknoppen per datum-rij (`src/components/admin/products/ProductEventDatesTab.tsx`). Op desktop was er geen enkele uitleg: het mobiele tekstlabel staat op `sm:hidden`, dus vanaf `sm` zag de tenant enkel iconen. Daarnaast toonde de rij alleen de ingestelde capaciteit en het minimum, niet hoe vol een datum werkelijk zit — precies de informatie die bepaalt of een event doorgaat.

@@ -1425,6 +1425,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
+  const eventDetailId = (params.event_detail_id as string | undefined) || undefined;
 
   // Verify product exists and get price
   const { data: product } = await supabase
@@ -1445,6 +1446,19 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     stockSource = variant;
   }
 
+  // TICKET-1 fase 3.5: optionele event-datum valideren (moet bij dit product + deze tenant horen)
+  if (eventDetailId) {
+    const { data: eventDetail } = await supabase
+      .from('event_details').select('id, product_id, tenant_id, status')
+      .eq('id', eventDetailId).eq('product_id', productId).eq('tenant_id', tenantId).maybeSingle();
+    if (!eventDetail) {
+      throw new Error(JSON.stringify({ code: 'EVENT_DATE_INVALID', message: 'Deze datum hoort niet bij dit product' }));
+    }
+    if (eventDetail.status && eventDetail.status !== 'active') {
+      throw new Error(JSON.stringify({ code: 'EVENT_DATE_UNAVAILABLE', message: 'Deze datum is niet meer beschikbaar' }));
+    }
+  }
+
   if (stockSource.track_inventory && stockSource.stock < quantity) {
     const msg = stockSource.stock <= 0
       ? JSON.stringify({ code: 'INSUFFICIENT_STOCK', message: 'Dit product is uitverkocht', available_stock: 0 })
@@ -1456,6 +1470,8 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   let existingQuery = supabase.from('storefront_cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId);
   if (variantId) existingQuery = existingQuery.eq('variant_id', variantId);
   else existingQuery = existingQuery.is('variant_id', null);
+  if (eventDetailId) existingQuery = existingQuery.eq('event_detail_id', eventDetailId);
+  else existingQuery = existingQuery.is('event_detail_id', null);
   const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing) {
@@ -1471,6 +1487,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   } else {
     const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
     if (variantId) insertData.variant_id = variantId;
+    if (eventDetailId) insertData.event_detail_id = eventDetailId;
     const { error } = await supabase.from('storefront_cart_items').insert(insertData);
     if (error) throw error;
   }
@@ -2799,7 +2816,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Get cart items
   const { data: cartItems } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, sku, images, category_id)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, sku, images, category_id)')
     .eq('cart_id', cartId);
 
   // Get variant info
@@ -2814,6 +2831,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
+      event_detail_id: item.event_detail_id || null,
       quantity: item.quantity, unit_price: item.unit_price,
       product: item.products ? { name: item.products.name, sku: variant?.sku || item.products.sku || null, image: variant?.image_url || item.products.images?.[0] || null } : null,
       variant: variant ? { title: variant.title } : null,
@@ -2950,6 +2968,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
     variant_title: item.variant?.title || null,
+    event_detail_id: item.event_detail_id || null,
     vat_rate,
     vat_rate_id,
     vat_amount: Math.round(lineVatAmount * 100) / 100,

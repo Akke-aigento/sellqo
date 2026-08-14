@@ -9127,6 +9127,7 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string | null
+          event_detail_id: string | null
           gift_card_id: string | null
           gift_card_metadata: Json | null
           id: string
@@ -9148,6 +9149,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          event_detail_id?: string | null
           gift_card_id?: string | null
           gift_card_metadata?: Json | null
           id?: string
@@ -9169,6 +9171,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          event_detail_id?: string | null
           gift_card_id?: string | null
           gift_card_metadata?: Json | null
           id?: string
@@ -9189,6 +9192,13 @@ export type Database = {
           vendor?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_gift_card_id_fkey"
             columns: ["gift_card_id"]
@@ -14679,6 +14689,7 @@ export type Database = {
         Row: {
           cart_id: string
           created_at: string
+          event_detail_id: string | null
           gift_card_metadata: Json | null
           id: string
           product_id: string
@@ -14689,6 +14700,7 @@ export type Database = {
         Insert: {
           cart_id: string
           created_at?: string
+          event_detail_id?: string | null
           gift_card_metadata?: Json | null
           id?: string
           product_id: string
@@ -14699,6 +14711,7 @@ export type Database = {
         Update: {
           cart_id?: string
           created_at?: string
+          event_detail_id?: string | null
           gift_card_metadata?: Json | null
           id?: string
           product_id?: string
@@ -14712,6 +14725,13 @@ export type Database = {
             columns: ["cart_id"]
             isOneToOne: false
             referencedRelation: "storefront_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_cart_items_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
             referencedColumns: ["id"]
           },
           {
