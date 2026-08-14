@@ -491,6 +491,32 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     };
   }
 
+  // TICKET-1 fase 2: event-info uitsluitend voor ticket-producten (strikt additief)
+  let eventData: Record<string, unknown> = {};
+  if (product.product_type === 'ticket') {
+    const { data: events } = await supabase
+      .from('event_details')
+      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone')
+      .eq('product_id', product.id)
+      .eq('tenant_id', tenantId)
+      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .not('status', 'in', '(cancelled,skipped,merged)')
+      .order('event_date', { ascending: true });
+
+    const withCounts = await Promise.all((events || []).map(async (e: any) => {
+      const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: e.id });
+      const sold = typeof cnt === 'number' ? cnt : 0;
+      return {
+        ...e,
+        tickets_sold: sold,
+        spots_left: Math.max(0, (e.capacity ?? 0) - sold),
+        min_reached: sold >= (e.min_attendees ?? 0),
+      };
+    }));
+
+    eventData = { event: { upcoming: withCounts } };
+  }
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -524,7 +550,6 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       linked_product_slug: v.linked_product_id ? (linkedProductSlugs[v.linked_product_id] || null) : null,
     })),
     options: (variantOptions || []).map((o: any) => ({ id: o.id, name: o.name, values: o.values, position: o.position })),
-    ...bundleData,
     seo: {
       meta_title: t.meta_title || product.meta_title || product.name,
       meta_description: t.meta_description || product.meta_description || product.description?.substring(0, 160) || '',
@@ -536,6 +561,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       total_count: reviews?.length || 0,
     },
     ...bundleData,
+    ...eventData,
   };
 }
 
@@ -669,6 +695,25 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     }
   }
 
+  // TICKET-1 fase 2: één batch-query voor de eerstvolgende eventdatum per ticket-product
+  const ticketProductIds = filtered
+    .filter((p: any) => p.product_type === 'ticket')
+    .map((p: any) => p.id);
+  const nextEventDateMap: Record<string, string> = {};
+  if (ticketProductIds.length > 0) {
+    const { data: ticketEvents } = await supabase
+      .from('event_details')
+      .select('product_id, event_date')
+      .eq('tenant_id', tenantId)
+      .in('product_id', ticketProductIds)
+      .gte('event_date', new Date().toISOString().slice(0, 10))
+      .not('status', 'in', '(cancelled,skipped,merged)')
+      .order('event_date', { ascending: true });
+    for (const ev of ticketEvents || []) {
+      if (!nextEventDateMap[ev.product_id]) nextEventDateMap[ev.product_id] = ev.event_date;
+    }
+  }
+
   return {
     products: filtered.map((product: any) => {
       const t = tMap[product.id] || {};
@@ -700,6 +745,9 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
         has_variants: hasVariants,
         price_range: priceRange,
+        ...(product.product_type === 'ticket'
+          ? { next_event_date: nextEventDateMap[product.id] ?? null }
+          : {}),
       };
     }),
     pagination: {

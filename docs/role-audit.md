@@ -1,3 +1,29 @@
+## TICKET-2 — event-info in storefront-api (fase 2 van event-tickets) — 14 augustus 2026
+
+**Doel:** ticket-producten leveren event-info mee via `storefront-api`; alle andere producttypes houden een identieke response.
+
+**Recon (vóór schrijven):**
+- `supabase/functions/storefront-api/index.ts`: bundle-branche in `getProduct` op regel 459 (`if (product.product_type === 'bundle')`), return-payload 494-539. Bevestigd dat `...bundleData` daar TWEE keer werd gespread (regel 527 én 538) — dezelfde sleutels, dus functioneel onschuldig maar dubbel.
+- Fase-1 definer-functies bestaan in `supabase/migrations/20260813231325_*.sql`: `public.get_public_events(uuid)` (regel 103) en `public.get_event_signup_count(uuid)` (regel 132), beide met `GRANT EXECUTE ... TO anon, authenticated` (regels 145-146), dus aanroepbaar via `supabase.rpc`.
+
+**Uitgevoerd (1 bestand):**
+- `getProduct` (single): direct na de bundle-branche een `eventData`-blok toegevoegd dat alleen bij `product_type === 'ticket'` `event_details` opvraagt (toekomstige datums, status niet in cancelled/skipped/merged, gefilterd op `product_id` + `tenant_id`) en per event `tickets_sold`, `spots_left` en `min_reached` berekent via `get_event_signup_count`. Resultaat als `event: { upcoming: [...] }`.
+- Return-payload: `...eventData` op ÉÉN plek toegevoegd, naast de overgebleven `...bundleData`. De dubbele `...bundleData` op regel 527 verwijderd; er staat er nu exact één (onderaan). Sleutelnamen en -waarden blijven identiek, alleen de spread-positie is ontdubbeld.
+- `getProducts` (lijst): één batch-query op `event_details` voor alle ticket-product-ids van de huidige pagina (niet per product) vult `nextEventDateMap`. In het productobject wordt `next_event_date` enkel toegevoegd via conditionele spread wanneer `product_type === 'ticket'`.
+
+**Security-keuzes:** n.v.t. — geen RLS, policy of grant gewijzigd. `event_details` wordt gelezen met de bestaande service-role client van de function, maar altijd gefilterd op `tenant_id`, conform de marketplace-isolatiestandaard. De RPC `get_event_signup_count` was in fase 1 al gegrant aan `anon`/`authenticated`.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api` is een gedeeld pad voor Loveke, VanXcel, Astra Sleep, Mancini Milano en Zona Dorata. Veilig omdat: (1) geen bestaande query, veld of branche gewijzigd; (2) alle nieuwe velden zitten achter een `product_type === 'ticket'`-guard, en er bestaan nog geen ticket-producten; (3) niet-ticket producten krijgen de sleutels `event` en `next_event_date` niet — ze zijn afwezig, niet `null`; (4) het ontdubbelen van `...bundleData` verandert geen sleutel of waarde.
+
+**Verificatie (na deploy):**
+- `storefront-api` succesvol gedeployed.
+- `get_product` voor Loveke (`unisex-tank-top`) en VanXcel (`vanxcel-switch-panel-5-slots`), beide physical: identieke top-level keys — barcode, category, compare_at_price, description, featured_image, has_variants, id, images, in_stock, is_variant_product, name, options, parent_product_id, price, product_type, related_products, reviews, selected_variant_index, seo, short_description, size_guide, sku, slug, stock, tags, variants, weight. Geen `event`-key aanwezig (`has event: False` voor beide).
+- `get_products` voor Loveke (3 producten): keys bundle_calculated_price, bundle_individual_total, bundle_pricing_model, bundle_savings, category, compare_at_price, description, featured_image, has_variants, id, images, in_stock, is_featured, name, price, price_range, product_type, sku, slug, stock, tags. `next_event_date` afwezig bij alle drie.
+
+**Bewust ongemoeid:** `storefront-resolve`, `checkout-engine`, alle gedeelde tabellen, de `get_public_events`-RPC (nog niet nodig voor deze twee acties), en de cart/checkout-paden. Geen changelog- of nieuwsbriefitem: de feature is nog niet tenant-zichtbaar zolang er geen ticket-producten bestaan.
+
+**Vervolg:** fase 3 — ticket-producten aanmaakbaar maken in de admin en `ticket_instances` genereren bij betaling.
+
 ## ODOO-OSS-RETRO — admin-tools voor de OSS-move-correctie — 14 augustus 2026
 
 **Root cause:** ODOO-OSS-1/2 fixten de sync alleen vooruit. Drie reeds geboekte Odoo-moves van VanXcel staan nog op de Belgische binnenlandse tax (id 3) i.p.v. de NL-OSS-tax (id 120): 1322 (INV-2026-0157), 1213 (CN-2026-0002), 1323 (CN-2026-0004). Er bestond geen veilige weg om dat vanuit SellQo recht te zetten; enkel handmatig in Odoo.
