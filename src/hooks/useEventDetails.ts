@@ -3,7 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 
-export type EventStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+export type EventStatus =
+  | 'scheduled'
+  | 'confirmed'
+  | 'cancelled'
+  | 'completed'
+  | 'skipped'
+  | 'merged';
 
 export interface EventDetail {
   id: string;
@@ -32,6 +38,7 @@ export interface EventDateFormData {
   status?: EventStatus;
   meeting_point?: string | null;
   location_name?: string | null;
+  merged_into_event_id?: string | null;
 }
 
 export function useEventDetails(productId: string | undefined) {
@@ -102,6 +109,34 @@ export function useUpdateEventDate(productId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
       toast({ title: 'Datum bijgewerkt' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useBulkCreateEventDates(productId: string | undefined) {
+  const { currentTenant } = useTenant();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rows: EventDateFormData[]) => {
+      if (!productId || !currentTenant) throw new Error('Geen product of tenant');
+      if (rows.length === 0) return [];
+      const payload = rows.map((r) => ({
+        ...r,
+        product_id: productId,
+        tenant_id: currentTenant.id,
+      }));
+      const { data, error } = await supabase.from('event_details').insert(payload).select();
+      if (error) throw error;
+      return data || [];
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      toast({ title: `${(data as unknown[]).length} datum(s) aangemaakt` });
     },
     onError: (error: Error) => {
       toast({ title: 'Fout', description: error.message, variant: 'destructive' });
