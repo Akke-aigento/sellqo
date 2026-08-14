@@ -1,3 +1,30 @@
+## TICKET-1 fase 3d — Tooltips + inschrijvingsteller per datum — 14 augustus 2026
+
+**Root cause / aanleiding** — Fase 3c leverde vijf icoon-only actieknoppen per datum-rij (`src/components/admin/products/ProductEventDatesTab.tsx`). Op desktop was er geen enkele uitleg: het mobiele tekstlabel staat op `sm:hidden`, dus vanaf `sm` zag de tenant enkel iconen. Daarnaast toonde de rij alleen de ingestelde capaciteit en het minimum, niet hoe vol een datum werkelijk zit — precies de informatie die bepaalt of een event doorgaat.
+
+**Uitgevoerd**
+- `src/hooks/useEventDetails.ts` — nieuwe hook `useEventSignupCounts(productId, eventIds)`. Eén batch-select op `ticket_instances` (kolom `event_detail_id`), gefilterd op `tenant_id = useTenant().currentTenant.id`, `event_detail_id IN (eventIds)` en `status IN ('valid','checked_in')`; telling gebeurt client-side en levert `Record<eventId, number>`. queryKey `['event-signup-counts', productId, <gesorteerde ids>]`, `enabled` alleen bij een tenant én minstens één eventId. Bestaande hooks ongewijzigd.
+- `src/components/admin/products/ProductEventDatesTab.tsx`
+  - Nieuwe presentatiecomponent `SignupMeter`: tekst "X / capaciteit ingeschreven", plus bij `min_attendees > 0` "· min. Y gehaald" (groen) of "· nog Z tot minimum" (amber), en "· uitverkocht" bij vol. Daaronder een dunne balk (capaciteit = 100%) met kleur amber onder minimum, groen boven minimum, destructive bij vol, en een subtiele verticale marker op de minimum-drempel.
+  - Geen balk bij `skipped`/`merged` (die datums tellen niet mee) — de bestaande dim/doorstreep-weergave blijft.
+  - Nieuwe helper `ActionTooltip`: wikkelt elke icoon-actieknop in een shadcn `Tooltip` met "Verplaatsen naar andere dag", "Overslaan", "Terugzetten", "Bewerken", "Verwijderen". Eén `TooltipProvider` rond de hele lijst. De mobiele `sm:hidden`-labels zijn byte-identiek behouden; aan de knoppen zelf (props, handlers, condities) is niets gewijzigd.
+- Changelog `2026.09z` (`ticket_signup_counter`, type improvement) in `PublicChangelog.tsx` + teksten in `landing.{nl,en,fr,de}.json` (96 entries, pariteit in alle vier).
+- Migratie: idempotente `UPDATE` op `doc_articles` voor `ticket-product-datums` (guard `content NOT LIKE '%Inschrijvingen per datum%'`), met een korte sectie over de teller en de tooltips.
+
+**Tellers staan nu op 0 — verwacht** — Ticketverkoop is fase 4; `ticket_instances` is nog leeg. Alle tellers tonen daarom `0 / capaciteit` met een amber balk op 0%. De teller leunt volledig op de bestaande rij-data, dus hij beweegt vanzelf mee zodra fase 4 rijen wegschrijft. Er is geen placeholder- of mocklogica ingebouwd.
+
+**Security-keuzes** — Geen wijziging. Geen nieuwe tabellen, kolommen, policies, grants of functies. De teller leest via de tenant-scoped SELECT-policy op `ticket_instances` uit fase 1 (tenant_admin/staff) en filtert bovendien altijd expliciet op `tenant_id` in de query, conform het projectpatroon. De definer-functie `get_event_signup_count(p_event_detail_id uuid)` bestaat (geverifieerd: `prosecdef = true`) maar is hier bewust **niet** gebruikt: één batch-query voor de hele lijst is goedkoper dan N RPC-calls, en de RLS op `ticket_instances` geeft de admin al leesrecht. De functie blijft beschikbaar voor de storefront-kant in fase 4. De enige migratie is een content-`UPDATE` op `doc_articles`.
+
+**Gedeelde-paden-waarschuwing** — Niet van toepassing. `storefront-api`, `checkout-engine`, `storefront-resolve` en de gedeelde tabellen (`tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`) zijn niet aangeraakt. Puur admin-UI plus één read-only hook. Het `use_custom_frontend`-pad is byte-identiek; de vijf custom-frontend tenants zien geen enkel verschil.
+
+**Verificatie**
+- `bunx tsgo --noEmit -p tsconfig.app.json` → exit 0, 0 fouten.
+- i18n-pariteit: 96 changelog-entries in nl/en/fr/de, gelijk in alle vier de locales.
+- Bestaande functionaliteit onveranderd: lijst-render, bulk plannen, verplaatsen, overslaan/terugzetten, samenvoegen, add/edit-Dialog en delete-AlertDialog zijn functioneel ongewijzigd — enkel de knoppen zijn in een tooltip-wrapper gezet (`asChild`, dus geen extra DOM-node rond de button).
+- 390px: de balk is `max-w-xs` en de tekst wrapt via `flex-wrap`; de actiegroep behoudt `flex-wrap gap-2` met de mobiele tekstlabels.
+
+**Bewust ongemoeid / Vervolg** — Kopers-communicatie bij verplaatsen/samenvoegen blijft fase 4b. Realtime-updates op de teller zijn niet ingebouwd: invalidatie loopt via de bestaande queryKey-invalidaties en een refetch bij navigatie; pas als fase 4 verkopen oplevert is te beoordelen of live-updates nodig zijn.
+
 ## TICKET-1 fase 3c — Slimme datum-acties (bulk, verplaatsen, overslaan, samenvoegen) — 14 augustus 2026
 
 **Root cause / aanleiding** — Fase 3b (`src/components/admin/products/ProductEventDatesTab.tsx`) leverde enkel losse CRUD op `event_details`. Voor een tenant met een wekelijks terugkerend event betekende dat handmatig datum-per-datum invoeren, en waren "niet deze week" of "we voegen twee avonden samen" alleen mogelijk via verwijderen — destructief en niet terug te draaien.
