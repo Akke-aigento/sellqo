@@ -1,3 +1,23 @@
+## ODOO-OSS-RETRO — admin-tools voor de OSS-move-correctie — 14 augustus 2026
+
+**Root cause:** ODOO-OSS-1/2 fixten de sync alleen vooruit. Drie reeds geboekte Odoo-moves van VanXcel staan nog op de Belgische binnenlandse tax (id 3) i.p.v. de NL-OSS-tax (id 120): 1322 (INV-2026-0157), 1213 (CN-2026-0002), 1323 (CN-2026-0004). Er bestond geen veilige weg om dat vanuit SellQo recht te zetten; enkel handmatig in Odoo.
+
+**Recon (vóór schrijven):** `supabase/functions/odoo-list-taxes/index.ts` volledig gelezen als template: auth via `authenticateRequest(req, tenantId)` + `requireRole(auth, tenantId, ['tenant_admin'])` (platform-admin bypasst in `requireRole`), credentials uit `tenant_odoo_credentials` met `decryptOdooKey`, RPC via `odooAuthenticate`/`odooExecKw` uit `_shared/odooRpc.ts`, `assertValidOdooUrl` als SSRF-guard. CORS-object en error-handling byte-voor-byte overgenomen.
+
+**Uitgevoerd (twee nieuwe bestanden, niets bestaands gewijzigd):**
+- `supabase/functions/odoo-read-move/index.ts` — READ-ONLY. Input `{ tenant_id, move_ids: number[] }`. Leest `account.move` (id, name, state, move_type, amount_total, amount_tax, invoice_line_ids), verzamelt alle `invoice_line_ids` en leest `account.move.line` (id, name, move_id, tax_ids, price_subtotal, price_total, account_id, display_type). Retourneert rauwe JSON per move met header + regels. Geen write, geen state-change.
+- `supabase/functions/odoo-correct-move-tax/index.ts` — WRITE, defensief. Input `{ tenant_id, move_id, from_tax_id, to_tax_id, dry_run? }`. Draait nooit automatisch: geen cron, geen trigger, enkel expliciete aanroep met exacte parameters. Stappen: (1) move lezen, 404 als onbekend; (2) productregels (`display_type` leeg of `'product'`) met `from_tax_id` selecteren — geen enkele treffer én ook geen `to_tax_id` aanwezig → harde error `Move <id> has no line with tax <from_tax_id> — aborting`, zodat een fout doelwit niet stil geschreven wordt; (3) `dry_run === true` retourneert move + geplande line-wijzigingen en STOPT; (4) originele state onthouden, bij `posted` een `button_draft`; (5) per regel `tax_ids: [[6,0,newTaxIds]]` waarbij enkel `from_tax_id` door `to_tax_id` vervangen wordt en andere taxes behouden blijven; (6) bij oorspronkelijk `posted` een `action_post`; (7) move + regels herlezen en de nieuwe staat (tax_ids, amount_tax, state) als bewijs teruggeven.
+- Idempotentie: als geen regel `from_tax_id` heeft maar er wél al een regel op `to_tax_id` staat, komt `already_corrected: true` terug i.p.v. een error — een dubbele aanroep is veilig.
+- Compensatie: alles zit in try/catch. Faalt er iets ná `button_draft` maar vóór `action_post`, dan probeert de catch de move terug te posten en rapporteert `recovery` + `manual_check_required: true`.
+
+**Security-keuzes:** geen DB-migratie, geen RLS, geen policies, geen grants. Beide functies vereisen een geldige JWT met de rol `tenant_admin` op de opgegeven tenant; platform-admins bypassen via `requireRole`. `authenticateRequest(req, tenantId)` blokkeert cross-tenant gebruik (403). De Odoo-URL gaat door `assertValidOdooUrl` (https-only, geen IP's/localhost, geen pad/query) als SSRF-guard. API-keys worden alleen in-memory ontcijferd en nooit gelogd of geretourneerd. De write-functie is niet aan cron of trigger gekoppeld.
+
+**Gedeelde-paden-waarschuwing:** niet van toepassing. `storefront-api`, `checkout-engine`, `storefront-resolve` en de gedeelde tabellen zijn niet aangeraakt; enkel twee nieuwe, losstaande edge functions. De vijf custom frontends merken er niets van.
+
+**Verificatie:** beide functies gedeployed. Geen correctie gedraaid — bouwen en deployen was de volledige scope van deze batch. De feitelijke rechtzetting van 1322/1213/1323 gebeurt in een aparte, expliciete aanroep (eerst `odoo-read-move`, dan `odoo-correct-move-tax` met `dry_run: true`, pas daarna de echte write).
+
+**Bewust ongemoeid / Vervolg:** `sync-odoo-invoices` niet aangeraakt. Changelog, `doc_articles` en newsletter bewust overgeslagen: interne admin-tools zonder tenant-zichtbaar scherm of gedragswijziging. Vervolg: de drie moves rechtzetten via de nieuwe tools (from_tax_id 3 → to_tax_id 120, tenant VanXcel).
+
 ## ODOO-OSS-2 — creditnota-sync regime-bewust maken — 14 augustus 2026
 
 **Root cause:** `syncCreditNote` in `supabase/functions/sync-odoo-invoices/index.ts` gaf hardcoded `{ vat_regime: null, reporting_country: null }` door aan `buildOdooLines`. Daardoor landen OSS-creditnota's (terugbetalingen van EU-B2C-verkopen) op de Belgische binnenlandse tax i.p.v. de landspecifieke OSS-tax — exact dezelfde misboeking die ODOO-OSS-1 op het factuur-pad oploste, maar dan bij refunds. Er staan reeds 2 fout geboekte moves: CN-2026-0002 en CN-2026-0004 (beide bron NL/`oss_b2c_eu`).
