@@ -25,6 +25,7 @@ import {
   Bot,
   Monitor,
   QrCode,
+  CalendarDays,
   Globe,
   Search,
   Gift,
@@ -125,6 +126,7 @@ const dailyItems: NavItem[] = [
 const salesItems: NavItem[] = [
   { id: 'pos', title: 'Kassa (POS)', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
   { id: 'ticket-checkin', title: 'Ticket check-in', url: '/admin/checkin', icon: QrCode, allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+  { id: 'event-dashboard', title: 'Events', url: '/admin/events', icon: CalendarDays, allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
   { id: 'storefront', title: 'Webshop', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', title: 'Betalingen', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
