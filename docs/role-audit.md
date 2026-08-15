@@ -1,3 +1,33 @@
+## EARLY-BIRD FASE C-CORE — getProduct geeft per-event prijs terug — 15 augustus 2026
+
+**Doel** — De toonkant: `getProduct` geeft per upcoming-event de huidige prijs (early-bird of regulier) terug via dezelfde `resolveEventPrice`-helper als fase B, zodat toon en betaal niet kunnen divergeren. Dicht de desync die fase B expliciet flagde.
+
+**Root cause / aanleiding** — `getProduct` (`supabase/functions/storefront-api/index.ts`) selecteerde de early-bird-kolommen niet en gaf per event alleen `tickets_sold`, `spots_left` en `min_reached` terug. De storefront toonde dus `product.price` terwijl `cartAddItem` sinds fase B al de early-bird-prijs rekende.
+
+**Uitgevoerd** — één bestand, `supabase/functions/storefront-api/index.ts`, strikt binnen `if (product.product_type === 'ticket')`:
+- r.597: event-select uitgebreid met `early_bird_price, early_bird_deadline, early_bird_quantity`. Filters, `eventQueryLowerBound()`, status-exclusie en ordering ongewijzigd.
+- r.606-634: de `withCounts`-map herschreven naar **expliciete mapping (optie A)**; de `...e`-spread is verwijderd. Bestaande sleutels ongewijzigd doorgegeven (`id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone`) plus de bestaande berekende sleutels (`tickets_sold, spots_left, min_reached`).
+- Nieuwe additieve sleutels via `const pr = resolveEventPrice(e, product.price, sold, new Date())`: `current_price`, `early_bird_active`, `early_bird_price`, `spots_left_at_early_bird`, `early_bird_deadline`.
+- `early_bird_quantity` wordt **bewust niet** geëxposeerd (interne grens; `spots_left_at_early_bird` geeft de bruikbare informatie).
+- Top-level `price` (r.626 oud) blijft `product.price` — ongewijzigd.
+
+**Security-keuzes** — Geen RLS, policies of grants geraakt. De expliciete mapping is zelf een security-verbetering: de vorige `...e`-spread lekte automatisch elke nieuwe `event_details`-kolom naar de publieke respons; dat kan nu niet meer.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` bedient vijf custom frontends. Geen bestaande JSON-sleutel is gewijzigd, hernoemd of verwijderd; enkel vijf nieuwe sleutels per event-object. Het blok draait alleen voor `product_type === 'ticket'`; de vijf custom-frontend-tenants verkopen geen tickets, dus hun pad wordt niet eens betreden. Dezelfde helper als fase B → toon en betaal zijn structureel gekoppeld.
+
+**Verificatie** (live tegen gedeployde functie, testevent `17efe0cc-e8ec-45b8-b2c6-6d72122249bd`, product `1daee896-a794-4076-b41e-8f511305f2a6`, regulier € 19,00):
+- `early_bird_price` NULL: `current_price` 19, `early_bird_active` false, `early_bird_price` null; top-level `price` 19.
+- Early bird € 12,00 zonder grenzen: `current_price` 12, `early_bird_active` true, `early_bird_price` 12, `spots_left_at_early_bird` null; top-level `price` blijft 19.
+- Betaalpariteit: `cart_add_item` op hetzelfde event gaf `unit_price` 12 — gelijk aan `current_price`.
+- Deadline `2026-08-01` (verleden): `current_price` 19, `early_bird_active` false, `early_bird_price` 12.
+- Sleutelset gecontroleerd: alle 13 bestaande sleutels aanwezig, `early_bird_quantity` **niet** aanwezig.
+- Niet-ticket product (Demo Bakkerij `dab379a8…`): `price` 29.99, geen `event`-sleutel — byte-identiek.
+- Opruiming: early-bird-kolommen terug op NULL, testcart verwijderd. `npx tsgo --noEmit` exit 0.
+
+**Bewust ongemoeid / Vervolg** — Het `getProducts`-lijstpad is niet aangeraakt (geen counts, geen per-event RPC; early-bird in de lijst zou N extra RPC-calls kosten) → optionele fase C-bis. Admin-UI voor het invullen van de early-bird-velden staat nog open. Geen changelog/newsletter/doc_articles-werk in deze fase, conform opdracht.
+
+---
+
 ## EARLY-BIRD FASE B — resolveEventPrice inhaken in cartAddItem — 14 augustus 2026
 
 **Doel** — De betaalkant: de ticketprijs op de cart-regel volgt de early-bird-regel uit fase A. `resolveEventPrice` is daarmee geen dode code meer.
