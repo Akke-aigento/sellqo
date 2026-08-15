@@ -25,6 +25,9 @@ export interface EventDetail {
   meeting_point: string | null;
   location_name: string | null;
   merged_into_event_id: string | null;
+  early_bird_price: number | null;
+  early_bird_deadline: string | null;
+  early_bird_quantity: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +42,9 @@ export interface EventDateFormData {
   meeting_point?: string | null;
   location_name?: string | null;
   merged_into_event_id?: string | null;
+  early_bird_price?: number | null;
+  early_bird_deadline?: string | null;
+  early_bird_quantity?: number | null;
 }
 
 export function useEventDetails(productId: string | undefined) {
