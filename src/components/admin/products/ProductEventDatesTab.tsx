@@ -634,6 +634,108 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 placeholder="Bijv. hoofdingang aan de fontein"
               />
             </div>
+
+            {/* EARLY-BIRD fase D — vroegboekkorting per event */}
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <div>
+                <Label className="text-sm font-medium">Vroegboekkorting (optioneel)</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Laat de prijs leeg voor geen vroegboekkorting. Deadline en aantal zijn beide optioneel:
+                  leeg betekent geen grens.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Early-bird prijs</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  value={form.early_bird_price}
+                  onChange={(e) => setForm((f) => ({ ...f, early_bird_price: e.target.value }))}
+                  placeholder="Bijv. 12.00"
+                />
+                {ebPriceError && <p className="text-xs text-destructive">{ebPriceError}</p>}
+                {ebPriceWarning && <p className="text-xs text-amber-600 dark:text-amber-500">{ebPriceWarning}</p>}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Deadline datum (Europe/Brussels)</Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'min-w-0 flex-1 justify-start text-left font-normal',
+                            !form.early_bird_deadline_date && 'text-muted-foreground',
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            {form.early_bird_deadline_date
+                              ? format(form.early_bird_deadline_date, 'd MMM yyyy', { locale: nl })
+                              : 'Geen deadline'}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={form.early_bird_deadline_date}
+                          onSelect={(d) => setForm((f) => ({ ...f, early_bird_deadline_date: d }))}
+                          initialFocus
+                          className={cn('p-3 pointer-events-auto')}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.early_bird_deadline_date && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        aria-label="Deadline wissen"
+                        onClick={() => setForm((f) => ({ ...f, early_bird_deadline_date: undefined }))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {ebDeadlineError && <p className="text-xs text-destructive">{ebDeadlineError}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Deadline tijd (Europe/Brussels)</Label>
+                  <Input
+                    type="time"
+                    value={form.early_bird_deadline_time}
+                    onChange={(e) => setForm((f) => ({ ...f, early_bird_deadline_time: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Max. tickets aan early-bird prijs</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={form.early_bird_quantity}
+                  onChange={(e) => setForm((f) => ({ ...f, early_bird_quantity: e.target.value }))}
+                  placeholder="Leeg = geen grens"
+                />
+                {ebQtyError && <p className="text-xs text-destructive">{ebQtyError}</p>}
+              </div>
+
+              {ebPriceNum !== null && (ebDeadlineMs !== null || ebQtyNum !== null) && (
+                <p className="text-xs text-muted-foreground">
+                  De vroegste grens wint: zodra de deadline of het aantal bereikt is, geldt de reguliere prijs.
+                </p>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
