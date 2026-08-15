@@ -6,6 +6,7 @@ import {
   CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { zonedToUtc, utcToZonedParts } from '@/lib/eventTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,6 +131,10 @@ interface FormState {
   status: EventStatus;
   meeting_point: string;
   location_name: string;
+  early_bird_price: string;
+  early_bird_deadline_date: Date | undefined;
+  early_bird_deadline_time: string;
+  early_bird_quantity: string;
 }
 
 const emptyForm = (): FormState => ({
@@ -140,9 +145,15 @@ const emptyForm = (): FormState => ({
   status: 'scheduled',
   meeting_point: '',
   location_name: '',
+  early_bird_price: '',
+  early_bird_deadline_date: undefined,
+  early_bird_deadline_time: '23:59',
+  early_bird_quantity: '',
 });
 
-export function ProductEventDatesTab({ productId }: { productId: string }) {
+const DEFAULT_EVENT_TZ = 'Europe/Brussels';
+
+export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productId: string; regularPrice?: number }) {
   const { data: dates = [], isLoading } = useEventDetails(productId);
   const createDate = useCreateEventDate(productId);
   const updateDate = useUpdateEventDate(productId);
@@ -154,6 +165,7 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventDetail | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [formTz, setFormTz] = useState<string>(DEFAULT_EVENT_TZ);
   const [deleteTarget, setDeleteTarget] = useState<EventDetail | null>(null);
 
   // Verplaatsen
@@ -181,11 +193,15 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm());
+    setFormTz(DEFAULT_EVENT_TZ);
     setDialogOpen(true);
   };
 
   const openEdit = (row: EventDetail) => {
     setEditing(row);
+    const tz = row.timezone || DEFAULT_EVENT_TZ;
+    setFormTz(tz);
+    const parts = utcToZonedParts(row.early_bird_deadline, tz);
     setForm({
       event_date: row.event_date ? toDate(row.event_date) : undefined,
       start_time: (row.start_time || '21:00').slice(0, 5),
@@ -194,14 +210,53 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
       status: (STATUS_OPTIONS.find((s) => s.value === row.status)?.value ?? 'scheduled') as EventStatus,
       meeting_point: row.meeting_point || '',
       location_name: row.location_name || '',
+      early_bird_price: row.early_bird_price === null || row.early_bird_price === undefined ? '' : String(row.early_bird_price),
+      early_bird_deadline_date: parts ? toDate(parts.dateStr) : undefined,
+      early_bird_deadline_time: parts ? parts.timeStr : '23:59',
+      early_bird_quantity:
+        row.early_bird_quantity === null || row.early_bird_quantity === undefined ? '' : String(row.early_bird_quantity),
     });
     setDialogOpen(true);
   };
 
-  const canSave = !!form.event_date && form.capacity !== '' && Number(form.capacity) > 0;
+  // ---- Early-bird validatie (inline, geen zod) ----------------------------
+  const ebPriceNum = form.early_bird_price.trim() === '' ? null : Number(form.early_bird_price);
+  const ebQtyNum = form.early_bird_quantity.trim() === '' ? null : Number(form.early_bird_quantity);
+  const ebDeadlineMs = form.early_bird_deadline_date
+    ? zonedToUtc(
+        format(form.early_bird_deadline_date, 'yyyy-MM-dd'),
+        form.early_bird_deadline_time || '23:59',
+        formTz,
+      )
+    : null;
+
+  const ebPriceError =
+    ebPriceNum !== null && (!Number.isFinite(ebPriceNum) || ebPriceNum < 0)
+      ? 'Early-bird prijs moet 0 of hoger zijn.'
+      : null;
+  const ebQtyError =
+    ebQtyNum !== null && (!Number.isFinite(ebQtyNum) || ebQtyNum <= 0)
+      ? 'Aantal moet groter zijn dan 0.'
+      : null;
+  const ebDeadlineError =
+    ebDeadlineMs !== null && ebDeadlineMs <= Date.now() ? 'Deadline moet in de toekomst liggen.' : null;
+  const ebPriceWarning =
+    ebPriceNum !== null && !ebPriceError && regularPrice > 0 && ebPriceNum >= regularPrice
+      ? 'Early-bird prijs is niet lager dan de reguliere prijs.'
+      : null;
+
+  const canSave =
+    !!form.event_date &&
+    form.capacity !== '' &&
+    Number(form.capacity) > 0 &&
+    !ebPriceError &&
+    !ebQtyError &&
+    !ebDeadlineError;
 
   const handleSubmit = async () => {
     if (!form.event_date) return;
+    // Early-bird: expliciet null sturen zodat de tenant het kan uitzetten.
+    const hasEb = ebPriceNum !== null;
     const payload = {
       event_date: format(form.event_date, 'yyyy-MM-dd'),
       start_time: form.start_time || '21:00',
@@ -210,6 +265,9 @@ export function ProductEventDatesTab({ productId }: { productId: string }) {
       status: form.status,
       meeting_point: form.meeting_point.trim() || null,
       location_name: form.location_name.trim() || null,
+      early_bird_price: hasEb ? ebPriceNum : null,
+      early_bird_deadline: hasEb && ebDeadlineMs !== null ? new Date(ebDeadlineMs).toISOString() : null,
+      early_bird_quantity: hasEb && ebQtyNum !== null ? ebQtyNum : null,
     };
     if (editing) {
       await updateDate.mutateAsync({ id: editing.id, data: payload });
