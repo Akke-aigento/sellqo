@@ -1,0 +1,2 @@
+-- TEST-ONLY (fase C-core verificatie): tijdelijk early-bird op testevent
+UPDATE public.event_details SET early_bird_price = 12.00, early_bird_deadline = NULL, early_bird_quantity = NULL WHERE id = '17efe0cc-e8ec-45b8-b2c6-6d72122249bd';
