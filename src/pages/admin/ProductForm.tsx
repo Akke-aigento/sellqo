@@ -1551,7 +1551,7 @@ export default function ProductForm() {
                         <CardDescription>Beheer de datums, tijden en capaciteit van dit evenement.</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ProductEventDatesTab productId={id} />
+                        <ProductEventDatesTab productId={id} regularPrice={Number(form.watch('price')) || 0} />
                       </CardContent>
                     </Card>
                   ) : (
