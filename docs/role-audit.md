@@ -1,3 +1,32 @@
+## EARLY-BIRD FASE D — Admin-UI early-bird per event — 15 augustus 2026
+
+**Doel** — Een tenant kan early-bird per event instellen (prijs, deadline, aantal) in de datum-editor, zonder SQL. Strikt additief, alleen admin: storefront, betaalpad en custom frontends zijn niet geraakt.
+
+**Root cause** — Fase A t/m C leverden schema, betaalkant en toonkant, maar `early_bird_price / early_bird_deadline / early_bird_quantity` werden nog handmatig via SQL gezet. Er was geen UI-pad.
+
+**Uitgevoerd**
+- `src/lib/eventTime.ts` (nieuw) — `tzOffsetMs` + `zonedToUtc` 1-op-1 geport uit `supabase/functions/storefront-api/index.ts` (r.53-80), inclusief de twee-passes DST-correctie, plus de omgekeerde `utcToZonedParts`. Bewust een port en geen tweede tz-lib: de opgeslagen deadline moet exact het moment zijn waar `resolveEventPrice` in de betaalkant tegen vergelijkt.
+- `src/hooks/useEventDetails.ts` — `EventDetail` en `EventDateFormData` uitgebreid met de drie early-bird-velden (`select('*')` haalde ze al op).
+- `src/components/admin/products/ProductEventDatesTab.tsx` — `FormState`/`emptyForm`/`openEdit` uitgebreid; deadline in de UI gesplitst in Calendar + `type=time` (label "Europe/Brussels"), bij opslaan via `zonedToUtc` naar timestamptz, bij edit via `utcToZonedParts` terug. Nieuwe optionele prop `regularPrice`. Nieuwe sectie "Vroegboekkorting (optioneel)" met prijs, deadline datum+tijd (wisbaar) en max. aantal, plus de "vroegste grens wint"-uitleg.
+- `src/pages/admin/ProductForm.tsx` — `regularPrice={Number(form.watch('price')) || 0}` doorgegeven, dus ook een nog niet opgeslagen prijs voedt de waarschuwing.
+
+**Null om uit te zetten** — `handleSubmit` stuurt de drie keys altijd expliciet mee. Prijs leeg → alle drie `null` (early-bird uit). Prijs gezet maar deadline leeg → `early_bird_deadline` null (alleen aantalgrens). Aantal leeg → `early_bird_quantity` null (alleen deadline).
+
+**Validatie (inline, bestaande `canSave`-stijl, geen zod)** — Harde blokkades: deadline in het verleden, aantal ≤ 0 indien ingevuld, prijs < 0. Zachte waarschuwing (opslaan mag): `early_bird_price >= regularPrice`.
+
+**Security-keuzes** — n.v.t. Geen nieuwe tabellen, policies of grants; de bestaande tenant-scoped RLS op `event_details` en de mutaties uit `useEventDetails` zijn ongewijzigd.
+
+**Gedeelde-paden-waarschuwing** — Geen. `storefront-api`, `checkout-engine` en `storefront-resolve` zijn niet aangeraakt; het JSON-contract uit fase C blijft byte-identiek. De tz-logica is een port, dus de admin schrijft precies het moment dat de betaalkant leest.
+
+**Verificatie**
+- tz-bewijs: `zonedToUtc('2026-08-20','23:59','Europe/Brussels')` → `2026-08-20T21:59:00.000Z` (zomertijd, +2), heen-en-terug via `utcToZonedParts` → `2026-08-20 23:59`. Wintercontrole `2026-01-15 23:59` → `22:59Z` (+1), ook correct terug.
+- DB-rondgang op testevent `17efe0cc…`: `early_bird_price=12`, `early_bird_deadline=2026-08-20 21:59:00+00` (= `2026-08-20 23:59` Brussel), `early_bird_quantity=20`; daarna alle drie terug op `null`. Testdata opgeruimd.
+- `tsgo --noEmit -p tsconfig.app.json` → exit 0.
+
+**Bewust ongemoeid** — Bulk plannen ("Plan meerdere datums") kent geen early-bird; buiten scope. Geen tijdzone-keuze in de UI: `row.timezone` bij edit, `Europe/Brussels` bij create (kolom-default), alleen als label getoond.
+
+**Vervolg** — Slottaken (changelog 4 talen, `doc_articles`, newsletter-wachtrij) staan in een aparte ronde. UI-smoke op 390px is niet gedraaid: er was geen ingelogde preview-sessie beschikbaar (`signed_out`); de logica is via de tz-unit en de DB-rondgang bewezen.
+
 ## EARLY-BIRD FASE C-CORE — getProduct geeft per-event prijs terug — 15 augustus 2026
 
 **Doel** — De toonkant: `getProduct` geeft per upcoming-event de huidige prijs (early-bird of regulier) terug via dezelfde `resolveEventPrice`-helper als fase B, zodat toon en betaal niet kunnen divergeren. Dicht de desync die fase B expliciet flagde.
