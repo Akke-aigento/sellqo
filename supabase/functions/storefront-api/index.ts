@@ -594,7 +594,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   if (product.product_type === 'ticket') {
     const { data: events } = await supabase
       .from('event_details')
-      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone')
+      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone, early_bird_price, early_bird_deadline, early_bird_quantity')
       .eq('product_id', product.id)
       .eq('tenant_id', tenantId)
       .gte('event_date', eventQueryLowerBound())
@@ -606,11 +606,28 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     const withCounts = await Promise.all(openEvents.map(async (e: any) => {
       const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: e.id });
       const sold = typeof cnt === 'number' ? cnt : 0;
+      // EARLY-BIRD fase C-core: expliciete mapping (optie A) — geen spread,
+      // zodat nieuwe DB-kolommen nooit per ongeluk in de publieke respons lekken.
+      const pr = resolveEventPrice(e, product.price, sold, new Date());
       return {
-        ...e,
+        id: e.id,
+        event_date: e.event_date,
+        start_time: e.start_time,
+        end_time: e.end_time,
+        meeting_point: e.meeting_point,
+        location_name: e.location_name,
+        capacity: e.capacity,
+        min_attendees: e.min_attendees,
+        status: e.status,
+        timezone: e.timezone,
         tickets_sold: sold,
         spots_left: Math.max(0, (e.capacity ?? 0) - sold),
         min_reached: sold >= (e.min_attendees ?? 0),
+        current_price: pr.price,
+        early_bird_active: pr.earlyBirdActive,
+        early_bird_price: e.early_bird_price != null ? Number(e.early_bird_price) : null,
+        spots_left_at_early_bird: pr.spotsLeftAtEarlyBird,
+        early_bird_deadline: e.early_bird_deadline ?? null,
       };
     }));
 
