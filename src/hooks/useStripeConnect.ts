@@ -54,6 +54,7 @@ interface ConnectStatus {
   balance?: Balance;
   upcoming_payout?: UpcomingPayout;
   capabilities?: Record<string, string>;
+  paypal_capability_status?: string | null;
 }
 
 export function useStripeConnect(tenantId: string | undefined) {
