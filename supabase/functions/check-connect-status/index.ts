@@ -230,6 +230,7 @@ serve(async (req) => {
       balance: balance,
       upcoming_payout: upcomingPayout,
       capabilities: account.capabilities || {},
+      paypal_capability_status: account.capabilities?.paypal_payments ?? null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
