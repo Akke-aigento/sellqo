@@ -1,3 +1,21 @@
+## PAYPAL-1b — PayPal capability-driven weergave + help-artikel — 17 augustus 2026
+
+**Root cause** — PAYPAL-1a leverde enkel de neerwaartse helft van de capability-gate: `check-connect-status` verwijderde `'paypal'` uit `stripe_payment_methods` als `paypal_payments !== 'active'`, maar voegde het nooit toe wanneer een tenant PayPal wel activeerde in zijn eigen Stripe Dashboard. Gevolg: een tenant kon PayPal correct aanzetten bij Stripe en er in SellQo niets van merken, want de storefront gate't op de kolom. Bovendien toonde `PaymentSettings.tsx` PayPal nergens, dus was er ook geen signaal dat de methode bestond of hoe je hem activeert.
+
+**Uitgevoerd**
+- `supabase/functions/check-connect-status/index.ts` — self-adding tegenhanger in hetzelfde blok: `paypal_payments === 'active'` én `'paypal'` nog niet in de array → toevoegen via de service-role update, met expliciete log. Dezelfde `Array.isArray`-guard; schrijffout wordt gelogd, niet gethrowd. Netto-invariant: `'paypal'` staat in `stripe_payment_methods` dan en slechts dan als de capability actief is. Uitsluitend `'paypal'` wordt aangeraakt.
+- `src/hooks/useStripeConnect.ts` — `paypal_capability_status?: string | null` toegevoegd aan `ConnectStatus` (veld bestond al in de response sinds 1a).
+- `src/components/admin/settings/PaymentSettings.tsx` — read-only, additief: PayPal-regel (2,9% + €0,35) in de `rates`-array van Transactiekosten, `PayPal` in de betaalmethodes-samenvatting, en een subtiel informatieblok "PayPal toevoegen?" dat enkel verschijnt bij `charges_enabled && payouts_enabled && paypal_capability_status !== 'active'`, met link naar `/admin/help?article=paypal-koppelen`. Bewust GEEN aparte toggle — consistent met iDEAL/Bancontact, die ook puur capability-gedreven zijn.
+- `doc_articles` — nieuw artikel `paypal-koppelen` (doc_level `tenant`, categorie Betalingen `a0000001-0000-0000-0000-000000000003`, `context_path` `/admin/settings`, `sort_order` 2), idempotent ingeschoten via `WHERE NOT EXISTS` op `(doc_level, slug)`.
+
+**Security-keuzes** — Geen nieuwe tabel, kolom of policy. De self-adding-update loopt op hetzelfde service-role-pad als de bestaande self-healing, binnen een functie die de tenant al via `authenticateRequest` autoriseert; de tenant-id komt uit de geverifieerde request, niet uit de body-payload zonder check. De update raakt één jsonb-waarde en nooit een andere betaalmethode. De UI is strikt read-only: geen enkele mutatie op `stripe_payment_methods` vanaf de client.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` en `_shared/stripe-fees.ts` zijn in deze batch NIET aangeraakt (die waren in 1a klaar). De vijf custom frontends renderen `available_payment_methods` dynamisch; PayPal verschijnt daar dus automatisch zodra de capability actief is, zonder contractwijziging. Geen sleutel in `content`/`settings` hernoemd of verwijderd.
+
+**Verificatie** — `tsgo --noEmit` op de gewijzigde frontend-bestanden; edge function gedeployd; SQL-natrek dat `paypal-koppelen` bestaat met de juiste `category_id`/`doc_level`/`slug`; changelog-key `paypal_checkout` in alle vier locales gecontroleerd via een JSON-load.
+
+**Bewust ongemoeid** — Stripe-connect/onboarding-flow, disconnect-dialog, country-select en payout-weergave. Geen migratie op `tenants`, geen nieuwe kolom.
+
 ## PAYPAL-1a — Backend PayPal-ondersteuning + capability-vangnet — 17 augustus 2026
 
 **Root cause** — PayPal toevoegen als betaalmethode via Stripe Connect is puur additief op de edge functions, maar PayPal erft NIET automatisch naar bestaande connected accounts. Waar bancontact/ideal/card/klarna na standaard-onboarding direct werken, vereist PayPal een aparte capability (`paypal_payments`) die de tenant zelf moet activeren plus PayPal-specifieke onboarding moet doorlopen. Zonder vangnet zou de storefront PayPal blijven tonen (de methode staat in `stripe_payment_methods`) terwijl de charge faalt — een klant kiest PayPal, komt in een falende flow terecht, en de bestelling hangt. Vandaar de server-side self-healing in `check-connect-status`.
