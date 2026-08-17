@@ -18,7 +18,11 @@ type Info = {
   context?: {
     plan_name?: string | null;
     price?: number | null;
-    interval?: 'monthly' | 'yearly' | null;
+    interval?: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | null;
+    /** MANDATE-CTX-1: context afkomstig van een tenant-subscription. */
+    source?: string | null;
+    creditor?: string | null;
+    reason?: string | null;
     /** UX-POLISH-1: startdatum bij een geplande planwissel. */
     effective_from?: string | null;
   } | null;
@@ -154,7 +158,25 @@ export default function MandateActivation() {
 
   const ctx = info?.context ?? null;
   const contextLine = (() => {
-    if (!ctx?.plan_name) return null;
+    if (!ctx) return null;
+    // MANDATE-CTX-1: manueel mandaat vanuit een subscription.
+    if (ctx.source === 'subscription') {
+      const subPrice = Number(ctx.price ?? 0);
+      if (!subPrice) return null;
+      const amount = new Intl.NumberFormat(i18n.language, {
+        style: 'currency',
+        currency: 'EUR',
+      }).format(subPrice);
+      const period =
+        ctx.interval === 'yearly' ? t('mandate.context.per_year') : t('mandate.context.per_month');
+      return t('mandate.context.line_generic', {
+        creditor: ctx.creditor || info?.tenant.name || '',
+        reason: ctx.reason || '',
+        amount,
+        period,
+      });
+    }
+    if (!ctx.plan_name) return null;
     const price = Number(ctx.price ?? 0);
     if (!price) return null;
     const amount = new Intl.NumberFormat(i18n.language, {
@@ -228,12 +250,13 @@ export default function MandateActivation() {
           )}
           {!loading && !error && !done && info && options && stripePromise && (
             <>
-              {contextLine && (
-                <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm">
-                  <p className="font-medium">{contextLine}</p>
-                  <p className="text-muted-foreground mt-1">{t('mandate.context.cancel_note')}</p>
-                </div>
-              )}
+              <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">
+                  {contextLine ??
+                    t('mandate.context.recurring_no_amount', { creditor: info.tenant.name })}
+                </p>
+                <p className="text-muted-foreground mt-1">{t('mandate.context.cancel_note')}</p>
+              </div>
               <Elements stripe={stripePromise} options={options}>
                 <MandateForm token={token} info={info} onDone={() => setDone(true)} />
               </Elements>
