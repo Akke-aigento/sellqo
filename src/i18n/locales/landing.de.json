@@ -1027,7 +1027,7 @@
       "changes": {
         "sepa_mandate_context": {
           "title": "SEPA-Mandate zeigen jetzt Betrag, Grund und Intervall",
-          "description": "Wenn Sie einen Kunden um ein wiederkehrendes SEPA-Mandat bitten, zeigt die Autorisierungsseite nun genau, wozu er zustimmt: den Betrag inklusive Mehrwertsteuer, den Grund und die Abbuchungsfrequenz. Der Betrag stammt direkt aus dem Abonnement und entspricht damit exakt dem spateren Einzug."
+          "description": "Wenn Sie einen Kunden um ein wiederkehrendes SEPA-Mandat bitten, zeigt die Autorisierungsseite nun genau, wozu er zustimmt: den Betrag inklusive Mehrwertsteuer, den Grund und die Abbuchungsfrequenz. Der Betrag stammt direkt aus dem Abonnement und entspricht damit exakt dem späteren Einzug."
         },
         "ticket_signup_counter": {
           "title": "Anmeldungen pro Termin auf einen Blick",
