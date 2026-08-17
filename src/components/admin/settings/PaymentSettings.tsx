@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock, ChevronDown, Unlink } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const SUPPORTED_COUNTRIES = [
 export function PaymentSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
