@@ -307,7 +307,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                                handleCreateMandateLink(sub.customer_id!, sub.customer);
+                                handleCreateMandateLink(sub.customer_id!, sub.customer, sub.id);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (
@@ -453,7 +453,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                              handleCreateMandateLink(sub.customer_id!, sub.customer);
+                              handleCreateMandateLink(sub.customer_id!, sub.customer, sub.id);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (
