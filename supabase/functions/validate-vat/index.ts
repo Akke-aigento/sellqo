@@ -76,7 +76,15 @@ serve(async (req) => {
 
     if (viesData.error) {
       return new Response(
-        JSON.stringify({ valid: false, error: viesData.error }),
+        JSON.stringify({
+          valid: false,
+          error: viesData.error,
+          service_unavailable: !!viesData.service_unavailable,
+          // VIES-FIX: geen definitieve uitkomst → caller mag dit niet loggen.
+          definitive: false,
+          vat_number: cleanVat,
+          country_code: countryCode,
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -84,6 +92,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         valid: viesData.valid,
+        definitive: true,
         vat_number: cleanVat,
         country_code: countryCode,
         company_name: viesData.company_name,
