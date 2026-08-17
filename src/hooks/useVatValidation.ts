@@ -12,6 +12,8 @@ interface VatValidationResult {
   request_identifier?: string;
   error?: string;
   service_unavailable?: boolean;
+  /** VIES-FIX: false wanneer VIES geen definitieve uitkomst gaf (onbeschikbaar / formaatfout). */
+  definitive?: boolean;
 }
 
 export function useVatValidation() {
@@ -69,10 +71,11 @@ export function useVatValidation() {
       }
 
       // Check if VIES was unavailable
-      if (data.error && data.error.includes('tijdelijk niet beschikbaar')) {
+      // VIES-FIX: niet-definitieve uitkomsten nooit loggen als is_valid=false.
+      if (data.service_unavailable || data.definitive === false || data.error) {
         const unavailableResult: VatValidationResult = {
           ...data,
-          service_unavailable: true,
+          service_unavailable: !!data.service_unavailable,
         };
         setResult(unavailableResult);
         return unavailableResult;
