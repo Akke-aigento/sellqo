@@ -157,12 +157,13 @@ export default function SubscriptionsPage() {
   const handleCreateMandateLink = async (
     customerId: string,
     customer?: { email?: string | null; first_name?: string | null; last_name?: string | null; company_name?: string | null } | null,
+    subscriptionId?: string,
   ) => {
     setMandateLoadingId(customerId);
     try {
       const data = await invokeWithErrorBody<{ success: boolean; url: string; error?: string }>(
         'create-mandate-setup',
-        { body: { customer_id: customerId } },
+        { body: { customer_id: customerId, subscription_id: subscriptionId } },
         t('subscriptions.mandate.error'),
       );
       if (!data?.success) throw new Error(data?.error ?? t('subscriptions.mandate.error'));
@@ -306,7 +307,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                                handleCreateMandateLink(sub.customer_id!, sub.customer);
+                                handleCreateMandateLink(sub.customer_id!, sub.customer, sub.id);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (
@@ -452,7 +453,7 @@ export default function SubscriptionsPage() {
                               disabled={mandateLoadingId === sub.customer_id}
                               onSelect={(e) => {
                                 e.preventDefault();
-                              handleCreateMandateLink(sub.customer_id!, sub.customer);
+                              handleCreateMandateLink(sub.customer_id!, sub.customer, sub.id);
                               }}
                             >
                               {mandateLoadingId === sub.customer_id ? (

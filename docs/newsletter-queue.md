@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10a — SEPA-machtigingen tonen bedrag, reden en interval (improvement, 17-08-2026)
+
+**Je klant ziet nu precies waarvoor hij een machtiging geeft** (oktober 2026)
+Vroeg je een klant om een doorlopende SEPA-machtiging, dan zag die enkel een betaalformulier
+zonder verdere uitleg. Vanaf nu staat bovenaan de machtigingspagina wie de machtiging krijgt,
+waarvoor het is, welk bedrag inclusief btw en hoe vaak er wordt afgeschreven. Het bedrag komt
+uit het abonnement zelf, dus het is exact wat er later geincasseerd wordt.
+Wat betekent dit voor jou? Je hoeft niets in te stellen: maak de mandaatlink aan zoals altijd
+via het menu bij het abonnement. Is er geen bedrag bekend, dan ziet de klant nog steeds
+duidelijk dat het om een doorlopende SEPA-machtiging voor jouw bedrijf gaat.
+
+**i18n-keys.** `public.changelog.changes.sepa_mandate_context` — NL/EN/FR/DE aanwezig.
+
 ### 2026.09t — Knoppen in homepage-secties werken nu overal (bugfix, 13-08-2026)
 
 **Knoppen in je homepage-secties werken nu overal** (september 2026)

@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "sepa_mandate_context": {
+          "title": "SEPA-Mandate zeigen jetzt Betrag, Grund und Intervall",
+          "description": "Wenn Sie einen Kunden um ein wiederkehrendes SEPA-Mandat bitten, zeigt die Autorisierungsseite nun genau, wozu er zustimmt: den Betrag inklusive Mehrwertsteuer, den Grund und die Abbuchungsfrequenz. Der Betrag stammt direkt aus dem Abonnement und entspricht damit exakt dem späteren Einzug."
+        },
         "ticket_signup_counter": {
           "title": "Anmeldungen pro Termin auf einen Blick",
           "description": "Sehen Sie auf einen Blick, wie viele Personen pro Termin angemeldet sind: ein Balken und Text zeigen die Belegung, ob das Minimum erreicht ist und wann ein Termin voll ist. Die Aktionsschaltflächen pro Termin zeigen jetzt zudem einen Hinweis beim Überfahren."

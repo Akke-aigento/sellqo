@@ -1064,7 +1064,9 @@
       "per_month": "per maand",
       "per_year": "per jaar",
       "cancel_note": "Je kunt deze machtiging op elk moment stopzetten.",
-      "line_from": "Je machtigt SellQo voor je {{plan}}-abonnement ({{amount}} {{period}}, excl. btw) vanaf {{date}}."
+      "line_from": "Je machtigt SellQo voor je {{plan}}-abonnement ({{amount}} {{period}}, excl. btw) vanaf {{date}}.",
+      "line_generic": "Je machtigt {{creditor}} voor {{reason}} ({{amount}} {{period}}).",
+      "recurring_no_amount": "Doorlopende SEPA-machtiging voor {{creditor}}."
     }
   },
   "admin": {

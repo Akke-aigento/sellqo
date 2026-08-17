@@ -37,6 +37,9 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const customerId = body?.customer_id;
+    const subscriptionId = typeof body?.subscription_id === "string" && body.subscription_id
+      ? body.subscription_id
+      : null;
     if (typeof customerId !== "string" || !customerId) {
       return new Response(
         JSON.stringify({ success: false, error: "customer_id is required" }),
@@ -58,11 +61,55 @@ Deno.serve(async (req) => {
 
     const { data: tenant, error: tenantErr } = await supabase
       .from("tenants")
-      .select("id, is_demo, is_internal_tenant, stripe_account_id")
+      .select("id, name, is_demo, is_internal_tenant, stripe_account_id")
       .eq("id", customer.tenant_id)
       .maybeSingle();
     if (tenantErr) throw tenantErr;
     if (!tenant) throw new Error("Tenant not found");
+
+    // MANDATE-CTX-1: build the customer-facing context (amount, reason,
+    // interval) server-side from the subscription so the authorization page
+    // never shows a blank "carte blanche" form. Amount math is copied from
+    // generate-subscription-invoices (pay_first path) so the shown total is
+    // exactly what will be collected.
+    let context: Record<string, unknown> | null = null;
+    if (subscriptionId) {
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select(
+          "id, tenant_id, customer_id, name, interval, interval_count, subscription_lines(description, quantity, unit_price, vat_rate, sort_order)",
+        )
+        .eq("id", subscriptionId)
+        .maybeSingle();
+
+      if (sub && sub.tenant_id === tenant.id && sub.customer_id === customer.id) {
+        const lines = [...((sub as any).subscription_lines ?? [])].sort(
+          (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0),
+        );
+        let subtotal = 0;
+        let vatAmount = 0;
+        for (const ln of lines) {
+          const net = Number(ln.quantity ?? 1) * Number(ln.unit_price ?? 0);
+          subtotal += net;
+          vatAmount += +(net * Number(ln.vat_rate ?? 0) / 100).toFixed(2);
+        }
+        subtotal = +subtotal.toFixed(2);
+        vatAmount = +vatAmount.toFixed(2);
+        const total = +(subtotal + vatAmount).toFixed(2);
+
+        context = {
+          source: "subscription",
+          creditor: tenant.name,
+          reason: lines[0]?.description || sub.name,
+          price: total,
+          interval: sub.interval,
+          interval_count: sub.interval_count,
+        };
+        log("Context built from subscription", { subscriptionId, total });
+      } else {
+        log("Subscription context skipped (not found or mismatch)", { subscriptionId });
+      }
+    }
 
     const ctx = getStripeContext(tenant);
 
@@ -104,6 +151,7 @@ Deno.serve(async (req) => {
       customer_id: customer.id,
       token,
       stripe_customer_id: stripeCustomerId,
+      ...(context ? { context } : {}),
     });
     if (tokErr) throw tokErr;
 

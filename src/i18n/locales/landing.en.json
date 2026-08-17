@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "sepa_mandate_context": {
+          "title": "SEPA mandates now show amount, reason and interval",
+          "description": "When you ask a customer for a recurring SEPA mandate, the authorisation page now states exactly what they are agreeing to: the amount including VAT, the reason and how often it is collected. The amount comes straight from the subscription, so it matches what is charged later."
+        },
         "ticket_signup_counter": {
           "title": "Signups per date at a glance",
           "description": "See at a glance how many people signed up for each date: a bar and text show occupancy, whether the minimum has been reached and when a date is full. The action buttons per date now also show a tooltip on hover."

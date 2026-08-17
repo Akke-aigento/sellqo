@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "sepa_mandate_context": {
+          "title": "Les mandats SEPA affichent désormais le montant, le motif et l'intervalle",
+          "description": "Lorsque vous demandez un mandat SEPA récurrent à un client, la page d'autorisation indique désormais précisément ce qu'il accepte : le montant TVA comprise, le motif et la fréquence du prélèvement. Le montant provient de l'abonnement, il correspond donc exactement au prélèvement."
+        },
         "ticket_signup_counter": {
           "title": "Les inscriptions par date en un coup d'œil",
           "description": "Voyez d'un coup d'œil combien de personnes sont inscrites par date : une barre et un texte indiquent le taux de remplissage, si le minimum est atteint et quand une date est complète. Les boutons d'action par date affichent désormais aussi une infobulle au survol."

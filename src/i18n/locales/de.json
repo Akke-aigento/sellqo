@@ -819,7 +819,9 @@
       "per_month": "pro Monat",
       "per_year": "pro Jahr",
       "cancel_note": "Du kannst dieses Mandat jederzeit widerrufen.",
-      "line_from": "Du erteilst SellQo ab {{date}} ein Mandat für dein {{plan}}-Abo ({{amount}} {{period}}, exkl. MwSt.)."
+      "line_from": "Du erteilst SellQo ab {{date}} ein Mandat für dein {{plan}}-Abo ({{amount}} {{period}}, exkl. MwSt.).",
+      "line_generic": "Sie ermächtigen {{creditor}} für {{reason}} ({{amount}} {{period}}).",
+      "recurring_no_amount": "Wiederkehrendes SEPA-Mandat für {{creditor}}."
     }
   },
   "admin": {

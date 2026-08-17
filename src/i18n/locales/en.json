@@ -1051,7 +1051,9 @@
       "per_month": "per month",
       "per_year": "per year",
       "cancel_note": "You can cancel this mandate at any time.",
-      "line_from": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT) from {{date}}."
+      "line_from": "You authorise SellQo for your {{plan}} subscription ({{amount}} {{period}}, excl. VAT) from {{date}}.",
+      "line_generic": "You authorise {{creditor}} for {{reason}} ({{amount}} {{period}}).",
+      "recurring_no_amount": "Recurring SEPA mandate for {{creditor}}."
     }
   },
   "admin": {
