@@ -1,3 +1,43 @@
+## PAYPAL-1a — Backend PayPal-ondersteuning + capability-vangnet — 17 augustus 2026
+
+**Root cause** — PayPal toevoegen als betaalmethode via Stripe Connect is puur additief op de edge functions, maar PayPal erft NIET automatisch naar bestaande connected accounts. Waar bancontact/ideal/card/klarna na standaard-onboarding direct werken, vereist PayPal een aparte capability (`paypal_payments`) die de tenant zelf moet activeren plus PayPal-specifieke onboarding moet doorlopen. Zonder vangnet zou de storefront PayPal blijven tonen (de methode staat in `stripe_payment_methods`) terwijl de charge faalt — een klant kiest PayPal, komt in een falende flow terecht, en de bestelling hangt. Vandaar de server-side self-healing in `check-connect-status`.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/stripe-fees.ts`:
+  - `calculateStripeFee`: nieuw `case 'paypal': return Math.round(amountCents * 0.029) + 35;` (2.9% + €0.35, EU PayPal-tarief). Geen bestaande case of default gewijzigd.
+  - `getAvailablePaymentMethods`: nieuw PayPal-block direct NA het `card`-block, identiek gestructureerd, gated op `hasStripe && stripeMethods.includes('paypal')`. De `klarna`- en `bank_transfer`-blocks staan ongewijzigd eronder.
+- `supabase/functions/storefront-api/index.ts`:
+  - `checkoutComplete`, `stripeMethodMap`: `'paypal': 'paypal',` toegevoegd. De `payment_method_types`-mapping in de Stripe Checkout-sessie dekt nu PayPal. Niets anders in `checkoutComplete` of elders gewijzigd — VAT/reverse-charge/discount/OSS-logica, de bank_transfer/QR-tak en de `stripe`-umbrella backward-compat onaangetast.
+- `supabase/functions/check-connect-status/index.ts`:
+  - `select` uitgebreid met `stripe_payment_methods` (was al aanwezig op de tenants-tabel, enkel nu mee-opgehaald).
+  - Capability-vangnet NA de status-sync: leest `account.capabilities?.paypal_payments`; als `'paypal'` in de tenant-array staat maar de capability ≠ `'active'`, verwijdert een service-role update uitsluitend `'paypal'` uit `stripe_payment_methods` en logt dit expliciet. Andere methodes worden nooit aangeraakt; charges_enabled/payouts_enabled/onboarding-logica ongewijzigd.
+  - Response uitgebreid met `paypal_capability_status: account.capabilities?.paypal_payments ?? null`. De bestaande `capabilities`-key blijft staan.
+
+**Security-keuzes**
+- De self-healing update loopt via `SUPABASE_SERVICE_ROLE_KEY` op de tenants-tabel, net als de bestaande status-sync in dezelfde functie. Geen nieuw RLS-beleid of grant nodig — de tabel is al toegankelijk voor de service role.
+- Alleen `'paypal'` wordt verwijderd; een `filter((m) => m !== 'paypal')` garandeert dat geen andere methode per ongeluk verdwijnt. Bij een schrijffout wordt gelogd maar geen exception gegooid, zodat de status-check nooit faalt op het vangnet.
+- `paypal_capability_status` in de response is read-only info voor het admin-UI (PAYPAL-1b); geen privilege-escalatie-vector.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is een gedeeld pad (de vijf custom frontends lezen `available_payment_methods` dynamisch). De wijziging is strikt additief: een nieuwe key in `stripeMethodMap` en een nieuw block in `getAvailablePaymentMethods`. Bestaande keys, het JSON-contract van `content`/`settings`, en de bank_transfer/QR-tak zijn ongewijzigd. Custom frontends die PayPal niet in hun `stripe_payment_methods` hebben, zien geen verschil — het block is gated op `stripeMethods.includes('paypal')`. Geen React-component gedeeld of gewijzigd.
+- `check-connect-status` is admin-only (JWT + `requireRole(['tenant_admin','staff'])`); custom frontends callen deze niet. Het vangnet draait dus uitsluitend wanneer een tenant zelf de status opvraagt.
+
+**Verificatie**
+- `get_diff` toont exact drie edge-function-bestanden + deze role-audit-entry.
+- `calculateStripeFee(cartTotalCents, 'paypal')` geeft 2.9% + 35 cent; bestaande cases ongewijzigd (handmatig nagetrokken).
+- `stripeMethodMap` bevat nu zes entries; de `isStripeMethod`-check en `payment_method_types`-propagatie werken ongewijzigd voor de andere methodes.
+- Self-healing: `Array.isArray`-guard voorkomt crash op `null`/ontbrekende `stripe_payment_methods`; filter raakt uitsluitend `'paypal'`.
+- `paypal_capability_status` staat in de 200-response naast `capabilities` (niet vervangen).
+
+**Bewust ongemoeid / Vervolg**
+- GEEN changelog-entry en GEEN newsletter-item in deze batch — bewust geparkeerd tot PAYPAL-1b (toggle-UI in het admin + handleiding), want zonder toggle-UI kan een tenant hier nog niks mee.
+- GEEN nieuwe DB-kolom en GEEN migratie — `stripe_payment_methods` (jsonb array) bestaat al; PayPal is gewoon een nieuwe waarde erin.
+- GEEN frontend-/src-wijziging — `useStripeConnect.ts`, de checkout-UI en de storefront-renderer worden in PAYPAL-1b aangeraakt.
+- De vijf custom frontends renderen `available_payment_methods` dynamisch en worden in deze batch NIET aangeraakt; hun PayPal-weergave hangt af van hun eigen renderer, niet van dit contract.
+- Custom-frontend smoke-checks (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) zijn hier niet uitvoerbaar; het contract is ongewijzigd bewezen door de additieve diff.
+
+---
+
 ## MANDATE-CTX-1 — bedrag, reden en interval op manuele SEPA-machtigingen — 17 augustus 2026
 
 **Root cause** — `supabase/functions/create-mandate-setup/index.ts` mintte het mandaat-token zonder `context` (insert in `mandate_setup_tokens`, r.102-107 oud). `mandate-setup-info` geeft `tok.context ?? null` door, dus de machtigingspagina (`src/pages/MandateActivation.tsx`) kreeg `context: null` en rekende `contextLine` weg (`if (!ctx?.plan_name) return null`). Het `mb-4`-infoblok stond achter `{contextLine && ...}`, waardoor de klant enkel het Stripe PaymentElement + de generieke `mandate.sepa_mandate_text` zag: een machtiging zonder bedrag, reden of interval. Het platformpad (`create-platform-mandate-setup`) vulde de context wél en was dus niet getroffen.

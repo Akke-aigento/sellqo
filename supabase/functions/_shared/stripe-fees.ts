@@ -6,6 +6,7 @@ export function calculateStripeFee(amountCents: number, method: string): number 
     case 'klarna': return Math.round(amountCents * 0.035) + 30;
     case 'sepa_debit': return Math.min(Math.round(amountCents * 0.008), 600);
     case 'bank_transfer': return 0;
+    case 'paypal': return Math.round(amountCents * 0.029) + 35;
     default: return Math.round(amountCents * 0.015) + 25;
   }
 }
@@ -27,6 +28,10 @@ export function getAvailablePaymentMethods(tenant: any, cartTotalCents: number, 
   if (hasStripe && stripeMethods.includes('card')) {
     result.push({ method: 'card', group: 'direct', name: 'Kaart / Apple Pay / Google Pay', 
       description: 'Visa, Mastercard, Amex', fee_cents: calculateStripeFee(cartTotalCents, 'card'), available: true });
+  }
+  if (hasStripe && stripeMethods.includes('paypal')) {
+    result.push({ method: 'paypal', group: 'direct', name: 'PayPal',
+      description: 'Betaal met je PayPal-account', fee_cents: calculateStripeFee(cartTotalCents, 'paypal'), available: true });
   }
   if (hasStripe && stripeMethods.includes('klarna')) {
     const eu = ['BE','NL','DE','FR','AT','IT','ES','FI','SE','DK','NO'].includes(country);

@@ -40,7 +40,7 @@ serve(async (req) => {
     // Get tenant data
     const { data: tenantData, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled")
+      .select("stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_payment_methods")
       .eq("id", tenant_id)
       .single();
 
@@ -140,6 +140,28 @@ serve(async (req) => {
       logStep("Tenant status updated in database");
     }
 
+    // PAYPAL-1a — capability vangnet: if 'paypal' is in the tenant's configured
+    // stripe_payment_methods but the PayPal capability is not active on the
+    // Stripe account, remove it so the storefront never offers PayPal when the
+    // charge would fail. Only 'paypal' is touched — never any other method.
+    const paymentMethods: string[] = Array.isArray(tenantData.stripe_payment_methods)
+      ? tenantData.stripe_payment_methods
+      : [];
+    const paypalCapability = account.capabilities?.paypal_payments ?? null;
+    if (paymentMethods.includes('paypal') && paypalCapability !== 'active') {
+      const filteredMethods = paymentMethods.filter((m: string) => m !== 'paypal');
+      const { error: paypalResetError } = await supabaseClient
+        .from("tenants")
+        .update({ stripe_payment_methods: filteredMethods })
+        .eq("id", tenant_id);
+      if (paypalResetError) {
+        logStep("Failed to remove inactive PayPal capability", { error: paypalResetError.message });
+      } else {
+        logStep("PayPal capability inactief — 'paypal' verwijderd uit stripe_payment_methods voor tenant", { tenant_id, paypalCapability });
+      }
+    }
+
+
     // Fetch payout schedule and balance if account is active
     let payoutSchedule = null;
     let balance = null;
@@ -208,6 +230,7 @@ serve(async (req) => {
       balance: balance,
       upcoming_payout: upcomingPayout,
       capabilities: account.capabilities || {},
+      paypal_capability_status: account.capabilities?.paypal_payments ?? null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
