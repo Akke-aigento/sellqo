@@ -1,3 +1,22 @@
+## VIES-FIX — userError classificeren + retry — 17 augustus 2026
+
+**Root cause** — `callVies` in `supabase/functions/_shared/vies.ts` (r.75-84 oud) las alleen `data.isValid` en negeerde `data.userError`. VIES antwoordt bij een geweigerde lidstaat-call met HTTP 200 + `isValid:false` + `userError:"MS_MAX_CONCURRENT_REQ"` en velden `name/address = "---"`. Die tijdelijke onbeschikbaarheid werd als "ongeldig BTW-nummer" getoond én 24u gecachet in `vat_validations` (`checkoutValidateVat`, storefront-api r.2427). BE heeft de per-lidstaat-concurrency-limiet, NL niet → BE faalde intermittent, NL nooit. Bewezen: `BE1017500207` gaf binnen 8s eerst `VALID` (BV NOMADIX) en daarna `MS_MAX_CONCURRENT_REQ`.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/vies.ts` — `callViesOnce` (netwerk) losgetrokken van `classify` (interpretatie). Classificatie: `VALID` → geldig; `INVALID` → écht ongeldig; `INVALID_INPUT` → `error: 'Ongeldig BTW-nummer formaat'` zonder `service_unavailable` (retry helpt niet, maar wordt ook niet als `false` gecachet); al het andere (`MS_MAX_CONCURRENT_REQ`, `GLOBAL_MAX_CONCURRENT_REQ`, `MS_UNAVAILABLE`, `SERVICE_UNAVAILABLE`, `TIMEOUT`, onbekend) → `service_unavailable: true`. Ontbreekt `userError`, dan gedraagt de helper zich exact als voorheen (achterwaartse compatibiliteit). Retry: max 2 extra pogingen met backoff 400ms + 1000ms, alleen bij niet-definitieve uitkomsten; totale extra tijd < 1,5s.
+- `supabase/functions/storefront-api/index.ts` — na de `service_unavailable`-guard een extra guard op `vies.error`: niet-definitieve uitkomsten geven `VALIDATION_ERROR` terug en schrijven niets in `vat_validations`. Alleen `VALID`/`INVALID` wordt nog gecachet.
+- `supabase/functions/validate-vat/index.ts` — geeft bij een foutuitkomst nu `service_unavailable` + `definitive: false` terug (en `definitive: true` bij een definitieve uitkomst).
+- `src/hooks/useVatValidation.ts` — logt niet-definitieve uitkomsten, invoke-fouten en onbekende fouten niet meer weg als `is_valid=false`.
+- Eenmalige opschoning (migratie): `DELETE FROM public.vat_validations WHERE country_code='BE' AND is_valid=false AND (company_name='---' OR company_name IS NULL)` — 4 rijen: `BE1017500207` (2x, 14 en 17 aug), `BE0123456749`, `BE0888888888`.
+
+**Security-keuzes** — n.v.t.: geen RLS, policies of grants geraakt. De opschoning is een gerichte DELETE op cache-rijen, geen schemawijziging.
+
+**Gedeelde-paden-waarschuwing** — `_shared/vies.ts` en `storefront-api` zijn gedeeld met de vijf custom frontends. Het JSON-contract van `checkout_validate_vat` is onveranderd: `VALID`/`INVALID` geven exact dezelfde respons als voorheen. Nieuw is alleen dat een geweigerde call nu `VIES_UNAVAILABLE` (bestaande foutcode, bestaand pad r.2422) of `VALIDATION_ERROR` teruggeeft in plaats van een onterecht `valid:false`. Geen kolom, sleutel of statuscode hernoemd of verwijderd.
+
+**Verificatie** — Live VIES: `BE1017500207` → `valid:true`, "BV NOMADIX"; `BE0417497106` → `valid:true`, "NV Anheuser-Busch InBev"; `BE0000000000` → `userError:INVALID` → nette `valid:false`; `NL866104136B01` → `valid:true`, "RESPONDO B.V.". Gestubde retry-test: 3x `MS_MAX_CONCURRENT_REQ` → `service_unavailable:true` in 1406ms (3 calls, geen `valid:false`); busy→VALID → `valid:true` na 2 calls; `INVALID_INPUT` → 1 call, geen retry. Na de tests staan er nul BE-rijen met `is_valid=false` in `vat_validations`. `npx tsgo --noEmit -p tsconfig.app.json` exit 0. Functies `storefront-api` + `validate-vat` gedeployd.
+
+**Bewust ongemoeid / Vervolg** — Cache-TTL (24u) en de rate-limit (10/tenant/minuut) niet aangepast. Changelog-entry (bugfix, B2B-checkout betrouwbaarder) staat klaar voor de gebundelde slottaakronde; docs/newsletter niet nodig.
+
 ## EARLY-BIRD FASE D — Admin-UI early-bird per event — 15 augustus 2026
 
 **Doel** — Een tenant kan early-bird per event instellen (prijs, deadline, aantal) in de datum-editor, zonder SQL. Strikt additief, alleen admin: storefront, betaalpad en custom frontends zijn niet geraakt.

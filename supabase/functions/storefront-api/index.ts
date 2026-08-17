@@ -2423,6 +2423,11 @@ async function checkoutValidateVat(supabase: any, tenantId: string, params: Reco
     return { success: false, error: { code: 'VIES_UNAVAILABLE', message: vies.error ?? 'VIES service tijdelijk niet beschikbaar. Probeer later opnieuw.' } };
   }
 
+  // VIES-FIX: niet-definitieve uitkomsten (bv. format-fout) nooit cachen als is_valid=false.
+  if (vies.error) {
+    return { success: false, error: { code: 'VALIDATION_ERROR', message: vies.error, fields: { vat_number: vies.error } } };
+  }
+
   // 4) Log resultaat (customer_id blijft NULL in checkout-fase)
   const { error: logError } = await supabase.from('vat_validations').insert({
     tenant_id: tenantId,
