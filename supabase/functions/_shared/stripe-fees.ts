@@ -6,6 +6,7 @@ export function calculateStripeFee(amountCents: number, method: string): number 
     case 'klarna': return Math.round(amountCents * 0.035) + 30;
     case 'sepa_debit': return Math.min(Math.round(amountCents * 0.008), 600);
     case 'bank_transfer': return 0;
+    case 'paypal': return Math.round(amountCents * 0.029) + 35;
     default: return Math.round(amountCents * 0.015) + 25;
   }
 }
