@@ -19,6 +19,8 @@ type Info = {
     plan_name?: string | null;
     price?: number | null;
     interval?: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | null;
+    /** MANDATE-CTX-1b: aantal intervallen tussen incasso's (bv. 2 = elke 2 weken). */
+    interval_count?: number | null;
     /** MANDATE-CTX-1: context afkomstig van een tenant-subscription. */
     source?: string | null;
     creditor?: string | null;
