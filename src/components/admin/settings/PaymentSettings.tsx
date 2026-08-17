@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard, RefreshCw, CheckCircle2, AlertCircle, ExternalLink, Store, Percent, Shield, Globe, Loader2, Calendar, Wallet, Clock, ChevronDown, Unlink } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const SUPPORTED_COUNTRIES = [
 export function PaymentSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
@@ -278,6 +279,7 @@ export function PaymentSettings() {
                       { label: 'Cards (EU)', rate: '1,5% + €0,25', active: caps.card_payments === 'active' },
                       { label: 'Cards (niet-EU)', rate: '2,9% + €0,25', active: caps.card_payments === 'active' },
                       { label: 'SEPA Incasso', rate: '€0,35 per transactie', active: caps.sepa_debit_payments === 'active' },
+                      { label: 'PayPal', rate: '2,9% + €0,35', active: caps.paypal_payments === 'active' },
                     ];
                     const activeRates = rates.filter(r => r.active);
                     const displayRates = activeRates.length > 0 ? activeRates : rates;
@@ -310,11 +312,33 @@ export function PaymentSettings() {
                       if (caps.ideal_payments === 'active') methods.push('iDEAL');
                       if (caps.bancontact_payments === 'active') methods.push('Bancontact');
                       if (caps.sepa_debit_payments === 'active') methods.push('SEPA');
+                      if (caps.paypal_payments === 'active') methods.push('PayPal');
                       return methods.length > 0 ? methods.join(', ') : 'Wordt geladen...';
                     })()}
                   </p>
                 </div>
               </div>
+
+              {status.charges_enabled && status.payouts_enabled && status.paypal_capability_status !== 'active' && (
+                <div className="flex items-start gap-3 p-3 rounded-lg border bg-background">
+                  <Wallet className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">PayPal toevoegen?</p>
+                    <p className="text-xs text-muted-foreground">
+                      PayPal is beschikbaar als extra betaalmethode. Je activeert het eenmalig in je eigen
+                      Stripe Dashboard — daarna verschijnt het automatisch in je checkout.
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => navigate('/admin/help?article=paypal-koppelen')}
+                    >
+                      Lees hoe je PayPal koppelt
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />

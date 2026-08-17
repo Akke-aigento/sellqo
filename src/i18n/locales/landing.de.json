@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "paypal_checkout": {
+          "title": "PayPal als Zahlungsmethode",
+          "description": "PayPal ist jetzt als Zahlungsmethode in deinem Shop verfuegbar. Du aktivierst es einmalig in deinem eigenen Stripe-Dashboard; danach erscheint PayPal automatisch in deinem Checkout und in deinen Zahlungsmethoden. Schaltest du es in Stripe wieder aus, verschwindet es automatisch."
+        },
         "sepa_mandate_context": {
           "title": "SEPA-Mandate zeigen jetzt Betrag, Grund und Intervall",
           "description": "Wenn Sie einen Kunden um ein wiederkehrendes SEPA-Mandat bitten, zeigt die Autorisierungsseite nun genau, wozu er zustimmt: den Betrag inklusive Mehrwertsteuer, den Grund und die Abbuchungsfrequenz. Der Betrag stammt direkt aus dem Abonnement und entspricht damit exakt dem späteren Einzug."

@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10b — PayPal als betaalmethode (feature, 17-08-2026)
+
+**Reken nu ook af met PayPal** (oktober 2026)
+PayPal is beschikbaar als extra betaalmethode in je webshop. Je activeert het eenmalig in je
+eigen Stripe Dashboard; daarna verschijnt PayPal automatisch in je checkout.
+Wat betekent dit voor jou? Zet PayPal aan bij Stripe, klik in SellQo op "Status vernieuwen"
+en je klanten kunnen meteen met PayPal betalen. Zet je het bij Stripe weer uit, dan volgt
+SellQo automatisch.
+
+**i18n-keys.** `public.changelog.changes.paypal_checkout` — NL/EN/FR/DE aanwezig.
+
 ### 2026.10a — SEPA-machtigingen tonen bedrag, reden en interval (improvement, 17-08-2026)
 
 **Je klant ziet nu precies waarvoor hij een machtiging geeft** (oktober 2026)

@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "paypal_checkout": {
+          "title": "PayPal as a payment method",
+          "description": "PayPal is now available as a payment method in your shop. You activate it once in your own Stripe Dashboard; after that PayPal appears automatically in your checkout and in your payment methods. Switch it off in Stripe and it disappears again automatically."
+        },
         "sepa_mandate_context": {
           "title": "SEPA mandates now show amount, reason and interval",
           "description": "When you ask a customer for a recurring SEPA mandate, the authorisation page now states exactly what they are agreeing to: the amount including VAT, the reason and how often it is collected. The amount comes straight from the subscription, so it matches what is charged later."
