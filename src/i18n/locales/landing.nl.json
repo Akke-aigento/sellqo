@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "sepa_mandate_context": {
+          "title": "SEPA-machtigingen tonen nu bedrag, reden en interval",
+          "description": "Vraag je een klant om een doorlopende SEPA-machtiging, dan ziet die op de machtigingspagina nu meteen waarvoor hij betaalt: het bedrag inclusief btw, de reden en hoe vaak er wordt afgeschreven. Het bedrag komt uit het abonnement zelf, dus het is exact wat er later wordt geincasseerd."
+        },
         "ticket_signup_counter": {
           "title": "Inschrijvingen per datum in één oogopslag",
           "description": "Zie in één oogopslag hoeveel mensen zijn ingeschreven per datum: een balkje en tekst tonen de bezetting, of het minimum gehaald is en wanneer een datum vol zit. De actieknoppen per datum hebben nu ook uitleg bij hover."
