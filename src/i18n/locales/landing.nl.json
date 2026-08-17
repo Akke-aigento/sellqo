@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "paypal_checkout": {
+          "title": "PayPal als betaalmethode",
+          "description": "PayPal is nu beschikbaar als betaalmethode in je webshop. Je activeert het eenmalig in je eigen Stripe Dashboard; daarna verschijnt PayPal automatisch in je checkout en in je betaalmethodes. Zet je het in Stripe weer uit, dan verdwijnt het ook weer automatisch."
+        },
         "sepa_mandate_context": {
           "title": "SEPA-machtigingen tonen nu bedrag, reden en interval",
           "description": "Vraag je een klant om een doorlopende SEPA-machtiging, dan ziet die op de machtigingspagina nu meteen waarvoor hij betaalt: het bedrag inclusief btw, de reden en hoe vaak er wordt afgeschreven. Het bedrag komt uit het abonnement zelf, dus het is exact wat er later wordt geincasseerd."
