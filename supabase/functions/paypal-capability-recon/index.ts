@@ -8,6 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// HARDE VEILIGHEIDSGRENS: deze functie mag UITSLUITEND op VanXcel werken.
+const VANXCEL_TENANT_ID = "54f6b480-280b-42e1-b843-d5beb2831acd";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,8 +21,12 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { tenant_id } = await req.json();
+    const { tenant_id, do_request } = await req.json();
     if (!tenant_id) throw new Error("tenant_id is required");
+
+    if (tenant_id !== VANXCEL_TENANT_ID) {
+      throw new Error("Deze recon-functie werkt uitsluitend op VanXcel.");
+    }
 
     const auth = await authenticateRequest(req, tenant_id);
     requireRole(auth, tenant_id, ['tenant_admin']);
@@ -35,31 +42,52 @@ serve(async (req) => {
 
     const { stripe } = await getStripeForTenant(supabaseClient, tenant_id);
 
-    let paypalCapability: any = null;
-    let capabilityError: string | null = null;
+    let capabilityBefore: any = null;
+    let readError: string | null = null;
     try {
-      paypalCapability = await stripe.accounts.retrieveCapability(
+      capabilityBefore = await stripe.accounts.retrieveCapability(
         tenantData.stripe_account_id,
         "paypal_payments"
       );
     } catch (e: any) {
-      capabilityError = e?.message ?? String(e);
+      readError = e?.message ?? String(e);
     }
 
-    let allCapabilities: any = null;
+    let requestResult: any = null;
+    let requestError: string | null = null;
+    let didRequest = false;
+    if (do_request === true) {
+      didRequest = true;
+      try {
+        requestResult = await stripe.accounts.updateCapability(
+          tenantData.stripe_account_id,
+          "paypal_payments",
+          { requested: true }
+        );
+      } catch (e: any) {
+        requestError = e?.message ?? String(e);
+      }
+    }
+
+    let capabilityAfter: any = null;
     try {
-      const account = await stripe.accounts.retrieve(tenantData.stripe_account_id);
-      allCapabilities = account.capabilities ?? null;
+      capabilityAfter = await stripe.accounts.retrieveCapability(
+        tenantData.stripe_account_id,
+        "paypal_payments"
+      );
     } catch (e: any) {
-      // stil — extra context
+      // stil — capabilityBefore/readError dekt dit al
     }
 
     return new Response(JSON.stringify({
       tenant: tenantData.name,
       stripe_account_id: tenantData.stripe_account_id,
-      paypal_capability: paypalCapability,
-      paypal_capability_error: capabilityError,
-      all_capabilities: allCapabilities,
+      did_request: didRequest,
+      capability_before: capabilityBefore,
+      read_error: readError,
+      request_result: requestResult,
+      request_error: requestError,
+      capability_after: capabilityAfter,
     }, null, 2), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
