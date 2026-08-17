@@ -167,8 +167,18 @@ export default function MandateActivation() {
         style: 'currency',
         currency: 'EUR',
       }).format(subPrice);
-      const period =
-        ctx.interval === 'yearly' ? t('mandate.context.per_year') : t('mandate.context.per_month');
+      // MANDATE-CTX-1b: map elk interval + interval_count juridisch correct.
+      const count = Number(ctx.interval_count ?? 1);
+      const iv = ctx.interval as 'weekly' | 'monthly' | 'quarterly' | 'yearly' | undefined;
+      const singularKey = iv === 'weekly' ? 'mandate.context.per_week'
+        : iv === 'quarterly' ? 'mandate.context.per_quarter'
+        : iv === 'yearly' ? 'mandate.context.per_year'
+        : 'mandate.context.per_month';
+      const pluralKey = iv === 'weekly' ? 'mandate.context.per_week_n'
+        : iv === 'quarterly' ? 'mandate.context.per_quarter_n'
+        : iv === 'yearly' ? 'mandate.context.per_year_n'
+        : 'mandate.context.per_month_n';
+      const period = count > 1 ? t(pluralKey, { count }) : t(singularKey);
       return t('mandate.context.line_generic', {
         creditor: ctx.creditor || info?.tenant.name || '',
         reason: ctx.reason || '',
