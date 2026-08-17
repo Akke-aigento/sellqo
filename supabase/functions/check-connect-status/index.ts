@@ -161,6 +161,22 @@ serve(async (req) => {
       }
     }
 
+    // PAYPAL-1b — tegenhanger (self-adding): capability actief maar 'paypal' nog niet
+    // geconfigureerd → toevoegen, zodat PayPal zonder extra toggle in de checkout
+    // verschijnt. Ook hier: uitsluitend 'paypal' wordt aangeraakt.
+    if (paypalCapability === 'active' && !paymentMethods.includes('paypal')) {
+      const extendedMethods = [...paymentMethods, 'paypal'];
+      const { error: paypalAddError } = await supabaseClient
+        .from("tenants")
+        .update({ stripe_payment_methods: extendedMethods })
+        .eq("id", tenant_id);
+      if (paypalAddError) {
+        logStep("Failed to add active PayPal capability", { error: paypalAddError.message });
+      } else {
+        logStep("PayPal capability actief — 'paypal' toegevoegd aan stripe_payment_methods voor tenant", { tenant_id });
+      }
+    }
+
 
     // Fetch payout schedule and balance if account is active
     let payoutSchedule = null;
