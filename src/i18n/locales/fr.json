@@ -819,7 +819,9 @@
       "per_month": "par mois",
       "per_year": "par an",
       "cancel_note": "Vous pouvez révoquer ce mandat à tout moment.",
-      "line_from": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA) à partir du {{date}}."
+      "line_from": "Vous autorisez SellQo pour votre abonnement {{plan}} ({{amount}} {{period}}, hors TVA) à partir du {{date}}.",
+      "line_generic": "Vous autorisez {{creditor}} pour {{reason}} ({{amount}} {{period}}).",
+      "recurring_no_amount": "Mandat SEPA récurrent pour {{creditor}}."
     }
   },
   "admin": {
