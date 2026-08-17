@@ -29,6 +29,10 @@ export function getAvailablePaymentMethods(tenant: any, cartTotalCents: number, 
     result.push({ method: 'card', group: 'direct', name: 'Kaart / Apple Pay / Google Pay', 
       description: 'Visa, Mastercard, Amex', fee_cents: calculateStripeFee(cartTotalCents, 'card'), available: true });
   }
+  if (hasStripe && stripeMethods.includes('paypal')) {
+    result.push({ method: 'paypal', group: 'direct', name: 'PayPal',
+      description: 'Betaal met je PayPal-account', fee_cents: calculateStripeFee(cartTotalCents, 'paypal'), available: true });
+  }
   if (hasStripe && stripeMethods.includes('klarna')) {
     const eu = ['BE','NL','DE','FR','AT','IT','ES','FI','SE','DK','NO'].includes(country);
     const reason = cartTotalCents < 3500 ? 'Minimum €35' : !eu ? 'Niet in jouw land' : null;
