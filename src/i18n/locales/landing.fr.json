@@ -1027,7 +1027,7 @@
       "changes": {
         "paypal_checkout": {
           "title": "PayPal comme moyen de paiement",
-          "description": "PayPal est desormais disponible comme moyen de paiement dans votre boutique. Vous l'activez une seule fois dans votre propre tableau de bord Stripe ; PayPal apparait ensuite automatiquement dans votre commande et dans vos moyens de paiement. Si vous le desactivez dans Stripe, il disparait a nouveau automatiquement."
+          "description": "PayPal est désormais disponible comme moyen de paiement dans votre boutique. Vous l'activez une seule fois dans votre propre tableau de bord Stripe ; PayPal apparaît ensuite automatiquement dans votre commande et dans vos moyens de paiement. Si vous le désactivez dans Stripe, il disparaît à nouveau automatiquement."
         },
         "sepa_mandate_context": {
           "title": "Les mandats SEPA affichent désormais le montant, le motif et l'intervalle",
