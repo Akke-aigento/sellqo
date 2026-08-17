@@ -40,7 +40,7 @@ serve(async (req) => {
     // Get tenant data
     const { data: tenantData, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled")
+      .select("stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, stripe_payment_methods")
       .eq("id", tenant_id)
       .single();
 
