@@ -63,10 +63,7 @@ export function useVatValidation() {
           country_code: vatNumber.replace(/[\s.-]/g, '').substring(0, 2).toUpperCase(),
         };
         setResult(errorResult);
-        
-        // Log failed validation
-        await logValidation(errorResult, customerId);
-        
+        // VIES-FIX: transportfout is geen definitieve afkeuring → niet loggen.
         return errorResult;
       }
 
@@ -95,10 +92,7 @@ export function useVatValidation() {
         country_code: vatNumber.replace(/[\s.-]/g, '').substring(0, 2).toUpperCase(),
       };
       setResult(errorResult);
-      
-      // Log failed validation
-      await logValidation(errorResult, customerId);
-      
+      // VIES-FIX: onbekende fout is geen definitieve afkeuring → niet loggen.
       return errorResult;
     } finally {
       setIsValidating(false);
