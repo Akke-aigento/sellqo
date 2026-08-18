@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, MoreHorizontal, Shield, UserCog, Trash2, Calculator, Warehouse, Eye, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,22 +35,23 @@ import { TenantInvitationsList } from './TenantInvitationsList';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
-const getRoleBadge = (role: string) => {
+/** `t` komt als parameter binnen: deze helper staat buiten de component. */
+const getRoleBadge = (role: string, t: (key: string) => string) => {
   switch (role) {
     case 'platform_admin':
-      return <Badge className="bg-purple-500">Platform Admin</Badge>;
+      return <Badge className="bg-purple-500">{t('settings.team.roles.platform_admin.label')}</Badge>;
     case 'tenant_admin':
-      return <Badge className="bg-blue-500">Admin</Badge>;
+      return <Badge className="bg-blue-500">{t('settings.team.roles.tenant_admin.label')}</Badge>;
     case 'staff':
-      return <Badge variant="secondary">Medewerker</Badge>;
+      return <Badge variant="secondary">{t('settings.team.roles.staff.label')}</Badge>;
     case 'accountant':
-      return <Badge className="bg-green-500">Boekhouder</Badge>;
+      return <Badge className="bg-green-500">{t('settings.team.roles.accountant.label')}</Badge>;
     case 'warehouse':
-      return <Badge className="bg-orange-500">Magazijn</Badge>;
+      return <Badge className="bg-orange-500">{t('settings.team.roles.warehouse.label')}</Badge>;
     case 'marketing':
-      return <Badge className="bg-pink-500">Marketing</Badge>;
+      return <Badge className="bg-pink-500">{t('settings.team.roles.marketing.label')}</Badge>;
     case 'viewer':
-      return <Badge variant="outline">Kijker</Badge>;
+      return <Badge variant="outline">{t('settings.team.roles.viewer.label')}</Badge>;
     default:
       return <Badge variant="outline">{role}</Badge>;
   }
@@ -63,6 +65,7 @@ const getInitials = (name: string | null, email: string | null) => {
 };
 
 export function TeamSettings() {
+  const { t } = useTranslation();
   const { members, isLoading, updateMemberRole, setPermissionGrant, removeMember } = useTeamMembers();
   const { refetch: refetchInvitations } = useTeamInvitations({ statusFilter: 'all' });
   const { user } = useAuth();
@@ -97,9 +100,9 @@ export function TeamSettings() {
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle>Teamleden</CardTitle>
+                <CardTitle>{t('settings.sections.team')}</CardTitle>
                 <CardDescription>
-                  Beheer wie toegang heeft tot je winkel
+                  {t('settings.team.subtitle')}
                 </CardDescription>
               </div>
             </div>
@@ -123,15 +126,15 @@ export function TeamSettings() {
           ) : isEmpty ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Geen teamleden</h3>
+              <h3 className="text-lg font-medium mb-2">{t('settings.team.empty')}</h3>
               <p className="text-muted-foreground mb-4">
-                Voeg teamleden toe om samen te werken aan je winkel.
+                {t('settings.team.emptyHint')}
               </p>
               <InviteTeamMemberDialog
                 onInvited={refetchInvitations}
                 trigger={
                   <Button>
-                    Eerste teamlid uitnodigen
+                    {t('settings.team.inviteFirst')}
                   </Button>
                 }
               />
@@ -140,10 +143,10 @@ export function TeamSettings() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Gebruiker</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Rechten</TableHead>
-                  <TableHead>Toegevoegd op</TableHead>
+                  <TableHead>{t('settings.team.columnUser')}</TableHead>
+                  <TableHead>{t('settings.team.columnRole')}</TableHead>
+                  <TableHead>{t('settings.team.columnPermissions')}</TableHead>
+                  <TableHead>{t('settings.team.addedOn')}</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -166,7 +169,7 @@ export function TeamSettings() {
                             <p className="font-medium">
                               {member.full_name || 'Geen naam'}
                               {isCurrentUser && (
-                                <span className="text-muted-foreground ml-2">(jij)</span>
+                                <span className="text-muted-foreground ml-2">{t('settings.team.you')}</span>
                               )}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -175,7 +178,7 @@ export function TeamSettings() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{getRoleBadge(member.role)}</TableCell>
+                      <TableCell>{getRoleBadge(member.role, t)}</TableCell>
                       <TableCell>
                         {member.role === 'marketing' && canManageTeam ? (
                           <div className="flex items-center gap-2">
@@ -190,7 +193,7 @@ export function TeamSettings() {
                               htmlFor={`grant-${member.id}`}
                               className="text-sm font-normal text-muted-foreground cursor-pointer"
                             >
-                              Mag kortingscodes beheren
+                              {t('settings.team.mayManageDiscounts')}
                             </Label>
                           </div>
                         ) : (
@@ -214,42 +217,42 @@ export function TeamSettings() {
                                 disabled={member.role === 'tenant_admin'}
                               >
                                 <Shield className="h-4 w-4 mr-2" />
-                                Admin
+                                {t('settings.team.roles.tenant_admin.label')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'staff')}
                                 disabled={member.role === 'staff'}
                               >
                                 <UserCog className="h-4 w-4 mr-2" />
-                                Medewerker
+                                {t('settings.team.roles.staff.label')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'accountant')}
                                 disabled={member.role === 'accountant'}
                               >
                                 <Calculator className="h-4 w-4 mr-2" />
-                                Boekhouder
+                                {t('settings.team.roles.accountant.label')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'warehouse')}
                                 disabled={member.role === 'warehouse'}
                               >
                                 <Warehouse className="h-4 w-4 mr-2" />
-                                Magazijn
+                                {t('settings.team.roles.warehouse.label')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'marketing')}
                                 disabled={member.role === 'marketing'}
                               >
                                 <Megaphone className="h-4 w-4 mr-2" />
-                                Marketing
+                                {t('settings.team.roles.marketing.label')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(member, 'viewer')}
                                 disabled={member.role === 'viewer'}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
-                                Kijker
+                                {t('settings.team.roles.viewer.label')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -257,7 +260,7 @@ export function TeamSettings() {
                                 className="text-destructive"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Verwijderen
+                                {t('common.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -278,16 +281,16 @@ export function TeamSettings() {
       {/* Role explanations */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Rollen uitleg</CardTitle>
+          <CardTitle className="text-base">{t('settings.team.rolesExplained')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            { badge: <Badge className="bg-blue-500 hover:bg-blue-500">Admin</Badge>, name: 'Tenant Admin', desc: 'Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.' },
-            { badge: <Badge variant="secondary">Medewerker</Badge>, name: 'Staff', desc: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
-            { badge: <Badge className="bg-green-500 hover:bg-green-500">Boekhouder</Badge>, name: 'Accountant', desc: "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten." },
-            { badge: <Badge className="bg-orange-500 hover:bg-orange-500">Magazijn</Badge>, name: 'Warehouse', desc: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
-            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">Marketing</Badge>, name: 'Marketing', desc: 'Campagnes, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen. Kortingscodes beheren is een apart recht dat een beheerder per persoon inschakelt via de schakelaar in de ledenlijst hierboven.' },
-            { badge: <Badge variant="outline">Kijker</Badge>, name: 'Viewer', desc: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
+            { badge: <Badge className="bg-blue-500 hover:bg-blue-500">{t('settings.team.roles.tenant_admin.label')}</Badge>, name: 'Tenant Admin', desc: 'Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.' },
+            { badge: <Badge variant="secondary">{t('settings.team.roles.staff.label')}</Badge>, name: 'Staff', desc: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
+            { badge: <Badge className="bg-green-500 hover:bg-green-500">{t('settings.team.roles.accountant.label')}</Badge>, name: 'Accountant', desc: "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten." },
+            { badge: <Badge className="bg-orange-500 hover:bg-orange-500">{t('settings.team.roles.warehouse.label')}</Badge>, name: 'Warehouse', desc: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
+            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">{t('settings.team.roles.marketing.label')}</Badge>, name: t('settings.team.roles.marketing.label'), desc: 'Campagnes, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen. Kortingscodes beheren is een apart recht dat een beheerder per persoon inschakelt via de schakelaar in de ledenlijst hierboven.' },
+            { badge: <Badge variant="outline">{t('settings.team.roles.viewer.label')}</Badge>, name: 'Viewer', desc: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
           ].map((r) => (
             <div key={r.name} className="grid grid-cols-[110px_1fr] items-start gap-4">
               <div className="flex justify-start pt-0.5">{r.badge}</div>
@@ -304,7 +307,7 @@ export function TeamSettings() {
       <AlertDialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Teamlid verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.team.removeTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {memberToRemove && (
                 <>
@@ -315,13 +318,13 @@ export function TeamSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRemoving}>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel disabled={isRemoving}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
               disabled={isRemoving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isRemoving ? 'Verwijderen...' : 'Verwijderen'}
+              {isRemoving ? 'Verwijderen...' : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ const templateTypeLabels: Record<WhatsAppTemplateType, string> = {
 };
 
 export function WhatsAppTemplatesTable() {
+  const { t } = useTranslation();
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useWhatsAppTemplates();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<typeof templates[0] | null>(null);
@@ -54,11 +56,11 @@ export function WhatsAppTemplatesTable() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-emerald-500">Goedgekeurd</Badge>;
+        return <Badge className="bg-emerald-500">{t('settings.whatsapp.templates.approved')}</Badge>;
       case 'pending':
-        return <Badge variant="secondary">In afwachting</Badge>;
+        return <Badge variant="secondary">{t('settings.whatsapp.templates.pending')}</Badge>;
       case 'rejected':
-        return <Badge variant="destructive">Afgewezen</Badge>;
+        return <Badge variant="destructive">{t('settings.whatsapp.templates.rejected')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -71,29 +73,29 @@ export function WhatsAppTemplatesTable() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Message Templates
+              {t('settings.whatsapp.templates.title')}
             </CardTitle>
             <CardDescription>
-              Beheer je WhatsApp berichtsjablonen
+              {t('settings.whatsapp.templates.subtitle')}
             </CardDescription>
           </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Nieuwe template
+                {t('settings.whatsapp.templates.new')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Nieuwe template aanmaken</DialogTitle>
+                <DialogTitle>{t('settings.whatsapp.templates.createTitle')}</DialogTitle>
                 <DialogDescription>
-                  Maak een nieuwe WhatsApp berichtsjabloon aan. Templates moeten worden goedgekeurd door Meta.
+                  {t('settings.whatsapp.templates.createHint')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="template_name">Template naam</Label>
+                  <Label htmlFor="template_name">{t('settings.whatsapp.templates.nameLabel')}</Label>
                   <Input
                     id="template_name"
                     placeholder="order_confirmation_nl"
@@ -101,7 +103,7 @@ export function WhatsAppTemplatesTable() {
                     onChange={(e) => setFormData(prev => ({ ...prev, template_name: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Gebruik alleen kleine letters, cijfers en underscores
+                    {t('settings.whatsapp.templates.nameHint')}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -121,7 +123,7 @@ export function WhatsAppTemplatesTable() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="header_text">Header (optioneel)</Label>
+                  <Label htmlFor="header_text">{t('settings.whatsapp.templates.headerOptional')}</Label>
                   <Input
                     id="header_text"
                     placeholder="Bestelbevestiging"
@@ -130,7 +132,7 @@ export function WhatsAppTemplatesTable() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="body_text">Berichttekst</Label>
+                  <Label htmlFor="body_text">{t('settings.whatsapp.templates.bodyLabel')}</Label>
                   <Textarea
                     id="body_text"
                     placeholder="Hallo {{1}}, bedankt voor je bestelling #{{2}}!"
@@ -143,10 +145,10 @@ export function WhatsAppTemplatesTable() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="footer_text">Footer (optioneel)</Label>
+                  <Label htmlFor="footer_text">{t('settings.whatsapp.templates.footerOptional')}</Label>
                   <Input
                     id="footer_text"
-                    placeholder="Mijn Webshop"
+                    placeholder={t('settings.whatsapp.templates.footerPlaceholder')}
                     value={formData.footer_text}
                     onChange={(e) => setFormData(prev => ({ ...prev, footer_text: e.target.value }))}
                   />
@@ -170,21 +172,21 @@ export function WhatsAppTemplatesTable() {
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
-            Templates laden...
+            {t('settings.whatsapp.templates.loading')}
           </div>
         ) : templates.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            Nog geen templates aangemaakt
+            {t('settings.whatsapp.templates.empty')}
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
           <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Template</TableHead>
+                <TableHead>{t('settings.whatsapp.templates.columnTemplate')}</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Acties</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead className="text-right">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -223,7 +225,7 @@ export function WhatsAppTemplatesTable() {
         <Dialog open={!!previewTemplate} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Template preview</DialogTitle>
+              <DialogTitle>{t('settings.whatsapp.templates.preview')}</DialogTitle>
             </DialogHeader>
             {previewTemplate && (
               <div className="bg-[#e5ddd5] dark:bg-zinc-800 rounded-lg p-4">

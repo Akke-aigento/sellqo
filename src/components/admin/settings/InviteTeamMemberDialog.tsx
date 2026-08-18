@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Mail, UserPlus, Calculator, Warehouse, Eye, Shield, UserCog, Megaphone,
   Loader2, CheckCircle2, Info, AlertTriangle,
@@ -25,13 +26,14 @@ interface RoleOption {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const roleOptions: RoleOption[] = [
-  { value: 'tenant_admin', label: 'Admin', description: 'Volledige toegang, inclusief instellingen en teamleden', icon: Shield },
-  { value: 'staff', label: 'Medewerker', description: 'Producten, orders en klanten beheren', icon: UserCog },
-  { value: 'accountant', label: 'Boekhouder', description: 'Facturen, rapporten, BTW en financiële gegevens', icon: Calculator },
-  { value: 'warehouse', label: 'Magazijn', description: 'Voorraad, verzending en pakbonnen', icon: Warehouse },
-  { value: 'marketing', label: 'Marketing', description: 'Campagnes, kortingen, ads, CMS en SEO — geen financiële data', icon: Megaphone },
-  { value: 'viewer', label: 'Kijker', description: 'Alleen lezen, geen wijzigingen mogelijk', icon: Eye },
+/** Factory: de labels gaan door i18n, dus buiten de component is `t` er niet. */
+const buildRoleOptions = (t: (key: string) => string): RoleOption[] => [
+  { value: 'tenant_admin', label: t('settings.team.roles.tenant_admin.label'), description: t('settings.team.roles.tenant_admin.description'), icon: Shield },
+  { value: 'staff', label: t('settings.team.roles.staff.label'), description: t('settings.team.roles.staff.description'), icon: UserCog },
+  { value: 'accountant', label: t('settings.team.roles.accountant.label'), description: t('settings.team.roles.accountant.description'), icon: Calculator },
+  { value: 'warehouse', label: t('settings.team.roles.warehouse.label'), description: t('settings.team.roles.warehouse.description'), icon: Warehouse },
+  { value: 'marketing', label: t('settings.team.roles.marketing.label'), description: t('settings.team.roles.marketing.description'), icon: Megaphone },
+  { value: 'viewer', label: t('settings.team.roles.viewer.label'), description: t('settings.team.roles.viewer.description'), icon: Eye },
 ];
 
 type CheckResult = {
@@ -50,6 +52,7 @@ interface InviteTeamMemberDialogProps {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InvitationRole>('staff');
@@ -126,6 +129,7 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
     }
   };
 
+  const roleOptions = useMemo(() => buildRoleOptions(t), [t]);
   const selectedRole = roleOptions.find(r => r.value === role);
   const disabled = isSubmitting || !email.trim() || checking || checkResult?.alreadyMember === true;
 
@@ -135,7 +139,7 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
         {trigger || (
           <Button>
             <Mail className="h-4 w-4 mr-2" />
-            Uitnodigen
+            {t('settings.team.inviteAction')}
           </Button>
         )}
       </DialogTrigger>
@@ -143,21 +147,21 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Teamlid uitnodigen
+            {t('settings.team.invite.title')}
           </DialogTitle>
           <DialogDescription>
-            Stuur een uitnodiging per e-mail. De ontvanger kan een account aanmaken of inloggen om deel te nemen.
+            {t('settings.team.invite.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mailadres</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="collega@voorbeeld.nl"
+                placeholder={t('settings.team.invite.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -171,7 +175,7 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Rol</Label>
+              <Label htmlFor="role">{t('settings.team.columnRole')}</Label>
               <Select value={role} onValueChange={(v) => setRole(v as InvitationRole)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -202,7 +206,7 @@ export function InviteTeamMemberDialog({ trigger, onInvited }: InviteTeamMemberD
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={disabled}>
               {isSubmitting ? 'Verzenden...' : 'Uitnodiging versturen'}
@@ -222,11 +226,12 @@ function EmailCheckBanner({
   onResend: () => void;
   resending: boolean;
 }) {
+  const { t } = useTranslation();
   if (checking) {
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Loader2 className="h-3 w-3 animate-spin" />
-        E-mail controleren...
+        {t('settings.team.invite.checking')}
       </div>
     );
   }
@@ -236,7 +241,7 @@ function EmailCheckBanner({
     return (
       <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs">
         <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-        <span>Deze persoon is al lid van jouw team voor deze webshop.</span>
+        <span>{t('settings.team.invite.alreadyMember')}</span>
       </div>
     );
   }
@@ -258,7 +263,7 @@ function EmailCheckBanner({
       <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/5 p-2 text-xs">
         <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
         <span>
-          Deze persoon was eerder verwijderd uit jouw team. Een nieuwe uitnodiging maakt een schone start.
+          {t('settings.team.invite.previouslyRemoved')}
         </span>
       </div>
     );
@@ -268,8 +273,8 @@ function EmailCheckBanner({
       <div className="flex items-start gap-2 rounded-md border border-green-500/40 bg-green-500/5 p-2 text-xs">
         <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
         <span>
-          Deze persoon heeft al een SellQo-account voor een andere webshop op het platform.
-          Bij accepteren wordt jouw team toegevoegd aan hun bestaande account.
+          {t('settings.team.invite.existingAccount')}
+          {t('settings.team.invite.existingAccountHint')}
         </span>
       </div>
     );
@@ -278,7 +283,7 @@ function EmailCheckBanner({
     <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/5 p-2 text-xs">
       <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
       <span>
-        Deze persoon heeft nog geen SellQo-account. Ze krijgen een uitnodiging
+        {t('settings.team.invite.noAccountYet')}
         om er één aan te maken via een bevestigingscode per e-mail.
       </span>
     </div>

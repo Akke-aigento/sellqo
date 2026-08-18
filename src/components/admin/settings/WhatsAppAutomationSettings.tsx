@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ interface AutomationSettingsState {
 }
 
 export function WhatsAppAutomationSettings() {
+  const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   const [settings, setSettings] = useState<AutomationSettingsState>({
@@ -52,14 +54,14 @@ export function WhatsAppAutomationSettings() {
 
       await refreshTenants();
       toast({
-        title: 'Instellingen opgeslagen',
-        description: 'Je WhatsApp automatisering instellingen zijn bijgewerkt.',
+        title: t('settings.whatsapp.auto.saved'),
+        description: t('settings.whatsapp.auto.savedBody'),
       });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({
-        title: 'Opslaan mislukt',
-        description: 'Er ging iets mis bij het opslaan.',
+        title: t('settings.whatsapp.auto.saveFailed'),
+        description: t('settings.whatsapp.auto.saveFailedBody'),
         variant: 'destructive',
       });
     } finally {
@@ -72,15 +74,15 @@ export function WhatsAppAutomationSettings() {
       id: 'order_confirmation',
       key: 'whatsapp_order_confirmation' as const,
       icon: ShoppingCart,
-      title: 'Bestelbevestiging',
-      description: 'Stuur bevestiging na succesvolle betaling',
+      title: t('settings.whatsapp.auto.orderConfirmTitle'),
+      description: t('settings.whatsapp.auto.orderConfirmBody'),
     },
     {
       id: 'shipping_updates',
       key: 'whatsapp_shipping_updates' as const,
       icon: Truck,
-      title: 'Verzending updates',
-      description: 'Stuur track & trace wanneer bestelling is verzonden',
+      title: t('settings.whatsapp.auto.shippingTitle'),
+      description: t('settings.whatsapp.auto.shippingBody'),
     },
   ];
 
@@ -89,10 +91,10 @@ export function WhatsAppAutomationSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          Automatische Berichten
+          {t('settings.whatsapp.auto.title')}
         </CardTitle>
         <CardDescription>
-          Configureer welke berichten automatisch via WhatsApp worden verzonden
+          {t('settings.whatsapp.auto.subtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -130,10 +132,10 @@ export function WhatsAppAutomationSettings() {
               </div>
               <div>
                 <Label htmlFor="abandoned_cart" className="font-medium cursor-pointer">
-                  Verlaten winkelwagen
+                  {t('settings.whatsapp.auto.abandonedTitle')}
                 </Label>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Herinner klanten aan achtergelaten items
+                  {t('settings.whatsapp.auto.abandonedBody')}
                 </p>
               </div>
             </div>
@@ -150,7 +152,7 @@ export function WhatsAppAutomationSettings() {
             <div className="ml-11 p-4 bg-muted/50 rounded-lg space-y-3">
               <div className="flex items-center gap-3">
                 <Label htmlFor="delay_hours" className="text-sm whitespace-nowrap">
-                  Verstuur na
+                  {t('settings.whatsapp.auto.sendAfter')}
                 </Label>
                 <Input
                   id="delay_hours"
@@ -169,7 +171,7 @@ export function WhatsAppAutomationSettings() {
                 <span className="text-sm text-muted-foreground">uur</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Alleen klanten die WhatsApp updates hebben geaccepteerd ontvangen deze herinnering.
+                {t('settings.whatsapp.auto.optInNote')}
               </p>
             </div>
           )}

@@ -1,4 +1,5 @@
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,7 @@ export function CommunicationTriggerRow({
   onEditTemplate,
   isUpdating,
 }: CommunicationTriggerRowProps) {
+  const { t } = useTranslation();
   const emailEnabled = setting?.email_enabled ?? trigger.defaultEmailEnabled;
   const whatsAppEnabled = setting?.whatsapp_enabled ?? trigger.defaultWhatsAppEnabled;
   const delayValue = trigger.delayUnit === 'days' 
@@ -44,7 +46,7 @@ export function CommunicationTriggerRow({
           {trigger.hasDelay && (emailEnabled || whatsAppEnabled) && (
             <div className="flex items-center gap-2 mt-2">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">
-                Verstuur na:
+                {t('settings.communication.sendAfter')}
               </Label>
               <Input
                 type="number"
@@ -69,7 +71,7 @@ export function CommunicationTriggerRow({
             <div className="flex flex-col items-center gap-1.5">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Mail className="h-3 w-3" />
-                <span className="hidden sm:inline">Email</span>
+                <span className="hidden sm:inline">{t('settings.communication.channelEmail')}</span>
               </div>
               <Switch
                 checked={emailEnabled}

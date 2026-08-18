@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, MoreHorizontal, RefreshCw, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -55,6 +56,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
 }
 
 export function TenantInvitationsList() {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<FilterValue>('all');
   const { invitations, isLoading, revokeInvitation, resendInvitation } =
     useTeamInvitations({ statusFilter: 'all' });
@@ -97,9 +99,9 @@ export function TenantInvitationsList() {
               <Mail className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Uitnodigingen</CardTitle>
+              <CardTitle>{t('settings.team.invitationsTitle')}</CardTitle>
               <CardDescription>
-                Verstuurde, geaccepteerde en ingetrokken team-uitnodigingen
+                {t('settings.team.invitations.subtitle')}
               </CardDescription>
             </div>
           </div>
@@ -121,18 +123,18 @@ export function TenantInvitationsList() {
           </div>
         ) : visible.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            Geen uitnodigingen in deze categorie.
+            {t('settings.team.invitations.empty')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Aangemaakt</TableHead>
-                  <TableHead className="hidden md:table-cell">Vervalt</TableHead>
+                  <TableHead>{t('common.email')}</TableHead>
+                  <TableHead>{t('settings.team.columnRole')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('settings.team.invitations.createdAt')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('settings.team.invitations.expiresAt')}</TableHead>
                   <TableHead className="w-[60px]" />
                 </TableRow>
               </TableHeader>
@@ -167,19 +169,19 @@ export function TenantInvitationsList() {
       <AlertDialog open={!!confirmRevokeId} onOpenChange={() => setConfirmRevokeId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Uitnodiging intrekken?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.team.invitations.revokeTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              De uitnodigingslink wordt onmiddellijk ongeldig. Deze actie kan niet ongedaan worden gemaakt.
+              {t('settings.team.invitations.revokeBody')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRevoke}
               disabled={busy}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {busy ? 'Intrekken...' : 'Intrekken'}
+              {busy ? 'Intrekken...' : t('settings.team.invitations.revoke')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -196,6 +198,7 @@ function RowActions({
   onResend: () => void;
   onRevoke: () => void;
 }) {
+  const { t } = useTranslation();
   if (inv.status === 'accepted') return null;
 
   return (
@@ -210,19 +213,19 @@ function RowActions({
           <>
             <DropdownMenuItem onClick={onResend}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Opnieuw verzenden
+              {t('settings.team.invitations.resend')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onRevoke} className="text-destructive">
               <X className="h-4 w-4 mr-2" />
-              Intrekken
+              {t('settings.team.invitations.revoke')}
             </DropdownMenuItem>
           </>
         )}
         {(inv.status === 'expired' || inv.status === 'revoked' || inv.status === 'rejected') && (
           <DropdownMenuItem onClick={onResend}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Opnieuw uitnodigen
+            {t('settings.team.invitations.reinvite')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

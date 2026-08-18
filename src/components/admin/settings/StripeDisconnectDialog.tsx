@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Unlink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export function StripeDisconnectDialog({
   onConfirm,
   trigger,
 }: StripeDisconnectDialogProps) {
+  const { t } = useTranslation();
   const [typed, setTyped] = useState('');
 
   useEffect(() => {
@@ -53,26 +55,26 @@ export function StripeDisconnectDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Stripe account ontkoppelen?
+            {t('settings.payment.disconnect.title')}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3 text-sm">
               <p>
-                Je staat op het punt het Stripe connected account permanent te
+                {t('settings.payment.disconnect.body1')}
                 verwijderen voor:
               </p>
               <div className="rounded-md border bg-muted/50 p-3 space-y-1">
                 <div>
-                  <span className="text-muted-foreground">Tenant:</span>{' '}
+                  <span className="text-muted-foreground">{t('settings.payment.disconnect.tenantLabel')}</span>{' '}
                   <strong>{tenantName || '—'}</strong>
                 </div>
                 <div className="break-all">
-                  <span className="text-muted-foreground">Stripe account:</span>{' '}
+                  <span className="text-muted-foreground">{t('settings.payment.disconnect.accountLabel')}</span>{' '}
                   <code className="font-mono text-xs">{stripeAccountId || '—'}</code>
                 </div>
               </div>
               <p className="text-destructive font-medium">
-                Dit is destructief en kan niet ongedaan gemaakt worden bij
+                {t('settings.payment.disconnect.body2')}
                 Express-accounts.
               </p>
             </div>
@@ -100,7 +102,7 @@ export function StripeDisconnectDialog({
             onClick={() => onOpenChange(false)}
             disabled={isDisconnecting}
           >
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -112,7 +114,7 @@ export function StripeDisconnectDialog({
             ) : (
               <Unlink className="h-4 w-4 mr-2" />
             )}
-            Definitief ontkoppelen
+            {t('settings.payment.disconnect.confirm')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

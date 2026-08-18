@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, AlertTriangle, Loader2, CheckCircle2, XCircle, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ interface CleanupResult {
 }
 
 export function PlatformToolsSettings() {
+  const { t } = useTranslation();
   const [confirmText, setConfirmText] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<CleanupResult | null>(null);
@@ -47,7 +49,7 @@ export function PlatformToolsSettings() {
       }
       keys.forEach((k) => sessionStorage.removeItem(k));
     } catch {}
-    toast.success('Trial blocker dismiss gereset — pagina wordt herladen');
+    toast.success(t('settings.platformTools.trialResetDone'));
     setTimeout(() => window.location.reload(), 600);
   };
 
@@ -74,10 +76,10 @@ export function PlatformToolsSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Stripe Accounts Reset
+            {t('settings.platformTools.stripeResetTitle')}
           </CardTitle>
           <CardDescription>
-            Verwijder alle connected Stripe accounts van alle tenants. Alle tenants moeten daarna opnieuw onboarden.
+            {t('settings.platformTools.stripeResetBody')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -85,21 +87,21 @@ export function PlatformToolsSettings() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={isRunning}>
                 {isRunning ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Bezig...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {t('settings.platformTools.busy')}</>
                 ) : (
-                  <><Trash2 className="h-4 w-4" /> Reset alle Stripe accounts</>
+                  <><Trash2 className="h-4 w-4" /> {t('settings.platformTools.stripeResetAction')}</>
                 )}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-destructive">
-                  Alle Stripe accounts verwijderen?
+                  {t('settings.platformTools.stripeResetConfirmTitle')}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="space-y-3">
                   <p>
                     Dit verwijdert <strong>ALLE</strong> connected Stripe accounts van alle tenants.
-                    Alle tenants moeten daarna opnieuw onboarden bij Stripe.
+                    {t('settings.platformTools.stripeResetConfirmBody')}
                   </p>
                   <p className="font-semibold">
                     Typ <code className="bg-muted px-1.5 py-0.5 rounded text-destructive font-bold">RESET</code> om te bevestigen:
@@ -107,13 +109,13 @@ export function PlatformToolsSettings() {
                   <Input
                     value={confirmText}
                     onChange={(e) => setConfirmText(e.target.value)}
-                    placeholder="Typ RESET"
+                    placeholder={t('settings.platformTools.typeReset')}
                     className="font-mono"
                   />
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   disabled={confirmText !== 'RESET' || isRunning}
                   onClick={(e) => { e.preventDefault(); handleCleanup(); }}
@@ -155,17 +157,17 @@ export function PlatformToolsSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5" />
-            Test: Trial Expired Blocker
+            {t('settings.platformTools.trialTestTitle')}
           </CardTitle>
           <CardDescription>
-            Reset de "trial verlopen" overlay zodat je hem opnieuw te zien krijgt op een tenant met verlopen trial
+            {t('settings.platformTools.trialTestBody')}
             {currentTenant?.name ? ` (huidige tenant: ${currentTenant.name})` : ''}.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={handleTestTrialBlocker}>
             <FlaskConical className="h-4 w-4 mr-2" />
-            Reset & herlaad
+            {t('settings.platformTools.trialTestAction')}
           </Button>
         </CardContent>
       </Card>

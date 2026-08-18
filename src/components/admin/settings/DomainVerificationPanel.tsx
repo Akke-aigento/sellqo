@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Copy, Check, Loader2, Search, ShieldCheck, AlertTriangle, ChevronDown, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ interface DomainVerificationPanelProps {
 }
 
 export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [cfToken, setCfToken] = useState('');
@@ -45,8 +47,8 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
   };
 
   const dnsRecords = [
-    { type: 'A', name: '@', value: '185.158.133.1', description: 'Root domein' },
-    { type: 'A', name: 'www', value: '185.158.133.1', description: 'WWW subdomain' },
+    { type: 'A', name: '@', value: '185.158.133.1', description: t('settings.domain.rootDomain') },
+    { type: 'A', name: 'www', value: '185.158.133.1', description: t('settings.domain.wwwSubdomain') },
     { type: 'TXT', name: '_sellqo', value: `sellqo-verify=${domain.verification_token || ''}`, description: 'Verificatie' },
   ];
 
@@ -66,9 +68,9 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
           {/* DNS Records Table */}
           {!domain.dns_verified && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium">DNS Records instellen</h4>
+              <h4 className="text-sm font-medium">{t('settings.domain.dnsSetupTitle')}</h4>
               <p className="text-xs text-muted-foreground">
-                Voeg deze records toe bij je domeinprovider. DNS-propagatie kan tot 48 uur duren.
+                {t('settings.domain.dnsSetupHint')}
               </p>
               <div className="rounded-md border overflow-hidden">
                 <table className="w-full text-xs">
@@ -134,7 +136,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
                         <Key className="h-3 w-3" /> Cloudflare automatisch koppelen
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Voer je Cloudflare API Token in om DNS automatisch te configureren.
+                        {t('settings.domain.enterTokenHint')}
                       </p>
                       <div className="flex gap-2">
                         <Input
@@ -162,14 +164,14 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
                   disabled={isVerifying || isPolling}
                 >
                   {isVerifying ? (
-                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Controleren...</>
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t('settings.domain.checking')}</>
                   ) : (
-                    <><Search className="h-4 w-4 mr-1" /> DNS Controleren</>
+                    <><Search className="h-4 w-4 mr-1" /> {t('settings.domain.checkDns')}</>
                   )}
                 </Button>
                 {!isPolling ? (
                   <Button size="sm" variant="outline" onClick={startPolling}>
-                    Automatisch checken
+                    {t('settings.domain.autoCheck')}
                   </Button>
                 ) : (
                   <Button size="sm" variant="outline" onClick={stopPolling}>
@@ -184,7 +186,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
           {domain.dns_verified && !domain.ssl_active && !sslStatus?.ssl_active && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                DNS is geverifieerd. SSL-certificaat wordt gecontroleerd...
+                {t('settings.domain.dnsVerifiedSsl')}
               </p>
               <Button size="sm" onClick={checkSSL}>
                 <ShieldCheck className="h-4 w-4 mr-1" /> SSL Controleren
@@ -205,6 +207,7 @@ export function DomainVerificationPanel({ domain }: DomainVerificationPanelProps
 }
 
 function DomainStatusBadge({ domain, sslActive }: { domain: TenantDomain; sslActive?: boolean }) {
+  const { t } = useTranslation();
   if (domain.ssl_active || sslActive) {
     return (
       <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 gap-1">
@@ -221,7 +224,7 @@ function DomainStatusBadge({ domain, sslActive }: { domain: TenantDomain; sslAct
   }
   return (
     <Badge variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700">
-      DNS niet geverifieerd
+      {t('settings.domain.dnsNotVerified')}
     </Badge>
   );
 }

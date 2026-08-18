@@ -1,4 +1,5 @@
 import { Check, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export type DomainStep = 'domain-saved' | 'dns-configured' | 'ssl-active' | 'live';
@@ -8,11 +9,12 @@ interface DomainProgressStepsProps {
   isPolling?: boolean;
 }
 
-const STEPS = [
-  { id: 'domain-saved' as const, label: 'Domein', description: 'Domein opgeslagen' },
-  { id: 'dns-configured' as const, label: 'DNS', description: 'DNS geconfigureerd' },
-  { id: 'ssl-active' as const, label: 'SSL', description: 'Certificaat actief' },
-  { id: 'live' as const, label: 'Actief', description: 'Webshop online' },
+/** Factory: de omschrijvingen gaan door i18n. */
+const buildSteps = (t: (key: string) => string) => [
+  { id: 'domain-saved' as const, label: 'Domein', description: t('settings.domain.steps.saved') },
+  { id: 'dns-configured' as const, label: 'DNS', description: t('settings.domain.steps.dnsConfigured') },
+  { id: 'ssl-active' as const, label: 'SSL', description: t('settings.domain.steps.certificateActive') },
+  { id: 'live' as const, label: 'Actief', description: t('settings.domain.steps.shopOnline') },
 ];
 
 const STEP_ORDER: DomainStep[] = ['domain-saved', 'dns-configured', 'ssl-active', 'live'];
@@ -22,6 +24,8 @@ function getStepIndex(step: DomainStep): number {
 }
 
 export function DomainProgressSteps({ currentStep, isPolling = false }: DomainProgressStepsProps) {
+  const { t } = useTranslation();
+  const STEPS = buildSteps(t);
   const currentIndex = getStepIndex(currentStep);
 
   return (

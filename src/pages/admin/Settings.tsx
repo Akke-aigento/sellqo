@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -63,7 +64,8 @@ import { Wrench } from 'lucide-react';
 
 interface SettingsSection {
   id: string;
-  title: string;
+  /** i18n-key; render met t(titleKey). Nooit een letterlijke tekst. */
+  titleKey: string;
   icon: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
   adminOnly?: boolean;
@@ -77,90 +79,91 @@ interface SettingsSection {
 
 interface SettingsGroup {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   sections: SettingsSection[];
 }
 
 const settingsGroups: SettingsGroup[] = [
   {
     id: 'account',
-    title: 'Account & Team',
-    description: 'Beheer je persoonlijke gegevens en teamleden',
+    titleKey: 'settings.groups.account.title',
+    descriptionKey: 'settings.groups.account.description',
     sections: [
-      { id: 'profile', title: 'Mijn profiel', icon: User, component: AccountSettings },
-      { id: 'team', title: 'Teamleden', icon: Users, component: TeamSettings, adminOnly: true },
+      { id: 'profile', titleKey: 'settings.sections.profile', icon: User, component: AccountSettings },
+      { id: 'team', titleKey: 'settings.sections.team', icon: Users, component: TeamSettings, adminOnly: true },
     ],
   },
   {
     id: 'business',
-    title: 'Bedrijfsinformatie',
-    description: 'Bedrijfsgegevens, branding en domeinen',
+    titleKey: 'settings.groups.business.title',
+    descriptionKey: 'settings.groups.business.description',
     sections: [
-      { id: 'company', title: 'Bedrijfsgegevens', icon: Building2, component: BusinessSettings, requiredRead: 'settings_general' },
-      { id: 'branding', title: 'Branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
-      { id: 'domain', title: 'Domeinen', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
+      { id: 'company', titleKey: 'settings.sections.company', icon: Building2, component: BusinessSettings, requiredRead: 'settings_general' },
+      { id: 'branding', titleKey: 'settings.sections.branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
+      { id: 'domain', titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
     ],
   },
   {
     id: 'webshop',
-    title: 'Webshop',
+    titleKey: 'settings.groups.webshop.title',
     // Theme, homepage, pagina's, juridisch, functies en status zitten sinds
     // WEBSHOP-2 t/m 4 in de Shop Studio op /admin/storefront. Hier blijft
     // alleen wat over de frontend zelf gaat.
-    description: 'Frontend-modus, storefront API-keys en tracking',
+    descriptionKey: 'settings.groups.webshop.description',
     sections: [
-      { id: 'webshop-general', title: 'Webshop-instellingen', icon: Globe, component: StorefrontSettings, requiredRead: 'settings_general' },
+      { id: 'webshop-general', titleKey: 'settings.sections.webshop_general', icon: Globe, component: StorefrontSettings, requiredRead: 'settings_general' },
     ],
   },
   {
     id: 'financial',
-    title: 'Financieel & BTW',
-    description: 'BTW-instellingen, tarieven en e-facturatie',
+    titleKey: 'settings.groups.financial.title',
+    descriptionKey: 'settings.groups.financial.description',
     sections: [
-      { id: 'tax', title: 'BTW instellingen', icon: Receipt, component: TaxSettings, requiredRead: 'settings_financial' },
-      { id: 'vat_rates', title: 'BTW Tarieven', icon: Percent, component: VatRatesSettings, requiredRead: 'settings_financial' },
-      { id: 'invoicing', title: 'Automatische Facturatie', icon: FileText, component: InvoiceAutomationSettings, requiredRead: 'settings_financial' },
-      { id: 'peppol', title: 'Peppol & E-facturatie', icon: Network, component: PeppolSettings, featureKey: 'peppol', requiredRead: 'settings_financial' },
-      { id: 'compliance', title: 'Compliance', icon: FileCheck, component: InvoiceComplianceCard, requiredRead: 'settings_financial' },
+      { id: 'tax', titleKey: 'settings.sections.tax', icon: Receipt, component: TaxSettings, requiredRead: 'settings_financial' },
+      { id: 'vat_rates', titleKey: 'settings.sections.vat_rates', icon: Percent, component: VatRatesSettings, requiredRead: 'settings_financial' },
+      { id: 'invoicing', titleKey: 'settings.sections.invoicing', icon: FileText, component: InvoiceAutomationSettings, requiredRead: 'settings_financial' },
+      { id: 'peppol', titleKey: 'settings.sections.peppol', icon: Network, component: PeppolSettings, featureKey: 'peppol', requiredRead: 'settings_financial' },
+      { id: 'compliance', titleKey: 'settings.sections.compliance', icon: FileCheck, component: InvoiceComplianceCard, requiredRead: 'settings_financial' },
     ],
   },
   {
     id: 'payments',
-    title: 'Betalingen',
-    description: 'Betalingsmethoden en transactiekosten',
+    titleKey: 'settings.groups.payments.title',
+    descriptionKey: 'settings.groups.payments.description',
     sections: [
-      { id: 'payments', title: 'Betalingsmethoden', icon: CreditCard, component: PaymentSettings, requiredRead: 'settings_financial' },
-      { id: 'transactions', title: 'Transacties & Kosten', icon: Banknote, component: TransactionFeeSettings, requiredRead: 'settings_financial' },
+      { id: 'payments', titleKey: 'settings.sections.payments', icon: CreditCard, component: PaymentSettings, requiredRead: 'settings_financial' },
+      { id: 'transactions', titleKey: 'settings.sections.transactions', icon: Banknote, component: TransactionFeeSettings, requiredRead: 'settings_financial' },
     ],
   },
   {
     id: 'returns',
-    title: 'Retouren',
-    description: 'Retourbeleid, refund logica en klant-portaal',
+    titleKey: 'settings.groups.returns.title',
+    descriptionKey: 'settings.groups.returns.description',
     sections: [
-      { id: 'return-settings', title: 'Retourinstellingen', icon: Undo2, component: ReturnSettingsPage, requiredRead: 'settings_general' },
+      { id: 'return-settings', titleKey: 'settings.sections.return_settings', icon: Undo2, component: ReturnSettingsPage, requiredRead: 'settings_general' },
     ],
   },
   {
     id: 'channels',
-    title: 'SellQo Connect',
-    description: 'Beheer al je externe kanalen en koppelingen',
+    titleKey: 'settings.groups.channels.title',
+    descriptionKey: 'settings.groups.channels.description',
     sections: [
-      { id: 'shop-notifications', title: 'Winkel Notificaties', icon: Bell, component: NotificationSettings, requiredRead: 'settings_general' },
-      { id: 'customer-communication', title: 'Klant Communicatie', icon: MessageSquare, component: CustomerCommunicationSettings, requiredRead: 'settings_general' },
-      { id: 'inbound-email', title: 'Email Inbox', icon: Inbox, component: InboundEmailSettings, requiredRead: 'settings_general' },
-      { id: 'ai-assistant', title: 'AI Assistent', icon: Bot, component: AIAssistantSettings, featureKey: 'ai_marketing', requiredRead: 'marketing' },
-      { id: 'whatsapp', title: 'WhatsApp Koppeling', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp', requiredRead: 'marketing' },
-      { id: 'newsletter', title: 'Nieuwsbrief', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter', requiredRead: 'marketing' },
-      { id: 'social', title: 'Social Media', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce', requiredRead: 'marketing' },
-      { id: 'reviews', title: 'Reviews', icon: Star, component: ReviewsHub, requiredRead: 'marketing' },
-      { id: 'fulfillment-api', title: 'Fulfillment API', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
+      { id: 'shop-notifications', titleKey: 'settings.sections.shop_notifications', icon: Bell, component: NotificationSettings, requiredRead: 'settings_general' },
+      { id: 'customer-communication', titleKey: 'settings.sections.customer_communication', icon: MessageSquare, component: CustomerCommunicationSettings, requiredRead: 'settings_general' },
+      { id: 'inbound-email', titleKey: 'settings.sections.inbound_email', icon: Inbox, component: InboundEmailSettings, requiredRead: 'settings_general' },
+      { id: 'ai-assistant', titleKey: 'settings.sections.ai_assistant', icon: Bot, component: AIAssistantSettings, featureKey: 'ai_marketing', requiredRead: 'marketing' },
+      { id: 'whatsapp', titleKey: 'settings.sections.whatsapp', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp', requiredRead: 'marketing' },
+      { id: 'newsletter', titleKey: 'settings.sections.newsletter', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter', requiredRead: 'marketing' },
+      { id: 'social', titleKey: 'settings.sections.social', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce', requiredRead: 'marketing' },
+      { id: 'reviews', titleKey: 'settings.sections.reviews', icon: Star, component: ReviewsHub, requiredRead: 'marketing' },
+      { id: 'fulfillment-api', titleKey: 'settings.sections.fulfillment_api', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
     ],
   },
 ];
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);
@@ -189,10 +192,10 @@ export default function SettingsPage() {
     ...settingsGroups,
     ...(isPlatformAdmin && isAdminView ? [{
       id: 'platform-tools',
-      title: 'Platform Tools',
-      description: 'Beheertools voor het platform',
+      titleKey: 'settings.groups.platform.title',
+      descriptionKey: 'settings.groups.platform.description',
       sections: [
-        { id: 'platform-tools', title: 'Platform Tools', icon: Wrench, component: PlatformToolsSettings } as SettingsSection,
+        { id: 'platform-tools', titleKey: 'settings.sections.platform_tools', icon: Wrench, component: PlatformToolsSettings } as SettingsSection,
       ],
     }] : []),
   ];
@@ -261,9 +264,9 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {showMenu && (
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Instellingen</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
           <p className="text-muted-foreground">
-            Beheer je account, winkel en betalingsconfiguratie
+            {t('settings.subtitle')}
           </p>
         </div>
       )}
@@ -281,7 +284,7 @@ export default function SettingsPage() {
           </Button>
           {activeSectionMeta && (
             <h2 className="text-lg font-semibold truncate">
-              {activeSectionMeta.title}
+              {t(activeSectionMeta.titleKey)}
             </h2>
           )}
         </div>
@@ -303,7 +306,7 @@ export default function SettingsPage() {
                     return (
                       <div key={group.id}>
                         <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          {group.title}
+                          {t(group.titleKey)}
                         </h3>
                         <div className="space-y-1">
                           {visibleSections.map((section) => {
@@ -322,7 +325,7 @@ export default function SettingsPage() {
                                 )}
                               >
                                 <Icon className="h-4 w-4 flex-shrink-0" />
-                                <span className="flex-1 text-left">{section.title}</span>
+                                <span className="flex-1 text-left">{t(section.titleKey)}</span>
                                 {isActive && (
                                   <ChevronRight className="h-4 w-4 flex-shrink-0" />
                                 )}

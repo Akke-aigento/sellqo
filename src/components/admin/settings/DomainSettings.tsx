@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Globe, Copy, Check, CheckCircle2, AlertCircle, RefreshCw, Trash2, ExternalLink, Info, Cloud, Settings, Loader2, Key, Eye, EyeOff, Shield, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ import { ProviderInstructions } from './ProviderInstructions';
 type SetupStep = 'input' | 'provider-detected' | 'manual-setup' | 'configured';
 
 export function DomainSettings() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const {
     isSaving,
@@ -138,8 +140,8 @@ export function DomainSettings() {
   };
 
   const dnsRecords = [
-    { type: 'A', name: '@', value: '185.158.133.1', description: 'Root domein' },
-    { type: 'A', name: 'www', value: '185.158.133.1', description: 'WWW subdomein' },
+    { type: 'A', name: '@', value: '185.158.133.1', description: t('settings.domain.rootDomain') },
+    { type: 'A', name: 'www', value: '185.158.133.1', description: t('settings.domain.wwwSubdomain') },
     { type: 'TXT', name: '_sellqo', value: `sellqo-verify=${verificationToken || 'xxxxx'}`, description: 'Verificatie' },
   ];
 
@@ -166,10 +168,10 @@ export function DomainSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Eigen Domein
+            {t('settings.domain.ownDomain')}
           </CardTitle>
           <CardDescription>
-            Koppel je eigen domeinnaam aan je webshop voor een professionele uitstraling
+            {t('settings.domain.ownDomainHint')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -182,7 +184,7 @@ export function DomainSettings() {
                 <div className="flex gap-2">
                   <Input
                     id="domain"
-                    placeholder="mijnwebshop.be"
+                    placeholder={t('settings.domain.placeholder')}
                     value={domainInput}
                     onChange={(e) => setDomainInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleDomainCheck()}
@@ -195,7 +197,7 @@ export function DomainSettings() {
                     {isDetecting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Controleren...
+                        {t('settings.domain.checking')}
                       </>
                     ) : (
                       'Volgende'
@@ -236,12 +238,12 @@ export function DomainSettings() {
                       <div>
                         <h4 className="font-medium flex items-center gap-2">
                           <Key className="h-4 w-4" />
-                          Automatisch Koppelen via API Token
+                          {t('settings.domain.autoLinkTitle')}
                           <Badge variant="secondary" className="text-xs">Aanbevolen</Badge>
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Maak een API token aan in Cloudflare en voer deze hieronder in. 
-                          Wij configureren automatisch de DNS records.
+                          {t('settings.domain.autoLinkBody1')}
+                          {t('settings.domain.autoLinkBody2')}
                         </p>
                       </div>
                     </div>
@@ -249,14 +251,14 @@ export function DomainSettings() {
 
                   {/* Step-by-step instructions */}
                   <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                    <h5 className="font-medium text-sm">Stap 1: Maak een API Token aan</h5>
+                    <h5 className="font-medium text-sm">{t('settings.domain.step1')}</h5>
                     <ol className="text-sm text-muted-foreground space-y-1.5 ml-4 list-decimal">
                       <li>Ga naar Cloudflare Dashboard → My Profile → API Tokens</li>
                       <li>Klik op <strong>"Create Token"</strong></li>
-                      <li>Kies de template <strong>"Edit zone DNS"</strong></li>
-                      <li>Bij <strong>Zone Resources</strong>: selecteer je domein <code className="bg-muted px-1 rounded">{domainInput}</code></li>
+                      <li>{t('settings.domain.step1Template')} <strong>"Edit zone DNS"</strong></li>
+                      <li>Bij <strong>Zone Resources</strong>{t('settings.domain.step1SelectZone')} <code className="bg-muted px-1 rounded">{domainInput}</code></li>
                       <li>Klik <strong>"Continue to summary"</strong> → <strong>"Create Token"</strong></li>
-                      <li>Kopieer het gegenereerde token</li>
+                      <li>{t('settings.domain.step1Copy')}</li>
                     </ol>
                     <Button
                       variant="outline"
@@ -269,20 +271,20 @@ export function DomainSettings() {
                         rel="noopener noreferrer"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Cloudflare API Tokens
+                        {t('settings.domain.openCloudflare')}
                       </a>
                     </Button>
                   </div>
 
                   {/* API Token Input */}
                   <div className="space-y-2">
-                    <Label htmlFor="api-token">Stap 2: Voer je API Token in</Label>
+                    <Label htmlFor="api-token">{t('settings.domain.step2')}</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Input
                           id="api-token"
                           type={showApiToken ? 'text' : 'password'}
-                          placeholder="Plak hier je Cloudflare API token"
+                          placeholder={t('settings.domain.tokenPlaceholder')}
                           value={apiTokenInput}
                           onChange={(e) => {
                             setApiTokenInput(e.target.value);
@@ -311,7 +313,7 @@ export function DomainSettings() {
                         {isConnecting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Koppelen...
+                            {t('settings.domain.linking')}
                           </>
                         ) : (
                           <>
@@ -322,7 +324,7 @@ export function DomainSettings() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Je token wordt alleen eenmalig gebruikt en wordt niet opgeslagen.
+                      {t('settings.domain.tokenNotStored')}
                     </p>
                   </div>
 
@@ -330,7 +332,7 @@ export function DomainSettings() {
                   {connectError && (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Koppeling mislukt</AlertTitle>
+                      <AlertTitle>{t('settings.domain.linkFailed')}</AlertTitle>
                       <AlertDescription>{connectError}</AlertDescription>
                     </Alert>
                   )}
@@ -373,7 +375,7 @@ export function DomainSettings() {
                       {isSaving ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Bezig...
+                          {t('settings.domain.busy')}
                         </>
                       ) : (
                         'Start Handmatige Configuratie'
@@ -405,7 +407,7 @@ export function DomainSettings() {
                   <div>
                     <p className="font-medium">{customDomain}</p>
                     <p className="text-sm text-muted-foreground">
-                      Wacht op DNS verificatie
+                      {t('settings.domain.waitingDns')}
                     </p>
                   </div>
                 </div>
@@ -422,9 +424,9 @@ export function DomainSettings() {
               {/* DNS Records */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">DNS Records Configureren</h4>
+                  <h4 className="font-medium mb-2">{t('settings.domain.dnsRecordsTitle')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Voeg de volgende DNS records toe bij je domeinprovider:
+                    {t('settings.domain.dnsRecordsHint')}
                   </p>
                 </div>
 
@@ -468,10 +470,10 @@ export function DomainSettings() {
 
                 <Alert>
                   <Info className="h-4 w-4" />
-                  <AlertTitle>DNS Propagatie</AlertTitle>
+                  <AlertTitle>{t('settings.domain.propagationTitle')}</AlertTitle>
                   <AlertDescription>
-                    DNS wijzigingen kunnen tot 48 uur duren om wereldwijd door te voeren. 
-                    Dit is normaal en verschilt per provider.
+                    {t('settings.domain.propagationBody1')}
+                    {t('settings.domain.propagationBody2')}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -481,7 +483,7 @@ export function DomainSettings() {
               {/* Verification Status with Detailed Errors */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Verificatie Status</h4>
+                  <h4 className="font-medium mb-2">{t('settings.domain.verificationStatus')}</h4>
                   {verificationStatus && (
                     <div className="space-y-3">
                       <div className="space-y-2 text-sm">
@@ -532,7 +534,7 @@ export function DomainSettings() {
                     disabled={isVerifying || isPolling}
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${(isVerifying || isPolling) ? 'animate-spin' : ''}`} />
-                    {isPolling ? 'Bezig met controleren...' : isVerifying ? 'Controleren...' : 'DNS Controleren'}
+                    {isPolling ? 'Bezig met controleren...' : isVerifying ? t('settings.domain.checking') : 'DNS Controleren'}
                   </Button>
                   {isPolling && (
                     <Button variant="outline" onClick={stopPolling}>
@@ -555,15 +557,15 @@ export function DomainSettings() {
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Domein Verwijderen
+                    {t('settings.domain.remove')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Domein loskoppelen?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('settings.domain.disconnectTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
                       Weet je zeker dat je {customDomain} wilt loskoppelen? 
-                      Je webshop zal alleen nog bereikbaar zijn via de standaard Sellqo URL.
+                      {t('settings.domain.disconnectBody')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -597,7 +599,7 @@ export function DomainSettings() {
                   <div>
                     <p className="font-medium">{customDomain}</p>
                     <p className="text-sm text-muted-foreground">
-                      Domein geverifieerd en actief
+                      {t('settings.domain.verifiedActive')}
                     </p>
                   </div>
                 </div>
@@ -620,7 +622,7 @@ export function DomainSettings() {
                     <Shield className="h-5 w-5 text-yellow-500" />
                   )}
                   <div>
-                    <p className="font-medium">SSL Certificaat</p>
+                    <p className="font-medium">{t('settings.domain.sslCertificate')}</p>
                     <p className="text-sm text-muted-foreground">
                       {sslStatus?.ssl_active 
                         ? 'HTTPS is actief en beveiligd' 
@@ -630,7 +632,7 @@ export function DomainSettings() {
                   </div>
                 </div>
                 <Badge variant={sslStatus?.ssl_active ? 'default' : 'secondary'}>
-                  {sslStatus?.ssl_active ? 'Actief' : 'Bezig...'}
+                  {sslStatus?.ssl_active ? 'Actief' : t('settings.domain.busy')}
                 </Badge>
               </div>
 
@@ -641,15 +643,15 @@ export function DomainSettings() {
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Domein Verwijderen
+                    {t('settings.domain.remove')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Domein loskoppelen?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('settings.domain.disconnectTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
                       Weet je zeker dat je {customDomain} wilt loskoppelen? 
-                      Je webshop zal alleen nog bereikbaar zijn via de standaard Sellqo URL.
+                      {t('settings.domain.disconnectBody')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

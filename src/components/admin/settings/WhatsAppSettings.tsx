@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,7 @@ import { WhatsAppTemplatesTable } from './WhatsAppTemplatesTable';
 import { Link } from 'react-router-dom';
 
 export function WhatsAppSettings() {
+  const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { connection, isConnected } = useWhatsAppConnection();
   const { toast } = useToast();
@@ -25,7 +27,7 @@ export function WhatsAppSettings() {
     if (webhookUrl) {
       navigator.clipboard.writeText(webhookUrl);
       toast({
-        title: 'Webhook URL gekopieerd',
+        title: t('settings.whatsapp.webhookCopied'),
       });
     }
   };
@@ -40,8 +42,8 @@ export function WhatsAppSettings() {
 
     if (error) {
       toast({
-        title: 'Fout',
-        description: 'Kon instelling niet opslaan',
+        title: t('settings.whatsapp.errorTitle'),
+        description: t('settings.whatsapp.saveFailed'),
         variant: 'destructive',
       });
       return;
@@ -64,15 +66,15 @@ export function WhatsAppSettings() {
                 <MessageCircle className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <CardTitle>WhatsApp Business Koppeling</CardTitle>
+                <CardTitle>{t('settings.whatsapp.title')}</CardTitle>
                 <CardDescription>
-                  Koppel je WhatsApp Business account om berichten te kunnen versturen
+                  {t('settings.whatsapp.subtitle')}
                 </CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Label htmlFor="whatsapp-enabled" className="text-sm">
-                WhatsApp actief
+                {t('settings.whatsapp.active')}
               </Label>
               <Switch
                 id="whatsapp-enabled"
@@ -88,7 +90,7 @@ export function WhatsAppSettings() {
             <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <p className="text-sm text-amber-700 dark:text-amber-400">
-                Koppel eerst je WhatsApp Business account om berichten te kunnen versturen
+                {t('settings.whatsapp.connectFirst')}
               </p>
             </div>
           )}
@@ -100,7 +102,7 @@ export function WhatsAppSettings() {
                 <p className="text-sm text-emerald-700 dark:text-emerald-400">
                   WhatsApp is gekoppeld. Configureer welke berichten je klanten ontvangen via{' '}
                   <Link to="/admin/settings?section=customer-communication" className="font-medium underline underline-offset-2">
-                    Klant Communicatie
+                    {t('settings.sections.customer_communication')}
                   </Link>.
                 </p>
               </div>
@@ -116,9 +118,9 @@ export function WhatsAppSettings() {
       {isConnected && connection && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Webhook configuratie</CardTitle>
+            <CardTitle className="text-base">{t('settings.whatsapp.webhookTitle')}</CardTitle>
             <CardDescription>
-              Configureer deze URL in je Meta Business Platform om berichten te ontvangen
+              {t('settings.whatsapp.webhookHint')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -144,7 +146,7 @@ export function WhatsAppSettings() {
                   size="icon" 
                   onClick={() => {
                     navigator.clipboard.writeText(connection.webhook_verify_token);
-                    toast({ title: 'Verify token gekopieerd' });
+                    toast({ title: t('settings.whatsapp.verifyTokenCopied') });
                   }}
                 >
                   <Copy className="h-4 w-4" />
@@ -158,7 +160,7 @@ export function WhatsAppSettings() {
                 rel="noopener noreferrer"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Open Meta Business Platform
+                {t('settings.whatsapp.openMeta')}
               </a>
             </Button>
           </CardContent>

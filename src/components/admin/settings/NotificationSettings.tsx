@@ -242,10 +242,10 @@ export function NotificationSettings() {
       if (error) throw error;
       
       await refreshTenants();
-      toast.success('Notificatie email instellingen opgeslagen');
+      toast.success(t('settings.notifications.emailSaved'));
     } catch (error) {
       console.error('Error saving notification email:', error);
-      toast.error('Fout bij opslaan notificatie email');
+      toast.error(t('settings.notifications.emailSaveError'));
     } finally {
       setIsSavingEmail(false);
     }
@@ -282,16 +282,16 @@ export function NotificationSettings() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Notificatie Voorkeuren
+              {t('settings.notifications.prefsTitle')}
             </CardTitle>
             <CardDescription>
-              Bepaal welke notificaties je wilt ontvangen in de app en via email
+              {t('settings.notifications.prefsHint')}
             </CardDescription>
           </div>
           {isSaving && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Opslaan...
+              {t('common.saving')}
             </div>
           )}
         </div>
@@ -308,7 +308,7 @@ export function NotificationSettings() {
             <div>
               <Label className="text-sm font-medium">Geluidsmelding</Label>
               <p className="text-xs text-muted-foreground">
-                Speel een geluid af bij nieuwe notificaties
+                {t('settings.notifications.playSound')}
               </p>
             </div>
           </div>
@@ -344,9 +344,9 @@ export function NotificationSettings() {
               <AtSign className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <Label className="text-sm font-medium">Email Notificaties</Label>
+              <Label className="text-sm font-medium">{t('settings.notifications.emailTitle')}</Label>
               <p className="text-xs text-muted-foreground">
-                Kies naar welk adres systeem notificaties worden gestuurd
+                {t('settings.notifications.emailHint')}
               </p>
             </div>
           </div>
@@ -377,7 +377,7 @@ export function NotificationSettings() {
                   className="h-4 w-4 text-primary"
                 />
                 <Label htmlFor="use-alternative-email" className="text-sm font-normal cursor-pointer">
-                  Gebruik alternatief email adres
+                  {t('settings.notifications.useAlternative')}
                 </Label>
               </div>
               
@@ -417,7 +417,7 @@ export function NotificationSettings() {
                 {isSavingEmail ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                Wijziging opslaan
+                {t('settings.notifications.saveChange')}
               </Button>
             </div>
           )}
@@ -427,11 +427,11 @@ export function NotificationSettings() {
         <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg text-sm">
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span>In-app notificatie</span>
+            <span>{t('settings.notifications.inApp')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            <span>Email notificatie</span>
+            <span>{t('settings.notifications.email')}</span>
           </div>
         </div>
 

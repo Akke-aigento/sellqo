@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import {
 const INBOUND_DOMAIN = 'sellqo.app';
 
 export function InboundEmailSettings() {
+  const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,7 +79,7 @@ export function InboundEmailSettings() {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Fout bij opslaan',
+        title: t('settings.email.saveError'),
         description: error.message,
         variant: 'destructive',
       });
@@ -91,14 +93,14 @@ export function InboundEmailSettings() {
       await navigator.clipboard.writeText(inboundEmail);
       setCopied(true);
       toast({
-        title: 'Gekopieerd!',
-        description: 'Je forwarding adres is gekopieerd naar het klembord.',
+        title: t('settings.email.copiedTitle'),
+        description: t('settings.email.copiedBody'),
       });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast({
-        title: 'Kopiëren mislukt',
-        description: 'Kopieer het adres handmatig.',
+        title: t('settings.email.copyFailedTitle'),
+        description: t('settings.email.copyFailedBody'),
         variant: 'destructive',
       });
     }
@@ -113,9 +115,9 @@ export function InboundEmailSettings() {
               <Mail className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Inkomende E-mails</CardTitle>
+              <CardTitle className="text-lg">{t('settings.email.inboundTitle')}</CardTitle>
               <CardDescription>
-                Ontvang klantvragen direct in je SellQo inbox
+                {t('settings.email.inboundHint')}
               </CardDescription>
             </div>
           </div>
@@ -130,7 +132,7 @@ export function InboundEmailSettings() {
       <CardContent className="space-y-6">
         {/* Forwarding Address */}
         <div className="space-y-2">
-          <Label>Je unieke forwarding adres</Label>
+          <Label>{t('settings.email.forwardingAddress')}</Label>
           <div className="flex gap-2">
             <Input
               value={inboundEmail || 'Laden...'}
@@ -151,7 +153,7 @@ export function InboundEmailSettings() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Gebruik dit adres als je klantenservice e-mailadres in externe platforms.
+            {t('settings.email.forwardingHint')}
           </p>
         </div>
 
@@ -178,16 +180,16 @@ export function InboundEmailSettings() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-orange-500" />
-            <h4 className="font-medium">Bol.com koppelen</h4>
+            <h4 className="font-medium">{t('settings.email.bolTitle')}</h4>
           </div>
           
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertTitle>Stapsgewijze instructies</AlertTitle>
+            <AlertTitle>{t('settings.email.stepByStep')}</AlertTitle>
             <AlertDescription className="mt-2 space-y-2">
               <ol className="list-decimal list-inside space-y-1 text-sm">
                 <li>Ga naar <strong>Bol.com Partner Platform</strong> → Instellingen → Winkelsettings</li>
-                <li>Zoek het veld <strong>"Klantenservice e-mailadres"</strong></li>
+                <li>{t('settings.email.findField')} <strong>"Klantenservice e-mailadres"</strong></li>
                 <li>
                   Vul in: <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
                     {inboundEmail || '...'}
@@ -206,7 +208,7 @@ export function InboundEmailSettings() {
               className="gap-2"
             >
               <ExternalLink className="h-4 w-4" />
-              Open Bol.com Winkelsettings
+              {t('settings.email.openBol')}
             </a>
           </Button>
         </div>
@@ -214,7 +216,7 @@ export function InboundEmailSettings() {
         {/* Info about reply flow */}
         <Alert className="bg-primary/5 border-primary/20">
           <MessageSquare className="h-4 w-4 text-primary" />
-          <AlertTitle>Antwoorden werkt automatisch</AlertTitle>
+          <AlertTitle>{t('settings.email.repliesAutomatic')}</AlertTitle>
           <AlertDescription>
             Wanneer je een klantvraag beantwoordt via de SellQo inbox, wordt je antwoord 
             automatisch doorgestuurd via Bol.com naar de klant. Je hoeft nooit meer in 

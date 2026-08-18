@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Facebook, Instagram, Twitter, Linkedin, 
   Youtube, Music2, Save, Loader2, ExternalLink
@@ -66,6 +67,7 @@ const socialPlatforms: SocialPlatform[] = [
 ];
 
 export function SocialLinksEditor() {
+  const { t } = useTranslation();
   const { themeSettings, saveThemeSettings, isLoading } = useStorefront();
   const [links, setLinks] = useState<Partial<SocialLinks>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -89,9 +91,9 @@ export function SocialLinksEditor() {
       await saveThemeSettings.mutateAsync({
         social_links: links as SocialLinks,
       });
-      toast.success('Social media links opgeslagen');
+      toast.success(t('settings.social.linksSaved'));
     } catch (error) {
-      toast.error('Kon links niet opslaan');
+      toast.error(t('settings.social.linksSaveError'));
     } finally {
       setIsSaving(false);
     }
@@ -112,9 +114,9 @@ export function SocialLinksEditor() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Social Media Links</CardTitle>
+        <CardTitle>{t('settings.social.linksTitle')}</CardTitle>
         <CardDescription>
-          Deze links worden getoond in de footer van je webshop.
+          {t('settings.social.linksHint')}
           {filledCount > 0 && (
             <span className="ml-2 text-primary font-medium">
               {filledCount} platform{filledCount !== 1 ? 's' : ''} ingevuld
@@ -159,12 +161,12 @@ export function SocialLinksEditor() {
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Opslaan...
+                {t('common.saving')}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Opslaan
+                {t('common.save')}
               </>
             )}
           </Button>

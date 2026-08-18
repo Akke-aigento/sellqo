@@ -1,4 +1,5 @@
 import { ExternalLink, BookOpen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   Accordion,
@@ -196,6 +197,7 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
 };
 
 export function ProviderInstructions({ provider, domain }: ProviderInstructionsProps) {
+  const { t } = useTranslation();
   const guide = PROVIDER_GUIDES[provider];
 
   if (!guide) {
@@ -228,7 +230,7 @@ export function ProviderInstructions({ provider, domain }: ProviderInstructionsP
             {/* Tips */}
             {guide.tips && guide.tips.length > 0 && (
               <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-                <p className="text-xs font-medium text-foreground">Tips:</p>
+                <p className="text-xs font-medium text-foreground">{t('settings.email.tipsLabel')}</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   {guide.tips.map((tip, index) => (
                     <li key={index}>• {tip}</li>

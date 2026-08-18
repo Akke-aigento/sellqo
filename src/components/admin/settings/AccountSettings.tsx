@@ -98,8 +98,8 @@ export function AccountSettings() {
   const handleUpdateEmail = async () => {
     if (!newEmail || !newEmail.includes('@')) {
       toast({
-        title: 'Ongeldig e-mailadres',
-        description: 'Voer een geldig e-mailadres in.',
+        title: t('auth.validation.invalidEmail'),
+        description: t('settings.account.email.invalidBody'),
         variant: 'destructive',
       });
       return;
@@ -107,8 +107,8 @@ export function AccountSettings() {
 
     if (newEmail === user?.email) {
       toast({
-        title: 'Zelfde e-mailadres',
-        description: 'Het nieuwe e-mailadres is hetzelfde als het huidige.',
+        title: t('settings.account.email.sameTitle'),
+        description: t('settings.account.email.sameBody'),
         variant: 'destructive',
       });
       return;
@@ -129,12 +129,12 @@ export function AccountSettings() {
       setShowEmailDialog(false);
       
       toast({
-        title: 'Bevestigingsmail verzonden',
-        description: 'Check je inbox voor beide e-mailadressen om de wijziging te bevestigen.',
+        title: t('settings.account.email.sentTitle'),
+        description: t('settings.account.email.sentBody'),
       });
     } catch (error: any) {
       toast({
-        title: 'E-mail wijzigen mislukt',
+        title: t('settings.account.email.failedTitle'),
         description: error.message,
         variant: 'destructive',
       });
@@ -241,7 +241,7 @@ export function AccountSettings() {
             <Alert className="bg-blue-50 border-blue-200">
               <Mail className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                Er is een bevestigingsmail verzonden. Check je inbox voor zowel je oude als nieuwe e-mailadres om de wijziging te voltooien.
+                {t('settings.account.email.pendingAlert')}
               </AlertDescription>
             </Alert>
           )}
@@ -264,11 +264,11 @@ export function AccountSettings() {
                     setShowEmailDialog(true);
                   }}
                 >
-                  Wijzigen
+                  {t('settings.account.email.change')}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Je ontvangt een bevestigingsmail op zowel je huidige als nieuwe e-mailadres.
+                {t('settings.account.email.hint')}
               </p>
             </div>
             
@@ -337,7 +337,7 @@ export function AccountSettings() {
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            Dit wijzigt alleen hoe Sellqo eruitziet voor jou. De taal voor content invoer stel je in bij Winkelinstellingen.
+            {t('settings.account.languageHint')}
           </p>
         </CardContent>
       </Card>
@@ -430,40 +430,40 @@ export function AccountSettings() {
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>E-mailadres wijzigen</DialogTitle>
+            <DialogTitle>{t('settings.account.email.dialogTitle')}</DialogTitle>
             <DialogDescription>
-              Voer je nieuwe e-mailadres in. Je ontvangt een bevestigingsmail op zowel je huidige als nieuwe e-mailadres.
+              {t('settings.account.email.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Huidig e-mailadres</Label>
+              <Label>{t('settings.account.email.current')}</Label>
               <Input value={user?.email || ''} disabled className="bg-muted" />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="new-email">Nieuw e-mailadres</Label>
+              <Label htmlFor="new-email">{t('settings.account.email.new')}</Label>
               <Input
                 id="new-email"
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="nieuw@voorbeeld.com"
+                placeholder={t('settings.account.email.newPlaceholder')}
               />
             </div>
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Na het bevestigen via beide e-mailadressen wordt je automatisch uitgelogd en moet je opnieuw inloggen met je nieuwe e-mailadres.
+                {t('settings.account.email.logoutWarning')}
               </AlertDescription>
             </Alert>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button 
               onClick={handleUpdateEmail} 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { useWhatsAppConnection } from '@/hooks/useWhatsAppConnection';
 import { cn } from '@/lib/utils';
 
 export function WhatsAppConnectionCard() {
+  const { t } = useTranslation();
   const { connection, isLoading, isConnected, connectWhatsApp, disconnectWhatsApp, refetch } = useWhatsAppConnection();
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -35,13 +37,13 @@ export function WhatsAppConnectionCard() {
   const getQualityBadge = (rating: string | null) => {
     switch (rating) {
       case 'GREEN':
-        return <Badge className="bg-emerald-500">Uitstekend</Badge>;
+        return <Badge className="bg-emerald-500">{t('settings.whatsapp.quality.excellent')}</Badge>;
       case 'YELLOW':
-        return <Badge className="bg-yellow-500">Matig</Badge>;
+        return <Badge className="bg-yellow-500">{t('settings.whatsapp.quality.medium')}</Badge>;
       case 'RED':
-        return <Badge variant="destructive">Laag</Badge>;
+        return <Badge variant="destructive">{t('settings.whatsapp.quality.low')}</Badge>;
       default:
-        return <Badge variant="secondary">Onbekend</Badge>;
+        return <Badge variant="secondary">{t('settings.whatsapp.quality.unknown')}</Badge>;
     }
   };
 
@@ -65,7 +67,7 @@ export function WhatsAppConnectionCard() {
           Verbinding
         </CardTitle>
         <CardDescription>
-          Koppel je WhatsApp Business account
+          {t('settings.whatsapp.connectAccount')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -73,27 +75,27 @@ export function WhatsAppConnectionCard() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-900">
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <span className="font-medium text-emerald-700 dark:text-emerald-400">Verbonden</span>
+              <span className="font-medium text-emerald-700 dark:text-emerald-400">{t('settings.whatsapp.connected')}</span>
             </div>
 
             <div className="grid gap-3">
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm text-muted-foreground">Telefoonnummer</span>
+                <span className="text-sm text-muted-foreground">{t('settings.business.phone')}</span>
                 <span className="font-medium">{connection.display_phone_number}</span>
               </div>
               {connection.verified_name && (
                 <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Bedrijfsnaam</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.whatsapp.businessName')}</span>
                   <span className="font-medium">{connection.verified_name}</span>
                 </div>
               )}
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm text-muted-foreground">Kwaliteitsscore</span>
+                <span className="text-sm text-muted-foreground">{t('settings.whatsapp.qualityScore')}</span>
                 {getQualityBadge(connection.quality_rating)}
               </div>
               {connection.messaging_limit && (
                 <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Berichtenlimiet</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.whatsapp.messageLimit')}</span>
                   <Badge variant="outline">{connection.messaging_limit}</Badge>
                 </div>
               )}
@@ -119,21 +121,21 @@ export function WhatsAppConnectionCard() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
               <AlertCircle className="h-5 w-5 text-muted-foreground" />
-              <span className="text-muted-foreground">Geen WhatsApp account gekoppeld</span>
+              <span className="text-muted-foreground">{t('settings.whatsapp.noAccount')}</span>
             </div>
 
             <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Link2 className="h-4 w-4 mr-2" />
-                  WhatsApp koppelen
+                  {t('settings.whatsapp.connectAction')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>WhatsApp Business koppelen</DialogTitle>
+                  <DialogTitle>{t('settings.whatsapp.connectDialogTitle')}</DialogTitle>
                   <DialogDescription>
-                    Vul je WhatsApp Business API gegevens in. Je vindt deze in het Meta Business Platform.
+                    {t('settings.whatsapp.connectDialogHint')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -156,7 +158,7 @@ export function WhatsAppConnectionCard() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="display_phone_number">Telefoonnummer</Label>
+                    <Label htmlFor="display_phone_number">{t('settings.business.phone')}</Label>
                     <Input
                       id="display_phone_number"
                       placeholder="+31 6 12345678"
@@ -165,10 +167,10 @@ export function WhatsAppConnectionCard() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="verified_name">Bedrijfsnaam (optioneel)</Label>
+                    <Label htmlFor="verified_name">{t('settings.whatsapp.businessNameOptional')}</Label>
                     <Input
                       id="verified_name"
-                      placeholder="Mijn Webshop B.V."
+                      placeholder={t('settings.whatsapp.businessNamePlaceholder')}
                       value={formData.verified_name}
                       onChange={(e) => setFormData(prev => ({ ...prev, verified_name: e.target.value }))}
                     />

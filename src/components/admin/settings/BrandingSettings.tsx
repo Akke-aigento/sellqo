@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Palette, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 import { useStorefront } from '@/hooks/useStorefront';
 
 export function BrandingSettings() {
+  const { t } = useTranslation();
   const { themeSettings, saveThemeSettings } = useStorefront();
 
   const [form, setForm] = useState({
@@ -49,15 +51,15 @@ export function BrandingSettings() {
               <Palette className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <CardTitle>Branding</CardTitle>
+              <CardTitle>{t('settings.sections.branding')}</CardTitle>
               <CardDescription>
-                Logo, favicon en hoofdkleur — gebruikt in je webshop, e-mails en facturen
+                {t('settings.branding.subtitle')}
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/storefront">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Volledig theme
+                {t('settings.branding.fullTheme')}
               </Link>
             </Button>
           </div>
@@ -72,7 +74,7 @@ export function BrandingSettings() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="brand_color">Merkkleur</Label>
+              <Label htmlFor="brand_color">{t('settings.branding.brandColor')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="brand_color"
@@ -89,12 +91,12 @@ export function BrandingSettings() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Hoofdaccent voor e-mails en branding-elementen
+                {t('settings.branding.accentHint')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="primary_color">Primaire kleur (webshop)</Label>
+              <Label htmlFor="primary_color">{t('settings.branding.primaryColor')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="primary_color"
@@ -111,7 +113,7 @@ export function BrandingSettings() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Knoppen en links in je webshop
+                {t('settings.branding.primaryColorHint')}
               </p>
             </div>
           </div>
@@ -119,7 +121,7 @@ export function BrandingSettings() {
           <p className="text-xs text-muted-foreground border-t pt-4">
             Tip: voor het volledige design (typografie, secundaire kleuren, theme-stijl) ga je naar{' '}
             <Link to="/admin/storefront" className="text-primary hover:underline">
-              Webshop → Theme
+              {t('settings.branding.themePath')}
             </Link>
             .
           </p>

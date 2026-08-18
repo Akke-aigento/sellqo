@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Building2, Upload, Save, Landmark, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +53,7 @@ const EU_COUNTRIES = [
 ];
 
 export function BusinessSettings() {
+  const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   const { uploadImage, uploading } = useImageUpload();
@@ -75,15 +77,15 @@ export function BusinessSettings() {
 
       if (error) {
         toast({
-          title: 'Fout bij opslaan logo',
+          title: t('settings.business.logoErrorTitle'),
           description: error.message,
           variant: 'destructive',
         });
       } else {
         await refreshTenants();
         toast({
-          title: 'Logo geüpload',
-          description: 'Je bedrijfslogo is succesvol bijgewerkt.',
+          title: t('settings.business.logoSavedTitle'),
+          description: t('settings.business.logoSavedBody'),
         });
       }
     }
@@ -149,8 +151,8 @@ export function BusinessSettings() {
     // Validate IBAN before saving
     if (formData.iban && !validateIBAN(formData.iban)) {
       toast({
-        title: 'Ongeldige IBAN',
-        description: 'Controleer het IBAN nummer en probeer opnieuw.',
+        title: t('settings.business.ibanInvalidTitle'),
+        description: t('settings.business.ibanInvalidBody'),
         variant: 'destructive',
       });
       return;
@@ -182,12 +184,12 @@ export function BusinessSettings() {
       await refreshTenants();
       
       toast({
-        title: 'Bedrijfsgegevens opgeslagen',
-        description: 'Je wijzigingen zijn succesvol opgeslagen.',
+        title: t('settings.business.savedTitle'),
+        description: t('settings.business.savedBody'),
       });
     } catch (error: any) {
       toast({
-        title: 'Fout bij opslaan',
+        title: t('settings.business.saveErrorTitle'),
         description: error.message,
         variant: 'destructive',
       });
@@ -204,9 +206,9 @@ export function BusinessSettings() {
             <Building2 className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <CardTitle>Bedrijfsgegevens</CardTitle>
+            <CardTitle>{t('settings.sections.company')}</CardTitle>
             <CardDescription>
-              Beheer je winkel- en bedrijfsinformatie
+              {t('settings.business.subtitle')}
             </CardDescription>
           </div>
         </div>
@@ -218,7 +220,7 @@ export function BusinessSettings() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Er ontbreken {errorCount} verplichte velden voor Belgische factuur compliance. 
-              Vul alle verplichte velden in om te voldoen aan de wettelijke eisen.
+              {t('settings.business.requiredFieldsAlert')}
             </AlertDescription>
           </Alert>
         )}
@@ -232,9 +234,9 @@ export function BusinessSettings() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">Winkellogo</p>
+            <p className="font-medium">{t('settings.business.storeLogo')}</p>
             <p className="text-sm text-muted-foreground mb-2">
-              Aanbevolen: 200x200px, PNG of JPG. Dit logo verschijnt op alle e-mails naar klanten.
+              {t('settings.business.logoHint')}
             </p>
             <input
               ref={fileInputRef}
@@ -262,27 +264,27 @@ export function BusinessSettings() {
         {/* Form fields */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2 sm:col-span-2">
-            <Label htmlFor="name">Winkelnaam *</Label>
+            <Label htmlFor="name">{t('settings.business.storeName')}</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Bijv. Jouw Winkel"
+              placeholder={t('settings.business.storeNamePlaceholder')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="owner_name">Eigenaar naam</Label>
+            <Label htmlFor="owner_name">{t('settings.business.ownerName')}</Label>
             <Input
               id="owner_name"
               value={formData.owner_name}
               onChange={(e) => handleChange('owner_name', e.target.value)}
-              placeholder="Voornaam Achternaam"
+              placeholder={t('settings.business.ownerNamePlaceholder')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="phone">Telefoonnummer</Label>
+            <Label htmlFor="phone">{t('settings.business.phone')}</Label>
             <Input
               id="phone"
               type="tel"
@@ -293,43 +295,43 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2 sm:col-span-2">
-            <Label htmlFor="address">Adres *</Label>
+            <Label htmlFor="address">{t('settings.business.address')}</Label>
             <Input
               id="address"
               value={formData.address}
               onChange={(e) => handleChange('address', e.target.value)}
-              placeholder="Straatnaam + huisnummer"
+              placeholder={t('settings.business.addressPlaceholder')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="postal_code">Postcode *</Label>
+            <Label htmlFor="postal_code">{t('settings.business.postalCode')}</Label>
             <Input
               id="postal_code"
               value={formData.postal_code}
               onChange={(e) => handleChange('postal_code', e.target.value)}
-              placeholder="1234 AB (NL) / 1000 (BE)"
+              placeholder={t('settings.business.postalCodePlaceholder')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="city">Stad *</Label>
+            <Label htmlFor="city">{t('settings.business.city')}</Label>
             <Input
               id="city"
               value={formData.city}
               onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="Jouw stad"
+              placeholder={t('settings.business.cityPlaceholder')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="country">Land *</Label>
+            <Label htmlFor="country">{t('settings.business.country')}</Label>
             <Select
               value={formData.country}
               onValueChange={(value) => handleChange('country', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecteer land" />
+                <SelectValue placeholder={t('settings.business.countryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {EU_COUNTRIES.map((country) => (
@@ -340,20 +342,20 @@ export function BusinessSettings() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Belangrijk voor BTW-berekeningen en -regels
+              {t('settings.business.countryHint')}
             </p>
           </div>
 
           {/* Valuta — verhuisd uit Winkelinstellingen (WEBSHOP-4b). Staat naast
               Land omdat het dezelfde soort keuze is: waar je onderneemt. */}
           <div className="grid gap-2">
-            <Label htmlFor="currency">Valuta</Label>
+            <Label htmlFor="currency">{t('settings.business.currency')}</Label>
             <Select
               value={formData.currency}
               onValueChange={(value) => handleChange('currency', value)}
             >
               <SelectTrigger id="currency">
-                <SelectValue placeholder="Selecteer valuta" />
+                <SelectValue placeholder={t('settings.business.currencyPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {CURRENCIES.map((currency) => (
@@ -364,17 +366,17 @@ export function BusinessSettings() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Gebruikt in je winkel, facturen en creditnota's
+              {t('settings.business.currencyHint')}
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="kvk_number">Ondernemingsnummer (KBO/KvK) *</Label>
+            <Label htmlFor="kvk_number">{t('settings.business.enterpriseNumber')}</Label>
             <Input
               id="kvk_number"
               value={formData.kvk_number}
               onChange={(e) => handleChange('kvk_number', e.target.value)}
-              placeholder="8 cijfers (NL) / 10 cijfers (BE)"
+              placeholder={t('settings.business.enterpriseNumberPlaceholder')}
             />
             <p className="text-xs text-muted-foreground">
               {formData.country === 'BE' ? 'KBO-nummer' : 'KvK-nummer'}
@@ -382,7 +384,7 @@ export function BusinessSettings() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="btw_number">BTW-nummer *</Label>
+            <Label htmlFor="btw_number">{t('settings.business.vatNumber')}</Label>
             <Input
               id="btw_number"
               value={formData.btw_number}
@@ -396,28 +398,28 @@ export function BusinessSettings() {
         <div className="pt-4 border-t">
           <div className="flex items-center gap-2 mb-4">
             <Landmark className="h-5 w-5 text-primary" />
-            <h4 className="font-semibold">Bankgegevens</h4>
+            <h4 className="font-semibold">{t('settings.business.bankDetails')}</h4>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2 sm:col-span-2">
-              <Label htmlFor="iban">IBAN Bankrekeningnummer *</Label>
+              <Label htmlFor="iban">{t('settings.business.iban')}</Label>
               <Input
                 id="iban"
                 value={formatIBAN(formData.iban)}
                 onChange={(e) => handleChange('iban', e.target.value.replace(/\s/g, ''))}
-                placeholder="NL91 ABNA 0417 1643 00"
+                placeholder={t('settings.business.ibanPlaceholder')}
                 className={ibanError ? 'border-destructive' : ''}
               />
               {ibanError && (
                 <p className="text-xs text-destructive">{ibanError}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Verplicht voor Belgische facturen. Wordt getoond op alle facturen.
+                {t('settings.business.ibanHint')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="bic">BIC/SWIFT code (optioneel)</Label>
+              <Label htmlFor="bic">{t('settings.business.bic')}</Label>
               <Input
                 id="bic"
                 value={formData.bic}
@@ -426,7 +428,7 @@ export function BusinessSettings() {
                 maxLength={11}
               />
               <p className="text-xs text-muted-foreground">
-                Vereist voor internationale betalingen
+                {t('settings.business.bicHint')}
               </p>
             </div>
           </div>

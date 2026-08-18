@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Globe, Plus, Trash2, Crown, Edit2, Check, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 
 export function MultiDomainSettings() {
+  const { t } = useTranslation();
   const { domains, isLoading, addDomain, updateDomain, removeDomain } = useTenantDomains();
   const { themeSettings } = useStorefront();
   const useCustomFrontend = (themeSettings as any)?.use_custom_frontend;
@@ -81,12 +83,12 @@ export function MultiDomainSettings() {
               Domeinen
             </CardTitle>
             <CardDescription>
-              Koppel meerdere domeinen aan je webshop, elk met een eigen taalinstelling
+              {t('settings.domain.multiHint')}
             </CardDescription>
           </div>
           <Button onClick={() => setShowAddForm(true)} size="sm" disabled={showAddForm}>
             <Plus className="h-4 w-4 mr-1" />
-            Domein toevoegen
+            {t('settings.domain.add')}
           </Button>
         </div>
       </CardHeader>
@@ -108,7 +110,7 @@ export function MultiDomainSettings() {
                 <div className="space-y-2">
                   <Label>Domein</Label>
                   <Input
-                    placeholder="voorbeeld.nl"
+                    placeholder={t('settings.domain.examplePlaceholder')}
                     value={newDomain}
                     onChange={e => setNewDomain(e.target.value)}
                   />
@@ -127,7 +129,7 @@ export function MultiDomainSettings() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Canonical (SEO)</Label>
+                  <Label>{t('settings.domain.canonical')}</Label>
                   <div className="flex items-center gap-2 pt-1">
                     <Switch
                       checked={newCanonical || domains.length === 0}
@@ -151,12 +153,12 @@ export function MultiDomainSettings() {
         )}
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Laden...</p>
+          <p className="text-sm text-muted-foreground">{t('settings.domain.loading')}</p>
         ) : domains.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Globe className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p>Nog geen domeinen gekoppeld</p>
-            <p className="text-sm">Voeg je eerste domein toe om te beginnen</p>
+            <p>{t('settings.domain.noneLinked')}</p>
+            <p className="text-sm">{t('settings.domain.addFirst')}</p>
           </div>
         ) : (
           <Table>
@@ -225,7 +227,7 @@ export function MultiDomainSettings() {
                   <TableCell className="text-right">
                     <div className="flex items-center gap-1 justify-end">
                       {!domain.is_canonical && (
-                        <Button variant="ghost" size="sm" onClick={() => handleSetCanonical(domain.id)} title="Instellen als canonical">
+                        <Button variant="ghost" size="sm" onClick={() => handleSetCanonical(domain.id)} title={t('settings.domain.setCanonical')}>
                           <Crown className="h-4 w-4" />
                         </Button>
                       )}
@@ -237,7 +239,7 @@ export function MultiDomainSettings() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Domein verwijderen?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('settings.domain.deleteTitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
                               Weet je zeker dat je {domain.domain} wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
                             </AlertDialogDescription>

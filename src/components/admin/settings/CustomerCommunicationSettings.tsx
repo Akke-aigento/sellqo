@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
 import { Link } from 'react-router-dom';
 
 export function CustomerCommunicationSettings() {
+  const { t } = useTranslation();
   const { 
     settings, 
     isLoading, 
@@ -71,9 +73,9 @@ export function CustomerCommunicationSettings() {
               <MessageSquare className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Klant Communicatie</CardTitle>
+              <CardTitle>{t('settings.sections.customer_communication')}</CardTitle>
               <CardDescription>
-                Configureer welke automatische berichten je klanten ontvangen
+                {t('settings.communication.subtitle')}
               </CardDescription>
             </div>
           </div>
@@ -86,8 +88,8 @@ export function CustomerCommunicationSettings() {
                 <Mail className="h-4 w-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium">Email</p>
-                <p className="text-xs text-muted-foreground">Transactionele emails</p>
+                <p className="text-sm font-medium">{t('settings.communication.channelEmail')}</p>
+                <p className="text-xs text-muted-foreground">{t('settings.communication.transactional')}</p>
               </div>
             </div>
             
@@ -98,15 +100,15 @@ export function CustomerCommunicationSettings() {
               <div className="flex items-center gap-2">
                 <div>
                   <p className="text-sm font-medium">WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Vereist klant opt-in</p>
+                  <p className="text-xs text-muted-foreground">{t('settings.communication.requiresOptIn')}</p>
                 </div>
                 {whatsAppConnected ? (
                   <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
-                    Gekoppeld
+                    {t('settings.communication.connected')}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-xs">
-                    Niet gekoppeld
+                    {t('settings.communication.notConnected')}
                   </Badge>
                 )}
               </div>
@@ -119,12 +121,12 @@ export function CustomerCommunicationSettings() {
               <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm text-amber-700 dark:text-amber-400">
-                  WhatsApp Business is nog niet gekoppeld. Koppel je account om WhatsApp berichten te kunnen versturen.
+                  {t('settings.communication.whatsappNotLinked')}
                 </p>
                 <Button variant="link" size="sm" className="h-auto p-0 mt-1 text-amber-700" asChild>
                   <Link to="/admin/settings?section=whatsapp">
                     <ExternalLink className="h-3 w-3 mr-1" />
-                    WhatsApp instellen
+                    {t('settings.communication.setUpWhatsapp')}
                   </Link>
                 </Button>
               </div>
@@ -159,7 +161,7 @@ export function CustomerCommunicationSettings() {
       <Card className="bg-muted/30">
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground">
-            💡 <strong>Tip:</strong> WhatsApp berichten worden alleen verzonden naar klanten die 
+            💡 <strong>{t('settings.communication.tipLabel')}</strong> WhatsApp berichten worden alleen verzonden naar klanten die 
             tijdens het afrekenen hebben aangegeven updates via WhatsApp te willen ontvangen.
           </p>
         </CardContent>

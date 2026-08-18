@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Facebook, Instagram, Twitter, Linkedin, 
   Link2, Unlink, Loader2, AlertCircle, CheckCircle2,
@@ -35,14 +36,15 @@ interface SocialPlatformConfig {
   scopes: string[];
 }
 
-const platformConfigs: SocialPlatformConfig[] = [
+/** Factory: de omschrijvingen gaan door i18n. */
+const buildPlatformConfigs = (t: (key: string) => string): SocialPlatformConfig[] => [
   { 
     id: 'facebook',
     name: 'Meta (Facebook & Instagram)', 
     icon: Facebook, 
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
-    description: 'Post naar Facebook en Instagram via je Business account',
+    description: t('settings.social.platforms.meta'),
     scopes: ['pages_manage_posts', 'instagram_content_publish'],
   },
   { 
@@ -51,7 +53,7 @@ const platformConfigs: SocialPlatformConfig[] = [
     icon: Twitter, 
     color: 'text-foreground',
     bgColor: 'bg-muted',
-    description: 'Tweet automatisch naar je X account',
+    description: t('settings.social.platforms.x'),
     scopes: ['tweet.write', 'users.read'],
   },
   { 
@@ -60,12 +62,14 @@ const platformConfigs: SocialPlatformConfig[] = [
     icon: Linkedin, 
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
-    description: 'Deel updates op je LinkedIn bedrijfspagina',
+    description: t('settings.social.platforms.linkedin'),
     scopes: ['w_member_social'],
   },
 ];
 
 export function SocialConnectionsManager() {
+  const { t } = useTranslation();
+  const platformConfigs = useMemo(() => buildPlatformConfigs(t), [t]);
   const { currentTenant } = useTenant();
   const { connections, isLoading, deleteConnection, toggleConnection } = useSocialConnections();
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
@@ -73,7 +77,7 @@ export function SocialConnectionsManager() {
 
   const handleConnect = async (platform: string) => {
     if (!currentTenant?.id) {
-      toast.error('Geen tenant geselecteerd');
+      toast.error(t('settings.social.noTenant'));
       return;
     }
 
@@ -113,7 +117,7 @@ export function SocialConnectionsManager() {
       await deleteConnection.mutateAsync(disconnectDialog.connectionId);
       toast.success(`${disconnectDialog.platform} ontkoppeld`);
     } catch (error) {
-      toast.error('Kon account niet ontkoppelen');
+      toast.error(t('settings.social.disconnectError'));
     } finally {
       setDisconnectDialog(null);
     }
@@ -146,17 +150,17 @@ export function SocialConnectionsManager() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Autopost Koppelingen</CardTitle>
+          <CardTitle>{t('settings.social.autopostTitle')}</CardTitle>
           <CardDescription>
-            Koppel je social media accounts om automatisch te posten via AI
+            {t('settings.social.autopostSubtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Om te kunnen posten heb je API credentials nodig van elk platform. 
-              Neem contact op met support voor hulp bij het instellen.
+              {t('settings.social.credentialsNeeded')}
+              {t('settings.social.contactSupport')}
             </AlertDescription>
           </Alert>
 
@@ -252,7 +256,7 @@ export function SocialConnectionsManager() {
                         {connectingPlatform === platform.id ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            Verbinden...
+                            {t('settings.social.connecting')}
                           </>
                         ) : (
                           <>
@@ -270,7 +274,7 @@ export function SocialConnectionsManager() {
 
           <div className="pt-4 border-t">
             <p className="text-sm text-muted-foreground">
-              <strong>Let op:</strong> Meta (Facebook/Instagram) vereist een{' '}
+              <strong>{t('settings.social.noteLabel')}</strong> Meta (Facebook/Instagram) vereist een{' '}
               <a 
                 href="https://business.facebook.com" 
                 target="_blank" 
@@ -291,14 +295,14 @@ export function SocialConnectionsManager() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Account ontkoppelen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.social.disconnectTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je {disconnectDialog?.platform} wilt ontkoppelen? 
-              Je kunt het later opnieuw koppelen.
+              {t('settings.social.disconnectBody')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDisconnect} className="bg-destructive text-destructive-foreground">
               Ontkoppelen
             </AlertDialogAction>

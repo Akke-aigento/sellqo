@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bot, MessageSquare, Sparkles, BookOpen, RefreshCw, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { nl } from 'date-fns/locale';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 export function AIAssistantSettings() {
+  const { t } = useTranslation();
   const { config, isLoading, knowledgeStats, updateConfig, isUpdating, rebuildIndex, isRebuilding } = useAIAssistant();
   const { credits } = useAICredits();
 
@@ -107,14 +109,14 @@ export function AIAssistantSettings() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Bot className="h-6 w-6" />
-            AI Assistent
+            {t('settings.sections.ai_assistant')}
           </h2>
           <p className="text-muted-foreground mt-1">
-            Configureer AI-gestuurde klantondersteuning voor je webshop
+            {t('settings.ai.subtitle')}
           </p>
         </div>
         <div className="text-right text-sm">
-          <p className="text-muted-foreground">Beschikbare credits</p>
+          <p className="text-muted-foreground">{t('settings.ai.availableCredits')}</p>
           <p className="text-lg font-semibold">{credits?.available ?? 0}</p>
         </div>
       </div>
@@ -124,15 +126,15 @@ export function AIAssistantSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            AI Chatbot voor Webshop
+            {t('settings.ai.chatbotTitle')}
           </CardTitle>
           <CardDescription>
-            Een slimme AI chatbot die je klanten helpt met vragen over producten, verzending, retourneren en meer. Werkt 24/7 en kent je hele webshop.
+            {t('settings.ai.chatbotBody')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="chatbot-enabled">Chatbot inschakelen</Label>
+            <Label htmlFor="chatbot-enabled">{t('settings.ai.enableChatbot')}</Label>
             <Switch
               id="chatbot-enabled"
               checked={formState.chatbot_enabled}
@@ -178,7 +180,7 @@ export function AIAssistantSettings() {
                   id="chatbot-welcome"
                   value={formState.chatbot_welcome_message}
                   onChange={(e) => setFormState((s) => ({ ...s, chatbot_welcome_message: e.target.value }))}
-                  placeholder="Hallo! Hoe kan ik je helpen vandaag?"
+                  placeholder={t('settings.ai.greetingPlaceholder')}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -194,15 +196,15 @@ export function AIAssistantSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            AI Antwoord Suggesties
+            {t('settings.ai.suggestionsTitle')}
           </CardTitle>
           <CardDescription>
-            Krijg AI-gegenereerde antwoordsuggesties in je Klantgesprekken inbox. Je kunt suggesties accepteren, bewerken of negeren.
+            {t('settings.ai.suggestionsBody')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="suggestions-enabled">Suggesties inschakelen</Label>
+            <Label htmlFor="suggestions-enabled">{t('settings.ai.enableSuggestions')}</Label>
             <Switch
               id="suggestions-enabled"
               checked={formState.reply_suggestions_enabled}
