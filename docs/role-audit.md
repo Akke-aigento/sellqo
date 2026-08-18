@@ -1,3 +1,78 @@
+## SEC-4 — promotietabellen achter het per-gebruiker recht + twee tenant-blinde reads — 18 augustus 2026
+
+**Root cause** — `PERM-1` zette uitsluitend `discount_codes` achter het per-gebruiker recht (`has_permission_grant(auth.uid(), tenant_id, 'discount_codes')`). De zeven promotietabellen met dezelfde financiële impact bleven onvoorwaardelijk open voor `marketing`: een marketinggebruiker zonder het recht kon geen kortingscode aanmaken, maar wél een automatische korting van 100% op de hele catalogus, een BOGO- of cadeaupromotie, een stapelregel of een loyaliteitsprogramma. De maatregel was daarmee via een andere deur volledig te omzeilen. Daarnaast waren twee `SELECT`-policies tenant-blind (tenant wél, rol níet gecontroleerd) op tabellen met gevoelige waarden: `digital_deliveries.download_token` is een **bearer-token** waarmee een gekocht digitaal product te downloaden is, en `gift_card_transactions.balance_after` bevat saldomutaties van cadeaubonnen. Die laatste tabel is bij `SEC-2a` gemist toen `gift_cards` zelf op payments-niveau werd gezet.
+
+**Uitgevoerd** (één migratie, alleen policies — geen schema-, functie- of grant-wijziging)
+- Deel A — 21 write-policies (INSERT/UPDATE/DELETE) op `automatic_discounts`, `bogo_promotions`, `gift_promotions`, `discount_stacking_rules`, `loyalty_programs`, `volume_discounts` en `volume_discount_tiers` herbouwd. Het rolgedeelte `has_tenant_role(tenant_id, ARRAY['tenant_admin','staff','marketing'])` is vervangen door dezelfde vorm die al op `discount_codes` staat: `tenant_admin`/`staff` onvoorwaardelijk, `marketing` alleen mét grant. Policynamen ongewijzigd.
+- `volume_discount_tiers` scopet via de bovenliggende `volume_discounts` en heeft geen eigen `tenant_id`; de `EXISTS`-constructie is volledig behouden en `vd.tenant_id` is als tenant-argument gebruikt voor zowel `has_tenant_role` als `has_permission_grant`.
+- Deel B — `digital_deliveries` policy `Auth users can view tenant digital deliveries` en `gift_card_transactions` policy `Tenant users can view gift card transactions` kregen de `SEC-2a`-groep-B-rolcheck `ARRAY['tenant_admin','staff','accountant','viewer']`. Bij `gift_card_transactions` binnen de bestaande `EXISTS` op `gc.tenant_id`, zodat hij overeenkomt met wat `gift_cards` zelf sinds `SEC-2a` heeft. `marketing` en `warehouse` vallen af.
+- Slottaken: changelog `2026.10b` / `promotion_permission_scope` (type `security`, NL/EN/FR/DE), helpartikel `teamleden-rollen` bijgewerkt, newsletter-item toegevoegd.
+
+**Bewuste keuze** — de bestaande resource `'discount_codes'` is **hergebruikt**; er is géén tweede resource geïntroduceerd. Kortingscodes en promoties zijn voor de gebruiker één bevoegdheid ("mag kortingen maken"); één schakelaar die beide dekt is begrijpelijker dan twee die apart kunnen afwijken. Gevolg: de bestaande toggle in teambeheer blijft ongewijzigd en dekt dit automatisch mee — geen frontendwijziging nodig.
+
+**Security-keuzes** — uitsluitend RLS-policies geraakt. `has_tenant_role`, `get_user_tenant_ids`, `is_platform_admin` en `has_permission_grant` zijn niet aangeraakt; hun `EXECUTE`-grants (bucket C) zijn nagetrokken en staan op `true` voor `authenticated`. `SELECT` op de promotietabellen is bewust ongemoeid: promoties mogen door alle tenant-rollen bekeken worden. De schrijfpolicies op `digital_deliveries` en `gift_card_transactions` waren al correct rolgescoped en zijn niet gewijzigd.
+
+**Gedeelde-paden-waarschuwing** — de custom frontends lezen via `storefront-api` en `checkout-engine`, die met de service role draaien (`rolbypassrls = true`) en dus niet door tenant-RLS gaan. Promoties worden voor bezoekers server-side berekend; de policies hier gelden enkel voor ingelogde tenant-gebruikers in de admin. Geen tabel-, kolom- of contractwijziging, dus het `use_custom_frontend`-pad is byte-voor-byte identiek.
+
+**Verificatie** — vier natrek-queries gedraaid:
+1. Alle 21 promotie-write-policies op `via_toggle = true`.
+2. `totaal = 21`, `met_admin = 21`, `met_staff = 21`, `met_grant = 21`.
+3. `digital_deliveries` en `gift_card_transactions`: beide `rolcheck = true`, `bevat_marketing = false`.
+4. Regressie: `discount_codes_writes = 3` (ongewijzigd), `bucketC_ok = true`, `helper_ok = true`.
+Daarnaast `tsgo --noEmit` groen en alle vier `landing.*.json` valid JSON.
+
+**Openstaand restrisico** (expliciet, bewust niet in deze batch)
+- `tenants.iban` en `products.cost_price` / `product_variants.cost_price` blijven leesbaar voor **alle** tenant-rollen, inclusief `marketing`. Reden: die tabellen worden applicatiebreed gelezen (productlijsten, kassa, rapporten, storefront-hydratie) en staan in `PERMISSION_MATRIX` bewust op alle rollen. Afschermen vraagt kolomniveau-privileges (`REVOKE ... (cost_price)`) of een aparte view met een gefilterde kolomset; beide raken tientallen leespaden en vallen buiten deze batch. Zie de bestaande `product_costs`-notitie uit `SEC-2a`.
+- Observatie (niet opgelost, buiten scope): `useCanWriteDiscountCodes()` schermt de promotie-UI (`AutoDiscounts`, `VolumeDiscounts`, `Bundles`, `GiftPromotions`) nog niet af. Marketing zonder grant ziet daar dus knoppen die nu door RLS geweigerd worden — functioneel veilig, maar UX-ruis. Aparte batch waard.
+
+**Rollback** — afgeleid uit een inventarisatiequery vóór de wijziging (`pg_policies`), niet uit het hoofd. Zes van de zeven tabellen hadden exact hetzelfde patroon; `LABEL` per tabel: `auto discounts` (`automatic_discounts`), `bogo promotions`, `gift promotions`, `stacking rules` (`discount_stacking_rules`), `loyalty programs`, `volume discounts`.
+
+```sql
+-- Deel A, zes uniforme tabellen — per tabel de drie policies terug naar onvoorwaardelijk marketing
+-- COND = ((tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) ))
+--          AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+DROP POLICY "Marketing roles can insert <LABEL>" ON public.<TABEL>;
+CREATE POLICY "Marketing roles can insert <LABEL>" ON public.<TABEL>
+  FOR INSERT TO authenticated WITH CHECK (COND);
+DROP POLICY "Marketing roles can update <LABEL>" ON public.<TABEL>;
+CREATE POLICY "Marketing roles can update <LABEL>" ON public.<TABEL>
+  FOR UPDATE TO authenticated USING (COND) WITH CHECK (COND);
+DROP POLICY "Marketing roles can delete <LABEL>" ON public.<TABEL>;
+CREATE POLICY "Marketing roles can delete <LABEL>" ON public.<TABEL>
+  FOR DELETE TO authenticated USING (COND);
+
+-- Deel A, volume_discount_tiers (EXISTS via bovenliggende tabel, geen eigen tenant_id)
+-- TIERCOND = EXISTS ( SELECT 1 FROM volume_discounts vd
+--   WHERE vd.id = volume_discount_tiers.volume_discount_id
+--     AND has_tenant_role(vd.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'marketing'::app_role]))
+DROP POLICY "Marketing roles can insert volume discount tiers" ON public.volume_discount_tiers;
+CREATE POLICY "Marketing roles can insert volume discount tiers" ON public.volume_discount_tiers
+  FOR INSERT TO authenticated WITH CHECK (TIERCOND);
+DROP POLICY "Marketing roles can update volume discount tiers" ON public.volume_discount_tiers;
+CREATE POLICY "Marketing roles can update volume discount tiers" ON public.volume_discount_tiers
+  FOR UPDATE TO authenticated USING (TIERCOND) WITH CHECK (TIERCOND);
+DROP POLICY "Marketing roles can delete volume discount tiers" ON public.volume_discount_tiers;
+CREATE POLICY "Marketing roles can delete volume discount tiers" ON public.volume_discount_tiers
+  FOR DELETE TO authenticated USING (TIERCOND);
+
+-- Deel B — de twee SELECT-policies zonder rolcheck
+DROP POLICY "Auth users can view tenant digital deliveries" ON public.digital_deliveries;
+CREATE POLICY "Auth users can view tenant digital deliveries" ON public.digital_deliveries
+  FOR SELECT TO authenticated
+  USING (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) ));
+
+DROP POLICY "Tenant users can view gift card transactions" ON public.gift_card_transactions;
+CREATE POLICY "Tenant users can view gift card transactions" ON public.gift_card_transactions
+  FOR SELECT TO authenticated
+  USING (EXISTS ( SELECT 1 FROM gift_cards gc
+    WHERE gc.id = gift_card_transactions.gift_card_id
+      AND gc.tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) )));
+```
+
+**Openstaande actie voor Akke** — newsletter-item `2026.10b` staat in `docs/newsletter-queue.md` onder *Openstaand*; er is geen wachtrijtabel in de DB, dus verzending gebeurt handmatig (in lijn met SEC-3, SEC-2a en PERM-1).
+
+---
+
 ## PAYPAL-REMOVE — PayPal-via-Stripe volledig teruggedraaid — 18 augustus 2026
 
 **Root cause** — Stripe biedt `paypal_payments` niet aan voor SellQo's platformtype (SaaS met connected accounts die onder eigen naam verkopen). Bewezen via drie kanten: (1) `updateCapability` op VanXcel gaf `Unknown capability: paypal_payments`, (2) het Stripe-dashboard toont "only supported in v1 accounts" zonder actie, (3) de Stripe-docs sluiten platforms zoals Shopify/Squarespace expliciet uit. De PayPal-code uit PAYPAL-1a/1b kon dus nooit werken en beloofde tenants iets dat niet leverbaar is.
