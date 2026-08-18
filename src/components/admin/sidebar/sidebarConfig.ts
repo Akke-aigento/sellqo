@@ -206,11 +206,13 @@ const managementItems: NavItem[] = [
     title: 'Rapporten',
     url: '/admin/reports',
     icon: FileSpreadsheet,
-    requireRead: 'reports',
+    // PERM-2: parent staat op 'products' (ALL_ROLES) zodat warehouse het
+    // voorraadrapport ziet; de kinderen zijn afzonderlijk gegated.
+    requireRead: 'products',
     children: [
-      { id: 'reports-overview', title: 'Overzicht', url: '/admin/reports', requireRead: 'reports' },
-      { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics', requireRead: 'reports' },
-      { id: 'reports-stock', title: 'Voorraadrapport', url: '/admin/reports/stock', requireRead: 'reports' },
+      { id: 'reports-overview', title: 'Overzicht', url: '/admin/reports', requireRead: 'reports_financial' },
+      { id: 'reports-analytics', title: 'Analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
+      { id: 'reports-stock', title: 'Voorraadrapport', url: '/admin/reports/stock', requireRead: 'products' },
     ],
   },
   { id: 'shipping', title: 'Verzending', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },

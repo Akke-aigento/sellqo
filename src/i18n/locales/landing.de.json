@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "personal_settings_and_reports": {
+          "title": "Persönliche Einstellungen für jedes Teammitglied, Berichte getrennt",
+          "description": "Jedes Teammitglied kann jetzt unter „Mein Profil“ Name, Sprache und Passwort verwalten, unabhängig von der Rolle. In den Einstellungen sehen Sie nur die Bereiche, die zu Ihrer Rolle passen. Auch die Berichte wurden getrennt: finanzielle Übersichten wie die Umsatzsteuererklärung und offene Rechnungen sind nur für Berechtigte sichtbar, während kommerzielle Analysen breit verfügbar bleiben. Der Bestandsbericht ist nun auch für Lagermitarbeiter erreichbar."
+        },
         "promotion_permission_scope": {
           "title": "Das Recht zur Verwaltung von Rabatten gilt jetzt auch für Aktionen",
           "description": "Das Recht, das Sie pro Teammitglied für die Verwaltung von Rabattcodes festlegen, umfasst jetzt auch alle Aktionen: automatische Rabatte, Mengenrabatte, 1+1-Aktionen, Geschenkaktionen, Kombinationsregeln und Treueprogramme. Ein einziger Schalter regelt damit die gesamte Befugnis. Zusätzlich ist der Einblick in einige sensible Daten weiter auf die Rollen beschränkt, die ihn wirklich benötigen."

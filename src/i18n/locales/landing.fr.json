@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "personal_settings_and_reports": {
+          "title": "Paramètres personnels pour chaque membre, rapports séparés",
+          "description": "Chaque membre de l'équipe peut désormais ouvrir « Mon profil » pour gérer son nom, sa langue et son mot de passe, quel que soit son rôle. Dans les paramètres, vous ne voyez que les sections correspondant à votre rôle. Les rapports ont également été séparés : les aperçus financiers comme la déclaration de TVA et les factures impayées ne sont visibles que par les personnes autorisées, tandis que les analyses commerciales restent largement accessibles. Le rapport de stock est maintenant aussi accessible au personnel d'entrepôt."
+        },
         "promotion_permission_scope": {
           "title": "Le droit de gérer les remises couvre désormais aussi les promotions",
           "description": "Le droit que vous attribuez à chaque membre de l'équipe pour gérer les codes de réduction couvre désormais également toutes les promotions : remises automatiques, remises de volume, actions 1+1, promotions cadeaux, règles de cumul et programmes de fidélité. Un seul interrupteur règle donc l'ensemble de l'autorisation. De plus, l'accès à certaines données sensibles est désormais limité aux rôles qui en ont réellement besoin."
