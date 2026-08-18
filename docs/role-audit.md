@@ -1,4 +1,103 @@
 
+## I18N-1A — 297 ontbrekende vertaalkeys gedicht, waarvan 26 als rauwe key-strings renderden — 18 augustus 2026
+
+### Root cause
+`src/i18n/index.ts` start i18next met `fallbackLng: 'nl'` en voegt per taal twee
+bestanden samen in één `translation`-namespace: `locales/{code}.json` (app-UI) en
+`locales/landing.{code}.json` (publieke landing). Keys werden historisch per taal
+los toegevoegd, zonder dat iets bewaakte dat de vier bestanden dezelfde set
+houden. Daardoor stonden er in de main namespace 297 gaten: nl 26, en 37, fr 117,
+de 117.
+
+Voor en/fr/de betekent zo'n gat een stille terugval op het Nederlands —
+vervelend, maar leesbaar. Voor de 26 Nederlandse keys bestond die terugval niet:
+`nl` **is** de fallback. i18next geeft dan het key-pad zelf terug, dus in de UI
+verscheen letterlijk `navigation.dashboard` in plaats van "Dashboard" — en dat in
+élke taal, want geen van de vier bestanden had de key. Het ging om de volledige
+`navigation.*`-sectie (analytics, categories, customers, dashboard, orders,
+platform, products, settings, shipping, tenants) en om zestien `common.*`-keys
+(actions, add, address, back, close, confirm, date, delete, description, email,
+name, next, no, phone, search, yes).
+
+Dat dit jarenlang kon blijven staan, komt doordat er geen controle op bestond.
+Batch 0 (`6f93fff4`) leverde die alsnog: `scripts/i18n-parity.mjs` leidt de talen
+af uit de aanwezige locale-bestanden, voegt beide namespaces samen zoals
+`i18n/index.ts` dat doet, en faalt met exit 1 zodra één taal een key mist.
+Diezelfde batch legde de talenlijst vast in `src/i18n/languages.ts` als enige bron
+van waarheid, zodat allowlists, `z.enum`-schema's, browser-detectie en
+taal-switchers niet langer elk hun eigen hardcoded rijtje bijhouden.
+
+### Uitgevoerd
+- `src/i18n/locales/nl.json` — 26 keys toegevoegd
+- `src/i18n/locales/en.json` — 37 keys toegevoegd
+- `src/i18n/locales/fr.json` — 117 keys toegevoegd
+- `src/i18n/locales/de.json` — 117 keys toegevoegd
+
+Alle vier de bestanden staan nu op 1095 keys. Toegevoegd via een additieve nested
+merge die per key eerst controleert of het pad al bestaat en alleen schrijft bij
+afwezigheid; bestaande waarden worden nooit aangeraakt. De vertalingen kwamen uit
+een vooraf gegenereerde en gereviewde dataset — er is niets ter plekke verzonnen
+of bijgesteld. Commit `7bd99fd6`.
+
+Geen component, hook of edge function aangeraakt: de wijziging is pure JSON-data.
+
+### Security-keuzes
+n.v.t. Geen tabellen, policies, functies, grants of routes geraakt. De wijziging
+voegt uitsluitend vertaalstrings toe aan vier JSON-bestanden die al integraal in
+de client-bundle zaten. Er komt dus niets in de bundle dat qua gevoeligheid
+afwijkt van wat er al stond, en er is geen pad waarlangs deze strings iets over
+een tenant prijsgeven.
+
+### Gedeelde-paden-waarschuwing
+n.v.t., maar expliciet nagetrokken. De vier locale-bestanden worden alleen door
+`src/i18n/index.ts` geïmporteerd en dus alleen door de core-bundle gebruikt. De
+custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata)
+hebben hun eigen i18n-opzet en halen geen vertalingen uit de core.
+`storefront-resolve`, `storefront-api` en `checkout-engine` zijn niet aangeraakt;
+geen kolom, default of contract gewijzigd.
+
+### Verificatie
+1. Droogloop vóór het schrijven voorspelde 26/37/117/117 en nul al-aanwezige
+   keys; de uitvoering gaf exact diezelfde aantallen.
+2. `node scripts/i18n-parity.mjs` → exit 0, volledige pariteit. Main namespace
+   4 × 1095, landing namespace onveranderd 4 × 664. Geen nieuwe taal verschenen.
+3. Additiviteit per key nagerekend tegen `HEAD`: 0 verwijderd, 0 overschreven, in
+   alle vier de bestanden.
+4. De dertien `-`-regels in de diffstat zijn dezelfde regels die terugkeren mét
+   afsluitende komma omdat er een sibling achter kwam. Eén-op-één gematcht: nul
+   echte verwijderingen.
+5. Alle vier de bestanden parsen als geldige JSON.
+6. Placeholder-integriteit: 57 placeholders per taal, gelijk aantal, alle
+   accolades gebalanceerd. `{originalDate}`, `{duplicateDate}`, `{name}` en
+   `{period}` staan intact in `invoice_duplicate.notice` en
+   `subscriptions.invoice_note`.
+7. Steekproef op de kapotte-UI-fix in `nl.json`: `common.delete` = "Verwijderen",
+   `common.yes` = "Ja", `navigation.dashboard` = "Dashboard".
+
+### Vangst uit recon
+Het meegeleverde merge-script las `/tmp/dealA_translations.json`, een pad dat hier
+niet bestaat; ongewijzigd draaien crashte meteen. Alleen dat pad is gecorrigeerd
+naar de repo-root, de merge-logica is ongemoeid gebleven. Verder bleek de opmaak
+van de vier bestanden (2 spaties inspringen, geen `\u`-escapes, sluitende newline)
+exact overeen te komen met wat `JSON.stringify(json, null, 2)` teruggeeft — vandaar
+dat een volledige herschrijving toch een schone, additieve diff oplevert.
+
+### Bewust ongemoeid
+- De landing-namespace (`landing.{code}.json`, 664 keys per taal) had al volledige
+  pariteit en is niet aangeraakt.
+- Geen nieuwe talen. `SUPPORTED_LANGUAGES` blijft nl/en/fr/de; es/it/pt/pl/uk
+  komen pas wanneer hun locale-bestanden bestaan.
+- Geen component gemigreerd naar `t()`. De hardcoded strings in JSX blijven staan;
+  dit ging uitsluitend over ontbrekende keys.
+
+### Vervolg
+- Batch 0 (`6f93fff4`) heeft geen eigen role-audit-entry. Bewust overgeslagen omdat
+  die batch geen tenant-zichtbaar gedrag veranderde: de talenlijst bleef
+  functioneel nl/en/fr/de. Deze entry verwijst ernaar zodat de keten sluit.
+- `scripts/i18n-parity.mjs` draait nog niet in CI. Zolang dat zo blijft, kan de
+  pariteit opnieuw wegzakken zonder dat iemand het merkt.
+- De componentmigratie naar `t()` staat nog open.
+
 ## PROD-TRIGGER-1 — marketing mag producten bewerken, niet de commerciële velden — 18-08-2026
 
 ### Root cause

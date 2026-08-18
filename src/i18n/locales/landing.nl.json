@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "interface_label_display": {
+          "title": "Labels in de interface tonen weer gewone tekst",
+          "description": "In een aantal schermen verschenen knoppen, menu-items en veldnamen als technische codes in plaats van leesbare tekst. Die labels worden nu overal correct weergegeven, in elk van de beschikbare talen."
+        },
         "personal_settings_and_reports": {
           "title": "Persoonlijke instellingen voor elk teamlid, rapporten opgesplitst",
           "description": "Elk teamlid kan nu bij \"Mijn profiel\" om zijn naam, taal en wachtwoord te beheren, ongeacht de rol. Binnen de instellingen zie je enkel de onderdelen die bij jouw rol horen. Daarnaast zijn de rapportages opgesplitst: financiële overzichten zoals btw-aangifte en openstaande facturen zijn alleen zichtbaar voor wie daar toegang toe hoort, terwijl commerciële analyses breder beschikbaar blijven. Het voorraadrapport is nu ook bereikbaar voor magazijnmedewerkers."

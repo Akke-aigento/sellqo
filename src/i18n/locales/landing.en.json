@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "interface_label_display": {
+          "title": "Interface labels show readable text again",
+          "description": "On a number of screens, buttons, menu items and field names appeared as technical codes instead of readable text. Those labels are now displayed correctly everywhere, in each of the available languages."
+        },
         "personal_settings_and_reports": {
           "title": "Personal settings for every team member, reports split up",
           "description": "Every team member can now open \"My profile\" to manage their name, language and password, whatever their role. Within settings you only see the sections that match your role. Reports have also been split: financial overviews such as VAT returns and outstanding invoices are only visible to those who should have access, while commercial analytics stay broadly available. The stock report is now reachable for warehouse staff as well."

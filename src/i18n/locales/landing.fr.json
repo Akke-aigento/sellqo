@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "interface_label_display": {
+          "title": "Les libellés de l'interface affichent à nouveau du texte lisible",
+          "description": "Sur plusieurs écrans, des boutons, des éléments de menu et des noms de champs apparaissaient sous forme de codes techniques au lieu d'un texte lisible. Ces libellés s'affichent désormais correctement partout, dans chacune des langues disponibles."
+        },
         "personal_settings_and_reports": {
           "title": "Paramètres personnels pour chaque membre, rapports séparés",
           "description": "Chaque membre de l'équipe peut désormais ouvrir « Mon profil » pour gérer son nom, sa langue et son mot de passe, quel que soit son rôle. Dans les paramètres, vous ne voyez que les sections correspondant à votre rôle. Les rapports ont également été séparés : les aperçus financiers comme la déclaration de TVA et les factures impayées ne sont visibles que par les personnes autorisées, tandis que les analyses commerciales restent largement accessibles. Le rapport de stock est maintenant aussi accessible au personnel d'entrepôt."

@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "interface_label_display": {
+          "title": "Beschriftungen in der Oberfläche zeigen wieder lesbaren Text",
+          "description": "Auf mehreren Bildschirmen erschienen Schaltflächen, Menüpunkte und Feldnamen als technische Codes statt als lesbarer Text. Diese Beschriftungen werden jetzt überall korrekt angezeigt, in jeder der verfügbaren Sprachen."
+        },
         "personal_settings_and_reports": {
           "title": "Persönliche Einstellungen für jedes Teammitglied, Berichte getrennt",
           "description": "Jedes Teammitglied kann jetzt unter „Mein Profil“ Name, Sprache und Passwort verwalten, unabhängig von der Rolle. In den Einstellungen sehen Sie nur die Bereiche, die zu Ihrer Rolle passen. Auch die Berichte wurden getrennt: finanzielle Übersichten wie die Umsatzsteuererklärung und offene Rechnungen sind nur für Berechtigte sichtbar, während kommerzielle Analysen breit verfügbar bleiben. Der Bestandsbericht ist nun auch für Lagermitarbeiter erreichbar."
