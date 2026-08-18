@@ -7,8 +7,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { SUPPORTED_LANGUAGES, type LangCode } from '@/i18n/languages';
 
-export type AILanguage = 'nl' | 'en' | 'de' | 'fr';
+export type AILanguage = LangCode;
 
 interface LanguageSelectorProps {
   value: AILanguage;
@@ -17,12 +18,8 @@ interface LanguageSelectorProps {
   showLabel?: boolean;
 }
 
-const languages: { id: AILanguage; name: string; flag: string }[] = [
-  { id: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { id: 'en', name: 'English', flag: '🇬🇧' },
-  { id: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { id: 'fr', name: 'Français', flag: '🇫🇷' },
-];
+const languages: { id: AILanguage; name: string; flag: string }[] =
+  SUPPORTED_LANGUAGES.map(({ code, label, flag }) => ({ id: code, name: label, flag }));
 
 export function LanguageSelector({ value, onChange, className, showLabel = true }: LanguageSelectorProps) {
   return (

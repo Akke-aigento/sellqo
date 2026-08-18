@@ -9,23 +9,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { SUPPORTED_LANGUAGES, DEFAULT_LANG, type LangCode } from '@/i18n/languages';
 
 interface Props {
   className?: string;
   variant?: 'inline' | 'compact';
 }
 
-const LANGUAGES: Array<{ code: 'nl' | 'en' | 'fr' | 'de'; endonym: string }> = [
-  { code: 'nl', endonym: 'Nederlands' },
-  { code: 'en', endonym: 'English' },
-  { code: 'fr', endonym: 'Français' },
-  { code: 'de', endonym: 'Deutsch' },
-];
+// label in SUPPORTED_LANGUAGES is het endonym (de taalnaam in de taal zelf).
+const LANGUAGES: Array<{ code: LangCode; endonym: string }> =
+  SUPPORTED_LANGUAGES.map(({ code, label }) => ({ code, endonym: label }));
 
 export function LandingLanguageSwitcher({ className, variant = 'inline' }: Props) {
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
-  const current = (language || 'nl').split('-')[0];
+  const current = (language || DEFAULT_LANG).split('-')[0];
   const currentLang = LANGUAGES.find((l) => l.code === current) || LANGUAGES[0];
 
   return (

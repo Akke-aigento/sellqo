@@ -29,15 +29,17 @@ import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
 import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
+import {
+  SUPPORTED_LANGUAGES,
+  LANG_CODES_TUPLE,
+  DEFAULT_LANG,
+  type LangCode,
+} from '@/i18n/languages';
 
-type CampaignLang = 'nl' | 'en' | 'fr' | 'de';
+type CampaignLang = LangCode;
 
-const CAMPAIGN_LANGS: { value: CampaignLang; label: string; flag: string }[] = [
-  { value: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-  { value: 'en', label: 'English', flag: '🇬🇧' },
-  { value: 'fr', label: 'Français', flag: '🇫🇷' },
-  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
-];
+const CAMPAIGN_LANGS: { value: CampaignLang; label: string; flag: string }[] =
+  SUPPORTED_LANGUAGES.map(({ code, label, flag }) => ({ value: code, label, flag }));
 
 const translationSchema = z.object({
   subject: z.string().optional(),
@@ -51,10 +53,10 @@ const campaignSchema = z.object({
   preview_text: z.string().optional(),
   segment_id: z.string().optional(),
   template_id: z.string().optional(),
-  language: z.enum(['any', 'nl', 'en', 'fr', 'de']).default('any'),
+  language: z.enum(['any', ...LANG_CODES_TUPLE] as ['any', ...LangCode[]]).default('any'),
   preset_key: z.string().optional(),
   html_content: z.string().min(1, 'Content is verplicht'),
-  available_languages: z.array(z.enum(['nl', 'en', 'fr', 'de'])).min(1).default(['nl']),
+  available_languages: z.array(z.enum(LANG_CODES_TUPLE)).min(1).default([DEFAULT_LANG]),
   translations: z.record(translationSchema).default({}),
 });
 

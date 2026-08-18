@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { SUPPORTED_LANGUAGES, LANG_CODES } from '@/i18n/languages';
 
 export interface SupportedLanguage {
   code: string;
@@ -9,12 +10,9 @@ export interface SupportedLanguage {
   flag: string;
 }
 
-export const supportedLanguages: SupportedLanguage[] = [
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-];
+export const supportedLanguages: SupportedLanguage[] = SUPPORTED_LANGUAGES.map(
+  ({ code, label, flag }) => ({ code, name: label, flag })
+);
 
 export function useLanguage() {
   const { user } = useAuth();
@@ -36,7 +34,7 @@ export function useLanguage() {
 
         if (error) throw error;
 
-        if (data?.language && ['nl', 'en', 'de', 'fr'].includes(data.language)) {
+        if (data?.language && (LANG_CODES as string[]).includes(data.language)) {
           setProfileLanguage(data.language);
           i18n.changeLanguage(data.language);
           localStorage.setItem('preferredLanguage', data.language);
@@ -50,7 +48,7 @@ export function useLanguage() {
   }, [user, i18n]);
 
   const setLanguage = useCallback(async (languageCode: string) => {
-    if (!['nl', 'en', 'de', 'fr'].includes(languageCode)) return;
+    if (!(LANG_CODES as string[]).includes(languageCode)) return;
 
     setIsLoading(true);
 

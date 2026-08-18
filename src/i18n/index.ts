@@ -1,6 +1,8 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { LANG_CODES, DEFAULT_LANG } from './languages';
+
 import nl from './locales/nl.json';
 import en from './locales/en.json';
 import de from './locales/de.json';
@@ -14,17 +16,17 @@ import landingFr from './locales/landing.fr.json';
 const getInitialLanguage = (): string => {
   // Check localStorage first (for quick access before auth loads)
   const stored = localStorage.getItem('preferredLanguage');
-  if (stored && ['nl', 'en', 'de', 'fr'].includes(stored)) {
+  if (stored && (LANG_CODES as string[]).includes(stored)) {
     return stored;
   }
-  
+
   // Fall back to browser language
   const browserLang = navigator.language.split('-')[0];
-  if (['nl', 'en', 'de', 'fr'].includes(browserLang)) {
+  if ((LANG_CODES as string[]).includes(browserLang)) {
     return browserLang;
   }
-  
-  return 'nl'; // Default
+
+  return DEFAULT_LANG; // Default
 };
 
 i18n
@@ -37,7 +39,7 @@ i18n
       fr: { translation: { ...fr, ...landingFr } },
     },
     lng: getInitialLanguage(),
-    fallbackLng: 'nl',
+    fallbackLng: DEFAULT_LANG,
     interpolation: {
       escapeValue: false,
     },

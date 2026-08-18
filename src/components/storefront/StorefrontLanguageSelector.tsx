@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 
 interface Language {
   code: string;
@@ -8,12 +9,11 @@ interface Language {
   flag: string;
 }
 
-const ALL_LANGUAGES: Language[] = [
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-];
+const ALL_LANGUAGES: Language[] = SUPPORTED_LANGUAGES.map(({ code, label, flag }) => ({
+  code,
+  name: label,
+  flag,
+}));
 
 interface StorefrontLanguageSelectorProps {
   languages: string[];

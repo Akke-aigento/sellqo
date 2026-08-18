@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { DEFAULT_LANG, isLangCode, type LangCode } from '@/i18n/languages';
 
 /** Frontend mirror of getTenantBrand() in supabase/functions/_shared/tenantEmail.ts. */
 export interface TenantBrandInfo {
@@ -10,7 +11,7 @@ export interface TenantBrandInfo {
   primaryColor: string;
   accentColor: string;
   headingFont: string;
-  defaultLocale: 'nl' | 'en' | 'fr' | 'de';
+  defaultLocale: LangCode;
 }
 
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -28,7 +29,7 @@ function url(v: unknown, fb: string) {
 }
 function locale(v: unknown): TenantBrandInfo['defaultLocale'] {
   const s = String(v || '').toLowerCase().slice(0, 2);
-  return (['nl', 'en', 'fr', 'de'].includes(s) ? s : 'nl') as TenantBrandInfo['defaultLocale'];
+  return isLangCode(s) ? s : DEFAULT_LANG;
 }
 
 export function useTenantBrand() {

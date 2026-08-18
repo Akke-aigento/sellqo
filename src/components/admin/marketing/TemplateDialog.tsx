@@ -15,12 +15,13 @@ import { extractEmailBody } from '@/lib/emailContent';
 import { VariableInserter } from './VariableInserter';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import type { EmailTemplate } from '@/types/marketing';
+import { LANG_CODES_TUPLE } from '@/i18n/languages';
 
 const templateSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   subject: z.string().min(1, 'Onderwerp is verplicht'),
   category: z.enum(['general', 'promotional', 'transactional', 'newsletter']),
-  language: z.enum(['nl', 'en', 'fr', 'de']),
+  language: z.enum(LANG_CODES_TUPLE),
   html_content: z.string().min(1, 'Content is verplicht'),
 });
 
