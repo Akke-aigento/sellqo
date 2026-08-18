@@ -121,7 +121,10 @@ export const PERMISSION_MATRIX: Matrix = {
   },
   products: {
     read: ALL_ROLES,
-    write: ["platform_admin", "tenant_admin", "staff"],
+    // PROD-TRIGGER-1 — marketing mag bestaande producten bewerken (teksten,
+    // SEO, afbeeldingen). De commerciële kolommen worden in de database
+    // bewaakt door trigger `guard_product_commercial_fields`.
+    write: ["platform_admin", "tenant_admin", "staff", "marketing"],
   },
   product_costs: {
     read: ["platform_admin", "tenant_admin", "accountant", "warehouse"],
