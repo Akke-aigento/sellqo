@@ -18,8 +18,8 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English',    flag: '🇬🇧', script: 'latin', dir: 'ltr' },
   { code: 'fr', label: 'Français',   flag: '🇫🇷', script: 'latin', dir: 'ltr' },
   { code: 'de', label: 'Deutsch',    flag: '🇩🇪', script: 'latin', dir: 'ltr' },
-  // TODO batch 1: es/it/pt/pl/uk toevoegen zodra hun locale-JSON's bestaan
-  // (Oekraïens = 'uk', niet 'ua'; Cyrillisch maar LTR)
+  { code: 'uk', label: 'Українська', flag: '🇺🇦', script: 'cyrillic', dir: 'ltr' },
+  // TODO batch 1: es/it/pt/pl toevoegen zodra hun locale-JSON's bestaan
 ] as const;
 
 export type LangCode = typeof SUPPORTED_LANGUAGES[number]['code'];
