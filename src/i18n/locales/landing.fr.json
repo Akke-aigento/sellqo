@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "promotion_permission_scope": {
+          "title": "Le droit de gérer les remises couvre désormais aussi les promotions",
+          "description": "Le droit que vous attribuez à chaque membre de l'équipe pour gérer les codes de réduction couvre désormais également toutes les promotions : remises automatiques, remises de volume, actions 1+1, promotions cadeaux, règles de cumul et programmes de fidélité. Un seul interrupteur règle donc l'ensemble de l'autorisation. De plus, l'accès à certaines données sensibles est désormais limité aux rôles qui en ont réellement besoin."
+        },
         "sepa_mandate_context": {
           "title": "Les mandats SEPA affichent désormais le montant, le motif et l'intervalle",
           "description": "Lorsque vous demandez un mandat SEPA récurrent à un client, la page d'autorisation indique désormais précisément ce qu'il accepte : le montant TVA comprise, le motif et la fréquence du prélèvement. Le montant provient de l'abonnement, il correspond donc exactement au prélèvement."
