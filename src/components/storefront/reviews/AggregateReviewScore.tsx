@@ -11,7 +11,6 @@ interface AggregateReviewScoreProps {
 }
 
 export function AggregateReviewScore({
-  const { t } = useTranslation();
   averageRating,
   totalReviews,
   platforms,
@@ -27,7 +26,9 @@ export function AggregateReviewScore({
 
   const config = sizeConfig[size];
   const fullStars = Math.floor(averageRating);
-  const hasHalfStar = averageRating - fullStars >{t('storefront.reviews.aggregateReviewScore.0_5_return')}
+  const hasHalfStar = averageRating - fullStars >= 0.5;
+
+  return (
     <div className={`flex flex-col items-center ${config.gap}`}>
       {/* Stars */}
       <div className="flex items-center gap-0.5">

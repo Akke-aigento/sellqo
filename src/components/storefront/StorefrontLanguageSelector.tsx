@@ -29,7 +29,10 @@ export function StorefrontLanguageSelector({ languages, currentLanguage, onLangu
   const ref = useRef<HTMLDivElement>(null);
   
   const availableLanguages = ALL_LANGUAGES.filter(l => languages.includes(l.code));
-  const current = ALL_LANGUAGES.find(l => {t('storefront.storefrontLanguageSelector.l_code_currentlanguage_availablelanguages_0_don')} <= 1) return null;
+  const current = ALL_LANGUAGES.find(l => l.code === currentLanguage) || availableLanguages[0];
+
+  // Don't show if only 1 language
+  if (availableLanguages.length <= 1) return null;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

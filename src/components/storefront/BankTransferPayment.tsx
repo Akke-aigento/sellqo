@@ -24,7 +24,6 @@ interface BankTransferPaymentProps {
 }
 
 export function BankTransferPayment({
-  const { t } = useTranslation();
   orderNumber,
   amount,
   iban,

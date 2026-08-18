@@ -26,7 +26,11 @@ interface SearchResult {
 export function SearchModal({ open, onOpenChange, tenantId, basePath, currency = 'EUR' }: SearchModalProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>{t('storefront.searchModal.const_loading_setloading_usestate_false_const')}<HTMLInputElement>{t('storefront.searchModal.null_const_navigate_usenavigate_const_debounceref')}<NodeJS.Timeout>();
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const debounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (open) {
@@ -96,7 +100,7 @@ export function SearchModal({ open, onOpenChange, tenantId, basePath, currency =
             <div className="px-6 py-8 text-center text-muted-foreground">{t('common.search')}</div>
           )}
 
-          {!loading && query.length >{t('storefront.searchModal.2_results_length_0')}
+          {!loading && query.length >= 2 && results.length === 0 && (
             <div className="px-6 py-8 text-center">
               <p className="text-muted-foreground">Geen producten gevonden voor "{query}"</p>
               <p className="text-sm text-muted-foreground mt-1">{t('storefront.searchModal.probeer_een_andere_zoekterm')}</p>

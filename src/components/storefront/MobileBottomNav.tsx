@@ -12,7 +12,9 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBottomNavProps) {
   const { t } = useTranslation();
   const location = useLocation();
-  const isActive = (path: string) => {t('storefront.mobileBottomNav.location_pathname_path_return')}
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
       <nav className="flex items-center justify-around h-14">
         <Link

@@ -23,7 +23,9 @@ export function MegaMenu({ categories, basePath }: MegaMenuProps) {
 
   // Build tree: top-level categories and their children
   const topLevel = categories.filter(c => !c.parent_id);
-  const getChildren = (parentId: string) => categories.filter(c => {t('storefront.megaMenu.c_parent_id_parentid_return')}
+  const getChildren = (parentId: string) => categories.filter(c => c.parent_id === parentId);
+
+  return (
     <nav className="hidden md:flex items-center gap-1">
       <Link to={basePath} className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
         {t('storefront.megaMenu.home')}
@@ -34,7 +36,9 @@ export function MegaMenu({ categories, basePath }: MegaMenuProps) {
 
       {topLevel.map(cat => {
         const children = getChildren(cat.id);
-        const hasChildren = children.length > {t('storefront.megaMenu.0_return')}
+        const hasChildren = children.length > 0;
+
+        return (
           <div
             key={cat.id}
             className="relative"

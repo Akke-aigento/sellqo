@@ -50,7 +50,16 @@ export function ExternalReviewsSection({ section, tenantId }: ExternalReviewsSec
   }
 
   const displayReviews = content.featured_only
-    ? reviews.filter((r) => {t('storefront.sections.externalReviewsSection.r_is_featured_reviews_const_limitedreviews')}
+    ? reviews.filter((r) => r.is_featured)
+    : reviews;
+
+  const limitedReviews = content.max_reviews
+    ? displayReviews.slice(0, content.max_reviews)
+    : displayReviews;
+
+  const paddingClass = settings?.padding === 'large' ? 'py-16 md:py-24' : 'py-12 md:py-16';
+
+  return (
     <section
       className={paddingClass}
       style={{
@@ -103,7 +112,7 @@ export function ExternalReviewsSection({ section, tenantId }: ExternalReviewsSec
               <ReviewCard key={review.id} review={review} />
             ))}
           </div>
-        {t('storefront.sections.externalReviewsSection.content_display_style_list')}
+        ) : content.display_style === 'list' ? (
           <div className="space-y-4 max-w-2xl mx-auto">
             {limitedReviews.map((review) => (
               <ReviewCard key={review.id} review={review} />

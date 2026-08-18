@@ -302,7 +302,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const announcementTexts = showAnnouncement ? String(themeSettings.announcement_text).split('|').map((t: string) => t.trim()).filter(Boolean) : [];
   const logoUrl = ts?.logo_url || tenant.logo_url;
   const socialLinks = themeSettings?.social_links || {};
-  const filledSocialLinks = Object.entries(socialLinks).filter(([, value]) => {t('storefront.shopLayout.value_string_value_trim_return')}
+  const filledSocialLinks = Object.entries(socialLinks).filter(([, value]) => value && String(value).trim() !== '');
+
+  return (
     <div 
       className={cn("min-h-screen flex flex-col bg-background", mobileBottomNav && "pb-14 md:pb-0")}
       style={{
@@ -339,7 +341,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               languageSelectorStyle={languageSelectorStyle}
               resolvedHeadingFont={resolvedHeadingFont}
             />
-          {t('storefront.shopLayout.headerstyle_minimal')}
+          ) : headerStyle === 'minimal' ? (
             <MinimalHeader
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}

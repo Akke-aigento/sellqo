@@ -10,7 +10,6 @@ interface ReviewsTrustBarProps {
 }
 
 export function ReviewsTrustBar({
-  const { t } = useTranslation();
   averageRating,
   totalReviews,
   platforms,

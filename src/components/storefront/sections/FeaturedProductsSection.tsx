@@ -74,7 +74,7 @@ export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsS
         </div>
 
         {/* View All Link */}
-        {products.length >{t('storefront.sections.featuredProductsSection.content_max_products_8')}
+        {products.length >= (content.max_products || 8) && (
           <div className="text-center mt-8">
             <Link
               to={`/shop/${tenantSlug}/products`}
