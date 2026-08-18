@@ -1,4 +1,147 @@
 
+## I18N-3A — settings-zone gemigreerd naar t(), 27 van 43 bestanden — 18 augustus 2026
+
+### Root cause
+Geen defect maar een gat: de volledige instellingen-zone stond in hardcoded
+Nederlands. Voor de vier bestaande talen en het in [I18N-1B](#i18n-1b)
+toegevoegde Oekraïens betekende dat: wie de interface op en/fr/de/uk zet, kreeg
+in Instellingen alsnog Nederlands te zien. Dat is precies het scenario waar de
+skill `.agents/skills/sellqo-i18n-verplicht/SKILL.md` voor waarschuwt — met
+`fallbackLng: 'nl'` is een niet-gemigreerd scherm niet "onvertaald" maar
+stilzwijgend Nederlands, zonder dat iets faalt.
+
+Batch 2 ([I18N-2](#i18n-2)) migreerde de auth- en navigatiezone en legde het
+patroon vast. Deze batch
+is de eerste die dat patroon op schaal toepast: 43 bestanden, waarvan er 27 zijn
+gedaan.
+
+### Uitgevoerd
+344 nieuwe keys, toegevoegd in alle vijf de talen vanuit één vertaaltabel zodat
+de key-paden per definitie identiek zijn. Hergebruikt zonder duplicaat:
+`common.save/cancel/delete/status/actions/email/saving`, `auth.email`, en binnen
+de batch de sectie- en rolkeys.
+
+- `src/pages/admin/Settings.tsx` — de groep- en sectieregistry omgezet van
+  `title`/`description` naar `titleKey`/`descriptionKey`, dezelfde aanpak als
+  `sidebarConfig.ts` in batch 2: hernoemen zodat de compiler elke consument
+  aanwijst in plaats van stil een rauwe key te tonen.
+- 26 componenten in `src/components/admin/settings/`: AccountSettings,
+  BusinessSettings, BrandingSettings, SocialLinksEditor, SocialMediaHub,
+  SocialConnectionsManager, TeamSettings, InviteTeamMemberDialog,
+  TenantInvitationsList, StripeDisconnectDialog, PlatformToolsSettings,
+  ProviderInstructions, CustomerCommunicationSettings, CommunicationTriggerRow,
+  DomainSettings, MultiDomainSettings, DomainVerificationPanel,
+  DomainProgressSteps, InboundEmailSettings, NotificationSettings,
+  AIAssistantSettings en de vier WhatsApp-bestanden.
+
+Commit `18f99911`.
+
+### De belangrijkste vondst: de build is hier geen vangnet
+Na de eerste migratieronde gaf `npm run build` **exit 0**, terwijl er zeventien
+echte fouten in de code zaten: `t()` aangeroepen buiten componentscope. Ze zaten
+in twee soorten plekken:
+
+- **module-level arrays** die vertaalde tekst dragen — `STEPS` in
+  `DomainProgressSteps.tsx` en `platformConfigs` in `SocialConnectionsManager.tsx`;
+- **sub-componenten** die geen eigen hook hadden gekregen omdat het hook-script
+  alleen de eerste component in een bestand aanvult — `EmailCheckBanner`
+  (InviteTeamMemberDialog), `RowActions` (TenantInvitationsList) en
+  `DomainStatusBadge` (DomainVerificationPanel).
+
+`npm run build` is `vite build` met esbuild. Esbuild stript types en doet **geen
+scope-analyse**, dus een verwijzing naar een niet-bestaande `t` compileert
+gewoon door. Het resultaat zou een `ReferenceError` zijn op het moment dat de
+gebruiker het scherm opent — een productie-crash, niet een verkeerde tekst.
+Alleen `npx tsc --noEmit -p tsconfig.app.json` ving ze (`TS2304: Cannot find
+name 't'`).
+
+Opgelost met de factory-aanpak uit batch 2: de arrays zijn functies geworden die
+`t` als parameter krijgen en binnen de component via `useMemo` worden opgebouwd;
+de sub-componenten kregen hun eigen `useTranslation()`.
+
+**Conclusie voor volgende batches: bij componentmigraties is `tsc` verplicht en
+is een groene build betekenisloos als bewijs.** Dat hoort in de skill en
+uiteindelijk in CI.
+
+### Scope-correctie
+De opdracht ging uit van ongeveer 476 strings. Mijn eerste inventarisatie
+bevestigde dat ruwweg (516), maar bevatte een fout: de skip-regex in het
+extractiescript stond op case-insensitive, waardoor `^[a-z0-9_-]+$` ook
+"Domeinnaam", "Status", "Acties" en "Annuleren" matchte. **Elk enkel woord viel
+daardoor uit de inventaris.** Na correctie: 993 kandidaten, na aftrek van
+import-ruis ongeveer 590 echte UI-strings.
+
+Daarvan zijn er 344 gedaan. De resterende ~509 strings zitten in zestien
+bestanden en zijn bewust doorgeschoven naar batch 3b, omdat dat precies de
+fiscale en financiële set is — TaxSettings (113), ReturnSettings (75),
+TransactionFeeSettings (58), PaymentSettings (51), POSTerminalSettings (41) en
+de label-, printer- en fulfilment-bestanden. Daar moet per string beoordeeld
+worden of iets UI-tekst is of configuratie, en juist daar valt de winst van een
+tabelgedreven migratie weg.
+
+### Bewust behouden strings
+Vertalen zou deze onbruikbaar of kapot maken:
+
+- **Cloudflare-UI-labels** (`DomainSettings`): `"Create Token"`,
+  `"Edit zone DNS"`, `Zone Resources`, `"Continue to summary"`,
+  `Cloudflare Dashboard → My Profile → API Tokens`. Knop- en menunamen in
+  Cloudflare's Engelstalige interface; een vertaling maakt de instructie
+  onvindbaar.
+- **Bol.com-menupad en veldnaam** (`InboundEmailSettings`):
+  `Bol.com Partner Platform`, `→ Instellingen → Winkelsettings`,
+  `"Klantenservice e-mailadres"`. Staat zo in Bol.com's eigen scherm.
+- **Meta/WhatsApp API-veldnamen**: `Phone Number ID`, `Business Account ID`,
+  `Access Token`, `Verify Token`, `Webhook URL`, en de tokenprefix `EAAx...`.
+- **`{{1}}`/`{{2}}` in de WhatsApp-voorbeeldtemplate**: dit is Meta's
+  placeholder-syntax. Door i18next zouden die tokens als interpolatievariabelen
+  worden opgevat en **leeg renderen** — de string blijft daarom letterlijk.
+- **`RESET`** (`PlatformToolsSettings`): het bevestigingstoken dat de gebruiker
+  letterlijk moet intypen. Alleen het werkwoord eromheen is vertaald.
+- **Enum-waarden**: `value: 'tenant_admin'`, `'staff'`, `'accountant'` enzovoort.
+  De migrator weigert expliciet op de velden `value`, `id`, `key`, `type`,
+  `slug`, `provider` en `status`; dat is na elke groep per bestand gecontroleerd.
+
+### Security-keuzes
+n.v.t. Geen tabellen, policies, functies, grants of routes geraakt. Wel relevant
+voor deze zone: de migratie raakt schermen die integraties en toegangsrechten
+configureren, maar uitsluitend hun **labels**. Geen enkele config-waarde,
+provider-id, secret-naam of API-parameter is gewijzigd — zie de vorige sectie.
+De rolwaarden achter de vertaalde rol-labels in `TeamSettings` en
+`InviteTeamMemberDialog` zijn ongewijzigd, dus de rechtenafhandeling verandert
+niet.
+
+### Gedeelde-paden-waarschuwing
+n.v.t., maar nagetrokken. `git diff --name-only` blijft binnen
+`src/components/admin/settings/`, `src/pages/admin/Settings.tsx` en de vijf
+locale-bestanden. Geen edge function, geen migratie, geen gedeelde tabel, geen
+component uit `src/components/storefront/`. De custom frontends hebben hun eigen
+i18n en delen deze schermen niet.
+
+### Verificatie
+1. `node scripts/i18n-parity.mjs` → exit 0, vijf talen op **2217/2217** keys
+   (was 1873).
+2. `npx tsc --noEmit -p tsconfig.app.json` → exit 0, na het oplossen van de
+   zeventien scope-fouten.
+3. `npm run build` → exit 0.
+4. Per groep gecontroleerd dat geen enum- of id-veld door de migrator is geraakt.
+5. `git diff --name-only` bevat geen bestand buiten de scope.
+
+### Bewust ongemoeid
+- De zestien bestanden van batch 3b, plus 77 restjes in de hier gemigreerde
+  bestanden (vooral `AIAssistantSettings` en `DomainSettings`) — losse woorden
+  die de kapotte extractiefilter miste.
+- `src/components/ui/*` blijft buiten elke migratie; dat zijn shadcn-primitieven
+  zonder eigen tekst.
+
+### Vervolg
+- **Batch 3b**: de fiscale en financiële settings, ~509 strings in zestien
+  bestanden. Vraagt per string beoordeling op UI-tekst versus configuratie.
+- **`tsc` en het parity-script draaien nog steeds nergens automatisch.** Deze
+  batch laat zien wat dat kost: zonder de handmatige tsc-run waren zeventien
+  crashes doorgeglipt langs een groene build. Dit is het sterkste argument tot nu
+  toe om beide in CI te zetten.
+- De skill verdient een regel dat een groene build bij componentmigraties geen
+  bewijs is.
 ## I18N-2 — auth en navigatie gemigreerd naar t() — 18 augustus 2026
 
 ### Root cause

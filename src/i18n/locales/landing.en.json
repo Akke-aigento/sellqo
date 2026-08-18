@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "settings_multilingual": {
+          "title": "Most settings screens are now multilingual",
+          "description": "When you switch language, the screens for your profile, team members, company details, branding, domains, notifications and the email, WhatsApp and social media connections now appear in that language. The screens for VAT, payments and shipping will follow in a future update."
+        },
         "auth_navigation_multilingual": {
           "title": "The sign-in screen and menu now speak your language",
           "description": "The sign-in screen, the registration form, password recovery and the entire navigation menu now appear in the language you choose. You set that language under My profile."

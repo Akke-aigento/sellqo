@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "settings_multilingual": {
+          "title": "La plupart des écrans de paramètres sont désormais multilingues",
+          "description": "Lorsque vous changez de langue, les écrans de votre profil, des membres de l'équipe, des données de l'entreprise, de l'image de marque, des domaines, des notifications ainsi que des connexions e-mail, WhatsApp et réseaux sociaux s'affichent désormais dans cette langue. Les écrans concernant la TVA, les paiements et l'expédition suivront dans une prochaine mise à jour."
+        },
         "auth_navigation_multilingual": {
           "title": "L'écran de connexion et le menu parlent désormais votre langue",
           "description": "L'écran de connexion, le formulaire d'inscription, la récupération de mot de passe et l'ensemble du menu de navigation s'affichent désormais dans la langue que vous choisissez. Vous définissez cette langue dans Mon profil."

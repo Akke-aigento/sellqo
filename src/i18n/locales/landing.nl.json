@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "settings_multilingual": {
+          "title": "De instellingen zijn grotendeels meertalig geworden",
+          "description": "Kies je een andere taal, dan verschijnen de schermen voor je profiel, teamleden, bedrijfsgegevens, branding, domeinen, notificaties en de koppelingen met e-mail, WhatsApp en social media nu in die taal. De schermen rond btw, betalingen en verzending volgen in een volgende update."
+        },
         "auth_navigation_multilingual": {
           "title": "Het inlogscherm en het menu spreken nu jouw taal",
           "description": "Het inlogscherm, het registratieformulier, het herstellen van je wachtwoord en het volledige navigatiemenu verschijnen nu in de taal die je zelf kiest. Je stelt die taal in bij Mijn profiel."

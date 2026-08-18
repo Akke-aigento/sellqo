@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "settings_multilingual": {
+          "title": "Die Einstellungen sind größtenteils mehrsprachig",
+          "description": "Wenn Sie die Sprache wechseln, erscheinen die Ansichten für Ihr Profil, Teammitglieder, Unternehmensdaten, Branding, Domains, Benachrichtigungen sowie die Anbindungen an E-Mail, WhatsApp und Social Media jetzt in dieser Sprache. Die Ansichten zu MwSt., Zahlungen und Versand folgen in einem kommenden Update."
+        },
         "auth_navigation_multilingual": {
           "title": "Anmeldebildschirm und Menü sprechen jetzt Ihre Sprache",
           "description": "Der Anmeldebildschirm, das Registrierungsformular, die Passwort-Wiederherstellung und das gesamte Navigationsmenü erscheinen jetzt in der von Ihnen gewählten Sprache. Diese Sprache stellen Sie unter Mein Profil ein."
