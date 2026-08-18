@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10b — Recht op kortingen dekt nu ook promoties (security, 18-08-2026)
+
+**Eén schakelaar voor alle kortingen en promoties** (oktober 2026)
+Je kon al per teamlid instellen of iemand met de marketingrol kortingscodes mag beheren.
+Dat recht dekte tot nu toe enkel de codes zelf: automatische kortingen, volumekortingen,
+1+1-acties, cadeaupromoties, stapelregels en loyaliteitsprogramma's stonden er los van open.
+Vanaf nu vallen die allemaal onder dezelfde schakelaar. Eén bevoegdheid, geen achterdeurtjes.
+Wat betekent dit voor jou? Je hoeft niets te doen: heb je het recht al toegekend, dan dekt
+het meteen ook de promoties. Beheerders en medewerkers houden hun rechten onveranderd.
+Daarnaast beperkten we de inzage in enkele gevoelige gegevens verder tot de rollen die ze
+werkelijk nodig hebben.
+
+**i18n-keys.** `public.changelog.changes.promotion_permission_scope` — NL/EN/FR/DE aanwezig.
+
 ### 2026.10a — SEPA-machtigingen tonen bedrag, reden en interval (improvement, 17-08-2026)
 
 **Je klant ziet nu precies waarvoor hij een machtiging geeft** (oktober 2026)
