@@ -159,6 +159,17 @@ for (const target of targets) {
 
     let src = readFileSync(abs, 'utf8');
     const rel = relFromRoot(abs);
+    const repair = process.argv.includes('--repair');
+    if (repair) {
+      const before = src;
+      src = ensureImport(ensureHooks(stripMisplacedHooks(src)));
+      if (src !== before) {
+        if (!dry) writeFileSync(abs, src, 'utf8');
+        console.log(`${c.green}✓${c.reset} ${rel} ${c.dim}(hooks hersteld)${c.reset}`);
+        summary.changed++;
+      }
+      continue;
+    }
     const ns = namespaceForFile(abs);
     const mask = buildMask(src);
     const components = findComponents(src);
@@ -232,33 +243,8 @@ for (const target of targets) {
       src = src.slice(0, e.start) + e.replacement + src.slice(e.end);
     }
 
-    // 2. Hook per component die tekst kreeg (offsets herberekenen op de nieuwe bron).
-    const freshComponents = findComponents(src);
-    const needHook = [...owners]
-      .map((o) => freshComponents.find((f) => f.name === o.name))
-      .filter(Boolean)
-      .sort((a, b) => b.body - a.body);
-    for (const comp of needHook) {
-      const nextStart = freshComponents.find((f) => f.start > comp.start)?.start ?? src.length;
-      const body = src.slice(comp.body, nextStart);
-      if (/const\s*\{[^}]*\bt\b[^}]*\}\s*=\s*useTranslation\(/.test(body)) continue;
-      const indentMatch = src.slice(comp.body + 1).match(/^\n(\s*)/);
-      const indent = indentMatch ? indentMatch[1] : '  ';
-      src = `${src.slice(0, comp.body + 1)}\n${indent}const { t } = useTranslation();${src.slice(comp.body + 1)}`;
-    }
-
-    // 3. Import.
-    if (!/from ['"]react-i18next['"]/.test(src)) {
-      const lastImport = [...src.matchAll(/^import .*?;$/gms)].pop();
-      const line = `import { useTranslation } from 'react-i18next';`;
-      src = lastImport
-        ? `${src.slice(0, lastImport.index + lastImport[0].length)}\n${line}${src.slice(lastImport.index + lastImport[0].length)}`
-        : `${line}\n${src}`;
-    } else if (!/useTranslation/.test(src.match(/import \{([^}]*)\} from ['"]react-i18next['"]/)?.[1] ?? '')) {
-      src = src.replace(/import \{([^}]*)\} from (['"])react-i18next\2/, (all, inner, q) =>
-        `import {${inner.trimEnd()}, useTranslation } from ${q}react-i18next${q}`
-      );
-    }
+    // 2 + 3. Hook per component die t() gebruikt, plus de import.
+    src = ensureImport(ensureHooks(src));
 
     // 4. NL-keys wegschrijven.
     let added = 0;
