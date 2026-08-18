@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.10f', dateKey: 'sep_2026', changes: [
+    { id: 'ukrainian_language', type: 'feature' },
+  ] },
   { version: '2026.10e', dateKey: 'sep_2026', changes: [
     { id: 'interface_label_display', type: 'bugfix' },
   ] },

@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "ukrainian_language": {
+          "title": "SellQo ist jetzt auch auf Ukrainisch verfügbar",
+          "description": "Neben Niederländisch, Englisch, Französisch und Deutsch können Sie SellQo jetzt auch auf Ukrainisch nutzen. Ihre eigene Sprache wählen Sie in Ihren Profileinstellungen. Besucher der öffentlichen Website und eines Shops, der Ukrainisch anbietet, wählen die Sprache selbst in der Sprachauswahl. Sowohl der Verwaltungsbereich als auch die öffentlichen Seiten sind übersetzt."
+        },
         "interface_label_display": {
           "title": "Beschriftungen in der Oberfläche zeigen wieder lesbaren Text",
           "description": "Auf mehreren Bildschirmen erschienen Schaltflächen, Menüpunkte und Feldnamen als technische Codes statt als lesbarer Text. Diese Beschriftungen werden jetzt überall korrekt angezeigt, in jeder der verfügbaren Sprachen."

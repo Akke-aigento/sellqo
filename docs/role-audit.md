@@ -1,4 +1,143 @@
 
+## I18N-1B — Oekraïens toegevoegd als vijfde taal — 18 augustus 2026
+
+### Root cause
+Geen defect maar een gat in het aanbod: SellQo ondersteunde vier talen
+(nl/en/fr/de), waardoor Oekraïenstalige gebruikers geen keuze hadden. Deze batch
+vult dat gat.
+
+Dit is de **eerste toepassing van het recept** uit
+`.agents/skills/sellqo-i18n-verplicht/SKILL.md`, sectie "Een nieuwe taal
+toevoegen". Dat recept bestaat uit vier stappen en die zijn hier letterlijk
+gevolgd:
+
+1. **Schrift en richting bepalen.** Oekraïens is Cyrillisch maar LTR, dus volgens
+   het recept een gewone toevoeging: geen layout-audit, geen logical CSS-properties,
+   geen spiegeling. Die eis geldt alleen voor RTL (ar/he), en dat blijft een apart
+   project. Het font dekt de Cyrillische glyphs — geen CJK-problematiek.
+2. **Eén regel in `SUPPORTED_LANGUAGES`.** Het recept waarschuwt expliciet voor de
+   ISO-code: Oekraïens is `uk`, niet `ua`. Dat is gerespecteerd.
+3. **Twee locale-bestanden met de volledige key-set**, plus registratie als
+   resource in `src/i18n/index.ts`.
+4. **Parity groen, switchers werken vanzelf.** Het recept stelt dat allowlists,
+   browser-detectie en taal-switchers automatisch meegaan omdat ze uit `LANG_CODES`
+   afleiden, en dat je een hardcoded lijst die je alsnog moet aanpassen als bug
+   moet behandelen. **Nagetrokken: er hoefde niets aangepast te worden.** Dat is de
+   uitbetaling van de bron van waarheid uit batch 0 (`6f93fff4`); vóór die batch
+   hadden hier negen hardcoded talenlijsten bijgewerkt moeten worden.
+
+Deze batch bouwt voort op [I18N-1A](#i18n-1a) (`7bd99fd6`), die de main namespace
+op volledige pariteit bracht. Dat was een voorwaarde: zonder die 297 gedichte
+gaten zou `uk` gekopieerd zijn van een bronbestand met eigen gaten, en zou de
+nieuwe taal dezelfde rauwe key-strings hebben geërfd.
+
+### Uitgevoerd
+- `src/i18n/languages.ts` — één regel toegevoegd:
+  `{ code: 'uk', label: 'Українська', flag: '🇺🇦', script: 'cyrillic', dir: 'ltr' }`.
+  De TODO-comment is ingekort tot es/it/pt/pl.
+- `src/i18n/index.ts` — twee imports (`uk`, `landingUk`) en één resource-entry
+  `uk: { translation: { ...uk, ...landingUk } }`, exact het patroon van de
+  bestaande vier talen.
+- `src/i18n/locales/uk.json` — nieuw, 1095 keys.
+- `src/i18n/locales/landing.uk.json` — nieuw, 666 keys.
+
+Samen 1761 keys, gelijk aan de unie van beide namespaces. Commit `8163a3fd`.
+
+De vertalingen zijn machinaal geproduceerd op basis van de nl-bestanden, met een
+vooraf vastgelegd glossarium dat overal consequent is toegepast
+(`рахунок-фактура`, `кредит-нота`, `підписка`, `замовлення`, `товар`, `доставка`,
+`залишки`, `ПДВ`, `магазин`, `тарифний план`) en een formele aanspreekvorm
+(ви/ваш) door de volledige set heen. Achttien waarden zijn bewust onvertaald:
+merknamen, plannamen, technische termen als SKU en SEO, en de `languages`-sectie
+met endoniemen — die staat in alle locales identiek, wat de bestaande conventie is.
+
+Geen component, hook of edge function aangeraakt buiten de twee bedradingsregels.
+
+### Security-keuzes
+n.v.t. Geen tabellen, policies, functies, grants of routes geraakt. De wijziging
+voegt twee JSON-bestanden met vertaalstrings toe aan de client-bundle en zet één
+regel bij in een bestaande constante. Er komt geen data in de bundle die qua
+gevoeligheid afwijkt van wat er al stond.
+
+Wel het vermelden waard: `uk` stroomt nu mee in de twee `z.enum`-schema's van
+`CampaignDialog` en `TemplateDialog`, omdat die sinds batch 0 uit
+`LANG_CODES_TUPLE` afleiden. Dat verruimt de geaccepteerde invoer van vier naar
+vijf waarden. Dat is bedoeld gedrag en geen verzwakking: het schema blijft een
+gesloten allowlist, alleen met één extra toegestane taalcode.
+
+### Gedeelde-paden-waarschuwing
+n.v.t., maar expliciet nagetrokken. De locale-bestanden worden alleen door
+`src/i18n/index.ts` geïmporteerd en dus alleen door de core-bundle gebruikt. De
+custom frontends (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata)
+hebben hun eigen i18n-opzet en halen geen vertalingen uit de core.
+
+Twee punten die op het eerste gezicht gedeeld lijken maar het niet zijn:
+
+- **`StorefrontLanguageSelector`** leidt zijn lijst nu wel uit
+  `SUPPORTED_LANGUAGES` af, maar filtert die ongewijzigd op de `languages`-prop van
+  de tenant. Oekraïens verschijnt in een storefront dus alleen als die tenant het
+  zelf in `storefront_languages` heeft staan. Er is geen tenant-data gewijzigd, dus
+  voor bestaande winkels verandert er niets.
+- **Geen kolom, default of contract aangeraakt.** `storefront-resolve`,
+  `storefront-api` en `checkout-engine` blijven ongemoeid, en er is niets
+  toegevoegd aan `tenant_theme_settings` — dus ook niets dat via `select('*')` naar
+  de custom frontends doorstroomt.
+
+### Verificatie
+1. `node scripts/i18n-parity.mjs` → exit 0. **Vijf talen (de, en, fr, nl, uk), elk
+   1761/1761 keys**, nul gaten. De nieuwe taal verschijnt automatisch in het
+   rapport omdat het script de talen uit de aanwezige bestanden afleidt.
+2. Beide uk-bestanden parsen als geldige JSON, encoding UTF-8, **nul
+   `\u`-escapes** — het Cyrillisch staat leesbaar in het bestand, conform de
+   conventie van de bestaande locales.
+3. Placeholder-integriteit per key vergeleken met nl: **nul mismatches** in beide
+   namespaces. Zowel de `{{dubbele}}` als de `{enkele}` accoladevorm is intact,
+   inclusief `{originalDate}`, `{duplicateDate}`, `{name}` en `{period}`. Ook de
+   `<strong>`-tags en de `<email/>`-Trans-tag zijn ongewijzigd overgenomen.
+4. Diepe structuurvergelijking met de nl-bestanden: alle geneste objecten en alle
+   arrays hebben identieke lengte en vorm. Dat is apart getoetst omdat de
+   key-telling arrays als één blad ziet en een ingekorte stappenlijst dus niet zou
+   opvallen.
+5. `npm run build` → exit 0.
+6. Steekproef op tien keys, verspreid over beide namespaces, met correcte
+   Cyrillische rendering: `common.delete` = "Видалити", `navigation.dashboard` =
+   "Панель керування", `billing.upgrade` = "Підвищити тариф",
+   `vat.decision_tree.reverse_charge` = "ПДВ сплачує отримувач".
+7. De zeven plekken die talen tonen of valideren zijn nagelopen: alle zeven
+   importeren uit `@/i18n/languages`. Geen enkele hardcoded lijst gevonden die
+   bijgewerkt moest worden.
+
+### Vangst uit recon
+De opdracht noemde 1069 main-keys en 664 landing-keys, en 47 placeholders. Beide
+cijfers klopten niet meer:
+
+- De key-aantallen waren die van **vóór** I18N-1A en de bijbehorende slottaken.
+  Actueel is het 1095 en 666. Was `uk` op de opgegeven aantallen gebouwd, dan had
+  de taal 28 keys gemist en zou de pariteit direct rood zijn gestaan.
+- De placeholder-verwachting van 47 (39 main + 8 landing) bleek een onderschatting
+  van het bronbestand zelf: gemeten in nl zijn het er 65 (57 main, 8 landing). Het
+  landing-getal klopte precies; het main-getal niet. Voor de verificatie is dat
+  niet doorslaggevend — de harde eis is dat uk per key hetzelfde heeft als nl, en
+  dat is het geval.
+
+### Bewust ongemoeid
+- Geen component gemigreerd naar `t()`. De hardcoded strings in JSX blijven staan.
+- es/it/pt/pl staan nog als TODO in `languages.ts` en zijn niet toegevoegd.
+- Geen tenant-data aangeraakt: geen enkele winkel heeft Oekraïens automatisch in
+  zijn storefront-talen gekregen.
+
+### Vervolg
+- **Native review is de openstaande stap.** De vertalingen zijn machinaal
+  geproduceerd. Structuur, terminologie en placeholders zijn geverifieerd; toon en
+  idioom niet. Nastya reviewt die op de live versie, met de nadruk op de langere
+  marketingteksten: de landingspagina en de 101 changelog-entries. Correcties
+  daarop zijn data-only wijzigingen in `uk.json` en `landing.uk.json` en raken de
+  bedrading niet.
+- `scripts/i18n-parity.mjs` draait nog steeds niet in CI. Met vijf talen wordt het
+  risico dat de pariteit ongemerkt wegzakt navenant groter.
+- Batch 0 (`6f93fff4`) heeft nog geen eigen role-audit-entry; zie de notitie in
+  I18N-1A.
+
 ## I18N-1A — 297 ontbrekende vertaalkeys gedicht, waarvan 26 als rauwe key-strings renderden — 18 augustus 2026
 
 ### Root cause

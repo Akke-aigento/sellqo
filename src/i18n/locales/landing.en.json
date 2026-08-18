@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "ukrainian_language": {
+          "title": "SellQo is now available in Ukrainian",
+          "description": "Alongside Dutch, English, French and German, you can now use SellQo in Ukrainian. You choose your own language in your profile settings. Visitors to the public website, and to a webshop that offers Ukrainian, pick the language themselves in the language selector. Both the admin environment and the public pages have been translated."
+        },
         "interface_label_display": {
           "title": "Interface labels show readable text again",
           "description": "On a number of screens, buttons, menu items and field names appeared as technical codes instead of readable text. Those labels are now displayed correctly everywhere, in each of the available languages."
