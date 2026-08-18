@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "promotion_permission_scope": {
+          "title": "The right to manage discounts now covers promotions too",
+          "description": "The per-member right you set for managing discount codes now also covers every promotion: automatic discounts, volume discounts, buy-one-get-one deals, gift promotions, stacking rules and loyalty programmes. One switch therefore governs the whole permission. In addition, access to some sensitive data is now limited further to the roles that genuinely need it."
+        },
         "sepa_mandate_context": {
           "title": "SEPA mandates now show amount, reason and interval",
           "description": "When you ask a customer for a recurring SEPA mandate, the authorisation page now states exactly what they are agreeing to: the amount including VAT, the reason and how often it is collected. The amount comes straight from the subscription, so it matches what is charged later."
