@@ -1,4 +1,119 @@
 
+## I18N-2 — auth en navigatie gemigreerd naar t() — 18 augustus 2026
+
+### Root cause
+Geen defect maar een gat, en wel op de meest zichtbare plek van de applicatie.
+Na [I18N-1B](#i18n-1b) waren er vijf talen met volledige key-pariteit, maar de
+schermen zelf stonden nog in hardcoded Nederlands. Wie de interface op en/fr/de/uk
+zette, kreeg dus alsnog een Nederlands loginscherm en een Nederlands zijmenu —
+letterlijk het eerste en het meest gebruikte dat een gebruiker ziet.
+
+Dat is het scenario waar `.agents/skills/sellqo-i18n-verplicht/SKILL.md` voor
+waarschuwt: met `fallbackLng: 'nl'` faalt er niets, het scherm is gewoon stil
+Nederlands. De batches 0 tot en met 1b hadden de infrastructuur en de vertalingen
+geleverd; dit is de eerste batch die daadwerkelijk componenten omzet.
+
+### Uitgevoerd
+110 nieuwe keys, toegevoegd in alle vijf de talen vanuit één vertaaltabel zodat
+de key-paden per definitie identiek zijn. Elf keys zijn hergebruikt uit de
+bestaande `navigation.*`-sectie (dashboard, orders, products, customers,
+categories, analytics, shipping, import, settings, tenants, platform), plus
+`auth.login`, `auth.signUp`, `auth.email`, `auth.password`, `auth.forgotPassword`,
+`auth.resetPassword`, `auth.logout`, `common.cancel` en `common.save`.
+
+- `src/pages/Auth.tsx` — 42 strings: login, registratie, wachtwoord-reset, het
+  keuzescherm voor al ingelogde gebruikers en de validatiemeldingen.
+- `src/components/admin/sidebar/sidebarConfig.ts` — 74 menu- en groepstitels.
+- `src/hooks/useAuth.tsx` — de zeven user-facing toasts plus hun
+  dependency-array.
+- `src/components/admin/AdminSidebar.tsx` — 12 strings (winkelkiezer,
+  admin-view-banner, tooltips, footer).
+- `src/components/admin/SidebarCustomizeDialog.tsx` — 5.
+- `src/components/auth/SessionExpiredDialog.tsx` — 3.
+- `src/components/platform/TenantModulesTab.tsx` — 2, zie hieronder.
+
+Commit `e5dcb04b`.
+
+### Vangst uit recon: de labels stonden niet waar je ze zoekt
+De opdracht noemde de sidebar-componenten. Maar `AdminSidebar.tsx` rendert
+`{item.title}` en `{group.title}`; de teksten zelf zijn data in
+`sidebarConfig.ts`, een bestand dat niet in de scope-lijst stond. Zonder dat
+bestand zou het menu Nederlands blijven en alleen het chroom eromheen vertaald
+worden. Na afstemming is het toegevoegd.
+
+Daarbij is het veld `title` **hernoemd** naar `titleKey` in plaats van de key in
+het bestaande veld te zetten. Dat is een bewuste keuze: bij hernoemen faalt de
+compiler bij elke consument, terwijl een key in een veld dat `title` heet
+stilzwijgend een rauwe key op het scherm zet. Dat betaalde zich meteen uit —
+`tsc` wees op `TenantModulesTab.tsx`, dat dezelfde velden rendert, in
+`src/components/platform/` staat en dus buiten de verwachte zoekrichting viel.
+Twee regels daar aangepast; de rest van dat bestand blijft Nederlands en valt
+buiten deze batch.
+
+### Het factory-patroon voor t() buiten componentscope
+De drie Zod-schema's in `Auth.tsx` stonden op moduleniveau met Nederlandse
+foutmeldingen. Daar bestaat `t` niet. Ze zijn factory-functies geworden —
+`buildLoginSchema(t)`, `buildResetSchema(t)`, `buildSignupSchema(t)` — die binnen
+de component via `useMemo` op `[t]` worden opgebouwd, zodat ze alleen bij een
+taalwissel opnieuw ontstaan. De validatielogica zelf is regel voor regel
+ongewijzigd.
+
+Dit patroon is daarna in de settings-migratie opnieuw nodig gebleken, en niet
+zelden: module-level arrays met vertaalde tekst en sub-componenten zonder eigen
+hook lopen tegen precies hetzelfde aan. Het is daarmee het standaardantwoord
+geworden op `t()` buiten componentscope.
+
+### Drie zichtbare tekstwijzigingen door key-hergebruik
+De regel "maak geen nieuwe key als er al een bestaat" heeft hier drie Nederlandse
+labels veranderd. Geen bug, wel zichtbaar gedrag:
+
+- menu-item **Analytics** → **Analyse** (`navigation.analytics`)
+- login-label **E-mail** → **E-mailadres** (`auth.email`)
+- dialoogtitel **Wachtwoord opnieuw instellen** → **Wachtwoord resetten**
+  (`auth.resetPassword`)
+
+### Bewust behouden strings
+- **`••••••••`** als wachtwoord-placeholder: bullets, geen taal.
+- **`error.message`** in de login- en registratietoasts: dat is de foutmelding
+  van Supabase, geen eigen UI-tekst. Vertalen vraagt een mapping van
+  backend-foutcodes en is een eigen ontwerpbeslissing.
+- **Merknamen** die wel een key kregen voor pariteit maar in alle vijf talen
+  identiek zijn: Bol.com, Amazon, Google, Meta, SellQo Connect, SEO.
+- **`src/components/ui/sidebar.tsx`** is niet aangeraakt; dat is een
+  shadcn-primitive zonder eigen tekst.
+
+### Security-keuzes
+n.v.t. Geen tabellen, policies, functies, grants of routes geraakt. Wel het
+vermelden waard: de migratie raakt het authenticatiescherm en de rolafhankelijke
+navigatie, maar uitsluitend hun **labels**. De rolfiltering in `AdminSidebar`
+(`shouldHideItem`, `isResourceHidden`, `WAREHOUSE_ALLOWED_ITEMS`) werkt op
+`item.id` en is ongewijzigd; welke gebruiker welk menu-item ziet, verandert dus
+niet. De validatieregels in `Auth.tsx` zijn identiek gebleven, alleen hun
+meldingen lopen nu via `t()`.
+
+### Gedeelde-paden-waarschuwing
+n.v.t., maar nagetrokken. De diff blijft in `src/pages/Auth.tsx`, `src/hooks/`,
+`src/components/auth/`, `src/components/admin/` (sidebar), één bestand in
+`src/components/platform/` en de vijf locale-bestanden. Geen edge function, geen
+migratie, geen gedeelde tabel, geen component uit `src/components/storefront/`.
+De custom frontends hebben hun eigen auth- en navigatieopzet.
+
+### Verificatie
+1. `node scripts/i18n-parity.mjs` → exit 0, vijf talen op **1873/1873** keys
+   (was 1763).
+2. `npx tsc --noEmit -p tsconfig.app.json` → exit 0. Dit is ook de run die
+   `TenantModulesTab.tsx` aanwees.
+3. `npm run build` → exit 0.
+4. `grep -nE ">[A-Z][a-zà-ÿ].{3,}<"` op alle zes de gemigreerde bestanden → nul
+   treffers.
+
+### Vervolg
+- De rest van `TenantModulesTab.tsx` (kaarttitels, beschrijvingen) staat nog in
+  het Nederlands.
+- De vertaling van Supabase-foutmeldingen vraagt een foutcode-mapping en is niet
+  ingepland.
+- De settings-zone volgt als aparte batch.
+
 ## I18N-1B — Oekraïens toegevoegd als vijfde taal — 18 augustus 2026
 
 ### Root cause

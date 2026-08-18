@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "auth_navigation_multilingual": {
+          "title": "L'écran de connexion et le menu parlent désormais votre langue",
+          "description": "L'écran de connexion, le formulaire d'inscription, la récupération de mot de passe et l'ensemble du menu de navigation s'affichent désormais dans la langue que vous choisissez. Vous définissez cette langue dans Mon profil."
+        },
         "ukrainian_language": {
           "title": "SellQo est désormais disponible en ukrainien",
           "description": "En plus du néerlandais, de l'anglais, du français et de l'allemand, vous pouvez désormais utiliser SellQo en ukrainien. Vous choisissez votre propre langue dans les paramètres de votre profil. Les visiteurs du site public, ainsi que d'une boutique qui propose l'ukrainien, sélectionnent eux-mêmes la langue dans le sélecteur. L'interface d'administration et les pages publiques sont traduites."

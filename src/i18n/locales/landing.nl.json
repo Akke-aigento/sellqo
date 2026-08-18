@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "auth_navigation_multilingual": {
+          "title": "Het inlogscherm en het menu spreken nu jouw taal",
+          "description": "Het inlogscherm, het registratieformulier, het herstellen van je wachtwoord en het volledige navigatiemenu verschijnen nu in de taal die je zelf kiest. Je stelt die taal in bij Mijn profiel."
+        },
         "ukrainian_language": {
           "title": "SellQo is nu ook beschikbaar in het Oekraïens",
           "description": "Naast Nederlands, Engels, Frans en Duits kun je SellQo nu ook in het Oekraïens gebruiken. Je kiest je eigen taal bij je profielinstellingen. Bezoekers van de publieke website en van een webshop die Oekraïens aanbiedt, kiezen de taal zelf in de taalkeuze. Zowel de beheeromgeving als de publieke pagina's zijn vertaald."
