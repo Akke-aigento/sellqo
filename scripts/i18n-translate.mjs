@@ -19,7 +19,7 @@
 import { c, readLangCodes, readLocale, writeLocale, flattenTree, getKey, setKey, DEFAULT_LANG } from './i18n-lib.mjs';
 
 const API = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-3-flash';
+const MODEL = 'google/gemini-2.5-flash';
 const CHUNK = 100;
 const MAX_ATTEMPTS = 3;
 

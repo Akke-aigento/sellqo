@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { X, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface NewsletterPopupProps {
   tenantSlug: string;
@@ -13,7 +14,8 @@ interface NewsletterPopupProps {
 
 const STORAGE_KEY = 'newsletter-popup-shown';
 
-export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
+export function NewsletterPopup({
+  const { t } = useTranslation(); tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -82,12 +84,12 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
 
         {submitted ? (
           <>
-            <h2 className="text-xl font-bold mb-2">Bedankt!</h2>
-            <p className="text-muted-foreground">Je bent succesvol ingeschreven.</p>
+            <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.bedankt')}</h2>
+            <p className="text-muted-foreground">{t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}</p>
           </>
         ) : (
           <>
-            <h2 className="text-xl font-bold mb-2">Blijf op de hoogte</h2>
+            <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.blijf_op_de_hoogte')}</h2>
             <p className="text-muted-foreground mb-4">
               {incentiveText || 'Schrijf je in en ontvang als eerste onze nieuwste aanbiedingen en producten.'}
             </p>
@@ -97,7 +99,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="je@email.nl"
+                placeholder={t('storefront.exitIntentPopup.je_email_nl')}
                 required
                 className="flex-1 rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
               />
@@ -110,7 +112,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
               onClick={handleClose}
               className="mt-4 text-sm text-muted-foreground hover:underline"
             >
-              Nee bedankt
+              {t('storefront.exitIntentPopup.nee_bedankt')}
             </button>
           </>
         )}

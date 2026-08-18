@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Category {
   id: string;
@@ -16,27 +17,24 @@ interface MegaMenuProps {
   basePath: string;
 }
 
-export function MegaMenu({ categories, basePath }: MegaMenuProps) {
+export function MegaMenu({
+  const { t } = useTranslation(); categories, basePath }: MegaMenuProps) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   // Build tree: top-level categories and their children
   const topLevel = categories.filter(c => !c.parent_id);
-  const getChildren = (parentId: string) => categories.filter(c => c.parent_id === parentId);
-
-  return (
+  const getChildren = (parentId: string) => categories.filter(c => {t('storefront.megaMenu.c_parent_id_parentid_return')}
     <nav className="hidden md:flex items-center gap-1">
       <Link to={basePath} className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
-        Home
+        {t('storefront.megaMenu.home')}
       </Link>
       <Link to={`${basePath}/products`} className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
-        Alle Producten
+        {t('storefront.megaMenu.alle_producten')}
       </Link>
 
       {topLevel.map(cat => {
         const children = getChildren(cat.id);
-        const hasChildren = children.length > 0;
-
-        return (
+        const hasChildren = children.length > {t('storefront.megaMenu.0_return')}
           <div
             key={cat.id}
             className="relative"

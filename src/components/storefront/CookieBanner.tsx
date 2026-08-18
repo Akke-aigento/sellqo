@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CookieBannerProps {
   style: 'minimal' | 'detailed' | 'popup';
@@ -34,7 +35,8 @@ export function hasConsent(tenantSlug: string, category: 'analytics' | 'marketin
   return consent[category] === true;
 }
 
-export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
+export function CookieBanner({
+  const { t } = useTranslation(); style, tenantSlug }: CookieBannerProps) {
   const [visible, setVisible] = useState(false);
   const [preferences, setPreferences] = useState({
     functional: true,
@@ -77,12 +79,12 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
             <h3 className="font-semibold text-lg">Cookie-instellingen</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Wij gebruiken cookies om je de beste ervaring te bieden. Kies welke cookies je wilt toestaan.
+            {t('storefront.cookieBanner.wij_gebruiken_cookies_om_je_de')}
           </p>
           <div className="space-y-3 mb-6">
             <label className="flex items-center gap-3 text-sm">
               <input type="checkbox" checked disabled className="rounded" />
-              <span>Functioneel (noodzakelijk)</span>
+              <span>{t('storefront.cookieBanner.functioneel_noodzakelijk')}</span>
             </label>
             <label className="flex items-center gap-3 text-sm">
               <input
@@ -91,7 +93,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                 onChange={e => setPreferences(p => ({ ...p, analytics: e.target.checked }))}
                 className="rounded"
               />
-              <span>Analytisch</span>
+              <span>{t('storefront.cookieBanner.analytisch')}</span>
             </label>
             <label className="flex items-center gap-3 text-sm">
               <input
@@ -100,15 +102,15 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                 onChange={e => setPreferences(p => ({ ...p, marketing: e.target.checked }))}
                 className="rounded"
               />
-              <span>Marketing</span>
+              <span>{t('navigation.groups.marketing')}</span>
             </label>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => accept(false)} className="flex-1">
-              Opslaan
+              {t('common.save')}
             </Button>
             <Button onClick={() => accept(true)} className="flex-1">
-              Alles accepteren
+              {t('storefront.cookieBanner.alles_accepteren')}
             </Button>
           </div>
         </div>
@@ -126,7 +128,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked disabled className="rounded" />
-                  Functioneel
+                  {t('storefront.cookieBanner.functioneel')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -135,7 +137,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                     onChange={e => setPreferences(p => ({ ...p, analytics: e.target.checked }))}
                     className="rounded"
                   />
-                  Analytisch
+                  {t('storefront.cookieBanner.analytisch_2')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -144,16 +146,16 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                     onChange={e => setPreferences(p => ({ ...p, marketing: e.target.checked }))}
                     className="rounded"
                   />
-                  Marketing
+                  {t('navigation.groups.marketing')}
                 </label>
               </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => accept(false)}>
-                Opslaan
+                {t('common.save')}
               </Button>
               <Button size="sm" onClick={() => accept(true)}>
-                Alles accepteren
+                {t('storefront.cookieBanner.alles_accepteren_2')}
               </Button>
             </div>
           </div>
@@ -167,14 +169,14 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
     <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg p-3">
       <div className="container mx-auto flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Deze website gebruikt cookies voor een betere ervaring.
+          {t('storefront.cookieBanner.deze_website_gebruikt_cookies_voor_een')}
         </p>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="sm" onClick={decline}>
-            Weigeren
+            {t('storefront.cookieBanner.weigeren')}
           </Button>
           <Button size="sm" onClick={() => accept(true)}>
-            Accepteren
+            {t('storefront.cookieBanner.accepteren')}
           </Button>
         </div>
       </div>

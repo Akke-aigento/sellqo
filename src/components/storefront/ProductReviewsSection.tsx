@@ -1,4 +1,5 @@
 import { Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Review {
   id: string;
@@ -18,14 +19,15 @@ interface ProductReviewsSectionProps {
   display: 'full' | 'stars_only' | 'hidden';
 }
 
-export function ProductReviewsSection({ reviews, averageRating, totalReviews, display }: ProductReviewsSectionProps) {
+export function ProductReviewsSection({
+  const { t } = useTranslation(); reviews, averageRating, totalReviews, display }: ProductReviewsSectionProps) {
   if (display === 'hidden' || totalReviews === 0) return null;
 
   return (
     <div className="border-t pt-8 mt-8">
       {/* Average Rating */}
       <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-xl font-bold">Beoordelingen</h2>
+        <h2 className="text-xl font-bold">{t('storefront.productReviewsSection.beoordelingen')}</h2>
         <div className="flex items-center gap-1.5">
           <div className="flex items-center">
             {[1, 2, 3, 4, 5].map(star => (

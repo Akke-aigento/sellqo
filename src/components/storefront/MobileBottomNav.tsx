@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, Grid3X3, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface MobileBottomNavProps {
   basePath: string;
@@ -8,11 +9,10 @@ interface MobileBottomNavProps {
   onSearchClick: () => void;
 }
 
-export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBottomNavProps) {
+export function MobileBottomNav({
+  const { t } = useTranslation(); basePath, cartCount, onSearchClick }: MobileBottomNavProps) {
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
-
-  return (
+  const isActive = (path: string) => {t('storefront.mobileBottomNav.location_pathname_path_return')}
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
       <nav className="flex items-center justify-around h-14">
         <Link
@@ -23,7 +23,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
           )}
         >
           <Home className="h-5 w-5" />
-          <span>Home</span>
+          <span>{t('storefront.megaMenu.home')}</span>
         </Link>
 
         <button
@@ -31,7 +31,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
           className="flex flex-col items-center gap-0.5 text-[11px] text-muted-foreground min-w-[44px] min-h-[44px] justify-center"
         >
           <Search className="h-5 w-5" />
-          <span>Zoeken</span>
+          <span>{t('storefront.mobileBottomNav.zoeken')}</span>
         </button>
 
         <Link
@@ -42,7 +42,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
           )}
         >
           <Grid3X3 className="h-5 w-5" />
-          <span>Categorieën</span>
+          <span>{t('navigation.categories')}</span>
         </Link>
 
         <Link
@@ -60,7 +60,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
               </span>
             )}
           </div>
-          <span>Wagen</span>
+          <span>{t('storefront.mobileBottomNav.wagen')}</span>
         </Link>
       </nav>
     </div>

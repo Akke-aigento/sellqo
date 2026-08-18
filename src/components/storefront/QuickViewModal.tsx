@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { VariantSelector } from '@/components/storefront/VariantSelector';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface QuickViewProduct {
   id: string;
@@ -33,7 +34,8 @@ interface QuickViewModalProps {
   onCartOpen?: () => void;
 }
 
-export function QuickViewModal({ product, open, onOpenChange, basePath, currency = 'EUR', onCartOpen }: QuickViewModalProps) {
+export function QuickViewModal({
+  const { t } = useTranslation(); product, open, onOpenChange, basePath, currency = 'EUR', onCartOpen }: QuickViewModalProps) {
   const { addToCart } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -83,10 +85,7 @@ export function QuickViewModal({ product, open, onOpenChange, basePath, currency
   if (!product) return null;
 
   const allOptionsSelected = product.options?.length
-    ? product.options.every((opt: any) => selectedAttributes[opt.name])
-    : true;
-
-  return (
+    ? product.options.every((opt: any) => {t('storefront.quickViewModal.selectedattributes_opt_name_true_return')}
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSelectedAttributes({}); setQuantity(1); setSelectedImage(0); } }}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden">
         <div className="grid md:grid-cols-2 gap-0">
@@ -156,12 +155,12 @@ export function QuickViewModal({ product, open, onOpenChange, basePath, currency
               )}
 
               {inStock === false && (
-                <p className="text-destructive font-medium text-center py-2">Uitverkocht</p>
+                <p className="text-destructive font-medium text-center py-2">{t('storefront.productCard.uitverkocht')}</p>
               )}
 
               <Button variant="outline" asChild className="w-full" onClick={() => onOpenChange(false)}>
                 <Link to={`${basePath}/product/${product.slug}`}>
-                  Bekijk volledige details <ExternalLink className="h-4 w-4 ml-2" />
+                  {t('storefront.quickViewModal.bekijk_volledige_details')} <ExternalLink className="h-4 w-4 ml-2" />
                 </Link>
               </Button>
             </div>

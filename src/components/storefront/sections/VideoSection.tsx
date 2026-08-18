@@ -1,10 +1,12 @@
 import type { HomepageSection, VideoContent } from '@/types/storefront';
+import { useTranslation } from 'react-i18next';
 
 interface VideoSectionProps {
   section: HomepageSection;
 }
 
-export function VideoSection({ section }: VideoSectionProps) {
+export function VideoSection({
+  const { t } = useTranslation(); section }: VideoSectionProps) {
   const content = section.content as VideoContent;
   const settings = section.settings;
 
@@ -58,7 +60,7 @@ export function VideoSection({ section }: VideoSectionProps) {
                 allowFullScreen
               />
             </div>
-          ) : isVimeo ? (
+          {t('storefront.sections.videoSection.isvimeo')}
             <div className="aspect-video rounded-lg overflow-hidden">
               <iframe
                 src={`https://player.vimeo.com/video/${getVimeoId(content.video_url!)}?autoplay=${content.autoplay ? 1 : 0}&loop=${content.loop ? 1 : 0}`}

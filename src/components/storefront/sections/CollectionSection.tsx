@@ -2,13 +2,15 @@ import { Link, useParams } from 'react-router-dom';
 import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import type { HomepageSection, CollectionContent } from '@/types/storefront';
 import { ProductCard } from '@/components/storefront/ProductCard';
+import { useTranslation } from 'react-i18next';
 
 interface CollectionSectionProps {
   section: HomepageSection;
   tenantId?: string;
 }
 
-export function CollectionSection({ section, tenantId }: CollectionSectionProps) {
+export function CollectionSection({
+  const { t } = useTranslation(); section, tenantId }: CollectionSectionProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const content = section.content as CollectionContent;
   const settings = section.settings;
@@ -77,7 +79,7 @@ export function CollectionSection({ section, tenantId }: CollectionSectionProps)
               to={`/shop/${tenantSlug}/products?category=${content.category_id}`}
               className="inline-flex items-center text-sm font-medium hover:underline"
             >
-              Bekijk alle →
+              {t('storefront.sections.collectionSection.bekijk_alle')}
             </Link>
           </div>
         )}

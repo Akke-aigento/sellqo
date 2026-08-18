@@ -4,13 +4,15 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { HomepageSection, NewsletterContent } from '@/types/storefront';
+import { useTranslation } from 'react-i18next';
 
 interface NewsletterSectionProps {
   section: HomepageSection;
   tenantId?: string;
 }
 
-export function NewsletterSection({ section, tenantId }: NewsletterSectionProps) {
+export function NewsletterSection({
+  const { t } = useTranslation(); section, tenantId }: NewsletterSectionProps) {
   const content = section.content as NewsletterContent;
   const settings = section.settings;
   const [email, setEmail] = useState('');
@@ -68,8 +70,8 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
 
           {submitted ? (
             <div className="py-4">
-              <p className="text-lg font-semibold">✓ Bedankt voor je aanmelding!</p>
-              <p className="text-sm text-muted-foreground mt-1">Je bent succesvol ingeschreven voor onze nieuwsbrief.</p>
+              <p className="text-lg font-semibold">{t('storefront.sections.newsletterSection.bedankt_voor_je_aanmelding')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('storefront.sections.newsletterSection.je_bent_succesvol_ingeschreven_voor_onze')}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">

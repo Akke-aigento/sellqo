@@ -2,13 +2,15 @@ import { Link, useParams } from 'react-router-dom';
 import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import type { HomepageSection, FeaturedProductsContent } from '@/types/storefront';
 import { ProductCard } from '@/components/storefront/ProductCard';
+import { useTranslation } from 'react-i18next';
 
 interface FeaturedProductsSectionProps {
   section: HomepageSection;
   tenantId?: string;
 }
 
-export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsSectionProps) {
+export function FeaturedProductsSection({
+  const { t } = useTranslation(); section, tenantId }: FeaturedProductsSectionProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const content = section.content as FeaturedProductsContent;
   const settings = section.settings;
@@ -72,13 +74,13 @@ export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsS
         </div>
 
         {/* View All Link */}
-        {products.length >= (content.max_products || 8) && (
+        {products.length >{t('storefront.sections.featuredProductsSection.content_max_products_8')}
           <div className="text-center mt-8">
             <Link
               to={`/shop/${tenantSlug}/products`}
               className="inline-flex items-center text-sm font-medium hover:underline"
             >
-              Bekijk alle producten →
+              {t('storefront.sections.featuredProductsSection.bekijk_alle_producten')}
             </Link>
           </div>
         )}

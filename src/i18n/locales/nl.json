@@ -1952,5 +1952,130 @@
       "pageHidden": "Verborgen voor tenant — klik om te tonen",
       "pageVisible": "Zichtbaar voor tenant — klik om te verbergen"
     }
+  },
+  "storefront": {
+    "bankTransferPayment": {
+      "wacht_op_betaling": "Wacht op betaling",
+      "scan_met_je_bank_app": "Scan met je bank-app",
+      "de_betaalgegevens_worden_automatisch_ingevuld_in": "De betaalgegevens worden automatisch ingevuld in je bank-app",
+      "of_maak_handmatig_over": "Of maak handmatig over:",
+      "te_betalen": "Te betalen",
+      "begunstigde": "Begunstigde",
+      "mededeling": "Mededeling",
+      "gebruik_exact_deze_mededeling_voor_automatische": "⚠️ Gebruik exact deze mededeling voor automatische verwerking",
+      "sepa_instant_beschikbaar": "SEPA Instant beschikbaar",
+      "met_de_meeste_belgische_en_nederlandse": "Met de meeste Belgische en Nederlandse banken wordt je betaling binnen enkele seconden verwerkt. \n                Je bestelling wordt verzonden zodra de betaling is ontvangen.",
+      "bevestigen": "Bevestigen...",
+      "betaling_ontvangen_bevestigen": "Betaling ontvangen - Bevestigen"
+    },
+    "cartDrawer": {
+      "je_winkelwagen_is_leeg": "Je winkelwagen is leeg",
+      "verder_winkelen": "Verder winkelen",
+      "subtotaal": "Subtotaal",
+      "excl_verzendkosten": "Excl. verzendkosten",
+      "afrekenen": "Afrekenen",
+      "verder_winkelen_2": "Verder winkelen"
+    },
+    "cookieBanner": {
+      "wij_gebruiken_cookies_om_je_de": "Wij gebruiken cookies om je de beste ervaring te bieden. Kies welke cookies je wilt toestaan.",
+      "functioneel_noodzakelijk": "Functioneel (noodzakelijk)",
+      "analytisch": "Analytisch",
+      "alles_accepteren": "Alles accepteren",
+      "functioneel": "Functioneel",
+      "analytisch_2": "Analytisch",
+      "alles_accepteren_2": "Alles accepteren",
+      "deze_website_gebruikt_cookies_voor_een": "Deze website gebruikt cookies voor een betere ervaring.",
+      "weigeren": "Weigeren",
+      "accepteren": "Accepteren"
+    },
+    "exitIntentPopup": {
+      "wacht_even": "Wacht even!",
+      "aanmelden": "Aanmelden",
+      "nee_bedankt": "Nee bedankt",
+      "je_email_nl": "je@email.nl"
+    },
+    "megaMenu": {
+      "c_parent_id_parentid_return": "c.parent_id === parentId);\n\n  return (",
+      "home": "Home",
+      "alle_producten": "Alle Producten",
+      "0_return": "0;\n\n        return ("
+    },
+    "mobileBottomNav": {
+      "location_pathname_path_return": "location.pathname === path;\n\n  return (",
+      "zoeken": "Zoeken",
+      "wagen": "Wagen"
+    },
+    "newsletterPopup": {
+      "bedankt": "Bedankt!",
+      "je_bent_succesvol_ingeschreven": "Je bent succesvol ingeschreven.",
+      "blijf_op_de_hoogte": "Blijf op de hoogte"
+    },
+    "productCard": {
+      "uitverkocht": "Uitverkocht",
+      "quick_view": "Quick View"
+    },
+    "productReviewsSection": {
+      "beoordelingen": "Beoordelingen"
+    },
+    "quickViewModal": {
+      "selectedattributes_opt_name_true_return": "selectedAttributes[opt.name])\n    : true;\n\n  return (",
+      "bekijk_volledige_details": "Bekijk volledige details"
+    },
+    "relatedProducts": {
+      "p_id_currentproductid_slice_0_4": "p.id !== currentProductId).slice(0, 4);\n  if (related.length === 0) return null;\n\n  return (",
+      "gerelateerde_producten": "Gerelateerde producten"
+    },
+    "searchModal": {
+      "const_loading_setloading_usestate_false_const": "([]);\n  const [loading, setLoading] = useState(false);\n  const inputRef = useRef",
+      "null_const_navigate_usenavigate_const_debounceref": "(null);\n  const navigate = useNavigate();\n  const debounceRef = useRef",
+      "2_results_length_0": "= 2 && results.length === 0 && (",
+      "probeer_een_andere_zoekterm": "Probeer een andere zoekterm",
+      "typ_minimaal_2_tekens_om_te": "Typ minimaal 2 tekens om te zoeken",
+      "waar_ben_je_naar_op_zoek": "Waar ben je naar op zoek?"
+    },
+    "shopLayout": {
+      "shop_niet_gevonden": "Shop niet gevonden",
+      "de_gevraagde_webshop_bestaat_niet": "De gevraagde webshop bestaat niet.",
+      "terug_naar_home": "Terug naar home",
+      "binnenkort_open": "Binnenkort open",
+      "value_string_value_trim_return": "value && String(value).trim() !== '');\n\n  return (",
+      "headerstyle_minimal": ") : headerStyle === 'minimal' ? (",
+      "snelle_links": "Snelle Links",
+      "volg_ons": "Volg Ons",
+      "shop": "Shop",
+      "shop_2": "Shop"
+    },
+    "storefrontLanguageSelector": {
+      "l_code_currentlanguage_availablelanguages_0_don": "l.code === currentLanguage) || availableLanguages[0];\n\n  // Don't show if only 1 language\n  if (availableLanguages.length"
+    },
+    "reviews": {
+      "aggregateReviewScore": {
+        "0_5_return": "= 0.5;\n\n  return (",
+        "gemiddeld_uit": "gemiddeld uit"
+      },
+      "reviewsTrustBar": {
+        "reviews_bij": "reviews bij"
+      }
+    },
+    "sections": {
+      "collectionSection": {
+        "bekijk_alle": "Bekijk alle →"
+      },
+      "externalReviewsSection": {
+        "r_is_featured_reviews_const_limitedreviews": "r.is_featured)\n    : reviews;\n\n  const limitedReviews = content.max_reviews\n    ? displayReviews.slice(0, content.max_reviews)\n    : displayReviews;\n\n  const paddingClass = settings?.padding === 'large' ? 'py-16 md:py-24' : 'py-12 md:py-16';\n\n  return (",
+        "content_display_style_list": ") : content.display_style === 'list' ? ("
+      },
+      "featuredProductsSection": {
+        "content_max_products_8": "= (content.max_products || 8) && (",
+        "bekijk_alle_producten": "Bekijk alle producten →"
+      },
+      "newsletterSection": {
+        "bedankt_voor_je_aanmelding": "✓ Bedankt voor je aanmelding!",
+        "je_bent_succesvol_ingeschreven_voor_onze": "Je bent succesvol ingeschreven voor onze nieuwsbrief."
+      },
+      "videoSection": {
+        "isvimeo": ") : isVimeo ? ("
+      }
+    }
   }
 }
