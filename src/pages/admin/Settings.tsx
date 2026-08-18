@@ -240,13 +240,19 @@ export default function SettingsPage() {
     setSearchParams({});
   };
 
-  const ActiveComponent = allGroups
-    .flatMap(g => g.sections)
-    .find(s => s.id === activeSection)?.component;
+  // PERM-2 — deep-links naar een niet-toegestane sectie vallen terug op 'Mijn profiel'.
+  const activeSectionMeta =
+    allGroups
+      .flatMap(g => g.sections)
+      .find(
+        s =>
+          s.id === activeSection &&
+          (!s.adminOnly || isTenantAdmin) &&
+          isSectionPermitted(s),
+      ) ??
+    allGroups.flatMap(g => g.sections).find(s => s.id === 'profile');
 
-  const activeSectionMeta = allGroups
-    .flatMap(g => g.sections)
-    .find(s => s.id === activeSection);
+  const ActiveComponent = activeSectionMeta?.component;
 
   const showMenu = !isMobile || !mobileShowContent;
   const showContent = !isMobile || mobileShowContent;
