@@ -162,7 +162,8 @@ for (const target of targets) {
     const repair = process.argv.includes('--repair');
     if (repair) {
       const before = src;
-      src = ensureImport(ensureHooks(stripMisplacedHooks(src)));
+      src = ensureHooks(stripMisplacedHooks(src));
+      if (/\bt\(\s*['"]/.test(src)) src = ensureImport(src);
       if (src !== before) {
         if (!dry) writeFileSync(abs, src, 'utf8');
         console.log(`${c.green}✓${c.reset} ${rel} ${c.dim}(hooks hersteld)${c.reset}`);
