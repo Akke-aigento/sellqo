@@ -1031,6 +1031,10 @@
           "description": "Elk teamlid kan nu bij \"Mijn profiel\" om zijn naam, taal en wachtwoord te beheren, ongeacht de rol. Binnen de instellingen zie je enkel de onderdelen die bij jouw rol horen. Daarnaast zijn de rapportages opgesplitst: financiële overzichten zoals btw-aangifte en openstaande facturen zijn alleen zichtbaar voor wie daar toegang toe hoort, terwijl commerciële analyses breder beschikbaar blijven. Het voorraadrapport is nu ook bereikbaar voor magazijnmedewerkers."
         },
         "promotion_permission_scope": {
+          "title": "Marketingrol kan productteksten bewerken",
+          "description": "Teamleden met de marketingrol kunnen nu productteksten, SEO-velden, tags en afbeeldingen bewerken. Prijzen, inkoopprijzen, btw-tarief, artikelnummer, barcode en voorraad blijven voorbehouden aan beheerders; voorraad blijft daarnaast beschikbaar voor de magazijnrol."
+        },
+        "marketing_product_editing_placeholder": {
           "title": "Recht om kortingen te beheren geldt nu ook voor promoties",
           "description": "Het recht dat je per teamlid instelt om kortingscodes te beheren, dekt nu ook alle promoties: automatische kortingen, volumekortingen, 1+1-acties, cadeaupromoties, stapelregels en loyaliteitsprogramma's. Eén schakelaar regelt dus de volledige bevoegdheid. Daarnaast is de inzage in enkele gevoelige gegevens verder beperkt tot de rollen die ze werkelijk nodig hebben."
         },
