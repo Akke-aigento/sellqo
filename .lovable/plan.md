@@ -1,162 +1,42 @@
-# TOAST-UNIFY-1 — één toast-systeem op Sonner 2.x met naar-boven wegswipen
+# I18N-MOTOR — vertalen als batchwerk, en nieuwe UI automatisch mee
 
-## Doelversie
-`sonner@2.0.8` (huidige npm `latest`; geïnstalleerd nu 1.7.4). `@radix-ui/react-toast` wordt verwijderd uit `package.json`.
+## Je twee vragen eerst
 
-## A. Upgrade-impact Sonner 2.x
+**"Krijgt nieuwe UI dit in de toekomst automatisch?"** Ja, en dat is precies waarom het gereedschap in de repo hoort in plaats van per keer geïmproviseerd. Na deze batch geldt: je schrijft een component in het Nederlands, draait één commando, en de vier andere talen staan erin. Een lintregel weigert nieuwe hardcoded tekst, dus vergeten kan niet meer stil gebeuren.
 
-### A1. Wat er in v2 verandert en de styling raakt
-- v2 herwerkt de DOM/CSS-variabelen van de toast (offsets als `--offset-top/right/bottom/left`, aparte mobile-offsets, nieuwe swipe-datastates). De `toast()`-API zelf blijft gelijk.
-- De huidige wrapper leunt op arbitrary-selectors `group-[.toaster]:...` en `group-[.toast]:...`. Die werken alleen zolang de wrapper zelf `className="toaster group"` zet en de toast-classname `toast` bevat — fragiel, en ze botsen met `richColors` (dat eigen achtergrond/tekst zet, die onze `bg-background`-override platslaat).
-- Aanpak: de `group-[...]`-ketens vervangen door directe Tailwind-token-classes in `toastOptions.classNames`, en de kleuren per type expliciet via `classNames.success/error/warning/info`. Zo zijn we niet afhankelijk van v2-interne classnames.
+**"Kunnen we makkelijk nieuwe talen toevoegen?"** Ja. Eén regel in `src/i18n/languages.ts`, één commando, en de volledige key-set (nu 2221, straks veel meer) wordt in blokken vertaald naar de nieuwe taal. Spaans, Italiaans, Pools of Portugees wordt dan minutenwerk in plaats van een project. De taal-switcher en browserdetectie leiden al af uit `SUPPORTED_LANGUAGES`, dus die werken meteen mee.
 
-### A2. `richColors` + design tokens
-`richColors` zet Sonner's eigen groen/rood/amber, die niet uit onze tokens komen en in dark mode/storefront-light kunnen botsen. Voorstel: `richColors` aanzetten voor type-differentiatie, maar de kleuren overschrijven met semantische tokens per type (`success`, `destructive`, `warning`, `info`) in `classNames`. Als `--success`/`--warning` nog niet in `src/index.css` staan, worden die toegevoegd (HSL, light + dark) — de enige CSS-toevoeging in dit plan.
+## Wat er gebouwd wordt
 
-### A3. Capacitor safe-area
-Er is nu **geen** safe-area voorziening: `src/index.css` en `tailwind.config.ts` bevatten geen `env(safe-area-inset-*)`, en `index.html` mist `viewport-fit=cover` (zonder die vlag levert `env()` op iOS 0 op). Daarom:
-- `index.html`: viewport-meta → `width=device-width, initial-scale=1.0, viewport-fit=cover`.
-- `src/index.css`: `--safe-top: env(safe-area-inset-top, 0px);` in `:root`.
-- `<Sonner>`: `offset={{ top: '16px' }}` en `mobileOffset={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '8px', right: '8px' }}`, zodat toasts op native onder notch/statusbar vallen.
+Drie scripts plus een vangnet. Alles idempotent: twee keer draaien verandert niks extra, al gemigreerde bestanden worden overgeslagen. Zo doen we geen dubbel werk met wat Claude Code al gedaan heeft.
 
-### A4. ForcedLightMode
-`src/components/ForcedLightMode.tsx` forceert via next-themes `setTheme('light')`, dus de `html`-class wordt echt `light`. Onze wrapper leest `useTheme()` en geeft dat door aan Sonner; alle kleuren komen uit CSS-tokens die met de html-class meeschakelen. Er is dus **geen** context-specifieke config nodig; storefront-toasts thema-en automatisch light.
+**1. `npm run i18n:scan`** — meetlat. Per map en bestand: hoeveel hardcoded strings er nog staan (JSX-tekst, tekstprops, toasts). Nulmeting nu: 102 van 707 bestanden gemigreerd, ~3.666 kandidaat-strings. Elke batch laat een cijfer zakken, dus we zien voortgang in plaats van hem te vermoeden.
 
-### A5. Voorgestelde `src/components/ui/sonner.tsx`
-```tsx
-import { useTheme } from "next-themes";
-import { Toaster as Sonner, toast } from "sonner";
+**2. `npm run i18n:extract -- <pad>`** — codemod. Herkent hardcoded UI-tekst, leidt een keypad af uit de bestandslocatie (`src/pages/admin/Quotes.tsx` → `admin.quotes.*`), zet `useTranslation` erin, vervangt de string door `t('…')` en schrijft de Nederlandse waarde in `nl.json`. Merknamen, routes, classNames en enum-waarden blijven met rust. Twijfelgevallen raakt het script niet aan maar zet het in een TODO-lijst — nooit gokken in code.
 
-type ToasterProps = React.ComponentProps<typeof Sonner>;
+**3. `npm run i18n:translate`** — vertaalmotor. Zoekt keys die in `nl.json` staan maar in `en/fr/de/uk` missen, vertaalt ze in blokken van ~100 via de AI-gateway met een vaste glossary (btw → VAT/TVA/MwSt, bestelling, retour, factuur, machtiging, verzendmethode) en schrijft ze op exact hetzelfde keypad terug. Interpolatie (`{{count}}`) en HTML blijven intact; dat wordt na elke run gecontroleerd. Met `--lang es` doet hetzelfde script een volledig nieuwe taal.
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+**4. Vangnet — nieuwe schuld wordt geweigerd**
+- `eslint-plugin-i18next` met `no-literal-string` in waarschuwmodus met baseline: bestaande schuld breekt de build niet, nieuwe schuld valt direct op.
+- `scripts/i18n-parity.mjs` uitgebreid: naast ontbrekende keys nu ook keys melden waarvan de waarde in en/fr/de/uk identiek is aan het Nederlands — een niet-vertaalde kopie die vandaag stil doorglipt.
+- `npm run i18n:check` bundelt pariteit + kopieerdetectie + interpolatiecheck.
 
-  return (
-    <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster"
-      position="top-center"
-      swipeDirections={["top"]}
-      closeButton
-      richColors
-      visibleToasts={3}
-      offset={{ top: "16px" }}
-      mobileOffset={{
-        top: "calc(env(safe-area-inset-top, 0px) + 12px)",
-        left: "8px",
-        right: "8px",
-      }}
-      toastOptions={{
-        classNames: {
-          toast: "bg-background text-foreground border border-border shadow-lg",
-          title: "text-foreground font-medium",
-          description: "text-muted-foreground",
-          actionButton: "bg-primary text-primary-foreground",
-          cancelButton: "bg-muted text-muted-foreground",
-          closeButton: "bg-background text-foreground border-border",
-          success: "border-success/40 [&_[data-icon]]:text-success",
-          error: "border-destructive/40 [&_[data-icon]]:text-destructive",
-          warning: "border-warning/40 [&_[data-icon]]:text-warning",
-          info: "border-primary/40 [&_[data-icon]]:text-primary",
-        },
-      }}
-      {...props}
-    />
-  );
-};
+## Tempo en kwaliteit
 
-export { Toaster, toast };
-```
+Per batch: `scan` → `extract` → diff kort nalopen → `translate` → `check` → steekproef in de preview. Ik zet meerdere mappen parallel in subagenten, dus een hele map van 40+ componenten per bericht in plaats van één pagina per dag.
 
-## B. Migratiestrategie shadcn → Sonner — **aanbeveling: Optie 1 (shim)**
+Kwaliteit: jij reviewt enkel het Nederlands, ik lever de vier talen glossary-consistent af — het snelste pad, jouw keuze. De scripts vangen wat een mens toch zou missen: ontbrekende keys, NL-kopieën, gebroken interpolatie.
 
-### B1. Gemeten veldgebruik (basis voor het advies)
-Scan over alle 97 bestanden die `@/hooks/use-toast` importeren, met parsing van elke `toast({ ... })`-call (452 calls):
-- `title`: 452
-- `description`: 248
-- `variant`: 162 — waarvan `destructive` 232 keer voorkomt en `'default'` 2 keer, plus 2 ternary's die uitsluitend tussen `destructive` en `default` kiezen
-- **geen enkele** `action`, `duration`, `id` of andere key
-- **geen** consumer gebruikt `dismiss` of `toasts` uit `useToast()`; alle 97 destructureren enkel `{ toast }`
-- `ToastAction`/`@radix-ui/react-toast` wordt buiten `src/components/ui/toast.tsx` nergens gebruikt
-- `@/components/ui/toaster` wordt alleen in `src/App.tsx` geïmporteerd
+Volgorde, klantgezicht eerst omdat de impact daar het grootst is: `src/components/storefront` + `src/pages/storefront` (2 van 46) → `src/pages/admin` (8 van 72) → `src/components/admin` per submap (50 van 413).
 
-Conclusie: de shim dekt 100% van het feitelijke gebruik. Optie 2 (452 call-sites herschrijven) levert geen functionele winst en veel meer regressierisico. **Optie 1 wordt aanbevolen**, met de shim expliciet als deprecated legacy-adapter gemarkeerd zodat nieuwe code direct `sonner` gebruikt.
+## Randvoorwaarden
 
-### B2. Voorgestelde `src/hooks/use-toast.ts` (shim)
-```ts
-/**
- * DEPRECATED legacy adapter. Nieuwe code: `import { toast } from "sonner"`.
- * Houdt de oude shadcn-API (title/description/variant) in leven bovenop Sonner,
- * zodat bestaande call-sites niet hoeven te wijzigen.
- */
-import { toast as sonnerToast } from "sonner";
+- Alleen `src/`. `supabase/functions/**` (mailteksten, PDF's) en de vijf custom frontends blijven buiten scope — die hebben hun eigen i18n.
+- `landing.{code}.json` wordt niet door de codemod aangeraakt; de changelog daarin blijft handwerk.
+- Strikt additief: bestaande keys worden nooit hernoemd of verwijderd. `common.*` wordt hergebruikt om dubbelen te vermijden.
+- Geen script hardcodeert een talenlijst; alles leidt af uit `SUPPORTED_LANGUAGES`.
+- Verificatie per batch: `i18n:check` groen en `tsgo --noEmit` exit 0.
 
-type LegacyToastProps = {
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  variant?: "default" | "destructive" | null;
-  duration?: number;
-  action?: React.ReactNode;
-};
+## Deze batch levert
 
-function toast({ title, description, variant, duration, action }: LegacyToastProps) {
-  const message = title ?? description ?? "";
-  const options = {
-    description: title ? description : undefined,
-    duration,
-    action,
-  } as Parameters<typeof sonnerToast>[1];
-
-  const id =
-    variant === "destructive"
-      ? sonnerToast.error(message as string, options)
-      : sonnerToast(message as string, options);
-
-  return {
-    id: String(id),
-    dismiss: () => sonnerToast.dismiss(id),
-    update: () => {}, // niet in gebruik in dit project
-  };
-}
-
-function useToast() {
-  return {
-    toast,
-    dismiss: (toastId?: string | number) => sonnerToast.dismiss(toastId),
-    toasts: [] as never[], // compat-stub, geen consumers
-  };
-}
-
-export { useToast, toast };
-```
-Gedrag: `variant: 'destructive'` → `toast.error`, overig → neutrale `toast`; `title` wordt hoofdtekst, `description` subtekst; calls met alleen `description` vallen terug op de description als hoofdtekst.
-
-### B3. Uitfaseren Radix-stack
-Na de shim: `src/components/ui/toaster.tsx` en `src/components/ui/toast.tsx` verwijderen, `<Toaster />` + import uit `src/App.tsx` halen (`<Sonner />` blijft als enige), en `@radix-ui/react-toast` uit `package.json`.
-
-## C. Toast-limiet & dedup
-Advies: **niet** terug naar hard `max 1`, maar `visibleToasts={3}`. Bulk-operaties (bulk-updates, imports, CSV) vuren meerdere toasts; met limiet 1 verdwijnen fouten ongezien, met ongelimiteerde stack vult top-center het hele mobiele scherm. Drie is de middenweg; Sonner queueët de rest. Geen eigen dedup-laag: call-sites die identieke berichten willen samenvoegen kunnen `toast(msg, { id })` gebruiken.
-
-## D. Scope en verificatie
-
-### Geraakte bestanden
-- `package.json` — `sonner` → 2.0.8, `@radix-ui/react-toast` verwijderen
-- `src/components/ui/sonner.tsx` — nieuwe config (A5)
-- `src/hooks/use-toast.ts` — vervangen door shim (B2)
-- `src/components/ui/toaster.tsx` — **verwijderen**
-- `src/components/ui/toast.tsx` — **verwijderen**
-- `src/App.tsx` — `<Toaster />` + import weg
-- `src/index.css` — `--safe-top` + evt. `--success`/`--warning` tokens (light + dark)
-- `index.html` — `viewport-fit=cover`
-- `docs/role-audit.md` + changelog-entry (`2026.08ak`, 4 talen) volgens de vaste release-werkwijze
-
-Buiten scope: de 156 bestanden met `import { toast } from 'sonner'` blijven **ongewijzigd** (API v1→v2 compatibel), en de 97 shadcn-call-sites blijven **ongewijzigd** dank zij de shim.
-
-### Verificatie
-1. Typecheck groen (let op resterende imports van `@/components/ui/toast(er)`).
-2. `rg` bevestigt nul verwijzingen naar `@radix-ui/react-toast` en `ui/toaster`.
-3. Playwright: success-, error-, warning-, `toast.loading` en `toast.promise` triggeren; screenshots in dark en light.
-4. Storefront-route onder `ForcedLightMode`: toast leesbaar in light.
-5. Mobiel viewport (390x844) met gesimuleerde safe-area: toast onder de statusbar, swipe-omhoog sluit hem (drag via `page.mouse`).
-6. Legacy-pad: één `toast({ title, description, variant: 'destructive' })` call-site in de UI triggeren en controleren dat die als rode error-toast met subtekst verschijnt.
+De drie scripts, de lintregel, de uitgebreide pariteitscheck, en als bewijs één map volledig vertaald (`src/components/storefront`) met het scan-cijfer vóór en na. Plus een korte notitie in `docs/` zodat Claude Code exact dezelfde keten gebruikt en we nooit twee keer dezelfde map doen.
