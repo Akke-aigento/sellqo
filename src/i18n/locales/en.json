@@ -1986,7 +1986,8 @@
       "alles_accepteren_2": "Accept all",
       "deze_website_gebruikt_cookies_voor_een": "This website uses cookies for a better experience.",
       "weigeren": "Decline",
-      "accepteren": "Accept"
+      "accepteren": "Accept",
+      "marketing": "Marketing"
     },
     "exitIntentPopup": {
       "wacht_even": "Hold on!",
@@ -2000,7 +2001,8 @@
     },
     "mobileBottomNav": {
       "zoeken": "Search",
-      "wagen": "Cart"
+      "wagen": "Cart",
+      "categories": "Categories"
     },
     "newsletterPopup": {
       "bedankt": "Thank you!",
@@ -2023,7 +2025,8 @@
     "searchModal": {
       "probeer_een_andere_zoekterm": "Try a different search term",
       "typ_minimaal_2_tekens_om_te": "Type at least 2 characters to search",
-      "waar_ben_je_naar_op_zoek": "What are you looking for?"
+      "waar_ben_je_naar_op_zoek": "What are you looking for?",
+      "searching": "Searching..."
     },
     "shopLayout": {
       "shop_niet_gevonden": "Webshop not found",
@@ -2033,7 +2036,9 @@
       "snelle_links": "Quick Links",
       "volg_ons": "Follow Us",
       "shop": "Shop",
-      "shop_2": "Shop"
+      "shop_2": "Shop",
+      "legal": "Legal",
+      "products": "Products"
     },
     "reviews": {
       "aggregateReviewScore": {

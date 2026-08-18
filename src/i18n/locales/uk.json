@@ -1986,7 +1986,8 @@
       "alles_accepteren_2": "Прийняти все",
       "deze_website_gebruikt_cookies_voor_een": "Цей вебсайт використовує файли cookie для кращої взаємодії.",
       "weigeren": "Відхилити",
-      "accepteren": "Прийняти"
+      "accepteren": "Прийняти",
+      "marketing": "Маркетинг"
     },
     "exitIntentPopup": {
       "wacht_even": "Зачекайте!",
@@ -2000,7 +2001,8 @@
     },
     "mobileBottomNav": {
       "zoeken": "Пошук",
-      "wagen": "Кошик"
+      "wagen": "Кошик",
+      "categories": "Категорії"
     },
     "newsletterPopup": {
       "bedankt": "Дякуємо!",
@@ -2023,7 +2025,8 @@
     "searchModal": {
       "probeer_een_andere_zoekterm": "Спробуйте інший пошуковий запит",
       "typ_minimaal_2_tekens_om_te": "Введіть принаймні 2 символи для пошуку",
-      "waar_ben_je_naar_op_zoek": "Що ви шукаєте?"
+      "waar_ben_je_naar_op_zoek": "Що ви шукаєте?",
+      "searching": "Пошук..."
     },
     "shopLayout": {
       "shop_niet_gevonden": "Магазин не знайдено",
@@ -2033,7 +2036,9 @@
       "snelle_links": "Швидкі посилання",
       "volg_ons": "Слідкуйте за нами",
       "shop": "Магазин",
-      "shop_2": "Магазин"
+      "shop_2": "Магазин",
+      "legal": "Юридичне",
+      "products": "Товари"
     },
     "reviews": {
       "aggregateReviewScore": {

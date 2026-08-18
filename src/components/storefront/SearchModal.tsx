@@ -97,7 +97,7 @@ export function SearchModal({ open, onOpenChange, tenantId, basePath, currency =
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto">
           {loading && (
-            <div className="px-6 py-8 text-center text-muted-foreground">{t('common.search')}</div>
+            <div className="px-6 py-8 text-center text-muted-foreground">{t('storefront.searchModal.searching')}</div>
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (

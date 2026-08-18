@@ -37,10 +37,36 @@ if (targets.length === 0) {
 
 const nl = readLocale('nl');
 const flatNl = flattenTree(nl);
-/** NL-waarde → bestaande key, voor hergebruik (common.* eerst). */
-const valueToKey = new Map();
+
+/**
+ * NL-waarde → alle keys met die waarde, voor hergebruik.
+ *
+ * BELANGRIJK — hergebruik is begrensd per namespace. Een bestand mag alleen
+ * lenen uit `common.*` (bewust gedeelde woordenschat) en uit zijn eigen
+ * root-namespace, afgeleid uit de bestandslocatie. Een storefront-bestand mag
+ * dus `common.save` en `storefront.*` hergebruiken, maar nooit `navigation.*`,
+ * `settings.*`, `admin.*` of `auth.*`.
+ *
+ * Zonder die grens matcht hergebruik op identieke Nederlandse tekst over de
+ * hele key-set, en dat is één keer echt misgegaan: de publieke webshop rendeerde
+ * `navigation.items.platform_legal` — een key van het platform-adminmenu — als
+ * footer-kop. Hernoemen van dat menu-item zou dan de footer van elke webshop
+ * meeveranderen. Zie de fix in `storefront.shopLayout.legal` c.s.
+ *
+ * `common.*` staat vooraan zodat dat de voorkeur krijgt boven een toevallige
+ * treffer binnen de eigen namespace.
+ */
+const valueToKeys = new Map();
 for (const [key, value] of [...flatNl].sort((a, b) => (a[0].startsWith('common.') ? -1 : b[0].startsWith('common.') ? 1 : 0))) {
-  if (typeof value === 'string' && !valueToKey.has(value)) valueToKey.set(value, key);
+  if (typeof value !== 'string') continue;
+  const list = valueToKeys.get(value) ?? [];
+  list.push(key);
+  valueToKeys.set(value, list);
+}
+
+/** Mag `key` hergebruikt worden door een bestand in root-namespace `rootNs`? */
+function reusableIn(key, rootNs) {
+  return key.startsWith('common.') || key.startsWith(`${rootNs}.`);
 }
 
 /** Masker: comment- en template-literal-regio's overslaan. */
@@ -193,8 +219,11 @@ for (const target of targets) {
     const usedSlugs = new Map();
     let todoCount = 0;
 
+    const rootNs = ns.split('.')[0];
+
     const keyFor = (text) => {
-      const existing = valueToKey.get(text);
+      // Alleen hergebruiken binnen common.* of de eigen root-namespace.
+      const existing = (valueToKeys.get(text) ?? []).find((k) => reusableIn(k, rootNs));
       if (existing) { summary.reused++; return existing; }
       let slug = slugify(text);
       const n = (usedSlugs.get(slug) ?? 0) + 1;
@@ -263,7 +292,11 @@ for (const target of targets) {
     // 4. NL-keys wegschrijven.
     let added = 0;
     for (const e of edits) {
-      if (setKey(nl, e.key, e.text)) { added++; valueToKey.set(e.text, e.key); }
+      if (setKey(nl, e.key, e.text)) {
+        added++;
+        // Nieuwe key ook beschikbaar maken voor hergebruik verderop in dezelfde run.
+        valueToKeys.set(e.text, [...(valueToKeys.get(e.text) ?? []), e.key]);
+      }
     }
     summary.keys += added;
     summary.changed++;

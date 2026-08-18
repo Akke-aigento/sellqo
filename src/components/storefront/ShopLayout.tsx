@@ -399,7 +399,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               <h4 className="font-semibold mb-4">{t('storefront.shopLayout.snelle_links')}</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link to={basePath} className="text-muted-foreground hover:text-foreground">{t('storefront.megaMenu.home')}</Link></li>
-                <li><Link to={`${basePath}/products`} className="text-muted-foreground hover:text-foreground">{t('navigation.products')}</Link></li>
+                <li><Link to={`${basePath}/products`} className="text-muted-foreground hover:text-foreground">{t('storefront.shopLayout.products')}</Link></li>
                 {navPages.slice(0, 4).map((page: any) => (
                   <li key={page.id}>
                     <Link to={`${basePath}/page/${page.slug}`} className="text-muted-foreground hover:text-foreground">{page.title}</Link>
@@ -410,7 +410,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 
             {legalPages.length > 0 && (
               <div>
-                <h4 className="font-semibold mb-4">{t('navigation.items.platform_legal')}</h4>
+                <h4 className="font-semibold mb-4">{t('storefront.shopLayout.legal')}</h4>
                 <ul className="space-y-2 text-sm">
                   {legalPages.map((page: any) => (
                     <li key={page.id}>
