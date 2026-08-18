@@ -14,9 +14,6 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
-  { version: '2026.10b', dateKey: 'sep_2026', changes: [
-    { id: 'paypal_checkout', type: 'feature' },
-  ] },
   { version: '2026.10a', dateKey: 'sep_2026', changes: [
     { id: 'sepa_mandate_context', type: 'improvement' },
   ] },
