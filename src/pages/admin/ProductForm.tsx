@@ -47,6 +47,7 @@ import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
 import { useProductFiles } from '@/hooks/useProductFiles';
 import { useLicenseKeys } from '@/hooks/useLicenseKeys';
 import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
@@ -150,6 +151,20 @@ export default function ProductForm() {
   const isEditing = !!id;
   
   const { currentTenant } = useTenant();
+  // PROD-TRIGGER-1 — commerciële velden zijn voor rollen die uitsluitend
+  // `marketing` of `warehouse` zijn niet schrijfbaar (DB-trigger
+  // `guard_product_commercial_fields`). Zonder deze UI-afscherming krijgt de
+  // gebruiker pas bij opslaan een databasefout.
+  const { roles, isPlatformAdmin } = useAuth();
+  const roleNames = useMemo(() => (roles ?? []).map((r) => r.role as string), [roles]);
+  const hasBroadRole = isPlatformAdmin
+    || roleNames.includes('tenant_admin')
+    || roleNames.includes('staff');
+  const isRestrictedRole = !hasBroadRole
+    && (roleNames.includes('marketing') || roleNames.includes('warehouse'));
+  const canEditCommercial = !isRestrictedRole;
+  const canEditStock = !isRestrictedRole || roleNames.includes('warehouse');
+  const adminManagedHint = 'Wordt door een beheerder beheerd.';
   const { enforceLimit } = useUsageLimits();
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { products: allProducts, createProduct, updateProduct } = useProducts();
@@ -886,9 +901,10 @@ export default function ProductForm() {
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-                                  <Input {...field} type="number" step="0.01" min="0" className="pl-7" />
+                                  <Input {...field} type="number" step="0.01" min="0" className="pl-7" disabled={!canEditCommercial} />
                                 </div>
                               </FormControl>
+                              {!canEditCommercial && <FormDescription>{adminManagedHint}</FormDescription>}
                               <FormMessage />
                             </FormItem>
                           )} />
@@ -899,10 +915,10 @@ export default function ProductForm() {
                             <FormControl>
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-                                <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" />
+                                <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" disabled={!canEditCommercial} />
                               </div>
                             </FormControl>
-                            <FormDescription>"Was" prijs voor kortingen</FormDescription>
+                            <FormDescription>{canEditCommercial ? '"Was" prijs voor kortingen' : adminManagedHint}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -915,10 +931,10 @@ export default function ProductForm() {
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-                                  <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" />
+                                  <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" disabled={!canEditCommercial} />
                                 </div>
                               </FormControl>
-                              <FormDescription>Voor winstberekening (niet zichtbaar)</FormDescription>
+                              <FormDescription>{canEditCommercial ? 'Voor winstberekening (niet zichtbaar)' : adminManagedHint}</FormDescription>
                               <FormMessage />
                             </FormItem>
                           )} />
@@ -938,16 +954,16 @@ export default function ProductForm() {
                         <FormField control={form.control} name="sku" render={({ field }) => (
                           <FormItem>
                             <FormLabel>SKU</FormLabel>
-                            <FormControl><Input {...field} placeholder="ABC-123" /></FormControl>
-                            <FormDescription>Stock Keeping Unit</FormDescription>
+                            <FormControl><Input {...field} placeholder="ABC-123" disabled={!canEditCommercial} /></FormControl>
+                            <FormDescription>{canEditCommercial ? 'Stock Keeping Unit' : adminManagedHint}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="barcode" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Barcode</FormLabel>
-                            <FormControl><Input {...field} placeholder="8712345678901" /></FormControl>
-                            <FormDescription>EAN, UPC of GTIN</FormDescription>
+                            <FormControl><Input {...field} placeholder="8712345678901" disabled={!canEditCommercial} /></FormControl>
+                            <FormDescription>{canEditCommercial ? 'EAN, UPC of GTIN' : adminManagedHint}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -980,7 +996,8 @@ export default function ProductForm() {
                             <FormField control={form.control} name="stock" render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Huidige voorraad</FormLabel>
-                                <FormControl><Input {...field} type="number" min="0" /></FormControl>
+                                <FormControl><Input {...field} type="number" min="0" disabled={!canEditStock} /></FormControl>
+                                {!canEditStock && <FormDescription>{adminManagedHint}</FormDescription>}
                                 <FormMessage />
                               </FormItem>
                             )} />
@@ -988,8 +1005,8 @@ export default function ProductForm() {
                           <FormField control={form.control} name="low_stock_threshold" render={({ field }) => (
                             <FormItem>
                               <FormLabel>Lage voorraad drempel</FormLabel>
-                              <FormControl><Input {...field} type="number" min="0" /></FormControl>
-                              <FormDescription>Ontvang een waarschuwing bij deze voorraad</FormDescription>
+                              <FormControl><Input {...field} type="number" min="0" disabled={!canEditStock} /></FormControl>
+                              <FormDescription>{canEditStock ? 'Ontvang een waarschuwing bij deze voorraad' : adminManagedHint}</FormDescription>
                               <FormMessage />
                             </FormItem>
                           )} />

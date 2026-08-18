@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10d — Marketingrol kan producten bewerken (improvement, 18-08-2026)
+
+**Je marketeer kan nu zelf productteksten bijwerken** (oktober 2026)
+Teamleden met de marketingrol konden geen enkel product bewerken, ook geen
+beschrijving of SEO-tekst. Dat kan nu wel: teksten, SEO-velden, tags, categorieën
+en afbeeldingen zijn bewerkbaar. Prijzen, inkoopprijzen, btw-tarief, artikelnummer,
+barcode en voorraad blijven voorbehouden aan beheerders — die velden staan grijs
+met de melding dat een beheerder ze beheert. Ook de magazijnrol kan geen prijzen
+meer wijzigen; die kan alleen nog de voorraad bijwerken.
+Wat betekent dit voor jou? Je hoeft niets in te stellen; het geldt meteen voor je hele team.
+
+**i18n-keys.** `public.changelog.changes.marketing_product_editing` — NL/EN/FR/DE aanwezig.
+
 ### 2026.10c — Persoonlijke instellingen voor iedereen, rapporten opgesplitst (improvement, 18-08-2026)
 
 **Iedereen bij zijn eigen profiel, rapporten netjes gescheiden** (oktober 2026)

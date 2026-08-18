@@ -1,3 +1,108 @@
+
+## PROD-TRIGGER-1 — marketing mag producten bewerken, niet de commerciële velden — 18-08-2026
+
+### Root cause
+`products` bundelt content- en commerciële velden in één tabel. Rijniveau-RLS kan
+daarom geen onderscheid maken tussen "beschrijving aanpassen" en "prijs aanpassen".
+De rol `marketing` was daardoor volledig uitgesloten van `products.write`
+(`src/hooks/useCan.ts`) en van de UPDATE-policy `Users can update their tenant's
+products` — precies het werk (teksten, SEO, tags, afbeeldingen) waarvoor de rol
+bestaat, was onmogelijk. Bij het testen met een echte marketinggebruiker bleek dit
+een blokkade voor normaal werk.
+
+**Bestaand gat, in dezelfde batch meegenomen:** `warehouse` stond wél in de
+UPDATE-policy en kon dus de verkoopprijs, inkoopprijs, btw-tarief, SKU en barcode
+van elk product wijzigen, terwijl die rol alleen voorraad hoort te beheren.
+
+### Uitgevoerd
+- **Migratie** — `Users can update their tenant's products` herbouwd met
+  `'marketing'::app_role` toegevoegd aan de rol-array; policynaam en de
+  `tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))`-voorwaarde behouden.
+  INSERT-policies en de twee platform-admin-policies ongemoeid.
+- **Migratie** — nieuwe `public.guard_product_commercial_fields()`
+  (`SECURITY DEFINER`, `search_path = public`) + trigger
+  `trg_guard_product_commercial_fields` `BEFORE UPDATE ON public.products FOR EACH ROW`.
+  Verboden voor wie uitsluitend `marketing`/`warehouse` is: `price`,
+  `compare_at_price`, `cost_price`, `vat_rate_id`, `sku`, `barcode`. Voorraad
+  (`stock`, `low_stock_threshold`) mag `warehouse` wel, `marketing` niet.
+  Foutcode `42501`.
+- `src/hooks/useCan.ts` — `marketing` toegevoegd aan `products.write`.
+  `product_costs` ongewijzigd.
+- `src/pages/admin/ProductForm.tsx` — rolafgeleide vlaggen `canEditCommercial` en
+  `canEditStock` uit `useAuth().roles`; prijs-, kostprijs-, vergelijkingsprijs-,
+  SKU-, barcode-, voorraad- en drempelvelden `disabled` met de uitleg
+  "Wordt door een beheerder beheerd."
+- `src/App.tsx` — `products/new` kreeg naast `requireWrite="products"` een
+  `requireRole={['tenant_admin','staff']}`. **Bevinding:** zonder die toevoeging
+  zou een marketier na de matrixwijziging wél het aanmaakformulier krijgen terwijl
+  de INSERT-policy hem weigert — dus een formulier dat bij opslaan faalt.
+
+### Checkvolgorde: ruim naar smal
+`auth.uid() IS NULL` of `is_platform_admin` → door. Daarna `tenant_admin`/`staff`
+→ door. Pas daarna de beperking voor `marketing`/`warehouse`. Rolstapeling mag
+nooit tot minder rechten leiden: wie naast `marketing` ook `staff` is, houdt
+volledige schrijfrechten.
+
+### Server-to-server
+`auth.uid() IS NULL` betekent hier service-role: productimport, marketplace-sync
+en prijsfeeds draaien via edge functions. Een harde check zou die allemaal breken.
+Zelfde conventie als SEC-0b; zie platformartikel `rpc-autorisatie-conventie`.
+
+### Triggerorde
+`BEFORE`-triggers lopen alfabetisch: `products_updated_at` → `trg_guard_...` →
+`trg_sync_product_ean_fields`. Nagetrokken: `sync_product_ean_fields` raakt geen
+prijs- of identificatievelden (`pg_get_functiondef(...) LIKE '%price%'` = false),
+dus de guard kan niet afgaan op een systeemwijziging.
+`trigger_stock_notification` is `AFTER` en valt buiten de guard.
+
+### Verificatie
+1. Triggers op `products`: `products_updated_at` (BEFORE),
+   `trg_guard_product_commercial_fields` (BEFORE),
+   `trg_sync_product_ean_fields` (BEFORE), `trigger_stock_notification` (AFTER).
+2. `bevat_marketing`: UPDATE `Users can update their tenant's products` = **true**,
+   beide INSERT-policies = **false**, platform-admin-UPDATE = false.
+3. `guard_product_commercial_fields`: `prosecdef = true`, `config = search_path=public`.
+4. **End-to-end, echte marketinggebruiker** (`48ab6f43-…`, tenant `54f6b480-…`),
+   sessie nagebootst via `request.jwt.claims`, alles in één transactie die
+   afgesloten werd met een `RAISE EXCEPTION` zodat niets persistent werd:
+   `description=OK; price=geweigerd 42501; stock=geweigerd 42501;
+   sku=geweigerd 42501; bulk_adjust_prices=geweigerd 42501`.
+   Stap 4 van de opdracht is daarmee bewezen: `bulk_adjust_prices` draait
+   `SECURITY DEFINER`, maar de trigger vuurt op de onderliggende `UPDATE` en
+   weigert alsnog.
+5. `npx tsgo --noEmit -p tsconfig.app.json` → exit 0.
+6. JSON-parse `landing.{nl,en,fr,de}.json` → alle vier geldig, sleutel
+   `marketing_product_editing` in alle vier aanwezig.
+
+### Openstaand restrisico
+- `cost_price` blijft **leesbaar** voor alle tenant-rollen via de tenant-blinde
+  `SELECT`-policy op `products`. Kolomniveau-leesafscherming vraagt een view of
+  column privileges en valt buiten deze batch — zie de `product_costs`-notitie
+  uit SEC-2a en SEC-4.
+- `product_variants` heeft een eigen `cost_price` en verdient dezelfde guard
+  zodra `marketing` daar schrijfrechten zou krijgen. Nu niet aan de orde: die rol
+  staat niet in de variant-policies.
+- Newsletter-item staat onder *Openstaand* in `docs/newsletter-queue.md` en moet
+  handmatig door Akke verzonden worden; de wachtrij leeft in de paper trail tot
+  UPDATES-1.
+
+### Rollback
+```sql
+DROP TRIGGER IF EXISTS trg_guard_product_commercial_fields ON public.products;
+DROP FUNCTION IF EXISTS public.guard_product_commercial_fields();
+
+DROP POLICY IF EXISTS "Users can update their tenant's products" ON public.products;
+CREATE POLICY "Users can update their tenant's products"
+ON public.products
+FOR UPDATE
+USING (
+  (tenant_id IN ( SELECT get_user_tenant_ids(auth.uid()) AS get_user_tenant_ids))
+  AND has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role, 'warehouse'::app_role])
+);
+```
+Frontend: `marketing` uit `products.write` halen, de `disabled`-vlaggen en de
+`requireRole` op `products/new` terugdraaien.
+
 ## PERM-2 — persoonlijke instellingen ontsloten, rapporten gesplitst — 18 augustus 2026
 
 **Root cause (deel A).** De route-guard van `/admin/settings` en `/admin/notifications` stond in

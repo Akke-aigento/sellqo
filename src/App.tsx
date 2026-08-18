@@ -199,7 +199,10 @@ const App = () => (
               <Route path="badges" element={<BadgesPage />} />
               <Route path="fulfillment" element={<RouteGuard requireRead="orders"><FulfillmentPage /></RouteGuard>} />
               <Route path="products" element={<RouteGuard requireRead="products"><ProductsPage /></RouteGuard>} />
-              <Route path="products/new" element={<RouteGuard requireWrite="products"><ProductForm /></RouteGuard>} />
+              {/* PROD-TRIGGER-1 — aanmaken blijft bij tenant_admin/staff: de
+                  INSERT-policy op products laat marketing niet toe, dus zonder
+                  deze rolcheck krijgt marketing een formulier dat bij opslaan faalt. */}
+              <Route path="products/new" element={<RouteGuard requireWrite="products" requireRole={['tenant_admin', 'staff']}><ProductForm /></RouteGuard>} />
               <Route path="products/:id/edit" element={<RouteGuard requireWrite="products"><ProductForm /></RouteGuard>} />
               <Route path="orders" element={<RouteGuard requireRead="orders"><OrdersPage /></RouteGuard>} />
               <Route path="orders/:id" element={<RouteGuard requireRead="orders"><OrderDetailPage /></RouteGuard>} />
