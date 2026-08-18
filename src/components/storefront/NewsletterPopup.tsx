@@ -14,8 +14,8 @@ interface NewsletterPopupProps {
 
 const STORAGE_KEY = 'newsletter-popup-shown';
 
-export function NewsletterPopup({
-  const { t } = useTranslation(); tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
+export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);

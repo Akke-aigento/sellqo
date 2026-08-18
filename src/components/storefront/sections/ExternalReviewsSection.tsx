@@ -11,8 +11,8 @@ interface ExternalReviewsSectionProps {
   tenantId?: string;
 }
 
-export function ExternalReviewsSection({
-  const { t } = useTranslation(); section, tenantId }: ExternalReviewsSectionProps) {
+export function ExternalReviewsSection({ section, tenantId }: ExternalReviewsSectionProps) {
+  const { t } = useTranslation();
   const { reviews, aggregate, isLoading } = usePublicReviews(tenantId);
 
   const content = section.content as {

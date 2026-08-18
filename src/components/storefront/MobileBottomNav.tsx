@@ -9,8 +9,8 @@ interface MobileBottomNavProps {
   onSearchClick: () => void;
 }
 
-export function MobileBottomNav({
-  const { t } = useTranslation(); basePath, cartCount, onSearchClick }: MobileBottomNavProps) {
+export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBottomNavProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const isActive = (path: string) => {t('storefront.mobileBottomNav.location_pathname_path_return')}
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">

@@ -31,8 +31,8 @@ interface ProductCardProps {
   onToggleWishlist?: (product: any) => void;
 }
 
-export function ProductCard({
-  const { t } = useTranslation(); product, basePath, showPrice = true, currency = 'EUR', cardStyle = 'standard', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
+export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR', cardStyle = 'standard', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
   
   // Bundle-aware pricing

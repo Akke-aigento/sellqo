@@ -11,8 +11,8 @@ interface NewsletterSectionProps {
   tenantId?: string;
 }
 
-export function NewsletterSection({
-  const { t } = useTranslation(); section, tenantId }: NewsletterSectionProps) {
+export function NewsletterSection({ section, tenantId }: NewsletterSectionProps) {
+  const { t } = useTranslation();
   const content = section.content as NewsletterContent;
   const settings = section.settings;
   const [email, setEmail] = useState('');

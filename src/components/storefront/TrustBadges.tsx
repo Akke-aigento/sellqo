@@ -1,4 +1,5 @@
 import { Shield, Truck, RefreshCw, CreditCard, Lock, Award } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TrustBadgesProps {
   badges: string[];

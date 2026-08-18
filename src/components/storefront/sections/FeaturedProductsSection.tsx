@@ -9,8 +9,8 @@ interface FeaturedProductsSectionProps {
   tenantId?: string;
 }
 
-export function FeaturedProductsSection({
-  const { t } = useTranslation(); section, tenantId }: FeaturedProductsSectionProps) {
+export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsSectionProps) {
+  const { t } = useTranslation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const content = section.content as FeaturedProductsContent;
   const settings = section.settings;

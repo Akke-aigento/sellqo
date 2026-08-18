@@ -23,8 +23,8 @@ interface StorefrontLanguageSelectorProps {
   style: 'dropdown' | 'flags' | 'text';
 }
 
-export function StorefrontLanguageSelector({
-  const { t } = useTranslation(); languages, currentLanguage, onLanguageChange, style }: StorefrontLanguageSelectorProps) {
+export function StorefrontLanguageSelector({ languages, currentLanguage, onLanguageChange, style }: StorefrontLanguageSelectorProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   

@@ -36,6 +36,7 @@ export function BankTransferPayment({
   showConfirmButton = false,
   isConfirming = false,
 }: BankTransferPaymentProps) {
+  const { t } = useTranslation();
   // Generate EPC QR code string
   const epcString = useMemo(() => {
     return generateEPCString({

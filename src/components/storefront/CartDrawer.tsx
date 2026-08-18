@@ -14,8 +14,8 @@ interface CartDrawerProps {
   currency?: string;
 }
 
-export function CartDrawer({
-  const { t } = useTranslation(); open, onOpenChange, basePath, currency = 'EUR' }: CartDrawerProps) {
+export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: CartDrawerProps) {
+  const { t } = useTranslation();
   const { items, updateQuantity, removeItem, getSubtotal } = useCart();
   const subtotal = getSubtotal();
 

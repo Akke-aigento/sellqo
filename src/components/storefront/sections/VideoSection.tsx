@@ -5,8 +5,8 @@ interface VideoSectionProps {
   section: HomepageSection;
 }
 
-export function VideoSection({
-  const { t } = useTranslation(); section }: VideoSectionProps) {
+export function VideoSection({ section }: VideoSectionProps) {
+  const { t } = useTranslation();
   const content = section.content as VideoContent;
   const settings = section.settings;
 

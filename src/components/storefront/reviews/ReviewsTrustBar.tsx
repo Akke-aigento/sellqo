@@ -16,6 +16,7 @@ export function ReviewsTrustBar({
   platforms,
   variant = 'light',
 }: ReviewsTrustBarProps) {
+  const { t } = useTranslation();
   const variantClasses = {
     light: 'bg-muted/50 text-foreground',
     dark: 'bg-foreground text-background',

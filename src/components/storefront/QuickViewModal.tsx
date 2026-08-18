@@ -34,8 +34,8 @@ interface QuickViewModalProps {
   onCartOpen?: () => void;
 }
 
-export function QuickViewModal({
-  const { t } = useTranslation(); product, open, onOpenChange, basePath, currency = 'EUR', onCartOpen }: QuickViewModalProps) {
+export function QuickViewModal({ product, open, onOpenChange, basePath, currency = 'EUR', onCartOpen }: QuickViewModalProps) {
+  const { t } = useTranslation();
   const { addToCart } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);

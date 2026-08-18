@@ -1,4 +1,5 @@
 import type { AggregateReviewData } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface ReviewsStructuredDataProps {
   aggregate: AggregateReviewData;

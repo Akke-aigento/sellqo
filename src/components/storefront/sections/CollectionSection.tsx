@@ -9,8 +9,8 @@ interface CollectionSectionProps {
   tenantId?: string;
 }
 
-export function CollectionSection({
-  const { t } = useTranslation(); section, tenantId }: CollectionSectionProps) {
+export function CollectionSection({ section, tenantId }: CollectionSectionProps) {
+  const { t } = useTranslation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const content = section.content as CollectionContent;
   const settings = section.settings;

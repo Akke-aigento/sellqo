@@ -17,8 +17,8 @@ interface MegaMenuProps {
   basePath: string;
 }
 
-export function MegaMenu({
-  const { t } = useTranslation(); categories, basePath }: MegaMenuProps) {
+export function MegaMenu({ categories, basePath }: MegaMenuProps) {
+  const { t } = useTranslation();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   // Build tree: top-level categories and their children

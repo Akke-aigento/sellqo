@@ -19,8 +19,8 @@ interface ProductReviewsSectionProps {
   display: 'full' | 'stars_only' | 'hidden';
 }
 
-export function ProductReviewsSection({
-  const { t } = useTranslation(); reviews, averageRating, totalReviews, display }: ProductReviewsSectionProps) {
+export function ProductReviewsSection({ reviews, averageRating, totalReviews, display }: ProductReviewsSectionProps) {
+  const { t } = useTranslation();
   if (display === 'hidden' || totalReviews === 0) return null;
 
   return (

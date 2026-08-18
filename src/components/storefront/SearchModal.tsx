@@ -23,8 +23,8 @@ interface SearchResult {
   images: string[];
 }
 
-export function SearchModal({
-  const { t } = useTranslation(); open, onOpenChange, tenantId, basePath, currency = 'EUR' }: SearchModalProps) {
+export function SearchModal({ open, onOpenChange, tenantId, basePath, currency = 'EUR' }: SearchModalProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>{t('storefront.searchModal.const_loading_setloading_usestate_false_const')}<HTMLInputElement>{t('storefront.searchModal.null_const_navigate_usenavigate_const_debounceref')}<NodeJS.Timeout>();
 

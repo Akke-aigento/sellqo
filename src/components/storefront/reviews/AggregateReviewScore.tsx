@@ -18,6 +18,7 @@ export function AggregateReviewScore({
   size = 'md',
   showPlatforms = true,
 }: AggregateReviewScoreProps) {
+  const { t } = useTranslation();
   const sizeConfig = {
     sm: { stars: 'w-3 h-3', text: 'text-sm', gap: 'gap-1' },
     md: { stars: 'w-4 h-4', text: 'text-base', gap: 'gap-1.5' },

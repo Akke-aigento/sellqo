@@ -55,8 +55,8 @@ interface ShopLayoutProps {
   children: ReactNode;
 }
 
-export function ShopLayout({
-  const { t } = useTranslation(); children }: ShopLayoutProps) {
+export function ShopLayout({ children }: ShopLayoutProps) {
+  const { t } = useTranslation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
   const { tenant, themeSettings, navPages, categories, legalPages, isLoading, error } = usePublicStorefront(tenantSlug || '');
@@ -542,8 +542,8 @@ function AnnouncementCarousel({ texts, link, bgColor, textColor }: { texts: stri
 }
 
 // Standard Header Component
-function StandardHeader({
-  const { t } = useTranslation(); tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+function StandardHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, searchOpen, setSearchOpen, searchQuery, setSearchQuery, onSearch, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, searchDisplay, wishlistCount, onCartClick, onSearchModalOpen, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+  const { t } = useTranslation();
   const { openDrawer } = useCart();
   
   return (
@@ -664,8 +664,8 @@ function StandardHeader({
 }
 
 // Centered Header Component
-function CenteredHeader({
-  const { t } = useTranslation(); tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+  const { t } = useTranslation();
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();
@@ -763,8 +763,8 @@ function CenteredHeader({
 }
 
 // Minimal Header Component
-function MinimalHeader({
-  const { t } = useTranslation(); tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+  const { t } = useTranslation();
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
   const wishlistCount = getWishlistCount();

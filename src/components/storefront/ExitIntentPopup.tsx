@@ -10,8 +10,8 @@ interface ExitIntentPopupProps {
 
 const SESSION_KEY = 'exit-intent-shown';
 
-export function ExitIntentPopup({
-  const { t } = useTranslation(); tenantSlug, incentiveText }: ExitIntentPopupProps) {
+export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PLATFORM_INFO, type ExternalReview } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface UnifiedReviewsCarouselProps {
   reviews: ExternalReview[];

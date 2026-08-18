@@ -35,8 +35,8 @@ export function hasConsent(tenantSlug: string, category: 'analytics' | 'marketin
   return consent[category] === true;
 }
 
-export function CookieBanner({
-  const { t } = useTranslation(); style, tenantSlug }: CookieBannerProps) {
+export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [preferences, setPreferences] = useState({
     functional: true,

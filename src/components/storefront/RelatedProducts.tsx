@@ -11,8 +11,8 @@ interface RelatedProductsProps {
   mode: 'auto' | 'manual' | 'off';
 }
 
-export function RelatedProducts({
-  const { t } = useTranslation(); tenantId, currentProductId, categoryId, basePath, currency = 'EUR', mode }: RelatedProductsProps) {
+export function RelatedProducts({ tenantId, currentProductId, categoryId, basePath, currency = 'EUR', mode }: RelatedProductsProps) {
+  const { t } = useTranslation();
   // Auto mode: fetch products from same category
   const { data: products } = usePublicProducts(tenantId, {
     categoryId: mode === 'auto' ? categoryId : undefined,
