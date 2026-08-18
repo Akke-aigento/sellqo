@@ -1026,6 +1026,10 @@
     "changelog": {
       "changes": {
 
+        "promotion_permission_scope": {
+          "title": "Das Recht zur Verwaltung von Rabatten gilt jetzt auch für Aktionen",
+          "description": "Das Recht, das Sie pro Teammitglied für die Verwaltung von Rabattcodes festlegen, umfasst jetzt auch alle Aktionen: automatische Rabatte, Mengenrabatte, 1+1-Aktionen, Geschenkaktionen, Kombinationsregeln und Treueprogramme. Ein einziger Schalter regelt damit die gesamte Befugnis. Zusätzlich ist der Einblick in einige sensible Daten weiter auf die Rollen beschränkt, die ihn wirklich benötigen."
+        },
         "sepa_mandate_context": {
           "title": "SEPA-Mandate zeigen jetzt Betrag, Grund und Intervall",
           "description": "Wenn Sie einen Kunden um ein wiederkehrendes SEPA-Mandat bitten, zeigt die Autorisierungsseite nun genau, wozu er zustimmt: den Betrag inklusive Mehrwertsteuer, den Grund und die Abbuchungsfrequenz. Der Betrag stammt direkt aus dem Abonnement und entspricht damit exakt dem späteren Einzug."
