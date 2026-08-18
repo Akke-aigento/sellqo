@@ -8,7 +8,23 @@
     "edit": "Edit",
     "cancel": "Cancel",
     "save": "Save",
-    "price": "Price"
+    "price": "Price",
+    "actions": "Actions",
+    "add": "Add",
+    "address": "Address",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "date": "Date",
+    "delete": "Delete",
+    "description": "Description",
+    "email": "Email",
+    "name": "Name",
+    "next": "Next",
+    "no": "No",
+    "phone": "Phone",
+    "search": "Search...",
+    "yes": "Yes"
   },
   "auth": {
     "login": "Log in",
@@ -29,7 +45,8 @@
     "settings": "Settings",
     "analytics": "Analytics",
     "platform": "Platform",
-    "tenants": "Tenants"
+    "tenants": "Tenants",
+    "import": "Import"
   },
   "settings": {
     "title": "Settings",
@@ -691,7 +708,15 @@
       "received": "Payment received — your subscription has been updated",
       "processing": "We are processing your payment ({{reference}})…",
       "slow": "Your payment was received. It may take a moment before everything is updated."
-    }
+    },
+    "billing_details": "Billing details",
+    "cancel_subscription": "Cancel subscription",
+    "confirm_change": "Confirm change",
+    "downgrade_warning": "Downgrading may cause you to lose access to certain features",
+    "pay_now": "Amount due now",
+    "proration": "Proration",
+    "reactivate": "Reactivate subscription",
+    "upgrade_to": "Upgrade to"
   },
   "import": {
     "title": "Import Data",
@@ -1365,5 +1390,19 @@
       "meta_title_max": "Meta title may be max 60 characters",
       "meta_desc_max": "Meta description may be max 160 characters"
     }
+  },
+  "admin_billing": {
+    "apply_discount": "Apply discount",
+    "arr": "Annual recurring",
+    "at_risk": "At-risk customers",
+    "churn_rate": "Churn rate",
+    "gift_month": "Gift a free month",
+    "lifetime_value": "Lifetime value",
+    "mrr": "Monthly recurring",
+    "paying_customers": "Paying customers",
+    "recent_activity": "Recent activity",
+    "refund": "Refund",
+    "subscribers_by_plan": "Subscribers by plan",
+    "title": "Platform Billing"
   }
 }

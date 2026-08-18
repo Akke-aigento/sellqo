@@ -1,7 +1,31 @@
 {
   "pricing": {
     "vat_note": "Alle Preise zzgl. MwSt.",
-    "excl_vat_short": "zzgl. MwSt."
+    "excl_vat_short": "zzgl. MwSt.",
+    "all_plans_include": "Alle Tarife enthalten",
+    "choose_plan": "Diesen Tarif wählen",
+    "contact_sales": "Vertrieb kontaktieren",
+    "features": {
+      "advanced_analytics": "Erweiterte Analysen",
+      "api_access": "API-Zugriff",
+      "custom_domain": "Eigene Domain",
+      "customers": "Kunden",
+      "orders_per_month": "Bestellungen/Monat",
+      "priority_support": "Priorisierter Support",
+      "products": "Produkte",
+      "storage": "Speicher",
+      "team_members": "Teammitglieder",
+      "white_label": "White-Label"
+    },
+    "monthly": "Monatlich",
+    "most_popular": "Am beliebtesten",
+    "per_month": "/Monat",
+    "start_free": "Kostenlos starten",
+    "subtitle": "Wählen Sie den passenden Tarif. Jederzeit up- oder downgraden.",
+    "title": "Einfache, transparente Preise",
+    "unlimited": "Unbegrenzt",
+    "yearly": "Jährlich",
+    "yearly_discount": "2 Monate gratis"
   },
   "common": {
     "save": "Speichern",
@@ -40,7 +64,17 @@
     "resetPassword": "Passwort zurücksetzen"
   },
   "navigation": {
-    "import": "Importieren"
+    "import": "Importieren",
+    "analytics": "Analysen",
+    "categories": "Kategorien",
+    "customers": "Kunden",
+    "dashboard": "Dashboard",
+    "orders": "Bestellungen",
+    "platform": "Plattform",
+    "products": "Produkte",
+    "settings": "Einstellungen",
+    "shipping": "Versand",
+    "tenants": "Mandanten"
   },
   "settings": {
     "title": "Einstellungen",
@@ -792,7 +826,10 @@
         "mail_subject": "Lastschrift-Ermächtigung",
         "mail_body": "Hallo {{name}},\n\nBitte verwenden Sie den folgenden Link, um den automatischen Einzug Ihrer Abonnementrechnungen zu autorisieren:\n\n{{url}}\n\nMit freundlichen Grüßen."
       }
-    }
+    },
+    "history": "Rechnungsverlauf",
+    "invoice_note": "Abonnement: {name} - Zeitraum: {period}",
+    "last_invoice": "Letzte Rechnung"
   },
   "mandate": {
     "title": "Automatische Zahlung aktivieren",
@@ -1043,7 +1080,15 @@
       "received": "Zahlung erhalten — dein Abonnement wurde aktualisiert",
       "processing": "Wir verarbeiten deine Zahlung ({{reference}})…",
       "slow": "Deine Zahlung ist eingegangen. Es kann einen Moment dauern, bis alles aktualisiert ist."
-    }
+    },
+    "billing_details": "Rechnungsdetails",
+    "cancel_subscription": "Abonnement kündigen",
+    "confirm_change": "Änderung bestätigen",
+    "downgrade_warning": "Bei einem Downgrade verlieren Sie möglicherweise den Zugriff auf bestimmte Funktionen",
+    "pay_now": "Jetzt fälliger Betrag",
+    "proration": "Anteilige Verrechnung",
+    "reactivate": "Abonnement reaktivieren",
+    "upgrade_to": "Upgrade auf"
   },
   "product_form": {
     "title_edit": "Produkt bearbeiten",
@@ -1263,5 +1308,101 @@
       "meta_title_max": "Meta-Titel darf max. 60 Zeichen haben",
       "meta_desc_max": "Meta-Beschreibung darf max. 160 Zeichen haben"
     }
+  },
+  "admin_billing": {
+    "apply_discount": "Rabatt anwenden",
+    "arr": "Jährlich wiederkehrend",
+    "at_risk": "Gefährdete Kunden",
+    "churn_rate": "Abwanderungsrate",
+    "gift_month": "Gratismonat schenken",
+    "lifetime_value": "Lifetime-Value",
+    "mrr": "Monatlich wiederkehrend",
+    "paying_customers": "Zahlende Kunden",
+    "recent_activity": "Letzte Aktivität",
+    "refund": "Erstatten",
+    "subscribers_by_plan": "Abonnenten pro Tarif",
+    "title": "Plattform-Abrechnung"
+  },
+  "invoice_duplicate": {
+    "download": "Duplikat herunterladen",
+    "email": "Duplikat per E-Mail senden",
+    "history": "Duplikatverlauf",
+    "notice": "DUPLIKAT - Kopie der Rechnung vom {originalDate} - Erstellt am {duplicateDate}",
+    "reason": {
+      "accounting": "Buchhaltung",
+      "archive": "Archiv",
+      "customer_request": "Kundenanfrage",
+      "lost": "Verloren"
+    },
+    "title": "Duplikat",
+    "watermark": "DUPLIKAT"
+  },
+  "reports": {
+    "aging": {
+      "bucket_0_30": "0-30 Tage",
+      "bucket_31_60": "31-60 Tage",
+      "bucket_61_90": "61-90 Tage",
+      "bucket_90_plus": "90+ Tage",
+      "critical": "Kritische Rechnungen",
+      "days_overdue": "Tage überfällig",
+      "title": "Offene Rechnungen",
+      "total_outstanding": "Gesamt offen"
+    },
+    "export": "Exportieren",
+    "period": "Zeitraum",
+    "products": {
+      "revenue": "Umsatz",
+      "title": "Produktleistung",
+      "units_sold": "Verkauft"
+    },
+    "revenue": {
+      "average_order": "Durchschnittliche Bestellung",
+      "growth": "Wachstum",
+      "invoice_count": "Anzahl Rechnungen",
+      "title": "Umsatzbericht",
+      "total_revenue": "Gesamtumsatz"
+    },
+    "subscriptions": {
+      "active_count": "Aktive Abonnements",
+      "arr": "ARR (Jährlich wiederkehrend)",
+      "by_interval": "Nach Intervall",
+      "churn_rate": "Abwanderungsrate",
+      "mrr": "MRR (Monatlich wiederkehrend)",
+      "title": "Abonnement-Übersicht"
+    },
+    "title": "Berichte",
+    "top_customers": {
+      "customer": "Kunde",
+      "percentage_of_total": "% vom Gesamt",
+      "rank": "Rang",
+      "title": "Top-Kunden"
+    },
+    "vat": {
+      "by_rate": "Nach Satz",
+      "collected": "Eingenommen",
+      "title": "MwSt.-Übersicht"
+    }
+  },
+  "vat_export": {
+    "calculate": "Berechnen",
+    "creditnote_count": "Gutschriften",
+    "description": "MwSt.-Daten für Ihre periodische Erklärung exportieren",
+    "detailed_report": "Detaillierter Bericht",
+    "domestic_sales": "Inlandsverkäufe",
+    "download": "Herunterladen",
+    "export_format": "Exportformat",
+    "exports_outside_eu": "Ausfuhren außerhalb der EU",
+    "ic_listing": "IC-Meldung herunterladen",
+    "intra_community": "Innergemeinschaftliche Lieferungen",
+    "invoice_count": "Rechnungen",
+    "month": "Monat",
+    "monthly": "Monatlich",
+    "period_type": "Erklärungszeitraum",
+    "preview": "Vorschau",
+    "quarter": "Quartal",
+    "quarterly": "Vierteljährlich",
+    "title": "MwSt.-Erklärung Export",
+    "vat_due": "Geschuldete MwSt.",
+    "year": "Jahr"
   }
 }

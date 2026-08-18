@@ -1,7 +1,31 @@
 {
   "pricing": {
     "vat_note": "Tous les prix sont hors TVA",
-    "excl_vat_short": "hors TVA"
+    "excl_vat_short": "hors TVA",
+    "all_plans_include": "Tous les forfaits incluent",
+    "choose_plan": "Choisir ce forfait",
+    "contact_sales": "Contactez-nous",
+    "features": {
+      "advanced_analytics": "Analyses avancées",
+      "api_access": "Accès API",
+      "custom_domain": "Domaine personnalisé",
+      "customers": "clients",
+      "orders_per_month": "commandes/mois",
+      "priority_support": "Support prioritaire",
+      "products": "produits",
+      "storage": "stockage",
+      "team_members": "membres d'équipe",
+      "white_label": "Marque blanche"
+    },
+    "monthly": "Mensuel",
+    "most_popular": "Le plus choisi",
+    "per_month": "/mois",
+    "start_free": "Commencer gratuitement",
+    "subtitle": "Choisissez le forfait qui vous convient. Changez de forfait à tout moment.",
+    "title": "Des tarifs simples et transparents",
+    "unlimited": "Illimité",
+    "yearly": "Annuel",
+    "yearly_discount": "2 mois gratuits"
   },
   "common": {
     "save": "Enregistrer",
@@ -40,7 +64,17 @@
     "resetPassword": "Réinitialiser le mot de passe"
   },
   "navigation": {
-    "import": "Importer"
+    "import": "Importer",
+    "analytics": "Analyses",
+    "categories": "Catégories",
+    "customers": "Clients",
+    "dashboard": "Tableau de bord",
+    "orders": "Commandes",
+    "platform": "Plateforme",
+    "products": "Produits",
+    "settings": "Paramètres",
+    "shipping": "Expédition",
+    "tenants": "Locataires"
   },
   "settings": {
     "title": "Paramètres",
@@ -792,7 +826,10 @@
         "mail_subject": "Autorisation de prélèvement automatique",
         "mail_body": "Bonjour {{name}},\n\nVeuillez utiliser le lien ci-dessous pour autoriser le prélèvement automatique de vos factures d'abonnement :\n\n{{url}}\n\nCordialement."
       }
-    }
+    },
+    "history": "Historique des factures",
+    "invoice_note": "Abonnement : {name} - Période : {period}",
+    "last_invoice": "Dernière facture"
   },
   "mandate": {
     "title": "Activer le paiement automatique",
@@ -1043,7 +1080,15 @@
       "received": "Paiement reçu — votre abonnement a été mis à jour",
       "processing": "Nous traitons votre paiement ({{reference}})…",
       "slow": "Votre paiement a été reçu. La mise à jour complète peut prendre un instant."
-    }
+    },
+    "billing_details": "Détails de facturation",
+    "cancel_subscription": "Résilier l'abonnement",
+    "confirm_change": "Confirmer la modification",
+    "downgrade_warning": "En rétrogradant, vous pourriez perdre l'accès à certaines fonctionnalités",
+    "pay_now": "Montant à payer maintenant",
+    "proration": "Prorata",
+    "reactivate": "Réactiver l'abonnement",
+    "upgrade_to": "Passer à"
   },
   "product_form": {
     "title_edit": "Modifier le produit",
@@ -1263,5 +1308,101 @@
       "meta_title_max": "Le méta-titre ne peut dépasser 60 caractères",
       "meta_desc_max": "La méta-description ne peut dépasser 160 caractères"
     }
+  },
+  "admin_billing": {
+    "apply_discount": "Appliquer la remise",
+    "arr": "Récurrent annuel",
+    "at_risk": "Clients à risque",
+    "churn_rate": "Taux d'attrition",
+    "gift_month": "Offrir un mois gratuit",
+    "lifetime_value": "Valeur vie client",
+    "mrr": "Récurrent mensuel",
+    "paying_customers": "Clients payants",
+    "recent_activity": "Activité récente",
+    "refund": "Rembourser",
+    "subscribers_by_plan": "Abonnés par forfait",
+    "title": "Facturation de la plateforme"
+  },
+  "invoice_duplicate": {
+    "download": "Télécharger le duplicata",
+    "email": "Envoyer le duplicata par e-mail",
+    "history": "Historique des duplicatas",
+    "notice": "DUPLICATA - Copie de la facture du {originalDate} - Généré le {duplicateDate}",
+    "reason": {
+      "accounting": "Comptabilité",
+      "archive": "Archive",
+      "customer_request": "Demande du client",
+      "lost": "Perdue"
+    },
+    "title": "Duplicata",
+    "watermark": "DUPLICATA"
+  },
+  "reports": {
+    "aging": {
+      "bucket_0_30": "0-30 jours",
+      "bucket_31_60": "31-60 jours",
+      "bucket_61_90": "61-90 jours",
+      "bucket_90_plus": "90+ jours",
+      "critical": "Factures critiques",
+      "days_overdue": "Jours de retard",
+      "title": "Factures impayées",
+      "total_outstanding": "Total impayé"
+    },
+    "export": "Exporter",
+    "period": "Période",
+    "products": {
+      "revenue": "Chiffre d'affaires",
+      "title": "Performance des produits",
+      "units_sold": "Vendus"
+    },
+    "revenue": {
+      "average_order": "Commande moyenne",
+      "growth": "Croissance",
+      "invoice_count": "Nombre de factures",
+      "title": "Rapport de chiffre d'affaires",
+      "total_revenue": "Chiffre d'affaires total"
+    },
+    "subscriptions": {
+      "active_count": "Abonnements actifs",
+      "arr": "ARR (Récurrent annuel)",
+      "by_interval": "Par intervalle",
+      "churn_rate": "Taux d'attrition",
+      "mrr": "MRR (Récurrent mensuel)",
+      "title": "Aperçu des abonnements"
+    },
+    "title": "Rapports",
+    "top_customers": {
+      "customer": "Client",
+      "percentage_of_total": "% du total",
+      "rank": "Rang",
+      "title": "Meilleurs clients"
+    },
+    "vat": {
+      "by_rate": "Par taux",
+      "collected": "Perçue",
+      "title": "Aperçu TVA"
+    }
+  },
+  "vat_export": {
+    "calculate": "Calculer",
+    "creditnote_count": "Notes de crédit",
+    "description": "Exportez les données TVA pour votre déclaration périodique",
+    "detailed_report": "Rapport détaillé",
+    "domestic_sales": "Ventes nationales",
+    "download": "Télécharger",
+    "export_format": "Format d'export",
+    "exports_outside_eu": "Exportations hors UE",
+    "ic_listing": "Télécharger le listing IC",
+    "intra_community": "Livraisons intracommunautaires",
+    "invoice_count": "Factures",
+    "month": "Mois",
+    "monthly": "Mensuel",
+    "period_type": "Période de déclaration",
+    "preview": "Aperçu",
+    "quarter": "Trimestre",
+    "quarterly": "Trimestriel",
+    "title": "Export déclaration TVA",
+    "vat_due": "TVA due",
+    "year": "Année"
   }
 }

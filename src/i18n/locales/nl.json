@@ -8,7 +8,23 @@
     "edit": "Bewerken",
     "cancel": "Annuleren",
     "save": "Opslaan",
-    "price": "Prijs"
+    "price": "Prijs",
+    "actions": "Acties",
+    "add": "Toevoegen",
+    "address": "Adres",
+    "back": "Terug",
+    "close": "Sluiten",
+    "confirm": "Bevestigen",
+    "date": "Datum",
+    "delete": "Verwijderen",
+    "description": "Omschrijving",
+    "email": "E-mail",
+    "name": "Naam",
+    "next": "Volgende",
+    "no": "Nee",
+    "phone": "Telefoon",
+    "search": "Zoeken...",
+    "yes": "Ja"
   },
   "auth": {
     "login": "Inloggen",
@@ -20,7 +36,17 @@
     "resetPassword": "Wachtwoord resetten"
   },
   "navigation": {
-    "import": "Importeren"
+    "import": "Importeren",
+    "analytics": "Analyse",
+    "categories": "Categorieën",
+    "customers": "Klanten",
+    "dashboard": "Dashboard",
+    "orders": "Bestellingen",
+    "platform": "Platform",
+    "products": "Producten",
+    "settings": "Instellingen",
+    "shipping": "Verzending",
+    "tenants": "Tenants"
   },
   "settings": {
     "title": "Instellingen",
