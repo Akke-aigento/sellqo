@@ -66,21 +66,82 @@ function buildMask(src) {
   return mask;
 }
 
-/** Componentgrenzen: naam + offset van de openende accolade van de body. */
+/** Index van het `)` dat hoort bij het `(` op `open`. */
+function matchParen(src, open) {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === '(') depth++;
+    else if (src[i] === ')') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+/**
+ * Componentgrenzen: naam + offset van de openende accolade van de FUNCTIEBODY.
+ * Let op: bij `function X({ a, b }: Props)` mag de accolade van de destructurering
+ * niet als body gelden — daarom eerst de parameterlijst overslaan.
+ */
 function findComponents(src) {
   const out = [];
-  const patterns = [
-    /^(?:export\s+)?(?:default\s+)?function\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*\(/gm,
-    /^(?:export\s+)?const\s+([A-Z][A-Za-z0-9_]*)(?::\s*[^=]+)?\s*=\s*(?:\([^)]*\)|[A-Za-z0-9_$]+)\s*(?::\s*[^=]+)?=>\s*\{/gm,
-  ];
-  for (const re of patterns) {
-    for (const m of src.matchAll(re)) {
-      const brace = src.indexOf('{', m.index + m[0].length - 1);
-      if (brace === -1) continue;
-      out.push({ name: m[1], start: m.index, body: brace });
-    }
+
+  // function-declaraties
+  for (const m of src.matchAll(/^(?:export\s+)?(?:default\s+)?function\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*\(/gm)) {
+    const open = src.indexOf('(', m.index + m[0].length - 1);
+    const close = matchParen(src, open);
+    if (close === -1) continue;
+    const body = src.indexOf('{', close);
+    if (body === -1) continue;
+    out.push({ name: m[1], start: m.index, body });
   }
+
+  // arrow-componenten met blok-body
+  for (const m of src.matchAll(/^(?:export\s+)?const\s+([A-Z][A-Za-z0-9_]*)(?::[^=\n]+)?\s*=\s*(?:async\s+)?\(/gm)) {
+    const open = src.indexOf('(', m.index + m[0].length - 1);
+    const close = matchParen(src, open);
+    if (close === -1) continue;
+    const arrow = src.indexOf('=>', close);
+    if (arrow === -1) continue;
+    const after = src.slice(arrow + 2).match(/^\s*/)[0].length;
+    if (src[arrow + 2 + after] !== '{') continue; // implicit return → laten staan
+    out.push({ name: m[1], start: m.index, body: arrow + 2 + after });
+  }
+
   return out.sort((a, b) => a.start - b.start);
+}
+
+/** Zet `const { t } = useTranslation();` in elke component-body die t() gebruikt. */
+function ensureHooks(src) {
+  const comps = findComponents(src);
+  for (let i = comps.length - 1; i >= 0; i--) {
+    const comp = comps[i];
+    const end = comps[i + 1]?.start ?? src.length;
+    const body = src.slice(comp.body, end);
+    if (!/\bt\(\s*['"]/.test(body)) continue;
+    if (/const\s*\{[^}]*\bt\b[^}]*\}\s*=\s*useTranslation\(/.test(body)) continue;
+    const indent = src.slice(comp.body + 1).match(/^\n(\s*)/)?.[1] ?? '  ';
+    src = `${src.slice(0, comp.body + 1)}\n${indent}const { t } = useTranslation();${src.slice(comp.body + 1)}`;
+  }
+  return src;
+}
+
+/** Import van useTranslation toevoegen als die ontbreekt. */
+function ensureImport(src) {
+  if (/import\s*\{[^}]*\buseTranslation\b[^}]*\}\s*from\s*['"]react-i18next['"]/.test(src)) return src;
+  if (/from ['"]react-i18next['"]/.test(src)) {
+    return src.replace(/import \{([^}]*)\} from (['"])react-i18next\2/, (all, inner, q) =>
+      `import {${inner.trimEnd()}, useTranslation } from ${q}react-i18next${q}`
+    );
+  }
+  const lastImport = [...src.matchAll(/^import .*?;$/gms)].pop();
+  const line = `import { useTranslation } from 'react-i18next';`;
+  return lastImport
+    ? `${src.slice(0, lastImport.index + lastImport[0].length)}\n${line}${src.slice(lastImport.index + lastImport[0].length)}`
+    : `${line}\n${src}`;
+}
+
+/** Herstelt hooks die per ongeluk in een parameterlijst zijn geland. */
+function stripMisplacedHooks(src) {
+  return src.replace(/\n[ \t]*const \{ t \} = useTranslation\(\);(?=[ \t]*[^\n])/g, '');
 }
 
 const propRe = new RegExp(`\\b(${TEXT_PROPS.join('|')})=(?:"([^"\\n]*)"|'([^'\\n]*)')`, 'g');
