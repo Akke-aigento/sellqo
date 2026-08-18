@@ -1,3 +1,112 @@
+## PERM-2 — persoonlijke instellingen ontsloten, rapporten gesplitst — 18 augustus 2026
+
+**Root cause (deel A).** De route-guard van `/admin/settings` en `/admin/notifications` stond in
+`src/App.tsx` op `requireRead="settings_general"`, en die resource is beperkt tot
+`platform_admin`, `tenant_admin`, `viewer`. Daardoor was de volledige instellingenpagina —
+inclusief de sectie "Mijn profiel" (`AccountSettings`: naam, taalkeuze, wachtwoord) —
+onbereikbaar voor `staff`, `marketing`, `warehouse` en `accountant`: vier van de zeven rollen.
+Een persoonlijke instelling zat achter een tenant-rechtencheck. Dit kwam boven bij het testen
+met een echte `marketing`-gebruiker en niet bij de RLS-audits (SEC-2a t/m SEC-4): een
+frontend-guard valt buiten wat een policy-sweep detecteert.
+
+**Root cause (deel B).** Eén resource `reports` dekte drie inhoudelijk verschillende pagina's:
+`Reports.tsx` (btw-aangifte, IC-listing, omzet, aging — fiscaal), `Analytics.tsx` (omzet over
+tijd, orders, nieuwe klanten, AOV, top producten — commercieel) en `reports/stock` (operationeel).
+Fiscale rapporten kregen zo dezelfde rolset als commerciële analyses.
+
+**Uitgevoerd.**
+- `src/hooks/useCan.ts`: nieuwe resources `profile` (`read`/`write` = ALL_ROLES),
+  `reports_financial` (`read`: platform_admin, tenant_admin, staff, accountant, viewer) en
+  `reports_analytics` (`read`: ALL_ROLES minus warehouse). Oude resource `reports` verwijderd.
+  `reports_financial` neemt bewust de rolset van SEC-2a (`invoices`, `credit_notes`) over —
+  één rolset voor "mag financiële gegevens zien".
+- `src/App.tsx`: `settings` en `notifications` → `requireRead="profile"`;
+  `reports` → `reports_financial`; `analytics` → `reports_analytics`;
+  `reports/stock` → `products`.
+- `src/pages/admin/Settings.tsx`: `SettingsSection` uitgebreid met optionele
+  `requiredRead?: Resource`. Secties zonder waarde blijven voor iedereen zichtbaar; groepen
+  zonder zichtbare sectie verdwijnen uit de navigatie. Deep-links naar een niet-toegestane
+  sectie vallen terug op "Mijn profiel". Omdat hooks niet in een loop kunnen, worden de drie
+  gebruikte rechten (`settings_general`, `settings_financial`, `marketing`) eenmalig op
+  componentniveau uitgelezen.
+- `src/components/admin/sidebar/sidebarConfig.ts`: kinderen van "Rapporten" gesplitst
+  (`reports_financial` / `reports_analytics` / `products`); parent op `products` zodat
+  `warehouse` het voorraadrapport in het menu ziet.
+- `src/components/admin/OrderBulkActions.tsx`: `useCan('read','reports')` →
+  `useCan('read','reports_financial')` (het betreft een financiële export).
+
+**Toewijzingstabel secties.**
+
+| Groep / sectie | `requiredRead` |
+|---|---|
+| `account` → `profile` | geen (alle rollen) |
+| `account` → `team` | `adminOnly: true` (ongewijzigd) |
+| `business` → company, branding, domain | `settings_general` |
+| `webshop` → webshop-general | `settings_general` |
+| `financial` → tax, vat_rates, invoicing, peppol, compliance | `settings_financial` |
+| `payments` → payments, transactions | `settings_financial` |
+| `returns` → return-settings | `settings_general` |
+| `channels` → shop-notifications, customer-communication, inbound-email | `settings_general` |
+| `channels` → ai-assistant, whatsapp, newsletter, social, reviews | `marketing` |
+| `channels` → fulfillment-api | `adminOnly: true` (ongewijzigd) |
+
+Zichtbaarheid per rol: "Mijn profiel" staat voor **alle zeven** rollen in de navigatie
+(geen `requiredRead`, geen `adminOnly`). `platform_admin`/`tenant_admin` zien alles;
+`viewer` ziet profiel + business/webshop/returns/channels-algemeen; `accountant` ziet
+profiel + financial/payments; `marketing` ziet profiel + de vijf marketingkanalen;
+`staff` en `warehouse` zien enkel profiel (geen `settings_general`/`settings_financial`/
+`marketing`-read).
+
+**Security-keuzes.** Puur frontend. Geen migratie, geen policy-, grant- of functiewijziging.
+De RLS blijft bepalend voor wat werkelijk gelezen/geschreven wordt.
+`AccountSettings.tsx` bevat geen eigen `useCan`-checks; er hoefde niets weggehaald te worden.
+`public.profiles` heeft `Users can update their own profile` (UPDATE, `id = auth.uid()`),
+`Users can insert their own profile` (INSERT, `id = auth.uid()`) en een tenant-gescopeerde
+SELECT-policy — een gebruiker mag zijn eigen rij dus bijwerken; geen migratie nodig.
+
+**Gedeelde-paden-waarschuwing.** n.v.t. — geen storefront-api, checkout-engine of gedeelde
+tabellen geraakt; custom frontends ongemoeid.
+
+**Verificatie.** `tsgo --noEmit` groen (dekkingscontrole: elke verwijzing naar de oude
+resource `reports` moest omgezet zijn om te compileren). JSON-parse op de vier
+`landing.*.json` geldig, Duits gebruikt `„…“`. Migratie-telling
+(`supabase_migrations.schema_migrations`) niet uitleesbaar met de leesrol
+(`permission denied for schema supabase_migrations`) — er is in deze batch geen enkele
+migratie uitgevoerd; alle wijzigingen zijn frontend plus één idempotente
+`doc_articles`-update.
+
+**Observatie.** `reports/stock` hing aan `reports`, een resource die `warehouse` juist
+uitsluit, terwijl het voorraadrapport bij uitstek voor magazijnpersoneel is. Nu op `products`
+(`read: ALL_ROLES`).
+
+**Openstaand.**
+- `products.write` sluit `marketing` uit, waardoor productbeschrijvingen en SEO-teksten niet
+  aanpasbaar zijn terwijl dat marketingwerk is. Rol simpelweg toevoegen is ongewenst omdat
+  `products` ook `price`, `cost_price`, `stock` en `sku` bevat; voorkeursrichting is een
+  `BEFORE UPDATE`-trigger die wijziging van die velden blokkeert voor rol `marketing`.
+  Aparte batch.
+- `orders.read` staat op `ALL_ROLES` en geeft `marketing` inzage in het volledige
+  klantenbestand inclusief adressen; overweging is dat toegang toggelbaar te maken via het
+  bestaande `user_permission_grants`-mechanisme.
+- De uitnodigingsflow (`InviteTeamMemberDialog`) kent alleen `role`, geen recht. Het gewenste
+  recht zou als kolom op `team_invitations` meegegeven moeten worden en bij acceptatie omgezet
+  in een grant.
+- Restrisico uit SEC-4 blijft staan: `tenants.iban` en `products.cost_price` /
+  `product_variants.cost_price` zijn leesbaar voor alle tenant-rollen (zie `product_costs`-
+  notitie SEC-2a).
+- **Actie voor Akke:** newsletter-item `2026.10c` staat in `docs/newsletter-queue.md` onder
+  *Openstaand*; er is nog geen wachtrijtabel, dus verzenden gebeurt handmatig.
+
+**Rollback.** Volledig frontend; `git revert` van de gewijzigde bestanden volstaat.
+Concreet: `profile`, `reports_financial` en `reports_analytics` uit `PERMISSION_MATRIX`
+verwijderen en `reports: { read: ALL_ROLES.filter((r) => r !== "warehouse"), write: [] }`
+terugzetten; in `src/App.tsx` de drie rapportroutes en `settings`/`notifications` terug op
+respectievelijk `requireRead="reports"` en `requireRead="settings_general"`;
+`requiredRead` en `isSectionPermitted` uit `Settings.tsx` halen; sidebar-entries terug op
+`requireRead: 'reports'`; `OrderBulkActions` terug op `useCan('read','reports')`.
+Het bijgewerkte `doc_articles`-artikel `teamleden-rollen` wordt met een nieuwe idempotente
+`UPDATE` teruggezet.
+
 ## SEC-4 — promotietabellen achter het per-gebruiker recht + twee tenant-blinde reads — 18 augustus 2026
 
 **Root cause** — `PERM-1` zette uitsluitend `discount_codes` achter het per-gebruiker recht (`has_permission_grant(auth.uid(), tenant_id, 'discount_codes')`). De zeven promotietabellen met dezelfde financiële impact bleven onvoorwaardelijk open voor `marketing`: een marketinggebruiker zonder het recht kon geen kortingscode aanmaken, maar wél een automatische korting van 100% op de hele catalogus, een BOGO- of cadeaupromotie, een stapelregel of een loyaliteitsprogramma. De maatregel was daarmee via een andere deur volledig te omzeilen. Daarnaast waren twee `SELECT`-policies tenant-blind (tenant wél, rol níet gecontroleerd) op tabellen met gevoelige waarden: `digital_deliveries.download_token` is een **bearer-token** waarmee een gekocht digitaal product te downloaden is, en `gift_card_transactions.balance_after` bevat saldomutaties van cadeaubonnen. Die laatste tabel is bij `SEC-2a` gemist toen `gift_cards` zelf op payments-niveau werd gezet.
