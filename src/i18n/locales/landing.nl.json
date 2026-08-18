@@ -1027,6 +1027,10 @@
       "changes": {
 
         "sepa_mandate_context": {
+          "title": "Recht om kortingen te beheren geldt nu ook voor promoties",
+          "description": "Het recht dat je per teamlid instelt om kortingscodes te beheren, dekt nu ook alle promoties: automatische kortingen, volumekortingen, 1+1-acties, cadeaupromoties, stapelregels en loyaliteitsprogramma's. Eén schakelaar regelt dus de volledige bevoegdheid. Daarnaast is de inzage in enkele gevoelige gegevens verder beperkt tot de rollen die ze werkelijk nodig hebben."
+        },
+        "sepa_mandate_context_PLACEHOLDER": {
           "title": "SEPA-machtigingen tonen nu bedrag, reden en interval",
           "description": "Vraag je een klant om een doorlopende SEPA-machtiging, dan ziet die op de machtigingspagina nu meteen waarvoor hij betaalt: het bedrag inclusief btw, de reden en hoe vaak er wordt afgeschreven. Het bedrag komt uit het abonnement zelf, dus het is exact wat er later wordt geincasseerd."
         },
