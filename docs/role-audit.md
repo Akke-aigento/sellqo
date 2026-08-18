@@ -1,3 +1,26 @@
+## PAYPAL-REMOVE — PayPal-via-Stripe volledig teruggedraaid — 18 augustus 2026
+
+**Root cause** — Stripe biedt `paypal_payments` niet aan voor SellQo's platformtype (SaaS met connected accounts die onder eigen naam verkopen). Bewezen via drie kanten: (1) `updateCapability` op VanXcel gaf `Unknown capability: paypal_payments`, (2) het Stripe-dashboard toont "only supported in v1 accounts" zonder actie, (3) de Stripe-docs sluiten platforms zoals Shopify/Squarespace expliciet uit. De PayPal-code uit PAYPAL-1a/1b kon dus nooit werken en beloofde tenants iets dat niet leverbaar is.
+
+**Uitgevoerd**
+- `src/components/admin/settings/PaymentSettings.tsx` — "PayPal toevoegen?"-infoblok, PayPal-tariefregel en PayPal in de methodes-samenvatting verwijderd; ongebruikte `useNavigate` opgeruimd (nergens anders gebruikt).
+- `src/hooks/useStripeConnect.ts` — `paypal_capability_status` uit `ConnectStatus` verwijderd.
+- `supabase/functions/check-connect-status/index.ts` — self-healing én self-adding PayPal-blok verwijderd, plus `paypal_capability_status` uit de response.
+- `supabase/functions/_shared/stripe-fees.ts` — `case 'paypal'` en het PayPal-blok in `getAvailablePaymentMethods` verwijderd.
+- `supabase/functions/storefront-api/index.ts` — uitsluitend `'paypal': 'paypal'` uit `stripeMethodMap` verwijderd.
+- `supabase/functions/paypal-capability-recon/` — volledig verwijderd (eenmalige recon).
+- `src/pages/public/PublicChangelog.tsx` — entry `2026.10b` / `paypal_checkout` verwijderd; `public.changelog.changes.paypal_checkout` uit `landing.{nl,en,fr,de}.json`.
+- `docs/newsletter-queue.md` — nog niet verzonden PayPal-item verwijderd.
+- DB — `DELETE FROM doc_articles WHERE slug = 'paypal-koppelen'`.
+
+**Security-keuzes** — n.v.t. qua RLS/grants. Wel relevant: er zijn nu géén DB-writes op `tenants.stripe_payment_methods` meer vanuit `check-connect-status`; die function is voor betaalmethodes weer puur lezend.
+
+**Gedeelde-paden-waarschuwing** — `stripe-fees.ts` en `storefront-api` zijn gedeeld met de vijf custom frontends. Veilig: er is uitsluitend een methode verwijderd die in geen enkel connected account actief kon zijn (`Unknown capability`). Het JSON-contract, de sleutelnamen, de VAT/reverse-charge- en discount-logica en de vijf echte methodes (ideal/bancontact/card/klarna/bank_transfer) zijn byte-voor-byte ongewijzigd.
+
+**Verificatie** — `rg -i paypal` over `src/` en `supabase/`: geen treffers meer buiten de historische migratie en de `status: 'planned'`-vermelding op de publieke Integrations-pagina. Alle vier locale-JSON's parsen geldig. `tsgo --noEmit` groen. SQL-natrek: `doc_articles` bevat geen `paypal-koppelen`.
+
+**Bewust ongemoeid / Vervolg** — De migratie `20260817203106_*.sql` blijft staan (historie, niet-destructief). De `paypal`-regel met status `planned` op `src/pages/public/Integrations.tsx` blijft: die belooft niets voor vandaag. Weg vooruit: PayPal via Mollie Connect for Platforms — apart traject, zie deepdive-document.
+
 ## PAYPAL-1b — PayPal capability-driven weergave + help-artikel — 17 augustus 2026
 
 **Root cause** — PAYPAL-1a leverde enkel de neerwaartse helft van de capability-gate: `check-connect-status` verwijderde `'paypal'` uit `stripe_payment_methods` als `paypal_payments !== 'active'`, maar voegde het nooit toe wanneer een tenant PayPal wel activeerde in zijn eigen Stripe Dashboard. Gevolg: een tenant kon PayPal correct aanzetten bij Stripe en er in SellQo niets van merken, want de storefront gate't op de kolom. Bovendien toonde `PaymentSettings.tsx` PayPal nergens, dus was er ook geen signaal dat de methode bestond of hoe je hem activeert.
