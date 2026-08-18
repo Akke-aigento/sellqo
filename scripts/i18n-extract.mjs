@@ -139,13 +139,26 @@ function ensureImport(src) {
     : `${line}\n${src}`;
 }
 
-/** Herstelt hooks die per ongeluk in een parameterlijst zijn geland. */
+/**
+ * Verwijdert elke `const { t } = useTranslation();` die NIET direct achter de
+ * openende accolade van een componentbody staat (bijv. in een parameterlijst).
+ */
 function stripMisplacedHooks(src) {
-  return src.replace(/\n[ \t]*const \{ t \} = useTranslation\(\);(?=[ \t]*[^\n])/g, '');
+  const valid = new Set(findComponents(src).map((comp) => comp.body));
+  const re = /\n[ \t]*const \{ t \} = useTranslation\(\);/g;
+  const bad = [];
+  for (const m of src.matchAll(re)) {
+    const before = src.slice(0, m.index);
+    const brace = before.lastIndexOf('{');
+    if (brace === -1 || !valid.has(brace) || /\S/.test(before.slice(brace + 1))) bad.push(m);
+  }
+  for (const m of bad.reverse()) src = src.slice(0, m.index) + src.slice(m.index + m[0].length);
+  return src;
 }
 
 const propRe = new RegExp(`\\b(${TEXT_PROPS.join('|')})=(?:"([^"\\n]*)"|'([^'\\n]*)')`, 'g');
-const jsxTextRe = />(\s*)([^<>{}\n][^<>{}]*?)(\s*)</g;
+// JSX-tekst: één regel, en het openende `>` mag geen operator zijn (>=, =>, ->).
+const jsxTextRe = /(?<![=!<>+\-*/&|])>([ \t]*)([^<>{}\n\s][^<>{}\n]*?)([ \t]*)</g;
 const toastRe = /\b(title|description|message)(\s*:\s*)(?:"([^"\n]*)"|'([^'\n]*)')/g;
 
 const summary = { files: 0, changed: 0, keys: 0, reused: 0, todo: [] };
