@@ -1952,5 +1952,108 @@
       "pageHidden": "Masqué pour le locataire — cliquez pour l'afficher",
       "pageVisible": "Visible pour le locataire — cliquez pour le masquer"
     }
+  },
+  "storefront": {
+    "bankTransferPayment": {
+      "wacht_op_betaling": "En attente de paiement",
+      "scan_met_je_bank_app": "Scannez avec votre application bancaire",
+      "de_betaalgegevens_worden_automatisch_ingevuld_in": "Les détails du paiement seront automatiquement remplis dans votre application bancaire",
+      "of_maak_handmatig_over": "Ou transférez manuellement :",
+      "te_betalen": "À payer",
+      "begunstigde": "Bénéficiaire",
+      "mededeling": "Communication",
+      "gebruik_exact_deze_mededeling_voor_automatische": "⚠️ Utilisez exactement cette communication pour un traitement automatique",
+      "sepa_instant_beschikbaar": "SEPA Instant disponible",
+      "met_de_meeste_belgische_en_nederlandse": "Avec la plupart des banques belges et néerlandaises, votre paiement est traité en quelques secondes. \n                Votre commande sera expédiée dès réception du paiement.",
+      "bevestigen": "Confirmer...",
+      "betaling_ontvangen_bevestigen": "Paiement reçu - Confirmer"
+    },
+    "cartDrawer": {
+      "je_winkelwagen_is_leeg": "Votre panier est vide",
+      "verder_winkelen": "Continuer les achats",
+      "subtotaal": "Sous-total",
+      "excl_verzendkosten": "Hors frais de port",
+      "afrekenen": "Payer",
+      "verder_winkelen_2": "Continuer les achats"
+    },
+    "cookieBanner": {
+      "wij_gebruiken_cookies_om_je_de": "Nous utilisons des cookies pour vous offrir la meilleure expérience. Choisissez les cookies que vous souhaitez autoriser.",
+      "functioneel_noodzakelijk": "Fonctionnel (nécessaire)",
+      "analytisch": "Analytique",
+      "alles_accepteren": "Tout accepter",
+      "functioneel": "Fonctionnel",
+      "analytisch_2": "Analytique",
+      "alles_accepteren_2": "Tout accepter",
+      "deze_website_gebruikt_cookies_voor_een": "Ce site web utilise des cookies pour une meilleure expérience.",
+      "weigeren": "Refuser",
+      "accepteren": "Accepter"
+    },
+    "exitIntentPopup": {
+      "wacht_even": "Attendez une minute !",
+      "aanmelden": "S'inscrire",
+      "nee_bedankt": "Non merci",
+      "je_email_nl": "votre@email.fr"
+    },
+    "megaMenu": {
+      "home": "Accueil",
+      "alle_producten": "Tous les produits"
+    },
+    "mobileBottomNav": {
+      "zoeken": "Rechercher",
+      "wagen": "Panier"
+    },
+    "newsletterPopup": {
+      "bedankt": "Merci !",
+      "je_bent_succesvol_ingeschreven": "Vous êtes inscrit avec succès.",
+      "blijf_op_de_hoogte": "Restez informé"
+    },
+    "productCard": {
+      "uitverkocht": "En rupture de stock",
+      "quick_view": "Aperçu rapide"
+    },
+    "productReviewsSection": {
+      "beoordelingen": "Évaluations"
+    },
+    "quickViewModal": {
+      "bekijk_volledige_details": "Voir tous les détails"
+    },
+    "relatedProducts": {
+      "gerelateerde_producten": "Produits associés"
+    },
+    "searchModal": {
+      "probeer_een_andere_zoekterm": "Essayez un autre terme de recherche",
+      "typ_minimaal_2_tekens_om_te": "Tapez au moins 2 caractères pour rechercher",
+      "waar_ben_je_naar_op_zoek": "Que recherchez-vous ?"
+    },
+    "shopLayout": {
+      "shop_niet_gevonden": "Boutique introuvable",
+      "de_gevraagde_webshop_bestaat_niet": "La boutique en ligne demandée n'existe pas.",
+      "terug_naar_home": "Retour à l'accueil",
+      "binnenkort_open": "Bientôt ouvert",
+      "snelle_links": "Liens rapides",
+      "volg_ons": "Suivez-nous",
+      "shop": "Boutique",
+      "shop_2": "Boutique"
+    },
+    "reviews": {
+      "aggregateReviewScore": {
+        "gemiddeld_uit": "moyenne sur"
+      },
+      "reviewsTrustBar": {
+        "reviews_bij": "avis sur"
+      }
+    },
+    "sections": {
+      "collectionSection": {
+        "bekijk_alle": "Voir tout →"
+      },
+      "featuredProductsSection": {
+        "bekijk_alle_producten": "Voir tous les produits →"
+      },
+      "newsletterSection": {
+        "bedankt_voor_je_aanmelding": "✓ Merci pour votre inscription !",
+        "je_bent_succesvol_ingeschreven_voor_onze": "Vous êtes inscrit avec succès à notre newsletter."
+      }
+    }
   }
 }

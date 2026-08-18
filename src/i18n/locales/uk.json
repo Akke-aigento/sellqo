@@ -1952,5 +1952,108 @@
       "pageHidden": "Приховано від орендаря — натисніть, щоб показати",
       "pageVisible": "Видно орендарю — натисніть, щоб приховати"
     }
+  },
+  "storefront": {
+    "bankTransferPayment": {
+      "wacht_op_betaling": "Очікування платежу",
+      "scan_met_je_bank_app": "Скануйте за допомогою банківського застосунку",
+      "de_betaalgegevens_worden_automatisch_ingevuld_in": "Платіжні дані буде автоматично заповнено у вашому банківському застосунку",
+      "of_maak_handmatig_over": "Або здійсніть переказ вручну:",
+      "te_betalen": "До оплати",
+      "begunstigde": "Отримувач",
+      "mededeling": "Призначення платежу",
+      "gebruik_exact_deze_mededeling_voor_automatische": "⚠️ Використовуйте саме це призначення платежу для автоматичної обробки",
+      "sepa_instant_beschikbaar": "Доступний SEPA Instant",
+      "met_de_meeste_belgische_en_nederlandse": "З більшістю бельгійських та нідерландських банків ваш платіж буде оброблено протягом кількох секунд. \n                Ваше замовлення буде відправлено, як тільки платіж буде отримано.",
+      "bevestigen": "Підтвердити...",
+      "betaling_ontvangen_bevestigen": "Платіж отримано – Підтвердити"
+    },
+    "cartDrawer": {
+      "je_winkelwagen_is_leeg": "Ваш кошик порожній",
+      "verder_winkelen": "Продовжити покупки",
+      "subtotaal": "Проміжний підсумок",
+      "excl_verzendkosten": "Без вартості доставки",
+      "afrekenen": "Оформити замовлення",
+      "verder_winkelen_2": "Продовжити покупки"
+    },
+    "cookieBanner": {
+      "wij_gebruiken_cookies_om_je_de": "Ми використовуємо файли cookie, щоб забезпечити вам найкращий досвід. Виберіть, які файли cookie ви хочете дозволити.",
+      "functioneel_noodzakelijk": "Функціональні (необхідні)",
+      "analytisch": "Аналітичні",
+      "alles_accepteren": "Прийняти все",
+      "functioneel": "Функціональні",
+      "analytisch_2": "Аналітичні",
+      "alles_accepteren_2": "Прийняти все",
+      "deze_website_gebruikt_cookies_voor_een": "Цей вебсайт використовує файли cookie для кращої взаємодії.",
+      "weigeren": "Відхилити",
+      "accepteren": "Прийняти"
+    },
+    "exitIntentPopup": {
+      "wacht_even": "Зачекайте!",
+      "aanmelden": "Зареєструватися",
+      "nee_bedankt": "Ні, дякую",
+      "je_email_nl": "ваш@email.com"
+    },
+    "megaMenu": {
+      "home": "Головна",
+      "alle_producten": "Всі продукти"
+    },
+    "mobileBottomNav": {
+      "zoeken": "Пошук",
+      "wagen": "Кошик"
+    },
+    "newsletterPopup": {
+      "bedankt": "Дякуємо!",
+      "je_bent_succesvol_ingeschreven": "Ви успішно підписалися.",
+      "blijf_op_de_hoogte": "Будьте в курсі"
+    },
+    "productCard": {
+      "uitverkocht": "Розпродано",
+      "quick_view": "Швидкий перегляд"
+    },
+    "productReviewsSection": {
+      "beoordelingen": "Відгуки"
+    },
+    "quickViewModal": {
+      "bekijk_volledige_details": "Переглянути повні деталі"
+    },
+    "relatedProducts": {
+      "gerelateerde_producten": "Пов'язані товари"
+    },
+    "searchModal": {
+      "probeer_een_andere_zoekterm": "Спробуйте інший пошуковий запит",
+      "typ_minimaal_2_tekens_om_te": "Введіть принаймні 2 символи для пошуку",
+      "waar_ben_je_naar_op_zoek": "Що ви шукаєте?"
+    },
+    "shopLayout": {
+      "shop_niet_gevonden": "Магазин не знайдено",
+      "de_gevraagde_webshop_bestaat_niet": "Запитуваного вебшопу не існує.",
+      "terug_naar_home": "Повернутися на головну",
+      "binnenkort_open": "Незабаром відкриття",
+      "snelle_links": "Швидкі посилання",
+      "volg_ons": "Слідкуйте за нами",
+      "shop": "Магазин",
+      "shop_2": "Магазин"
+    },
+    "reviews": {
+      "aggregateReviewScore": {
+        "gemiddeld_uit": "в середньому з"
+      },
+      "reviewsTrustBar": {
+        "reviews_bij": "відгуків на"
+      }
+    },
+    "sections": {
+      "collectionSection": {
+        "bekijk_alle": "Переглянути всі →"
+      },
+      "featuredProductsSection": {
+        "bekijk_alle_producten": "Переглянути всі товари →"
+      },
+      "newsletterSection": {
+        "bedankt_voor_je_aanmelding": "✓ Дякуємо за вашу реєстрацію!",
+        "je_bent_succesvol_ingeschreven_voor_onze": "Ви успішно підписалися на нашу розсилку."
+      }
+    }
   }
 }

@@ -1952,5 +1952,108 @@
       "pageHidden": "Hidden from tenant — click to show",
       "pageVisible": "Visible to tenant — click to hide"
     }
+  },
+  "storefront": {
+    "bankTransferPayment": {
+      "wacht_op_betaling": "Waiting for payment",
+      "scan_met_je_bank_app": "Scan with your banking app",
+      "de_betaalgegevens_worden_automatisch_ingevuld_in": "The payment details will be automatically pre-filled in your banking app",
+      "of_maak_handmatig_over": "Or transfer manually:",
+      "te_betalen": "To pay",
+      "begunstigde": "Beneficiary",
+      "mededeling": "Description",
+      "gebruik_exact_deze_mededeling_voor_automatische": "⚠️ Use this exact description for automatic processing",
+      "sepa_instant_beschikbaar": "SEPA Instant available",
+      "met_de_meeste_belgische_en_nederlandse": "With most Belgian and Dutch banks, your payment will be processed within seconds. \n                Your order will be shipped as soon as payment is received.",
+      "bevestigen": "Confirming...",
+      "betaling_ontvangen_bevestigen": "Payment received - Confirm"
+    },
+    "cartDrawer": {
+      "je_winkelwagen_is_leeg": "Your cart is empty",
+      "verder_winkelen": "Continue shopping",
+      "subtotaal": "Subtotal",
+      "excl_verzendkosten": "Excl. shipping costs",
+      "afrekenen": "Checkout",
+      "verder_winkelen_2": "Continue shopping"
+    },
+    "cookieBanner": {
+      "wij_gebruiken_cookies_om_je_de": "We use cookies to give you the best experience. Choose which cookies you want to allow.",
+      "functioneel_noodzakelijk": "Functional (necessary)",
+      "analytisch": "Analytical",
+      "alles_accepteren": "Accept all",
+      "functioneel": "Functional",
+      "analytisch_2": "Analytical",
+      "alles_accepteren_2": "Accept all",
+      "deze_website_gebruikt_cookies_voor_een": "This website uses cookies for a better experience.",
+      "weigeren": "Decline",
+      "accepteren": "Accept"
+    },
+    "exitIntentPopup": {
+      "wacht_even": "Hold on!",
+      "aanmelden": "Sign up",
+      "nee_bedankt": "No thanks",
+      "je_email_nl": "your@email.com"
+    },
+    "megaMenu": {
+      "home": "Home",
+      "alle_producten": "All Products"
+    },
+    "mobileBottomNav": {
+      "zoeken": "Search",
+      "wagen": "Cart"
+    },
+    "newsletterPopup": {
+      "bedankt": "Thank you!",
+      "je_bent_succesvol_ingeschreven": "You have successfully subscribed.",
+      "blijf_op_de_hoogte": "Stay informed"
+    },
+    "productCard": {
+      "uitverkocht": "Sold out",
+      "quick_view": "Quick View"
+    },
+    "productReviewsSection": {
+      "beoordelingen": "Reviews"
+    },
+    "quickViewModal": {
+      "bekijk_volledige_details": "View full details"
+    },
+    "relatedProducts": {
+      "gerelateerde_producten": "Related products"
+    },
+    "searchModal": {
+      "probeer_een_andere_zoekterm": "Try a different search term",
+      "typ_minimaal_2_tekens_om_te": "Type at least 2 characters to search",
+      "waar_ben_je_naar_op_zoek": "What are you looking for?"
+    },
+    "shopLayout": {
+      "shop_niet_gevonden": "Webshop not found",
+      "de_gevraagde_webshop_bestaat_niet": "The requested webshop does not exist.",
+      "terug_naar_home": "Back to home",
+      "binnenkort_open": "Opening soon",
+      "snelle_links": "Quick Links",
+      "volg_ons": "Follow Us",
+      "shop": "Shop",
+      "shop_2": "Shop"
+    },
+    "reviews": {
+      "aggregateReviewScore": {
+        "gemiddeld_uit": "average from"
+      },
+      "reviewsTrustBar": {
+        "reviews_bij": "reviews at"
+      }
+    },
+    "sections": {
+      "collectionSection": {
+        "bekijk_alle": "View all →"
+      },
+      "featuredProductsSection": {
+        "bekijk_alle_producten": "View all products →"
+      },
+      "newsletterSection": {
+        "bedankt_voor_je_aanmelding": "✓ Thank you for signing up!",
+        "je_bent_succesvol_ingeschreven_voor_onze": "You have successfully subscribed to our newsletter."
+      }
+    }
   }
 }
