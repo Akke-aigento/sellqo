@@ -1986,7 +1986,8 @@
       "alles_accepteren_2": "Tout accepter",
       "deze_website_gebruikt_cookies_voor_een": "Ce site web utilise des cookies pour une meilleure expérience.",
       "weigeren": "Refuser",
-      "accepteren": "Accepter"
+      "accepteren": "Accepter",
+      "marketing": "Marketing"
     },
     "exitIntentPopup": {
       "wacht_even": "Attendez une minute !",
@@ -2000,7 +2001,8 @@
     },
     "mobileBottomNav": {
       "zoeken": "Rechercher",
-      "wagen": "Panier"
+      "wagen": "Panier",
+      "categories": "Catégories"
     },
     "newsletterPopup": {
       "bedankt": "Merci !",
@@ -2023,7 +2025,8 @@
     "searchModal": {
       "probeer_een_andere_zoekterm": "Essayez un autre terme de recherche",
       "typ_minimaal_2_tekens_om_te": "Tapez au moins 2 caractères pour rechercher",
-      "waar_ben_je_naar_op_zoek": "Que recherchez-vous ?"
+      "waar_ben_je_naar_op_zoek": "Que recherchez-vous ?",
+      "searching": "Recherche..."
     },
     "shopLayout": {
       "shop_niet_gevonden": "Boutique introuvable",
@@ -2033,7 +2036,9 @@
       "snelle_links": "Liens rapides",
       "volg_ons": "Suivez-nous",
       "shop": "Boutique",
-      "shop_2": "Boutique"
+      "shop_2": "Boutique",
+      "legal": "Juridique",
+      "products": "Produits"
     },
     "reviews": {
       "aggregateReviewScore": {

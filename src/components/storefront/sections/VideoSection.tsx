@@ -1,12 +1,10 @@
 import type { HomepageSection, VideoContent } from '@/types/storefront';
-import { useTranslation } from 'react-i18next';
 
 interface VideoSectionProps {
   section: HomepageSection;
 }
 
 export function VideoSection({ section }: VideoSectionProps) {
-  const { t } = useTranslation();
   const content = section.content as VideoContent;
   const settings = section.settings;
 

@@ -102,7 +102,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                 onChange={e => setPreferences(p => ({ ...p, marketing: e.target.checked }))}
                 className="rounded"
               />
-              <span>{t('navigation.groups.marketing')}</span>
+              <span>{t('storefront.cookieBanner.marketing')}</span>
             </label>
           </div>
           <div className="flex gap-3">
@@ -146,7 +146,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
                     onChange={e => setPreferences(p => ({ ...p, marketing: e.target.checked }))}
                     className="rounded"
                   />
-                  {t('navigation.groups.marketing')}
+                  {t('storefront.cookieBanner.marketing')}
                 </label>
               </div>
             </div>

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
-import { useTranslation } from 'react-i18next';
 
 interface Language {
   code: string;
@@ -24,7 +23,6 @@ interface StorefrontLanguageSelectorProps {
 }
 
 export function StorefrontLanguageSelector({ languages, currentLanguage, onLanguageChange, style }: StorefrontLanguageSelectorProps) {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   

@@ -44,7 +44,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
           )}
         >
           <Grid3X3 className="h-5 w-5" />
-          <span>{t('navigation.categories')}</span>
+          <span>{t('storefront.mobileBottomNav.categories')}</span>
         </Link>
 
         <Link
