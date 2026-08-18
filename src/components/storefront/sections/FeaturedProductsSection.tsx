@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import type { HomepageSection, FeaturedProductsContent } from '@/types/storefront';
 import { ProductCard } from '@/components/storefront/ProductCard';
+import { useTranslation } from 'react-i18next';
 
 interface FeaturedProductsSectionProps {
   section: HomepageSection;
@@ -9,6 +10,7 @@ interface FeaturedProductsSectionProps {
 }
 
 export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsSectionProps) {
+  const { t } = useTranslation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const content = section.content as FeaturedProductsContent;
   const settings = section.settings;
@@ -78,7 +80,7 @@ export function FeaturedProductsSection({ section, tenantId }: FeaturedProductsS
               to={`/shop/${tenantSlug}/products`}
               className="inline-flex items-center text-sm font-medium hover:underline"
             >
-              Bekijk alle producten →
+              {t('storefront.sections.featuredProductsSection.bekijk_alle_producten')}
             </Link>
           </div>
         )}

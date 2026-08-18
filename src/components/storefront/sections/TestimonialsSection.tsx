@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import type { HomepageSection, TestimonialsContent } from '@/types/storefront';
+import { useTranslation } from 'react-i18next';
 
 interface TestimonialsSectionProps {
   section: HomepageSection;

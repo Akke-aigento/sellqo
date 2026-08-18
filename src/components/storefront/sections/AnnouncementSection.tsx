@@ -1,5 +1,6 @@
 import { Megaphone } from 'lucide-react';
 import type { HomepageSection } from '@/types/storefront';
+import { useTranslation } from 'react-i18next';
 
 interface AnnouncementSectionProps {
   section: HomepageSection;

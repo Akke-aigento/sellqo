@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Heart, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ProductCardProps {
   product: {
@@ -31,6 +32,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, basePath, showPrice = true, currency = 'EUR', cardStyle = 'standard', onQuickView, isWishlisted, onToggleWishlist }: ProductCardProps) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
   
   // Bundle-aware pricing
@@ -128,7 +130,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
           {!product.in_stock && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[1]">
               <span className="bg-white text-gray-900 text-sm font-medium px-3 py-1 rounded">
-                Uitverkocht
+                {t('storefront.productCard.uitverkocht')}
               </span>
             </div>
           )}
@@ -145,7 +147,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
                   className="flex-1 bg-background/90 backdrop-blur-sm text-foreground text-xs font-medium py-2.5 px-3 rounded-lg hover:bg-background transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Eye className="h-3.5 w-3.5" />
-                  Quick View
+                  {t('storefront.productCard.quick_view')}
                 </button>
               )}
               <button
@@ -186,7 +188,7 @@ export function ProductCard({ product, basePath, showPrice = true, currency = 'E
                 </span>
               )}
               {isBundle && cardStyle === 'detailed' && (
-                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Bundel</span>
+                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{t('product_form.ptype.bundle_label')}</span>
               )}
             </div>
           )}

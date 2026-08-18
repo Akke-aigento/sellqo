@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import { PLATFORM_INFO, type ReviewPlatform } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface ReviewsTrustBarProps {
   averageRating: number;
@@ -14,6 +15,7 @@ export function ReviewsTrustBar({
   platforms,
   variant = 'light',
 }: ReviewsTrustBarProps) {
+  const { t } = useTranslation();
   const variantClasses = {
     light: 'bg-muted/50 text-foreground',
     dark: 'bg-foreground text-background',
@@ -42,7 +44,7 @@ export function ReviewsTrustBar({
         {/* Score text */}
         <span>
           <strong>{averageRating.toFixed(1)}/5</strong> op basis van{' '}
-          <strong>{totalReviews.toLocaleString('nl-NL')}</strong> reviews bij
+          <strong>{totalReviews.toLocaleString('nl-NL')}</strong> {t('storefront.reviews.reviewsTrustBar.reviews_bij')}
         </span>
 
         {/* Platform logos */}

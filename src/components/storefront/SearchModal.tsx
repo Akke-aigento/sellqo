@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface SearchModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ interface SearchResult {
 }
 
 export function SearchModal({ open, onOpenChange, tenantId, basePath, currency = 'EUR' }: SearchModalProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -82,7 +84,7 @@ export function SearchModal({ open, onOpenChange, tenantId, basePath, currency =
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && goToSearch()}
-            placeholder="Waar ben je naar op zoek?"
+            placeholder={t('storefront.searchModal.waar_ben_je_naar_op_zoek')}
             className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground"
           />
           {query && (
@@ -95,13 +97,13 @@ export function SearchModal({ open, onOpenChange, tenantId, basePath, currency =
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto">
           {loading && (
-            <div className="px-6 py-8 text-center text-muted-foreground">Zoeken...</div>
+            <div className="px-6 py-8 text-center text-muted-foreground">{t('common.search')}</div>
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (
             <div className="px-6 py-8 text-center">
               <p className="text-muted-foreground">Geen producten gevonden voor "{query}"</p>
-              <p className="text-sm text-muted-foreground mt-1">Probeer een andere zoekterm</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('storefront.searchModal.probeer_een_andere_zoekterm')}</p>
             </div>
           )}
 
@@ -137,7 +139,7 @@ export function SearchModal({ open, onOpenChange, tenantId, basePath, currency =
 
           {!query && (
             <div className="px-6 py-8 text-center text-muted-foreground text-sm">
-              Typ minimaal 2 tekens om te zoeken
+              {t('storefront.searchModal.typ_minimaal_2_tekens_om_te')}
             </div>
           )}
         </div>

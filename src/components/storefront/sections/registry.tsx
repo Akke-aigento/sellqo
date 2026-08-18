@@ -10,6 +10,7 @@ import { TestimonialsSection } from './TestimonialsSection';
 import { VideoSection } from './VideoSection';
 import { AnnouncementSection } from './AnnouncementSection';
 import { ExternalReviewsSection } from './ExternalReviewsSection';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Uniforme propvorm voor elke sectie-renderer.

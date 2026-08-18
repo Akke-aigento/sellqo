@@ -1,4 +1,5 @@
 import { PLATFORM_INFO, type ReviewPlatform } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface PlatformScore {
   platform: ReviewPlatform;

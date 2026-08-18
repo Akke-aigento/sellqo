@@ -4,6 +4,7 @@ import { UnifiedReviewsCarousel } from '@/components/storefront/reviews/UnifiedR
 import { ReviewsPlatformBadges } from '@/components/storefront/reviews/ReviewsPlatformBadges';
 import type { HomepageSection } from '@/types/storefront';
 import type { ReviewPlatform } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface ExternalReviewsSectionProps {
   section: HomepageSection;
@@ -11,6 +12,7 @@ interface ExternalReviewsSectionProps {
 }
 
 export function ExternalReviewsSection({ section, tenantId }: ExternalReviewsSectionProps) {
+  const { t } = useTranslation();
   const { reviews, aggregate, isLoading } = usePublicReviews(tenantId);
 
   const content = section.content as {

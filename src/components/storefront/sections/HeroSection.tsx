@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { HomepageSection, HeroContent } from '@/types/storefront';
 import { resolveShopLink } from '@/lib/shopLinks';
+import { useTranslation } from 'react-i18next';
 
 interface HeroSectionProps {
   section: HomepageSection;

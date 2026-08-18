@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import { PLATFORM_INFO, type ReviewPlatform } from '@/types/reviews-hub';
+import { useTranslation } from 'react-i18next';
 
 interface AggregateReviewScoreProps {
   averageRating: number;
@@ -16,6 +17,7 @@ export function AggregateReviewScore({
   size = 'md',
   showPlatforms = true,
 }: AggregateReviewScoreProps) {
+  const { t } = useTranslation();
   const sizeConfig = {
     sm: { stars: 'w-3 h-3', text: 'text-sm', gap: 'gap-1' },
     md: { stars: 'w-4 h-4', text: 'text-base', gap: 'gap-1.5' },
@@ -47,7 +49,7 @@ export function AggregateReviewScore({
       {/* Score text */}
       <p className={`${config.text} text-foreground`}>
         <span className="font-semibold">{averageRating.toFixed(1)}</span>
-        <span className="text-muted-foreground"> gemiddeld uit </span>
+        <span className="text-muted-foreground"> {t('storefront.reviews.aggregateReviewScore.gemiddeld_uit')} </span>
         <span className="font-semibold">{totalReviews.toLocaleString('nl-NL')}</span>
         <span className="text-muted-foreground"> reviews</span>
       </p>

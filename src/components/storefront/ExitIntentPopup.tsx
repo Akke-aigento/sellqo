@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ExitIntentPopupProps {
   tenantSlug: string;
@@ -10,6 +11,7 @@ interface ExitIntentPopupProps {
 const SESSION_KEY = 'exit-intent-shown';
 
 export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupPr
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-3">Wacht even!</h2>
+        <h2 className="text-2xl font-bold mb-3">{t('storefront.exitIntentPopup.wacht_even')}</h2>
         <p className="text-muted-foreground mb-6">
           {incentiveText || 'Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen!'}
         </p>
@@ -54,11 +56,11 @@ export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupPr
         <div className="flex gap-2 max-w-sm mx-auto">
           <input
             type="email"
-            placeholder="je@email.nl"
+            placeholder={t('storefront.exitIntentPopup.je_email_nl')}
             className="flex-1 rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
           />
           <Button onClick={() => setVisible(false)}>
-            Aanmelden
+            {t('storefront.exitIntentPopup.aanmelden')}
           </Button>
         </div>
 
@@ -66,7 +68,7 @@ export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupPr
           onClick={() => setVisible(false)}
           className="mt-4 text-sm text-muted-foreground hover:underline"
         >
-          Nee bedankt
+          {t('storefront.exitIntentPopup.nee_bedankt')}
         </button>
       </div>
     </div>

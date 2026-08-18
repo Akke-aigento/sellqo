@@ -3,6 +3,7 @@ import { Star, X, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PLATFORM_INFO, type ExternalReview, type ReviewPlatform } from '@/types/reviews-hub';
 import { UnifiedReviewsCarousel } from './UnifiedReviewsCarousel';
+import { useTranslation } from 'react-i18next';
 
 interface ReviewsFloatingWidgetProps {
   averageRating: number;

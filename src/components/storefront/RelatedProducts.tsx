@@ -1,5 +1,6 @@
 import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import { ProductCard } from '@/components/storefront/ProductCard';
+import { useTranslation } from 'react-i18next';
 
 interface RelatedProductsProps {
   tenantId: string;
@@ -11,6 +12,7 @@ interface RelatedProductsProps {
 }
 
 export function RelatedProducts({ tenantId, currentProductId, categoryId, basePath, currency = 'EUR', mode }: RelatedProductsProps) {
+  const { t } = useTranslation();
   // Auto mode: fetch products from same category
   const { data: products } = usePublicProducts(tenantId, {
     categoryId: mode === 'auto' ? categoryId : undefined,
@@ -25,7 +27,7 @@ export function RelatedProducts({ tenantId, currentProductId, categoryId, basePa
 
   return (
     <div className="mt-16 border-t pt-12">
-      <h2 className="text-2xl font-bold mb-8">Gerelateerde producten</h2>
+      <h2 className="text-2xl font-bold mb-8">{t('storefront.relatedProducts.gerelateerde_producten')}</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {related.map(product => (
           <ProductCard

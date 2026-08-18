@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { generateEPCString, formatIBAN } from '@/lib/epcQrCode';
 import { formatOGM } from '@/lib/ogm';
 import QRCode from 'react-qr-code';
+import { useTranslation } from 'react-i18next';
 
 interface BankTransferPaymentProps {
   orderNumber: string;
@@ -34,6 +35,7 @@ export function BankTransferPayment({
   showConfirmButton = false,
   isConfirming = false,
 }: BankTransferPaymentProps) {
+  const { t } = useTranslation();
   // Generate EPC QR code string
   const epcString = useMemo(() => {
     return generateEPCString({
@@ -64,7 +66,7 @@ export function BankTransferPayment({
           <div>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5" />
-              Directe Bankoverschrijving
+              {t('checkout.bankTransfer')}
             </CardTitle>
             <CardDescription className="mt-1">
               Bestelling {orderNumber}
@@ -72,7 +74,7 @@ export function BankTransferPayment({
           </div>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            Wacht op betaling
+            {t('storefront.bankTransferPayment.wacht_op_betaling')}
           </Badge>
         </div>
       </CardHeader>
@@ -91,22 +93,22 @@ export function BankTransferPayment({
             </div>
             <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
               <Smartphone className="h-4 w-4" />
-              <span>Scan met je bank-app</span>
+              <span>{t('storefront.bankTransferPayment.scan_met_je_bank_app')}</span>
             </div>
             <p className="text-xs text-center text-muted-foreground mt-2 max-w-[200px]">
-              De betaalgegevens worden automatisch ingevuld in je bank-app
+              {t('storefront.bankTransferPayment.de_betaalgegevens_worden_automatisch_ingevuld_in')}
             </p>
           </div>
 
           {/* Manual Transfer Details */}
           <div className="space-y-4">
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-              Of maak handmatig over:
+              {t('storefront.bankTransferPayment.of_maak_handmatig_over')}
             </h4>
 
             {/* Amount */}
             <div className="p-4 bg-primary/5 rounded-lg">
-              <div className="text-sm text-muted-foreground">Te betalen</div>
+              <div className="text-sm text-muted-foreground">{t('storefront.bankTransferPayment.te_betalen')}</div>
               <div className="text-2xl font-bold text-primary">{formattedAmount}</div>
             </div>
 
@@ -150,14 +152,14 @@ export function BankTransferPayment({
 
             {/* Beneficiary */}
             <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Begunstigde</div>
+              <div className="text-sm text-muted-foreground">{t('storefront.bankTransferPayment.begunstigde')}</div>
               <div className="text-sm font-medium">{beneficiaryName}</div>
             </div>
 
             {/* OGM Reference */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">
-                Mededeling <span className="text-destructive">*</span>
+                {t('storefront.bankTransferPayment.mededeling')} <span className="text-destructive">*</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <code className="text-sm font-mono bg-muted text-foreground px-2 py-1 rounded flex-1 font-bold border border-border">
@@ -172,7 +174,7 @@ export function BankTransferPayment({
                 </Button>
               </div>
               <p className="text-xs text-destructive">
-                ⚠️ Gebruik exact deze mededeling voor automatische verwerking
+                {t('storefront.bankTransferPayment.gebruik_exact_deze_mededeling_voor_automatische')}
               </p>
             </div>
           </div>
@@ -183,10 +185,9 @@ export function BankTransferPayment({
           <div className="flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div className="text-sm text-foreground">
-              <p className="font-medium">SEPA Instant beschikbaar</p>
+              <p className="font-medium">{t('storefront.bankTransferPayment.sepa_instant_beschikbaar')}</p>
               <p className="mt-1 text-muted-foreground">
-                Met de meeste Belgische en Nederlandse banken wordt je betaling binnen enkele seconden verwerkt. 
-                Je bestelling wordt verzonden zodra de betaling is ontvangen.
+                {t('storefront.bankTransferPayment.met_de_meeste_belgische_en_nederlandse')}
               </p>
             </div>
           </div>
@@ -204,12 +205,12 @@ export function BankTransferPayment({
               {isConfirming ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-spin" />
-                  Bevestigen...
+                  {t('storefront.bankTransferPayment.bevestigen')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Betaling ontvangen - Bevestigen
+                  {t('storefront.bankTransferPayment.betaling_ontvangen_bevestigen')}
                 </>
               )}
             </Button>

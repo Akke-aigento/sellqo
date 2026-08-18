@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTranslation } from 'react-i18next';
 
 interface CartDrawerProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface CartDrawerProps {
 }
 
 export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: CartDrawerProps) {
+  const { t } = useTranslation();
   const { items, updateQuantity, removeItem, getSubtotal } = useCart();
   const subtotal = getSubtotal();
 
@@ -30,9 +32,9 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
             <ShoppingBag className="h-16 w-16 text-muted-foreground/30" />
-            <p className="text-muted-foreground">Je winkelwagen is leeg</p>
+            <p className="text-muted-foreground">{t('storefront.cartDrawer.je_winkelwagen_is_leeg')}</p>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Verder winkelen
+              {t('storefront.cartDrawer.verder_winkelen')}
             </Button>
           </div>
         ) : (
@@ -82,15 +84,15 @@ export function CartDrawer({ open, onOpenChange, basePath, currency = 'EUR' }: C
 
             <SheetFooter className="flex-col gap-3 px-6 py-4 border-t">
               <div className="flex justify-between items-center w-full">
-                <span className="font-medium">Subtotaal</span>
+                <span className="font-medium">{t('storefront.cartDrawer.subtotaal')}</span>
                 <span className="text-lg font-bold">{formatCurrency(subtotal, currency)}</span>
               </div>
-              <p className="text-xs text-muted-foreground w-full">Excl. verzendkosten</p>
+              <p className="text-xs text-muted-foreground w-full">{t('storefront.cartDrawer.excl_verzendkosten')}</p>
               <Button asChild className="w-full" size="lg" onClick={() => onOpenChange(false)}>
-                <Link to={`${basePath}/checkout`}>Afrekenen</Link>
+                <Link to={`${basePath}/checkout`}>{t('storefront.cartDrawer.afrekenen')}</Link>
               </Button>
               <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
-                Verder winkelen
+                {t('storefront.cartDrawer.verder_winkelen_2')}
               </Button>
             </SheetFooter>
           </>

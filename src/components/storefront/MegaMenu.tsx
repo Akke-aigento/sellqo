@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Category {
   id: string;
@@ -17,6 +18,7 @@ interface MegaMenuProps {
 }
 
 export function MegaMenu({ categories, basePath }: MegaMenuProps) {
+  const { t } = useTranslation();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   // Build tree: top-level categories and their children
@@ -26,10 +28,10 @@ export function MegaMenu({ categories, basePath }: MegaMenuProps) {
   return (
     <nav className="hidden md:flex items-center gap-1">
       <Link to={basePath} className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
-        Home
+        {t('storefront.megaMenu.home')}
       </Link>
       <Link to={`${basePath}/products`} className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
-        Alle Producten
+        {t('storefront.megaMenu.alle_producten')}
       </Link>
 
       {topLevel.map(cat => {

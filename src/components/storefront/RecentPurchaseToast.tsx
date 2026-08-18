@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, ShoppingBag } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CITIES = ['Amsterdam', 'Rotterdam', 'Utrecht', 'Den Haag', 'Eindhoven', 'Groningen', 'Breda', 'Tilburg', 'Arnhem', 'Leiden', 'Antwerpen', 'Gent', 'Brussel'];
 const INTERVALS = [15000, 25000, 35000, 45000]; // ms between toasts
