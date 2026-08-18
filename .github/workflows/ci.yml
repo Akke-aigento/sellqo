@@ -1,0 +1,55 @@
+name: CI
+
+# Draait op elke push naar main en op elke pull request. De drie checks staan
+# als losse steps zodat in GitHub direct zichtbaar is welke faalt.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: typecheck, i18n-pariteit en build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repo uitchecken
+        uses: actions/checkout@v4
+
+      # De versie komt uit .nvmrc, zodat lokaal en CI niet uit elkaar kunnen
+      # lopen. Wie de versie wil wijzigen, past .nvmrc aan en niets anders.
+      - name: Node opzetten
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      # Bun is geen keuze maar een vereiste: het prebuild-script van dit project
+      # draait `bunx tsx scripts/generate-sitemap.ts`, dus zonder bun faalt de
+      # build. bun.lock is de actuele lockfile van de repo.
+      - name: Bun opzetten
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Dependencies installeren
+        run: bun install
+
+      # 1. Typecheck. Vangt fouten die de build mist: `vite build` gebruikt
+      #    esbuild, dat types stript en geen scope-analyse doet. In batch 3a
+      #    liet dat zeventien `t()`-buiten-componentscope-fouten door een groene
+      #    build glippen; die waren als runtime-crash geland.
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      # 2. i18n-pariteit. Het script eindigt met exit 1 zodra één taal een key
+      #    mist, waardoor deze step vanzelf rood wordt.
+      - name: i18n-pariteit
+        run: node scripts/i18n-parity.mjs
+
+      # 3. Productiebuild. Draait via npm omdat het prebuild-script daaraan
+      #    hangt; npm staat standaard op de runner naast de bun-installatie.
+      - name: Build
+        run: npm run build
