@@ -232,7 +232,7 @@ const App = () => (
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<RouteGuard requireRead="payments"><PaymentsPage /></RouteGuard>} />
               <Route path="billing" element={<RouteGuard requireRead="platform_billing"><BillingPage /></RouteGuard>} />
-              <Route path="settings" element={<RouteGuard requireRead="settings_general"><SettingsPage /></RouteGuard>} />
+              <Route path="settings" element={<RouteGuard requireRead="profile"><SettingsPage /></RouteGuard>} />
               <Route path="connect" element={<RouteGuard requireRead="integrations"><MarketplacesPage /></RouteGuard>} />
               <Route path="connect/conflicts" element={<RouteGuard requireRead="integrations"><SyncConflictsPage /></RouteGuard>} />
               <Route path="connect/:connectionId" element={<RouteGuard requireRead="integrations"><MarketplaceDetailPage /></RouteGuard>} />
@@ -242,11 +242,11 @@ const App = () => (
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
               <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
-              <Route path="notifications" element={<RouteGuard requireRead="settings_general"><NotificationsPage /></RouteGuard>} />
+              <Route path="notifications" element={<RouteGuard requireRead="profile"><NotificationsPage /></RouteGuard>} />
               <Route path="import" element={<RouteGuard requireRead="integrations"><ImportPage /></RouteGuard>} />
-              <Route path="reports" element={<RouteGuard requireRead="reports"><ReportsPage /></RouteGuard>} />
-              <Route path="analytics" element={<RouteGuard requireRead="reports"><AnalyticsPage /></RouteGuard>} />
-              <Route path="reports/stock" element={<RouteGuard requireRead="reports"><StockReportPage /></RouteGuard>} />
+              <Route path="reports" element={<RouteGuard requireRead="reports_financial"><ReportsPage /></RouteGuard>} />
+              <Route path="analytics" element={<RouteGuard requireRead="reports_analytics"><AnalyticsPage /></RouteGuard>} />
+              <Route path="reports/stock" element={<RouteGuard requireRead="products"><StockReportPage /></RouteGuard>} />
               <Route path="suppliers" element={<RouteGuard requireRead="suppliers"><SuppliersPage /></RouteGuard>} />
               <Route path="purchase-orders" element={<RouteGuard requireRead="suppliers"><PurchaseOrdersPage /></RouteGuard>} />
               <Route path="supplier-documents" element={<RouteGuard requireRead="suppliers"><SupplierDocumentsPage /></RouteGuard>} />

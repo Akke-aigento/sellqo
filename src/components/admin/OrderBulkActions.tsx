@@ -68,7 +68,7 @@ export function OrderBulkActions({
   const [batchPrintOpen, setBatchPrintOpen] = useState(false);
   // H4c — permissions: delete is tenant_admin-only; export gated to accountant/admin.
   const canWriteOrders = useCan('write', 'orders');
-  const canReadReports = useCan('read', 'reports');
+  const canReadReports = useCan('read', 'reports_financial');
 
   const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
 

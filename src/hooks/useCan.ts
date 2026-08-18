@@ -35,7 +35,9 @@ export type Resource =
   | "cms"
   | "seo"
   | "themes"
-  | "reports"
+  | "reports_financial"
+  | "reports_analytics"
+  | "profile"
   | "vat"
   | "integrations"
   | "webhooks_api"
@@ -154,9 +156,19 @@ export const PERMISSION_MATRIX: Matrix = {
     read: ["platform_admin", "tenant_admin", "staff", "viewer"],
     write: ["platform_admin", "tenant_admin", "staff"],
   },
-  reports: {
+  reports_financial: {
+    // Zelfde rolset als de financiële tabellen sinds SEC-2a (invoices, credit_notes).
+    read: ["platform_admin", "tenant_admin", "staff", "accountant", "viewer"],
+    write: [],
+  },
+  reports_analytics: {
     read: ALL_ROLES.filter((r) => r !== "warehouse"),
     write: [],
+  },
+  profile: {
+    // PERM-2: persoonlijke instellingen (naam, taal, wachtwoord) — elke rol.
+    read: ALL_ROLES,
+    write: ALL_ROLES,
   },
   vat: {
     read: ["platform_admin", "tenant_admin", "accountant", "viewer"],
