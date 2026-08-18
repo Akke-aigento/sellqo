@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10c — Persoonlijke instellingen voor iedereen, rapporten opgesplitst (improvement, 18-08-2026)
+
+**Iedereen bij zijn eigen profiel, rapporten netjes gescheiden** (oktober 2026)
+Teamleden zonder beheerdersrol konden hun eigen naam, taal en wachtwoord niet wijzigen:
+de volledige instellingenpagina zat achter een beheerdersrecht. Dat is opgelost —
+"Mijn profiel" is nu voor elke rol bereikbaar, en binnen de instellingen zie je enkel
+wat bij jouw rol hoort. Daarnaast zijn de rapporten opgesplitst: financiële overzichten
+blijven voorbehouden aan wie daar toegang toe hoort, commerciële analyses blijven breed
+beschikbaar, en het voorraadrapport is nu ook bereikbaar voor magazijnmedewerkers.
+Wat betekent dit voor jou? Je hoeft niets in te stellen; het geldt meteen voor je hele team.
+
+**i18n-keys.** `public.changelog.changes.personal_settings_and_reports` — NL/EN/FR/DE aanwezig.
+
 ### 2026.10b — Recht op kortingen dekt nu ook promoties (security, 18-08-2026)
 
 **Eén schakelaar voor alle kortingen en promoties** (oktober 2026)
