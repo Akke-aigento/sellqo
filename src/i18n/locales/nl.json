@@ -24,7 +24,8 @@
     "no": "Nee",
     "phone": "Telefoon",
     "search": "Zoeken...",
-    "yes": "Ja"
+    "yes": "Ja",
+    "saving": "Opslaan..."
   },
   "auth": {
     "login": "Inloggen",
@@ -33,7 +34,50 @@
     "email": "E-mailadres",
     "password": "Wachtwoord",
     "forgotPassword": "Wachtwoord vergeten?",
-    "resetPassword": "Wachtwoord resetten"
+    "resetPassword": "Wachtwoord resetten",
+    "validation": {
+      "invalidEmail": "Ongeldig e-mailadres",
+      "passwordMin": "Wachtwoord moet minimaal 6 tekens zijn",
+      "nameMin": "Naam moet minimaal 2 tekens zijn",
+      "passwordMismatch": "Wachtwoorden komen niet overeen"
+    },
+    "backToSite": "Terug naar sellqo.app",
+    "welcomeBack": "Welkom terug!",
+    "loggedInAs": "Je bent ingelogd als {{email}}",
+    "toDashboard": "Naar mijn dashboard",
+    "switchAccount": "Wissel van account",
+    "tagline": "Jouw webshop. Simpel online.",
+    "loginSubtitle": "Log in met je e-mail en wachtwoord",
+    "emailPlaceholder": "naam@voorbeeld.nl",
+    "loggingIn": "Bezig met inloggen...",
+    "resetCooldown": "Opnieuw mogelijk over {{seconds}}s",
+    "signupSubtitle": "Maak een nieuw account aan",
+    "fullName": "Volledige naam",
+    "fullNamePlaceholder": "Jan Jansen",
+    "confirmPassword": "Bevestig wachtwoord",
+    "signingUp": "Bezig met registreren...",
+    "reset": {
+      "description": "Vul je e-mailadres in. We sturen je een link om een nieuw wachtwoord in te stellen. Controleer ook je spam-map als je niets ontvangt.",
+      "sending": "Versturen...",
+      "submit": "Reset-link versturen",
+      "toastTitle": "Controleer je inbox",
+      "toastBody": "Als er een account bestaat op dit adres, is er een e-mail met een reset-link verstuurd. Het kan enkele minuten duren."
+    },
+    "sessionExpired": {
+      "title": "Sessie verlopen",
+      "body": "Je sessie is ongeldig of verlopen. Log opnieuw in om verder te gaan.",
+      "short": "Log opnieuw in om verder te gaan.",
+      "action": "Opnieuw inloggen"
+    },
+    "toast": {
+      "loginFailed": "Login mislukt",
+      "loginSuccess": "Je bent succesvol ingelogd.",
+      "signupFailed": "Registratie mislukt",
+      "signupSuccess": "Account aangemaakt!",
+      "signupSuccessBody": "Je kunt nu inloggen.",
+      "loggedOut": "Uitgelogd",
+      "loggedOutBody": "Tot ziens!"
+    }
   },
   "navigation": {
     "import": "Importeren",
@@ -46,7 +90,74 @@
     "products": "Producten",
     "settings": "Instellingen",
     "shipping": "Verzending",
-    "tenants": "Tenants"
+    "tenants": "Tenants",
+    "soon": "soon",
+    "groups": {
+      "daily": "Dagelijks",
+      "sales": "Verkoop",
+      "marketing": "Marketing",
+      "management": "Beheer",
+      "system": "Systeem"
+    },
+    "items": {
+      "inbox": "Inbox",
+      "orders_all": "Alle bestellingen",
+      "orders_fulfillment": "Fulfillment",
+      "orders_returns": "Retouren",
+      "orders_invoices": "Facturen",
+      "orders_quotes": "Offertes",
+      "orders_subscriptions": "Abonnementen",
+      "pos": "Kassa (POS)",
+      "ticket_checkin": "Ticket check-in",
+      "event_dashboard": "Events",
+      "storefront": "Webshop",
+      "payments": "Betalingen",
+      "ads": "Ads",
+      "ads_overview": "Overzicht",
+      "ads_bolcom": "Bol.com",
+      "ads_products": "Product Mapping",
+      "ads_amazon": "Amazon",
+      "ads_google": "Google",
+      "ads_meta": "Meta",
+      "ads_ai": "AI Regels",
+      "promotions": "Promoties",
+      "promo_codes": "Kortingscodes",
+      "promo_bundles": "Bundels",
+      "promo_bogo": "BOGO acties",
+      "promo_volume": "Staffelkorting",
+      "promo_auto": "Auto-kortingen",
+      "promo_gifts": "Cadeauacties",
+      "promo_loyalty": "Loyaliteit",
+      "promo_groups": "Klantgroepen",
+      "promo_giftcards": "Cadeaubonnen",
+      "campaigns": "Campagnes",
+      "ai_tools": "AI Tools",
+      "ai_content": "AI Content Hub",
+      "ai_actions": "AI Actie Centrum",
+      "seo": "SEO",
+      "translations": "Vertalingen",
+      "purchasing": "Inkoop",
+      "suppliers": "Leveranciers",
+      "purchase_orders": "Inkooporders",
+      "supplier_docs": "Documenten",
+      "reports": "Rapporten",
+      "reports_overview": "Overzicht",
+      "reports_stock": "Voorraadrapport",
+      "notifications": "Notificaties",
+      "integrations": "SellQo Connect",
+      "integrations_connect": "SellQo Connect",
+      "billing": "Abonnement",
+      "help": "Help",
+      "platform_billing": "Platform Billing",
+      "platform_coupons": "Coupons",
+      "platform_feedback": "Feedback",
+      "platform_support": "Support",
+      "platform_changelog": "Changelog",
+      "platform_blog": "Blog",
+      "platform_health": "Health Monitor",
+      "platform_legal": "Juridisch",
+      "platform_docs": "Documentatie"
+    }
   },
   "settings": {
     "title": "Instellingen",
@@ -1403,6 +1514,21 @@
       "stock_min": "Voorraad moet 0 of hoger zijn",
       "meta_title_max": "Meta titel mag maximaal 60 tekens zijn",
       "meta_desc_max": "Meta beschrijving mag maximaal 160 tekens zijn"
+    }
+  },
+  "sidebar": {
+    "selectStore": "Selecteer winkel",
+    "noStores": "Geen winkels beschikbaar",
+    "customize": "Personaliseer menu",
+    "customizeDescription": "Verberg menu-items die je niet gebruikt. Je kunt ze altijd terughalen.",
+    "showAll": "Alles tonen",
+    "hiddenCount": "{{count}} verborgen",
+    "adminView": {
+      "banner": "Admin View — oog-iconen om pagina's te verbergen",
+      "featureGranted": "Feature toegekend — klik om te blokkeren",
+      "featureBlocked": "Geblokkeerd door abonnement — klik om toch toe te kennen",
+      "pageHidden": "Verborgen voor tenant — klik om te tonen",
+      "pageVisible": "Zichtbaar voor tenant — klik om te verbergen"
     }
   }
 }

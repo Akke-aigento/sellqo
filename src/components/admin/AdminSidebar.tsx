@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { user, signOut, isPlatformAdmin, userRole, isWarehouse, roles } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
@@ -177,7 +179,7 @@ export function AdminSidebar() {
           'p-0.5 rounded hover:bg-accent/50 transition-colors shrink-0',
           granted ? 'text-green-500' : 'text-amber-500/60 hover:text-amber-500'
         )}
-        title={granted ? 'Feature toegekend — klik om te blokkeren' : 'Geblokkeerd door abonnement — klik om toch toe te kennen'}
+        title={granted ? t('sidebar.adminView.featureGranted') : t('sidebar.adminView.featureBlocked')}
       >
         {granted ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
       </button>
@@ -201,7 +203,7 @@ export function AdminSidebar() {
             'p-0.5 rounded hover:bg-accent/50 transition-colors',
             hidden ? 'text-destructive/60' : 'text-muted-foreground/40 hover:text-muted-foreground'
           )}
-          title={hidden ? 'Verborgen voor tenant — klik om te tonen' : 'Zichtbaar voor tenant — klik om te verbergen'}
+          title={hidden ? t('sidebar.adminView.pageHidden') : t('sidebar.adminView.pageVisible')}
         >
           {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </button>
@@ -226,7 +228,7 @@ export function AdminSidebar() {
             <CollapsibleTrigger asChild>
               <SidebarMenuButton isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
                 {item.icon && <item.icon className="h-4 w-4" />}
-                <span>{item.title}</span>
+                <span>{t(item.titleKey)}</span>
                 {renderPageToggle(item.id, item)}
                 <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
@@ -237,13 +239,13 @@ export function AdminSidebar() {
                   <SidebarMenuSubItem key={child.id}>
                     {child.disabled ? (
                       <SidebarMenuSubButton className="opacity-40 pointer-events-none">
-                        <span>{child.title}</span>
-                        <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">soon</span>
+                        <span>{t(child.titleKey)}</span>
+                        <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">{t('navigation.soon')}</span>
                       </SidebarMenuSubButton>
                     ) : (
                       <SidebarMenuSubButton asChild isActive={isActive(child.url)} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
-                          <span>{child.title}</span>
+                          <span>{t(child.titleKey)}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
                           {renderPageToggle(child.id, child)}
                         </NavLink>
@@ -265,7 +267,7 @@ export function AdminSidebar() {
           <NavLink to={item.url} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
-              <span>{item.title}</span>
+              <span>{t(item.titleKey)}</span>
             </span>
             {item.badge && item.id === 'inbox' && <InboxBadge />}
             {renderPageToggle(item.id, item)}
@@ -289,7 +291,7 @@ export function AdminSidebar() {
 
     return (
       <SidebarGroup key={group.id}>
-        <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+        <SidebarGroupLabel>{t(group.titleKey)}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {visibleItems.map(item => renderNavItem(item))}
@@ -324,7 +326,7 @@ export function AdminSidebar() {
                     ) : currentTenant ? (
                       <span className="truncate">{currentTenant.name}</span>
                     ) : (
-                      <span className="text-muted-foreground">Selecteer winkel</span>
+                      <span className="text-muted-foreground">{t('sidebar.selectStore')}</span>
                     )}
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
@@ -342,7 +344,7 @@ export function AdminSidebar() {
                   ))}
                   {tenants.length === 0 && (
                     <DropdownMenuItem disabled>
-                      Geen winkels beschikbaar
+                      {t('sidebar.noStores')}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -357,7 +359,7 @@ export function AdminSidebar() {
             <div className="mx-3 mt-2 mb-1 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-2">
               <Eye className="h-3.5 w-3.5 text-primary shrink-0" />
               <span className="text-xs font-medium text-primary">
-                Admin View — oog-iconen om pagina's te verbergen
+                {t('sidebar.adminView.banner')}
               </span>
             </div>
           )}
@@ -373,10 +375,10 @@ export function AdminSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => setCustomizeOpen(true)}>
                 <Sliders className="h-4 w-4" />
-                <span>Personaliseer menu</span>
+                <span>{t('sidebar.customize')}</span>
                 {hiddenItems.length > 0 && (
                   <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {hiddenItems.length} verborgen
+                    {t('sidebar.hiddenCount', { count: hiddenItems.length })}
                   </span>
                 )}
               </SidebarMenuButton>
@@ -402,13 +404,13 @@ export function AdminSidebar() {
                   <DropdownMenuItem asChild>
                     <NavLink to="/admin/settings">
                       <SettingsIcon className="mr-2 h-4 w-4" />
-                      Instellingen
+                      {t('navigation.settings')}
                     </NavLink>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Uitloggen
+                    {t('auth.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

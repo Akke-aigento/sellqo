@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Settings2, Save, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { usePlatformAdmin, TenantFeatureOverride } from '@/hooks/usePlatformAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 import { sidebarGroups, getAllMenuItems } from '@/components/admin/sidebar/sidebarConfig';
 
 interface TenantModulesTabProps {
@@ -33,6 +34,7 @@ const LIMITS = [
 ] as const;
 
 export function TenantModulesTab({ tenantId }: TenantModulesTabProps) {
+  const { t } = useTranslation();
   const { useTenantFeatureOverrides, updateFeatureOverrides } = usePlatformAdmin();
   const { data: overrides, isLoading } = useTenantFeatureOverrides(tenantId);
   
@@ -186,7 +188,7 @@ export function TenantModulesTab({ tenantId }: TenantModulesTabProps) {
           <div className="space-y-4">
             {sidebarGroups.map((group) => (
               <div key={group.id} className="space-y-2">
-                <h4 className="text-sm font-semibold text-muted-foreground">{group.title}</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground">{t(group.titleKey)}</h4>
                 <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                   {group.items.map((item) => {
                     const currentHidden = (formData.hidden_pages as string[] | undefined) || [];
@@ -203,7 +205,7 @@ export function TenantModulesTab({ tenantId }: TenantModulesTabProps) {
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                           <span className={isHidden ? 'text-muted-foreground line-through' : 'font-medium'}>
-                            {item.title}
+                            {t(item.titleKey)}
                           </span>
                         </div>
                         <Switch

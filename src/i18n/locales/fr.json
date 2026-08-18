@@ -52,7 +52,8 @@
     "total": "Total",
     "date": "Date",
     "noResults": "Aucun résultat trouvé",
-    "all": "Tous"
+    "all": "Tous",
+    "saving": "Enregistrement..."
   },
   "auth": {
     "login": "Connexion",
@@ -61,7 +62,50 @@
     "email": "E-mail",
     "password": "Mot de passe",
     "forgotPassword": "Mot de passe oublié ?",
-    "resetPassword": "Réinitialiser le mot de passe"
+    "resetPassword": "Réinitialiser le mot de passe",
+    "validation": {
+      "invalidEmail": "Adresse e-mail invalide",
+      "passwordMin": "Le mot de passe doit contenir au moins 6 caractères",
+      "nameMin": "Le nom doit contenir au moins 2 caractères",
+      "passwordMismatch": "Les mots de passe ne correspondent pas"
+    },
+    "backToSite": "Retour à sellqo.app",
+    "welcomeBack": "Bon retour !",
+    "loggedInAs": "Vous êtes connecté en tant que {{email}}",
+    "toDashboard": "Vers mon tableau de bord",
+    "switchAccount": "Changer de compte",
+    "tagline": "Votre boutique. Simplement en ligne.",
+    "loginSubtitle": "Connectez-vous avec votre e-mail et votre mot de passe",
+    "emailPlaceholder": "nom@exemple.com",
+    "loggingIn": "Connexion en cours...",
+    "resetCooldown": "De nouveau possible dans {{seconds}} s",
+    "signupSubtitle": "Créez un nouveau compte",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Jean Dupont",
+    "confirmPassword": "Confirmez le mot de passe",
+    "signingUp": "Inscription en cours...",
+    "reset": {
+      "description": "Saisissez votre adresse e-mail. Nous vous enverrons un lien pour définir un nouveau mot de passe. Vérifiez aussi votre dossier spam si vous ne recevez rien.",
+      "sending": "Envoi...",
+      "submit": "Envoyer le lien de réinitialisation",
+      "toastTitle": "Consultez votre boîte de réception",
+      "toastBody": "Si un compte existe pour cette adresse, un e-mail contenant un lien de réinitialisation a été envoyé. Cela peut prendre quelques minutes."
+    },
+    "sessionExpired": {
+      "title": "Session expirée",
+      "body": "Votre session est invalide ou a expiré. Reconnectez-vous pour continuer.",
+      "short": "Reconnectez-vous pour continuer.",
+      "action": "Se reconnecter"
+    },
+    "toast": {
+      "loginFailed": "Échec de la connexion",
+      "loginSuccess": "Vous êtes connecté avec succès.",
+      "signupFailed": "Échec de l'inscription",
+      "signupSuccess": "Compte créé !",
+      "signupSuccessBody": "Vous pouvez maintenant vous connecter.",
+      "loggedOut": "Déconnecté",
+      "loggedOutBody": "À bientôt !"
+    }
   },
   "navigation": {
     "import": "Importer",
@@ -74,7 +118,74 @@
     "products": "Produits",
     "settings": "Paramètres",
     "shipping": "Expédition",
-    "tenants": "Locataires"
+    "tenants": "Locataires",
+    "soon": "bientôt",
+    "groups": {
+      "daily": "Quotidien",
+      "sales": "Ventes",
+      "marketing": "Marketing",
+      "management": "Gestion",
+      "system": "Système"
+    },
+    "items": {
+      "inbox": "Boîte de réception",
+      "orders_all": "Toutes les commandes",
+      "orders_fulfillment": "Préparation des commandes",
+      "orders_returns": "Retours",
+      "orders_invoices": "Factures",
+      "orders_quotes": "Devis",
+      "orders_subscriptions": "Abonnements",
+      "pos": "Caisse (POS)",
+      "ticket_checkin": "Enregistrement des billets",
+      "event_dashboard": "Événements",
+      "storefront": "Boutique en ligne",
+      "payments": "Paiements",
+      "ads": "Publicités",
+      "ads_overview": "Aperçu",
+      "ads_bolcom": "Bol.com",
+      "ads_products": "Mappage des produits",
+      "ads_amazon": "Amazon",
+      "ads_google": "Google",
+      "ads_meta": "Meta",
+      "ads_ai": "Règles IA",
+      "promotions": "Promotions",
+      "promo_codes": "Codes de réduction",
+      "promo_bundles": "Lots",
+      "promo_bogo": "Offres BOGO",
+      "promo_volume": "Remises sur volume",
+      "promo_auto": "Remises automatiques",
+      "promo_gifts": "Offres cadeaux",
+      "promo_loyalty": "Fidélité",
+      "promo_groups": "Groupes de clients",
+      "promo_giftcards": "Cartes cadeaux",
+      "campaigns": "Campagnes",
+      "ai_tools": "Outils IA",
+      "ai_content": "Hub de contenu IA",
+      "ai_actions": "Centre d'actions IA",
+      "seo": "SEO",
+      "translations": "Traductions",
+      "purchasing": "Achats",
+      "suppliers": "Fournisseurs",
+      "purchase_orders": "Bons de commande",
+      "supplier_docs": "Documents",
+      "reports": "Rapports",
+      "reports_overview": "Aperçu",
+      "reports_stock": "Rapport de stock",
+      "notifications": "Notifications",
+      "integrations": "SellQo Connect",
+      "integrations_connect": "SellQo Connect",
+      "billing": "Abonnement",
+      "help": "Aide",
+      "platform_billing": "Facturation plateforme",
+      "platform_coupons": "Coupons",
+      "platform_feedback": "Retours",
+      "platform_support": "Assistance",
+      "platform_changelog": "Journal des modifications",
+      "platform_blog": "Blog",
+      "platform_health": "Moniteur de santé",
+      "platform_legal": "Juridique",
+      "platform_docs": "Documentation"
+    }
   },
   "settings": {
     "title": "Paramètres",
@@ -1404,5 +1515,20 @@
     "title": "Export déclaration TVA",
     "vat_due": "TVA due",
     "year": "Année"
+  },
+  "sidebar": {
+    "selectStore": "Sélectionner une boutique",
+    "noStores": "Aucune boutique disponible",
+    "customize": "Personnaliser le menu",
+    "customizeDescription": "Masquez les éléments de menu que vous n'utilisez pas. Vous pouvez toujours les rétablir.",
+    "showAll": "Tout afficher",
+    "hiddenCount": "{{count}} masqué(s)",
+    "adminView": {
+      "banner": "Vue admin — utilisez les icônes en forme d'œil pour masquer des pages",
+      "featureGranted": "Fonctionnalité accordée — cliquez pour la bloquer",
+      "featureBlocked": "Bloqué par l'abonnement — cliquez pour l'accorder malgré tout",
+      "pageHidden": "Masqué pour le locataire — cliquez pour l'afficher",
+      "pageVisible": "Visible pour le locataire — cliquez pour le masquer"
+    }
   }
 }

@@ -52,7 +52,8 @@
     "total": "Gesamt",
     "date": "Datum",
     "noResults": "Keine Ergebnisse gefunden",
-    "all": "Alle"
+    "all": "Alle",
+    "saving": "Speichern..."
   },
   "auth": {
     "login": "Anmelden",
@@ -61,7 +62,50 @@
     "email": "E-Mail",
     "password": "Passwort",
     "forgotPassword": "Passwort vergessen?",
-    "resetPassword": "Passwort zurücksetzen"
+    "resetPassword": "Passwort zurücksetzen",
+    "validation": {
+      "invalidEmail": "Ungültige E-Mail-Adresse",
+      "passwordMin": "Das Passwort muss mindestens 6 Zeichen lang sein",
+      "nameMin": "Der Name muss mindestens 2 Zeichen lang sein",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein"
+    },
+    "backToSite": "Zurück zu sellqo.app",
+    "welcomeBack": "Willkommen zurück!",
+    "loggedInAs": "Sie sind angemeldet als {{email}}",
+    "toDashboard": "Zu meinem Dashboard",
+    "switchAccount": "Konto wechseln",
+    "tagline": "Ihr Shop. Einfach online.",
+    "loginSubtitle": "Melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an",
+    "emailPlaceholder": "name@beispiel.de",
+    "loggingIn": "Anmeldung läuft...",
+    "resetCooldown": "Erneut möglich in {{seconds}} s",
+    "signupSubtitle": "Erstellen Sie ein neues Konto",
+    "fullName": "Vollständiger Name",
+    "fullNamePlaceholder": "Max Mustermann",
+    "confirmPassword": "Passwort bestätigen",
+    "signingUp": "Registrierung läuft...",
+    "reset": {
+      "description": "Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link, um ein neues Passwort festzulegen. Prüfen Sie auch Ihren Spam-Ordner, falls nichts ankommt.",
+      "sending": "Wird gesendet...",
+      "submit": "Reset-Link senden",
+      "toastTitle": "Prüfen Sie Ihren Posteingang",
+      "toastBody": "Falls für diese Adresse ein Konto besteht, wurde eine E-Mail mit einem Reset-Link gesendet. Das kann einige Minuten dauern."
+    },
+    "sessionExpired": {
+      "title": "Sitzung abgelaufen",
+      "body": "Ihre Sitzung ist ungültig oder abgelaufen. Melden Sie sich erneut an, um fortzufahren.",
+      "short": "Melden Sie sich erneut an, um fortzufahren.",
+      "action": "Erneut anmelden"
+    },
+    "toast": {
+      "loginFailed": "Anmeldung fehlgeschlagen",
+      "loginSuccess": "Sie wurden erfolgreich angemeldet.",
+      "signupFailed": "Registrierung fehlgeschlagen",
+      "signupSuccess": "Konto erstellt!",
+      "signupSuccessBody": "Sie können sich jetzt anmelden.",
+      "loggedOut": "Abgemeldet",
+      "loggedOutBody": "Bis bald!"
+    }
   },
   "navigation": {
     "import": "Importieren",
@@ -74,7 +118,74 @@
     "products": "Produkte",
     "settings": "Einstellungen",
     "shipping": "Versand",
-    "tenants": "Mandanten"
+    "tenants": "Mandanten",
+    "soon": "bald",
+    "groups": {
+      "daily": "Täglich",
+      "sales": "Verkauf",
+      "marketing": "Marketing",
+      "management": "Verwaltung",
+      "system": "System"
+    },
+    "items": {
+      "inbox": "Posteingang",
+      "orders_all": "Alle Bestellungen",
+      "orders_fulfillment": "Fulfillment",
+      "orders_returns": "Retouren",
+      "orders_invoices": "Rechnungen",
+      "orders_quotes": "Angebote",
+      "orders_subscriptions": "Abonnements",
+      "pos": "Kasse (POS)",
+      "ticket_checkin": "Ticket-Check-in",
+      "event_dashboard": "Events",
+      "storefront": "Onlineshop",
+      "payments": "Zahlungen",
+      "ads": "Werbung",
+      "ads_overview": "Übersicht",
+      "ads_bolcom": "Bol.com",
+      "ads_products": "Produkt-Mapping",
+      "ads_amazon": "Amazon",
+      "ads_google": "Google",
+      "ads_meta": "Meta",
+      "ads_ai": "KI-Regeln",
+      "promotions": "Promotionen",
+      "promo_codes": "Rabattcodes",
+      "promo_bundles": "Bundles",
+      "promo_bogo": "BOGO-Aktionen",
+      "promo_volume": "Staffelrabatte",
+      "promo_auto": "Automatische Rabatte",
+      "promo_gifts": "Geschenkaktionen",
+      "promo_loyalty": "Treue",
+      "promo_groups": "Kundengruppen",
+      "promo_giftcards": "Geschenkgutscheine",
+      "campaigns": "Kampagnen",
+      "ai_tools": "KI-Tools",
+      "ai_content": "KI-Content-Hub",
+      "ai_actions": "KI-Aktionszentrum",
+      "seo": "SEO",
+      "translations": "Übersetzungen",
+      "purchasing": "Einkauf",
+      "suppliers": "Lieferanten",
+      "purchase_orders": "Bestellungen",
+      "supplier_docs": "Dokumente",
+      "reports": "Berichte",
+      "reports_overview": "Übersicht",
+      "reports_stock": "Bestandsbericht",
+      "notifications": "Benachrichtigungen",
+      "integrations": "SellQo Connect",
+      "integrations_connect": "SellQo Connect",
+      "billing": "Abonnement",
+      "help": "Hilfe",
+      "platform_billing": "Plattform-Abrechnung",
+      "platform_coupons": "Gutscheine",
+      "platform_feedback": "Feedback",
+      "platform_support": "Support",
+      "platform_changelog": "Changelog",
+      "platform_blog": "Blog",
+      "platform_health": "Health-Monitor",
+      "platform_legal": "Rechtliches",
+      "platform_docs": "Dokumentation"
+    }
   },
   "settings": {
     "title": "Einstellungen",
@@ -1404,5 +1515,20 @@
     "title": "MwSt.-Erklärung Export",
     "vat_due": "Geschuldete MwSt.",
     "year": "Jahr"
+  },
+  "sidebar": {
+    "selectStore": "Shop auswählen",
+    "noStores": "Keine Shops verfügbar",
+    "customize": "Menü anpassen",
+    "customizeDescription": "Blenden Sie Menüpunkte aus, die Sie nicht nutzen. Sie können sie jederzeit zurückholen.",
+    "showAll": "Alle anzeigen",
+    "hiddenCount": "{{count}} ausgeblendet",
+    "adminView": {
+      "banner": "Admin-Ansicht — mit den Augensymbolen Seiten ausblenden",
+      "featureGranted": "Funktion freigegeben — zum Sperren klicken",
+      "featureBlocked": "Durch Abonnement gesperrt — zum trotzdem Freigeben klicken",
+      "pageHidden": "Für Mandanten ausgeblendet — zum Anzeigen klicken",
+      "pageVisible": "Für Mandanten sichtbar — zum Ausblenden klicken"
+    }
   }
 }

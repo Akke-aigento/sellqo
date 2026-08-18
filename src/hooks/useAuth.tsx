@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { registerPushForUser, unregisterPushForUser } from '@/native/pushRegistration';
 
 // Storage key used by Supabase auth
@@ -122,6 +123,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -404,8 +406,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await safeLocalSignOut();
           toast({
 
-            title: 'Sessie verlopen',
-            description: 'Log opnieuw in om verder te gaan.',
+            title: t('auth.sessionExpired.title'),
+            description: t('auth.sessionExpired.short'),
             variant: 'destructive',
           });
           return false;
@@ -429,8 +431,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await safeLocalSignOut();
         toast({
 
-          title: 'Sessie verlopen',
-          description: 'Log opnieuw in om verder te gaan.',
+          title: t('auth.sessionExpired.title'),
+          description: t('auth.sessionExpired.short'),
           variant: 'destructive',
         });
         return false;
@@ -443,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // No session and no storage = not authenticated
     console.log('[Auth] ensureAuthenticated: no session found');
     return false;
-  }, [toast]);
+  }, [toast, t]);
 
   /**
    * Gets a verified access token, optionally forcing a refresh first.
@@ -512,7 +514,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       toast({
-        title: 'Login mislukt',
+        title: t('auth.toast.loginFailed'),
         description: error.message,
         variant: 'destructive',
       });
@@ -520,8 +522,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     toast({
-      title: 'Welkom terug!',
-      description: 'Je bent succesvol ingelogd.',
+      title: t('auth.welcomeBack'),
+      description: t('auth.toast.loginSuccess'),
     });
 
     return { error: null };
@@ -543,7 +545,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       toast({
-        title: 'Registratie mislukt',
+        title: t('auth.toast.signupFailed'),
         description: error.message,
         variant: 'destructive',
       });
@@ -551,8 +553,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     toast({
-      title: 'Account aangemaakt!',
-      description: 'Je kunt nu inloggen.',
+      title: t('auth.toast.signupSuccess'),
+      description: t('auth.toast.signupSuccessBody'),
     });
 
     return { error: null };
@@ -566,8 +568,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     currentUserIdRef.current = null;
     hasResolvedRolesOnceRef.current = false;
     toast({
-      title: 'Uitgelogd',
-      description: 'Tot ziens!',
+      title: t('auth.toast.loggedOut'),
+      description: t('auth.toast.loggedOutBody'),
     });
   };
 

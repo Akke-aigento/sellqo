@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +18,10 @@ import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 
 interface MenuItem {
   id: string;
-  title: string;
-  group: string;
+  /** i18n-key, geen letterlijke tekst. */
+  titleKey: string;
+  /** i18n-key van de groep waartoe dit item hoort. */
+  groupKey: string;
 }
 
 interface SidebarCustomizeDialogProps {
@@ -32,6 +35,7 @@ export function SidebarCustomizeDialog({
   onOpenChange,
   menuItems,
 }: SidebarCustomizeDialogProps) {
+  const { t } = useTranslation();
   const { hiddenItems, updatePreferences, isUpdating, showAllItems } = useSidebarPreferences();
   const [localHidden, setLocalHidden] = useState<string[]>([]);
 
@@ -58,10 +62,10 @@ export function SidebarCustomizeDialog({
     setLocalHidden([]);
   };
 
-  // Group items by their group
+  // Group items by their group key
   const groupedItems = menuItems.reduce((acc, item) => {
-    if (!acc[item.group]) acc[item.group] = [];
-    acc[item.group].push(item);
+    if (!acc[item.groupKey]) acc[item.groupKey] = [];
+    acc[item.groupKey].push(item);
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
@@ -69,18 +73,18 @@ export function SidebarCustomizeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Personaliseer menu</DialogTitle>
+          <DialogTitle>{t('sidebar.customize')}</DialogTitle>
           <DialogDescription>
-            Verberg menu-items die je niet gebruikt. Je kunt ze altijd terughalen.
+            {t('sidebar.customizeDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[400px] pr-4">
           <div className="space-y-6">
-            {Object.entries(groupedItems).map(([group, items]) => (
-              <div key={group}>
+            {Object.entries(groupedItems).map(([groupKey, items]) => (
+              <div key={groupKey}>
                 <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                  {group}
+                  {t(groupKey)}
                 </h4>
                 <div className="space-y-2">
                   {items.map((item) => (
@@ -94,7 +98,7 @@ export function SidebarCustomizeDialog({
                         htmlFor={item.id}
                         className="text-sm font-normal cursor-pointer"
                       >
-                        {item.title}
+                        {t(item.titleKey)}
                       </Label>
                     </div>
                   ))}
@@ -112,14 +116,14 @@ export function SidebarCustomizeDialog({
             className="w-full sm:w-auto"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Alles tonen
+            {t('sidebar.showAll')}
           </Button>
           <Button
             onClick={handleSave}
             disabled={isUpdating}
             className="w-full sm:w-auto"
           >
-            {isUpdating ? 'Opslaan...' : 'Opslaan'}
+            {isUpdating ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -19,24 +20,40 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
-const loginSchema = z.object({
-  email: z.string().email('Ongeldig e-mailadres'),
-  password: z.string().min(6, 'Wachtwoord moet minimaal 6 tekens zijn'),
-});
+/**
+ * De schema's worden per render opgebouwd omdat de foutmeldingen door i18n
+ * gaan; op moduleniveau is `t` niet beschikbaar. `useMemo` houdt ze stabiel
+ * zolang de taal niet wisselt.
+ */
+type TFunc = (key: string) => string;
 
-const resetSchema = z.object({
-  email: z.string().email('Ongeldig e-mailadres'),
-});
+const buildLoginSchema = (t: TFunc) =>
+  z.object({
+    email: z.string().email(t('auth.validation.invalidEmail')),
+    password: z.string().min(6, t('auth.validation.passwordMin')),
+  });
 
-const signupSchema = loginSchema.extend({
-  fullName: z.string().min(2, 'Naam moet minimaal 2 tekens zijn'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Wachtwoorden komen niet overeen',
-  path: ['confirmPassword'],
-});
+const buildResetSchema = (t: TFunc) =>
+  z.object({
+    email: z.string().email(t('auth.validation.invalidEmail')),
+  });
+
+const buildSignupSchema = (t: TFunc) =>
+  buildLoginSchema(t)
+    .extend({
+      fullName: z.string().min(2, t('auth.validation.nameMin')),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('auth.validation.passwordMismatch'),
+      path: ['confirmPassword'],
+    });
 
 export default function Auth() {
+  const { t } = useTranslation();
+  const loginSchema = useMemo(() => buildLoginSchema(t), [t]);
+  const resetSchema = useMemo(() => buildResetSchema(t), [t]);
+  const signupSchema = useMemo(() => buildSignupSchema(t), [t]);
   const navigate = useNavigate();
   const { user, loading, signIn, signUp, signOut, resetPassword } = useAuth();
   const { toast } = useToast();
@@ -86,7 +103,7 @@ export default function Auth() {
       resetSchema.parse({ email: resetEmail });
     } catch (err) {
       if (err instanceof z.ZodError) {
-        setResetError(err.errors[0]?.message ?? 'Ongeldig e-mailadres');
+        setResetError(err.errors[0]?.message ?? t('auth.validation.invalidEmail'));
         return;
       }
     }
@@ -102,9 +119,8 @@ export default function Auth() {
     setResetOpen(false);
     setCooldown(60);
     toast({
-      title: 'Controleer je inbox',
-      description:
-        'Als er een account bestaat op dit adres, is er een e-mail met een reset-link verstuurd. Het kan enkele minuten duren.',
+      title: t('auth.reset.toastTitle'),
+      description: t('auth.reset.toastBody'),
     });
   };
 
@@ -191,7 +207,7 @@ export default function Auth() {
             className="px-0 mb-4 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Terug naar sellqo.app
+            {t('auth.backToSite')}
           </Button>
           <div className="flex justify-center mb-8">
             <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
@@ -199,23 +215,23 @@ export default function Auth() {
 
           <Card>
             <CardHeader className="text-center">
-              <h2 className="text-xl font-semibold">Welkom terug!</h2>
+              <h2 className="text-xl font-semibold">{t('auth.welcomeBack')}</h2>
               <CardDescription>
-                Je bent ingelogd als {user.email}
+                {t('auth.loggedInAs', { email: user.email })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button className="w-full" onClick={() => navigate('/admin')}>
-                Naar mijn dashboard
+                {t('auth.toDashboard')}
               </Button>
               <Button variant="outline" className="w-full" onClick={handleSwitchAccount}>
-                Wissel van account
+                {t('auth.switchAccount')}
               </Button>
             </CardContent>
           </Card>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Jouw webshop. Simpel online.
+            {t('auth.tagline')}
           </p>
         </div>
       </div>
@@ -232,7 +248,7 @@ export default function Auth() {
           className="px-0 mb-4 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
-          Terug naar sellqo.app
+          {t('auth.backToSite')}
         </Button>
         {/* Sellqo Logo with Tagline */}
         <div className="flex justify-center mb-8">
@@ -243,8 +259,8 @@ export default function Auth() {
           <Tabs defaultValue="login">
             <CardHeader>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Inloggen</TabsTrigger>
-                <TabsTrigger value="signup">Registreren</TabsTrigger>
+                <TabsTrigger value="login">{t('auth.login')}</TabsTrigger>
+                <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -252,15 +268,15 @@ export default function Auth() {
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4">
                   <CardDescription className="text-center">
-                    Log in met je e-mail en wachtwoord
+                    {t('auth.loginSubtitle')}
                   </CardDescription>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">E-mail</Label>
+                    <Label htmlFor="login-email">{t('auth.email')}</Label>
                     <Input
                       id="login-email"
                       type="email"
-                      placeholder="naam@voorbeeld.nl"
+                      placeholder={t('auth.emailPlaceholder')}
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       disabled={isSubmitting}
@@ -271,7 +287,7 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Wachtwoord</Label>
+                    <Label htmlFor="login-password">{t('auth.password')}</Label>
                     <Input
                       id="login-password"
                       type="password"
@@ -291,10 +307,10 @@ export default function Auth() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Bezig met inloggen...
+                        {t('auth.loggingIn')}
                       </>
                     ) : (
-                      'Inloggen'
+                      t('auth.login')
                     )}
                   </Button>
                   <Button
@@ -306,8 +322,8 @@ export default function Auth() {
                     disabled={cooldown > 0}
                   >
                     {cooldown > 0
-                      ? `Opnieuw mogelijk over ${cooldown}s`
-                      : 'Wachtwoord vergeten?'}
+                      ? t('auth.resetCooldown', { seconds: cooldown })
+                      : t('auth.forgotPassword')}
                   </Button>
                 </CardFooter>
               </form>
@@ -317,15 +333,15 @@ export default function Auth() {
               <form onSubmit={handleSignup}>
                 <CardContent className="space-y-4">
                   <CardDescription className="text-center">
-                    Maak een nieuw account aan
+                    {t('auth.signupSubtitle')}
                   </CardDescription>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Volledige naam</Label>
+                    <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
                     <Input
                       id="signup-name"
                       type="text"
-                      placeholder="Jan Jansen"
+                      placeholder={t('auth.fullNamePlaceholder')}
                       value={signupFullName}
                       onChange={(e) => setSignupFullName(e.target.value)}
                       disabled={isSubmitting}
@@ -336,11 +352,11 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">E-mail</Label>
+                    <Label htmlFor="signup-email">{t('auth.email')}</Label>
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder="naam@voorbeeld.nl"
+                      placeholder={t('auth.emailPlaceholder')}
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       disabled={isSubmitting}
@@ -351,7 +367,7 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Wachtwoord</Label>
+                    <Label htmlFor="signup-password">{t('auth.password')}</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -366,7 +382,7 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Bevestig wachtwoord</Label>
+                    <Label htmlFor="signup-confirm">{t('auth.confirmPassword')}</Label>
                     <Input
                       id="signup-confirm"
                       type="password"
@@ -386,10 +402,10 @@ export default function Auth() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Bezig met registreren...
+                        {t('auth.signingUp')}
                       </>
                     ) : (
-                      'Registreren'
+                      t('auth.signUp')
                     )}
                   </Button>
                 </CardFooter>
@@ -399,26 +415,25 @@ export default function Auth() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Jouw webshop. Simpel online.
+          {t('auth.tagline')}
         </p>
       </div>
 
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Wachtwoord opnieuw instellen</DialogTitle>
+            <DialogTitle>{t('auth.resetPassword')}</DialogTitle>
             <DialogDescription>
-              Vul je e-mailadres in. We sturen je een link om een nieuw wachtwoord
-              in te stellen. Controleer ook je spam-map als je niets ontvangt.
+              {t('auth.reset.description')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reset-email">E-mail</Label>
+              <Label htmlFor="reset-email">{t('auth.email')}</Label>
               <Input
                 id="reset-email"
                 type="email"
-                placeholder="naam@voorbeeld.nl"
+                placeholder={t('auth.emailPlaceholder')}
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 disabled={resetSubmitting}
@@ -435,16 +450,16 @@ export default function Auth() {
                 onClick={() => setResetOpen(false)}
                 disabled={resetSubmitting}
               >
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={resetSubmitting}>
                 {resetSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Versturen...
+                    {t('auth.reset.sending')}
                   </>
                 ) : (
-                  'Reset-link versturen'
+                  t('auth.reset.submit')
                 )}
               </Button>
             </DialogFooter>

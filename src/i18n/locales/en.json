@@ -24,7 +24,8 @@
     "no": "No",
     "phone": "Phone",
     "search": "Search...",
-    "yes": "Yes"
+    "yes": "Yes",
+    "saving": "Saving..."
   },
   "auth": {
     "login": "Log in",
@@ -33,7 +34,50 @@
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot password?",
-    "resetPassword": "Reset password"
+    "resetPassword": "Reset password",
+    "validation": {
+      "invalidEmail": "Invalid email address",
+      "passwordMin": "Password must be at least 6 characters",
+      "nameMin": "Name must be at least 2 characters",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "backToSite": "Back to sellqo.app",
+    "welcomeBack": "Welcome back!",
+    "loggedInAs": "You are signed in as {{email}}",
+    "toDashboard": "Go to my dashboard",
+    "switchAccount": "Switch account",
+    "tagline": "Your webshop. Simply online.",
+    "loginSubtitle": "Sign in with your email and password",
+    "emailPlaceholder": "name@example.com",
+    "loggingIn": "Signing in...",
+    "resetCooldown": "Available again in {{seconds}}s",
+    "signupSubtitle": "Create a new account",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "John Smith",
+    "confirmPassword": "Confirm password",
+    "signingUp": "Creating account...",
+    "reset": {
+      "description": "Enter your email address. We will send you a link to set a new password. Check your spam folder too if nothing arrives.",
+      "sending": "Sending...",
+      "submit": "Send reset link",
+      "toastTitle": "Check your inbox",
+      "toastBody": "If an account exists for this address, an email with a reset link has been sent. This may take a few minutes."
+    },
+    "sessionExpired": {
+      "title": "Session expired",
+      "body": "Your session is invalid or has expired. Sign in again to continue.",
+      "short": "Sign in again to continue.",
+      "action": "Sign in again"
+    },
+    "toast": {
+      "loginFailed": "Sign-in failed",
+      "loginSuccess": "You have been signed in successfully.",
+      "signupFailed": "Registration failed",
+      "signupSuccess": "Account created!",
+      "signupSuccessBody": "You can now sign in.",
+      "loggedOut": "Signed out",
+      "loggedOutBody": "See you soon!"
+    }
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -46,7 +90,74 @@
     "analytics": "Analytics",
     "platform": "Platform",
     "tenants": "Tenants",
-    "import": "Import"
+    "import": "Import",
+    "soon": "soon",
+    "groups": {
+      "daily": "Daily",
+      "sales": "Sales",
+      "marketing": "Marketing",
+      "management": "Management",
+      "system": "System"
+    },
+    "items": {
+      "inbox": "Inbox",
+      "orders_all": "All orders",
+      "orders_fulfillment": "Fulfilment",
+      "orders_returns": "Returns",
+      "orders_invoices": "Invoices",
+      "orders_quotes": "Quotes",
+      "orders_subscriptions": "Subscriptions",
+      "pos": "Point of sale (POS)",
+      "ticket_checkin": "Ticket check-in",
+      "event_dashboard": "Events",
+      "storefront": "Webshop",
+      "payments": "Payments",
+      "ads": "Ads",
+      "ads_overview": "Overview",
+      "ads_bolcom": "Bol.com",
+      "ads_products": "Product mapping",
+      "ads_amazon": "Amazon",
+      "ads_google": "Google",
+      "ads_meta": "Meta",
+      "ads_ai": "AI rules",
+      "promotions": "Promotions",
+      "promo_codes": "Discount codes",
+      "promo_bundles": "Bundles",
+      "promo_bogo": "BOGO deals",
+      "promo_volume": "Volume discounts",
+      "promo_auto": "Automatic discounts",
+      "promo_gifts": "Gift promotions",
+      "promo_loyalty": "Loyalty",
+      "promo_groups": "Customer groups",
+      "promo_giftcards": "Gift cards",
+      "campaigns": "Campaigns",
+      "ai_tools": "AI tools",
+      "ai_content": "AI content hub",
+      "ai_actions": "AI action centre",
+      "seo": "SEO",
+      "translations": "Translations",
+      "purchasing": "Purchasing",
+      "suppliers": "Suppliers",
+      "purchase_orders": "Purchase orders",
+      "supplier_docs": "Documents",
+      "reports": "Reports",
+      "reports_overview": "Overview",
+      "reports_stock": "Stock report",
+      "notifications": "Notifications",
+      "integrations": "SellQo Connect",
+      "integrations_connect": "SellQo Connect",
+      "billing": "Subscription",
+      "help": "Help",
+      "platform_billing": "Platform billing",
+      "platform_coupons": "Coupons",
+      "platform_feedback": "Feedback",
+      "platform_support": "Support",
+      "platform_changelog": "Changelog",
+      "platform_blog": "Blog",
+      "platform_health": "Health monitor",
+      "platform_legal": "Legal",
+      "platform_docs": "Documentation"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -1404,5 +1515,20 @@
     "refund": "Refund",
     "subscribers_by_plan": "Subscribers by plan",
     "title": "Platform Billing"
+  },
+  "sidebar": {
+    "selectStore": "Select store",
+    "noStores": "No stores available",
+    "customize": "Customize menu",
+    "customizeDescription": "Hide menu items you do not use. You can always bring them back.",
+    "showAll": "Show all",
+    "hiddenCount": "{{count}} hidden",
+    "adminView": {
+      "banner": "Admin view — use the eye icons to hide pages",
+      "featureGranted": "Feature granted — click to block",
+      "featureBlocked": "Blocked by subscription — click to grant anyway",
+      "pageHidden": "Hidden from tenant — click to show",
+      "pageVisible": "Visible to tenant — click to hide"
+    }
   }
 }

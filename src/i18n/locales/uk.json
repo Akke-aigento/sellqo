@@ -24,7 +24,8 @@
     "no": "Ні",
     "phone": "Телефон",
     "search": "Пошук...",
-    "yes": "Так"
+    "yes": "Так",
+    "saving": "Збереження..."
   },
   "auth": {
     "login": "Увійти",
@@ -33,7 +34,50 @@
     "email": "Електронна адреса",
     "password": "Пароль",
     "forgotPassword": "Забули пароль?",
-    "resetPassword": "Скинути пароль"
+    "resetPassword": "Скинути пароль",
+    "validation": {
+      "invalidEmail": "Недійсна електронна адреса",
+      "passwordMin": "Пароль має містити щонайменше 6 символів",
+      "nameMin": "Ім'я має містити щонайменше 2 символи",
+      "passwordMismatch": "Паролі не збігаються"
+    },
+    "backToSite": "Назад до sellqo.app",
+    "welcomeBack": "З поверненням!",
+    "loggedInAs": "Ви увійшли як {{email}}",
+    "toDashboard": "До моєї панелі керування",
+    "switchAccount": "Змінити обліковий запис",
+    "tagline": "Ваш магазин. Просто онлайн.",
+    "loginSubtitle": "Увійдіть за допомогою електронної пошти та пароля",
+    "emailPlaceholder": "imya@pryklad.com",
+    "loggingIn": "Виконується вхід...",
+    "resetCooldown": "Повторно можливо через {{seconds}} с",
+    "signupSubtitle": "Створіть новий обліковий запис",
+    "fullName": "Повне ім'я",
+    "fullNamePlaceholder": "Іван Петренко",
+    "confirmPassword": "Підтвердьте пароль",
+    "signingUp": "Виконується реєстрація...",
+    "reset": {
+      "description": "Введіть свою електронну адресу. Ми надішлемо вам посилання для встановлення нового пароля. Якщо нічого не надійшло, перевірте також папку зі спамом.",
+      "sending": "Надсилання...",
+      "submit": "Надіслати посилання для скидання",
+      "toastTitle": "Перевірте свою поштову скриньку",
+      "toastBody": "Якщо для цієї адреси існує обліковий запис, лист із посиланням для скидання вже надіслано. Це може зайняти кілька хвилин."
+    },
+    "sessionExpired": {
+      "title": "Сеанс завершено",
+      "body": "Ваш сеанс недійсний або завершився. Увійдіть знову, щоб продовжити.",
+      "short": "Увійдіть знову, щоб продовжити.",
+      "action": "Увійти знову"
+    },
+    "toast": {
+      "loginFailed": "Не вдалося увійти",
+      "loginSuccess": "Ви успішно увійшли.",
+      "signupFailed": "Не вдалося зареєструватися",
+      "signupSuccess": "Обліковий запис створено!",
+      "signupSuccessBody": "Тепер ви можете увійти.",
+      "loggedOut": "Ви вийшли",
+      "loggedOutBody": "До зустрічі!"
+    }
   },
   "navigation": {
     "import": "Імпорт",
@@ -46,7 +90,74 @@
     "products": "Товари",
     "settings": "Налаштування",
     "shipping": "Доставка",
-    "tenants": "Орендарі"
+    "tenants": "Орендарі",
+    "soon": "скоро",
+    "groups": {
+      "daily": "Щоденне",
+      "sales": "Продажі",
+      "marketing": "Маркетинг",
+      "management": "Керування",
+      "system": "Система"
+    },
+    "items": {
+      "inbox": "Вхідні",
+      "orders_all": "Усі замовлення",
+      "orders_fulfillment": "Виконання замовлень",
+      "orders_returns": "Повернення",
+      "orders_invoices": "Рахунки",
+      "orders_quotes": "Комерційні пропозиції",
+      "orders_subscriptions": "Підписки",
+      "pos": "Каса (POS)",
+      "ticket_checkin": "Реєстрація квитків",
+      "event_dashboard": "Події",
+      "storefront": "Магазин",
+      "payments": "Платежі",
+      "ads": "Реклама",
+      "ads_overview": "Огляд",
+      "ads_bolcom": "Bol.com",
+      "ads_products": "Зіставлення товарів",
+      "ads_amazon": "Amazon",
+      "ads_google": "Google",
+      "ads_meta": "Meta",
+      "ads_ai": "Правила ШІ",
+      "promotions": "Промоакції",
+      "promo_codes": "Промокоди",
+      "promo_bundles": "Комплекти",
+      "promo_bogo": "Акції BOGO",
+      "promo_volume": "Знижки за обсяг",
+      "promo_auto": "Автоматичні знижки",
+      "promo_gifts": "Подарункові акції",
+      "promo_loyalty": "Лояльність",
+      "promo_groups": "Групи клієнтів",
+      "promo_giftcards": "Подарункові сертифікати",
+      "campaigns": "Кампанії",
+      "ai_tools": "Інструменти ШІ",
+      "ai_content": "Центр ШІ-контенту",
+      "ai_actions": "Центр дій ШІ",
+      "seo": "SEO",
+      "translations": "Переклади",
+      "purchasing": "Закупівлі",
+      "suppliers": "Постачальники",
+      "purchase_orders": "Замовлення на закупівлю",
+      "supplier_docs": "Документи",
+      "reports": "Звіти",
+      "reports_overview": "Огляд",
+      "reports_stock": "Звіт про залишки",
+      "notifications": "Сповіщення",
+      "integrations": "SellQo Connect",
+      "integrations_connect": "SellQo Connect",
+      "billing": "Підписка",
+      "help": "Довідка",
+      "platform_billing": "Платіжні операції платформи",
+      "platform_coupons": "Купони",
+      "platform_feedback": "Відгуки",
+      "platform_support": "Підтримка",
+      "platform_changelog": "Список змін",
+      "platform_blog": "Блог",
+      "platform_health": "Монітор стану",
+      "platform_legal": "Юридичне",
+      "platform_docs": "Документація"
+    }
   },
   "settings": {
     "title": "Налаштування",
@@ -1403,6 +1514,21 @@
       "stock_min": "Залишки мають бути 0 або більше",
       "meta_title_max": "Метазаголовок може містити щонайбільше 60 символів",
       "meta_desc_max": "Метаопис може містити щонайбільше 160 символів"
+    }
+  },
+  "sidebar": {
+    "selectStore": "Виберіть магазин",
+    "noStores": "Магазинів немає",
+    "customize": "Налаштувати меню",
+    "customizeDescription": "Приховайте пункти меню, якими ви не користуєтеся. Ви завжди можете їх повернути.",
+    "showAll": "Показати все",
+    "hiddenCount": "приховано: {{count}}",
+    "adminView": {
+      "banner": "Режим адміністратора — приховуйте сторінки значками ока",
+      "featureGranted": "Функцію надано — натисніть, щоб заблокувати",
+      "featureBlocked": "Заблоковано підпискою — натисніть, щоб усе одно надати",
+      "pageHidden": "Приховано від орендаря — натисніть, щоб показати",
+      "pageVisible": "Видно орендарю — натисніть, щоб приховати"
     }
   }
 }
