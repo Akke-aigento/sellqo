@@ -60,7 +60,7 @@ export function VideoSection({ section }: VideoSectionProps) {
                 allowFullScreen
               />
             </div>
-          {t('storefront.sections.videoSection.isvimeo')}
+          ) : isVimeo ? (
             <div className="aspect-video rounded-lg overflow-hidden">
               <iframe
                 src={`https://player.vimeo.com/video/${getVimeoId(content.video_url!)}?autoplay=${content.autoplay ? 1 : 0}&loop=${content.loop ? 1 : 0}`}

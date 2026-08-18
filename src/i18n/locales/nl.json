@@ -2056,9 +2056,7 @@
         "bedankt_voor_je_aanmelding": "✓ Bedankt voor je aanmelding!",
         "je_bent_succesvol_ingeschreven_voor_onze": "Je bent succesvol ingeschreven voor onze nieuwsbrief."
       },
-      "videoSection": {
-        "isvimeo": ") : isVimeo ? ("
-      }
+      "videoSection": {}
     }
   }
 }
