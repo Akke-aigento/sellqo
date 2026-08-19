@@ -2,9 +2,10 @@
 -- Idempotent: ON CONFLICT (doc_level, slug) werkt het bestaande artikel bij.
 -- Handmatig terugdraaien: DELETE FROM public.doc_articles
 --   WHERE doc_level = 'tenant' AND slug = 'event-detailpagina';
-INSERT INTO public.doc_articles (doc_level, context_path, title, slug, excerpt, content, sort_order)
+INSERT INTO public.doc_articles (doc_level, category_id, context_path, title, slug, excerpt, content, sort_order)
 VALUES (
   'tenant',
+  'a0000001-0000-0000-0000-000000000001',
   '/admin/events',
   'De eventpagina: deelnemers en check-in-overzicht',
   'event-detailpagina',
@@ -22,10 +23,11 @@ VALUES (
 <p>Per bezoeker de naam, het e-mailadres, het tickettype, het bestelnummer en de check-in-status. Die status komt uit de scan-log: <em>Binnen</em>, <em>Buiten</em> of <em>Niet gescand</em>, met het tijdstip van de laatste scan.</p>
 <h3>Scan-log</h3>
 <p>Alle scans van deze datum, nieuwste eerst, met tijd, richting (in of uit), resultaat, zone en wie er scande. Handig om te zien waarom een ticket geweigerd werd of wanneer iemand het terrein verliet.</p>',
-  60
+  61
 )
 ON CONFLICT (doc_level, slug) DO UPDATE
-SET context_path = EXCLUDED.context_path,
+SET category_id = EXCLUDED.category_id,
+    context_path = EXCLUDED.context_path,
     title = EXCLUDED.title,
     excerpt = EXCLUDED.excerpt,
     content = EXCLUDED.content,
