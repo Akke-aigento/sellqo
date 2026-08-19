@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "event_scanner_access_management": {
+          "title": "Accès aux portes et QR de scan par événement",
+          "description": "La page de l'événement comporte un nouvel onglet Accès. Vous y créez un accès de scan distinct par porte ou par bénévole, avec une zone, un sens (entrée, sortie ou les deux), un mode de scan et, en option, une restriction à certains types de billets et une date d'expiration. Vous recevez immédiatement un QR code et un lien à transmettre à la personne à la porte. La liste indique combien de fois chaque accès a été utilisé et à quand remonte la dernière utilisation. Qu'est-ce que cela change pour vous ? Vous ne devez jamais partager vos propres identifiants : chaque accès possède son propre code, que vous révoquez en un clic, après quoi le scan avec ce code s'arrête immédiatement. Un accès révoqué reste dans la liste, ce qui vous permet de voir plus tard qui a scanné quoi. Un accès jamais utilisé peut être supprimé définitivement."
+        },
         "event_detail_page": {
           "title": "Page d'événement avec participants et suivi des check-ins",
           "description": "Cliquez sur une date dans l'aperçu des événements et vous ouvrez désormais une page d'événement dédiée. Vous y voyez la capacité, les billets vendus, qui est présent en ce moment et le nombre de places restantes, ainsi que vos types de billets avec prix et statut de vente. L'onglet Participants indique pour chaque visiteur le nom, l'e-mail, le type de billet, le numéro de commande et s'il est à l'intérieur ou à l'extérieur. L'onglet Journal des scans montre chaque scan avec l'heure, le sens, la zone et le résultat."

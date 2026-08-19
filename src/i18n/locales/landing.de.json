@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "event_scanner_access_management": {
+          "title": "Türzugänge und Scan-QR-Codes pro Event",
+          "description": "Die Event-Seite hat einen neuen Tab Zugänge. Dort legen Sie pro Tür oder Helfer einen eigenen Scan-Zugang an, mit Zone, Richtung (rein, raus oder beides), Scanmodus und optional einer Beschränkung auf bestimmte Ticketarten sowie einem Ablaufdatum. Sie erhalten sofort einen QR-Code und einen Link, den Sie an die Person an der Tür weiterleiten. In der Liste sehen Sie, wie oft jeder Zugang genutzt wurde und wann zuletzt. Was bedeutet das für Sie? Sie müssen niemandem Ihre eigenen Zugangsdaten geben: Jeder Zugang hat einen eigenen Code, den Sie mit einem Klick widerrufen, danach ist das Scannen mit diesem Code sofort beendet. Ein widerrufener Zugang bleibt in der Liste, damit Sie später noch sehen, wer was gescannt hat. Ein Zugang, der noch nie genutzt wurde, kann endgültig gelöscht werden."
+        },
         "event_detail_page": {
           "title": "Eventseite mit Teilnehmern und Check-in-Überblick",
           "description": "Klicke in der Eventübersicht auf ein Datum und du öffnest jetzt eine eigene Eventseite. Dort siehst du Kapazität, verkaufte Tickets, wer gerade drinnen ist und wie viele Plätze frei sind, dazu deine Ticketarten mit Preis und Verkaufsstatus. Im Tab Teilnehmer stehen pro Besucher Name, E-Mail, Ticketart, Bestellnummer und ob die Person drinnen oder draußen ist. Der Tab Scan-Log zeigt jeden Scan mit Zeit, Richtung, Zone und Ergebnis."

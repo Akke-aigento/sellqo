@@ -2070,7 +2070,8 @@
       "overview": "Overzicht",
       "attendees": "Deelnemers",
       "scanLog": "Scan-log",
-      "ticketTypes": "Tickettypes"
+      "ticketTypes": "Tickettypes",
+      "access": "Toegangen"
     },
     "stats": {
       "capacity": "Capaciteit",
@@ -2183,6 +2184,87 @@
       "completed": "Afgerond",
       "skipped": "Overgeslagen",
       "merged": "Samengevoegd"
+    },
+    "access": {
+      "title": "Deur-toegangen",
+      "add": "Toegang aanmaken",
+      "intro": "Geef vrijwilligers een eigen scan-link. Elke toegang heeft een unieke code die je op elk moment kunt intrekken.",
+      "empty": "Nog geen toegangen aangemaakt.",
+      "noTypesHint": "Dit event heeft nog geen tickettypes. Een toegang zonder tickettype-selectie laat alle types toe — dat is prima.",
+      "allTypes": "Alle tickettypes",
+      "showQr": "QR tonen",
+      "revoke": "Intrekken",
+      "delete": "Verwijderen",
+      "revokeTitle": "Toegang intrekken?",
+      "deleteTitle": "Toegang verwijderen?",
+      "usage": "{{count}} keer gebruikt, laatst om {{at}}",
+      "neverUsed": "Nog niet gebruikt",
+      "expiresOn": "Verloopt op",
+      "defaultZoneName": "Hoofdingang",
+      "status": {
+        "active": "Actief",
+        "revoked": "Ingetrokken",
+        "expired": "Verlopen"
+      },
+      "direction": {
+        "in": "Binnen",
+        "out": "Buiten",
+        "both": "Binnen en buiten"
+      },
+      "scanMode": {
+        "check_in": "Inchecken",
+        "validate_only": "Enkel controleren",
+        "check_out": "Uitchecken"
+      },
+      "columns": {
+        "name": "Naam",
+        "zone": "Zone",
+        "direction": "Richting",
+        "scanMode": "Scan-modus",
+        "scope": "Tickettypes",
+        "usage": "Gebruik",
+        "expires": "Verloopt",
+        "status": "Status",
+        "actions": "Acties"
+      },
+      "form": {
+        "newTitle": "Nieuwe toegang",
+        "description": "De scan-code wordt veilig op de server aangemaakt. Jij kiest enkel waar en waarvoor die geldt.",
+        "name": "Naam",
+        "namePlaceholder": "Vrijwilliger hoofdingang",
+        "zone": "Zone",
+        "zoneAuto": "Automatisch aanmaken",
+        "zoneAutoHint": "Er wordt automatisch een hoofdingang aangemaakt.",
+        "direction": "Richting",
+        "scanMode": "Scan-modus",
+        "scope": "Tickettypes",
+        "scopeHint": "Niets aanvinken = alle tickettypes toegestaan.",
+        "scopeNoTypes": "Geen tickettypes ingesteld; alle tickets worden toegelaten.",
+        "expiresAt": "Verloopt op (optioneel)",
+        "expiresHint": "Na dit moment werkt de scan-link niet meer.",
+        "pickDate": "Kies datum",
+        "clear": "Wissen",
+        "cancel": "Annuleren",
+        "close": "Sluiten",
+        "save": "Aanmaken"
+      },
+      "qr": {
+        "title": "Scan-link delen",
+        "description": "Laat de vrijwilliger deze QR scannen of stuur de link door.",
+        "secretHint": "Deel deze link alleen met wie aan de deur staat. Wie de link heeft, kan scannen.",
+        "copy": "Kopieer link",
+        "copied": "Gekopieerd"
+      },
+      "guards": {
+        "revokeConfirm": "Deze toegang wordt ingetrokken en werkt direct niet meer. Doorgaan?",
+        "deleteConfirm": "Deze toegang is nooit gebruikt en wordt definitief verwijderd."
+      },
+      "toast": {
+        "created": "Toegang aangemaakt",
+        "revoked": "Toegang ingetrokken",
+        "deleted": "Toegang verwijderd",
+        "error": "Actie mislukt"
+      }
     }
   }
 }

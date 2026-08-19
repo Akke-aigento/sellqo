@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
-  Plus, Pencil, Trash2, Power, PowerOff, Tags,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -32,6 +32,13 @@ import {
   useToggleTicketTypeActive, useDeleteTicketType, isDuplicateProductError,
   type ReentryPolicy, type TicketTypeFormData,
 } from '@/hooks/useEventTicketTypes';
+import {
+  useScannerAccesses, useCreateScannerAccess, useRevokeScannerAccess,
+  useDeleteScannerAccess, useEnsureDefaultZone, isExpired,
+  type ScannerAccessFormData, type ScannerAccessRow,
+} from '@/hooks/useEventScannerAccess';
+import { ScannerAccessDialog } from '@/components/admin/events/ScannerAccessDialog';
+import { ScannerQrDialog } from '@/components/admin/events/ScannerQrDialog';
 
 interface EventRow {
   id: string;
@@ -111,6 +118,17 @@ export default function EventDetail() {
   const updateTicketType = useUpdateTicketType(eventId);
   const toggleTicketType = useToggleTicketTypeActive(eventId);
   const deleteTicketType = useDeleteTicketType(eventId);
+
+  // --- Deur-toegangen (4c) ---
+  const [saDialogOpen, setSaDialogOpen] = useState(false);
+  const [saQrTarget, setSaQrTarget] = useState<ScannerAccessRow | null>(null);
+  const [saRevokeTarget, setSaRevokeTarget] = useState<ScannerAccessRow | null>(null);
+  const [saDeleteTarget, setSaDeleteTarget] = useState<ScannerAccessRow | null>(null);
+  const { data: accesses = [] } = useScannerAccesses(eventId);
+  const createAccess = useCreateScannerAccess(eventId);
+  const revokeAccess = useRevokeScannerAccess(eventId);
+  const deleteAccess = useDeleteScannerAccess(eventId);
+  const ensureZone = useEnsureDefaultZone(eventId);
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event-detail', currentTenant?.id, eventId],
@@ -395,6 +413,68 @@ export default function EventDetail() {
     setTtDialogOpen(true);
   };
 
+  // ---- Toegang-acties (4c) ----
+  const scopeLabel = (row: ScannerAccessRow): string => {
+    const ids = row.allowed_product_ids;
+    if (!ids || ids.length === 0) return t('events.access.allTypes');
+    return ids.map((id) => productName[id] ?? id.slice(0, 8)).join(', ');
+  };
+
+  const accessStatus = (row: ScannerAccessRow) => {
+    if (!row.is_active) return { key: 'revoked', variant: 'outline' as const };
+    if (isExpired(row)) return { key: 'expired', variant: 'secondary' as const };
+    return { key: 'active', variant: 'default' as const };
+  };
+
+  const handleCreateAccess = async (form: ScannerAccessFormData) => {
+    try {
+      const zoneId =
+        form.zone_id ?? (await ensureZone.mutateAsync(t('events.access.defaultZoneName')));
+      const row = await createAccess.mutateAsync({ ...form, zone_id: zoneId });
+      setSaDialogOpen(false);
+      setSaQrTarget(row);
+      toast({ title: t('events.access.toast.created') });
+    } catch (error) {
+      toast({
+        title: t('events.access.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRevokeAccess = async () => {
+    if (!saRevokeTarget) return;
+    try {
+      await revokeAccess.mutateAsync(saRevokeTarget.id);
+      toast({ title: t('events.access.toast.revoked') });
+    } catch (error) {
+      toast({
+        title: t('events.access.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSaRevokeTarget(null);
+    }
+  };
+
+  const handleDeleteAccess = async () => {
+    if (!saDeleteTarget) return;
+    try {
+      await deleteAccess.mutateAsync(saDeleteTarget.id);
+      toast({ title: t('events.access.toast.deleted') });
+    } catch (error) {
+      toast({
+        title: t('events.access.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSaDeleteTarget(null);
+    }
+  };
+
   if (eventLoading) {
     return (
       <div className="space-y-4">
@@ -451,6 +531,9 @@ export default function EventDetail() {
           </TabsTrigger>
           <TabsTrigger value="ticket_types" className="gap-2">
             <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
+          </TabsTrigger>
+          <TabsTrigger value="access" className="gap-2">
+            <KeyRound className="h-4 w-4" /> {t('events.tabs.access')}
           </TabsTrigger>
           <TabsTrigger value="attendees" className="gap-2">
             <Users className="h-4 w-4" /> {t('events.tabs.attendees')}
@@ -689,6 +772,153 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
 
+        {/* ---------------- Deur-toegangen (4c) ---------------- */}
+        <TabsContent value="access" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <KeyRound className="h-4 w-4" /> {t('events.access.title')} ({accesses.length})
+              </CardTitle>
+              <Button size="sm" onClick={() => setSaDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> {t('events.access.add')}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">{t('events.access.intro')}</p>
+              {ticketTypes.length === 0 && (
+                <p className="text-xs text-muted-foreground">{t('events.access.noTypesHint')}</p>
+              )}
+              {accesses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('events.access.empty')}</p>
+              ) : (
+                <>
+                  {/* Mobiel: kaarten */}
+                  <div className="space-y-2 md:hidden">
+                    {accesses.map((a) => {
+                      const st = accessStatus(a);
+                      return (
+                        <div key={a.id} className="rounded-lg border p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-medium text-sm break-words">{a.name}</span>
+                            <Badge variant={st.variant}>{t(`events.access.status.${st.key}`)}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground break-words">
+                            {zoneName[a.zone_id] ?? '—'} · {t(`events.access.direction.${a.direction}`)} ·{' '}
+                            {t(`events.access.scanMode.${a.scan_mode}`)}
+                          </p>
+                          <p className="text-xs text-muted-foreground break-words">{scopeLabel(a)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {a.use_count > 0
+                              ? t('events.access.usage', { count: a.use_count, at: fmtFull(a.last_used_at) })
+                              : t('events.access.neverUsed')}
+                            {a.expires_at ? ` · ${t('events.access.expiresOn')}: ${fmtFull(a.expires_at)}` : ''}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setSaQrTarget(a)}>
+                              <QrCode className="h-3.5 w-3.5 mr-1" /> {t('events.access.showQr')}
+                            </Button>
+                            {a.is_active && (
+                              <Button variant="outline" size="sm" onClick={() => setSaRevokeTarget(a)}>
+                                <Ban className="h-3.5 w-3.5 mr-1" /> {t('events.access.revoke')}
+                              </Button>
+                            )}
+                            {a.use_count === 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => setSaDeleteTarget(a)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" /> {t('events.access.delete')}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop: tabel */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-muted-foreground">
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.name')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.zone')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.direction')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.scanMode')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.scope')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.usage')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.expires')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.access.columns.status')}</th>
+                          <th className="py-2 font-medium text-right">{t('events.access.columns.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {accesses.map((a) => {
+                          const st = accessStatus(a);
+                          return (
+                            <tr key={a.id} className="border-b last:border-0">
+                              <td className="py-2 pr-3">{a.name}</td>
+                              <td className="py-2 pr-3">{zoneName[a.zone_id] ?? '—'}</td>
+                              <td className="py-2 pr-3">{t(`events.access.direction.${a.direction}`)}</td>
+                              <td className="py-2 pr-3">{t(`events.access.scanMode.${a.scan_mode}`)}</td>
+                              <td className="py-2 pr-3">{scopeLabel(a)}</td>
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap tabular-nums">
+                                {a.use_count > 0
+                                  ? `${a.use_count}× · ${fmtFull(a.last_used_at)}`
+                                  : t('events.access.neverUsed')}
+                              </td>
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {a.expires_at ? fmtFull(a.expires_at) : '—'}
+                              </td>
+                              <td className="py-2 pr-3">
+                                <Badge variant={st.variant}>{t(`events.access.status.${st.key}`)}</Badge>
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setSaQrTarget(a)}
+                                    aria-label={t('events.access.showQr')}
+                                  >
+                                    <QrCode className="h-4 w-4" />
+                                  </Button>
+                                  {a.is_active && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setSaRevokeTarget(a)}
+                                      aria-label={t('events.access.revoke')}
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {a.use_count === 0 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive"
+                                      onClick={() => setSaDeleteTarget(a)}
+                                      aria-label={t('events.access.delete')}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ---------------- Deelnemers ---------------- */}
         <TabsContent value="attendees">
           <Card>
@@ -835,6 +1065,58 @@ export default function EventDetail() {
                 {t('events.ticketTypes.delete')}
               </AlertDialogAction>
             )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ScannerAccessDialog
+        open={saDialogOpen}
+        onOpenChange={setSaDialogOpen}
+        zones={zones}
+        ticketTypes={ticketTypes.map((tt) => ({ product_id: tt.product_id, name: tt.name }))}
+        saving={createAccess.isPending || ensureZone.isPending}
+        onSubmit={handleCreateAccess}
+      />
+
+      <ScannerQrDialog
+        access={saQrTarget}
+        onOpenChange={(o) => { if (!o) setSaQrTarget(null); }}
+        zoneName={saQrTarget ? (zoneName[saQrTarget.zone_id] ?? '—') : '—'}
+        scopeLabel={saQrTarget ? scopeLabel(saQrTarget) : ''}
+      />
+
+      <AlertDialog
+        open={!!saRevokeTarget}
+        onOpenChange={(o) => { if (!o) setSaRevokeTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('events.access.revokeTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('events.access.guards.revokeConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('events.access.form.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRevokeAccess}>
+              {t('events.access.revoke')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!saDeleteTarget}
+        onOpenChange={(o) => { if (!o) setSaDeleteTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('events.access.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('events.access.guards.deleteConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('events.access.form.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccess}>
+              {t('events.access.delete')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
