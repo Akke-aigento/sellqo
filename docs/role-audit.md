@@ -51,6 +51,18 @@ frontends "code bestaat niet" kunnen onderscheiden van een serverfout.
   casing-conflicten per tenant.
 - Na de migratie: index `discount_codes_tenant_upper_code_key` aanwezig.
 - `node scripts/i18n-parity.mjs`: volledige pariteit, 2473 keys × 5 talen.
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0.
+- Live end-to-end tegen de gedeployde `storefront-api` met een wegwerpcode
+  `TESTCASE1` in SellQo Speeltuin:
+  - `validate_discount_code` met `testcase1`, ` TeStCaSe1 ` en `TESTCASE1` → alle
+    drie `valid: true` met `code: "TESTCASE1"` (HTTP 200).
+  - `cart_apply_discount` met `testcase1` → HTTP 200, `discount_codes: ["TESTCASE1"]`
+    plus de nieuwe velden `discount_code: "TESTCASE1"` en `discount_amount: 0`.
+  - `cart_apply_discount` met `nietbestaand` → **HTTP 400**
+    `{"success":false,"error":"invalid_discount_code","message":"Ongeldige kortingscode"}`.
+  - Dubbele toepassing (`TESTCASE1`) → HTTP 400 "Deze kortingscode is al toegepast".
+  - `cart_remove_discount` met `testcase1` → HTTP 200, `discount_codes: []`.
+  - Testcode en testcart daarna verwijderd; geen restdata in Speeltuin.
 
 ### Bewust ongemoeid / Vervolg
 - `src/lib/promotions/calculators/discountCode.ts` (client-side calculator) krijgt
