@@ -1460,6 +1460,10 @@
         "event_core_fields_and_live_counter": {
           "title": "Edit your event in one place, with live occupancy",
           "description": "Date, time, status, location and capacity of an event are now edited on the event page itself, in the new Settings tab. You can also set capacity to unlimited. If you set an event to cancelled, skipped or merged, or lower the capacity below the number of tickets sold, SellQo asks for confirmation first. The Inside now counter updates live while scanning at the door."
+        },
+        "cart_discount_totals": {
+          "title": "Discounts and totals straight from your cart",
+          "description": "Your cart now always returns the discount amount, shipping cost, VAT and final total. Applying a code that is already active no longer returns an error."
         }
       },
       "copyLink": "Copy link",

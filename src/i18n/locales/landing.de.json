@@ -1460,6 +1460,10 @@
         "event_core_fields_and_live_counter": {
           "title": "Event an einer Stelle bearbeiten, mit Live-Auslastung",
           "description": "Datum, Uhrzeit, Status, Ort und Kapazität eines Events bearbeitest du jetzt direkt auf der Eventseite, im neuen Tab Einstellungen. Die Kapazität kannst du auch auf unbegrenzt setzen. Setzt du ein Event auf abgesagt, übersprungen oder zusammengeführt oder senkst du die Kapazität unter die Zahl der verkauften Tickets, fragt SellQo zuerst nach einer Bestätigung. Der Zähler Jetzt drinnen läuft live mit, während an der Tür gescannt wird."
+        },
+        "cart_discount_totals": {
+          "title": "Rabatte und Summen direkt im Warenkorb",
+          "description": "Ihr Warenkorb gibt jetzt immer den Rabattbetrag, die Versandkosten, die Mehrwertsteuer und die Endsumme zurueck. Ein bereits angewendeter Code loest keine Fehlermeldung mehr aus."
         }
       },
       "copyLink": "Link kopieren",
