@@ -1,3 +1,95 @@
+## EVENT-SYSTEEM FASE 1 — scan-log-fundament (schema + migratie) — 19 augustus 2026
+
+### Root cause / aanleiding
+Het TICKET-1-fundament kent aanwezigheid alleen als één vlag op de ticketrij
+(`ticket_instances.status='checked_in'` + `checked_in_at`/`checked_in_by`). Daarmee is geen
+her-betreding, geen uit-scan, geen zone-bezetting en geen scan-historiek mogelijk. Recon
+(19 aug) legde vier harde feiten vast: (a) `ticket_instances_status_check` beperkte status tot
+`valid|checked_in|cancelled|refunded`, (b) er is een UPDATE-policy voor `authenticated` op
+`ticket_instances`, (c) er bestaan vier onafhankelijke tel-implementaties
+(`get_event_signup_count`, `TicketCheckin.tsx` r.120-133, `EventDashboard.tsx` r.131-146,
+`useEventDetails.ts` r.113-127), (d) er stond precies één ticket op `checked_in`.
+
+### Uitgevoerd (2 migraties, puur additief)
+- **Nieuw**: `event_groups`, `event_zones` (XOR event/groep, partial unique max 1 `is_default`
+  per event), `event_ticket_types` (XOR scope: event | groep | `valid_from`; unique
+  `(event_detail_id, product_id)` partial), `event_scanner_access` (unieke `access_token` via
+  `encode(extensions.gen_random_bytes(32),'hex')`), `ticket_scans` (het scan-logboek; 3 indexen
+  conform spec).
+- **`event_details`**: `+ event_group_id` (FK), `+ capacity_mode` DEFAULT `'sold'` CHECK
+  `('sold','inside')`.
+- **`ticket_instances`**: `+ product_id` (FK products), `+ seat_label`, `+ is_complimentary`
+  DEFAULT false. `product_id` gebackfilled uit `order_items` (1/1 rij gevuld, 0 null).
+- **CHECK verruimd**: `status IN ('valid','checked_in','cancelled','refunded','transferred')`.
+  `'checked_in'` is **bewust behouden** — alle vier de lezers en `ticket-checkin` blijven er
+  ongewijzigd op draaien. Omschakeling naar het scan-log als bron van waarheid = fase 2.
+- **Data-migratie (idempotent)**: 2/2 events kregen default-zone 'Ingang'; 2/2 events met
+  product kregen een `event_ticket_types`-rij; het ene `checked_in`-ticket kreeg 1 `ticket_scans`
+  -rij (`in`/`ok`, `scanned_at = checked_in_at`, `scanned_by_user_id = checked_in_by`,
+  zone = default-zone). Herhaald draaien in transactie: 0/0/0 nieuwe rijen.
+- **Helpers** (SQL, STABLE, SECURITY DEFINER, `search_path=public`): `ticket_last_scan`,
+  `ticket_is_inside`, `zone_occupancy`, `event_occupancy`, `ticket_checkin_status`,
+  `get_event_ticket_type_count`. `get_event_signup_count` is **ongewijzigd**; geen compat-view
+  in fase 1.
+
+### Security-keuzes
+- Alle vijf nieuwe tabellen: `tenant_id NOT NULL`, RLS aan, vier policies
+  (SELECT/INSERT/UPDATE/DELETE) `TO authenticated` met exact hetzelfde predicaat als
+  `event_details`: `tenant_id IN (SELECT get_user_tenant_ids(auth.uid())) AND
+  has_tenant_role(tenant_id, ARRAY['tenant_admin','staff'])`. Geen anon-policy.
+- De project-brede default privileges gaven `anon` automatisch alle tabelrechten op nieuwe
+  tabellen; in een tweede migratie `REVOKE ALL ... FROM anon` op alle vijf (RLS blokkeerde anon
+  al, maar het recht hoort er niet te staan). Verificatie: 0 anon-grants.
+- Nieuwe helpers: `REVOKE ALL FROM PUBLIC, anon` + `GRANT EXECUTE TO authenticated,
+  service_role`. Zichtbaar in `proacl`: enkel postgres/authenticated/service_role.
+- `ticket_scans` schrijven kan door service_role (engine, bypass RLS) én door
+  tenant_admin/staff via de INSERT-policy.
+- **Gerapporteerd, niet gewijzigd**: `ticket_instances_update_tenant` staat `authenticated`
+  (tenant_admin/staff) een directe UPDATE toe op *alle* kolommen, inclusief `status`,
+  `checked_in_at`, `checked_in_by`, en nu ook `product_id`, `seat_label`, `is_complimentary`.
+  Vandaag doet geen enkele frontend dat (alle mutaties lopen via de `ticket-checkin` edge
+  function met service_role), dus dichtknijpen is in fase 2 veilig: een kolom-specifieke
+  variant (column-level `GRANT UPDATE (seat_label, attendee_name, attendee_email,
+  is_complimentary)` + policy) breekt geen bestaande lezer. Voorwaarde: doe het additief
+  (nieuwe grant/policy erbij, meten, dan de brede weg) — zie DB-safety M1.
+
+### Gedeelde-paden-waarschuwing
+`ticket_instances`, `event_details` en `get_event_signup_count` zitten in het pad van
+`storefront-api` (r.597-630 event-blok, r.1581 early-bird) en dus van alle vijf frontends.
+Alleen kolommen/constraints toegevoegd en één CHECK verruimd — geen kolom hernoemd, gedropt of
+van type/default gewijzigd, geen functie-signatuur aangepast. `select('*')`-consumenten krijgen
+drie extra, niet-gevoelige velden. Het `use_custom_frontend`-pad is niet geraakt.
+
+### Verificatie
+- Kolommen, CHECKs, indexen en 20 RLS-policies (4 per nieuwe tabel) letterlijk uitgelezen uit
+  `information_schema` / `pg_constraint` / `pg_policies` / `pg_indexes`.
+- `event_details`=2, default-zones=2 (2 distinct events), events met product=2,
+  `event_ticket_types`=2, `ticket_scans`=1 met `stamp_match=t`.
+- `get_event_signup_count('17efe0cc…')` = 0 (identiek aan baseline vóór de migratie);
+  `get_event_signup_count('70a2b02e…')` = 1.
+- `zone_occupancy(default-zone)` = 1, `ticket_is_inside(ticket)` = true,
+  `ticket_checkin_status(ticket)` = `inside`, `event_occupancy(event)` = 1,
+  `(ticket_last_scan(ticket)).result` = `ok`.
+- Status-CHECK: INSERT met `'transferred'` slaagt (rollback), met `'bogus'` faalt op
+  `ticket_instances_status_check`.
+- XOR: `event_ticket_types` met event_detail_id **én** event_group_id faalt; met alleen
+  `valid_from` slaagt. `event_zones` zonder beide faalt.
+- Check-in-pad: de lookup van `ticket-checkin` (r.80-85) geeft nog exact dezelfde rij terug
+  (`status=checked_in`) → de functie zou `result:'already'` teruggeven. **Niet live geverifieerd
+  met een echte HTTP-call**: dat vereist een geldig JWT/service-role token dat in deze omgeving
+  niet beschikbaar is. Geen regel code in `ticket-checkin` gewijzigd.
+- `types.ts` geregenereerd (33 matches op de nieuwe tabellen); `tsgo --noEmit
+  -p tsconfig.app.json` exit 0.
+
+### Bewust ongemoeid / Vervolg
+- Ongewijzigd: `ticket-checkin`, `issue_tickets_for_order` + `trg_issue_tickets_on_paid`,
+  `get_event_signup_count`, `send-ticket-confirmation`, `storefront-api`, en de vier
+  tel-implementaties in de frontend. Geen UI, geen engine, geen changelog/docs (per opdracht).
+- `ticket_change_tokens` bestaat al in de DB maar wordt nergens gerefereerd — nog te beslissen
+  in fase 2 (opnemen of opruimen).
+- Fase 2: scan-engine (`ticket-scan`), her-betredingsbeleid, zone-capaciteit, compat-view /
+  omschakeling van de vier lezers, en pas dán eventueel `checked_in` uitfaseren.
+
 ## MAIL-LOCALE FIX — resolveEmailLocale explicit-tak consistent — 19 augustus 2026
 
 ### Root cause
