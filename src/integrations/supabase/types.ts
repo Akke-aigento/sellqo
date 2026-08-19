@@ -19952,6 +19952,14 @@ export type Database = {
         Args: { p_event_detail_id: string }
         Returns: number
       }
+      get_event_ticket_counts: {
+        Args: { p_event_detail_ids: string[] }
+        Returns: {
+          event_detail_id: string
+          product_id: string
+          sold: number
+        }[]
+      }
       get_event_ticket_type_count: {
         Args: { p_event_detail_id: string; p_product_id: string }
         Returns: number
