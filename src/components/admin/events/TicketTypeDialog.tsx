@@ -122,7 +122,7 @@ export function TicketTypeDialog({
   const handleSave = () => {
     if (!canSave) return;
     if (capacityBelowSold) {
-      const ok = window.confirm(t('events.ticketTypes.guards.capacityBelowSold', { count: sold }));
+      const ok = window.confirm(t('events.ticketTypes.guards.capacityBelowSold', { sold }));
       if (!ok) return;
     }
     onSubmit({

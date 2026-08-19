@@ -349,7 +349,7 @@ export default function EventDetail() {
   const handleToggleActive = async (tt: TicketTypeRow) => {
     const typeSold = soldPerProduct[tt.product_id] ?? 0;
     if (tt.is_active && typeSold > 0) {
-      const ok = window.confirm(t('events.ticketTypes.guards.deactivateWithSales', { count: typeSold }));
+      const ok = window.confirm(t('events.ticketTypes.guards.deactivateWithSales', { sold: typeSold }));
       if (!ok) return;
     }
     try {
