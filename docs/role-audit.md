@@ -1,3 +1,60 @@
+## EVENT-SYSTEEM FASE 3b — presentatie ticket_types[] (storefront-api, additief) — 19 augustus 2026
+
+### Root cause / aanleiding
+Na fase 3a kon de server meerdere tickettypes per event handhaven, maar de publieke
+`get_product`-respons toonde er niets van: `event.upcoming[]` bevatte één prijs
+(`current_price`) en geen enkele verwijzing naar `event_ticket_types`. Frontends konden dus
+geen keuze tussen tickettypes aanbieden.
+
+### Uitgevoerd
+- **Migratie**: `public.get_event_ticket_counts(uuid[])` — `SECURITY DEFINER`, `STABLE`,
+  `search_path = public`, telt `ticket_instances` met `status IN ('valid','checked_in')`
+  gegroepeerd per `(event_detail_id, product_id)`. Zelfde teldefinitie als
+  `get_event_signup_count` / `get_event_ticket_type_count`.
+- **`supabase/functions/storefront-api/index.ts`** (`getProduct`, event-blok):
+  - één batch-select op `event_ticket_types` voor álle open events (`.in('event_detail_id', ids)`,
+    `tenant_id`-filter, `is_active = true`, join `products!event_ticket_types_product_id_fkey`,
+    geordend op `sort_order`) + één `get_event_ticket_counts(ids)`-RPC, parallel.
+  - per event additief `ticket_types[]` (id, product_id, name, price, sub_capacity, sold,
+    spots_left, sales_start, sales_end, is_on_sale, sort_order) en top-level `product_id`.
+  - prijs per tickettype via de **ongewijzigde** `resolveEventPrice` met de **event-brede** sold
+    (presentatie = betaalkant). `resolveEventPrice` zelf is niet aangeraakt.
+- `getProducts` (lijst) ongemoeid.
+
+### Security-keuzes
+`get_event_ticket_counts` is `SECURITY DEFINER` omdat `ticket_instances` niet publiek leesbaar is.
+`EXECUTE` expliciet gerevoked van PUBLIC/anon/authenticated en alleen gegrant aan `service_role`;
+de storefront-api draait met service-role en filtert zelf op `tenant_id`. Geen nieuwe tabellen,
+policies of grants. Geen persoonsgegevens in de respons (alleen aantallen en productnaam/prijs).
+
+### Gedeelde-paden-waarschuwing
+`storefront-api` bedient 5 custom frontends. De 18 bestaande sleutels van elk
+`event.upcoming[]`-object zijn byte-identiek gebleven (expliciete mapping, geen spread, geen
+herordening); `product_id` en `ticket_types` zijn er ná toegevoegd. `tickets_sold`, `spots_left`,
+`min_reached`, `current_price`, `early_bird_*` worden nog steeds uit dezelfde
+`get_event_signup_count`-RPC en dezelfde `resolveEventPrice`-aanroep berekend.
+
+### Verificatie
+- Fonske (`get_product`, slug `early-bird-ticket`, event `17efe0cc…`) vóór/na: sleutels 1-18
+  identiek — `current_price 25`, `spots_left 40`, `tickets_sold 0`, `min_reached false`,
+  `early_bird_active false`, `early_bird_price null`, `spots_left_at_early_bird null`,
+  `early_bird_deadline null`. Nieuw: `product_id 1daee896…` en `ticket_types` = array van 1
+  (Pubcrawl ticket, price 25, sub_capacity null, sold 0, spots_left null, is_on_sale true).
+- Testevent met 2 tickettypes (extra TEST VIP-type, prijs 45, `sub_capacity 10`,
+  `sales_start = now() + 30 dagen`): beide types correct, prijzen uit de eigen producten,
+  `spots_left 10` voor het type met sub_capacity, `is_on_sale false` door het toekomstige
+  verkoopvenster. Bestaande 18 sleutels bleven onveranderd. Testdata verwijderd en
+  na-controle bevestigt `ticket_types` = 1 item.
+- Query-budget: 1× `event_details`-select + 1× `event_ticket_types`-batchselect +
+  1× `get_event_ticket_counts`-RPC, plus de bestaande per-event `get_event_signup_count`.
+  Constant in het aantal tickettypes (geen N+1).
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0.
+
+### Bewust ongemoeid / vervolg
+Tickettype-namen komen nu uit `products.name` (basisnaam); vertaling via
+`content_translations` is bewust uitgesteld. Early-bird blijft event-breed, niet per type.
+Geen changelog-, docs- of UI-werk in deze batch (conform opdracht).
+
 ## EVENT-SYSTEEM FASE 3a — capaciteitshandhaving (server, geld-kritisch) — 19 augustus 2026
 
 ### Root cause / aanleiding
