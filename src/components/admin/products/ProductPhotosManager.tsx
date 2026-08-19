@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Wand2, Eraser, ImageIcon, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Search, Wand2, Eraser, ImageIcon, Loader2, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useAIImages } from '@/hooks/useAIImages';
@@ -11,6 +11,16 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -45,6 +55,8 @@ export function ProductPhotosManager() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<PhotoItem | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [deleteTargets, setDeleteTargets] = useState<PhotoItem[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Build flat list of all product photos
   const allPhotos = useMemo<PhotoItem[]>(() => {
