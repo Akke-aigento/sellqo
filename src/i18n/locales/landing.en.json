@@ -1025,7 +1025,10 @@
     },
     "changelog": {
       "changes": {
-
+        "event_detail_page": {
+          "title": "Event page with attendees and check-in overview",
+          "description": "Click a date in the event overview and you now open a dedicated event page. It shows capacity, tickets sold, who is inside right now and how many spots are left, plus your ticket types with price and sales status. The Attendees tab lists each visitor's name, email, ticket type, order number and whether they are inside or outside. The Scan log tab shows every scan with time, direction, zone and result."
+        },
         "settings_multilingual": {
           "title": "Most settings screens are now multilingual",
           "description": "When you switch language, the screens for your profile, team members, company details, branding, domains, notifications and the email, WhatsApp and social media connections now appear in that language. The screens for VAT, payments and shipping will follow in a future update."
