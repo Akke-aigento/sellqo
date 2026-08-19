@@ -1,3 +1,63 @@
+## DISCOUNT-CASE-1 — kortingscodes case-insensitive matchen — 19 augustus 2026
+
+### Root cause
+`validateDiscountCode()` in `supabase/functions/storefront-api/index.ts` matchte de
+door de klant ingetypte code met `.eq('code', code)` op de exact meegegeven string.
+De admin sloeg codes op als `code.toUpperCase()` (zonder trim), dus een klant die
+`welkom10` of ` WELKOM10 ` intypte kreeg "Ongeldige kortingscode". Erger: op het
+cart-pad (`cartApplyDiscount`) werd die fout als een gewone `Error` gegooid en
+kwam die in de top-level catch terecht → **HTTP 500**, waardoor frontends niet
+konden onderscheiden tussen een verkeerde code en een serverfout.
+
+### Uitgevoerd
+- **`supabase/functions/storefront-api/index.ts`**
+  - Nieuwe helper `normalizeDiscountCode()` (`String(x).trim().toUpperCase()`) en
+    een `DiscountCodeError`-klasse.
+  - `validateDiscountCode()` normaliseert de input, accepteert zowel `code` als
+    `discount_code`, matcht op de canonieke waarde en heeft een `ilike`-fallback
+    (met geëscapete `%`, `_`, `\`) voor eventuele niet-gecanonicaliseerde rijen.
+    Retourneert nu additief `code` (de opgeslagen canonieke schrijfwijze).
+  - `cartApplyDiscount` / `cartRemoveDiscount` / `checkoutApplyDiscount`:
+    normalisatie, case-insensitieve duplicaatcheck, en het opslaan van de
+    **canonieke** code in `storefront_carts.discount_codes`.
+  - Ongeldige code → `DiscountCodeError` → top-level catch geeft **HTTP 400** met
+    `{ success: false, error: 'invalid_discount_code', message: <reden> }`.
+  - `buildCartResponse()` geeft additief `discount_code` (canonieke actieve code)
+    en `discount_amount` terug, náást de bestaande `applied_discounts` en
+    `discount_total`.
+- **`src/hooks/useDiscountCodes.ts`** — create én update slaan `code.trim().toUpperCase()` op.
+- **Migratie** — pre-flight `RAISE EXCEPTION` bij casing-conflicten (0 gevonden),
+  daarna `UPDATE ... SET code = upper(btrim(code))` (0 rijen geraakt) en
+  `CREATE UNIQUE INDEX IF NOT EXISTS discount_codes_tenant_upper_code_key ON
+  public.discount_codes (tenant_id, upper(code))`. Idempotent; handmatig terugdraaien
+  met `DROP INDEX IF EXISTS public.discount_codes_tenant_upper_code_key;`.
+
+### Security-keuzes
+Geen RLS-, policy- of grantwijziging. De unieke index is een integriteitsregel,
+geen rechtenwijziging. Alle lookups blijven expliciet op `tenant_id` gefilterd.
+
+### Gedeelde-paden-waarschuwing
+`storefront-api` is een gedeeld pad voor de vijf custom frontends. De wijziging is
+**strikt additief** voor hen: bestaande sleutels (`applied_discounts`,
+`discount_total`, `discount_codes`) blijven ongewijzigd; `discount_code` en
+`discount_amount` zijn nieuw. Enig gedragsverschil: een ongeldige code op
+`cart_apply_discount` geeft nu 400 i.p.v. 500 (beide non-2xx, dus bestaande
+error-handling blijft werken) en `checkout_discount` geeft bij een ongeldige code
+nu 400 i.p.v. 200 met `data.success = false`. Dat was expliciet gevraagd zodat
+frontends "code bestaat niet" kunnen onderscheiden van een serverfout.
+
+### Verificatie
+- SQL-natrek vóór de migratie: `0` rijen met `code <> upper(btrim(code))`, `0`
+  casing-conflicten per tenant.
+- Na de migratie: index `discount_codes_tenant_upper_code_key` aanwezig.
+- `node scripts/i18n-parity.mjs`: volledige pariteit, 2473 keys × 5 talen.
+
+### Bewust ongemoeid / Vervolg
+- `src/lib/promotions/calculators/discountCode.ts` (client-side calculator) krijgt
+  de code al genormaliseerd aangeleverd en is niet aangepast.
+- `orders.discount_code` bevat historisch de door de klant ingetypte schrijfwijze;
+  bestaande orders zijn niet herschreven.
+
 ## EVENT-SYSTEEM FASE 4d — event-velden leidend + live teller — 19 augustus 2026
 
 ### Root cause / aanleiding
