@@ -164,7 +164,7 @@ serve(async (req) => {
     // 3. Ticket ophalen — ALTIJD binnen de tenant van het gekozen event.
     const { data: ticket, error: tErr } = await admin
       .from("ticket_instances")
-      .select("id, qr_token, status, checked_in_at, checked_in_by, event_detail_id, attendee_name, seq, tenant_id")
+      .select("id, qr_token, status, checked_in_at, checked_in_by, event_detail_id, attendee_name, seq, tenant_id, product_id")
       .eq("qr_token", qrToken)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -198,16 +198,34 @@ serve(async (req) => {
       });
     }
 
-    // Default-zone van dit event (fase 2a: scan-log is bron van waarheid).
-    const { data: defaultZone } = await admin
-      .from("event_zones")
-      .select("id")
-      .eq("event_detail_id", eventDetailId)
-      .eq("tenant_id", tenantId)
-      .eq("is_default", true)
-      .maybeSingle();
-    const zoneId = (defaultZone?.id as string | undefined) ?? null;
-    const actorId = auth.user_id === "service_role" ? null : auth.user_id;
+    // Zone: in token-modus uit de token-rij, anders de default-zone van het event.
+    let zoneId: string | null = null;
+    if (scanner) {
+      zoneId = scanner.zone_id;
+    } else {
+      const { data: defaultZone } = await admin
+        .from("event_zones")
+        .select("id")
+        .eq("event_detail_id", eventDetailId)
+        .eq("tenant_id", tenantId)
+        .eq("is_default", true)
+        .maybeSingle();
+      zoneId = (defaultZone?.id as string | undefined) ?? null;
+    }
+    const actorId = !auth.user_id || auth.user_id === "service_role" ? null : auth.user_id;
+    const scannerAccessId = scanner?.id ?? null;
+
+    // Richting: JWT-modus blijft altijd 'in'. Token-modus volgt de token-rij,
+    // waarbij 'both' defaultet op 'in' (tenzij het een check-out-scanner is).
+    const direction = scanner
+      ? scanner.direction === "out"
+        ? "out"
+        : scanner.direction === "both" && scanner.scan_mode === "check_out"
+          ? "out"
+          : scanner.scan_mode === "check_out"
+            ? "out"
+            : "in"
+      : "in";
 
     if (action === "undo") {
       if (!isHost) return json({ success: false, error: "Only a host can undo a check-in" }, 403);
