@@ -116,28 +116,36 @@ export async function getTenantBrand(
   let themeRow: any = null;
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tenants")
       .select(
-        "id, name, legal_name, support_email, owner_email, contact_email, primary_color, logo_url, website_url, address, city, postal_code, country, vat_number, btw_number, language",
+        "id, name, billing_company_name, support_email, owner_email, notification_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
       )
       .eq("id", tenantId)
       .maybeSingle();
+    if (error) {
+      console.error("[tenantEmail] tenants select failed", { tenantId, error });
+    }
     tenantRow = data || null;
-  } catch (_e) {
+  } catch (e) {
+    console.error("[tenantEmail] tenants select threw", { tenantId, error: String(e) });
     tenantRow = null;
   }
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tenant_theme_settings")
       .select(
         "logo_url, primary_color, secondary_color, accent_color, background_color, text_color, brand_color, theme_mode, heading_font, body_font",
       )
       .eq("tenant_id", tenantId)
       .maybeSingle();
+    if (error) {
+      console.error("[tenantEmail] tenant_theme_settings select failed", { tenantId, error });
+    }
     themeRow = data || null;
-  } catch (_e) {
+  } catch (e) {
+    console.error("[tenantEmail] tenant_theme_settings select threw", { tenantId, error: String(e) });
     themeRow = null;
   }
 
@@ -146,14 +154,19 @@ export async function getTenantBrand(
 
   const supportEmail =
     (t.support_email && String(t.support_email).trim()) ||
-    (t.contact_email && String(t.contact_email).trim()) ||
+    (t.notification_email && String(t.notification_email).trim()) ||
     (t.owner_email && String(t.owner_email).trim()) ||
     "support@sellqo.app";
+
+  const customDomain = (t.custom_domain && String(t.custom_domain).trim()) || "";
+  const websiteUrl = customDomain
+    ? (URL_RE.test(customDomain) ? customDomain : `https://${customDomain.replace(/^\/+/, "")}`)
+    : undefined;
 
   return {
     tenantId,
     tenantName: (t.name && String(t.name).trim()) || "SellQo",
-    legalName: (t.legal_name && String(t.legal_name).trim()) || undefined,
+    legalName: (t.billing_company_name && String(t.billing_company_name).trim()) || undefined,
     logoUrl: sanitizeUrl(th.logo_url || t.logo_url, LOGO_URL),
     primaryColor: sanitizeColor(th.primary_color || t.primary_color, BRAND.primary),
     accentColor: sanitizeColor(th.accent_color, BRAND.accent),
@@ -167,12 +180,14 @@ export async function getTenantBrand(
     headingFont: (typeof th.heading_font === "string" && th.heading_font) || "Inter",
     bodyFont: (typeof th.body_font === "string" && th.body_font) || "Inter",
     supportEmail,
-    websiteUrl: (t.website_url && String(t.website_url).trim()) || undefined,
+    websiteUrl,
     address: (t.address && String(t.address).trim()) || undefined,
     city: (t.city && String(t.city).trim()) || undefined,
     postalCode: (t.postal_code && String(t.postal_code).trim()) || undefined,
     country: (t.country && String(t.country).trim()) || undefined,
-    vatNumber: (t.vat_number || t.btw_number) ? String(t.vat_number || t.btw_number).trim() : undefined,
+    vatNumber: (t.btw_number || t.billing_vat_number)
+      ? String(t.btw_number || t.billing_vat_number).trim()
+      : undefined,
     defaultLocale: sanitizeLocale(t.language, "nl"),
   };
 }
