@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "discount_code_case_insensitive": {
+          "title": "Les codes de réduction ne sont plus sensibles à la casse",
+          "description": "Si un client saisit \"bienvenue10\" alors que votre code s'appelle \"BIENVENUE10\", il est désormais accepté. Les majuscules, les minuscules et les espaces superflus ne font plus de différence. Dans votre boutique et sur vos factures, le code reste affiché tel que vous l'avez créé."
+        },
         "event_scanner_access_management": {
           "title": "Accès aux portes et QR de scan par événement",
           "description": "La page de l'événement comporte un nouvel onglet Accès. Vous y créez un accès de scan distinct par porte ou par bénévole, avec une zone, un sens (entrée, sortie ou les deux), un mode de scan et, en option, une restriction à certains types de billets et une date d'expiration. Vous recevez immédiatement un QR code et un lien à transmettre à la personne à la porte. La liste indique combien de fois chaque accès a été utilisé et à quand remonte la dernière utilisation. Qu'est-ce que cela change pour vous ? Vous ne devez jamais partager vos propres identifiants : chaque accès possède son propre code, que vous révoquez en un clic, après quoi le scan avec ce code s'arrête immédiatement. Un accès révoqué reste dans la liste, ce qui vous permet de voir plus tard qui a scanné quoi. Un accès jamais utilisé peut être supprimé définitivement."

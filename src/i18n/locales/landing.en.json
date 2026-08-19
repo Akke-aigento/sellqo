@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "discount_code_case_insensitive": {
+          "title": "Discount codes are no longer case-sensitive",
+          "description": "If a customer types \"welcome10\" while your code is called \"WELCOME10\", it is now simply accepted. Upper case, lower case and extra spaces no longer make a difference. In your webshop and on your invoices the code still appears exactly as you created it."
+        },
         "event_scanner_access_management": {
           "title": "Door access and scan QR codes per event",
           "description": "The event page has a new Access tab. There you create a separate scan access per door or volunteer, with a zone, a direction (in, out or both), a scan mode and optionally a restriction to specific ticket types and an expiry date. You immediately get a QR code and a link to forward to the person at the door. The list shows how often each access has been used and when it was last used. What does this mean for you? You never have to share your own login: each access has its own code that you revoke with one click, after which scanning with that code stops immediately. A revoked access stays in the list, so you can still see who scanned what. An access that has never been used can be deleted permanently."
