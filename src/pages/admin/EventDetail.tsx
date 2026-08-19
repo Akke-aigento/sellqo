@@ -510,33 +510,180 @@ export default function EventDetail() {
                   {ticketTypes.map((tt) => {
                     const typeSold = soldPerProduct[tt.product_id] ?? 0;
                     return (
-                      <div key={tt.id} className="rounded-lg border p-3 space-y-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium text-sm break-words">{tt.name}</span>
-                          {isOnSale(tt) ? (
-                            <Badge variant="default">{t('events.ticketTypes.onSale')}</Badge>
-                          ) : (
-                            <Badge variant="secondary">{t('events.ticketTypes.notOnSale')}</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
-                          {' · '}
-                          {t('events.ticketTypes.sold')}: {typeSold}
-                          {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ''}
-                          {tt.sub_capacity != null
-                            ? ` · ${t('events.ticketTypes.spotsLeft')}: ${Math.max(0, tt.sub_capacity - typeSold)}`
-                            : ''}
-                        </p>
-                        {(tt.sales_start || tt.sales_end) && (
-                          <p className="text-xs text-muted-foreground">
-                            {t('events.ticketTypes.salesWindow')}: {fmtFull(tt.sales_start)} → {fmtFull(tt.sales_end)}
-                          </p>
-                        )}
+                      <div key={tt.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="break-words">{tt.name}</span>
+                        <span className="text-muted-foreground tabular-nums shrink-0">
+                          {typeSold}{tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ''}
+                        </span>
                       </div>
                     );
                   })}
+                  <Button variant="outline" size="sm" className="mt-2" onClick={openNewTicketType}>
+                    <Tags className="h-4 w-4 mr-1" /> {t('events.ticketTypes.manage')}
+                  </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ---------------- Tickettypes (4b, bewerkbaar) ---------------- */}
+        <TabsContent value="ticket_types" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Tags className="h-4 w-4" /> {t('events.ticketTypes.title')} ({ticketTypes.length})
+              </CardTitle>
+              <Button size="sm" onClick={openNewTicketType}>
+                <Plus className="h-4 w-4 mr-1" /> {t('events.ticketTypes.add')}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {capacityOverflow && (
+                <p className="text-xs text-muted-foreground">
+                  {t('events.ticketTypes.guards.capacityCeiling', { capacity })}
+                </p>
+              )}
+              {ticketTypes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('events.ticketTypes.empty')}</p>
+              ) : (
+                <>
+                  {/* Mobiel: kaarten */}
+                  <div className="space-y-2 md:hidden">
+                    {ticketTypes.map((tt) => {
+                      const typeSold = soldPerProduct[tt.product_id] ?? 0;
+                      return (
+                        <div key={tt.id} className="rounded-lg border p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-medium text-sm break-words">{tt.name}</span>
+                            {tt.is_active ? (
+                              <Badge variant={isOnSale(tt) ? 'default' : 'secondary'}>
+                                {isOnSale(tt) ? t('events.ticketTypes.onSale') : t('events.ticketTypes.notOnSale')}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">{t('events.ticketTypes.inactive')}</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                            {' · '}{t('events.ticketTypes.sold')}: {typeSold}
+                            {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ` / ${t('events.ticketTypes.form.unlimited')}`}
+                            {tt.sub_capacity != null
+                              ? ` · ${t('events.ticketTypes.spotsLeft')}: ${Math.max(0, tt.sub_capacity - typeSold)}`
+                              : ''}
+                          </p>
+                          {(tt.sales_start || tt.sales_end) && (
+                            <p className="text-xs text-muted-foreground">
+                              {t('events.ticketTypes.salesWindow')}: {fmtFull(tt.sales_start)} → {fmtFull(tt.sales_end)}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditTicketType(tt)}>
+                              <Pencil className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.edit')}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleToggleActive(tt)}>
+                              {tt.is_active
+                                ? <><PowerOff className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.deactivate')}</>
+                                : <><Power className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.activate')}</>}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => setTtDeleteTarget(tt)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.delete')}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop: tabel */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-muted-foreground">
+                          <th className="py-2 pr-3 font-medium">#</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.name')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.price')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.capacity')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.sold')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.spotsLeft')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.salesWindow')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.status')}</th>
+                          <th className="py-2 font-medium text-right">{t('events.ticketTypes.columns.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ticketTypes.map((tt) => {
+                          const typeSold = soldPerProduct[tt.product_id] ?? 0;
+                          return (
+                            <tr key={tt.id} className="border-b last:border-0">
+                              <td className="py-2 pr-3 tabular-nums">{tt.sort_order}</td>
+                              <td className="py-2 pr-3">{tt.name}</td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                              </td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.sub_capacity ?? t('events.ticketTypes.form.unlimited')}
+                              </td>
+                              <td className="py-2 pr-3 tabular-nums">{typeSold}</td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.sub_capacity != null ? Math.max(0, tt.sub_capacity - typeSold) : '—'}
+                              </td>
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {tt.sales_start || tt.sales_end
+                                  ? `${fmtFull(tt.sales_start)} → ${fmtFull(tt.sales_end)}`
+                                  : '—'}
+                              </td>
+                              <td className="py-2 pr-3">
+                                {tt.is_active ? (
+                                  <Badge variant={isOnSale(tt) ? 'default' : 'secondary'}>
+                                    {isOnSale(tt) ? t('events.ticketTypes.onSale') : t('events.ticketTypes.notOnSale')}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline">{t('events.ticketTypes.inactive')}</Badge>
+                                )}
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditTicketType(tt)}
+                                    aria-label={t('events.ticketTypes.edit')}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleToggleActive(tt)}
+                                    aria-label={tt.is_active
+                                      ? t('events.ticketTypes.deactivate')
+                                      : t('events.ticketTypes.activate')}
+                                  >
+                                    {tt.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                    onClick={() => setTtDeleteTarget(tt)}
+                                    aria-label={t('events.ticketTypes.delete')}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
