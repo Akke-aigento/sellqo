@@ -100,6 +100,17 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
+  const { toast } = useToast();
+
+  // --- Tickettype-beheer (4b) ---
+  const [ttDialogOpen, setTtDialogOpen] = useState(false);
+  const [ttEditing, setTtEditing] = useState<TicketTypeEditable | null>(null);
+  const [ttDeleteTarget, setTtDeleteTarget] = useState<TicketTypeRow | null>(null);
+  const { data: ticketProducts = [] } = useTicketProducts();
+  const createTicketType = useCreateTicketType(eventId);
+  const updateTicketType = useUpdateTicketType(eventId);
+  const toggleTicketType = useToggleTicketTypeActive(eventId);
+  const deleteTicketType = useDeleteTicketType(eventId);
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event-detail', currentTenant?.id, eventId],
