@@ -1,24 +1,37 @@
-// EVENT-DETAIL (fase 4a) — read-only event-pagina met tabs.
+// EVENT-DETAIL (fase 4a/4b) — event-pagina met tabs.
 //
 // Extractie van de voormalige in-page detailview van EventDashboard.tsx naar een
-// eigen route (/admin/events/:eventId). Puur presentatie: geen enkele schrijf-actie
-// (bewerken volgt in 4b). Data via directe client-queries met expliciete tenant-scope;
+// eigen route (/admin/events/:eventId). Overzicht/Deelnemers/Scan-log zijn read-only;
+// de Tickettypes-tab (4b) schrijft op event_ticket_types — de tabel waar de betaalflow
+// live tegen valideert. Data via directe client-queries met expliciete tenant-scope;
 // RLS dwingt isolatie af op DB-niveau.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { TicketTypeDialog, type TicketTypeEditable } from '@/components/admin/events/TicketTypeDialog';
+import {
+  useTicketProducts, useCreateTicketType, useUpdateTicketType,
+  useToggleTicketTypeActive, useDeleteTicketType, isDuplicateProductError,
+  type ReentryPolicy, type TicketTypeFormData,
+} from '@/hooks/useEventTicketTypes';
 
 interface EventRow {
   id: string;
@@ -54,6 +67,7 @@ interface TicketTypeRow {
   sales_start: string | null;
   sales_end: string | null;
   sort_order: number;
+  reentry_policy: ReentryPolicy;
 }
 
 interface ScanRow {
