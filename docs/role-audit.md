@@ -1,3 +1,65 @@
+## EVENT-SYSTEEM FASE 4d — event-velden leidend + live teller — 19 augustus 2026
+
+### Root cause / aanleiding
+Na 4a stond de event-kern (`status`, `event_date`, `start_time`, `end_time`, `location_name`,
+`meeting_point`, `capacity`, `min_attendees`) read-only op `src/pages/admin/EventDetail.tsx`,
+terwijl bewerken alleen kon via `ProductEventDatesTab.tsx` — de verkeerde plek zodra een event
+zijn eigen pagina heeft. Bovendien las EventDetail `capacity` met `?? 0`, waardoor een
+NULL-capaciteit (ongelimiteerd) als 0 (niets verkoopbaar) toonde. De bezettingstellers waren
+statisch: `ticket_scans` zat niet in `supabase_realtime`.
+
+### Uitgevoerd
+- **Migratie (additief)** — `ALTER PUBLICATION supabase_realtime ADD TABLE public.ticket_scans;`
+  Geen kolomwijziging, geen REPLICA IDENTITY FULL (we tellen INSERTs). Geverifieerd via
+  `pg_publication_tables`: `ticket_scans` aanwezig.
+- **`src/hooks/useEventDetails.ts`** — `capacity` in `EventDetail` en `EventDateFormData` is nu
+  `number | null`, zodat "ongelimiteerd" als echte NULL geschreven kan worden.
+- **`src/components/admin/events/EventCoreSettingsCard.tsx` (nieuw)** — bewerkbare kern-kaart,
+  schrijft via de bestaande `useUpdateEventDate` (niet gedupliceerd). Checkbox "Ongelimiteerde
+  capaciteit" schrijft `capacity: null`; nooit `?? 0`. Twee guards in één AlertDialog:
+  (a) status → `cancelled|skipped|merged` ("verdwijnt uit je webshop, bestaande tickets blijven
+  geldig"), (b) `capacity < verkocht` ("stopt nieuwe verkoop, bestaande tickets blijven geldig").
+  Beide waarschuwen, blokkeren niet — de backend staat het toe.
+- **`src/pages/admin/EventDetail.tsx`** — nieuw tabblad "Instellingen" met die kaart;
+  `capacity` toont `∞` bij NULL (stats, bezetting, tickettype-plafond) en het percentage valt weg
+  bij ongelimiteerd. Realtime-abonnement op `ticket_scans` gefilterd op
+  `event_detail_id=eq.<id>` (INSERT) → invalidatie van scan-log en deelnemers, met een klein
+  "live"-puntje bij "Nu binnen"; `supabase.removeChannel` in de cleanup (patroon van
+  `RealtimeActivityFeed.tsx`).
+- **`src/components/admin/products/ProductEventDatesTab.tsx`** — read-only spiegel: per datum een
+  knop "Bewerken op de event-pagina" (`/admin/events/:id`). De bestaande bewerk-dialoog blijft
+  bestaan maar is nu de vroegboekkorting-dialoog: kernvelden staan disabled met doorlink, en de
+  update stuurt bij bewerken **alleen** de `early_bird_*`-velden mee. Aanmaken, bulk-plannen,
+  verplaatsen, overslaan en samenvoegen bleven ongewijzigd op de product-tab. Capaciteit toont
+  `∞` bij NULL.
+- **i18n** — `events.tabs.settings`, `events.stats.live` en `events.settings.*` (incl.
+  `guards.*`) in nl/en/fr/de/uk.
+
+### Security-keuzes
+n.v.t. voor RLS/policies/grants: geen nieuwe tabel, geen policy-wijziging. De
+publicatie-toevoeging op `ticket_scans` levert alleen events aan abonnees die de rij via de
+bestaande tenant-scoped RLS mogen lezen.
+
+### Gedeelde-paden-waarschuwing
+`storefront-api`, `checkout-engine` en de issuance/check-in-functies zijn **niet** aangeraakt.
+Zij lazen `event_details` al live, dus dit is puur een UI-verhuizing van dezelfde kolommen; het
+JSON-contract voor de vijf custom frontends is byte-identiek. `capacity_mode` en
+`merged_into_event_id` bewust ongemoeid (geen dode affordance toegevoegd).
+
+### Verificatie
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0.
+- `node scripts/i18n-parity.mjs` → volledige pariteit, 2469 keys × 5 talen.
+- `pg_publication_tables` → `ticket_scans` in `supabase_realtime` (`ticket_instances` en
+  `event_details` bewust niet toegevoegd).
+
+### Vervolg
+- **Openstaand:** er bestaat momenteel géén TEST-event; de enige `event_details`-rijen horen bij
+  de live tenant The Fonske Crawl. De gevraagde functionele DB-natrek (capacity → echte NULL,
+  capaciteit-confirm, cancelled-confirm + verdwijnen uit `storefront-api`, live teller bij een
+  test-scan) is daarom **NIET uitgevoerd** — die vraagt een wegwerp-event op een test-tenant.
+- Fase 4 is hiermee inhoudelijk afgerond; changelog- en newsletter-bundel staan klaar om te
+  versturen na bevestiging.
+
 ## EVENT-SYSTEEM FASE 4c — deur-toegangen-UI (scanner-tokens) — 19 augustus 2026
 
 ### Root cause / aanleiding
