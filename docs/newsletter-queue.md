@@ -4,6 +4,22 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10k — Deurtoegangen en scan-QR's per event (feature, 19-08-2026)
+
+**Geef elke vrijwilliger zijn eigen scan-link** (oktober 2026)
+Op de eventpagina staat een nieuw tabblad Toegangen. Daar maak je per deur of vrijwilliger een
+eigen scan-toegang aan, met een zone, een richting (in, uit of beide), een scanmodus en
+optioneel een beperking tot bepaalde tickettypes en een vervaldatum. Je krijgt meteen een
+QR-code en een link die je doorstuurt naar de persoon aan de deur. In de lijst zie je hoe
+vaak elke toegang gebruikt is en wanneer voor het laatst.
+Wat betekent dit voor jou? Je hoeft niemand je eigen inloggegevens te geven: elke toegang
+heeft een eigen code die je met één klik intrekt, waarna scannen met die code onmiddellijk
+stopt. De ingetrokken toegang blijft in de lijst staan, zodat je later nog ziet wie wat
+gescand heeft. Een toegang die nog nooit gebruikt is kun je definitief verwijderen.
+
+**i18n-keys.** `public.changelog.changes.event_scanner_access_management` — KLAARZETTEN, nog
+niet verstuurd.
+
 ### 2026.10j — Tickettypes beheren op de eventpagina (feature, 19-08-2026)
 
 **Je stelt je tickettypes nu zelf in** (oktober 2026)

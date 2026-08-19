@@ -2068,7 +2068,8 @@
       "overview": "Aperçu",
       "attendees": "Participants",
       "scanLog": "Journal de scans",
-      "ticketTypes": "Types de billets"
+      "ticketTypes": "Types de billets",
+      "access": "Accès"
     },
     "stats": {
       "capacity": "Capacité",
@@ -2181,6 +2182,87 @@
       "completed": "Terminé",
       "skipped": "Ignoré",
       "merged": "Fusionné"
+    },
+    "access": {
+      "title": "Accès aux portes",
+      "add": "Créer un accès",
+      "intro": "Donnez aux bénévoles leur propre lien de scan. Chaque accès a un code unique que vous pouvez révoquer à tout moment.",
+      "empty": "Aucun accès créé pour le moment.",
+      "noTypesHint": "Cet événement n'a pas encore de types de billets. Un accès sans sélection de type autorise tous les types — c'est très bien.",
+      "allTypes": "Tous les types de billets",
+      "showQr": "Afficher le QR",
+      "revoke": "Révoquer",
+      "delete": "Supprimer",
+      "revokeTitle": "Révoquer l'accès ?",
+      "deleteTitle": "Supprimer l'accès ?",
+      "usage": "Utilisé {{count}} fois, dernière fois à {{at}}",
+      "neverUsed": "Pas encore utilisé",
+      "expiresOn": "Expire le",
+      "defaultZoneName": "Entrée principale",
+      "status": {
+        "active": "Actif",
+        "revoked": "Révoqué",
+        "expired": "Expiré"
+      },
+      "direction": {
+        "in": "Entrée",
+        "out": "Sortie",
+        "both": "Entrée et sortie"
+      },
+      "scanMode": {
+        "check_in": "Enregistrer l'entrée",
+        "validate_only": "Contrôle uniquement",
+        "check_out": "Enregistrer la sortie"
+      },
+      "columns": {
+        "name": "Nom",
+        "zone": "Zone",
+        "direction": "Sens",
+        "scanMode": "Mode de scan",
+        "scope": "Types de billets",
+        "usage": "Utilisation",
+        "expires": "Expire",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "form": {
+        "newTitle": "Nouvel accès",
+        "description": "Le code de scan est généré de manière sécurisée sur le serveur. Vous choisissez uniquement où et pour quoi il s'applique.",
+        "name": "Nom",
+        "namePlaceholder": "Bénévole entrée principale",
+        "zone": "Zone",
+        "zoneAuto": "Créer automatiquement",
+        "zoneAutoHint": "Une entrée principale sera créée automatiquement.",
+        "direction": "Sens",
+        "scanMode": "Mode de scan",
+        "scope": "Types de billets",
+        "scopeHint": "Ne rien cocher = tous les types de billets autorisés.",
+        "scopeNoTypes": "Aucun type de billet configuré ; tous les billets sont autorisés.",
+        "expiresAt": "Expire le (facultatif)",
+        "expiresHint": "Après ce moment, le lien de scan ne fonctionne plus.",
+        "pickDate": "Choisir une date",
+        "clear": "Effacer",
+        "cancel": "Annuler",
+        "close": "Fermer",
+        "save": "Créer"
+      },
+      "qr": {
+        "title": "Partager le lien de scan",
+        "description": "Faites scanner ce QR par le bénévole ou transmettez le lien.",
+        "secretHint": "Ne partagez ce lien qu'avec les personnes à la porte. Quiconque a le lien peut scanner.",
+        "copy": "Copier le lien",
+        "copied": "Copié"
+      },
+      "guards": {
+        "revokeConfirm": "Cet accès sera révoqué et cessera immédiatement de fonctionner. Continuer ?",
+        "deleteConfirm": "Cet accès n'a jamais été utilisé et sera définitivement supprimé."
+      },
+      "toast": {
+        "created": "Accès créé",
+        "revoked": "Accès révoqué",
+        "deleted": "Accès supprimé",
+        "error": "Action échouée"
+      }
     }
   }
 }

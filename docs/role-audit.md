@@ -1,3 +1,80 @@
+## EVENT-SYSTEEM FASE 4c — deur-toegangen-UI (scanner-tokens) — 19 augustus 2026
+
+### Root cause / aanleiding
+De fase-2b token-auth valideert live tegen `event_scanner_access`, maar er was geen UI om
+toegangen aan te maken of in te trekken: elke vrijwilliger-token vroeg een handmatige
+DB-insert. Tokens zijn beveiligingsgevoelig, dus de recon ging eerst na hoe het token
+gegenereerd wordt en of intrekken direct doorwerkt.
+
+### Uitgevoerd
+- **`src/hooks/useEventScannerAccess.ts` (nieuw)** — data-laag:
+  - `useScannerAccesses(eventId)` — lijst, altijd `.eq('tenant_id', currentTenant.id)`.
+  - `useCreateScannerAccess` — insert met `tenant_id`, `event_detail_id`, `zone_id`, `name`,
+    `direction`, `scan_mode`, `allowed_product_ids`, `expires_at`, `created_by`.
+    `access_token` wordt **bewust weggelaten** zodat de kolom-default
+    `encode(gen_random_bytes(32), 'hex')` het server-side genereert; de UI zet nooit een token.
+    Daarna `.select(...)` om het token één keer terug te lezen voor de QR.
+  - `useRevokeScannerAccess` — `update { is_active: false }`, nooit `delete`.
+  - `useDeleteScannerAccess` — `delete` met extra `.eq('use_count', 0)` als tweede net naast
+    de UI-guard.
+  - `useEnsureDefaultZone(eventId)` — maakt bij ontbreken van zones een `event_zones`-rij
+    ('Hoofdingang', `is_default: true`, `sort_order: 0`) en geeft de `zone_id` terug.
+  - `.select()` na elke write (persistence-verificatie), invalidatie op
+    `['event-scanner-accesses', tenantId, eventId]`.
+- **`src/components/admin/events/ScannerAccessDialog.tsx` (nieuw)** — naam, zone-Select,
+  richting (in/uit/beide), scan_mode (check_in/validate_only/check_out), tickettype-scope als
+  checkboxes (niets aangevinkt = `allowed_product_ids` NULL = alle types) en optionele
+  `expires_at`. Zonder zone wordt de default-zone automatisch aangemaakt bij opslaan.
+- **`src/components/admin/events/ScannerQrDialog.tsx` (nieuw)** — QR via `react-qr-code` met de
+  volle URL `${window.location.origin}/scan/${access_token}` (toekomstvast voor fase 5, die
+  route bestaat nog niet), plus naam/zone/scope en een "Kopieer link"-knop.
+- **`src/pages/admin/EventDetail.tsx`** — vijfde tabblad **Toegangen** (mobiele kaarten /
+  desktoptabel): naam, zone, richting, scan_mode, tickettype-scope, gebruik
+  ("X keer gebruikt, laatst om Y"), vervaldatum, status-badge (Actief/Ingetrokken/Verlopen).
+  Acties: QR tonen, Intrekken (met AlertDialog), Verwijderen (alleen bij `use_count = 0`).
+- **i18n** — nieuwe keys in `nl/en/fr/de/uk`.
+
+### Security-keuzes
+- **Token-generatie uitsluitend server-side** via de kolom-default; de client kan geen token
+  kiezen of raden-en-zetten.
+- **Intrekken = `is_active = false`**, geen delete: de audit trail (`ticket_scans` →
+  `scanner_access_id`) blijft intact en de fase-2b lookup (`is_active = true`) weigert de
+  token onmiddellijk.
+- Geen nieuwe RLS-policies of grants nodig: `event_scanner_access` had al CRUD-policies voor
+  `authenticated` binnen de eigen tenant-scope. Het token is daarmee leesbaar voor
+  tenant_admin/staff van diezelfde tenant en voor niemand anders (geen `anon`-grant).
+- Verwijderen dubbel afgedekt: UI verbergt de knop bij `use_count > 0` én de delete-query
+  filtert op `use_count = 0`.
+
+### Gedeelde-paden-waarschuwing
+n.v.t. — `event_scanner_access` en `event_zones` worden niet door `storefront-api`,
+`storefront-resolve` of `checkout-engine` gelezen; er is geen migratie, geen
+edge-function-wijziging en geen contractwijziging. Puur admin-UI + één nieuwe hook, dus de
+vijf custom-frontend tenants zijn onaangeraakt.
+
+### Verificatie (TEST-event in SellQo Speeltuin, niet Fonske)
+- Toegang aangemaakt zonder zone → `event_zones`-rij 'Main entrance' automatisch aangemaakt,
+  toegang eraan gekoppeld.
+- `access_token` server-side gegenereerd: 64 hex-tekens
+  (`9eac735b…4c6546e2`, `length(access_token) = 64`), niet client-gezet.
+- QR toont de volle URL `http://localhost:8080/scan/<token>`; "Kopieer link" aanwezig.
+- Scope: tweede toegang met aangevinkt tickettype gaf
+  `allowed_product_ids = {95470ba1-…}`; de eerste (niets aangevinkt) gaf NULL = alle types.
+- Live token-check: `POST /functions/v1/scanner-context` met `x-scanner-token` gaf **HTTP 200**
+  met zone/richting/scan_mode; ná intrekken via de UI (`is_active = f` in DB) gaf dezelfde
+  token **HTTP 401 {"success":false,"error":"invalid scanner token"}**.
+- Verwijderen: knop alleen zichtbaar bij `use_count = 0`; verwijderde rij verdween uit de DB.
+- Testdata volledig opgeruimd (toegangen → zones → tickettype → event → product).
+- `npx tsc --noEmit` 0 fouten, changelog-i18n-pariteit 107 keys in alle vijf de locales.
+
+### Bewust ongemoeid / Vervolg
+- De publieke `/scan/:token`-route bestaat nog niet — dat is fase 5. De QR is daar al op
+  voorbereid.
+- Zone-beheer (meerdere zones aanmaken/hernoemen) zit nog niet in de UI: alleen de
+  automatische default-zone. Kandidaat voor een latere fase.
+- Changelog `2026.10k` en het newsletter-item staan KLAARGEZET, nog niet verstuurd (bundelen
+  met 4a/4b).
+
 ## EVENT-SYSTEEM FASE 4b — tickettype-beheer-UI (eerste schrijf-UI) — 19 augustus 2026
 
 ### Root cause / aanleiding

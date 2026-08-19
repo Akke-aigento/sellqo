@@ -2068,7 +2068,8 @@
       "overview": "Overview",
       "attendees": "Attendees",
       "scanLog": "Scan log",
-      "ticketTypes": "Ticket types"
+      "ticketTypes": "Ticket types",
+      "access": "Access"
     },
     "stats": {
       "capacity": "Capacity",
@@ -2181,6 +2182,87 @@
       "completed": "Completed",
       "skipped": "Skipped",
       "merged": "Merged"
+    },
+    "access": {
+      "title": "Door access",
+      "add": "Create access",
+      "intro": "Give volunteers their own scan link. Each access has a unique code you can revoke at any time.",
+      "empty": "No access created yet.",
+      "noTypesHint": "This event has no ticket types yet. Access without a ticket-type selection allows all types — that's fine.",
+      "allTypes": "All ticket types",
+      "showQr": "Show QR",
+      "revoke": "Revoke",
+      "delete": "Delete",
+      "revokeTitle": "Revoke access?",
+      "deleteTitle": "Delete access?",
+      "usage": "Used {{count}} times, last at {{at}}",
+      "neverUsed": "Not used yet",
+      "expiresOn": "Expires on",
+      "defaultZoneName": "Main entrance",
+      "status": {
+        "active": "Active",
+        "revoked": "Revoked",
+        "expired": "Expired"
+      },
+      "direction": {
+        "in": "In",
+        "out": "Out",
+        "both": "In and out"
+      },
+      "scanMode": {
+        "check_in": "Check in",
+        "validate_only": "Validate only",
+        "check_out": "Check out"
+      },
+      "columns": {
+        "name": "Name",
+        "zone": "Zone",
+        "direction": "Direction",
+        "scanMode": "Scan mode",
+        "scope": "Ticket types",
+        "usage": "Usage",
+        "expires": "Expires",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "form": {
+        "newTitle": "New access",
+        "description": "The scan code is generated securely on the server. You only choose where and for what it applies.",
+        "name": "Name",
+        "namePlaceholder": "Volunteer main entrance",
+        "zone": "Zone",
+        "zoneAuto": "Create automatically",
+        "zoneAutoHint": "A main entrance will be created automatically.",
+        "direction": "Direction",
+        "scanMode": "Scan mode",
+        "scope": "Ticket types",
+        "scopeHint": "Select nothing = all ticket types allowed.",
+        "scopeNoTypes": "No ticket types configured; all tickets are allowed.",
+        "expiresAt": "Expires on (optional)",
+        "expiresHint": "After this moment the scan link stops working.",
+        "pickDate": "Pick a date",
+        "clear": "Clear",
+        "cancel": "Cancel",
+        "close": "Close",
+        "save": "Create"
+      },
+      "qr": {
+        "title": "Share scan link",
+        "description": "Let the volunteer scan this QR or forward the link.",
+        "secretHint": "Only share this link with people working the door. Anyone with the link can scan.",
+        "copy": "Copy link",
+        "copied": "Copied"
+      },
+      "guards": {
+        "revokeConfirm": "This access will be revoked and stops working immediately. Continue?",
+        "deleteConfirm": "This access has never been used and will be permanently deleted."
+      },
+      "toast": {
+        "created": "Access created",
+        "revoked": "Access revoked",
+        "deleted": "Access deleted",
+        "error": "Action failed"
+      }
     }
   }
 }

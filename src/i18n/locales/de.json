@@ -2068,7 +2068,8 @@
       "overview": "Übersicht",
       "attendees": "Teilnehmer",
       "scanLog": "Scan-Protokoll",
-      "ticketTypes": "Ticketarten"
+      "ticketTypes": "Ticketarten",
+      "access": "Zugänge"
     },
     "stats": {
       "capacity": "Kapazität",
@@ -2181,6 +2182,87 @@
       "completed": "Abgeschlossen",
       "skipped": "Übersprungen",
       "merged": "Zusammengeführt"
+    },
+    "access": {
+      "title": "Tür-Zugänge",
+      "add": "Zugang erstellen",
+      "intro": "Geben Sie Helfern einen eigenen Scan-Link. Jeder Zugang hat einen eindeutigen Code, den Sie jederzeit widerrufen können.",
+      "empty": "Noch keine Zugänge erstellt.",
+      "noTypesHint": "Dieses Event hat noch keine Ticketarten. Ein Zugang ohne Ticketart-Auswahl lässt alle Arten zu — das ist in Ordnung.",
+      "allTypes": "Alle Ticketarten",
+      "showQr": "QR anzeigen",
+      "revoke": "Widerrufen",
+      "delete": "Löschen",
+      "revokeTitle": "Zugang widerrufen?",
+      "deleteTitle": "Zugang löschen?",
+      "usage": "{{count}} Mal genutzt, zuletzt um {{at}}",
+      "neverUsed": "Noch nicht genutzt",
+      "expiresOn": "Läuft ab am",
+      "defaultZoneName": "Haupteingang",
+      "status": {
+        "active": "Aktiv",
+        "revoked": "Widerrufen",
+        "expired": "Abgelaufen"
+      },
+      "direction": {
+        "in": "Eingang",
+        "out": "Ausgang",
+        "both": "Ein- und Ausgang"
+      },
+      "scanMode": {
+        "check_in": "Einchecken",
+        "validate_only": "Nur prüfen",
+        "check_out": "Auschecken"
+      },
+      "columns": {
+        "name": "Name",
+        "zone": "Zone",
+        "direction": "Richtung",
+        "scanMode": "Scan-Modus",
+        "scope": "Ticketarten",
+        "usage": "Nutzung",
+        "expires": "Läuft ab",
+        "status": "Status",
+        "actions": "Aktionen"
+      },
+      "form": {
+        "newTitle": "Neuer Zugang",
+        "description": "Der Scan-Code wird sicher auf dem Server erzeugt. Sie wählen nur, wo und wofür er gilt.",
+        "name": "Name",
+        "namePlaceholder": "Helfer Haupteingang",
+        "zone": "Zone",
+        "zoneAuto": "Automatisch erstellen",
+        "zoneAutoHint": "Ein Haupteingang wird automatisch erstellt.",
+        "direction": "Richtung",
+        "scanMode": "Scan-Modus",
+        "scope": "Ticketarten",
+        "scopeHint": "Nichts auswählen = alle Ticketarten erlaubt.",
+        "scopeNoTypes": "Keine Ticketarten eingerichtet; alle Tickets werden zugelassen.",
+        "expiresAt": "Läuft ab am (optional)",
+        "expiresHint": "Nach diesem Zeitpunkt funktioniert der Scan-Link nicht mehr.",
+        "pickDate": "Datum wählen",
+        "clear": "Löschen",
+        "cancel": "Abbrechen",
+        "close": "Schließen",
+        "save": "Erstellen"
+      },
+      "qr": {
+        "title": "Scan-Link teilen",
+        "description": "Lassen Sie den Helfer diesen QR scannen oder leiten Sie den Link weiter.",
+        "secretHint": "Teilen Sie diesen Link nur mit Personen an der Tür. Wer den Link hat, kann scannen.",
+        "copy": "Link kopieren",
+        "copied": "Kopiert"
+      },
+      "guards": {
+        "revokeConfirm": "Dieser Zugang wird widerrufen und funktioniert sofort nicht mehr. Fortfahren?",
+        "deleteConfirm": "Dieser Zugang wurde nie genutzt und wird endgültig gelöscht."
+      },
+      "toast": {
+        "created": "Zugang erstellt",
+        "revoked": "Zugang widerrufen",
+        "deleted": "Zugang gelöscht",
+        "error": "Aktion fehlgeschlagen"
+      }
     }
   }
 }
