@@ -6336,7 +6336,7 @@ export type Database = {
       }
       event_details: {
         Row: {
-          capacity: number
+          capacity: number | null
           capacity_mode: string
           created_at: string
           early_bird_deadline: string | null
@@ -6358,7 +6358,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          capacity: number
+          capacity?: number | null
           capacity_mode?: string
           created_at?: string
           early_bird_deadline?: string | null
@@ -6380,7 +6380,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          capacity?: number
+          capacity?: number | null
           capacity_mode?: string
           created_at?: string
           early_bird_deadline?: string | null
