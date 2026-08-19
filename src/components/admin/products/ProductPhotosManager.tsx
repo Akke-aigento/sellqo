@@ -221,7 +221,8 @@ export function ProductPhotosManager() {
       if (!product) { failed += urls.length; continue; }
       const newImages = (product.images || []).filter(u => !urls.includes(u));
       const updates: Record<string, any> = { images: newImages };
-      if (product.featured_image && urls.includes(product.featured_image)) {
+      // featured_image mag nooit naar een verwijderde/ontbrekende foto blijven wijzen
+      if (product.featured_image && !newImages.includes(product.featured_image)) {
         updates.featured_image = newImages[0] || null;
       }
       try {
