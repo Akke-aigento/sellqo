@@ -1444,6 +1444,10 @@
         "printful_order_forwarding": {
           "title": "Forward orders to Printful",
           "description": "Send orders to your connected Printful store in one click. Link your variants to Printful products first; the order page then shows the status (draft, confirmed or failed) with a retry button. Gift cards are never forwarded."
+        },
+        "event_ticket_types_management": {
+          "title": "Manage ticket types on the event page",
+          "description": "The event page now has a Ticket types tab where you create, edit, activate or deactivate ticket types yourself. For each ticket type you link a ticket product (which supplies the name and price), set a sub-capacity, define the sales window with a start and end date, and choose the re-entry policy and sort order. You can see how many have been sold per ticket type and how many spots remain. If you deactivate a ticket type that has sales, or lower its capacity below the number already sold, SellQo asks for confirmation first: new sales stop, existing tickets stay valid and those visitors can still check in. A ticket type with sales cannot be deleted."
         }
       },
       "copyLink": "Copy link",
