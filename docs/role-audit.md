@@ -1,3 +1,79 @@
+## EVENT-SYSTEEM FASE 2a — check-in engine (scan-log, dual-write) — 19 augustus 2026
+
+### Root cause / aanleiding
+Na fase 1 bestond het scan-log (`ticket_scans`) wel, maar de check-in schreef nog rechtstreeks
+`ticket_instances.status='checked_in'` (edge function `ticket-checkin`, oude r.173-215). Zones,
+her-betreding en zone-capaciteit waren daardoor niet handhaafbaar. Fase 2a maakt het scan-log de
+bron van waarheid en schrijft status + `checked_in_at` **synchroon** mee (dual-write), zodat de
+vijf bestaande lezers niets merken.
+
+### Uitgevoerd
+- **Nieuw `public.can_scan(ticket, event, zone, direction, scanner_access)`** — STABLE,
+  SECURITY DEFINER, `search_path=public`, **read-only beslissing** in vaste volgorde:
+  ticket bestaat + tenant-match (`invalid/unknown_token`) → event actief (`event_not_active`,
+  **alleen bij `direction='in'`**, zodat opschonen op een cancelled event mogelijk blijft) →
+  event-match (`wrong_event`) → ticketstatus cancelled/refunded/transferred
+  (`invalid/ticket_<status>`) → zone-toegang via `event_ticket_types.zone_ids`
+  (`not_allowed_zone`) → her-betreding op `reentry_policy`
+  (`none`→`already_inside`, `once_per_day`/`once_per_event`→`reentry_blocked`, `unlimited`→vrij)
+  → zone-capaciteit (`zone_full`) → `ok`.
+- **Nieuw `public.perform_scan(...)`** — SECURITY DEFINER, atomair: roept `can_scan` aan, schrijft
+  **altijd** een `ticket_scans`-rij (ook negatieve resultaten — auditwaarde; `reason` gaat naar
+  `note`), en enkel bij `ok` + `in` de dual-write
+  `UPDATE ticket_instances SET status='checked_in', checked_in_at=now(), checked_in_by=...
+  WHERE id=… AND status='valid'`. 0 rijen = race verloren → resultaat wordt `already_inside` met
+  het bestaande `checked_in_at`. Retourneert `{result, reason?, attendee, seq, checked_in_at?}`.
+- **`ticket_scans_result_check` verruimd** met `event_not_active` (additief, bestaande waarden
+  ongemoeid).
+- **`ticket_is_inside` en `zone_occupancy`** tellen nu ook `result='undo'` mee, zodat een undo
+  (`direction='out'`) de bezetting correct vrijgeeft. Bestaande rijen ongewijzigd.
+- **`supabase/functions/ticket-checkin/index.ts`**: de check-in-tak roept `perform_scan` aan met
+  de default-zone (`event_zones.is_default`) i.p.v. de directe UPDATE. Result-mapping:
+  `already_inside → already` (COMPAT, met `checked_in_at`), overige codes 1-op-1 doorgegeven;
+  nieuwe codes (`event_not_active`, `not_allowed_zone`, `reentry_blocked`, `zone_full`) gaan
+  ongewijzigd naar de PWA (mooi maken = fase 4/5). De undo-tak behoudt de bestaande
+  host-only `admin_actions_log`-insert én de status-reset, en schrijft **daarnaast** een
+  `ticket_scans`-rij `result='undo'`, `direction='out'` (dubbele trail).
+- Alle bestaande response-velden en result-codes (`ok`, `already`, `invalid`, `wrong_event`,
+  `undone`, `not_checked_in`, `expected_event`) blijven exact behouden.
+
+### Security-keuzes
+- `can_scan`/`perform_scan`: `REVOKE ALL … FROM PUBLIC, anon`; `EXECUTE` enkel voor
+  `service_role` (de engine wordt uitsluitend vanuit de edge function met service-key gebruikt).
+- Linter vóór en ná: **155 issues, identiek** — geen nieuwe bevindingen.
+- De UPDATE-policy `ticket_instances_update_tenant` (authenticated) is bewust **niet** aangeraakt;
+  kolom-specifieke beperking blijft aanbevolen voor een latere fase.
+
+### Gedeelde-paden-waarschuwing
+`storefront-api`, `checkout-engine` en de gedeelde theme-tabellen zijn niet geraakt. De issuance-
+trigger (`issue_tickets_for_order`) en `get_event_signup_count` zijn ongewijzigd.
+
+### Verificatie (letterlijk)
+- Verse check-in (`perform_scan`, zone = default): `{result: ok, attendee: Aaron Mercken, seq: 1,
+  checked_in_at: 2026-08-19T10:47:39.149Z}`; `ticket_instances.status='checked_in'` +
+  `checked_in_at` gezet; `ticket_scans`-rij `in/ok` aanwezig (alle drie bevestigd).
+- Tweede scan: `{result: already_inside, checked_in_at: 2026-08-19T10:46:24.616Z}` → mapt op
+  `already` in de edge function; scanregel `in/already_inside` gelogd.
+- Tellers na check-in ongewijzigd: `get_event_signup_count=1`,
+  `get_event_ticket_type_count=1` (dual-write werkt).
+- Undo (edge-pad nagebootst op DB): status `valid`, `checked_in_at` NULL, `ticket_scans`-rij
+  `out/undo` → `ticket_is_inside=false`, `zone_occupancy=0`, `get_event_signup_count=1`.
+  Na undo slaagt een nieuwe check-in weer: `{result: ok}`.
+- Cancelled event: event op `cancelled`, geldig ticket → `{result: event_not_active, reason:
+  cancelled}`; daarna teruggezet.
+- Race: afgedekt door de conditionele `WHERE status='valid'`; sequentieel bewezen — exact één
+  `ok`, de tweede `already_inside` (0 rijen bijgewerkt). Echt-parallelle uitvoering kon niet
+  gedraaid worden (geen service-key in de sandbox) — semantiek is die van de oude code.
+- `tsgo --noEmit -p tsconfig.app.json` → exit 0. `ticket-checkin` succesvol gedeployed.
+- Testdata teruggezet naar de begintoestand (ticket `checked_in` met één `in/ok`-scan, event
+  `cancelled`).
+
+### Bewust ongemoeid / vervolg
+Geen scanner-token (fase 2b), geen UI, geen changelog/docs. De vier tel-implementaties en de
+PWA-code zijn niet gewijzigd.
+
+---
+
 ## EVENT-SYSTEEM FASE 1 — scan-log-fundament (schema + migratie) — 19 augustus 2026
 
 ### Root cause / aanleiding
