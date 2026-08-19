@@ -113,6 +113,17 @@ serve(async (req) => {
       });
     }
 
+    // Default-zone van dit event (fase 2a: scan-log is bron van waarheid).
+    const { data: defaultZone } = await admin
+      .from("event_zones")
+      .select("id")
+      .eq("event_detail_id", eventDetailId)
+      .eq("tenant_id", tenantId)
+      .eq("is_default", true)
+      .maybeSingle();
+    const zoneId = (defaultZone?.id as string | undefined) ?? null;
+    const actorId = auth.user_id === "service_role" ? null : auth.user_id;
+
     if (action === "undo") {
       if (!isHost) return json({ success: false, error: "Only a host can undo a check-in" }, 403);
       if (ticket.status !== "checked_in") {
@@ -149,69 +160,57 @@ serve(async (req) => {
       });
       if (logErr) console.error("[TICKET-CHECKIN] audit log failed", logErr.message ?? JSON.stringify(logErr));
 
+      // Dubbele trail: scan-log krijgt een out/undo-rij zodat occupancy klopt.
+      const { error: scanErr } = await admin.from("ticket_scans").insert({
+        tenant_id: tenantId,
+        ticket_instance_id: ticket.id,
+        event_detail_id: eventDetailId,
+        zone_id: zoneId,
+        scanned_by_user_id: actorId,
+        direction: "out",
+        result: "undo",
+      });
+      if (scanErr) console.error("[TICKET-CHECKIN] undo scan log failed", scanErr.message ?? JSON.stringify(scanErr));
+
       log("undo ok", { ticket_id: ticket.id, by: auth.user_id });
       return json({ success: true, result: "undone", attendee: ticket.attendee_name, seq: ticket.seq });
     }
 
-    // --- checkin ---
-    if (ticket.status === "cancelled" || ticket.status === "refunded") {
-      return json({ success: true, result: "invalid", reason: `ticket_${ticket.status}` });
-    }
-    if (ticket.status === "checked_in") {
-      return json({
-        success: true,
-        result: "already",
-        checked_in_at: ticket.checked_in_at,
-        attendee: ticket.attendee_name,
-        seq: ticket.seq,
-      });
-    }
-    if (ticket.status !== "valid") {
-      return json({ success: true, result: "invalid", reason: `ticket_${ticket.status}` });
-    }
-
-    // Conditionele update: bij twee gelijktijdige scans wint er precies één.
-    const { data: updated, error: cErr } = await admin
-      .from("ticket_instances")
-      .update({
-        status: "checked_in",
-        checked_in_at: new Date().toISOString(),
-        checked_in_by: auth.user_id === "service_role" ? null : auth.user_id,
-      })
-      .eq("id", ticket.id)
-      .eq("tenant_id", tenantId)
-      .eq("status", "valid")
-      .select("id, attendee_name, seq, checked_in_at")
-      .maybeSingle();
+    // --- checkin via de engine (scan-log leidend, status dual-write) ---
+    const { data: scan, error: cErr } = await admin.rpc("perform_scan", {
+      p_ticket_id: ticket.id,
+      p_event_detail_id: eventDetailId,
+      p_zone_id: zoneId,
+      p_direction: "in",
+      p_scanner_access_id: null,
+      p_scanned_by_user_id: actorId,
+      p_device_id: null,
+    });
 
     if (cErr) {
       console.error("[TICKET-CHECKIN] checkin failed", cErr.message ?? JSON.stringify(cErr));
       return json({ success: false, error: "check-in failed" }, 500);
     }
 
-    if (!updated) {
-      // Race verloren → iemand anders checkte net in.
-      const { data: fresh } = await admin
-        .from("ticket_instances")
-        .select("checked_in_at, attendee_name, seq")
-        .eq("id", ticket.id)
-        .maybeSingle();
-      return json({
-        success: true,
-        result: "already",
-        checked_in_at: fresh?.checked_in_at ?? null,
-        attendee: fresh?.attendee_name ?? ticket.attendee_name,
-        seq: fresh?.seq ?? ticket.seq,
-      });
-    }
+    const s = (scan ?? {}) as {
+      result?: string;
+      reason?: string;
+      attendee?: string | null;
+      seq?: number | null;
+      checked_in_at?: string | null;
+    };
 
-    log("checkin ok", { ticket_id: updated.id, event_detail_id: eventDetailId });
+    // COMPAT-mapping naar de bestaande PWA-codes.
+    const result = s.result === "already_inside" ? "already" : String(s.result ?? "invalid");
+
+    log("checkin result", { ticket_id: ticket.id, event_detail_id: eventDetailId, result });
     return json({
       success: true,
-      result: "ok",
-      attendee: updated.attendee_name,
-      seq: updated.seq,
-      checked_in_at: updated.checked_in_at,
+      result,
+      ...(s.reason ? { reason: s.reason } : {}),
+      attendee: s.attendee ?? ticket.attendee_name,
+      seq: s.seq ?? ticket.seq,
+      checked_in_at: s.checked_in_at ?? null,
     });
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
