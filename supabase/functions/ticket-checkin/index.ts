@@ -14,7 +14,7 @@ import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/au
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-scanner-token",
 };
 
 const log = (step: string, details?: unknown) =>
