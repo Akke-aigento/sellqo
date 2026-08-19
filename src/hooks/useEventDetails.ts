@@ -19,7 +19,7 @@ export interface EventDetail {
   start_time: string;
   end_time: string | null;
   timezone: string;
-  capacity: number;
+  capacity: number | null;
   min_attendees: number;
   status: string;
   meeting_point: string | null;
@@ -36,7 +36,7 @@ export interface EventDateFormData {
   event_date: string;
   start_time: string;
   end_time?: string | null;
-  capacity: number;
+  capacity: number | null;
   min_attendees?: number;
   status?: EventStatus;
   meeting_point?: string | null;
