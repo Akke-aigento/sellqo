@@ -259,6 +259,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
     if (!form.event_date) return;
     // Early-bird: expliciet null sturen zodat de tenant het kan uitzetten.
     const hasEb = ebPriceNum !== null;
+    const ebPayload = {
+      early_bird_price: hasEb ? ebPriceNum : null,
+      early_bird_deadline: hasEb && ebDeadlineMs !== null ? new Date(ebDeadlineMs).toISOString() : null,
+      early_bird_quantity: hasEb && ebQtyNum !== null ? ebQtyNum : null,
+    };
     const payload = {
       event_date: format(form.event_date, 'yyyy-MM-dd'),
       start_time: form.start_time || '21:00',
@@ -267,12 +272,12 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       status: form.status,
       meeting_point: form.meeting_point.trim() || null,
       location_name: form.location_name.trim() || null,
-      early_bird_price: hasEb ? ebPriceNum : null,
-      early_bird_deadline: hasEb && ebDeadlineMs !== null ? new Date(ebDeadlineMs).toISOString() : null,
-      early_bird_quantity: hasEb && ebQtyNum !== null ? ebQtyNum : null,
+      ...ebPayload,
     };
     if (editing) {
-      await updateDate.mutateAsync({ id: editing.id, data: payload });
+      // 4d: kernvelden (datum/tijd/status/locatie/capaciteit) worden op de
+      // event-pagina beheerd. Hier alleen de prijslogica bijwerken.
+      await updateDate.mutateAsync({ id: editing.id, data: ebPayload });
     } else {
       await createDate.mutateAsync(payload);
     }
