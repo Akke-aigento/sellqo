@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10m — Kortingscodes niet meer hoofdlettergevoelig (bugfix, 19-08-2026)
+
+**Hoofdletters in kortingscodes maken niet meer uit** (oktober 2026)
+Typt een klant "welkom10" terwijl jouw code "WELKOM10" heet, dan wordt hij nu gewoon geaccepteerd.
+Hoofdletters, kleine letters en extra spaties maken geen verschil meer. In je webshop en op je
+facturen blijft de code staan zoals jij hem hebt aangemaakt.
+Wat betekent dit voor jou? Minder klanten die afhaken bij het inwisselen van een code.
+i18n-key: `public.changelog.changes.discount_code_case_insensitive`
+
 ### 2026.10l — Event bewerken op één plek + live bezetting (feature, 19-08-2026)
 
 **Je event bewerk je nu op de eventpagina** (oktober 2026)
