@@ -27,16 +27,106 @@ const json = (body: unknown, status = 200) =>
   });
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,128}$/;
+// Scanner-tokens zijn 32 random bytes als hex (zie event_scanner_access.access_token).
+const SCANNER_TOKEN_RE = /^[a-f0-9]{64}$/;
+
+type AppRoleLite =
+  | "platform_admin" | "tenant_admin" | "accountant" | "staff" | "warehouse" | "viewer" | "marketing";
+
+// Minimale vorm die deze function van een auth-object nodig heeft. In JWT-modus
+// komt dit uit authenticateRequest; in token-modus bouwen we het zelf op.
+// _shared/auth.ts blijft ongemoeid.
+interface CheckinAuth {
+  user_id: string | null;
+  tenant_ids: string[];
+  is_platform_admin: boolean;
+  roles_by_tenant?: Record<string, AppRoleLite[]>;
+}
+
+interface ScannerContext {
+  id: string;
+  tenant_id: string;
+  event_detail_id: string;
+  zone_id: string;
+  direction: string;
+  scan_mode: string;
+  allowed_product_ids: string[] | null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const auth = await authenticateRequest(req);
-
+    // De body wordt bewust VÓÓR de auth gelezen: de modus-keuze hangt ervan af.
     const body = await req.json().catch(() => ({}));
+
+    // Token-modus: header heeft voorrang, body is fallback. Nooit via URL.
+    const scannerToken = String(
+      req.headers.get("x-scanner-token") ?? (body as { scanner_token?: unknown })?.scanner_token ?? "",
+    ).trim();
+    const tokenMode = scannerToken.length > 0;
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Eén generieke afwijzing voor onbekend / inactief / verlopen — geen orakel.
+    const tokenRejected = () => json({ success: false, error: "invalid scanner token" }, 401);
+
+    let auth: CheckinAuth;
+    let scanner: ScannerContext | null = null;
+
+    if (tokenMode) {
+      if (!SCANNER_TOKEN_RE.test(scannerToken)) return tokenRejected();
+
+      const { data: row, error: sErr } = await admin
+        .from("event_scanner_access")
+        .select("id, tenant_id, event_detail_id, zone_id, direction, scan_mode, allowed_product_ids, is_active, expires_at, use_count")
+        .eq("access_token", scannerToken)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (sErr) {
+        console.error("[TICKET-CHECKIN] scanner lookup failed", sErr.message ?? JSON.stringify(sErr));
+        return json({ success: false, error: "scanner lookup failed" }, 500);
+      }
+      if (!row) return tokenRejected();
+      if (row.expires_at && new Date(row.expires_at as string).getTime() <= Date.now()) return tokenRejected();
+
+      scanner = {
+        id: row.id as string,
+        tenant_id: row.tenant_id as string,
+        event_detail_id: row.event_detail_id as string,
+        zone_id: row.zone_id as string,
+        direction: String(row.direction ?? "in"),
+        scan_mode: String(row.scan_mode ?? "check_in"),
+        allowed_product_ids: (row.allowed_product_ids as string[] | null) ?? null,
+      };
+
+      // Crew-rechten, nooit host: undo blijft daardoor automatisch 403.
+      auth = {
+        user_id: null,
+        tenant_ids: [scanner.tenant_id],
+        is_platform_admin: false,
+        roles_by_tenant: { [scanner.tenant_id]: ["staff"] },
+      };
+
+      // Telemetrie, best-effort: mag een scan nooit tegenhouden.
+      void admin
+        .from("event_scanner_access")
+        .update({ last_used_at: new Date().toISOString(), use_count: ((row.use_count as number) ?? 0) + 1 })
+        .eq("id", scanner.id)
+        .then(({ error }) => {
+          if (error) console.error("[TICKET-CHECKIN] token telemetry failed", error.message ?? JSON.stringify(error));
+        });
+    } else {
+      auth = await authenticateRequest(req);
+    }
+
     const qrToken = String(body?.qr_token ?? "").trim();
-    const eventDetailId = String(body?.event_detail_id ?? "").trim();
+    // ANTI-TAMPERING: in token-modus komt het event UITSLUITEND uit de DB-rij.
+    const eventDetailId = scanner ? scanner.event_detail_id : String(body?.event_detail_id ?? "").trim();
     const action = String(body?.action ?? "checkin");
 
     if (!TOKEN_RE.test(qrToken)) return json({ success: false, error: "invalid qr_token" }, 400);
@@ -44,11 +134,6 @@ serve(async (req) => {
     if (action !== "checkin" && action !== "undo") {
       return json({ success: false, error: "invalid action" }, 400);
     }
-
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     // 1. Gekozen event ophalen — dit bepaalt de tenant-scope.
     const { data: chosenEvent, error: evErr } = await admin
