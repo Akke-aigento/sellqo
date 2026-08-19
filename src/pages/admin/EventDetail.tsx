@@ -320,6 +320,81 @@ export default function EventDetail() {
     return <Badge variant="outline">{t('events.presence.outside')} · {fmtStamp(s.scanned_at)}</Badge>;
   };
 
+  // ---- Tickettype-acties (4b) ----
+  const usedProductIds = ticketTypes.map((tt) => tt.product_id);
+  const capacitySum = ticketTypes.reduce((acc, tt) => acc + (tt.sub_capacity ?? 0), 0);
+  const capacityOverflow = capacitySum > (event?.capacity ?? 0) && (event?.capacity ?? 0) > 0;
+
+  const handleTicketTypeSubmit = async (form: TicketTypeFormData) => {
+    try {
+      if (ttEditing) {
+        await updateTicketType.mutateAsync({ id: ttEditing.id, form });
+      } else {
+        await createTicketType.mutateAsync(form);
+      }
+      toast({ title: t('events.ticketTypes.toast.saved') });
+      setTtDialogOpen(false);
+      setTtEditing(null);
+    } catch (error) {
+      toast({
+        title: isDuplicateProductError(error)
+          ? t('events.ticketTypes.toast.duplicate')
+          : t('events.ticketTypes.toast.error'),
+        description: isDuplicateProductError(error) ? undefined : (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleToggleActive = async (tt: TicketTypeRow) => {
+    const typeSold = soldPerProduct[tt.product_id] ?? 0;
+    if (tt.is_active && typeSold > 0) {
+      const ok = window.confirm(t('events.ticketTypes.guards.deactivateWithSales', { count: typeSold }));
+      if (!ok) return;
+    }
+    try {
+      await toggleTicketType.mutateAsync({ id: tt.id, is_active: !tt.is_active });
+      toast({ title: t('events.ticketTypes.toast.saved') });
+    } catch (error) {
+      toast({
+        title: t('events.ticketTypes.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!ttDeleteTarget) return;
+    try {
+      await deleteTicketType.mutateAsync(ttDeleteTarget.id);
+      toast({ title: t('events.ticketTypes.toast.deleted') });
+    } catch (error) {
+      toast({
+        title: t('events.ticketTypes.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setTtDeleteTarget(null);
+    }
+  };
+
+  const openNewTicketType = () => { setTtEditing(null); setTtDialogOpen(true); };
+  const openEditTicketType = (tt: TicketTypeRow) => {
+    setTtEditing({
+      id: tt.id,
+      product_id: tt.product_id,
+      sub_capacity: tt.sub_capacity,
+      sales_start: tt.sales_start,
+      sales_end: tt.sales_end,
+      sort_order: tt.sort_order,
+      is_active: tt.is_active,
+      reentry_policy: tt.reentry_policy,
+    });
+    setTtDialogOpen(true);
+  };
+
   if (eventLoading) {
     return (
       <div className="space-y-4">
