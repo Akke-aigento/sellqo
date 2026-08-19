@@ -1566,9 +1566,24 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   // TICKET-1 fase 3.5: optionele event-datum valideren (moet bij dit product + deze tenant horen)
   if (eventDetailId) {
-    const { data: eventDetail } = await supabase
+    let { data: eventDetail } = await supabase
       .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity')
       .eq('id', eventDetailId).eq('product_id', productId).eq('tenant_id', tenantId).maybeSingle();
+    // FASE 3a — additief: een event kan meerdere tickettype-producten verkopen.
+    // Hoort het product niet bij het host-product, dan is een actieve
+    // event_ticket_types-rij voor (event, product) even geldig.
+    if (!eventDetail) {
+      const { data: linked } = await supabase
+        .from('event_ticket_types').select('id')
+        .eq('event_detail_id', eventDetailId).eq('product_id', productId)
+        .eq('tenant_id', tenantId).eq('is_active', true).maybeSingle();
+      if (linked) {
+        const { data: ed } = await supabase
+          .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity')
+          .eq('id', eventDetailId).eq('tenant_id', tenantId).maybeSingle();
+        eventDetail = ed;
+      }
+    }
     if (!eventDetail) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_INVALID', message: 'Deze datum hoort niet bij dit product' }));
     }
@@ -1582,6 +1597,59 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     const sold = typeof cnt === 'number' ? cnt : 0;
     if (!variantId) {
       unitPrice = resolveEventPrice(eventDetail, product.price, sold, new Date()).price;
+    }
+
+    // ── FASE 3a — tickettype-validatie + vriendelijke cap-check ──────────────
+    // De harde poort is checkout/issuance; dit is directe feedback.
+    const { data: ticketType } = await supabase
+      .from('event_ticket_types')
+      .select('id, is_active, sales_start, sales_end, sub_capacity')
+      .eq('event_detail_id', eventDetailId)
+      .eq('product_id', productId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+
+    if (!ticketType || ticketType.is_active === false) {
+      throw new Error(JSON.stringify({ code: 'TICKET_TYPE_UNAVAILABLE', message: 'Dit tickettype is niet beschikbaar' }));
+    }
+    const nowMs = Date.now();
+    const startsAt = ticketType.sales_start ? new Date(ticketType.sales_start).getTime() : null;
+    const endsAt = ticketType.sales_end ? new Date(ticketType.sales_end).getTime() : null;
+    if ((startsAt !== null && nowMs < startsAt) || (endsAt !== null && nowMs > endsAt)) {
+      throw new Error(JSON.stringify({ code: 'TICKET_TYPE_NOT_ON_SALE', message: 'De verkoop van dit tickettype is niet open' }));
+    }
+
+    // Cart-regels voor dit event: event-cap geldt over ALLE tickettypes samen,
+    // sub-cap alleen over deze (event, product)-combinatie.
+    const { data: cartRows } = await supabase
+      .from('storefront_cart_items')
+      .select('product_id, quantity')
+      .eq('cart_id', cartId)
+      .eq('event_detail_id', eventDetailId);
+    const rows = (cartRows || []) as any[];
+    const inCartEvent = rows.reduce((s: number, r: any) => s + (Number(r.quantity) || 0), 0);
+    const inCartType = rows
+      .filter((r: any) => r.product_id === productId)
+      .reduce((s: number, r: any) => s + (Number(r.quantity) || 0), 0);
+
+    // 1) sub-cap (per tickettype)
+    const { data: typeCap } = await supabase.rpc('check_event_capacity', {
+      p_event_detail_id: eventDetailId,
+      p_product_id: productId,
+      p_quantity: inCartType + quantity,
+    });
+    if (typeCap && typeCap.ok === false && typeCap.reason === 'ticket_type_full') {
+      throw new Error(JSON.stringify({ code: 'TICKET_TYPE_FULL', message: 'Dit tickettype is uitverkocht', spots_left: typeCap.type_spots_left ?? 0 }));
+    }
+
+    // 2) event-cap (over alle tickettypes)
+    const { data: eventCap } = await supabase.rpc('check_event_capacity', {
+      p_event_detail_id: eventDetailId,
+      p_product_id: null,
+      p_quantity: inCartEvent + quantity,
+    });
+    if (eventCap && eventCap.ok === false) {
+      throw new Error(JSON.stringify({ code: 'EVENT_FULL', message: 'Dit evenement is volzet', spots_left: eventCap.event_spots_left ?? 0 }));
     }
   }
 
@@ -2542,6 +2610,45 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
   if (cart.checkout_status === 'converted') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
+
+  // ── FASE 3a — capaciteitspoort vóór betaling (geen geld wisselt van hand) ──
+  // Sub-cap per (event, product); event-cap over alle tickettypes van het event.
+  const evTypeQty = new Map<string, { eventId: string; productId: string; qty: number }>();
+  const evTotalQty = new Map<string, number>();
+  for (const it of cart.cartItems as any[]) {
+    if (!it.event_detail_id) continue;
+    const key = `${it.event_detail_id}|${it.product_id}`;
+    const q = Number(it.quantity) || 0;
+    const prev = evTypeQty.get(key);
+    evTypeQty.set(key, { eventId: it.event_detail_id, productId: it.product_id, qty: q + (prev?.qty || 0) });
+    evTotalQty.set(it.event_detail_id, (evTotalQty.get(it.event_detail_id) || 0) + q);
+  }
+  const capChecks: Array<{ eventId: string; productId: string | null; qty: number }> = [
+    ...[...evTypeQty.values()].map((e) => ({ eventId: e.eventId, productId: e.productId, qty: e.qty })),
+    ...[...evTotalQty.entries()].map(([eventId, qty]) => ({ eventId, productId: null, qty })),
+  ];
+  for (const entry of capChecks) {
+    const { data: cap, error: capErr } = await supabase.rpc('check_event_capacity', {
+      p_event_detail_id: entry.eventId,
+      p_product_id: entry.productId,
+      p_quantity: entry.qty,
+    });
+    if (capErr) {
+      console.warn('[checkoutComplete] check_event_capacity failed:', capErr.message);
+      continue;
+    }
+    if (cap && cap.ok === false) {
+      const full = cap.reason === 'ticket_type_full';
+      return {
+        success: false,
+        error: {
+          code: full ? 'TICKET_TYPE_FULL' : 'EVENT_FULL',
+          message: full ? 'Dit tickettype is uitverkocht' : 'Dit evenement is volzet',
+          event_detail_id: entry.eventId,
+        },
+      };
+    }
+  }
 
   // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
   const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);

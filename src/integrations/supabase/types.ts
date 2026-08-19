@@ -19845,6 +19845,14 @@ export type Database = {
         }
         Returns: Json
       }
+      check_event_capacity: {
+        Args: {
+          p_event_detail_id: string
+          p_product_id?: string
+          p_quantity?: number
+        }
+        Returns: Json
+      }
       check_help_rate_limit: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean

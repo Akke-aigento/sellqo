@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.issue_tickets_for_order(uuid) TO anon;

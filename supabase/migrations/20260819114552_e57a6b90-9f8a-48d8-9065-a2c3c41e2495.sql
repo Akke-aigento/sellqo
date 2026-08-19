@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.check_event_capacity(uuid, uuid, integer) FROM anon, authenticated, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.check_event_capacity(uuid, uuid, integer) TO service_role;
