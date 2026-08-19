@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, addWeeks, getDay } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
   CalendarIcon, Plus, Pencil, Trash2, Loader2, MapPin, Users,
-  CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X,
+  CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X, ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { zonedToUtc, utcToZonedParts } from '@/lib/eventTime';
@@ -477,7 +478,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          Capaciteit {row.capacity} · min. {row.min_attendees}
+                          Capaciteit {row.capacity == null ? '\u221E' : row.capacity} · min. {row.min_attendees}
                         </span>
                         {(row.location_name || row.meeting_point) && (
                           <span className="flex min-w-0 items-center gap-1">
@@ -491,7 +492,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       {!dimmed && (
                         <SignupMeter
                           signed={signupCounts[row.id] ?? 0}
-                          capacity={row.capacity}
+                          capacity={row.capacity ?? 0}
                           minAttendees={row.min_attendees ?? 0}
                         />
                       )}
@@ -520,10 +521,21 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         </Button>
                       </ActionTooltip>
                     )}
-                    <ActionTooltip label="Bewerken">
+                    <ActionTooltip label="Bewerken op de event-pagina">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/events/${row.id}`)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Bewerken op de event-pagina</span>
+                      </Button>
+                    </ActionTooltip>
+                    <ActionTooltip label="Vroegboekkorting">
                       <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
                         <Pencil className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Bewerken</span>
+                        <span className="ml-2 sm:hidden">Vroegboekkorting</span>
                       </Button>
                     </ActionTooltip>
                     <ActionTooltip label="Verwijderen">
