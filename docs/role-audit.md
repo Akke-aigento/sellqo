@@ -1,3 +1,85 @@
+## EVENT-SYSTEEM FASE 4b — tickettype-beheer-UI (eerste schrijf-UI) — 19 augustus 2026
+
+### Root cause / aanleiding
+Na fase 4a was `event_ticket_types` alleen read-only zichtbaar op `EventDetail.tsx`. Tenants
+konden tickettypes niet zelf aanmaken of bijstellen; dat vroeg elke keer een handmatige
+DB-ingreep. Dit is de eerste schrijf-UI op de tabel waar de betaalflow (fase 3a) live tegen
+valideert (`is_active` + `sub_capacity`), dus de guards staan in de UI, niet in de DB.
+
+### Uitgevoerd
+- **`src/hooks/useEventTicketTypes.ts` (nieuw)** — data-laag voor tickettypes:
+  - `useTicketProducts()` — `products` van deze tenant met `product_type = 'ticket'`,
+    altijd `.eq('tenant_id', currentTenant.id)`; levert naam + prijs voor de koppeling.
+  - `useCreateTicketType` / `useUpdateTicketType` / `useToggleTicketTypeActive` /
+    `useDeleteTicketType` — react-query `useMutation` + directe Supabase-client, met
+    `queryClient.invalidateQueries` op de tickettypes-key en toasts via `useToast`.
+  - Insert zet expliciet `tenant_id` + `event_detail_id` en laat `event_group_id`,
+    `valid_from` en `valid_until` op `null`, zodat de XOR-scope-check niet geraakt wordt.
+  - `isDuplicateProductError()` mapt Postgres-code `23505` (unique
+    `(event_detail_id, product_id)`) op een leesbare melding.
+  - `REENTRY_POLICIES` als bron van de vier toegestane waarden.
+- **`src/components/admin/events/TicketTypeDialog.tsx` (nieuw)** — aanmaak/bewerk-dialog:
+  - product-Select toont alleen ticketproducten die nog niet aan dit event gekoppeld zijn
+    (het eigen product blijft zichtbaar bij bewerken) — de unique-constraint wordt dus in
+    de UI voorkomen, met de 23505-melding als tweede net.
+  - naam en prijs zijn read-only afgeleid van het product (één bron van waarheid).
+  - datum+tijd-velden voor `sales_start` / `sales_end`; `sales_end < sales_start` blokkeert
+    opslaan hard.
+  - `sub_capacity` leeg = ongelimiteerd; lager dan het al verkochte aantal geeft een
+    `confirm` met het aantal verkopen, maar blokkeert niet (bestaande tickets blijven geldig).
+  - `sort_order`, `reentry_policy`, `is_active` bewerkbaar. Geen `zone_ids`, geen
+    `event_group_id`, geen `valid_from/valid_until` in deze UI.
+  - geen ticketproducten beschikbaar → lege staat met knop naar `/admin/products/new`
+    (geen quick-create in de dialog, dat zou productvalidatie dupliceren).
+- **`src/pages/admin/EventDetail.tsx`** — nieuw tabblad **Tickettypes** (tussen Overzicht en
+  Deelnemers) met mobiele kaarten (`md:hidden`) en desktoptabel (`hidden md:block`):
+  naam, prijs, sub-capaciteit, verkocht, vrij, verkoopvenster, status-badge, acties
+  (Bewerken / Activeren-Deactiveren / Verwijderen). De read-only sectie in Overzicht is
+  ingekort tot een compacte samenvatting, zodat er geen dubbele bron staat.
+  - deactiveren van een tickettype met verkopen vraagt eerst bevestiging;
+  - verwijderen is geblokkeerd zodra er verkopen zijn (melding: deactiveer in plaats daarvan),
+    anders een `AlertDialog`-bevestiging.
+- **i18n** — `events.tabs.ticketTypes` + de hele `events.ticketTypes.*`-boom (kolommen,
+  formulier, guards, toasts, heringang-labels) in alle vijf talen (nl, en, fr, de, uk).
+
+### Security-keuzes
+- Geen RLS-, policy- of grant-wijziging. `event_ticket_types` had al tenant-scoped
+  schrijfpolicies; de UI schrijft als de ingelogde gebruiker en zet `tenant_id` expliciet
+  op `currentTenant.id`. Elke read en write is expliciet tenant-gefilterd.
+- Geen edge-functie geraakt, geen service-role-pad, geen nieuwe secret.
+- De capaciteits- en deactivatie-guards zijn **UI-guards**, geen securitygrens: de
+  geld-kritische handhaving blijft server-side in fase 3a (`check_event_capacity` +
+  `pg_advisory_xact_lock` bij uitgifte). De UI maakt de gevolgen alleen expliciet.
+
+### Gedeelde-paden-waarschuwing
+`event_ticket_types` wordt door de vijf custom frontends gelezen via `storefront-api`
+(fase 3b, `ticket_types[]`). Deze batch wijzigt alleen rijen, niet het schema en niet de
+serialisatie: geen kolom toegevoegd, hernoemd of gedropt, `storefront-api` en
+`checkout-engine` zijn niet aangeraakt. Een tenant die een tickettype toevoegt of bijstelt
+ziet dat puur additief terug in de bestaande `ticket_types[]`-array. Geen contract-wijziging.
+
+### Verificatie
+- `npx tsc --noEmit -p tsconfig.app.json` → exit 0, 0 fouten.
+- `node scripts/i18n-parity.mjs` → volledige pariteit, 2383 keys in alle vijf talen.
+- End-to-end in de browser (Playwright, tenant **SellQo Speeltuin**, tijdelijk testevent +
+  twee tijdelijke ticketproducten, na de test volledig opgeruimd):
+  - aanmaken met `sub_capacity = 10` → rij zichtbaar, DB-rij correct: `event_detail_id`
+    gevuld, `event_group_id` / `valid_from` / `valid_until` `null`, `reentry_policy = 'none'`;
+  - tweede tickettype met verkoopvenster en `sort_order = 1` → correct gesorteerd getoond;
+  - het al gekoppelde product verdween uit de product-Select (duplicaat onmogelijk);
+  - bewerken (capaciteit 10 → 12) en deactiveren → status-badge werd "Inactief";
+  - verwijderen van een tickettype zonder verkopen → rij verdwenen.
+- Geen backendwijziging, geen migratie op schema-niveau, alleen admin-UI + één
+  `doc_articles`-insert.
+
+### Bewust ongemoeid / Vervolg
+- `zone_ids` (toegangszones) blijft buiten deze UI — hoort bij de zones/toegangen-fase.
+- `event_group_id` en `valid_from/valid_until` (abonnement-achtige geldigheid) blijven
+  buiten de UI; de XOR-scope wordt niet aangeraakt.
+- Prijs en naam blijven productvelden; er komt geen prijsoverride per tickettype.
+- Geen quick-create van ticketproducten vanuit de dialog; de dialog linkt naar het
+  productformulier.
+
 ## EVENT-SYSTEEM FASE 4a — read-only event-detailpagina (admin-UI) — 19 augustus 2026
 
 ### Root cause / aanleiding

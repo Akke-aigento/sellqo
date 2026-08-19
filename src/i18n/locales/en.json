@@ -2067,7 +2067,8 @@
     "tabs": {
       "overview": "Overview",
       "attendees": "Attendees",
-      "scanLog": "Scan log"
+      "scanLog": "Scan log",
+      "ticketTypes": "Ticket types"
     },
     "stats": {
       "capacity": "Capacity",
@@ -2084,7 +2085,64 @@
       "notOnSale": "Not on sale",
       "sold": "Sold",
       "spotsLeft": "Left",
-      "salesWindow": "Sales window"
+      "salesWindow": "Sales window",
+      "manage": "Manage ticket types",
+      "add": "Add ticket type",
+      "edit": "Edit",
+      "delete": "Delete",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "inactive": "Inactive",
+      "deleteTitle": "Delete ticket type?",
+      "columns": {
+        "name": "Name",
+        "price": "Price",
+        "capacity": "Capacity",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "reentry": {
+        "none": "No re-entry",
+        "unlimited": "Unlimited re-entry",
+        "once_per_day": "Once per day",
+        "once_per_event": "Once per event"
+      },
+      "form": {
+        "newTitle": "New ticket type",
+        "editTitle": "Edit ticket type",
+        "description": "Name and price come from the linked product.",
+        "product": "Ticket product",
+        "productPlaceholder": "Select a ticket product",
+        "noProducts": "No ticket products available. First create a product with type \"ticket\".",
+        "createProduct": "Create new ticket product",
+        "priceFromProduct": "Price from product",
+        "subCapacity": "Sub-capacity",
+        "subCapacityHint": "Leave empty for unlimited. The event capacity remains the hard ceiling.",
+        "unlimited": "Unlimited",
+        "salesStart": "Sales start",
+        "salesEnd": "Sales end",
+        "pickDate": "Pick a date",
+        "clear": "Clear",
+        "windowInvalid": "Sales end is before the sales start.",
+        "sortOrder": "Sort order",
+        "reentry": "Re-entry policy",
+        "isActive": "Active (visible in the shop)",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "guards": {
+        "capacityBelowSold": "{{sold}} tickets have already been sold. A lower capacity stops new sales; existing tickets stay valid. Continue?",
+        "deactivateWithSales": "This ticket type has {{sold}} sales. Deactivating stops new sales; existing tickets stay valid and holders can still check in. Continue?",
+        "deleteBlocked": "This ticket type has sales and cannot be deleted. Deactivate it instead.",
+        "deleteConfirm": "This ticket type has no sales and will be permanently deleted.",
+        "capacityCeiling": "The sum of sub-capacities exceeds the event capacity ({{capacity}}), which remains the hard ceiling."
+      },
+      "toast": {
+        "saved": "Ticket type saved",
+        "deleted": "Ticket type deleted",
+        "duplicate": "This product is already linked as a ticket type",
+        "error": "Saving failed"
+      }
     },
     "attendees": {
       "empty": "No tickets sold for this date yet.",

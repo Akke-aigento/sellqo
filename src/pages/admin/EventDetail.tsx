@@ -1,24 +1,37 @@
-// EVENT-DETAIL (fase 4a) — read-only event-pagina met tabs.
+// EVENT-DETAIL (fase 4a/4b) — event-pagina met tabs.
 //
 // Extractie van de voormalige in-page detailview van EventDashboard.tsx naar een
-// eigen route (/admin/events/:eventId). Puur presentatie: geen enkele schrijf-actie
-// (bewerken volgt in 4b). Data via directe client-queries met expliciete tenant-scope;
+// eigen route (/admin/events/:eventId). Overzicht/Deelnemers/Scan-log zijn read-only;
+// de Tickettypes-tab (4b) schrijft op event_ticket_types — de tabel waar de betaalflow
+// live tegen valideert. Data via directe client-queries met expliciete tenant-scope;
 // RLS dwingt isolatie af op DB-niveau.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { TicketTypeDialog, type TicketTypeEditable } from '@/components/admin/events/TicketTypeDialog';
+import {
+  useTicketProducts, useCreateTicketType, useUpdateTicketType,
+  useToggleTicketTypeActive, useDeleteTicketType, isDuplicateProductError,
+  type ReentryPolicy, type TicketTypeFormData,
+} from '@/hooks/useEventTicketTypes';
 
 interface EventRow {
   id: string;
@@ -54,6 +67,7 @@ interface TicketTypeRow {
   sales_start: string | null;
   sales_end: string | null;
   sort_order: number;
+  reentry_policy: ReentryPolicy;
 }
 
 interface ScanRow {
@@ -86,6 +100,17 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
+  const { toast } = useToast();
+
+  // --- Tickettype-beheer (4b) ---
+  const [ttDialogOpen, setTtDialogOpen] = useState(false);
+  const [ttEditing, setTtEditing] = useState<TicketTypeEditable | null>(null);
+  const [ttDeleteTarget, setTtDeleteTarget] = useState<TicketTypeRow | null>(null);
+  const { data: ticketProducts = [] } = useTicketProducts();
+  const createTicketType = useCreateTicketType(eventId);
+  const updateTicketType = useUpdateTicketType(eventId);
+  const toggleTicketType = useToggleTicketTypeActive(eventId);
+  const deleteTicketType = useDeleteTicketType(eventId);
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event-detail', currentTenant?.id, eventId],
@@ -151,7 +176,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return [];
       const { data, error } = await supabase
         .from('event_ticket_types')
-        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, products!event_ticket_types_product_id_fkey(name, price)')
+        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, reentry_policy, products!event_ticket_types_product_id_fkey(name, price)')
         .eq('tenant_id', currentTenant.id)
         .eq('event_detail_id', eventId)
         .order('sort_order', { ascending: true });
@@ -168,6 +193,7 @@ export default function EventDetail() {
           sales_start: (row.sales_start as string | null) ?? null,
           sales_end: (row.sales_end as string | null) ?? null,
           sort_order: (row.sort_order as number) ?? 0,
+          reentry_policy: ((row.reentry_policy as ReentryPolicy | null) ?? 'none'),
         };
       });
     },
@@ -294,6 +320,81 @@ export default function EventDetail() {
     return <Badge variant="outline">{t('events.presence.outside')} · {fmtStamp(s.scanned_at)}</Badge>;
   };
 
+  // ---- Tickettype-acties (4b) ----
+  const usedProductIds = ticketTypes.map((tt) => tt.product_id);
+  const capacitySum = ticketTypes.reduce((acc, tt) => acc + (tt.sub_capacity ?? 0), 0);
+  const capacityOverflow = capacitySum > (event?.capacity ?? 0) && (event?.capacity ?? 0) > 0;
+
+  const handleTicketTypeSubmit = async (form: TicketTypeFormData) => {
+    try {
+      if (ttEditing) {
+        await updateTicketType.mutateAsync({ id: ttEditing.id, form });
+      } else {
+        await createTicketType.mutateAsync(form);
+      }
+      toast({ title: t('events.ticketTypes.toast.saved') });
+      setTtDialogOpen(false);
+      setTtEditing(null);
+    } catch (error) {
+      toast({
+        title: isDuplicateProductError(error)
+          ? t('events.ticketTypes.toast.duplicate')
+          : t('events.ticketTypes.toast.error'),
+        description: isDuplicateProductError(error) ? undefined : (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleToggleActive = async (tt: TicketTypeRow) => {
+    const typeSold = soldPerProduct[tt.product_id] ?? 0;
+    if (tt.is_active && typeSold > 0) {
+      const ok = window.confirm(t('events.ticketTypes.guards.deactivateWithSales', { sold: typeSold }));
+      if (!ok) return;
+    }
+    try {
+      await toggleTicketType.mutateAsync({ id: tt.id, is_active: !tt.is_active });
+      toast({ title: t('events.ticketTypes.toast.saved') });
+    } catch (error) {
+      toast({
+        title: t('events.ticketTypes.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!ttDeleteTarget) return;
+    try {
+      await deleteTicketType.mutateAsync(ttDeleteTarget.id);
+      toast({ title: t('events.ticketTypes.toast.deleted') });
+    } catch (error) {
+      toast({
+        title: t('events.ticketTypes.toast.error'),
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setTtDeleteTarget(null);
+    }
+  };
+
+  const openNewTicketType = () => { setTtEditing(null); setTtDialogOpen(true); };
+  const openEditTicketType = (tt: TicketTypeRow) => {
+    setTtEditing({
+      id: tt.id,
+      product_id: tt.product_id,
+      sub_capacity: tt.sub_capacity,
+      sales_start: tt.sales_start,
+      sales_end: tt.sales_end,
+      sort_order: tt.sort_order,
+      is_active: tt.is_active,
+      reentry_policy: tt.reentry_policy,
+    });
+    setTtDialogOpen(true);
+  };
+
   if (eventLoading) {
     return (
       <div className="space-y-4">
@@ -347,6 +448,9 @@ export default function EventDetail() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview" className="gap-2">
             <Ticket className="h-4 w-4" /> {t('events.tabs.overview')}
+          </TabsTrigger>
+          <TabsTrigger value="ticket_types" className="gap-2">
+            <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
           </TabsTrigger>
           <TabsTrigger value="attendees" className="gap-2">
             <Users className="h-4 w-4" /> {t('events.tabs.attendees')}
@@ -406,33 +510,180 @@ export default function EventDetail() {
                   {ticketTypes.map((tt) => {
                     const typeSold = soldPerProduct[tt.product_id] ?? 0;
                     return (
-                      <div key={tt.id} className="rounded-lg border p-3 space-y-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium text-sm break-words">{tt.name}</span>
-                          {isOnSale(tt) ? (
-                            <Badge variant="default">{t('events.ticketTypes.onSale')}</Badge>
-                          ) : (
-                            <Badge variant="secondary">{t('events.ticketTypes.notOnSale')}</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
-                          {' · '}
-                          {t('events.ticketTypes.sold')}: {typeSold}
-                          {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ''}
-                          {tt.sub_capacity != null
-                            ? ` · ${t('events.ticketTypes.spotsLeft')}: ${Math.max(0, tt.sub_capacity - typeSold)}`
-                            : ''}
-                        </p>
-                        {(tt.sales_start || tt.sales_end) && (
-                          <p className="text-xs text-muted-foreground">
-                            {t('events.ticketTypes.salesWindow')}: {fmtFull(tt.sales_start)} → {fmtFull(tt.sales_end)}
-                          </p>
-                        )}
+                      <div key={tt.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="break-words">{tt.name}</span>
+                        <span className="text-muted-foreground tabular-nums shrink-0">
+                          {typeSold}{tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ''}
+                        </span>
                       </div>
                     );
                   })}
+                  <Button variant="outline" size="sm" className="mt-2" onClick={openNewTicketType}>
+                    <Tags className="h-4 w-4 mr-1" /> {t('events.ticketTypes.manage')}
+                  </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ---------------- Tickettypes (4b, bewerkbaar) ---------------- */}
+        <TabsContent value="ticket_types" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Tags className="h-4 w-4" /> {t('events.ticketTypes.title')} ({ticketTypes.length})
+              </CardTitle>
+              <Button size="sm" onClick={openNewTicketType}>
+                <Plus className="h-4 w-4 mr-1" /> {t('events.ticketTypes.add')}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {capacityOverflow && (
+                <p className="text-xs text-muted-foreground">
+                  {t('events.ticketTypes.guards.capacityCeiling', { capacity })}
+                </p>
+              )}
+              {ticketTypes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('events.ticketTypes.empty')}</p>
+              ) : (
+                <>
+                  {/* Mobiel: kaarten */}
+                  <div className="space-y-2 md:hidden">
+                    {ticketTypes.map((tt) => {
+                      const typeSold = soldPerProduct[tt.product_id] ?? 0;
+                      return (
+                        <div key={tt.id} className="rounded-lg border p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-medium text-sm break-words">{tt.name}</span>
+                            {tt.is_active ? (
+                              <Badge variant={isOnSale(tt) ? 'default' : 'secondary'}>
+                                {isOnSale(tt) ? t('events.ticketTypes.onSale') : t('events.ticketTypes.notOnSale')}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">{t('events.ticketTypes.inactive')}</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                            {' · '}{t('events.ticketTypes.sold')}: {typeSold}
+                            {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ` / ${t('events.ticketTypes.form.unlimited')}`}
+                            {tt.sub_capacity != null
+                              ? ` · ${t('events.ticketTypes.spotsLeft')}: ${Math.max(0, tt.sub_capacity - typeSold)}`
+                              : ''}
+                          </p>
+                          {(tt.sales_start || tt.sales_end) && (
+                            <p className="text-xs text-muted-foreground">
+                              {t('events.ticketTypes.salesWindow')}: {fmtFull(tt.sales_start)} → {fmtFull(tt.sales_end)}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditTicketType(tt)}>
+                              <Pencil className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.edit')}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleToggleActive(tt)}>
+                              {tt.is_active
+                                ? <><PowerOff className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.deactivate')}</>
+                                : <><Power className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.activate')}</>}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => setTtDeleteTarget(tt)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> {t('events.ticketTypes.delete')}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop: tabel */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-muted-foreground">
+                          <th className="py-2 pr-3 font-medium">#</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.name')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.price')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.capacity')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.sold')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.spotsLeft')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.salesWindow')}</th>
+                          <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.status')}</th>
+                          <th className="py-2 font-medium text-right">{t('events.ticketTypes.columns.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ticketTypes.map((tt) => {
+                          const typeSold = soldPerProduct[tt.product_id] ?? 0;
+                          return (
+                            <tr key={tt.id} className="border-b last:border-0">
+                              <td className="py-2 pr-3 tabular-nums">{tt.sort_order}</td>
+                              <td className="py-2 pr-3">{tt.name}</td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                              </td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.sub_capacity ?? t('events.ticketTypes.form.unlimited')}
+                              </td>
+                              <td className="py-2 pr-3 tabular-nums">{typeSold}</td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {tt.sub_capacity != null ? Math.max(0, tt.sub_capacity - typeSold) : '—'}
+                              </td>
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {tt.sales_start || tt.sales_end
+                                  ? `${fmtFull(tt.sales_start)} → ${fmtFull(tt.sales_end)}`
+                                  : '—'}
+                              </td>
+                              <td className="py-2 pr-3">
+                                {tt.is_active ? (
+                                  <Badge variant={isOnSale(tt) ? 'default' : 'secondary'}>
+                                    {isOnSale(tt) ? t('events.ticketTypes.onSale') : t('events.ticketTypes.notOnSale')}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline">{t('events.ticketTypes.inactive')}</Badge>
+                                )}
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditTicketType(tt)}
+                                    aria-label={t('events.ticketTypes.edit')}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleToggleActive(tt)}
+                                    aria-label={tt.is_active
+                                      ? t('events.ticketTypes.deactivate')
+                                      : t('events.ticketTypes.activate')}
+                                  >
+                                    {tt.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                    onClick={() => setTtDeleteTarget(tt)}
+                                    aria-label={t('events.ticketTypes.delete')}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -552,6 +803,41 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <TicketTypeDialog
+        open={ttDialogOpen}
+        onOpenChange={(o) => { setTtDialogOpen(o); if (!o) setTtEditing(null); }}
+        editing={ttEditing}
+        products={ticketProducts}
+        usedProductIds={usedProductIds}
+        soldForProduct={(pid) => soldPerProduct[pid] ?? 0}
+        saving={createTicketType.isPending || updateTicketType.isPending}
+        onSubmit={handleTicketTypeSubmit}
+      />
+
+      <AlertDialog
+        open={!!ttDeleteTarget}
+        onOpenChange={(o) => { if (!o) setTtDeleteTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('events.ticketTypes.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ttDeleteTarget && (soldPerProduct[ttDeleteTarget.product_id] ?? 0) > 0
+                ? t('events.ticketTypes.guards.deleteBlocked')
+                : t('events.ticketTypes.guards.deleteConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('events.ticketTypes.form.cancel')}</AlertDialogCancel>
+            {ttDeleteTarget && (soldPerProduct[ttDeleteTarget.product_id] ?? 0) === 0 && (
+              <AlertDialogAction onClick={handleDelete}>
+                {t('events.ticketTypes.delete')}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

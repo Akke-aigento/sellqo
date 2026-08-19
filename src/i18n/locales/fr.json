@@ -2067,7 +2067,8 @@
     "tabs": {
       "overview": "Aperçu",
       "attendees": "Participants",
-      "scanLog": "Journal de scans"
+      "scanLog": "Journal de scans",
+      "ticketTypes": "Types de billets"
     },
     "stats": {
       "capacity": "Capacité",
@@ -2084,7 +2085,64 @@
       "notOnSale": "Pas en vente",
       "sold": "Vendus",
       "spotsLeft": "Restant",
-      "salesWindow": "Période de vente"
+      "salesWindow": "Période de vente",
+      "manage": "Gérer les types de billets",
+      "add": "Ajouter un type de billet",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "inactive": "Inactif",
+      "deleteTitle": "Supprimer le type de billet ?",
+      "columns": {
+        "name": "Nom",
+        "price": "Prix",
+        "capacity": "Capacité",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "reentry": {
+        "none": "Pas de réentrée",
+        "unlimited": "Réentrée illimitée",
+        "once_per_day": "Une fois par jour",
+        "once_per_event": "Une fois par événement"
+      },
+      "form": {
+        "newTitle": "Nouveau type de billet",
+        "editTitle": "Modifier le type de billet",
+        "description": "Le nom et le prix proviennent du produit lié.",
+        "product": "Produit billet",
+        "productPlaceholder": "Choisissez un produit billet",
+        "noProducts": "Aucun produit billet disponible. Créez d'abord un produit de type « ticket ».",
+        "createProduct": "Créer un nouveau produit billet",
+        "priceFromProduct": "Prix du produit",
+        "subCapacity": "Sous-capacité",
+        "subCapacityHint": "Laissez vide pour illimité. La capacité de l'événement reste la limite absolue.",
+        "unlimited": "Illimité",
+        "salesStart": "Début des ventes",
+        "salesEnd": "Fin des ventes",
+        "pickDate": "Choisir une date",
+        "clear": "Effacer",
+        "windowInvalid": "La fin des ventes précède le début.",
+        "sortOrder": "Ordre de tri",
+        "reentry": "Politique de réentrée",
+        "isActive": "Actif (visible dans la boutique)",
+        "cancel": "Annuler",
+        "save": "Enregistrer"
+      },
+      "guards": {
+        "capacityBelowSold": "{{sold}} billets ont déjà été vendus. Une capacité inférieure arrête les nouvelles ventes ; les billets existants restent valables. Continuer ?",
+        "deactivateWithSales": "Ce type de billet compte {{sold}} ventes. La désactivation arrête les nouvelles ventes ; les billets existants restent valables et leurs détenteurs peuvent s'enregistrer. Continuer ?",
+        "deleteBlocked": "Ce type de billet a des ventes et ne peut pas être supprimé. Désactivez-le à la place.",
+        "deleteConfirm": "Ce type de billet n'a aucune vente et sera définitivement supprimé.",
+        "capacityCeiling": "La somme des sous-capacités dépasse la capacité de l'événement ({{capacity}}), qui reste la limite absolue."
+      },
+      "toast": {
+        "saved": "Type de billet enregistré",
+        "deleted": "Type de billet supprimé",
+        "duplicate": "Ce produit est déjà lié comme type de billet",
+        "error": "Échec de l'enregistrement"
+      }
     },
     "attendees": {
       "empty": "Aucun billet vendu pour cette date.",

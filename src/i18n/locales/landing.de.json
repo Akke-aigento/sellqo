@@ -1444,6 +1444,10 @@
         "printful_order_forwarding": {
           "title": "Bestellungen an Printful weiterleiten",
           "description": "Sende Bestellungen mit einem Klick an deinen verbundenen Printful-Shop. Verknüpfe zuerst deine Varianten mit Printful-Produkten; die Bestellseite zeigt danach den Status (Entwurf, bestätigt oder fehlgeschlagen) mit einer Schaltfläche zum erneuten Versuch. Geschenkkarten werden nie weitergeleitet."
+        },
+        "event_ticket_types_management": {
+          "title": "Ticketarten auf der Event-Seite verwalten",
+          "description": "Die Event-Seite hat jetzt einen Tab Ticketarten, auf dem Sie Ticketarten selbst anlegen, bearbeiten, aktivieren oder deaktivieren. Pro Ticketart verknüpfen Sie ein Ticketprodukt (daraus kommen Name und Preis), legen eine Unterkapazität fest, bestimmen den Verkaufszeitraum mit Start- und Enddatum und wählen die Wiedereintritts-Regel sowie die Sortierreihenfolge. Sie sehen je Ticketart, wie viele verkauft wurden und wie viele Plätze noch frei sind. Wenn Sie eine Ticketart mit Verkäufen deaktivieren oder die Kapazität unter die bereits verkaufte Anzahl senken, fragt SellQo zuerst nach einer Bestätigung: Neue Verkäufe stoppen, bestehende Tickets bleiben gültig und diese Besucher können weiterhin einchecken. Eine Ticketart mit Verkäufen kann nicht gelöscht werden."
         }
       },
       "copyLink": "Link kopieren",

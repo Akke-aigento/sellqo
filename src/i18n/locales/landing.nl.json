@@ -1444,6 +1444,10 @@
         "printful_order_forwarding": {
           "title": "Bestellingen doorsturen naar Printful",
           "description": "Stuur bestellingen met één klik door naar je gekoppelde Printful-winkel. Koppel eerst je varianten aan Printful-producten; op de orderpagina zie je daarna de status (concept, bevestigd of mislukt) met een knop om het opnieuw te proberen. Cadeaukaarten worden nooit doorgestuurd."
+        },
+        "event_ticket_types_management": {
+          "title": "Tickettypes beheren op de eventpagina",
+          "description": "Op de eventpagina staat nu een tabblad Tickettypes waar je zelf tickettypes aanmaakt, bewerkt, activeert of deactiveert. Per tickettype koppel je een ticketproduct (daaruit komen naam en prijs), stel je een sub-capaciteit in, bepaal je het verkoopvenster met start- en einddatum, kies je het heringang-beleid en de sorteervolgorde. Je ziet per tickettype hoeveel er verkocht zijn en hoeveel plaatsen er nog vrij zijn. Zet je een tickettype met verkopen op inactief of verlaag je de capaciteit onder het al verkochte aantal, dan vraagt SellQo eerst om bevestiging: nieuwe verkoop stopt, bestaande tickets blijven geldig en die bezoekers kunnen nog inchecken. Een tickettype met verkopen kan niet verwijderd worden."
         }
       },
       "copyLink": "Kopieer link",
