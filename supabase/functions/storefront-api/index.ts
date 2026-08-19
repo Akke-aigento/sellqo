@@ -1808,34 +1808,43 @@ async function cartRemoveItem(supabase: any, tenantId: string, params: Record<st
 
 async function cartApplyDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const code = params.code as string;
+  const code = normalizeDiscountCode(params.code ?? params.discount_code);
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
   // Get current cart to check existing codes
   const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
   const currentCodes: string[] = cart?.discount_codes || [];
-  if (currentCodes.includes(code)) throw new Error('Deze kortingscode is al toegepast');
 
   // Validate code
   const validation = await validateDiscountCode(supabase, tenantId, { code });
-  if (!validation.valid) throw new Error(validation.error);
+  if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
-  const updatedCodes = [...currentCodes, code];
+  const canonical = validation.code || code;
+  if (currentCodes.some((c) => normalizeDiscountCode(c) === canonical)) {
+    throw new DiscountCodeError('Deze kortingscode is al toegepast');
+  }
+
+  const updatedCodes = [...currentCodes, canonical];
   const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
   if (error) throw error;
-  return cartGet(supabase, tenantId, { cart_id: cartId });
+  const cartResponse = await cartGet(supabase, tenantId, { cart_id: cartId });
+  const validated = await validateDiscountCode(supabase, tenantId, { code: canonical, subtotal: (cartResponse as any).subtotal || 0 });
+  const discountAmount = validated.valid && validated.discount_type !== 'free_shipping'
+    ? Math.round(calculateDiscountValue((cartResponse as any).subtotal || 0, validated.discount_type, validated.discount_value, validated.max_discount_amount) * 100) / 100
+    : 0;
+  return { ...cartResponse, discount_code: canonical, discount_amount: discountAmount };
 }
 
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const code = params.code as string;
+  const code = normalizeDiscountCode(params.code ?? params.discount_code);
   if (!cartId) throw new Error('cart_id is required');
 
   if (code) {
     // Remove specific code from array
     const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
     const currentCodes: string[] = cart?.discount_codes || [];
-    const updatedCodes = currentCodes.filter((c: string) => c !== code);
+    const updatedCodes = currentCodes.filter((c: string) => normalizeDiscountCode(c) !== code);
     const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
     if (error) throw error;
   } else {
