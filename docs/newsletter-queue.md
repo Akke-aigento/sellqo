@@ -4,6 +4,22 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10j — Tickettypes beheren op de eventpagina (feature, 19-08-2026)
+
+**Je stelt je tickettypes nu zelf in** (oktober 2026)
+Op de eventpagina staat een nieuw tabblad Tickettypes. Daar maak je tickettypes aan,
+bewerk je ze en zet je ze aan of uit. Per tickettype koppel je een ticketproduct — daaruit
+komen de naam en de prijs — en stel je een sub-capaciteit, een verkoopvenster met start- en
+einddatum, het heringang-beleid en de sorteervolgorde in. In de lijst zie je meteen hoeveel
+tickets per type verkocht zijn en hoeveel plaatsen er nog vrij zijn.
+Wat betekent dit voor jou? Zet je een tickettype met verkopen uit, of verlaag je de
+capaciteit onder het al verkochte aantal, dan vragen we eerst om bevestiging: nieuwe
+verkoop stopt, maar bestaande tickets blijven geldig en die bezoekers kunnen nog inchecken.
+Een tickettype met verkopen kun je niet verwijderen — deactiveren is dan de juiste weg.
+
+**i18n-keys.** `public.changelog.changes.event_ticket_types_management` — KLAARZETTEN, nog
+niet verstuurd.
+
 ### 2026.10i — Eventpagina met deelnemers en check-in-overzicht (feature, 19-08-2026)
 
 **Elk event heeft nu zijn eigen pagina** (oktober 2026)
