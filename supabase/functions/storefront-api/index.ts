@@ -4185,6 +4185,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
   } catch (error) {
     console.error('Storefront API error:', error);
+    // DISCOUNT-CASE-1 — onderscheid "code bestaat niet/geldt niet" (400) van een serverfout (500).
+    if (error instanceof DiscountCodeError) {
+      return new Response(JSON.stringify({ success: false, error: 'invalid_discount_code', message: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
     return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
