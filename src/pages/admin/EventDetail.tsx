@@ -803,6 +803,41 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <TicketTypeDialog
+        open={ttDialogOpen}
+        onOpenChange={(o) => { setTtDialogOpen(o); if (!o) setTtEditing(null); }}
+        editing={ttEditing}
+        products={ticketProducts}
+        usedProductIds={usedProductIds}
+        soldForProduct={(pid) => soldPerProduct[pid] ?? 0}
+        saving={createTicketType.isPending || updateTicketType.isPending}
+        onSubmit={handleTicketTypeSubmit}
+      />
+
+      <AlertDialog
+        open={!!ttDeleteTarget}
+        onOpenChange={(o) => { if (!o) setTtDeleteTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('events.ticketTypes.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ttDeleteTarget && (soldPerProduct[ttDeleteTarget.product_id] ?? 0) > 0
+                ? t('events.ticketTypes.guards.deleteBlocked')
+                : t('events.ticketTypes.guards.deleteConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('events.ticketTypes.form.cancel')}</AlertDialogCancel>
+            {ttDeleteTarget && (soldPerProduct[ttDeleteTarget.product_id] ?? 0) === 0 && (
+              <AlertDialogAction onClick={handleDelete}>
+                {t('events.ticketTypes.delete')}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
