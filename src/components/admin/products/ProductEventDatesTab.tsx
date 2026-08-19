@@ -248,9 +248,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       : null;
 
   const canSave =
-    !!form.event_date &&
-    form.capacity !== '' &&
-    Number(form.capacity) > 0 &&
+    (!!editing || (!!form.event_date && form.capacity !== '' && Number(form.capacity) > 0)) &&
     !ebPriceError &&
     !ebQtyError &&
     !ebDeadlineError;
@@ -563,11 +561,31 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Datum bewerken' : 'Datum toevoegen'}</DialogTitle>
-            <DialogDescription>Stel datum, tijd en capaciteit in voor dit evenement.</DialogDescription>
+            <DialogTitle>{editing ? 'Vroegboekkorting bewerken' : 'Datum toevoegen'}</DialogTitle>
+            <DialogDescription>
+              {editing
+                ? 'Datum, tijd, status, locatie en capaciteit beheer je op de event-pagina.'
+                : 'Stel datum, tijd en capaciteit in voor dit evenement.'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {editing && (
+              <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-muted-foreground">
+                  De kernvelden van deze datum zijn hier alleen-lezen.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/admin/events/${editing.id}`)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Bewerken op de event-pagina
+                </Button>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Datum *</Label>
@@ -576,6 +594,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={!!editing}
                       className={cn('w-full justify-start text-left font-normal', !form.event_date && 'text-muted-foreground')}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -597,6 +616,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Label>Starttijd</Label>
                 <Input
                   type="time"
+                  disabled={!!editing}
                   value={form.start_time}
                   onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
                 />
@@ -606,6 +626,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Input
                   type="number"
                   min={1}
+                  disabled={!!editing}
                   value={form.capacity}
                   onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
                 />
@@ -615,6 +636,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Input
                   type="number"
                   min={0}
+                  disabled={!!editing}
                   value={form.min_attendees}
                   onChange={(e) => setForm((f) => ({ ...f, min_attendees: e.target.value }))}
                 />
@@ -623,7 +645,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}>
+              <Select
+                value={form.status}
+                disabled={!!editing}
+                onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -638,6 +664,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             <div className="space-y-2">
               <Label>Locatie (optioneel)</Label>
               <Input
+                disabled={!!editing}
                 value={form.location_name}
                 onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
                 placeholder="Bijv. Stadspark"
@@ -647,6 +674,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             <div className="space-y-2">
               <Label>Verzamelpunt (optioneel)</Label>
               <Input
+                disabled={!!editing}
                 value={form.meeting_point}
                 onChange={(e) => setForm((f) => ({ ...f, meeting_point: e.target.value }))}
                 placeholder="Bijv. hoofdingang aan de fontein"
