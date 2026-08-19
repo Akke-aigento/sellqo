@@ -3459,7 +3459,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
 
 async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const discountCode = params.discount_code as string;
+  const discountCode = normalizeDiscountCode(params.discount_code ?? params.code);
   if (!cartId || !discountCode) return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'cart_id en discount_code zijn verplicht' } };
 
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
@@ -3468,10 +3468,13 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   const currentCodes: string[] = cart.discount_codes || [];
 
   const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
-  if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
+  if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
+  const canonical = validation.code || discountCode;
   // Idempotent: als code al in array zit, skip toevoegen maar herbereken wel alles
-  const updatedCodes = currentCodes.includes(discountCode) ? currentCodes : [...currentCodes, discountCode];
+  const updatedCodes = currentCodes.some((c) => normalizeDiscountCode(c) === canonical)
+    ? currentCodes
+    : [...currentCodes, canonical];
 
   // Recalculate all discounts
   let totalDiscountAmount = 0;
