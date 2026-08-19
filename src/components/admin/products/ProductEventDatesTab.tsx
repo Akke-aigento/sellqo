@@ -156,6 +156,7 @@ const DEFAULT_EVENT_TZ = 'Europe/Brussels';
 
 export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productId: string; regularPrice?: number }) {
   const { data: dates = [], isLoading } = useEventDetails(productId);
+  const navigate = useNavigate();
   const createDate = useCreateEventDate(productId);
   const updateDate = useUpdateEventDate(productId);
   const deleteDate = useDeleteEventDate(productId);
