@@ -1452,6 +1452,10 @@
         "event_ticket_types_management": {
           "title": "Tickettypes beheren op de eventpagina",
           "description": "Op de eventpagina staat nu een tabblad Tickettypes waar je zelf tickettypes aanmaakt, bewerkt, activeert of deactiveert. Per tickettype koppel je een ticketproduct (daaruit komen naam en prijs), stel je een sub-capaciteit in, bepaal je het verkoopvenster met start- en einddatum, kies je het heringang-beleid en de sorteervolgorde. Je ziet per tickettype hoeveel er verkocht zijn en hoeveel plaatsen er nog vrij zijn. Zet je een tickettype met verkopen op inactief of verlaag je de capaciteit onder het al verkochte aantal, dan vraagt SellQo eerst om bevestiging: nieuwe verkoop stopt, bestaande tickets blijven geldig en die bezoekers kunnen nog inchecken. Een tickettype met verkopen kan niet verwijderd worden."
+        },
+        "event_core_fields_and_live_counter": {
+          "title": "Event bewerken op één plek, met live bezetting",
+          "description": "Datum, tijd, status, locatie en capaciteit van een event pas je nu aan op de eventpagina zelf, in het nieuwe tabblad Instellingen. Je kunt de capaciteit ook op ongelimiteerd zetten. Zet je een event op geannuleerd, overgeslagen of samengevoegd, of verlaag je de capaciteit onder het aantal verkochte tickets, dan vraagt SellQo eerst om bevestiging. De teller Nu binnen loopt live mee terwijl er aan de deur gescand wordt."
         }
       },
       "copyLink": "Kopieer link",

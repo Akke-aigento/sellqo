@@ -1452,6 +1452,10 @@
         "event_ticket_types_management": {
           "title": "Ticketarten auf der Event-Seite verwalten",
           "description": "Die Event-Seite hat jetzt einen Tab Ticketarten, auf dem Sie Ticketarten selbst anlegen, bearbeiten, aktivieren oder deaktivieren. Pro Ticketart verknüpfen Sie ein Ticketprodukt (daraus kommen Name und Preis), legen eine Unterkapazität fest, bestimmen den Verkaufszeitraum mit Start- und Enddatum und wählen die Wiedereintritts-Regel sowie die Sortierreihenfolge. Sie sehen je Ticketart, wie viele verkauft wurden und wie viele Plätze noch frei sind. Wenn Sie eine Ticketart mit Verkäufen deaktivieren oder die Kapazität unter die bereits verkaufte Anzahl senken, fragt SellQo zuerst nach einer Bestätigung: Neue Verkäufe stoppen, bestehende Tickets bleiben gültig und diese Besucher können weiterhin einchecken. Eine Ticketart mit Verkäufen kann nicht gelöscht werden."
+        },
+        "event_core_fields_and_live_counter": {
+          "title": "Event an einer Stelle bearbeiten, mit Live-Auslastung",
+          "description": "Datum, Uhrzeit, Status, Ort und Kapazität eines Events bearbeitest du jetzt direkt auf der Eventseite, im neuen Tab Einstellungen. Die Kapazität kannst du auch auf unbegrenzt setzen. Setzt du ein Event auf abgesagt, übersprungen oder zusammengeführt oder senkst du die Kapazität unter die Zahl der verkauften Tickets, fragt SellQo zuerst nach einer Bestätigung. Der Zähler Jetzt drinnen läuft live mit, während an der Tür gescannt wird."
         }
       },
       "copyLink": "Link kopieren",
