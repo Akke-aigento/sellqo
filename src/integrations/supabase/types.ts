@@ -6337,12 +6337,14 @@ export type Database = {
       event_details: {
         Row: {
           capacity: number
+          capacity_mode: string
           created_at: string
           early_bird_deadline: string | null
           early_bird_price: number | null
           early_bird_quantity: number | null
           end_time: string | null
           event_date: string
+          event_group_id: string | null
           id: string
           location_name: string | null
           meeting_point: string | null
@@ -6357,12 +6359,14 @@ export type Database = {
         }
         Insert: {
           capacity: number
+          capacity_mode?: string
           created_at?: string
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
           end_time?: string | null
           event_date: string
+          event_group_id?: string | null
           id?: string
           location_name?: string | null
           meeting_point?: string | null
@@ -6377,12 +6381,14 @@ export type Database = {
         }
         Update: {
           capacity?: number
+          capacity_mode?: string
           created_at?: string
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
           end_time?: string | null
           event_date?: string
+          event_group_id?: string | null
           id?: string
           location_name?: string | null
           meeting_point?: string | null
@@ -6396,6 +6402,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "event_details_event_group_id_fkey"
+            columns: ["event_group_id"]
+            isOneToOne: false
+            referencedRelation: "event_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "event_details_merged_into_event_id_fkey"
             columns: ["merged_into_event_id"]
@@ -6419,6 +6432,292 @@ export type Database = {
           },
           {
             foreignKeyName: "event_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_scanner_access: {
+        Row: {
+          access_token: string
+          allowed_product_ids: string[] | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          event_detail_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          name: string
+          scan_mode: string
+          tenant_id: string
+          use_count: number
+          zone_id: string
+        }
+        Insert: {
+          access_token?: string
+          allowed_product_ids?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          event_detail_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name: string
+          scan_mode?: string
+          tenant_id: string
+          use_count?: number
+          zone_id: string
+        }
+        Update: {
+          access_token?: string
+          allowed_product_ids?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          event_detail_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
+          scan_mode?: string
+          tenant_id?: string
+          use_count?: number
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_scanner_access_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_scanner_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_scanner_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_scanner_access_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "event_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_ticket_types: {
+        Row: {
+          created_at: string
+          event_detail_id: string | null
+          event_group_id: string | null
+          id: string
+          is_active: boolean
+          product_id: string
+          reentry_policy: string
+          sales_end: string | null
+          sales_start: string | null
+          sort_order: number
+          sub_capacity: number | null
+          tenant_id: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          zone_ids: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          event_detail_id?: string | null
+          event_group_id?: string | null
+          id?: string
+          is_active?: boolean
+          product_id: string
+          reentry_policy?: string
+          sales_end?: string | null
+          sales_start?: string | null
+          sort_order?: number
+          sub_capacity?: number | null
+          tenant_id: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          zone_ids?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          event_detail_id?: string | null
+          event_group_id?: string | null
+          id?: string
+          is_active?: boolean
+          product_id?: string
+          reentry_policy?: string
+          sales_end?: string | null
+          sales_start?: string | null
+          sort_order?: number
+          sub_capacity?: number | null
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          zone_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_ticket_types_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_ticket_types_event_group_id_fkey"
+            columns: ["event_group_id"]
+            isOneToOne: false
+            referencedRelation: "event_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_ticket_types_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_ticket_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_ticket_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_zones: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          event_detail_id: string | null
+          event_group_id: string | null
+          id: string
+          is_default: boolean
+          location_name: string | null
+          name: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          event_detail_id?: string | null
+          event_group_id?: string | null
+          id?: string
+          is_default?: boolean
+          location_name?: string | null
+          name: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          event_detail_id?: string | null
+          event_group_id?: string | null
+          id?: string
+          is_default?: boolean
+          location_name?: string | null
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_zones_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_zones_event_group_id_fkey"
+            columns: ["event_group_id"]
+            isOneToOne: false
+            referencedRelation: "event_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_zones_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -17954,9 +18253,12 @@ export type Database = {
           created_at: string
           event_detail_id: string
           id: string
+          is_complimentary: boolean
           order_id: string
           order_item_id: string
+          product_id: string | null
           qr_token: string
+          seat_label: string | null
           seq: number | null
           status: string
           tenant_id: string
@@ -17969,9 +18271,12 @@ export type Database = {
           created_at?: string
           event_detail_id: string
           id?: string
+          is_complimentary?: boolean
           order_id: string
           order_item_id: string
+          product_id?: string | null
           qr_token: string
+          seat_label?: string | null
           seq?: number | null
           status?: string
           tenant_id: string
@@ -17984,9 +18289,12 @@ export type Database = {
           created_at?: string
           event_detail_id?: string
           id?: string
+          is_complimentary?: boolean
           order_id?: string
           order_item_id?: string
+          product_id?: string | null
           qr_token?: string
+          seat_label?: string | null
           seq?: number | null
           status?: string
           tenant_id?: string
@@ -18028,6 +18336,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ticket_instances_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ticket_instances_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -18039,6 +18354,100 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_scans: {
+        Row: {
+          device_id: string | null
+          direction: string
+          event_detail_id: string
+          id: string
+          note: string | null
+          offline_scanned_at: string | null
+          offline_synced: boolean
+          result: string
+          scanned_at: string
+          scanned_by_user_id: string | null
+          scanner_access_id: string | null
+          tenant_id: string
+          ticket_instance_id: string
+          zone_id: string | null
+        }
+        Insert: {
+          device_id?: string | null
+          direction: string
+          event_detail_id: string
+          id?: string
+          note?: string | null
+          offline_scanned_at?: string | null
+          offline_synced?: boolean
+          result: string
+          scanned_at?: string
+          scanned_by_user_id?: string | null
+          scanner_access_id?: string | null
+          tenant_id: string
+          ticket_instance_id: string
+          zone_id?: string | null
+        }
+        Update: {
+          device_id?: string | null
+          direction?: string
+          event_detail_id?: string
+          id?: string
+          note?: string | null
+          offline_scanned_at?: string | null
+          offline_synced?: boolean
+          result?: string
+          scanned_at?: string
+          scanned_by_user_id?: string | null
+          scanner_access_id?: string | null
+          tenant_id?: string
+          ticket_instance_id?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_scans_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_scans_scanner_access_id_fkey"
+            columns: ["scanner_access_id"]
+            isOneToOne: false
+            referencedRelation: "event_scanner_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_scans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_scans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_scans_ticket_instance_id_fkey"
+            columns: ["ticket_instance_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_scans_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "event_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -19485,6 +19894,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      event_occupancy: { Args: { p_event_detail_id: string }; Returns: number }
       expire_unpaid_orders: { Args: never; Returns: number }
       find_order_by_reference: {
         Args: { p_reference: string; p_tenant_id: string }
@@ -19522,6 +19932,10 @@ export type Database = {
       get_current_user_email: { Args: never; Returns: string }
       get_event_signup_count: {
         Args: { p_event_detail_id: string }
+        Returns: number
+      }
+      get_event_ticket_type_count: {
+        Args: { p_event_detail_id: string; p_product_id: string }
         Returns: number
       }
       get_invitation_effective_status: {
@@ -19742,6 +20156,36 @@ export type Database = {
         Args: { _order_id: string }
         Returns: undefined
       }
+      ticket_checkin_status: { Args: { p_ticket_id: string }; Returns: string }
+      ticket_is_inside: {
+        Args: { p_ticket_id: string; p_zone_id?: string }
+        Returns: boolean
+      }
+      ticket_last_scan: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          device_id: string | null
+          direction: string
+          event_detail_id: string
+          id: string
+          note: string | null
+          offline_scanned_at: string | null
+          offline_synced: boolean
+          result: string
+          scanned_at: string
+          scanned_by_user_id: string | null
+          scanner_access_id: string | null
+          tenant_id: string
+          ticket_instance_id: string
+          zone_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ticket_scans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       track_user_behavior: {
         Args: {
           p_behavior_type: string
@@ -19812,6 +20256,7 @@ export type Database = {
         Args: { p_cashier_id: string; p_pin: string }
         Returns: boolean
       }
+      zone_occupancy: { Args: { p_zone_id: string }; Returns: number }
     }
     Enums: {
       app_role:
