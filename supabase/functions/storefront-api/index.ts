@@ -1477,10 +1477,18 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
 }
 
 async function validateDiscountCode(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const { code, subtotal = 0, customer_id } = params as { code: string; subtotal?: number; customer_id?: string };
+  const { subtotal = 0, customer_id } = params as { subtotal?: number; customer_id?: string };
+  // DISCOUNT-CASE-1 — codes zijn niet hoofdlettergevoelig.
+  const code = normalizeDiscountCode(params.code ?? (params as Record<string, unknown>).discount_code);
   if (!code) return { valid: false, error: 'Geen kortingscode opgegeven' };
-  const { data, error } = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', code).maybeSingle();
+  let { data, error } = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', code).maybeSingle();
   if (error) throw error;
+  if (!data) {
+    // Fallback voor historische rijen die nog niet gecanonicaliseerd zijn.
+    const res = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).ilike('code', code.replace(/[%_\\]/g, '\\$&')).limit(1).maybeSingle();
+    if (res.error) throw res.error;
+    data = res.data;
+  }
   if (!data) return { valid: false, error: 'Ongeldige kortingscode' };
   if (!isPromotionActive(data.is_active, data.valid_from, data.valid_until)) return { valid: false, error: 'Deze kortingscode is niet meer geldig' };
   if (data.usage_limit && data.usage_count >= data.usage_limit) return { valid: false, error: 'Deze kortingscode is niet meer beschikbaar' };
@@ -1489,7 +1497,7 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
     const { count } = await supabase.from('discount_code_usage').select('*', { count: 'exact', head: true }).eq('discount_code_id', data.id).eq('customer_email', customer_id);
     if (count && count >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
   }
-  return { valid: true, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
+  return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
 }
 
 // ============== CART ACTIONS ==============
