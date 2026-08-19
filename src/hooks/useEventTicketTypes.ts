@@ -9,7 +9,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
-import { useToast } from './use-toast';
 
 export type ReentryPolicy = 'none' | 'unlimited' | 'once_per_day' | 'once_per_event';
 
