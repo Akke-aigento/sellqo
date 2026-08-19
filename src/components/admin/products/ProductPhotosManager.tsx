@@ -201,6 +201,56 @@ export function ProductPhotosManager() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTargets || deleteTargets.length === 0) return;
+    setDeleting(true);
+
+    // Group per product so we write one update per product
+    const byProduct = new Map<string, string[]>();
+    deleteTargets.forEach(p => {
+      const list = byProduct.get(p.productId) || [];
+      list.push(p.imageUrl);
+      byProduct.set(p.productId, list);
+    });
+
+    let success = 0;
+    let failed = 0;
+
+    for (const [productId, urls] of byProduct) {
+      const product = products.find(p => p.id === productId);
+      if (!product) { failed += urls.length; continue; }
+      const newImages = (product.images || []).filter(u => !urls.includes(u));
+      const updates: Record<string, any> = { images: newImages };
+      if (product.featured_image && urls.includes(product.featured_image)) {
+        updates.featured_image = newImages[0] || null;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .update(updates)
+          .eq('id', productId)
+          .select('id');
+        if (error || !data || data.length === 0) throw error || new Error('no rows');
+        success += urls.length;
+      } catch {
+        failed += urls.length;
+      }
+    }
+
+    setDeleting(false);
+    setDeleteTargets(null);
+    setSelectedPhotos(new Set());
+    await queryClient.invalidateQueries({ queryKey: ['products'] });
+
+    if (success > 0) {
+      toast.success(`${success} foto('s) verwijderd`, {
+        description: failed > 0 ? `${failed} mislukt` : undefined,
+      });
+    } else {
+      toast.error('Verwijderen mislukt');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ProductPhotoLibraryCard />
@@ -269,6 +319,16 @@ export function ProductPhotosManager() {
               <Button size="sm" variant="ghost" onClick={() => setSelectedPhotos(new Set())}>
                 Deselecteren
               </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="ml-auto"
+                disabled={bulkProcessing}
+                onClick={() => setDeleteTargets(displayItems.filter(p => selectedPhotos.has(photoKey(p))))}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Verwijderen
+              </Button>
             </div>
           )}
 
@@ -331,6 +391,15 @@ export function ProductPhotosManager() {
                         <Wand2 className="mr-1 h-3 w-3" />
                         Bewerken
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full max-w-[140px]"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTargets([photo]); }}
+                      >
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        Verwijderen
+                      </Button>
                     </div>
 
                     {/* Checkbox */}
@@ -368,6 +437,32 @@ export function ProductPhotosManager() {
           onApply={handleApplyEdit}
         />
       )}
+
+      <AlertDialog open={!!deleteTargets} onOpenChange={(o) => { if (!o && !deleting) setDeleteTargets(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteTargets && deleteTargets.length > 1
+                ? `${deleteTargets.length} foto's verwijderen?`
+                : 'Foto verwijderen?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              De foto('s) worden direct losgekoppeld van het product en verdwijnen uit je webshop.
+              Dit kan niet ongedaan gemaakt worden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
