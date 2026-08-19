@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "discount_code_case_insensitive": {
+          "title": "Rabattcodes unterscheiden nicht mehr zwischen Groß- und Kleinschreibung",
+          "description": "Tippt ein Kunde \"willkommen10\", während Ihr Code \"WILLKOMMEN10\" heißt, wird er jetzt einfach akzeptiert. Groß- und Kleinschreibung sowie zusätzliche Leerzeichen spielen keine Rolle mehr. In Ihrem Webshop und auf Ihren Rechnungen erscheint der Code weiterhin so, wie Sie ihn angelegt haben."
+        },
         "event_scanner_access_management": {
           "title": "Türzugänge und Scan-QR-Codes pro Event",
           "description": "Die Event-Seite hat einen neuen Tab Zugänge. Dort legen Sie pro Tür oder Helfer einen eigenen Scan-Zugang an, mit Zone, Richtung (rein, raus oder beides), Scanmodus und optional einer Beschränkung auf bestimmte Ticketarten sowie einem Ablaufdatum. Sie erhalten sofort einen QR-Code und einen Link, den Sie an die Person an der Tür weiterleiten. In der Liste sehen Sie, wie oft jeder Zugang genutzt wurde und wann zuletzt. Was bedeutet das für Sie? Sie müssen niemandem Ihre eigenen Zugangsdaten geben: Jeder Zugang hat einen eigenen Code, den Sie mit einem Klick widerrufen, danach ist das Scannen mit diesem Code sofort beendet. Ein widerrufener Zugang bleibt in der Liste, damit Sie später noch sehen, wer was gescannt hat. Ein Zugang, der noch nie genutzt wurde, kann endgültig gelöscht werden."

@@ -1025,6 +1025,10 @@
     },
     "changelog": {
       "changes": {
+        "discount_code_case_insensitive": {
+          "title": "Kortingscodes zijn niet meer hoofdlettergevoelig",
+          "description": "Typt een klant \"welkom10\" terwijl je code \"WELKOM10\" heet, dan wordt hij nu gewoon geaccepteerd. Hoofdletters, kleine letters en extra spaties maken geen verschil meer. In je webshop en op je facturen blijft de code staan zoals jij hem hebt aangemaakt."
+        },
         "event_scanner_access_management": {
           "title": "Deurtoegangen en scan-QR's per event",
           "description": "Op de eventpagina staat een nieuw tabblad Toegangen. Daar maak je per deur of vrijwilliger een eigen scan-toegang aan, met een zone, een richting (in, uit of beide), een scanmodus en optioneel een beperking tot bepaalde tickettypes en een vervaldatum. Je krijgt meteen een QR-code en een link die je doorstuurt naar de persoon aan de deur. In de lijst zie je hoe vaak elke toegang gebruikt is en wanneer voor het laatst. Wat betekent dit voor jou? Je hoeft niemand je eigen inloggegevens te geven: elke toegang heeft een eigen code die je met een klik intrekt, waarna scannen met die code onmiddellijk stopt. De ingetrokken toegang blijft in de lijst staan, zodat je later nog ziet wie wat gescand heeft. Een toegang die nog nooit gebruikt is kun je definitief verwijderen."

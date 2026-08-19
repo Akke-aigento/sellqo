@@ -1476,11 +1476,29 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
   return { original_subtotal: originalSubtotal, discounted_subtotal: Math.max(0, originalSubtotal - totalDiscount), total_discount: totalDiscount, applied_discounts: finalDiscounts, gifts, free_shipping: freeShipping, free_shipping_reason: freeShippingReason, loyalty_points_earned: 0, loyalty_points_redeemed: 0 };
 }
 
+// DISCOUNT-CASE-1 — kortingscodes worden canoniek in hoofdletters opgeslagen en
+// case-insensitive gematcht. Ongeldige codes leveren HTTP 400 i.p.v. 500.
+function normalizeDiscountCode(raw: unknown): string {
+  return String(raw ?? '').trim().toUpperCase();
+}
+
+class DiscountCodeError extends Error {
+  constructor(message: string) { super(message); this.name = 'DiscountCodeError'; }
+}
+
 async function validateDiscountCode(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const { code, subtotal = 0, customer_id } = params as { code: string; subtotal?: number; customer_id?: string };
+  const { subtotal = 0, customer_id } = params as { subtotal?: number; customer_id?: string };
+  // DISCOUNT-CASE-1 — codes zijn niet hoofdlettergevoelig.
+  const code = normalizeDiscountCode(params.code ?? (params as Record<string, unknown>).discount_code);
   if (!code) return { valid: false, error: 'Geen kortingscode opgegeven' };
-  const { data, error } = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', code).maybeSingle();
+  let { data, error } = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', code).maybeSingle();
   if (error) throw error;
+  if (!data) {
+    // Fallback voor historische rijen die nog niet gecanonicaliseerd zijn.
+    const res = await supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).ilike('code', code.replace(/[%_\\]/g, '\\$&')).limit(1).maybeSingle();
+    if (res.error) throw res.error;
+    data = res.data;
+  }
   if (!data) return { valid: false, error: 'Ongeldige kortingscode' };
   if (!isPromotionActive(data.is_active, data.valid_from, data.valid_until)) return { valid: false, error: 'Deze kortingscode is niet meer geldig' };
   if (data.usage_limit && data.usage_count >= data.usage_limit) return { valid: false, error: 'Deze kortingscode is niet meer beschikbaar' };
@@ -1489,7 +1507,7 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
     const { count } = await supabase.from('discount_code_usage').select('*', { count: 'exact', head: true }).eq('discount_code_id', data.id).eq('customer_email', customer_id);
     if (count && count >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
   }
-  return { valid: true, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
+  return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
 }
 
 // ============== CART ACTIONS ==============
@@ -1790,34 +1808,43 @@ async function cartRemoveItem(supabase: any, tenantId: string, params: Record<st
 
 async function cartApplyDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const code = params.code as string;
+  const code = normalizeDiscountCode(params.code ?? params.discount_code);
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
   // Get current cart to check existing codes
   const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
   const currentCodes: string[] = cart?.discount_codes || [];
-  if (currentCodes.includes(code)) throw new Error('Deze kortingscode is al toegepast');
 
   // Validate code
   const validation = await validateDiscountCode(supabase, tenantId, { code });
-  if (!validation.valid) throw new Error(validation.error);
+  if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
-  const updatedCodes = [...currentCodes, code];
+  const canonical = validation.code || code;
+  if (currentCodes.some((c) => normalizeDiscountCode(c) === canonical)) {
+    throw new DiscountCodeError('Deze kortingscode is al toegepast');
+  }
+
+  const updatedCodes = [...currentCodes, canonical];
   const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
   if (error) throw error;
-  return cartGet(supabase, tenantId, { cart_id: cartId });
+  const cartResponse = await cartGet(supabase, tenantId, { cart_id: cartId });
+  const validated = await validateDiscountCode(supabase, tenantId, { code: canonical, subtotal: (cartResponse as any).subtotal || 0 });
+  const discountAmount = validated.valid && validated.discount_type !== 'free_shipping'
+    ? Math.round(calculateDiscountValue((cartResponse as any).subtotal || 0, validated.discount_type, validated.discount_value, validated.max_discount_amount) * 100) / 100
+    : 0;
+  return { ...cartResponse, discount_code: canonical, discount_amount: discountAmount };
 }
 
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const code = params.code as string;
+  const code = normalizeDiscountCode(params.code ?? params.discount_code);
   if (!cartId) throw new Error('cart_id is required');
 
   if (code) {
     // Remove specific code from array
     const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
     const currentCodes: string[] = cart?.discount_codes || [];
-    const updatedCodes = currentCodes.filter((c: string) => c !== code);
+    const updatedCodes = currentCodes.filter((c: string) => normalizeDiscountCode(c) !== code);
     const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
     if (error) throw error;
   } else {
@@ -2033,6 +2060,10 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
     applied_discounts: appliedDiscounts,
     discount_total: Math.round(discountTotal * 100) / 100,
+
+    // DISCOUNT-CASE-1 — additief: canonieke actieve code + bedrag voor de storefront.
+    discount_code: discountCodes.length > 0 ? discountCodes[discountCodes.length - 1] : null,
+    discount_amount: Math.round(discountTotal * 100) / 100,
 
     payment_method: paymentMethod,
     fee,
@@ -3432,7 +3463,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
 
 async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
-  const discountCode = params.discount_code as string;
+  const discountCode = normalizeDiscountCode(params.discount_code ?? params.code);
   if (!cartId || !discountCode) return { success: false, error: { code: 'DISCOUNT_INVALID', message: 'cart_id en discount_code zijn verplicht' } };
 
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
@@ -3441,10 +3472,13 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   const currentCodes: string[] = cart.discount_codes || [];
 
   const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
-  if (!validation.valid) return { success: false, error: { code: 'DISCOUNT_INVALID', message: validation.error || 'Ongeldige kortingscode' } };
+  if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
+  const canonical = validation.code || discountCode;
   // Idempotent: als code al in array zit, skip toevoegen maar herbereken wel alles
-  const updatedCodes = currentCodes.includes(discountCode) ? currentCodes : [...currentCodes, discountCode];
+  const updatedCodes = currentCodes.some((c) => normalizeDiscountCode(c) === canonical)
+    ? currentCodes
+    : [...currentCodes, canonical];
 
   // Recalculate all discounts
   let totalDiscountAmount = 0;
@@ -4151,6 +4185,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, data: result }), { headers: responseHeaders });
   } catch (error) {
     console.error('Storefront API error:', error);
+    // DISCOUNT-CASE-1 — onderscheid "code bestaat niet/geldt niet" (400) van een serverfout (500).
+    if (error instanceof DiscountCodeError) {
+      return new Response(JSON.stringify({ success: false, error: 'invalid_discount_code', message: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
     return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
