@@ -2062,5 +2062,69 @@
       },
       "videoSection": {}
     }
+  },
+  "events": {
+    "back": "Terug naar events",
+    "notFound": "Event niet gevonden.",
+    "tabs": {
+      "overview": "Overzicht",
+      "attendees": "Deelnemers",
+      "scanLog": "Scan-log"
+    },
+    "stats": {
+      "capacity": "Capaciteit",
+      "sold": "Verkocht",
+      "inside": "Nu binnen",
+      "free": "Plaatsen vrij",
+      "occupancy": "Bezetting",
+      "minimum": "Minimum"
+    },
+    "ticketTypes": {
+      "title": "Tickettypes",
+      "empty": "Geen tickettypes ingesteld.",
+      "onSale": "In verkoop",
+      "notOnSale": "Niet in verkoop",
+      "sold": "Verkocht",
+      "spotsLeft": "Vrij",
+      "salesWindow": "Verkoopvenster"
+    },
+    "attendees": {
+      "empty": "Nog geen tickets verkocht voor deze datum.",
+      "name": "Naam",
+      "email": "E-mail",
+      "ticketType": "Tickettype",
+      "order": "Bestelling",
+      "presence": "Status"
+    },
+    "presence": {
+      "inside": "Binnen",
+      "outside": "Buiten",
+      "never": "Niet gescand"
+    },
+    "scanLog": {
+      "empty": "Nog geen scans voor dit event.",
+      "in": "In",
+      "out": "Uit",
+      "scanner": "Scanner",
+      "host": "Host/crew"
+    },
+    "scanResult": {
+      "ok": "Toegelaten",
+      "already_inside": "Al binnen",
+      "not_inside": "Niet binnen",
+      "invalid": "Ongeldig",
+      "wrong_event": "Verkeerd event",
+      "wrong_zone": "Verkeerde zone",
+      "refunded": "Terugbetaald",
+      "duplicate": "Dubbele scan"
+    },
+    "status": {
+      "scheduled": "Gepland",
+      "confirmed": "Bevestigd",
+      "cancelled": "Geannuleerd",
+      "completed": "Afgerond",
+      "skipped": "Overgeslagen",
+      "merged": "Samengevoegd"
+    }
   }
 }

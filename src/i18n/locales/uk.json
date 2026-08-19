@@ -2060,5 +2060,69 @@
         "je_bent_succesvol_ingeschreven_voor_onze": "Ви успішно підписалися на нашу розсилку."
       }
     }
+  },
+  "events": {
+    "back": "Назад до подій",
+    "notFound": "Подію не знайдено.",
+    "tabs": {
+      "overview": "Огляд",
+      "attendees": "Учасники",
+      "scanLog": "Журнал сканувань"
+    },
+    "stats": {
+      "capacity": "Місткість",
+      "sold": "Продано",
+      "inside": "Зараз усередині",
+      "free": "Вільних місць",
+      "occupancy": "Заповненість",
+      "minimum": "Мінімум"
+    },
+    "ticketTypes": {
+      "title": "Типи квитків",
+      "empty": "Типи квитків не налаштовані.",
+      "onSale": "У продажу",
+      "notOnSale": "Не у продажу",
+      "sold": "Продано",
+      "spotsLeft": "Вільно",
+      "salesWindow": "Період продажу"
+    },
+    "attendees": {
+      "empty": "На цю дату квитки ще не продані.",
+      "name": "Ім'я",
+      "email": "Email",
+      "ticketType": "Тип квитка",
+      "order": "Замовлення",
+      "presence": "Статус"
+    },
+    "presence": {
+      "inside": "Усередині",
+      "outside": "Зовні",
+      "never": "Не скановано"
+    },
+    "scanLog": {
+      "empty": "Скануваннь для цієї події ще немає.",
+      "in": "Вхід",
+      "out": "Вихід",
+      "scanner": "Сканер",
+      "host": "Хост/команда"
+    },
+    "scanResult": {
+      "ok": "Допущено",
+      "already_inside": "Вже усередині",
+      "not_inside": "Не усередині",
+      "invalid": "Недійсний",
+      "wrong_event": "Інша подія",
+      "wrong_zone": "Інша зона",
+      "refunded": "Повернено",
+      "duplicate": "Дубльоване сканування"
+    },
+    "status": {
+      "scheduled": "Заплановано",
+      "confirmed": "Підтверджено",
+      "cancelled": "Скасовано",
+      "completed": "Завершено",
+      "skipped": "Пропущено",
+      "merged": "Об'єднано"
+    }
   }
 }

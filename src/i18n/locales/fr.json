@@ -2060,5 +2060,69 @@
         "je_bent_succesvol_ingeschreven_voor_onze": "Vous êtes inscrit avec succès à notre newsletter."
       }
     }
+  },
+  "events": {
+    "back": "Retour aux events",
+    "notFound": "Event introuvable.",
+    "tabs": {
+      "overview": "Aperçu",
+      "attendees": "Participants",
+      "scanLog": "Journal de scans"
+    },
+    "stats": {
+      "capacity": "Capacité",
+      "sold": "Vendus",
+      "inside": "Présents",
+      "free": "Places libres",
+      "occupancy": "Occupation",
+      "minimum": "Minimum"
+    },
+    "ticketTypes": {
+      "title": "Types de billets",
+      "empty": "Aucun type de billet configuré.",
+      "onSale": "En vente",
+      "notOnSale": "Pas en vente",
+      "sold": "Vendus",
+      "spotsLeft": "Restant",
+      "salesWindow": "Période de vente"
+    },
+    "attendees": {
+      "empty": "Aucun billet vendu pour cette date.",
+      "name": "Nom",
+      "email": "E-mail",
+      "ticketType": "Type de billet",
+      "order": "Commande",
+      "presence": "Statut"
+    },
+    "presence": {
+      "inside": "Présent",
+      "outside": "Sorti",
+      "never": "Non scanné"
+    },
+    "scanLog": {
+      "empty": "Aucun scan pour cet event.",
+      "in": "Entrée",
+      "out": "Sortie",
+      "scanner": "Scanner",
+      "host": "Hôte/équipe"
+    },
+    "scanResult": {
+      "ok": "Admis",
+      "already_inside": "Déjà présent",
+      "not_inside": "Pas présent",
+      "invalid": "Invalide",
+      "wrong_event": "Mauvais event",
+      "wrong_zone": "Mauvaise zone",
+      "refunded": "Remboursé",
+      "duplicate": "Scan en double"
+    },
+    "status": {
+      "scheduled": "Planifié",
+      "confirmed": "Confirmé",
+      "cancelled": "Annulé",
+      "completed": "Terminé",
+      "skipped": "Ignoré",
+      "merged": "Fusionné"
+    }
   }
 }
