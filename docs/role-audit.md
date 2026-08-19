@@ -1,3 +1,58 @@
+## EVENT-SYSTEEM FASE 4a — read-only event-detailpagina (admin-UI) — 19 augustus 2026
+
+### Root cause / aanleiding
+`EventDashboard.tsx` had een in-page `selected`-detailview zonder eigen URL en zonder tabs:
+niet deelbaar, niet deep-linkbaar, en de check-in-status kwam uit `ticket_instances.status`
+in plaats van uit de scan-log (`ticket_scans`) die sinds fase 2 de bron van waarheid is.
+
+### Uitgevoerd
+- **`src/pages/admin/EventDetail.tsx` (nieuw)** — route `/admin/events/:eventId`, read-only,
+  drie tabs (Overzicht / Deelnemers / Scan-log). Data via react-query + directe Supabase-client,
+  altijd met `.eq('tenant_id', currentTenant.id)`:
+  - `event_details` + `products(name)` op `id`;
+  - `ticket_instances` + `orders(order_number, customer_email)` op `event_detail_id`;
+  - `event_ticket_types` + `products(name, price)`, geordend op `sort_order`;
+  - `ticket_scans` op `event_detail_id`, nieuwste eerst; per `ticket_instance_id` bepaalt de
+    laatste scan de status (Binnen / Buiten / Niet gescand).
+  - bezetting client-side geaggregeerd (`valid` + `checked_in`), `refetchInterval: 30000`.
+- **`src/pages/admin/EventDashboard.tsx`** — `selected`-state en de in-page detail-JSX verwijderd;
+  klik op een eventkaart doet `navigate('/admin/events/<id>')`. Kaartengrid-overzicht ongewijzigd.
+- **`src/App.tsx`** — route toegevoegd met `RouteGuard requireRole={['tenant_admin','staff']}`,
+  identiek patroon aan `events` en `customers/:customerId`. Geen nieuw sidebar-item.
+- **i18n** — nieuwe `events.*`-sleutels (tabs, kolomkoppen, statuslabels, tickettypes, scan-log)
+  in alle vijf de talen (nl/en/fr/de/uk).
+
+### Security-keuzes
+Geen nieuwe policies of grants. Alle reads gaan via bestaande RLS
+(`ticket_instances`, `ticket_scans`, `event_ticket_types`, `event_details` zijn tenant-scoped
+voor `tenant_admin`/`staff`) en zijn daarnaast expliciet op `tenant_id` gefilterd in de query.
+Pagina is volledig read-only: geen mutaties, geen edge-functie-calls.
+
+### Gedeelde-paden-waarschuwing
+n.v.t. — `storefront-api`, `checkout-engine` en `storefront-resolve` zijn niet aangeraakt, geen
+migratie, geen schemawijziging. De vijf custom frontends kunnen hier per definitie niets van merken.
+
+### Verificatie
+- Playwright tegen de draaiende app als platform-admin met tenant "The Fonske Crawl":
+  `/admin/events/70a2b02e-3514-49cc-bd97-9dfe9ec92939` rendert alle drie de tabs.
+  Overzicht: capaciteit 44, verkocht 1, nu binnen 1, vrij 43, bezetting 1/44 (2%), minimum 15,
+  één tickettype (Pubcrawl ticket, € 25,00, verkocht 1, badge "On sale").
+  Deelnemers: Aaron Mercken / aaron.mercken@hotmail.com / Pubcrawl ticket / #0001 /
+  status "Inside · 05:08" — afgeleid uit de scan-log, niet uit `ticket_instances.status`.
+  Scan-log: één regel — Aaron Mercken, richting In, 19-08 05:08, Admitted, zone Ingang, Host/crew.
+- Onbekend/foreign event-id toont "Event not found" (tenant-filter werkt).
+- `EventDashboard` navigeert naar de detailpagina, geen dubbele detailview meer.
+- Typecheck 0 fouten, i18n-parity gelijk over vijf talen, build groen.
+- De React `Function components cannot be given refs`-waarschuwing in de console is
+  app-breed en bestaand (stack start bij `App`/providers), geen regressie van deze batch.
+
+### Bewust ongemoeid / Vervolg
+- Scanner-namen: `scanner_access_id` wordt als "Host/crew" getoond wanneer er geen token-naam is;
+  een join op `event_scanner_access` voor de tokennaam is bewust nog niet gebouwd.
+- Geen bewerkingsacties (datum wijzigen, status, deelnemer handmatig inchecken) — fase 4b.
+- Het uit de opdracht genoemde event-id `17efe0cc-…` heeft geen tickets/scans; verificatie is
+  daarom op het zusterevent `70a2b02e-…` van dezelfde tenant gedaan.
+
 ## EVENT-SYSTEEM FASE 3b — presentatie ticket_types[] (storefront-api, additief) — 19 augustus 2026
 
 ### Root cause / aanleiding
