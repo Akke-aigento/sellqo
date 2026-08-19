@@ -1,3 +1,78 @@
+## MAIL-BRANDING-FIX — tenant-branding herstellen in klant-mails — 19 augustus 2026
+
+### Root cause
+`supabase/functions/_shared/tenantEmail.ts` r.119-129 selecteerde vier kolommen die
+niet op `public.tenants` bestaan: `legal_name`, `contact_email`, `website_url`,
+`vat_number` (geverifieerd tegen `information_schema.columns`). PostgREST weigert dan
+de volledige select; de `try/catch` las alleen `data` en negeerde `error`, dus
+`tenantRow` bleef `null` en elk brandingveld viel terug op de SellQo-defaults:
+afzendernaam "SellQo", `https://sellqo.app/email-logo.png` als logo en
+`support@sellqo.app` als reply/support-adres. Tenant-branding in klant-mails heeft
+dus nooit gewerkt — niet door ontbrekende data (Fonske heeft `name` en `logo_url`
+correct gevuld) maar doordat de query stil faalde.
+
+### Uitgevoerd
+`supabase/functions/_shared/tenantEmail.ts`:
+- Select opgeschoond naar uitsluitend bestaande kolommen: `id, name,
+  billing_company_name, support_email, owner_email, notification_email,
+  primary_color, logo_url, custom_domain, address, city, postal_code, country,
+  btw_number, billing_vat_number, language`. Elke kolom is vóór het behouden
+  getoetst tegen `information_schema.columns`.
+- Veldmapping voor de verwijderde fantoomkolommen: `legal_name` →
+  `billing_company_name`; `contact_email` → `notification_email` (blijft tweede keus
+  na `support_email`, vóór `owner_email`); `vat_number` → `btw_number` met
+  `billing_vat_number` als tweede bron; `website_url` → `custom_domain`, genormaliseerd
+  naar `https://<custom_domain>` wanneer er geen schema in staat.
+- Beide selects loggen nu de PostgREST-`error` via `console.error`, en de catch logt de
+  worp. De fallback naar defaults blijft staan (robuust), maar een toekomstige
+  kolom-mismatch is nu zichtbaar in de logs in plaats van stil.
+- Header-link (r.392-pad) gebruikt `websiteUrl` uit `custom_domain`; is die leeg, dan
+  blijft `https://sellqo.app` de fallback. Fonske heeft `custom_domain = null`, dus daar
+  blijft de fallback staan — correct, geen bug.
+- "Mogelijk gemaakt door SellQo · sellqo.app" blijft bewust ongewijzigd:
+  `showSellqoFooter` staat nog default aan.
+
+Geen wijziging in de tien verzendfuncties zelf; die gebruiken alle `getTenantBrand` +
+`renderTenantEmail` en profiteren automatisch mee.
+
+### Security-keuzes
+n.v.t. — geen RLS, policies of grants geraakt. De select draait met de service-role
+binnen de edge functions en leest strikt minder velden dan voorheen. `custom_domain`,
+`billing_company_name` en `billing_vat_number` zijn niet-gevoelige tenant-gegevens die
+al op documenten en storefront zichtbaar zijn.
+
+### Gedeelde-paden-waarschuwing
+`_shared/tenantEmail.ts` is een gedeelde helper voor tien klant-mails over alle tenants
+(order, ticket, factuur, creditnota, quote, retour, cadeaubon, klantbericht, campagne,
+betaalverzoek). De wijziging is puur herstellend en additief in gedrag: de
+`TenantBrand`-interface is byte-voor-byte gelijk gebleven, de render-signatuur
+ongewijzigd, en de fallback-waarden identiek aan wat er vóór de fix uitkwam. Het
+`storefront-api`/`checkout-engine`-contract en de gedeelde tabellen zijn niet geraakt,
+dus de vijf custom-frontend tenants merken hier niets van behalve dat hun eigen mails
+nu hun eigen logo en naam tonen.
+
+### Verificatie
+- `information_schema.columns` op `public.tenants`: de vier fantoomkolommen bestaan
+  niet; de zestien behouden kolommen wel.
+- Live SQL-natrek met exact de nieuwe kolomlijst: slaagt zonder fout voor Fonske en
+  Mancini.
+- `getTenantBrand` + `renderTenantEmail` gedraaid onder Deno met de echte tenantrijen:
+  Fonske levert `tenantName "The Fonske Crawl"`, `logoUrl` = Fonske-logo,
+  `supportEmail info@fonskecrawl.com`, `vatNumber BE1017500207`, footer met
+  tenantnaam + adres + "Mogelijk gemaakt door SellQo".
+- Regressie zonder logo (Mancini, `logo_url = null`): valt terug op het SellQo-logo met
+  `alt="Mancini Milano"` — geen kapotte `<img>`, geen lege src.
+- Regressie met `custom_domain` gezet: header-link wordt `https://shop.example.com`.
+- Tien edge functions opnieuw uitgerold.
+
+### Bewust ongemoeid / Vervolg
+- De Powered-by-footer blijft aan (expliciete keuze).
+- `document_logo_url` wordt nog steeds niet door mails gebruikt; e-mail volgt
+  `tenant_theme_settings.logo_url` → `tenants.logo_url`. Aparte afweging.
+- Stream A-mails (team-invite, trial-warning, notificaties) blijven SellQo-branded via
+  `_shared/sellqoEmail.ts`.
+- `send-return-email` (`tenant?.name || 'SellQo'`) en `send-campaign-batch`
+  (`|| 'Sellqo'`) zetten de from-naam uit hun eigen query; die fallbacks blijven staan.
 
 ## I18N-3A — settings-zone gemigreerd naar t(), 27 van 43 bestanden — 18 augustus 2026
 

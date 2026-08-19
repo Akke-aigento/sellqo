@@ -4,6 +4,22 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10e — Mails dragen nu jouw eigen merk (bugfix, 19-08-2026)
+
+**Je klanten zien jouw logo en naam in elke mail** (oktober 2026)
+Bestel- en ticketbevestigingen, facturen, creditnota's, offertes, retourupdates,
+cadeaubonnen, klantberichten, campagnes en betaalverzoeken toonden het SellQo-logo en
+"SellQo" als afzender, ook wanneer je eigen logo en naam netjes waren ingevuld. Dat is
+opgelost: alle tien de klant-mails gebruiken nu jouw logo, jouw winkelnaam als
+afzendernaam, jouw huisstijlkleuren en jouw support-adres voor antwoorden. Heb je een
+eigen domein ingesteld, dan linkt het logo naar jouw webshop.
+Wat betekent dit voor jou? Je hoeft niets in te stellen; het geldt meteen voor alle mails
+die vanaf nu verstuurd worden. Zonder eigen logo blijft het SellQo-logo staan.
+
+**i18n-keys.** `public.changelog.changes.tenant_email_branding` — KLAARZETTEN, nog niet
+gepubliceerd (meenemen in de gebundelde slottaakronde: entry in
+`src/pages/public/PublicChangelog.tsx` + `landing.{nl,en,fr,de}.json`).
+
 ### 2026.10d — Marketingrol kan producten bewerken (improvement, 18-08-2026)
 
 **Je marketeer kan nu zelf productteksten bijwerken** (oktober 2026)
