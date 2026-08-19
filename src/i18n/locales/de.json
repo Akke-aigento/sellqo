@@ -2067,7 +2067,8 @@
     "tabs": {
       "overview": "Übersicht",
       "attendees": "Teilnehmer",
-      "scanLog": "Scan-Protokoll"
+      "scanLog": "Scan-Protokoll",
+      "ticketTypes": "Ticketarten"
     },
     "stats": {
       "capacity": "Kapazität",
@@ -2084,7 +2085,64 @@
       "notOnSale": "Nicht im Verkauf",
       "sold": "Verkauft",
       "spotsLeft": "Frei",
-      "salesWindow": "Verkaufszeitraum"
+      "salesWindow": "Verkaufszeitraum",
+      "manage": "Ticketarten verwalten",
+      "add": "Ticketart hinzufügen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "activate": "Aktivieren",
+      "deactivate": "Deaktivieren",
+      "inactive": "Inaktiv",
+      "deleteTitle": "Ticketart löschen?",
+      "columns": {
+        "name": "Name",
+        "price": "Preis",
+        "capacity": "Kapazität",
+        "status": "Status",
+        "actions": "Aktionen"
+      },
+      "reentry": {
+        "none": "Kein Wiedereintritt",
+        "unlimited": "Unbegrenzter Wiedereintritt",
+        "once_per_day": "Einmal pro Tag",
+        "once_per_event": "Einmal pro Event"
+      },
+      "form": {
+        "newTitle": "Neue Ticketart",
+        "editTitle": "Ticketart bearbeiten",
+        "description": "Name und Preis kommen aus dem verknüpften Produkt.",
+        "product": "Ticketprodukt",
+        "productPlaceholder": "Ticketprodukt auswählen",
+        "noProducts": "Keine Ticketprodukte verfügbar. Erstellen Sie zuerst ein Produkt vom Typ „ticket“.",
+        "createProduct": "Neues Ticketprodukt erstellen",
+        "priceFromProduct": "Preis aus Produkt",
+        "subCapacity": "Unterkapazität",
+        "subCapacityHint": "Leer lassen für unbegrenzt. Die Event-Kapazität bleibt die harte Obergrenze.",
+        "unlimited": "Unbegrenzt",
+        "salesStart": "Verkaufsstart",
+        "salesEnd": "Verkaufsende",
+        "pickDate": "Datum wählen",
+        "clear": "Leeren",
+        "windowInvalid": "Das Verkaufsende liegt vor dem Verkaufsstart.",
+        "sortOrder": "Sortierreihenfolge",
+        "reentry": "Wiedereintritts-Regel",
+        "isActive": "Aktiv (im Shop sichtbar)",
+        "cancel": "Abbrechen",
+        "save": "Speichern"
+      },
+      "guards": {
+        "capacityBelowSold": "Es wurden bereits {{sold}} Tickets verkauft. Eine niedrigere Kapazität stoppt neue Verkäufe; bestehende Tickets bleiben gültig. Fortfahren?",
+        "deactivateWithSales": "Diese Ticketart hat {{sold}} Verkäufe. Deaktivieren stoppt neue Verkäufe; bestehende Tickets bleiben gültig und Inhaber können einchecken. Fortfahren?",
+        "deleteBlocked": "Diese Ticketart hat Verkäufe und kann nicht gelöscht werden. Deaktivieren Sie sie stattdessen.",
+        "deleteConfirm": "Diese Ticketart hat keine Verkäufe und wird endgültig gelöscht.",
+        "capacityCeiling": "Die Summe der Unterkapazitäten übersteigt die Event-Kapazität ({{capacity}}), die die harte Obergrenze bleibt."
+      },
+      "toast": {
+        "saved": "Ticketart gespeichert",
+        "deleted": "Ticketart gelöscht",
+        "duplicate": "Dieses Produkt ist bereits als Ticketart verknüpft",
+        "error": "Speichern fehlgeschlagen"
+      }
     },
     "attendees": {
       "empty": "Noch keine Tickets für dieses Datum verkauft.",

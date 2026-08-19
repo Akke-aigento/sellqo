@@ -2069,7 +2069,8 @@
     "tabs": {
       "overview": "Overzicht",
       "attendees": "Deelnemers",
-      "scanLog": "Scan-log"
+      "scanLog": "Scan-log",
+      "ticketTypes": "Tickettypes"
     },
     "stats": {
       "capacity": "Capaciteit",
@@ -2086,7 +2087,64 @@
       "notOnSale": "Niet in verkoop",
       "sold": "Verkocht",
       "spotsLeft": "Vrij",
-      "salesWindow": "Verkoopvenster"
+      "salesWindow": "Verkoopvenster",
+      "manage": "Tickettypes beheren",
+      "add": "Tickettype toevoegen",
+      "edit": "Bewerken",
+      "delete": "Verwijderen",
+      "activate": "Activeren",
+      "deactivate": "Deactiveren",
+      "inactive": "Inactief",
+      "deleteTitle": "Tickettype verwijderen?",
+      "columns": {
+        "name": "Naam",
+        "price": "Prijs",
+        "capacity": "Capaciteit",
+        "status": "Status",
+        "actions": "Acties"
+      },
+      "reentry": {
+        "none": "Geen heringang",
+        "unlimited": "Onbeperkt heringang",
+        "once_per_day": "Eén keer per dag",
+        "once_per_event": "Eén keer per event"
+      },
+      "form": {
+        "newTitle": "Nieuw tickettype",
+        "editTitle": "Tickettype bewerken",
+        "description": "Naam en prijs komen uit het gekoppelde product.",
+        "product": "Ticketproduct",
+        "productPlaceholder": "Kies een ticketproduct",
+        "noProducts": "Geen beschikbare ticketproducten. Maak eerst een product met type \"ticket\" aan.",
+        "createProduct": "Nieuw tickettype-product aanmaken",
+        "priceFromProduct": "Prijs uit product",
+        "subCapacity": "Sub-capaciteit",
+        "subCapacityHint": "Laat leeg voor ongelimiteerd. De event-capaciteit blijft de harde bovengrens.",
+        "unlimited": "Ongelimiteerd",
+        "salesStart": "Verkoop start",
+        "salesEnd": "Verkoop einde",
+        "pickDate": "Kies datum",
+        "clear": "Wissen",
+        "windowInvalid": "Einde van de verkoop ligt vóór de start.",
+        "sortOrder": "Sorteervolgorde",
+        "reentry": "Heringang-beleid",
+        "isActive": "Actief (zichtbaar in de webshop)",
+        "cancel": "Annuleren",
+        "save": "Opslaan"
+      },
+      "guards": {
+        "capacityBelowSold": "Er zijn al {{sold}} tickets verkocht. Een lagere capaciteit stopt nieuwe verkoop; bestaande tickets blijven geldig. Doorgaan?",
+        "deactivateWithSales": "Dit tickettype heeft {{sold}} verkopen. Deactiveren stopt nieuwe verkoop; bestaande tickets blijven geldig en houders kunnen inchecken. Doorgaan?",
+        "deleteBlocked": "Dit tickettype heeft verkopen en kan niet verwijderd worden. Deactiveer het in plaats daarvan.",
+        "deleteConfirm": "Dit tickettype heeft geen verkopen en wordt definitief verwijderd.",
+        "capacityCeiling": "De som van de sub-capaciteiten ligt boven de event-capaciteit ({{capacity}}). Die blijft de harde bovengrens."
+      },
+      "toast": {
+        "saved": "Tickettype opgeslagen",
+        "deleted": "Tickettype verwijderd",
+        "duplicate": "Dit product is al als tickettype gekoppeld",
+        "error": "Opslaan mislukt"
+      }
     },
     "attendees": {
       "empty": "Nog geen tickets verkocht voor deze datum.",
