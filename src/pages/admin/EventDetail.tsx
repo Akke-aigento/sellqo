@@ -5,13 +5,13 @@
 // de Tickettypes-tab (4b) schrijft op event_ticket_types — de tabel waar de betaalflow
 // live tegen valideert. Data via directe client-queries met expliciete tenant-scope;
 // RLS dwingt isolatie af op DB-niveau.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
-  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban, Settings2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -39,16 +39,18 @@ import {
 } from '@/hooks/useEventScannerAccess';
 import { ScannerAccessDialog } from '@/components/admin/events/ScannerAccessDialog';
 import { ScannerQrDialog } from '@/components/admin/events/ScannerQrDialog';
+import { EventCoreSettingsCard } from '@/components/admin/events/EventCoreSettingsCard';
 
 interface EventRow {
   id: string;
+  product_id: string | null;
   event_date: string;
   start_time: string;
   end_time: string | null;
   status: string;
   location_name: string | null;
   meeting_point: string | null;
-  capacity: number;
+  capacity: number | null;
   min_attendees: number;
   product_name: string;
 }
@@ -108,6 +110,8 @@ export default function EventDetail() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [liveScan, setLiveScan] = useState(false);
 
   // --- Tickettype-beheer (4b) ---
   const [ttDialogOpen, setTtDialogOpen] = useState(false);
@@ -136,7 +140,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return null;
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
+        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
         .eq('id', eventId)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
@@ -144,13 +148,14 @@ export default function EventDetail() {
       if (!data) return null;
       return {
         id: data.id as string,
+        product_id: (data.product_id as string | null) ?? null,
         event_date: data.event_date as string,
         start_time: data.start_time as string,
         end_time: (data.end_time as string | null) ?? null,
         status: data.status as string,
         location_name: (data.location_name as string | null) ?? null,
         meeting_point: (data.meeting_point as string | null) ?? null,
-        capacity: (data.capacity as number) ?? 0,
+        capacity: (data.capacity as number | null) ?? null,
         min_attendees: (data.min_attendees as number) ?? 0,
         product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',
       };
@@ -307,9 +312,36 @@ export default function EventDetail() {
     const s = lastScan[a.id];
     return s ? s.direction === 'in' : false;
   }).length;
-  const capacity = event?.capacity ?? 0;
-  const free = Math.max(0, capacity - sold);
-  const pct = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+  const capacity = event?.capacity ?? null;
+  const unlimitedLabel = '\u221E';
+  const capacityLabel = capacity == null ? unlimitedLabel : String(capacity);
+  const freeLabel = capacity == null ? unlimitedLabel : String(Math.max(0, capacity - sold));
+  const pct = capacity && capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+
+  // Live bezetting (4d): elke nieuwe scan invalideert de tellers van deze pagina.
+  useEffect(() => {
+    if (!eventId) return;
+    const channel = supabase
+      .channel(`event-scans-${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ticket_scans',
+          filter: `event_detail_id=eq.${eventId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['event-detail-scans', currentTenant?.id, eventId] });
+          queryClient.invalidateQueries({ queryKey: ['event-detail-attendees', currentTenant?.id, eventId] });
+        },
+      )
+      .subscribe((status) => setLiveScan(status === 'SUBSCRIBED'));
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, currentTenant?.id, queryClient]);
 
   const soldPerProduct = useMemo(() => {
     const m: Record<string, number> = {};
@@ -341,7 +373,7 @@ export default function EventDetail() {
   // ---- Tickettype-acties (4b) ----
   const usedProductIds = ticketTypes.map((tt) => tt.product_id);
   const capacitySum = ticketTypes.reduce((acc, tt) => acc + (tt.sub_capacity ?? 0), 0);
-  const capacityOverflow = capacitySum > (event?.capacity ?? 0) && (event?.capacity ?? 0) > 0;
+  const capacityOverflow = capacity != null && capacity > 0 && capacitySum > capacity;
 
   const handleTicketTypeSubmit = async (form: TicketTypeFormData) => {
     try {
@@ -529,6 +561,9 @@ export default function EventDetail() {
           <TabsTrigger value="overview" className="gap-2">
             <Ticket className="h-4 w-4" /> {t('events.tabs.overview')}
           </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings2 className="h-4 w-4" /> {t('events.tabs.settings')}
+          </TabsTrigger>
           <TabsTrigger value="ticket_types" className="gap-2">
             <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
           </TabsTrigger>
@@ -548,19 +583,27 @@ export default function EventDetail() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.capacity')}</p>
-              <p className="text-xl font-bold">{capacity}</p>
+              <p className="text-xl font-bold">{capacityLabel}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.sold')}</p>
               <p className="text-xl font-bold">{sold}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground">{t('events.stats.inside')}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                {t('events.stats.inside')}
+                {liveScan && (
+                  <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {t('events.stats.live')}
+                  </span>
+                )}
+              </p>
               <p className="text-xl font-bold">{inside}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.free')}</p>
-              <p className="text-xl font-bold">{free}</p>
+              <p className="text-xl font-bold">{freeLabel}</p>
             </div>
           </div>
 
@@ -571,7 +614,7 @@ export default function EventDetail() {
             <CardContent className="space-y-2">
               <Progress value={pct} className="h-2" />
               <p className="text-xs text-muted-foreground tabular-nums">
-                {sold} / {capacity} ({pct}%)
+                {sold} / {capacityLabel}{capacity != null ? ` (${pct}%)` : ''}
                 {event.min_attendees > 0
                   ? ` · ${t('events.stats.minimum')}: ${event.min_attendees}`
                   : ''}
@@ -610,6 +653,19 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
 
+        {/* ---------------- Instellingen (4d, bewerkbaar) ---------------- */}
+        <TabsContent value="settings" className="space-y-4">
+          <EventCoreSettingsCard
+            event={event}
+            sold={sold}
+            onSaved={() =>
+              queryClient.invalidateQueries({
+                queryKey: ['event-detail', currentTenant?.id, eventId],
+              })
+            }
+          />
+        </TabsContent>
+
         {/* ---------------- Tickettypes (4b, bewerkbaar) ---------------- */}
         <TabsContent value="ticket_types" className="space-y-4">
           <Card>
@@ -624,7 +680,7 @@ export default function EventDetail() {
             <CardContent className="space-y-3">
               {capacityOverflow && (
                 <p className="text-xs text-muted-foreground">
-                  {t('events.ticketTypes.guards.capacityCeiling', { capacity })}
+                  {t('events.ticketTypes.guards.capacityCeiling', { capacity: capacityLabel })}
                 </p>
               )}
               {ticketTypes.length === 0 ? (

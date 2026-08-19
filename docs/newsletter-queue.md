@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10l — Event bewerken op één plek + live bezetting (feature, 19-08-2026)
+
+**Je event bewerk je nu op de eventpagina** (oktober 2026)
+Datum, tijd, status, locatie en capaciteit pas je aan in het nieuwe tabblad Instellingen op de
+eventpagina. Capaciteit mag ook ongelimiteerd zijn, en de teller Nu binnen loopt live mee terwijl
+er aan de deur gescand wordt.
+Wat betekent dit voor jou? Eén plek voor alles rond een event, met een bevestiging voordat je een
+event uit je webshop haalt of de capaciteit onder het aantal verkochte tickets zet.
+
+**i18n-keys.** `public.changelog.changes.event_core_fields_and_live_counter` — KLAARZETTEN, nog
+niet verstuurd.
+
+**Bundel:** hiermee is fase 4 van het event-systeem compleet (2026.10i t/m 2026.10l). De bundel
+is klaar om te versturen na bevestiging van Akke.
+
 ### 2026.10k — Deurtoegangen en scan-QR's per event (feature, 19-08-2026)
 
 **Geef elke vrijwilliger zijn eigen scan-link** (oktober 2026)

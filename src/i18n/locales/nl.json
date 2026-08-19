@@ -2071,7 +2071,8 @@
       "attendees": "Deelnemers",
       "scanLog": "Scan-log",
       "ticketTypes": "Tickettypes",
-      "access": "Toegangen"
+      "access": "Toegangen",
+      "settings": "Instellingen"
     },
     "stats": {
       "capacity": "Capaciteit",
@@ -2079,7 +2080,8 @@
       "inside": "Nu binnen",
       "free": "Plaatsen vrij",
       "occupancy": "Bezetting",
-      "minimum": "Minimum"
+      "minimum": "Minimum",
+      "live": "live"
     },
     "ticketTypes": {
       "title": "Tickettypes",
@@ -2264,6 +2266,26 @@
         "revoked": "Toegang ingetrokken",
         "deleted": "Toegang verwijderd",
         "error": "Actie mislukt"
+      }
+    },
+    "settings": {
+      "title": "Event-instellingen",
+      "status": "Status",
+      "date": "Datum",
+      "startTime": "Starttijd",
+      "endTime": "Eindtijd",
+      "locationName": "Locatie",
+      "meetingPoint": "Verzamelpunt",
+      "capacity": "Capaciteit",
+      "unlimitedCapacity": "Ongelimiteerde capaciteit",
+      "minAttendees": "Minimum deelnemers",
+      "save": "Wijzigingen opslaan",
+      "earlyBirdNote": "De vroegboekkorting beheer je op het tabblad Datums van het product.",
+      "confirmTitle": "Wijziging bevestigen",
+      "confirmContinue": "Doorgaan",
+      "guards": {
+        "hidingStatus": "Dit event wordt op {{status}} gezet. Het verdwijnt dan uit je webshop en er kunnen geen nieuwe tickets verkocht worden. Bestaande tickets blijven geldig.",
+        "capacityBelowSold": "Er zijn al {{sold}} tickets verkocht. Een lagere capaciteit stopt nieuwe verkoop; bestaande tickets blijven geldig."
       }
     }
   }

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, addWeeks, getDay } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
   CalendarIcon, Plus, Pencil, Trash2, Loader2, MapPin, Users,
-  CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X,
+  CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X, ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { zonedToUtc, utcToZonedParts } from '@/lib/eventTime';
@@ -155,6 +156,7 @@ const DEFAULT_EVENT_TZ = 'Europe/Brussels';
 
 export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productId: string; regularPrice?: number }) {
   const { data: dates = [], isLoading } = useEventDetails(productId);
+  const navigate = useNavigate();
   const createDate = useCreateEventDate(productId);
   const updateDate = useUpdateEventDate(productId);
   const deleteDate = useDeleteEventDate(productId);
@@ -246,9 +248,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       : null;
 
   const canSave =
-    !!form.event_date &&
-    form.capacity !== '' &&
-    Number(form.capacity) > 0 &&
+    (!!editing || (!!form.event_date && form.capacity !== '' && Number(form.capacity) > 0)) &&
     !ebPriceError &&
     !ebQtyError &&
     !ebDeadlineError;
@@ -257,6 +257,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
     if (!form.event_date) return;
     // Early-bird: expliciet null sturen zodat de tenant het kan uitzetten.
     const hasEb = ebPriceNum !== null;
+    const ebPayload = {
+      early_bird_price: hasEb ? ebPriceNum : null,
+      early_bird_deadline: hasEb && ebDeadlineMs !== null ? new Date(ebDeadlineMs).toISOString() : null,
+      early_bird_quantity: hasEb && ebQtyNum !== null ? ebQtyNum : null,
+    };
     const payload = {
       event_date: format(form.event_date, 'yyyy-MM-dd'),
       start_time: form.start_time || '21:00',
@@ -265,12 +270,12 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       status: form.status,
       meeting_point: form.meeting_point.trim() || null,
       location_name: form.location_name.trim() || null,
-      early_bird_price: hasEb ? ebPriceNum : null,
-      early_bird_deadline: hasEb && ebDeadlineMs !== null ? new Date(ebDeadlineMs).toISOString() : null,
-      early_bird_quantity: hasEb && ebQtyNum !== null ? ebQtyNum : null,
+      ...ebPayload,
     };
     if (editing) {
-      await updateDate.mutateAsync({ id: editing.id, data: payload });
+      // 4d: kernvelden (datum/tijd/status/locatie/capaciteit) worden op de
+      // event-pagina beheerd. Hier alleen de prijslogica bijwerken.
+      await updateDate.mutateAsync({ id: editing.id, data: ebPayload });
     } else {
       await createDate.mutateAsync(payload);
     }
@@ -477,7 +482,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          Capaciteit {row.capacity} · min. {row.min_attendees}
+                          Capaciteit {row.capacity == null ? '\u221E' : row.capacity} · min. {row.min_attendees}
                         </span>
                         {(row.location_name || row.meeting_point) && (
                           <span className="flex min-w-0 items-center gap-1">
@@ -491,7 +496,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       {!dimmed && (
                         <SignupMeter
                           signed={signupCounts[row.id] ?? 0}
-                          capacity={row.capacity}
+                          capacity={row.capacity ?? 0}
                           minAttendees={row.min_attendees ?? 0}
                         />
                       )}
@@ -520,10 +525,21 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         </Button>
                       </ActionTooltip>
                     )}
-                    <ActionTooltip label="Bewerken">
+                    <ActionTooltip label="Bewerken op de event-pagina">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/events/${row.id}`)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span className="ml-2 sm:hidden">Bewerken op de event-pagina</span>
+                      </Button>
+                    </ActionTooltip>
+                    <ActionTooltip label="Vroegboekkorting">
                       <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
                         <Pencil className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Bewerken</span>
+                        <span className="ml-2 sm:hidden">Vroegboekkorting</span>
                       </Button>
                     </ActionTooltip>
                     <ActionTooltip label="Verwijderen">
@@ -545,11 +561,31 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Datum bewerken' : 'Datum toevoegen'}</DialogTitle>
-            <DialogDescription>Stel datum, tijd en capaciteit in voor dit evenement.</DialogDescription>
+            <DialogTitle>{editing ? 'Vroegboekkorting bewerken' : 'Datum toevoegen'}</DialogTitle>
+            <DialogDescription>
+              {editing
+                ? 'Datum, tijd, status, locatie en capaciteit beheer je op de event-pagina.'
+                : 'Stel datum, tijd en capaciteit in voor dit evenement.'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {editing && (
+              <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-muted-foreground">
+                  De kernvelden van deze datum zijn hier alleen-lezen.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/admin/events/${editing.id}`)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Bewerken op de event-pagina
+                </Button>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Datum *</Label>
@@ -558,6 +594,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={!!editing}
                       className={cn('w-full justify-start text-left font-normal', !form.event_date && 'text-muted-foreground')}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -579,6 +616,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Label>Starttijd</Label>
                 <Input
                   type="time"
+                  disabled={!!editing}
                   value={form.start_time}
                   onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
                 />
@@ -588,6 +626,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Input
                   type="number"
                   min={1}
+                  disabled={!!editing}
                   value={form.capacity}
                   onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
                 />
@@ -597,6 +636,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Input
                   type="number"
                   min={0}
+                  disabled={!!editing}
                   value={form.min_attendees}
                   onChange={(e) => setForm((f) => ({ ...f, min_attendees: e.target.value }))}
                 />
@@ -605,7 +645,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}>
+              <Select
+                value={form.status}
+                disabled={!!editing}
+                onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -620,6 +664,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             <div className="space-y-2">
               <Label>Locatie (optioneel)</Label>
               <Input
+                disabled={!!editing}
                 value={form.location_name}
                 onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
                 placeholder="Bijv. Stadspark"
@@ -629,6 +674,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             <div className="space-y-2">
               <Label>Verzamelpunt (optioneel)</Label>
               <Input
+                disabled={!!editing}
                 value={form.meeting_point}
                 onChange={(e) => setForm((f) => ({ ...f, meeting_point: e.target.value }))}
                 placeholder="Bijv. hoofdingang aan de fontein"

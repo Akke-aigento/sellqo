@@ -1452,6 +1452,10 @@
         "event_ticket_types_management": {
           "title": "Gérez les types de billets sur la page de l'événement",
           "description": "La page de l'événement comporte désormais un onglet Types de billets où vous créez, modifiez, activez ou désactivez vous-même les types de billets. Pour chaque type, vous liez un produit billet (qui fournit le nom et le prix), définissez une sous-capacité, fixez la période de vente avec une date de début et de fin, et choisissez la politique de réentrée et l'ordre de tri. Vous voyez par type combien de billets ont été vendus et combien de places restent. Si vous désactivez un type de billet qui a des ventes, ou si vous réduisez sa capacité en dessous du nombre déjà vendu, SellQo demande d'abord confirmation : les nouvelles ventes s'arrêtent, les billets existants restent valables et leurs détenteurs peuvent toujours s'enregistrer. Un type de billet avec des ventes ne peut pas être supprimé."
+        },
+        "event_core_fields_and_live_counter": {
+          "title": "Modifiez votre événement en un seul endroit, avec occupation en direct",
+          "description": "La date, l'heure, le statut, le lieu et la capacité d'un événement se modifient désormais sur la page de l'événement, dans le nouvel onglet Paramètres. Vous pouvez aussi définir une capacité illimitée. Si vous passez un événement en annulé, ignoré ou fusionné, ou si vous réduisez la capacité en dessous du nombre de tickets vendus, SellQo demande d'abord une confirmation. Le compteur Présents à l'instant se met à jour en direct pendant le scan à l'entrée."
         }
       },
       "copyLink": "Copier le lien",

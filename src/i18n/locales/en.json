@@ -2069,7 +2069,8 @@
       "attendees": "Attendees",
       "scanLog": "Scan log",
       "ticketTypes": "Ticket types",
-      "access": "Access"
+      "access": "Access",
+      "settings": "Settings"
     },
     "stats": {
       "capacity": "Capacity",
@@ -2077,7 +2078,8 @@
       "inside": "Inside now",
       "free": "Spots left",
       "occupancy": "Occupancy",
-      "minimum": "Minimum"
+      "minimum": "Minimum",
+      "live": "live"
     },
     "ticketTypes": {
       "title": "Ticket types",
@@ -2262,6 +2264,26 @@
         "revoked": "Access revoked",
         "deleted": "Access deleted",
         "error": "Action failed"
+      }
+    },
+    "settings": {
+      "title": "Event settings",
+      "status": "Status",
+      "date": "Date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "locationName": "Location",
+      "meetingPoint": "Meeting point",
+      "capacity": "Capacity",
+      "unlimitedCapacity": "Unlimited capacity",
+      "minAttendees": "Minimum attendees",
+      "save": "Save changes",
+      "earlyBirdNote": "Early-bird pricing is managed on the product's Dates tab.",
+      "confirmTitle": "Confirm change",
+      "confirmContinue": "Continue",
+      "guards": {
+        "hidingStatus": "This event will be set to {{status}}. It then disappears from your shop and no new tickets can be sold. Existing tickets stay valid.",
+        "capacityBelowSold": "{{sold}} tickets have already been sold. A lower capacity stops new sales; existing tickets stay valid."
       }
     }
   }

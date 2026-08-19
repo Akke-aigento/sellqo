@@ -2069,7 +2069,8 @@
       "attendees": "Participants",
       "scanLog": "Journal de scans",
       "ticketTypes": "Types de billets",
-      "access": "Accès"
+      "access": "Accès",
+      "settings": "Paramètres"
     },
     "stats": {
       "capacity": "Capacité",
@@ -2077,7 +2078,8 @@
       "inside": "Présents",
       "free": "Places libres",
       "occupancy": "Occupation",
-      "minimum": "Minimum"
+      "minimum": "Minimum",
+      "live": "live"
     },
     "ticketTypes": {
       "title": "Types de billets",
@@ -2262,6 +2264,26 @@
         "revoked": "Accès révoqué",
         "deleted": "Accès supprimé",
         "error": "Action échouée"
+      }
+    },
+    "settings": {
+      "title": "Paramètres de l'événement",
+      "status": "Statut",
+      "date": "Date",
+      "startTime": "Heure de début",
+      "endTime": "Heure de fin",
+      "locationName": "Lieu",
+      "meetingPoint": "Point de rendez-vous",
+      "capacity": "Capacité",
+      "unlimitedCapacity": "Capacité illimitée",
+      "minAttendees": "Participants minimum",
+      "save": "Enregistrer les modifications",
+      "earlyBirdNote": "Le tarif early bird se gère dans l'onglet Dates du produit.",
+      "confirmTitle": "Confirmer la modification",
+      "confirmContinue": "Continuer",
+      "guards": {
+        "hidingStatus": "Cet événement passera au statut {{status}}. Il disparaîtra de votre boutique et aucun nouveau ticket ne pourra être vendu. Les tickets existants restent valables.",
+        "capacityBelowSold": "{{sold}} tickets ont déjà été vendus. Une capacité inférieure arrête les nouvelles ventes ; les tickets existants restent valables."
       }
     }
   }
