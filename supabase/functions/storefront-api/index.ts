@@ -2061,6 +2061,10 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     applied_discounts: appliedDiscounts,
     discount_total: Math.round(discountTotal * 100) / 100,
 
+    // DISCOUNT-CASE-1 — additief: canonieke actieve code + bedrag voor de storefront.
+    discount_code: discountCodes.length > 0 ? discountCodes[discountCodes.length - 1] : null,
+    discount_amount: Math.round(discountTotal * 100) / 100,
+
     payment_method: paymentMethod,
     fee,
 
