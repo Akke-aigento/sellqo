@@ -1025,7 +1025,10 @@
     },
     "changelog": {
       "changes": {
-
+        "event_detail_page": {
+          "title": "Page d'événement avec participants et suivi des check-ins",
+          "description": "Cliquez sur une date dans l'aperçu des événements et vous ouvrez désormais une page d'événement dédiée. Vous y voyez la capacité, les billets vendus, qui est présent en ce moment et le nombre de places restantes, ainsi que vos types de billets avec prix et statut de vente. L'onglet Participants indique pour chaque visiteur le nom, l'e-mail, le type de billet, le numéro de commande et s'il est à l'intérieur ou à l'extérieur. L'onglet Journal des scans montre chaque scan avec l'heure, le sens, la zone et le résultat."
+        },
         "settings_multilingual": {
           "title": "La plupart des écrans de paramètres sont désormais multilingues",
           "description": "Lorsque vous changez de langue, les écrans de votre profil, des membres de l'équipe, des données de l'entreprise, de l'image de marque, des domaines, des notifications ainsi que des connexions e-mail, WhatsApp et réseaux sociaux s'affichent désormais dans cette langue. Les écrans concernant la TVA, les paiements et l'expédition suivront dans une prochaine mise à jour."

@@ -2060,5 +2060,69 @@
         "je_bent_succesvol_ingeschreven_voor_onze": "You have successfully subscribed to our newsletter."
       }
     }
+  },
+  "events": {
+    "back": "Back to events",
+    "notFound": "Event not found.",
+    "tabs": {
+      "overview": "Overview",
+      "attendees": "Attendees",
+      "scanLog": "Scan log"
+    },
+    "stats": {
+      "capacity": "Capacity",
+      "sold": "Sold",
+      "inside": "Inside now",
+      "free": "Spots left",
+      "occupancy": "Occupancy",
+      "minimum": "Minimum"
+    },
+    "ticketTypes": {
+      "title": "Ticket types",
+      "empty": "No ticket types configured.",
+      "onSale": "On sale",
+      "notOnSale": "Not on sale",
+      "sold": "Sold",
+      "spotsLeft": "Left",
+      "salesWindow": "Sales window"
+    },
+    "attendees": {
+      "empty": "No tickets sold for this date yet.",
+      "name": "Name",
+      "email": "Email",
+      "ticketType": "Ticket type",
+      "order": "Order",
+      "presence": "Status"
+    },
+    "presence": {
+      "inside": "Inside",
+      "outside": "Outside",
+      "never": "Not scanned"
+    },
+    "scanLog": {
+      "empty": "No scans for this event yet.",
+      "in": "In",
+      "out": "Out",
+      "scanner": "Scanner",
+      "host": "Host/crew"
+    },
+    "scanResult": {
+      "ok": "Admitted",
+      "already_inside": "Already inside",
+      "not_inside": "Not inside",
+      "invalid": "Invalid",
+      "wrong_event": "Wrong event",
+      "wrong_zone": "Wrong zone",
+      "refunded": "Refunded",
+      "duplicate": "Duplicate scan"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "skipped": "Skipped",
+      "merged": "Merged"
+    }
   }
 }

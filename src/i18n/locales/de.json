@@ -2060,5 +2060,69 @@
         "je_bent_succesvol_ingeschreven_voor_onze": "Sie wurden erfolgreich für unseren Newsletter angemeldet."
       }
     }
+  },
+  "events": {
+    "back": "Zurück zu Events",
+    "notFound": "Event nicht gefunden.",
+    "tabs": {
+      "overview": "Übersicht",
+      "attendees": "Teilnehmer",
+      "scanLog": "Scan-Protokoll"
+    },
+    "stats": {
+      "capacity": "Kapazität",
+      "sold": "Verkauft",
+      "inside": "Jetzt drinnen",
+      "free": "Freie Plätze",
+      "occupancy": "Belegung",
+      "minimum": "Minimum"
+    },
+    "ticketTypes": {
+      "title": "Ticketarten",
+      "empty": "Keine Ticketarten eingerichtet.",
+      "onSale": "Im Verkauf",
+      "notOnSale": "Nicht im Verkauf",
+      "sold": "Verkauft",
+      "spotsLeft": "Frei",
+      "salesWindow": "Verkaufszeitraum"
+    },
+    "attendees": {
+      "empty": "Noch keine Tickets für dieses Datum verkauft.",
+      "name": "Name",
+      "email": "E-Mail",
+      "ticketType": "Ticketart",
+      "order": "Bestellung",
+      "presence": "Status"
+    },
+    "presence": {
+      "inside": "Drinnen",
+      "outside": "Draußen",
+      "never": "Nicht gescannt"
+    },
+    "scanLog": {
+      "empty": "Noch keine Scans für dieses Event.",
+      "in": "Ein",
+      "out": "Aus",
+      "scanner": "Scanner",
+      "host": "Host/Crew"
+    },
+    "scanResult": {
+      "ok": "Zugelassen",
+      "already_inside": "Schon drinnen",
+      "not_inside": "Nicht drinnen",
+      "invalid": "Ungültig",
+      "wrong_event": "Falsches Event",
+      "wrong_zone": "Falsche Zone",
+      "refunded": "Erstattet",
+      "duplicate": "Doppelter Scan"
+    },
+    "status": {
+      "scheduled": "Geplant",
+      "confirmed": "Bestätigt",
+      "cancelled": "Storniert",
+      "completed": "Abgeschlossen",
+      "skipped": "Übersprungen",
+      "merged": "Zusammengeführt"
+    }
   }
 }

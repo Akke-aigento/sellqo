@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10i — Eventpagina met deelnemers en check-in-overzicht (feature, 19-08-2026)
+
+**Elk event heeft nu zijn eigen pagina** (oktober 2026)
+Klik in het eventoverzicht op een datum en je opent een eigen eventpagina. Op het
+tabblad Overzicht zie je de capaciteit, het aantal verkochte tickets, wie er nu binnen
+is en hoeveel plaatsen er nog vrij zijn, plus je tickettypes met prijs en verkoopstatus.
+Het tabblad Deelnemers toont per bezoeker de naam, het e-mailadres, het tickettype, het
+bestelnummer en of die persoon binnen of buiten is. Het tabblad Scan-log toont elke scan
+met tijd, richting, zone en resultaat.
+Wat betekent dit voor jou? Je hoeft niets in te stellen. De pagina is voorlopig
+alleen-lezen: bewerken doe je nog via het product.
+
+**i18n-keys.** `public.changelog.changes.event_detail_page` — KLAARZETTEN, nog niet verstuurd.
+
 ### 2026.10e — Mails dragen nu jouw eigen merk (bugfix, 19-08-2026)
 
 **Je klanten zien jouw logo en naam in elke mail** (oktober 2026)

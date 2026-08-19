@@ -99,6 +99,7 @@ import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import TicketCheckinPage from "./pages/admin/TicketCheckin";
 import EventDashboardPage from "./pages/admin/EventDashboard";
+import EventDetailPage from "./pages/admin/EventDetail";
 import POSTerminalPage from "./pages/admin/POSTerminal";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
@@ -256,6 +257,7 @@ const App = () => (
               <Route path="pos" element={<RouteGuard requireRead="pos"><POSPage /></RouteGuard>} />
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><TicketCheckinPage /></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
+              <Route path="events/:eventId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDetailPage /></RouteGuard>} />
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<RouteGuard requireRead="themes"><StorefrontPage /></RouteGuard>} />
