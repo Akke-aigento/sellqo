@@ -19835,6 +19835,16 @@ export type Database = {
         Args: { _owner_email: string; _user_id: string }
         Returns: boolean
       }
+      can_scan: {
+        Args: {
+          p_direction: string
+          p_event_detail_id: string
+          p_scanner_access_id?: string
+          p_ticket_id: string
+          p_zone_id: string
+        }
+        Returns: Json
+      }
       check_help_rate_limit: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
@@ -20067,6 +20077,18 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      perform_scan: {
+        Args: {
+          p_device_id?: string
+          p_direction: string
+          p_event_detail_id: string
+          p_scanned_by_user_id?: string
+          p_scanner_access_id?: string
+          p_ticket_id: string
+          p_zone_id: string
+        }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
