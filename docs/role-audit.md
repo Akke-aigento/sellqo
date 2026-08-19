@@ -1,3 +1,79 @@
+## EVENT-SYSTEEM FASE 3a — capaciteitshandhaving (server, geld-kritisch) — 19 augustus 2026
+
+### Root cause / aanleiding
+Er was **nergens** capaciteitshandhaving voor events. `cartAddItem` (storefront-api r.1567-1586)
+controleerde alleen of de datum bij het product hoorde en of de status `scheduled/confirmed` was —
+`event_details.capacity` werd niet gelezen. `checkoutComplete` had geen event-check. En
+`issue_tickets_for_order` gaf tickets blind uit én vulde `ticket_instances.product_id` niet,
+waardoor `get_event_ticket_type_count` structureel 0 teruggaf en sub-caps nooit konden tellen.
+Gevolg: events konden overboeken, ook ná betaling.
+
+### Uitgevoerd
+- **`public.check_event_capacity(p_event_detail_id, p_product_id, p_quantity)`** — nieuw, single
+  source of truth. Retourneert `{ok, reason?, event_spots_left, type_spots_left}`. Event-cap via
+  `get_event_signup_count` (`capacity IS NULL` = ongelimiteerd); sub-cap alleen wanneer de
+  `event_ticket_types`-rij voor (event, product) een `sub_capacity` heeft. `p_product_id = null`
+  checkt uitsluitend de event-cap. EXECUTE alleen voor `service_role`.
+- **`public.issue_tickets_for_order(uuid)`** — herschreven:
+  - `pg_advisory_xact_lock(hashtext(event_detail_id))` per event ⇒ gelijktijdige issuance voor
+    dezelfde laatste plek serialiseert binnen de transactie; de verliezer ziet de winnaar zijn
+    tickets al staan.
+  - `ticket_instances.product_id` wordt gevuld uit `order_items.product_id` (fundament sub-cap).
+  - Bij geen plek: **geen** tickets voor dat order_item, wél een regel in `admin_actions_log`
+    met `action_type='ticket_issuance_overbooking_prevented'` en `action_details`
+    `{order_id, order_item_id, event_detail_id, product_id, quantity, reason, paid_amount}`.
+    Bewust **geen** automatische refund (backlog). De rest van de order gaat normaal door.
+- **`storefront-api` → `checkoutComplete`** (r.2545-2586) — poort vóór betaling, direct na de
+  `CART_EMPTY`-check: sub-cap per (event, product) én event-cap over alle tickettypes samen.
+  Vol ⇒ `{code:'EVENT_FULL'|'TICKET_TYPE_FULL', message, event_detail_id}` vóór er geld beweegt.
+- **`storefront-api` → `cartAddItem`** (r.1568-1643) — vriendelijke weigering + validatie:
+  `event_ticket_types`-rij vereist (`TICKET_TYPE_UNAVAILABLE` bij ontbreken of `is_active=false`),
+  verkoopvenster `sales_start/sales_end` (`TICKET_TYPE_NOT_ON_SALE`), en cap-check die de
+  bestaande cart-regels voor dat event meesommeert (`TICKET_TYPE_FULL` / `EVENT_FULL` + `spots_left`).
+  Additief: een product dat via een actieve `event_ticket_types`-rij aan het event hangt is nu ook
+  geldig, niet alleen het host-product. `resolveEventPrice` ongewijzigd — prijs blijft uit het product.
+
+### Security-keuzes
+`check_event_capacity` is `SECURITY DEFINER` met EXECUTE uitsluitend voor `service_role`; anon/
+authenticated kunnen hem niet aanroepen. Geen RLS-policy gewijzigd. Voor de race-test is
+`issue_tickets_for_order` kortstondig aan `anon` gegrant en in dezelfde sessie weer ge-revoked;
+de linter staat terug op de baseline van 155 bevindingen (156 tijdens het venster).
+
+### Gedeelde-paden-waarschuwing
+`storefront-api` is een gedeeld pad (5 custom frontends). Strikt additief: geen sleutel in
+`content`/`settings` of in de cart-respons hernoemd of verwijderd; alleen nieuwe foutcodes op
+paden die voorheen géén fout gaven. Events zonder `sub_capacity` en zonder verkoopvenster — dat
+is elk bestaand event, want de fase-1 migratie gaf ze allemaal een `event_ticket_types`-rij —
+gedragen zich exact als voorheen zolang de event-cap niet bereikt is. Nieuw is dat een event
+bij een bereikte `capacity` nu weigert; dat is het doel van deze fase.
+
+### Verificatie (letterlijk gedraaid, testevent capacity=2, type A sub_capacity=1)
+- `cart_add_item` 1× type A → `success:true`.
+- 2× type A → `{"code":"TICKET_TYPE_FULL","spots_left":1}`.
+- 1× type B → `success:true` (event-cap 2 nog niet vol).
+- 2× type B → `{"code":"EVENT_FULL","spots_left":2}`.
+- Issuance: order met 1× type A ⇒ ticket met `product_id` gevuld, `seq=1`; event-count 1,
+  type-count 1 (vóór de fix bleef type-count 0).
+- **Race:** twee orders, elk 1× type B, om de laatste plek; twee parallelle `curl`-calls naar
+  `rpc/issue_tickets_for_order`, beide HTTP 204. Resultaat: `total_tickets=2` (de cap),
+  `b_tickets=1` ⇒ precies één won; de verliezer staat in `admin_actions_log` met
+  `reason='event_full'`. Bij capacity=5 en een tweede type-A-order: `reason='ticket_type_full'`.
+  Opmerking: elke logregel verscheen tweemaal doordat `trg_issue_tickets_on_paid` bij de insert
+  al vuurde náást mijn expliciete RPC-call — geen dubbele tickets, alleen een dubbele logregel.
+- **Checkout-poort:** cart met 2 tickets terwijl het event vol was ⇒
+  `{"code":"EVENT_FULL","event_detail_id":"…"}`, vóór enige betaalintent.
+- **Compat:** bestaand event (fase-1 auto-rij, geen sub_cap, geen venster, capacity=40) ⇒
+  `cart_add_item` quantity 2 `success:true`, `unit_price` 25 ongewijzigd.
+- `npx tsgo` 0 fouten. Alle testdata verwijderd (tickets, orders, order_items, carts, logregels,
+  event, tickettype-producten).
+
+### Bewust ongemoeid / Vervolg
+Geen presentatie-wijziging: `getProduct` geeft nog géén `ticket_types[]` terug (fase 3b). Geen
+automatische refund bij een verloren race — Akke refundt handmatig op basis van de logregel
+(backlog). `get_event_signup_count` en `resolveEventPrice` ongewijzigd. Geen UI, changelog of docs.
+
+---
+
 ## EVENT-SYSTEEM FASE 2b — scanner-token-auth (server-pad) — 19 augustus 2026
 
 ### Root cause / aanleiding
