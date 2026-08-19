@@ -104,7 +104,8 @@ export function useCreateDiscountCode() {
         .from('discount_codes')
         .insert({
           tenant_id: currentTenant.id,
-          code: formData.code.toUpperCase(),
+          // DISCOUNT-CASE-1 — altijd canoniek opslaan: upper(trim(code)).
+          code: formData.code.trim().toUpperCase(),
           description: formData.description || null,
           discount_type: formData.discount_type,
           discount_value: formData.discount_value,
@@ -153,7 +154,7 @@ export function useUpdateDiscountCode() {
     mutationFn: async ({ id, formData }: { id: string; formData: Partial<DiscountCodeFormData> }) => {
       const updateData: Record<string, unknown> = {};
       
-      if (formData.code !== undefined) updateData.code = formData.code.toUpperCase();
+      if (formData.code !== undefined) updateData.code = formData.code.trim().toUpperCase();
       if (formData.description !== undefined) updateData.description = formData.description || null;
       if (formData.discount_type !== undefined) updateData.discount_type = formData.discount_type;
       if (formData.discount_value !== undefined) updateData.discount_value = formData.discount_value;
