@@ -82,7 +82,6 @@ function useInvalidate(eventId: string | undefined) {
 
 export function useCreateTicketType(eventId: string | undefined) {
   const { currentTenant } = useTenant();
-  const { toast } = useToast();
   const invalidate = useInvalidate(eventId);
 
   return useMutation({
