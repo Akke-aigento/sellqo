@@ -5,13 +5,13 @@
 // de Tickettypes-tab (4b) schrijft op event_ticket_types — de tabel waar de betaalflow
 // live tegen valideert. Data via directe client-queries met expliciete tenant-scope;
 // RLS dwingt isolatie af op DB-niveau.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
-  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban, Settings2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -39,16 +39,18 @@ import {
 } from '@/hooks/useEventScannerAccess';
 import { ScannerAccessDialog } from '@/components/admin/events/ScannerAccessDialog';
 import { ScannerQrDialog } from '@/components/admin/events/ScannerQrDialog';
+import { EventCoreSettingsCard } from '@/components/admin/events/EventCoreSettingsCard';
 
 interface EventRow {
   id: string;
+  product_id: string | null;
   event_date: string;
   start_time: string;
   end_time: string | null;
   status: string;
   location_name: string | null;
   meeting_point: string | null;
-  capacity: number;
+  capacity: number | null;
   min_attendees: number;
   product_name: string;
 }
@@ -108,6 +110,8 @@ export default function EventDetail() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [liveScan, setLiveScan] = useState(false);
 
   // --- Tickettype-beheer (4b) ---
   const [ttDialogOpen, setTtDialogOpen] = useState(false);
@@ -136,7 +140,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return null;
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
+        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
         .eq('id', eventId)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
@@ -144,13 +148,14 @@ export default function EventDetail() {
       if (!data) return null;
       return {
         id: data.id as string,
+        product_id: (data.product_id as string | null) ?? null,
         event_date: data.event_date as string,
         start_time: data.start_time as string,
         end_time: (data.end_time as string | null) ?? null,
         status: data.status as string,
         location_name: (data.location_name as string | null) ?? null,
         meeting_point: (data.meeting_point as string | null) ?? null,
-        capacity: (data.capacity as number) ?? 0,
+        capacity: (data.capacity as number | null) ?? null,
         min_attendees: (data.min_attendees as number) ?? 0,
         product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',
       };
