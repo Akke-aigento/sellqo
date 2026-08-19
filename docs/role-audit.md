@@ -1,3 +1,57 @@
+## MAIL-LOCALE STAP 1 — checkout stuurt klant-taal mee — 19 augustus 2026
+
+### Root cause
+De backend-keten voor "mail in de aankoop-taal" was al compleet: `storefront-api`
+`cartCreate` (r.1471) en `checkoutCustomer` (r.2336) nemen `params.locale` optioneel aan
+en schrijven die naar `storefront_carts.locale`; bij order-aanmaak gaat die waarde mee als
+`orders.locale` (r.2224 en r.3153) en de mailhelper leest hem als `explicit` in
+`resolveEmailLocale` (`_shared/tenantEmail.ts` r.488-502). Alleen de core-storefront
+checkout stuurde nooit een `locale` mee, dus `orders.locale` bleef overal `null` en elke
+klant-mail viel terug op de tenant-default (Fonske = `en`).
+
+### Uitgevoerd
+- `src/pages/storefront/ShopCheckout.tsx`: `locale` afgeleid van `i18n.language`
+  (`.slice(0,2).toLowerCase()`, dus `nl-BE` → `nl`) en meegestuurd in zowel de
+  `cart_create`-payload (in `initServerCart`) als de `checkout_customer`-payload;
+  `i18n.language` toegevoegd aan de deps van `initServerCart`. Verder niets gewijzigd
+  aan de checkout-flow.
+- Stap 2 (`customers.locale` als vangnet vullen) **overgeslagen**: de kolom bestaat niet
+  op `public.customers` (geverifieerd via `information_schema.columns`; ook geen
+  `language`-kolom). Conform opdracht niet geblokkeerd en geen kolom toegevoegd.
+- Stap 3 (`customerLocale` voeden in `send-ticket-confirmation` /
+  `send-order-confirmation`) **overgeslagen** om dezelfde reden: er is geen bron voor
+  `customer.locale`. `resolveEmailLocale` blijft de bestaande volgorde volgen:
+  `explicit` → `customerLocale` → enige actieve tenant-domain-locale → landcode →
+  tenant-default.
+
+### Security-keuzes
+n.v.t. — geen RLS, policy, grant of rechtenwijziging. Geen schemawijziging; `locale` is
+een bestaande kolom op `storefront_carts` en `orders`.
+
+### Gedeelde-paden-waarschuwing
+`cart_create` en `checkout_customer` zijn gedeelde `storefront-api`-acties (5 custom
+frontends). De wijziging is puur additief en zit uitsluitend in de core-storefront-React:
+het edge-function-contract is byte-voor-byte ongewijzigd, `locale` blijft optioneel en bij
+ontbreken blijft `storefront_carts.locale` `null` → `orders.locale` `null` → mail op
+tenant-default, exact het huidige gedrag. Custom frontends die de locale nog niet
+meesturen zijn dus onaangeroerd.
+
+### Verificatie
+- Live `storefront-api`-calls op tenant SellQo Speeltuin:
+  `cart_create` met `locale:"nl"` → `storefront_carts.locale = 'nl'`; met `locale:"en"` →
+  `'en'`; zonder `locale` → `null` (geen fout, cart normaal aangemaakt).
+  `checkout_customer` met `locale:"fr"` op de cart zonder locale → `locale = 'fr'` en
+  `customer_email` gezet; response is de volledige `CartResponse`.
+- Testkarretjes (`session_id LIKE 'loctest-%'`) verwijderd met een gewone DELETE.
+- `npx tsgo --noEmit -p tsconfig.app.json` → exit 0.
+
+### Bewust ongemoeid / Vervolg
+- Geen changelog- of doc-entry: wordt in de latere ronde gebundeld.
+- Vervolg: eventueel een `customers.locale`-kolom als vangnet (aparte go), en de vijf
+  custom frontends die zelf `locale` gaan meesturen in hun checkout-calls.
+
+---
+
 ## MAIL-BRANDING-FIX — tenant-branding herstellen in klant-mails — 19 augustus 2026
 
 ### Root cause

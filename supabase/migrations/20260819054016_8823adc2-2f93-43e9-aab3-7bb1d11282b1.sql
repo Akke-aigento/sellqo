@@ -1,0 +1,1 @@
+DELETE FROM public.storefront_carts WHERE session_id LIKE 'loctest-%';
