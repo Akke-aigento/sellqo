@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.issue_tickets_for_order(uuid) FROM anon;
