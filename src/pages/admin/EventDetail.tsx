@@ -449,6 +449,9 @@ export default function EventDetail() {
           <TabsTrigger value="overview" className="gap-2">
             <Ticket className="h-4 w-4" /> {t('events.tabs.overview')}
           </TabsTrigger>
+          <TabsTrigger value="ticket_types" className="gap-2">
+            <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
+          </TabsTrigger>
           <TabsTrigger value="attendees" className="gap-2">
             <Users className="h-4 w-4" /> {t('events.tabs.attendees')}
           </TabsTrigger>
