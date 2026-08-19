@@ -267,9 +267,11 @@ export default function ShopCheckout() {
 
     // Create or get server-side cart
     const sessionId = getSessionId();
+    const locale = (i18n.language || 'nl').slice(0, 2).toLowerCase();
     const cartResult = await storefrontApi(tenant.id, 'cart_create', {
       session_id: sessionId,
       currency: tenant.currency || 'EUR',
+      locale,
     });
     const cartId = cartResult.cart_id;
 
@@ -294,7 +296,7 @@ export default function ShopCheckout() {
     }
 
     return cartId;
-  }, [tenant, cartItems]);
+  }, [tenant, cartItems, i18n.language]);
 
   const handleCustomerDetailsSubmit = async () => {
     if (!validateForm()) return;
@@ -315,6 +317,7 @@ export default function ShopCheckout() {
       // 3. Save customer data
       await storefrontApi(tenant.id, 'checkout_customer', {
         cart_id: cartId,
+        locale: (i18n.language || 'nl').slice(0, 2).toLowerCase(),
         customer: {
           email: customerData.email,
           first_name: customerData.firstName,
