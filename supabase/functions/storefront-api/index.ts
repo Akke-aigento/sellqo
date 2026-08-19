@@ -1476,6 +1476,16 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
   return { original_subtotal: originalSubtotal, discounted_subtotal: Math.max(0, originalSubtotal - totalDiscount), total_discount: totalDiscount, applied_discounts: finalDiscounts, gifts, free_shipping: freeShipping, free_shipping_reason: freeShippingReason, loyalty_points_earned: 0, loyalty_points_redeemed: 0 };
 }
 
+// DISCOUNT-CASE-1 — kortingscodes worden canoniek in hoofdletters opgeslagen en
+// case-insensitive gematcht. Ongeldige codes leveren HTTP 400 i.p.v. 500.
+function normalizeDiscountCode(raw: unknown): string {
+  return String(raw ?? '').trim().toUpperCase();
+}
+
+class DiscountCodeError extends Error {
+  constructor(message: string) { super(message); this.name = 'DiscountCodeError'; }
+}
+
 async function validateDiscountCode(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const { subtotal = 0, customer_id } = params as { subtotal?: number; customer_id?: string };
   // DISCOUNT-CASE-1 — codes zijn niet hoofdlettergevoelig.
