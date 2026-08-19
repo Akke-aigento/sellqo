@@ -1,0 +1,1 @@
+ALTER TABLE public.event_details ALTER COLUMN capacity DROP NOT NULL;
