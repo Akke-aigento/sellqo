@@ -312,9 +312,36 @@ export default function EventDetail() {
     const s = lastScan[a.id];
     return s ? s.direction === 'in' : false;
   }).length;
-  const capacity = event?.capacity ?? 0;
-  const free = Math.max(0, capacity - sold);
-  const pct = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+  const capacity = event?.capacity ?? null;
+  const unlimitedLabel = '\u221E';
+  const capacityLabel = capacity == null ? unlimitedLabel : String(capacity);
+  const freeLabel = capacity == null ? unlimitedLabel : String(Math.max(0, capacity - sold));
+  const pct = capacity && capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+
+  // Live bezetting (4d): elke nieuwe scan invalideert de tellers van deze pagina.
+  useEffect(() => {
+    if (!eventId) return;
+    const channel = supabase
+      .channel(`event-scans-${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ticket_scans',
+          filter: `event_detail_id=eq.${eventId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['event-detail-scans', currentTenant?.id, eventId] });
+          queryClient.invalidateQueries({ queryKey: ['event-detail-attendees', currentTenant?.id, eventId] });
+        },
+      )
+      .subscribe((status) => setLiveScan(status === 'SUBSCRIBED'));
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, currentTenant?.id, queryClient]);
 
   const soldPerProduct = useMemo(() => {
     const m: Record<string, number> = {};
@@ -346,7 +373,7 @@ export default function EventDetail() {
   // ---- Tickettype-acties (4b) ----
   const usedProductIds = ticketTypes.map((tt) => tt.product_id);
   const capacitySum = ticketTypes.reduce((acc, tt) => acc + (tt.sub_capacity ?? 0), 0);
-  const capacityOverflow = capacitySum > (event?.capacity ?? 0) && (event?.capacity ?? 0) > 0;
+  const capacityOverflow = capacity != null && capacity > 0 && capacitySum > capacity;
 
   const handleTicketTypeSubmit = async (form: TicketTypeFormData) => {
     try {
