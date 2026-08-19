@@ -1,3 +1,56 @@
+## MAIL-LOCALE FIX — resolveEmailLocale explicit-tak consistent — 19 augustus 2026
+
+### Root cause
+In `resolveEmailLocale` (`supabase/functions/_shared/tenantEmail.ts` r.498-501) werd de
+`explicit`-tak (= `order.locale`) via `sanitizeLocale(opts.explicit, "en")` afgehandeld.
+`sanitizeLocale` geeft bij een niet-ondersteunde locale (bv. `es`) altijd de fallback terug
+(hier hard `"en"`), en omdat die terugkeer altijd een niet-lege string is, returneerde de tak
+die altijd — ook voor onbekende locales. Gevolg: een order met `locale='es'` kreeg een Engelse
+mail in plaats van de tenant-default (bv. `nl` voor Fonske). Alle andere takken
+(`customerLocale`, `tenant_domains`, `countryCode`) gebruiken consequent
+`opts.tenantDefault || "en"` als fallback; alleen de `explicit`-tak week af.
+
+### Uitgevoerd
+- `supabase/functions/_shared/tenantEmail.ts` r.498-501: de `explicit`-tak classificeert nu
+  eerst of de locale écht in `SUPPORTED_LOCALES` (`nl`/`en`/`fr`/`de`) zit; alleen dan
+  returneert hij direct. Een niet-ondersteunde `explicit` locale (bv. `es`) valt niet meer
+  hard terug op `"en"` maar door naar de rest van de keten (`customerLocale` →
+  tenant-domain-locale → landcode → `tenantDefault`). De nu-overbodige
+  `sanitizeLocale(opts.explicit, "en")`-call is vervangen door de inline check.
+
+### Security-keuzes
+n.v.t. — geen RLS, policy, grant of rechtenwijziging. Geen schemawijziging. Puur een
+consisténtie-fix in een gedeelde mailhelper.
+
+### Gedeelde-paden-waarschuwing
+`_shared/tenantEmail.ts` wordt gebruikt door alle 10 klant-mail-edge-functies (alle tenants,
+incl. de 5 custom frontends). De wijziging verandert het gedrag **uitsluitend** voor
+niet-ondersteunde `explicit`-locales: vroeger `→ en`, nu `→ keten/tenantDefault`.
+Ondersteunde locales (`nl`/`en`/`fr`/`de` als `explicit`) worden nog steeds direct
+teruggegeven — geen gedrags- of contractwijziging voor die meerderheid. Custom frontends
+die een niet-ondersteunde locale meesturen krijgen nu de tenant-default in plaats van
+Engels, wat juist klopt. Edge-function-contract byte-voor-byte ongewijzigd.
+
+### Verificatie
+- Deno-logica-test van de nieuwe `explicit`-tak (gespiegeld aan de broncode), 5 cases:
+  - `{explicit:'nl', tenantDefault:'en'}` → `nl` (ondersteund, ongewijzigd). PASS.
+  - `{explicit:'es', tenantDefault:'nl', countryCode:'BE'}` → `nl` (valt door, niet meer
+    hard `en`). PASS.
+  - `{explicit:'es', tenantDefault:'en', countryCode:'DE'}` → `de` (land-hint werkt nu).
+    PASS.
+  - `{explicit:'fr'}` → `fr` (ondersteund). PASS.
+  - `{explicit:'es', tenantDefault:'en'}` (geen land/klant/domein) → `en` (uiteindelijke
+    tenantDefault). PASS.
+- `tsgo --noEmit` exit 0 (clean). Geen regressie voor geldige `order.locale`.
+
+### Bewust ongemoeid / Vervolg
+- `sanitizeLocale` zelf niet aangepast; de functie blijft correct voor de andere takken.
+- Spaans (`es`) als volwaardige mail-taal is een aparte, grotere klus (recon: ~155 unieke
+  strings) en blijft uitstaand; dit is alleen de fallback-consistentie-fix.
+- Deploy van de betreffende edge-functies volgt apart (geen code-wijziging meer nodig).
+
+---
+
 ## MAIL-LOCALE STAP 1 — checkout stuurt klant-taal mee — 19 augustus 2026
 
 ### Root cause
