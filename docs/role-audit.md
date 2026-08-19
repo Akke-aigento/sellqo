@@ -1,3 +1,44 @@
+## CART-DISCOUNT-TOTALS-1 — volledige cart-shape met korting en totalen — 19 augustus 2026
+
+**Root cause:** `cartGet` in `supabase/functions/storefront-api/index.ts` gaf enkel
+`discount_codes` + bruto `subtotal` terug. Kortingsbedragen, verzending, btw en
+totaal werden alleen in het checkout-pad (`buildCartResponse`) berekend, waardoor
+storefronts de korting niet konden tonen. Daarnaast gooide `cartApplyDiscount` een
+`DiscountCodeError` (400 `invalid_discount_code`) bij een al toegepaste code —
+niet te onderscheiden van een echt ongeldige code.
+
+**Uitgevoerd:**
+- `computeCartTotals()` toegevoegd: berekent server-side `subtotal`,
+  `discount_code` (canonieke schrijfwijze), `discount_amount`,
+  `applied_discounts`, `shipping`, `tax`, `total`, `free_shipping_eligible` en
+  `free_shipping_remaining`. Respecteert `applies_to`
+  (`specific_products` / `specific_categories` via `product_categories`),
+  min-besteding, geldigheid en `maximum_discount_amount`.
+- `cartGet` retourneert die shape; `cart_add_item`, `cart_update_item`,
+  `cart_remove_item`, `cart_apply_discount` en `cart_remove_discount` delegeren al
+  naar `cartGet` en geven dus dezelfde volledige shape.
+- `cartApplyDiscount` is idempotent: een al toegepaste code geeft HTTP 200 met de
+  actuele cart. `invalid_discount_code` (400) blijft voor echt ongeldige codes.
+- `validateDiscountCode` geeft additief `product_ids` en `category_ids` terug.
+
+**Security-keuzes:** n.v.t. — geen RLS, policies of grants geraakt. Alle reads
+lopen via de bestaande service-role-client met expliciete `tenant_id`-filter.
+
+**Gedeelde-paden-waarschuwing:** `storefront-api` is een gedeeld pad voor de vijf
+custom frontends. De wijziging is strikt additief: bestaande sleutels
+(`id`, `session_id`, `currency`, `items`, `item_count`, `subtotal`,
+`expires_at`, `discount_codes`) blijven aanwezig met hetzelfde type.
+`discount_codes` bevat nu de gevalideerde canonieke codes (string[]), wat gelijk
+is aan de opgeslagen waarde sinds DISCOUNT-CASE-1. Het checkout-pad
+(`buildCartResponse`) is ongemoeid gelaten.
+
+**Verificatie:** edge function gedeployed; cart-acties functioneel getest in
+SellQo Speeltuin (korting, idempotente herhaling, verwijderen).
+
+**Vervolg:** btw in `cartGet` gebruikt het tenant-standaardtarief inclusief-model;
+het regime-bewuste pad (`resolveCartVatContext`) blijft voorbehouden aan de
+checkout-response.
+
 ## DISCOUNT-CASE-1 — kortingscodes case-insensitive matchen — 19 augustus 2026
 
 ### Root cause
