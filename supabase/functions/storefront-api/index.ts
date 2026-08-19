@@ -603,12 +603,59 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
     const openEvents = (events || []).filter((e: any) => isEventStillOpen(e));
 
+    // FASE 3b: batch-ophaling tickettypes + verkoopcijfers (constant aantal round-trips,
+    // schaalt niet met aantal events/tickettypes).
+    const openIds = openEvents.map((e: any) => e.id);
+    let ttRows: any[] = [];
+    const countMap = new Map<string, number>(); // `${event_detail_id}|${product_id}` -> sold
+    if (openIds.length > 0) {
+      const [ttRes, cntRes] = await Promise.all([
+        supabase
+          .from('event_ticket_types')
+          .select('id, product_id, event_detail_id, sub_capacity, sales_start, sales_end, sort_order, is_active, products!event_ticket_types_product_id_fkey(id, name, price)')
+          .in('event_detail_id', openIds)
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase.rpc('get_event_ticket_counts', { p_event_detail_ids: openIds }),
+      ]);
+      ttRows = ttRes.data || [];
+      for (const r of (cntRes.data || []) as any[]) {
+        countMap.set(`${r.event_detail_id}|${r.product_id}`, Number(r.sold) || 0);
+      }
+    }
+
     const withCounts = await Promise.all(openEvents.map(async (e: any) => {
       const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: e.id });
       const sold = typeof cnt === 'number' ? cnt : 0;
       // EARLY-BIRD fase C-core: expliciete mapping (optie A) — geen spread,
       // zodat nieuwe DB-kolommen nooit per ongeluk in de publieke respons lekken.
       const pr = resolveEventPrice(e, product.price, sold, new Date());
+      const nowMs = Date.now();
+      const ticketTypes = ttRows
+        .filter((tt: any) => tt.event_detail_id === e.id)
+        .map((tt: any) => {
+          const ttProduct = tt.products || null;
+          const basePrice = Number(ttProduct?.price ?? product.price) || 0;
+          // early-bird blijft event-breed: dezelfde `sold` als de betaalkant.
+          const ttPrice = resolveEventPrice(e, basePrice, sold, new Date()).price;
+          const typeSold = countMap.get(`${e.id}|${tt.product_id}`) ?? 0;
+          const startOk = !tt.sales_start || nowMs >= new Date(tt.sales_start).getTime();
+          const endOk = !tt.sales_end || nowMs <= new Date(tt.sales_end).getTime();
+          return {
+            id: tt.id,
+            product_id: tt.product_id,
+            name: ttProduct?.name ?? null,
+            price: ttPrice,
+            sub_capacity: tt.sub_capacity ?? null,
+            sold: typeSold,
+            spots_left: tt.sub_capacity != null ? Math.max(0, tt.sub_capacity - typeSold) : null,
+            sales_start: tt.sales_start ?? null,
+            sales_end: tt.sales_end ?? null,
+            is_on_sale: Boolean(tt.is_active) && startOk && endOk,
+            sort_order: tt.sort_order ?? 0,
+          };
+        });
       return {
         id: e.id,
         event_date: e.event_date,
@@ -628,6 +675,9 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
         early_bird_price: e.early_bird_price != null ? Number(e.early_bird_price) : null,
         spots_left_at_early_bird: pr.spotsLeftAtEarlyBird,
         early_bird_deadline: e.early_bird_deadline ?? null,
+        // FASE 3b additief (bestaande sleutels hierboven blijven ongewijzigd):
+        product_id: product.id,
+        ticket_types: ticketTypes,
       };
     }));
 
