@@ -1460,6 +1460,10 @@
         "event_core_fields_and_live_counter": {
           "title": "Event bewerken op één plek, met live bezetting",
           "description": "Datum, tijd, status, locatie en capaciteit van een event pas je nu aan op de eventpagina zelf, in het nieuwe tabblad Instellingen. Je kunt de capaciteit ook op ongelimiteerd zetten. Zet je een event op geannuleerd, overgeslagen of samengevoegd, of verlaag je de capaciteit onder het aantal verkochte tickets, dan vraagt SellQo eerst om bevestiging. De teller Nu binnen loopt live mee terwijl er aan de deur gescand wordt."
+        },
+        "cart_discount_totals": {
+          "title": "Korting en totalen direct in je winkelwagen",
+          "description": "Je winkelwagen geeft nu altijd het kortingsbedrag, de verzendkosten, de btw en het eindtotaal terug. Een kortingscode die al toegepast is, geeft geen foutmelding meer."
         }
       },
       "copyLink": "Kopieer link",

@@ -1507,10 +1507,116 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
     const { count } = await supabase.from('discount_code_usage').select('*', { count: 'exact', head: true }).eq('discount_code_id', data.id).eq('customer_email', customer_id);
     if (count && count >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
   }
-  return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
+  return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, product_ids: data.product_ids || null, category_ids: data.category_ids || null, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
 }
 
 // ============== CART ACTIONS ==============
+
+// CART-DISCOUNT-TOTALS-1 — één volledige cart-shape voor alle cart_* acties.
+// Korting, verzending, btw en totaal worden hier server-side berekend; de
+// storefront rekent nooit zelf.
+async function computeCartTotals(
+  supabase: any,
+  tenantId: string,
+  cart: any,
+  cartItems: any[],
+): Promise<Record<string, any>> {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const subtotal = round2(cartItems.reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
+  const codes: string[] = cart.discount_codes || [];
+
+  let discountTotal = 0;
+  let hasFreeShipping = false;
+  let canonicalCode: string | null = null;
+  const appliedDiscounts: { code: string; description: string; amount: number }[] = [];
+
+  for (const raw of codes) {
+    const v = await validateDiscountCode(supabase, tenantId, { code: raw, subtotal });
+    if (!v.valid) continue;
+    const code = v.code || normalizeDiscountCode(raw);
+    if (!canonicalCode) canonicalCode = code;
+
+    if (v.discount_type === 'free_shipping') {
+      hasFreeShipping = true;
+      appliedDiscounts.push({ code, description: 'Gratis verzending', amount: 0 });
+      continue;
+    }
+
+    // Per-product / per-categorie restricties bepalen de grondslag.
+    let base = subtotal;
+    if (v.applies_to === 'specific_products') {
+      const ids: string[] = v.product_ids || [];
+      base = round2(cartItems.filter((i: any) => ids.includes(i.product_id)).reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
+    } else if (v.applies_to === 'specific_categories' || v.applies_to === 'category') {
+      const catIds: string[] = v.category_ids || [];
+      if (catIds.length > 0) {
+        const productIds = cartItems.map((i: any) => i.product_id);
+        const { data: links } = await supabase
+          .from('product_categories').select('product_id')
+          .in('product_id', productIds).in('category_id', catIds);
+        const eligible = new Set((links || []).map((l: any) => l.product_id));
+        base = round2(cartItems.filter((i: any) => eligible.has(i.product_id)).reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
+      } else {
+        base = 0;
+      }
+    }
+
+    if (base <= 0) continue;
+    const amt = round2(calculateDiscountValue(base, v.discount_type, v.discount_value, v.max_discount_amount));
+    if (amt <= 0) continue;
+    discountTotal += amt;
+    appliedDiscounts.push({
+      code,
+      description: v.description || `${v.discount_value}${v.discount_type === 'percentage' ? '%' : '€'} korting`,
+      amount: amt,
+    });
+  }
+
+  discountTotal = Math.min(round2(discountTotal), subtotal);
+  const netSubtotal = round2(subtotal - discountTotal);
+
+  // Verzending: gekozen methode indien aanwezig, anders 0 (nog niet gekozen).
+  let shipping = 0;
+  let freeAbove: number | null = null;
+  const { data: methods } = await supabase
+    .from('shipping_methods').select('id, price, free_above, is_active')
+    .eq('tenant_id', tenantId).eq('is_active', true);
+  for (const m of methods || []) {
+    if (m.free_above != null) freeAbove = freeAbove == null ? Number(m.free_above) : Math.min(freeAbove, Number(m.free_above));
+  }
+  if (cart.shipping_method_id) {
+    const chosen = (methods || []).find((m: any) => m.id === cart.shipping_method_id);
+    if (chosen) {
+      shipping = (hasFreeShipping || (chosen.free_above != null && netSubtotal >= Number(chosen.free_above)))
+        ? 0 : round2(Number(chosen.price) || 0);
+    } else {
+      shipping = round2(Number(cart.shipping_cost) || 0);
+    }
+  }
+
+  const freeShippingEligible = hasFreeShipping || (freeAbove != null && netSubtotal >= freeAbove);
+  const freeShippingRemaining = freeShippingEligible || freeAbove == null ? 0 : round2(freeAbove - netSubtotal);
+
+  // Btw: prijzen zijn btw-inclusief → btw wordt geëxtraheerd, nooit opgeteld.
+  const { data: tenant } = await supabase.from('tenants').select('tax_percentage').eq('id', tenantId).maybeSingle();
+  const rate = Number(tenant?.tax_percentage) || 0;
+  const taxableBase = round2(netSubtotal + shipping);
+  const tax = rate > 0 ? round2(taxableBase - taxableBase / (1 + rate / 100)) : 0;
+  const total = round2(netSubtotal + shipping);
+
+  return {
+    subtotal,
+    discount_code: canonicalCode,
+    discount_codes: appliedDiscounts.map((d) => d.code),
+    discount_amount: discountTotal,
+    applied_discounts: appliedDiscounts,
+    shipping,
+    tax,
+    total,
+    free_shipping_eligible: freeShippingEligible,
+    free_shipping_remaining: freeShippingRemaining,
+  };
+}
 
 async function cartCreate(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const sessionId = params.session_id as string;
@@ -1596,12 +1702,13 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     };
   });
 
-  const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
+  const totals = await computeCartTotals(supabase, tenantId, cart, cartItems);
 
   return {
-    id: cart.id, session_id: cart.session_id, currency: cart.currency, discount_codes: cart.discount_codes || [],
+    id: cart.id, session_id: cart.session_id, currency: cart.currency,
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
-    subtotal, expires_at: cart.expires_at,
+    expires_at: cart.expires_at,
+    ...totals,
   };
 }
 
@@ -1820,19 +1927,15 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
   const canonical = validation.code || code;
+  // CART-DISCOUNT-TOTALS-1 — idempotent: een al toegepaste code is geen fout.
   if (currentCodes.some((c) => normalizeDiscountCode(c) === canonical)) {
-    throw new DiscountCodeError('Deze kortingscode is al toegepast');
+    return cartGet(supabase, tenantId, { cart_id: cartId });
   }
 
   const updatedCodes = [...currentCodes, canonical];
   const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
   if (error) throw error;
-  const cartResponse = await cartGet(supabase, tenantId, { cart_id: cartId });
-  const validated = await validateDiscountCode(supabase, tenantId, { code: canonical, subtotal: (cartResponse as any).subtotal || 0 });
-  const discountAmount = validated.valid && validated.discount_type !== 'free_shipping'
-    ? Math.round(calculateDiscountValue((cartResponse as any).subtotal || 0, validated.discount_type, validated.discount_value, validated.max_discount_amount) * 100) / 100
-    : 0;
-  return { ...cartResponse, discount_code: canonical, discount_amount: discountAmount };
+  return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
 async function cartRemoveDiscount(supabase: any, tenantId: string, params: Record<string, unknown>) {

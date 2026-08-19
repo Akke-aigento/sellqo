@@ -1460,6 +1460,10 @@
         "event_core_fields_and_live_counter": {
           "title": "Modifiez votre événement en un seul endroit, avec occupation en direct",
           "description": "La date, l'heure, le statut, le lieu et la capacité d'un événement se modifient désormais sur la page de l'événement, dans le nouvel onglet Paramètres. Vous pouvez aussi définir une capacité illimitée. Si vous passez un événement en annulé, ignoré ou fusionné, ou si vous réduisez la capacité en dessous du nombre de tickets vendus, SellQo demande d'abord une confirmation. Le compteur Présents à l'instant se met à jour en direct pendant le scan à l'entrée."
+        },
+        "cart_discount_totals": {
+          "title": "Remises et totaux directement dans votre panier",
+          "description": "Votre panier renvoie desormais toujours le montant de la remise, les frais de livraison, la TVA et le total final. Appliquer un code deja actif ne genere plus d'erreur."
         }
       },
       "copyLink": "Copier le lien",
