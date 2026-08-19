@@ -450,3 +450,9 @@ verify_jwt = false
 
 [functions.ticket-qr]
 verify_jwt = false
+
+[functions.ticket-checkin]
+verify_jwt = false
+
+[functions.scanner-context]
+verify_jwt = false

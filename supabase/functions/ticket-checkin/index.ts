@@ -14,7 +14,7 @@ import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/au
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-scanner-token",
 };
 
 const log = (step: string, details?: unknown) =>
@@ -27,16 +27,106 @@ const json = (body: unknown, status = 200) =>
   });
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,128}$/;
+// Scanner-tokens zijn 32 random bytes als hex (zie event_scanner_access.access_token).
+const SCANNER_TOKEN_RE = /^[a-f0-9]{64}$/;
+
+type AppRoleLite =
+  | "platform_admin" | "tenant_admin" | "accountant" | "staff" | "warehouse" | "viewer" | "marketing";
+
+// Minimale vorm die deze function van een auth-object nodig heeft. In JWT-modus
+// komt dit uit authenticateRequest; in token-modus bouwen we het zelf op.
+// _shared/auth.ts blijft ongemoeid.
+interface CheckinAuth {
+  user_id: string | null;
+  tenant_ids: string[];
+  is_platform_admin: boolean;
+  roles_by_tenant?: Record<string, AppRoleLite[]>;
+}
+
+interface ScannerContext {
+  id: string;
+  tenant_id: string;
+  event_detail_id: string;
+  zone_id: string;
+  direction: string;
+  scan_mode: string;
+  allowed_product_ids: string[] | null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const auth = await authenticateRequest(req);
-
+    // De body wordt bewust VÓÓR de auth gelezen: de modus-keuze hangt ervan af.
     const body = await req.json().catch(() => ({}));
+
+    // Token-modus: header heeft voorrang, body is fallback. Nooit via URL.
+    const scannerToken = String(
+      req.headers.get("x-scanner-token") ?? (body as { scanner_token?: unknown })?.scanner_token ?? "",
+    ).trim();
+    const tokenMode = scannerToken.length > 0;
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Eén generieke afwijzing voor onbekend / inactief / verlopen — geen orakel.
+    const tokenRejected = () => json({ success: false, error: "invalid scanner token" }, 401);
+
+    let auth: CheckinAuth;
+    let scanner: ScannerContext | null = null;
+
+    if (tokenMode) {
+      if (!SCANNER_TOKEN_RE.test(scannerToken)) return tokenRejected();
+
+      const { data: row, error: sErr } = await admin
+        .from("event_scanner_access")
+        .select("id, tenant_id, event_detail_id, zone_id, direction, scan_mode, allowed_product_ids, is_active, expires_at, use_count")
+        .eq("access_token", scannerToken)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (sErr) {
+        console.error("[TICKET-CHECKIN] scanner lookup failed", sErr.message ?? JSON.stringify(sErr));
+        return json({ success: false, error: "scanner lookup failed" }, 500);
+      }
+      if (!row) return tokenRejected();
+      if (row.expires_at && new Date(row.expires_at as string).getTime() <= Date.now()) return tokenRejected();
+
+      scanner = {
+        id: row.id as string,
+        tenant_id: row.tenant_id as string,
+        event_detail_id: row.event_detail_id as string,
+        zone_id: row.zone_id as string,
+        direction: String(row.direction ?? "in"),
+        scan_mode: String(row.scan_mode ?? "check_in"),
+        allowed_product_ids: (row.allowed_product_ids as string[] | null) ?? null,
+      };
+
+      // Crew-rechten, nooit host: undo blijft daardoor automatisch 403.
+      auth = {
+        user_id: null,
+        tenant_ids: [scanner.tenant_id],
+        is_platform_admin: false,
+        roles_by_tenant: { [scanner.tenant_id]: ["staff"] },
+      };
+
+      // Telemetrie, best-effort: mag een scan nooit tegenhouden.
+      void admin
+        .from("event_scanner_access")
+        .update({ last_used_at: new Date().toISOString(), use_count: ((row.use_count as number) ?? 0) + 1 })
+        .eq("id", scanner.id)
+        .then(({ error }) => {
+          if (error) console.error("[TICKET-CHECKIN] token telemetry failed", error.message ?? JSON.stringify(error));
+        });
+    } else {
+      auth = await authenticateRequest(req);
+    }
+
     const qrToken = String(body?.qr_token ?? "").trim();
-    const eventDetailId = String(body?.event_detail_id ?? "").trim();
+    // ANTI-TAMPERING: in token-modus komt het event UITSLUITEND uit de DB-rij.
+    const eventDetailId = scanner ? scanner.event_detail_id : String(body?.event_detail_id ?? "").trim();
     const action = String(body?.action ?? "checkin");
 
     if (!TOKEN_RE.test(qrToken)) return json({ success: false, error: "invalid qr_token" }, 400);
@@ -44,11 +134,6 @@ serve(async (req) => {
     if (action !== "checkin" && action !== "undo") {
       return json({ success: false, error: "invalid action" }, 400);
     }
-
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     // 1. Gekozen event ophalen — dit bepaalt de tenant-scope.
     const { data: chosenEvent, error: evErr } = await admin
@@ -79,7 +164,7 @@ serve(async (req) => {
     // 3. Ticket ophalen — ALTIJD binnen de tenant van het gekozen event.
     const { data: ticket, error: tErr } = await admin
       .from("ticket_instances")
-      .select("id, qr_token, status, checked_in_at, checked_in_by, event_detail_id, attendee_name, seq, tenant_id")
+      .select("id, qr_token, status, checked_in_at, checked_in_by, event_detail_id, attendee_name, seq, tenant_id, product_id")
       .eq("qr_token", qrToken)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -113,16 +198,34 @@ serve(async (req) => {
       });
     }
 
-    // Default-zone van dit event (fase 2a: scan-log is bron van waarheid).
-    const { data: defaultZone } = await admin
-      .from("event_zones")
-      .select("id")
-      .eq("event_detail_id", eventDetailId)
-      .eq("tenant_id", tenantId)
-      .eq("is_default", true)
-      .maybeSingle();
-    const zoneId = (defaultZone?.id as string | undefined) ?? null;
-    const actorId = auth.user_id === "service_role" ? null : auth.user_id;
+    // Zone: in token-modus uit de token-rij, anders de default-zone van het event.
+    let zoneId: string | null = null;
+    if (scanner) {
+      zoneId = scanner.zone_id;
+    } else {
+      const { data: defaultZone } = await admin
+        .from("event_zones")
+        .select("id")
+        .eq("event_detail_id", eventDetailId)
+        .eq("tenant_id", tenantId)
+        .eq("is_default", true)
+        .maybeSingle();
+      zoneId = (defaultZone?.id as string | undefined) ?? null;
+    }
+    const actorId = !auth.user_id || auth.user_id === "service_role" ? null : auth.user_id;
+    const scannerAccessId = scanner?.id ?? null;
+
+    // Richting: JWT-modus blijft altijd 'in'. Token-modus volgt de token-rij,
+    // waarbij 'both' defaultet op 'in' (tenzij het een check-out-scanner is).
+    const direction = scanner
+      ? scanner.direction === "out"
+        ? "out"
+        : scanner.direction === "both" && scanner.scan_mode === "check_out"
+          ? "out"
+          : scanner.scan_mode === "check_out"
+            ? "out"
+            : "in"
+      : "in";
 
     if (action === "undo") {
       if (!isHost) return json({ success: false, error: "Only a host can undo a check-in" }, 403);
@@ -177,12 +280,83 @@ serve(async (req) => {
     }
 
     // --- checkin via de engine (scan-log leidend, status dual-write) ---
+    // GAT 1 — allowed_product_ids: alleen in token-modus, in de edge function.
+    // Bewust NIET in can_scan: dat zou de signatuur en dus het JWT-pad raken.
+    if (scanner && scanner.allowed_product_ids && scanner.allowed_product_ids.length > 0) {
+      if (!ticket.product_id || !scanner.allowed_product_ids.includes(ticket.product_id as string)) {
+        const { error: logErr } = await admin.from("ticket_scans").insert({
+          tenant_id: tenantId,
+          ticket_instance_id: ticket.id,
+          event_detail_id: eventDetailId,
+          zone_id: zoneId,
+          scanner_access_id: scannerAccessId,
+          scanned_by_user_id: actorId,
+          direction,
+          result: "not_allowed_zone",
+          note: "ticket_type_not_allowed",
+        });
+        if (logErr) console.error("[TICKET-CHECKIN] reject log failed", logErr.message ?? JSON.stringify(logErr));
+        log("ticket_type_not_allowed", { ticket_id: ticket.id, scanner_access_id: scannerAccessId });
+        return json({
+          success: true,
+          result: "not_allowed_zone",
+          reason: "ticket_type_not_allowed",
+          attendee: ticket.attendee_name,
+          seq: ticket.seq,
+        });
+      }
+    }
+
+    // GAT 3 — validate_only: alleen beslissen (read-only), nooit status schrijven.
+    // Wel een scan-rij voor de audit-trail; occupancy blijft ongemoeid omdat er
+    // geen 'ok'-in-scan bestaat zonder status-write... dus loggen we het besluit
+    // met note='validate_only' en direction uit de token.
+    if (scanner && scanner.scan_mode === "validate_only") {
+      const { data: decision, error: dErr } = await admin.rpc("can_scan", {
+        p_ticket_id: ticket.id,
+        p_event_detail_id: eventDetailId,
+        p_zone_id: zoneId,
+        p_direction: direction,
+        p_scanner_access_id: scannerAccessId,
+      });
+      if (dErr) {
+        console.error("[TICKET-CHECKIN] validate failed", dErr.message ?? JSON.stringify(dErr));
+        return json({ success: false, error: "validation failed" }, 500);
+      }
+      const d = (decision ?? {}) as { result?: string; reason?: string };
+      const vResult = d.result === "already_inside" ? "already" : String(d.result ?? "invalid");
+
+      const { error: vLogErr } = await admin.from("ticket_scans").insert({
+        tenant_id: tenantId,
+        ticket_instance_id: ticket.id,
+        event_detail_id: eventDetailId,
+        zone_id: zoneId,
+        scanner_access_id: scannerAccessId,
+        scanned_by_user_id: actorId,
+        direction,
+        result: String(d.result ?? "invalid"),
+        note: d.reason ? `validate_only:${d.reason}` : "validate_only",
+      });
+      if (vLogErr) console.error("[TICKET-CHECKIN] validate log failed", vLogErr.message ?? JSON.stringify(vLogErr));
+
+      log("validate_only", { ticket_id: ticket.id, result: vResult });
+      return json({
+        success: true,
+        result: vResult,
+        ...(d.reason ? { reason: d.reason } : {}),
+        validate_only: true,
+        attendee: ticket.attendee_name,
+        seq: ticket.seq,
+        checked_in_at: ticket.checked_in_at ?? null,
+      });
+    }
+
     const { data: scan, error: cErr } = await admin.rpc("perform_scan", {
       p_ticket_id: ticket.id,
       p_event_detail_id: eventDetailId,
       p_zone_id: zoneId,
-      p_direction: "in",
-      p_scanner_access_id: null,
+      p_direction: direction,
+      p_scanner_access_id: scannerAccessId,
       p_scanned_by_user_id: actorId,
       p_device_id: null,
     });
@@ -203,7 +377,7 @@ serve(async (req) => {
     // COMPAT-mapping naar de bestaande PWA-codes.
     const result = s.result === "already_inside" ? "already" : String(s.result ?? "invalid");
 
-    log("checkin result", { ticket_id: ticket.id, event_detail_id: eventDetailId, result });
+    log("checkin result", { ticket_id: ticket.id, event_detail_id: eventDetailId, result, direction, token: !!scanner });
     return json({
       success: true,
       result,
