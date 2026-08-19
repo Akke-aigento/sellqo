@@ -165,7 +165,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return [];
       const { data, error } = await supabase
         .from('event_ticket_types')
-        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, products!event_ticket_types_product_id_fkey(name, price)')
+        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, reentry_policy, products!event_ticket_types_product_id_fkey(name, price)')
         .eq('tenant_id', currentTenant.id)
         .eq('event_detail_id', eventId)
         .order('sort_order', { ascending: true });
@@ -182,6 +182,7 @@ export default function EventDetail() {
           sales_start: (row.sales_start as string | null) ?? null,
           sales_end: (row.sales_end as string | null) ?? null,
           sort_order: (row.sort_order as number) ?? 0,
+          reentry_policy: ((row.reentry_policy as ReentryPolicy | null) ?? 'none'),
         };
       });
     },
