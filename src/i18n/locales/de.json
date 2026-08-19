@@ -2069,7 +2069,8 @@
       "attendees": "Teilnehmer",
       "scanLog": "Scan-Protokoll",
       "ticketTypes": "Ticketarten",
-      "access": "Zugänge"
+      "access": "Zugänge",
+      "settings": "Einstellungen"
     },
     "stats": {
       "capacity": "Kapazität",
@@ -2077,7 +2078,8 @@
       "inside": "Jetzt drinnen",
       "free": "Freie Plätze",
       "occupancy": "Belegung",
-      "minimum": "Minimum"
+      "minimum": "Minimum",
+      "live": "live"
     },
     "ticketTypes": {
       "title": "Ticketarten",
@@ -2262,6 +2264,26 @@
         "revoked": "Zugang widerrufen",
         "deleted": "Zugang gelöscht",
         "error": "Aktion fehlgeschlagen"
+      }
+    },
+    "settings": {
+      "title": "Event-Einstellungen",
+      "status": "Status",
+      "date": "Datum",
+      "startTime": "Startzeit",
+      "endTime": "Endzeit",
+      "locationName": "Ort",
+      "meetingPoint": "Treffpunkt",
+      "capacity": "Kapazität",
+      "unlimitedCapacity": "Unbegrenzte Kapazität",
+      "minAttendees": "Mindestteilnehmer",
+      "save": "Änderungen speichern",
+      "earlyBirdNote": "Den Frühbucherpreis verwaltest du im Tab Termine des Produkts.",
+      "confirmTitle": "Änderung bestätigen",
+      "confirmContinue": "Fortfahren",
+      "guards": {
+        "hidingStatus": "Dieses Event wird auf {{status}} gesetzt. Es verschwindet dann aus deinem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
+        "capacityBelowSold": "Es wurden bereits {{sold}} Tickets verkauft. Eine niedrigere Kapazität stoppt neue Verkäufe; bestehende Tickets bleiben gültig."
       }
     }
   }
