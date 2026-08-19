@@ -561,6 +561,9 @@ export default function EventDetail() {
           <TabsTrigger value="overview" className="gap-2">
             <Ticket className="h-4 w-4" /> {t('events.tabs.overview')}
           </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings2 className="h-4 w-4" /> {t('events.tabs.settings')}
+          </TabsTrigger>
           <TabsTrigger value="ticket_types" className="gap-2">
             <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
           </TabsTrigger>
@@ -580,19 +583,27 @@ export default function EventDetail() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.capacity')}</p>
-              <p className="text-xl font-bold">{capacity}</p>
+              <p className="text-xl font-bold">{capacityLabel}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.sold')}</p>
               <p className="text-xl font-bold">{sold}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
-              <p className="text-xs text-muted-foreground">{t('events.stats.inside')}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                {t('events.stats.inside')}
+                {liveScan && (
+                  <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {t('events.stats.live')}
+                  </span>
+                )}
+              </p>
               <p className="text-xl font-bold">{inside}</p>
             </div>
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.free')}</p>
-              <p className="text-xl font-bold">{free}</p>
+              <p className="text-xl font-bold">{freeLabel}</p>
             </div>
           </div>
 
@@ -603,7 +614,7 @@ export default function EventDetail() {
             <CardContent className="space-y-2">
               <Progress value={pct} className="h-2" />
               <p className="text-xs text-muted-foreground tabular-nums">
-                {sold} / {capacity} ({pct}%)
+                {sold} / {capacityLabel}{capacity != null ? ` (${pct}%)` : ''}
                 {event.min_attendees > 0
                   ? ` · ${t('events.stats.minimum')}: ${event.min_attendees}`
                   : ''}
@@ -642,6 +653,19 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
 
+        {/* ---------------- Instellingen (4d, bewerkbaar) ---------------- */}
+        <TabsContent value="settings" className="space-y-4">
+          <EventCoreSettingsCard
+            event={event}
+            sold={sold}
+            onSaved={() =>
+              queryClient.invalidateQueries({
+                queryKey: ['event-detail', currentTenant?.id, eventId],
+              })
+            }
+          />
+        </TabsContent>
+
         {/* ---------------- Tickettypes (4b, bewerkbaar) ---------------- */}
         <TabsContent value="ticket_types" className="space-y-4">
           <Card>
@@ -656,7 +680,7 @@ export default function EventDetail() {
             <CardContent className="space-y-3">
               {capacityOverflow && (
                 <p className="text-xs text-muted-foreground">
-                  {t('events.ticketTypes.guards.capacityCeiling', { capacity })}
+                  {t('events.ticketTypes.guards.capacityCeiling', { capacity: capacityLabel })}
                 </p>
               )}
               {ticketTypes.length === 0 ? (
