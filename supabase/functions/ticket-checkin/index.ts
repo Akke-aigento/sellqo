@@ -280,12 +280,83 @@ serve(async (req) => {
     }
 
     // --- checkin via de engine (scan-log leidend, status dual-write) ---
+    // GAT 1 — allowed_product_ids: alleen in token-modus, in de edge function.
+    // Bewust NIET in can_scan: dat zou de signatuur en dus het JWT-pad raken.
+    if (scanner && scanner.allowed_product_ids && scanner.allowed_product_ids.length > 0) {
+      if (!ticket.product_id || !scanner.allowed_product_ids.includes(ticket.product_id as string)) {
+        const { error: logErr } = await admin.from("ticket_scans").insert({
+          tenant_id: tenantId,
+          ticket_instance_id: ticket.id,
+          event_detail_id: eventDetailId,
+          zone_id: zoneId,
+          scanner_access_id: scannerAccessId,
+          scanned_by_user_id: actorId,
+          direction,
+          result: "not_allowed_zone",
+          note: "ticket_type_not_allowed",
+        });
+        if (logErr) console.error("[TICKET-CHECKIN] reject log failed", logErr.message ?? JSON.stringify(logErr));
+        log("ticket_type_not_allowed", { ticket_id: ticket.id, scanner_access_id: scannerAccessId });
+        return json({
+          success: true,
+          result: "not_allowed_zone",
+          reason: "ticket_type_not_allowed",
+          attendee: ticket.attendee_name,
+          seq: ticket.seq,
+        });
+      }
+    }
+
+    // GAT 3 — validate_only: alleen beslissen (read-only), nooit status schrijven.
+    // Wel een scan-rij voor de audit-trail; occupancy blijft ongemoeid omdat er
+    // geen 'ok'-in-scan bestaat zonder status-write... dus loggen we het besluit
+    // met note='validate_only' en direction uit de token.
+    if (scanner && scanner.scan_mode === "validate_only") {
+      const { data: decision, error: dErr } = await admin.rpc("can_scan", {
+        p_ticket_id: ticket.id,
+        p_event_detail_id: eventDetailId,
+        p_zone_id: zoneId,
+        p_direction: direction,
+        p_scanner_access_id: scannerAccessId,
+      });
+      if (dErr) {
+        console.error("[TICKET-CHECKIN] validate failed", dErr.message ?? JSON.stringify(dErr));
+        return json({ success: false, error: "validation failed" }, 500);
+      }
+      const d = (decision ?? {}) as { result?: string; reason?: string };
+      const vResult = d.result === "already_inside" ? "already" : String(d.result ?? "invalid");
+
+      const { error: vLogErr } = await admin.from("ticket_scans").insert({
+        tenant_id: tenantId,
+        ticket_instance_id: ticket.id,
+        event_detail_id: eventDetailId,
+        zone_id: zoneId,
+        scanner_access_id: scannerAccessId,
+        scanned_by_user_id: actorId,
+        direction,
+        result: String(d.result ?? "invalid"),
+        note: d.reason ? `validate_only:${d.reason}` : "validate_only",
+      });
+      if (vLogErr) console.error("[TICKET-CHECKIN] validate log failed", vLogErr.message ?? JSON.stringify(vLogErr));
+
+      log("validate_only", { ticket_id: ticket.id, result: vResult });
+      return json({
+        success: true,
+        result: vResult,
+        ...(d.reason ? { reason: d.reason } : {}),
+        validate_only: true,
+        attendee: ticket.attendee_name,
+        seq: ticket.seq,
+        checked_in_at: ticket.checked_in_at ?? null,
+      });
+    }
+
     const { data: scan, error: cErr } = await admin.rpc("perform_scan", {
       p_ticket_id: ticket.id,
       p_event_detail_id: eventDetailId,
       p_zone_id: zoneId,
-      p_direction: "in",
-      p_scanner_access_id: null,
+      p_direction: direction,
+      p_scanner_access_id: scannerAccessId,
       p_scanned_by_user_id: actorId,
       p_device_id: null,
     });
@@ -306,7 +377,7 @@ serve(async (req) => {
     // COMPAT-mapping naar de bestaande PWA-codes.
     const result = s.result === "already_inside" ? "already" : String(s.result ?? "invalid");
 
-    log("checkin result", { ticket_id: ticket.id, event_detail_id: eventDetailId, result });
+    log("checkin result", { ticket_id: ticket.id, event_detail_id: eventDetailId, result, direction, token: !!scanner });
     return json({
       success: true,
       result,
