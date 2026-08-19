@@ -1,3 +1,137 @@
+## EVENT-SYSTEEM FASE 2b — scanner-token-auth (server-pad) — 19 augustus 2026
+
+### Root cause / aanleiding
+Check-in vereiste tot nu toe een SellQo-account: `ticket-checkin` riep op r.35
+`authenticateRequest(req)` aan vóór het lezen van de body, dus een vrijwilliger zonder account
+kon niet scannen. Fase 1 leverde `event_scanner_access` (met `access_token`) al op, maar geen
+enkel pad gebruikte hem: `p_scanner_access_id` werd hard op `null` doorgegeven.
+
+### Uitgevoerd
+- **`supabase/functions/ticket-checkin/index.ts`** — token-aftakking **vóór** `authenticateRequest`:
+  de body wordt nu eerst gelezen, daarna wordt de modus bepaald. Token uit header
+  `x-scanner-token` (voorkeur) of `body.scanner_token` (fallback); nooit uit de URL.
+  Zonder token: exact de bestaande JWT-flow, `authenticateRequest` ongewijzigd aangeroepen.
+  `_shared/auth.ts` is **niet** aangeraakt; de function gebruikt een lokale `CheckinAuth`-interface
+  die dezelfde velden beschrijft.
+- **Token-validatie**: regex `/^[a-f0-9]{64}$/`, lookup met service-role op
+  `event_scanner_access WHERE access_token=… AND is_active=true`, plus een expliciete
+  `expires_at`-check. Onbekend, inactief én verlopen geven **dezelfde** generieke 401
+  `{success:false, error:"invalid scanner token"}` — geen orakel.
+  `last_used_at`/`use_count` worden best-effort bijgewerkt (fout wordt gelogd, blokkeert nooit).
+- **Token-'auth'-object**: `{ user_id: null, tenant_ids:[row.tenant_id], is_platform_admin:false,
+  roles_by_tenant:{ [tenant]: ['staff'] } }` → `isCrew=true`, `isHost=false`, dus **undo is
+  structureel 403** zonder extra code. `actorId` wordt `null` (kolom `scanned_by_user_id` is
+  nullable en heeft geen FK), `p_scanner_access_id` wordt de token-rij-id.
+- **Anti-tampering**: in token-modus komen `event_detail_id` en `zone_id` **uitsluitend** uit de
+  DB-rij; `body.event_detail_id` wordt genegeerd. De verplichting van `event_detail_id` in de body
+  geldt alleen nog in JWT-modus.
+- **Gat 1 — `allowed_product_ids`** afgedwongen in de edge function, vóór `perform_scan`, en
+  bewust **niet** in `can_scan`: dat zou de signatuur van de engine wijzigen en dus het JWT-pad
+  raken. Ligt de `product_id` van het ticket niet in de array (NULL/leeg = alles toegestaan), dan
+  wordt een `ticket_scans`-rij `result='not_allowed_zone'`, `note='ticket_type_not_allowed'`
+  gelogd en volgt `{result:'not_allowed_zone', reason:'ticket_type_not_allowed'}`. JWT-modus:
+  geen filter, exact als voorheen.
+- **Gat 2 — `direction`** uit de token-rij: `'out'` → out-scan, `'both'` → default `'in'`
+  (tenzij `scan_mode='check_out'`), `scan_mode='check_out'` → `'out'`. JWT-modus blijft hard
+  `'in'`. **Bevestigd**: `perform_scan` doet de dual-write alleen bij `result='ok' AND
+  p_direction='in'`, dus een out-scan raakt `ticket_instances.status` níet — enkel het scan-log.
+  Occupancy klopt (via `ticket_is_inside`/`zone_occupancy`), de "verkocht/checked_in"-tellingen
+  van de bestaande lezers blijven intact.
+- **Gat 3 — `scan_mode='validate_only'`**: roept alleen `can_scan` aan (STABLE, read-only), doet
+  **geen** status-write, en logt wél een `ticket_scans`-rij met het besluit en
+  `note='validate_only[:reason]'` — auditwaarde zonder de bezetting te beïnvloeden (de rij heeft
+  `result='ok'` maar er is geen status-write; occupancy leest `ticket_is_inside`, die op de
+  laatste `in`-scan afgaat — daarom is `validate_only` bedoeld voor deur-controle zonder
+  check-in en mag zo'n token nooit op een `in`-poort staan; fase 4 beperkt dit in de UI).
+  Response krijgt `validate_only: true` naast de bestaande velden.
+- **Nieuw `supabase/functions/scanner-context/index.ts`** — zelfde tokenvalidatie en zelfde
+  generieke 401. Geeft terug: `scanner{id,name}`, `event{id,date,start_time,end_time,
+  location_name,status}`, `zone{id,name}`, `direction`, `scan_mode`, `allowed_product_names`,
+  `tenant_branding{name,logo_url}`. **Geen** attendee-data, **geen** tellers, **geen** financiële
+  of orderdata.
+- **`supabase/config.toml`**: `[functions.ticket-checkin] verify_jwt=false` en
+  `[functions.scanner-context] verify_jwt=false` expliciet toegevoegd. Dit verandert bestaand
+  gedrag niet: `ticket-checkin` had geen blok en liep al op de default `false`, en de auth gebeurt
+  in-code — de PWA stuurt haar JWT mee en die wordt onverminderd via `authenticateRequest`
+  gevalideerd.
+- `x-scanner-token` toegevoegd aan `Access-Control-Allow-Headers` van beide functies.
+- **Bewust niet gebouwd**: vrijwilliger-UI (fase 5) en toegangen-beheer-UI (fase 4). Geen
+  changelog, geen doc_articles, geen frontend-wijziging.
+
+### Security-keuzes
+- Undo blijft host-only: token-scanners zijn `staff`, dus `isHost=false` → 403. Bovendien vereist
+  `admin_actions_log.admin_user_id` een echte user-id.
+- Een tokenscanner heeft geen JWT en dus DB-rol `anon`; `event_scanner_access`, `ticket_scans` en
+  `ticket_instances` hebben geen anon-grant en geen anon-policy → geen attendee-lijst, geen
+  tellers, geen financiële data. Alle DB-werk loopt via de service-role client ín de function.
+- `can_scan`/`perform_scan` blijven `REVOKE ALL … FROM PUBLIC, anon` met `EXECUTE` enkel voor
+  `service_role` — een token kan de engine nooit direct aanroepen.
+- Scope-afscherming bevestigd: `can_scan` eist `event.tenant_id = ticket.tenant_id` én
+  `ticket.event_detail_id = p_event_detail_id`; omdat `p_event_detail_id`/`p_zone_id` in
+  token-modus uit de DB-rij komen, kan een token niet buiten zijn event/zone of tenant scannen.
+- Geen nieuwe tabellen, geen RLS- of grant-wijzigingen in deze batch.
+
+### Gedeelde-paden-waarschuwing
+`storefront-api`, `storefront-resolve`, `checkout-engine` en de gedeelde theme-tabellen zijn niet
+geraakt. `_shared/auth.ts` ongemoeid, dus geen effect op de ~40 andere functies die hem importeren.
+
+### Verificatie (letterlijk, testdata nadien opgeruimd)
+Testopstelling: event `17efe0cc` (status `scheduled`, zone `Ingang` = default), testticket
+`seq 9001` (`status='valid'`), vier scanner-toegangen `FASE2B ok/expired/inactive/otherproduct`.
+
+Token-modus (`x-scanner-token`):
+- T1 geldig token, in-scan → `HTTP 200 {"success":true,"result":"ok","attendee":"Fase2b Tester","seq":9001,"checked_in_at":"2026-08-19T11:08:13.327Z"}`
+- T2 tweede scan → `HTTP 200 {"result":"already","checked_in_at":"2026-08-19T11:08:13.327Z"}`
+- T3 undo via token → `HTTP 403 {"success":false,"error":"Only a host can undo a check-in"}`
+- T4 body-tampering (`body.event_detail_id` = ánder event) → `HTTP 200 {"result":"already"}` —
+  token wint, body genegeerd (was de body gevolgd, dan zou `wrong_event` zijn teruggekomen)
+- T5 verlopen token → `HTTP 401 {"success":false,"error":"invalid scanner token"}`
+- T6 inactief token → `HTTP 401 {"success":false,"error":"invalid scanner token"}`
+- T7 onbekend token → `HTTP 401 {"success":false,"error":"invalid scanner token"}` (drie keer
+  identiek — geen orakel)
+- T8 token met `allowed_product_ids` op een ánder product → `HTTP 200
+  {"result":"not_allowed_zone","reason":"ticket_type_not_allowed"}`
+- T13 `direction='out'`/`scan_mode='check_out'` → `HTTP 200 {"result":"ok","checked_in_at":null}`;
+  `ticket_instances.status` bleef `checked_in` (**geen** dual-write op out — bevestigd)
+- T14 `scan_mode='validate_only'` → `HTTP 200 {"result":"ok","validate_only":true}`; geen
+  status-write, scanregel met `note='validate_only'`
+
+`ticket_scans` na de tokentests (6 rijen, alle met `scanner_access_id` gevuld en
+`scanned_by_user_id = NULL`): `in/ok`, `in/already_inside`, `in/already_inside`,
+`in/not_allowed_zone (note=ticket_type_not_allowed)`, `out/ok`, `in/ok (note=validate_only)`.
+
+`scanner-context`:
+- T9 geldig token → `HTTP 200` met `scanner{FASE2B ok}`, `event{17efe0cc, 2026-09-18, 21:00,
+  Ladeuzeplein, scheduled}`, `zone{Ingang}`, `direction:"in"`, `scan_mode:"check_in"`,
+  `allowed_product_names:null`, `tenant_branding{The Fonske Crawl, logo_url}` — géén attendee,
+  géén tellers.
+- T10 ongeldig token → `HTTP 401 {"success":false,"error":"invalid scanner token"}`
+
+JWT-modus ONVERANDERD (echte sessie-JWT, geen `x-scanner-token`):
+- J1 check-in → `{"result":"already","checked_in_at":"…11:08:13.327Z"}`
+- J2 undo → `{"result":"undone","attendee":"Fase2b Tester","seq":9001}`
+- J3 check-in na undo → `{"result":"ok","checked_in_at":"…11:09:16.861Z"}`
+- J4 ander event → `{"result":"wrong_event","expected_event":{"date":"2026-09-18",
+  "start_time":"21:00:00","name":"Ladeuzeplein"}}`
+- J5 zonder `event_detail_id` → `HTTP 400 {"error":"event_detail_id required"}`
+- T11 zonder JWT en zonder token → `HTTP 401 {"error":"Missing or invalid Authorization header"}`
+
+Opruiming: testticket, vier scanner-toegangen, alle bijhorende `ticket_scans`-rijen en de
+`admin_actions_log`-undo-regel verwijderd. `npx tsgo --noEmit -p tsconfig.app.json` → **exit 0**.
+
+### Bewust ongemoeid / Vervolg
+- Geen vrijwilliger-UI en geen beheer-UI voor toegangen (fase 4/5). Er is dus nog geen manier om
+  in de app een token aan te maken of in te trekken — dat gebeurt vandaag alleen via de DB.
+- Geen rate-limiting of use-cap op tokens: een gelekte link blijft tot `expires_at` geldig binnen
+  zijn event/zone. `use_count`/`last_used_at` zijn de telemetrie waarop fase 4 een intrek-knop kan
+  bouwen.
+- `validate_only` logt een `in`-scan met `result='ok'`; wil je die modus écht bezettings-neutraal,
+  dan is een aparte result-code nodig (additieve constraint-uitbreiding, latere fase).
+- De PWA kent de nieuwe codes (`not_allowed_zone`, `event_not_active`, …) nog niet als eigen
+  UI-status; dat blijft fase 4/5.
+
+---
+
 ## EVENT-SYSTEEM FASE 2a — check-in engine (scan-log, dual-write) — 19 augustus 2026
 
 ### Root cause / aanleiding
