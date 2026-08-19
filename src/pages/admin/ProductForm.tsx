@@ -535,7 +535,12 @@ export default function ProductForm() {
 
     // Set legacy category_id to primary (first selected) category
     const primaryCategoryId = selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : null;
-     const featuredImage = data.featured_image?.trim() || (data.images?.length > 0 ? data.images[0] : null);
+     // featured_image mag nooit naar een verwijderde foto blijven wijzen:
+     // hij moet altijd in de images-array voorkomen, anders valt hij terug op de eerste foto.
+     const trimmedFeatured = data.featured_image?.trim() || '';
+     const featuredImage = trimmedFeatured && data.images?.includes(trimmedFeatured)
+       ? trimmedFeatured
+       : (data.images?.length > 0 ? data.images[0] : null);
      const submitData = {
        ...data,
        category_id: primaryCategoryId,
