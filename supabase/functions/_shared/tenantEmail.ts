@@ -496,8 +496,9 @@ export async function resolveEmailLocale(
   },
 ): Promise<TenantLocale> {
   if (opts.explicit) {
-    const l = sanitizeLocale(opts.explicit, "en");
-    if (l) return l;
+    const raw = String(opts.explicit || "").toLowerCase().slice(0, 2);
+    if (SUPPORTED_LOCALES.includes(raw as TenantLocale)) return raw as TenantLocale;
+    // niet-ondersteunde explicit locale → val door naar de rest van de keten
   }
   if (opts.customerLocale) return sanitizeLocale(opts.customerLocale, opts.tenantDefault || "en");
 
