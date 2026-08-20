@@ -1,3 +1,174 @@
+## EDGE-TO-EDGE-1 — safe-area-insets na targetSdk 36 — 20 augustus 2026
+
+> ⚠️ **DE FYSIEKE TOESTEL-TEST STAAT NOG OPEN.** Deze fix is code-geverifieerd
+> (`tsc` exit 0, build exit 0, lint-delta nul, computed styles in Chrome) maar
+> **niet visueel bevestigd op hardware**. Akke had op het moment van committen
+> geen Android-toestel beschikbaar. Zie **Verificatie — nog uit te voeren**
+> onderaan voor de checklist die alsnog gelopen moet worden vóór een
+> Play Store-upload.
+
+### Root cause
+
+Na `targetSdkVersion 35 → 36` (`5942bb0d`) schoof content op een fysiek toestel
+onder de statusbar én onder de navigatiebalk: je raakte de systeemknoppen in
+plaats van de app-knoppen.
+
+De oorzaak zit niet in onze Android-config maar in een bewuste keuze van
+Capacitor. `SystemBars.java`
+(`node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/`)
+splitst in `initWindowInsetsListener` op:
+
+```java
+boolean shouldPassthroughInsets = getWebViewMajorVersion() >= 140 && hasViewportCover;
+```
+
+In de passthrough-tak doet Capacitor `v.setPadding(0, 0, 0, 0)` — het padt de
+WebView-container **expres niet** en geeft de echte insets door aan de webcontext.
+`index.html:5` heeft `viewport-fit=cover` en een Android 16-toestel heeft WebView
+≥ 140, dus we zaten in die tak. `viewport-fit=cover` is daarmee niet alleen een
+voorwaarde maar de **schakelaar** die de verantwoordelijkheid naar de CSS legt.
+
+Daarnaast injecteert de plugin (`injectSafeAreaCSS`) vier custom properties als
+inline style op `documentElement`: `--safe-area-inset-top/-right/-bottom/-left`.
+Die werden nergens uitgelezen.
+
+Twee bevindingen uit de recon:
+
+**1. `--safe-top` was een dode token.** `src/index.css:62` definieerde
+`--safe-top: env(safe-area-inset-top, 0px)`, maar `grep` op `var(--safe-top)` gaf
+alleen de definitie zelf — nul consumenten. De enige echte safe-area-consument was
+`sonner.tsx:20`, die `env()` inline herhaalde.
+
+**2. `--safe-bottom` bestond niet.** Precies de kant met het ergste symptoom: zes
+`fixed bottom-0`-componenten, waaronder beide bottom-navs, zonder enige inset.
+
+### Uitgevoerd
+
+14 planpunten over 13 bestanden, allemaal binnen `src/`.
+
+- **`src/index.css`** — `--safe-top` herschreven en `--safe-bottom` toegevoegd met
+  een drietrapsketting `var(--safe-area-inset-*, env(safe-area-inset-*, 0px))`:
+  native pakt de geïnjecteerde variabele (inline style wint van de
+  `:root`-regel), iOS/browser valt terug op `env()`, desktop krijgt `0px`. In het
+  bestaande `@layer utilities`-blok drie helpers: `.pt-safe`, `.pb-safe`,
+  `.top-safe`. Geen wijziging aan `tailwind.config.ts` nodig.
+- **Bottom (`--safe-bottom`), 6 plekken** — `pb-safe` op
+  `AdminMobileBottomNav.tsx:22`, `MobileBottomNav.tsx:18`,
+  `PlatformCookieBanner.tsx:98` en `ui/drawer.tsx:34`. Op
+  `CookieBanner.tsx:123`/`:169` een expliciete
+  `pb-[calc(1rem+var(--safe-bottom))]` resp. `calc(0.75rem+...)`, omdat `pb-safe`
+  náást een `p-4`/`p-3`-shorthand van de volgorde binnen de utilities-laag zou
+  afhangen; met `calc` is de uitkomst volgorde-onafhankelijk.
+- **Top (`--safe-top`), 4 plekken** — `AdminHeader.tsx:24` kreeg `pt-safe` en
+  `h-14 → min-h-14`; `LandingNavbar.tsx:41` kreeg `pt-safe`; `sonner.tsx:20`
+  gebruikt nu `var(--safe-top)`; `ShopLayout.tsx` kreeg `paddingTop:
+  'var(--safe-top)'` op de root en `sticky top-0 → sticky top-safe` op de header.
+- **Content-reserves die moesten meegroeien, 4 plekken** —
+  `AdminLayout.tsx:46` (`pb-20` → `pb-[calc(5rem+var(--safe-bottom))]`),
+  `ShopLayout.tsx:309` (`pb-14` → `calc(3.5rem+...)`),
+  `PublicPageLayout.tsx:17` (`pt-20` → `calc(5rem+var(--safe-top))`),
+  `HeroSection.tsx:31` (`pt-24` → `calc(6rem+var(--safe-top))`, `md:pt-32`
+  ongemoeid). Zonder deze vier verplaatst de fix het probleem: de balken worden
+  hoger en dekken content af die eerder net vrij lag.
+
+### Twee ontwerpkeuzes die uitleg verdienen
+
+**`h-14 → min-h-14` op `AdminHeader`.** Tailwind gebruikt `box-sizing:
+border-box`; `pt-safe` bovenop een harde `h-14` zou de inhoud samendrukken in
+plaats van de header te laten groeien. `min-h-14` laat hem meegroeien met de
+inset. Tailwind is 3.4.17, dus `min-h-14` zit in de spacing-scale.
+
+**`SandboxBanner.tsx` is bewust niet aangeraakt.** Hij wordt op twee plekken met
+verschillende stapeling gebruikt: `AdminLayout.tsx:41` zet hem **onder**
+`AdminHeader` (regel 39), `ShopLayout.tsx:316` als bovenste element. Een vaste
+`pt-safe` in het component zou in admin dubbel padden. In admin dekt
+`AdminHeader` de inset af; in de storefront dekt de root-padding van `ShopLayout`
+hem af. Om diezelfde reden zit de storefront-inset op de root en niet op een van
+de drie bovenste elementen (`SandboxBanner`, `AnnouncementCarousel`, header):
+welke daarvan bovenaan staat wisselt per conditie.
+
+### Security-keuzes
+
+N.v.t., onderbouwd: deze batch wijzigt uitsluitend CSS-tokens en
+`className`/`style`-attributen in React-componenten. Geen RLS, geen policy, geen
+grant, geen migratie, geen datatoegang, geen edge-functie. Er is geen enkel
+nieuw datapad ontstaan.
+
+### Gedeelde-paden-waarschuwing
+
+N.v.t., en dat is geverifieerd, niet aangenomen. Alle 14 wijzigingen zitten in
+`src/`. `index.html` hoefde niet gewijzigd — `viewport-fit=cover` stond er al.
+Geen tabel, geen migratie, geen van de drie gedeelde edge-functies
+(`storefront-resolve`, `storefront-api`, `checkout-engine`).
+
+CLAUDE.md §1: *"Geen enkel React-component wordt gedeeld met de custom frontends;
+die renderen zelf. Gedeeld zijn alleen de tabellen en het JSON-contract van
+`storefront-api`."* Beide blijven ongemoeid. Bovendien is dit de **SellQo
+Admin**-app; de vijf custom frontends zijn losse Lovable-projecten die niet in
+deze native wrapper zitten.
+
+### Verificatie — uitgevoerd
+
+- `npx tsc --noEmit -p tsconfig.app.json` → **exit 0**, 0 logregels.
+- `npm run build` → **exit 0**, ✓ built in 1m 11s.
+- **Lint tegen baseline** via een tijdelijke `git worktree` op `HEAD` met
+  gesymlinkte `node_modules` (working tree bleef onaangeroerd): **29 problems
+  (22 errors, 7 warnings) vóór én ná** — nul delta, dezelfde vier bestanden.
+  Worktree daarna verwijderd.
+- **Gecompileerde CSS** (`dist/assets/index-BjDKfs10.css`) bevat beide tokens, de
+  drie utility-klassen en alle zes `calc()`-varianten letterlijk.
+- **0px-garantie empirisch bevestigd** in Chrome op de dev-server, met een
+  meetprobe die de `var()`-ketting tot een echte lengte dwingt:
+  `--safe-top` → `0px`, `--safe-bottom` → `0px`, Capacitor-variabelen
+  `(niet gezet)`, en de echte `LandingNavbar` computed `padding-top: 0px` —
+  identiek aan vóór de wijziging. `HeroSection` toonde 128px omdat op
+  desktopbreedte de ongewijzigde `md:pt-32`-tak wint.
+
+### Verificatie — NOG UIT TE VOEREN (blokkeert een Play Store-upload)
+
+**De fix is niet op hardware gezien.** Web/desktop is bewezen ongewijzigd, maar
+dat bewijst per definitie níét dat de native insets kloppen — daar is `--safe-top`
+juist niet 0. Te lopen zodra er een Android-toestel is:
+
+```
+npm run build && npx cap sync android
+cd android && ./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+- **Admin** — header vrij van de statusbar; bottom-nav-knoppen raakbaar en niet
+  onder de gesture-balk; onderste lijst-item scrolt vrij.
+- **Storefront** — header, cookiebanner-knoppen, drawer-inhoud.
+- **Landing** — navbar-logo vrij van de statusbar.
+- **Toast** oproepen (top-center) — moet onder de statusbar vallen.
+- **Landschap** heen en terug, en **toetsenbord** openen in een formulier. Dit is
+  het gevoeligste geval: `calcSafeAreaInsets` nult de bottom-inset zodra de IME
+  zichtbaar is.
+
+Admin en storefront konden ook op web niet headless gecontroleerd worden (vereisen
+een ingelogde sessie respectievelijk een tenant-route); voor die twee steunt de
+0px-garantie op de rekensom (`calc(5rem+0px)` = `pb-20`, `calc(3.5rem+0px)` =
+`pb-14`, `top: 0px` = `top-0`, `min-h-14` + 0 padding = `h-14`) plus de
+gecompileerde CSS.
+
+### Bewust ongemoeid / Vervolg
+
+- **`--safe-left` / `--safe-right`** niet toegevoegd. Geen horizontaal symptoom
+  gemeld; relevant bij een display-cutout in landschap.
+- **`SandboxBanner` is `sticky top-0` met `z-50`, `AdminHeader` heeft `z-10`.**
+  Bij scrollen in admin schuift de banner over de header. Bestaand gedrag,
+  losstaand van insets, niet meegenomen.
+- **Geen changelog, `doc_articles` of newsletter-entry.** CLAUDE.md §4 geldt voor
+  batches die tenant-zichtbaar gedrag veranderen. Dit is een native-only
+  layout-correctie zonder functionele verandering; op web verandert er
+  aantoonbaar niets. Afgestemd met Akke.
+- **De emulator-route is een dood spoor.** Het aangemaakte image is
+  `android-37.2-beta3` (niet API 36) en de host is een Intel i7-1060NG7 waarop de
+  emulator na 11 minuten nog `offline` stond. Verificatie loopt via een fysiek
+  toestel.
+
+---
+
 ## PLAYSTORE-SIGNING-1 — upload-key-infra voor Play App Signing — 20 augustus 2026
 
 Alleen build-configuratie. Geen enkele wijziging aan applicatiecode, database of

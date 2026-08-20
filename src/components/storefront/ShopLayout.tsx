@@ -306,9 +306,16 @@ export function ShopLayout({ children }: ShopLayoutProps) {
 
   return (
     <div 
-      className={cn("min-h-screen flex flex-col bg-background", mobileBottomNav && "pb-14 md:pb-0")}
+      className={cn(
+        "min-h-screen flex flex-col bg-background",
+        mobileBottomNav && "pb-[calc(3.5rem+var(--safe-bottom))] md:pb-0"
+      )}
       style={{
         fontFamily: resolvedBodyFont ? `"${resolvedBodyFont}", sans-serif` : undefined,
+        // Statusbar-inset op de root: de bovenste in-flow elementen (SandboxBanner,
+        // AnnouncementCarousel, header) wisselen per conditie, dus de inset hoort
+        // hier en niet op een van die drie.
+        paddingTop: 'var(--safe-top)',
         ...palette.cssVariables,
       } as React.CSSProperties}
     >
@@ -327,7 +334,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       {/* Header - conditionally sticky */}
       <header className={cn(
         "z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b",
-        headerSticky && "sticky top-0"
+        headerSticky && "sticky top-safe"
       )}>
         <div className="container mx-auto px-4">
           {headerStyle === 'centered' ? (

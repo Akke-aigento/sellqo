@@ -43,7 +43,7 @@ function AdminLayoutContent() {
           <PushPermissionBanner />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
-          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-20 md:pb-6">
+          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-[calc(5rem+var(--safe-bottom))] md:pb-6">
             <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0">
               <Outlet />
             </div>

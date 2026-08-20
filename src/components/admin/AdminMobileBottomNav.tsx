@@ -19,7 +19,7 @@ export function AdminMobileBottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t pb-safe md:hidden">
       <nav className="flex items-center justify-around h-14">
         {tabs.map((tab) => (
           <Link

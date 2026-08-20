@@ -28,7 +28,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative pt-24 md:pt-32 pb-16 md:pb-24 overflow-hidden">
+    <section className="relative pt-[calc(6rem+var(--safe-top))] md:pt-32 pb-16 md:pb-24 overflow-hidden">
       {/* Background gradient - enhanced navy to lighter blue */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10 -z-10" />
       

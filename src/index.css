@@ -58,8 +58,11 @@
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
 
-    /* Native safe-area (requires viewport-fit=cover) */
-    --safe-top: env(safe-area-inset-top, 0px);
+    /* Native safe-area. Capacitor 8 SystemBars injecteert --safe-area-inset-* op
+       documentElement (Android); env() is de iOS/browser-route; 0px is web/desktop.
+       Vereist viewport-fit=cover — staat in index.html:5. */
+    --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
@@ -164,6 +167,20 @@
 }
 
 @layer utilities {
+  /* Safe-area helpers. Op web/desktop lossen deze op naar 0px, dus ze zijn
+     daar een no-op; alleen in de native WebView krijgen ze een echte waarde. */
+  .pt-safe {
+    padding-top: var(--safe-top);
+  }
+
+  .pb-safe {
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .top-safe {
+    top: var(--safe-top);
+  }
+
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-[hsl(200,50%,40%)];
   }

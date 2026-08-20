@@ -120,7 +120,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
 
   if (style === 'detailed') {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg p-4">
+      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg p-4 pb-[calc(1rem+var(--safe-bottom))]">
         <div className="container mx-auto max-w-4xl">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="flex-1">
@@ -166,7 +166,7 @@ export function CookieBanner({ style, tenantSlug }: CookieBannerProps) {
 
   // Minimal style
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg p-3">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg p-3 pb-[calc(0.75rem+var(--safe-bottom))]">
       <div className="container mx-auto flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
           {t('storefront.cookieBanner.deze_website_gebruikt_cookies_voor_een')}

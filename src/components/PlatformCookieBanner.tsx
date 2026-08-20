@@ -95,7 +95,7 @@ export function PlatformCookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-label={t('cookieConsent.title')}
-      className="fixed inset-x-0 bottom-0 z-[200] border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg"
+      className="fixed inset-x-0 bottom-0 z-[200] border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg pb-safe"
     >
       <div className="container mx-auto max-w-5xl px-4 py-4 sm:py-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

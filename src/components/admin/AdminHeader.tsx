@@ -21,7 +21,7 @@ export function AdminHeader() {
   const isOnDashboard = location.pathname === '/admin';
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b bg-background px-4 pt-safe lg:px-6">
       <SidebarTrigger className="lg:hidden">
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle menu</span>

@@ -14,7 +14,7 @@ export function PublicPageLayout({ children, title, subtitle }: PublicPageLayout
     <ForcedLightMode>
       <div className="min-h-screen bg-background">
         <LandingNavbar />
-        <main className="pt-20">
+        <main className="pt-[calc(5rem+var(--safe-top))]">
           {/* Hero Header */}
           <div className="bg-gradient-to-b from-secondary/50 to-background py-16 md:py-24">
             <div className="container mx-auto px-4 text-center">

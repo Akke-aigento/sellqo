@@ -15,7 +15,7 @@ export function MobileBottomNav({ basePath, cartCount, onSearchClick }: MobileBo
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t pb-safe md:hidden">
       <nav className="flex items-center justify-around h-14">
         <Link
           to={basePath}
