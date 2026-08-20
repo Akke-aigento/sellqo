@@ -1468,6 +1468,10 @@
         "event_checkin_double_scan_and_menu": {
           "title": "Geen dubbele check-ins meer, en QR-scannen staat nu onder Events",
           "description": "Bleef een ticket-QR voor de camera hangen, dan kon dezelfde bezoeker soms een tweede keer worden ingecheckt. Dat gebeurt niet meer: na een scan wacht de scanner vier seconden voordat hij dezelfde code opnieuw verwerkt. Ticket check-in staat nu in het menu onder Events, samen met Alle events. En op het tabblad Instellingen van een event blijven je wijzigingen staan als je even naar een ander tabblad kijkt; opslaan kan alleen wanneer je echt iets hebt aangepast."
+        },
+        "event_quick_actions_and_dashboard_filter": {
+          "title": "Snelacties per event, en je dashboard toont standaard alleen wat nog komt",
+          "description": "Op elke eventkaart staat nu een menu met drie puntjes: bewerken, de scanner openen, dupliceren, afronden, annuleren en verwijderen. Dupliceren neemt je capaciteit, locatie, tickettypes en zones over naar een nieuwe datum. Annuleren haalt het event uit je webshop; bestaande tickets blijven geldig. Verwijderen kan alleen bij een event zonder tickets, tickettypes of zones — in de andere gevallen staat de knop grijs met uitleg, zodat je niet op een onduidelijke foutmelding stuit. Het dashboard toont voortaan alleen aankomende events; met de schakelaar Toon afgelopen haal je de historie erbij."
         }
       },
       "copyLink": "Kopieer link",

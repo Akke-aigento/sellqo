@@ -1,3 +1,136 @@
+## EVENT-UI-2 — snelacties per event-kaart, veilige delete, dashboardfilter — 20 augustus 2026
+
+Dekt batch 2a (`0f32c3e5`) en 2b (`e9f1284f`) samen.
+
+### Root cause
+
+Geen defect maar een gat: alles rond een event-datum — bewerken, scannen,
+dupliceren, afronden — vereiste doorklikken naar de eventpagina of het product.
+Bij het bouwen van het snelacties-menu kwamen wél drie echte defecten boven:
+
+**1. Verwijderen zou vrijwel altijd stuklopen op een ruwe FK-fout.** De eerste
+opzet van `useDeleteEventQuick` telde alleen `ticket_instances` met status
+`valid`/`checked_in`. Maar **geen enkele FK naar `event_details` heeft
+`ON DELETE CASCADE`** — nagetrokken over alle migraties, nul treffers. Zeven
+tabellen verwijzen ernaar: `event_zones` (`20260819083247:40`),
+`event_ticket_types` (`:66`), `event_scanner_access` (`:99`), `ticket_scans`
+(`:126`), `ticket_instances` (`20260813231325:30`), en `storefront_cart_items` +
+`order_items` (`20260814112422:1-2`). Een event met tickettypes — de normale
+toestand — gaf dus een Postgres-`23503` als Engelse ruwe tekst in een toast.
+Precies de dode affordance uit CLAUDE.md §2.
+
+**2. Dupliceren kopieerde twee gedragsbepalende velden niet.**
+- `capacity_mode` (`text NOT NULL DEFAULT 'sold'`, check `IN ('sold','inside')`,
+  `20260819083247:22,32`) stuurt de capaciteitshandhaving aan de deur. Een
+  `'inside'`-event viel in de kopie stil terug op `'sold'`.
+- `event_ticket_types.zone_ids` beperkt bij welke zones een tickettype toegang
+  geeft; de scan-RPC weigert erop (`20260819104515:83-84`). Zonder kopie werd de
+  duplicaat-toegang **ruimer** dan het origineel.
+
+**3. Auto-default-zone maakte een leeg event onverwijderbaar** (gevonden na de
+smoke-test op event `dc354adf`). Een default-zone ontstaat automatisch (fase 4c,
+en sinds 2a ook bij dupliceren), dus de tenant maakte hem nooit bewust — maar hij
+telde wel als blokker.
+
+**4. `?event=:id` vond een afgelopen event niet.** De kieslijst in
+`TicketCheckin` filtert op `scheduled`/`confirmed` (bewust), en de preselect zocht
+in díe lijst. Een `completed` event stond er niet in, dus "Scanner openen" viel
+terug op handmatig kiezen.
+
+### Uitgevoerd
+
+- **`src/components/admin/events/EventCardActions.tsx`** (nieuw) — dropdown met
+  Bewerken · Scanner openen · Dupliceren — Afronden · Annuleren — Verwijderen,
+  plus dupliceer-dialog en twee confirms. De kaart eronder navigeert
+  (`EventDashboard.tsx:158`), dus elke interactie stopt propagatie; Radix portalt
+  de content, maar React-events bubbelen langs de React-boom, dus dat is nodig.
+- **`src/hooks/useDuplicateEvent.ts`** (nieuw) — `useDuplicateEvent`,
+  `useUpdateEventStatusQuick`, `useDeleteEventQuick`. Bronwaarden vers uit de DB,
+  XOR-scope gerespecteerd (alleen `event_detail_id`, nooit `valid_from` of
+  `event_group_id`).
+- **Delete-guard** — menu-item blijft zichtbaar maar wordt uitgeschakeld met
+  tooltip zodra er blokkerende kinderen zijn. Telling haakt aan op het bestaande
+  batch-patroon: tickets komen gratis uit de stats-query (nieuw veld `total`,
+  álle statussen), de overige drie tabellen kosten drie selects over de hele set
+  in één `Promise.all`. Geen N+1. `ticket_scans` hoeft niet apart:
+  `ticket_scans.ticket_instance_id` is `NOT NULL` naar `ticket_instances`.
+- **Default-zones** tellen niet als blokker (`is_default = false` in de telling)
+  en worden vlak vóór de delete opgeruimd — na de ticket-guard, vóór het event.
+  Hangt er een scanner-toegang aan die zone, dan weigert Postgres die opruiming;
+  die `23503` valt door naar het vangnet in plaats van als harde fout te eindigen.
+- **`capacity_mode`** meegekopieerd bij dupliceren.
+- **`zone_ids`** — zie Security-keuzes; zones worden meegedupliceerd en de id's
+  omgezet via `mapZoneIds()`.
+- **Preselect losgekoppeld** — eigen query op precies dat ene event-id, ongeacht
+  status. `cancelled` opent niet maar waarschuwt; `completed` opent wel.
+- **Dashboardfilter** — één `showPast`-state schakelt de `since`-ondergrens om:
+  uit = 1 dag terug, aan = 180 dagen.
+- **i18n** — `events.actions.*`, `events.actions.deleteBlockedHint`,
+  `events.dashboard.showPast`, `events.checkin.preselectCancelled` in vijf talen.
+
+### Security-keuzes
+
+Geen RLS, policies of grants gewijzigd. Alle nieuwe queries filteren expliciet op
+`tenant_id` bovenop de bestaande RLS; de `ticket_instances`-telling in
+`useDeleteEventQuick` was aanvankelijk **niet** tenant-gescoped en is dat nu wel.
+
+**`zone_ids`: bewust afgeweken van een letterlijke kopie, en dat is een
+toegangskwestie.** `event_zones` is per-event (`event_detail_id`, XOR met
+`event_group_id`) en `zone_ids uuid[]` bevat de UUID's van díe rijen — een array,
+dus zonder FK die afdwingt dat ze bij het juiste event horen. De scan-RPC toetst
+`p_zone_id = ANY(v_tt.zone_ids)`, waarbij `p_zone_id` van
+`event_scanner_access.zone_id` van het **duplicaat** komt
+(`20260819083247:100`). Verbatim kopiëren laat het duplicaat dus naar de zones van
+het origineel wijzen, waarna elke scan op `not_allowed_zone` strandt: van te ruim
+naar volledig onscanbaar. Daarom worden de zones zelf meegedupliceerd en de id's
+omgezet. Een bron-id dat niet te mappen valt is een **harde fout**, geen stille
+weglating — weglaten zou de beperking juist verruimen.
+
+### Gedeelde-paden-waarschuwing
+
+n.v.t. — geen gedeeld pad geraakt. Geen migratie in deze batch; `storefront-api`,
+`checkout-engine` en `storefront-resolve` zijn niet aangeraakt, evenmin als de
+gedeelde tabellen. Alles zit in `src/pages/admin`, `src/components/admin` en
+`src/hooks`. Het `use_custom_frontend`-pad is ongemoeid.
+
+### Verificatie
+
+- `npx tsc --noEmit -p tsconfig.app.json` — exit 0 (per stap gedraaid).
+- `npm run build` — exit 0, alleen de bestaande chunk-size-waarschuwing.
+- `node scripts/i18n-parity.mjs` — exit 0, 5 talen, 2498 keys.
+- FK-cascade: `grep` op `ON DELETE CASCADE` over alle migraties → nul treffers bij
+  `event_details`. Dat is de basis onder de hele delete-guard.
+- Radix-gedrag nagelezen in `node_modules/@radix-ui/react-tabs` en de
+  scan-RPC-migraties, niet aangenomen.
+- Smoke-test door Akke in SellQo Speeltuin: dupliceren en de verwijderknop.
+  Daaruit kwam de default-zone-bevinding (event `dc354adf`), verwerkt in 2b.
+- **Onderweg gevangen fout van Claude:** de eerste opzet van de zone-telling zette
+  `.eq('is_default', false)` conditioneel op een union van drie query-builders →
+  `TS2589: Type instantiation is excessively deep`. De drie queries staan nu elk
+  uitgeschreven. Bewijs dat de typecheck hier iets vangt dat de build niet ziet.
+
+### Bewust ongemoeid / Vervolg
+
+- **Helft B — `completed` verdwijnt niet uit de webshop.** `storefront-api` sluit
+  alleen `cancelled`, `skipped` en `merged` uit
+  (`supabase/functions/storefront-api/index.ts:601`); `completed` valt daar niet
+  onder en verdwijnt pas via `isEventStillOpen()` op tijdbasis. Een event dat je
+  vóór de eindtijd op afgerond zet, blijft dus verkoopbaar. Die fix is **niet
+  gebouwd** en raakt een gedeeld pad, dus vraagt een eigen recon en apart akkoord.
+  De changelog- en nieuwsbriefteksten vermijden die claim bewust; de
+  nieuwsbrief-entry draagt een expliciete waarschuwing.
+- **`storefront_cart_items` telt niet mee als blokker.** Te vluchtig om een knop op
+  te laten knipperen; de 23503-vertaling vangt dat pad leesbaar af.
+- **Dashboardfilter: 180 dagen, niet "alles".** Zonder ondergrens zou
+  `.order('event_date', asc).limit(200)` de **oudste** 200 events opleveren en de
+  aankomende uit beeld duwen. Bij meer dan 200 events in een half jaar kan die
+  afkap alsnog optreden; paginering is de volgende stap als dat speelt.
+- **Kieslijst van de scanner blijft `scheduled`/`confirmed`** — alleen de
+  preselect kijkt breder.
+- **Correctie op EVENT-UI-1-rapportage:** daar is gemeld dat `isEventStillOpen`
+  niet bestaat. Dat gold voor `src/`; de functie staat in
+  `supabase/functions/storefront-api/index.ts:120` en is juist de kern van helft B.
+
 ## EVENT-UI-1 — dubbele check-in, dataverlies bij tab-wissel, scannen genest onder Events — 20 augustus 2026
 
 ### Root cause

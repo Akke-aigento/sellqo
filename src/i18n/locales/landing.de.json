@@ -1468,6 +1468,10 @@
         "event_checkin_double_scan_and_menu": {
           "title": "Keine doppelten Check-ins mehr, und QR-Scannen liegt jetzt unter Events",
           "description": "Blieb ein Ticket-QR vor der Kamera, konnte derselbe Besucher manchmal ein zweites Mal eingecheckt werden. Das passiert nicht mehr: Nach einem Scan wartet der Scanner vier Sekunden, bevor er denselben Code erneut verarbeitet. Ticket-Check-in findest du im Menü jetzt unter Events, zusammen mit Alle Events. Und im Tab Einstellungen eines Events bleiben deine Änderungen erhalten, wenn du kurz in einen anderen Tab schaust; speichern kannst du nur, wenn du wirklich etwas geändert hast."
+        },
+        "event_quick_actions_and_dashboard_filter": {
+          "title": "Schnellaktionen pro Event, und dein Dashboard zeigt standardmäßig nur Kommendes",
+          "description": "Auf jeder Eventkarte findest du jetzt ein Drei-Punkte-Menü: bearbeiten, Scanner öffnen, duplizieren, abschließen, absagen und löschen. Beim Duplizieren werden Kapazität, Ort, Ticketarten und Zonen auf ein neues Datum übernommen. Absagen nimmt das Event aus deinem Shop; bestehende Tickets bleiben gültig. Löschen geht nur bei einem Event ohne Tickets, Ticketarten und Zonen — sonst ist die Schaltfläche ausgegraut und erklärt warum, damit du nicht auf eine unklare Fehlermeldung stößt. Das Dashboard zeigt nun nur noch kommende Events; mit dem Schalter Vergangene anzeigen holst du die Historie zurück."
         }
       },
       "copyLink": "Link kopieren",

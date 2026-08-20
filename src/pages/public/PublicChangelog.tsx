@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.10p', dateKey: 'sep_2026', changes: [
+    { id: 'event_quick_actions_and_dashboard_filter', type: 'feature' },
+  ] },
   { version: '2026.10o', dateKey: 'sep_2026', changes: [
     { id: 'event_checkin_double_scan_and_menu', type: 'bugfix' },
   ] },

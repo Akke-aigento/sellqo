@@ -1468,6 +1468,10 @@
         "event_checkin_double_scan_and_menu": {
           "title": "No more double check-ins, and QR scanning now sits under Events",
           "description": "If a ticket QR stayed in front of the camera, the same visitor could sometimes be checked in a second time. That no longer happens: after a scan the scanner waits four seconds before processing the same code again. Ticket check-in now sits under Events in the menu, together with All events. And on the Settings tab of an event your changes stay put when you glance at another tab; saving is only possible once you have actually changed something."
+        },
+        "event_quick_actions_and_dashboard_filter": {
+          "title": "Quick actions per event, and your dashboard shows only what is still coming",
+          "description": "Every event card now has a three-dot menu: edit, open the scanner, duplicate, complete, cancel and delete. Duplicating carries your capacity, location, ticket types and zones over to a new date. Cancelling removes the event from your webshop; existing tickets stay valid. Deleting is only possible for an event without tickets, ticket types or zones — in every other case the button is greyed out with an explanation, so you never run into an unclear error. The dashboard now shows upcoming events only; the Show past switch brings the history back."
         }
       },
       "copyLink": "Copy link",

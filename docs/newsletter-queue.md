@@ -4,6 +4,30 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10p — Snelacties per event + dashboardfilter (feature, 20-08-2026)
+
+**Alles wat je met een event doet, zit nu achter drie puntjes** (oktober 2026)
+Op elke eventkaart staat een menu: bewerken, de scanner openen, dupliceren, afronden, annuleren
+en verwijderen. Dupliceren neemt je capaciteit, locatie, tickettypes en zones over naar een nieuwe
+datum, zodat een wekelijkse ronde in een paar klikken staat. Annuleren haalt het event uit je
+webshop; bestaande tickets blijven geldig. Verwijderen kan alleen bij een event zonder tickets,
+tickettypes of zones — in de andere gevallen staat de knop grijs met uitleg erbij.
+Het dashboard toont voortaan alleen aankomende events; met de schakelaar Toon afgelopen haal je
+de historie erbij.
+Wat betekent dit voor jou? Minder klikken voor terugkerende events, en een verwijderknop die
+nooit met een onduidelijke foutmelding eindigt.
+
+**i18n-key.** `public.changelog.changes.event_quick_actions_and_dashboard_filter` — KLAARZETTEN,
+nog niet verstuurd.
+
+**LET OP bij verzending.** Niet schrijven dat een **afgerond** event uit de webshop verdwijnt.
+`storefront-api` sluit alleen `cancelled`, `skipped` en `merged` uit
+(`supabase/functions/storefront-api/index.ts:601`); `completed` valt daar niet onder en verdwijnt
+pas via `isEventStillOpen()` op tijdbasis. Die storefront-api-fix (helft B) is nog niet gebouwd.
+Pas als helft B live is, mag die claim erbij. De tekst hierboven vermijdt hem bewust.
+
+**Bundel:** hoort bij de event-reeks 2026.10i t/m 2026.10p.
+
 ### 2026.10o — Geen dubbele check-ins, en scannen staat bij Events (bugfix, 20-08-2026)
 
 **Geen dubbele check-ins meer aan de deur** (oktober 2026)
