@@ -3,6 +3,7 @@
 // MIDDERNACHT-PRINCIPE: de host kiest BEWUST een event_detail. Er wordt nergens
 // "vandaag" afgeleid — events lopen over middernacht (crawl 21:00 → 03:00).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode } from 'html5-qrcode';
 import { QrCode, Camera, CameraOff, Check, AlertTriangle, X, RotateCcw, CalendarDays, Users } from 'lucide-react';
@@ -72,6 +73,7 @@ export default function TicketCheckin() {
   const queryClient = useQueryClient();
 
   const [selectedEvent, setSelectedEvent] = useState<EventOption | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<CheckinResponse | null>(null);
   const [scans, setScans] = useState<ScanEntry[]>([]);
@@ -116,7 +118,23 @@ export default function TicketCheckin() {
     enabled: !!currentTenant,
   });
 
-  // Live teller voor het gekozen event.
+  // Voorselectie via ?event=:id (bv. vanuit het event-dashboard "Scanner openen").
+  // Respecteert de bewuste-keuze-filosofie: selecteert alleen wanneer expliciet
+  // via de query-param binnengekomen, niet automatisch. De param wordt daarna
+  // opgeruimd zodat een handmatige deselectie niet meteen weer overschreven wordt.
+  const preselectDoneRef = useRef(false);
+  useEffect(() => {
+    if (preselectDoneRef.current) return;
+    const wanted = searchParams.get('event');
+    if (!wanted || events.length === 0) return;
+    const match = events.find((e) => e.id === wanted);
+    if (match) {
+      setSelectedEvent(match);
+      preselectDoneRef.current = true;
+      searchParams.delete('event');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [events, searchParams, setSearchParams]);
   const { data: counts } = useQuery({
     queryKey: ['checkin-counts', selectedEvent?.id],
     queryFn: async () => {

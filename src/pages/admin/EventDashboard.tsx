@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EventCardActions } from '@/components/admin/events/EventCardActions';
 
 interface EventRow {
   id: string;
@@ -34,6 +35,8 @@ interface EventStats {
   sold: number;
   checked_in: number;
   refunded: number;
+  /** Alle ticket_instances, ongeacht status — blokkeert verwijderen via de FK. */
+  total: number;
 }
 
 const fmtDate = (d: string) =>
@@ -112,7 +115,8 @@ export default function EventDashboard() {
         const key = (row as { event_detail_id: string | null }).event_detail_id;
         if (!key) continue;
         const status = (row as { status: string }).status;
-        const s = (out[key] ??= { sold: 0, checked_in: 0, refunded: 0 });
+        const s = (out[key] ??= { sold: 0, checked_in: 0, refunded: 0, total: 0 });
+        s.total += 1;
         if (status === 'valid' || status === 'checked_in') s.sold += 1;
         if (status === 'checked_in') s.checked_in += 1;
         if (status === 'refunded' || status === 'cancelled') s.refunded += 1;
@@ -121,6 +125,38 @@ export default function EventDashboard() {
     },
     enabled: !!currentTenant && eventIds.length > 0,
     refetchInterval: 30000,
+  });
+
+  // Blokkerende kinderen per event. GEEN enkele FK naar event_details heeft
+  // ON DELETE CASCADE, dus elk kind laat een DELETE stuklopen op een 23503.
+  // Drie selects over de hele set ineens (geen N+1 per kaart); tickets komen uit
+  // de stats-query hierboven, en ticket_scans hoeft niet apart geteld te worden
+  // omdat ticket_scans.ticket_instance_id NOT NULL naar ticket_instances wijst.
+  const { data: childCounts = {} } = useQuery({
+    queryKey: ['event-dashboard-child-counts', currentTenant?.id, eventIds.join(',')],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (!currentTenant || eventIds.length === 0) return {};
+      const tables = ['event_ticket_types', 'event_zones', 'event_scanner_access'] as const;
+      const results = await Promise.all(
+        tables.map((table) =>
+          supabase
+            .from(table)
+            .select('event_detail_id')
+            .eq('tenant_id', currentTenant.id)
+            .in('event_detail_id', eventIds),
+        ),
+      );
+      const out: Record<string, number> = {};
+      results.forEach((res, i) => {
+        if (res.error) throw new Error(`${tables[i]}: ${res.error.message}`);
+        for (const row of res.data ?? []) {
+          const key = (row as { event_detail_id: string | null }).event_detail_id;
+          if (key) out[key] = (out[key] ?? 0) + 1;
+        }
+      });
+      return out;
+    },
+    enabled: !!currentTenant && eventIds.length > 0,
   });
 
   return (
@@ -147,7 +183,10 @@ export default function EventDashboard() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {events.map((e) => {
-            const s = stats[e.id] ?? { sold: 0, checked_in: 0, refunded: 0 };
+            const s = stats[e.id] ?? { sold: 0, checked_in: 0, refunded: 0, total: 0 };
+            // Verwijderen kan alleen als er nul kinderen zijn: tickets in welke
+            // status dan ook, tickettypes, zones of scanner-toegangen.
+            const deleteBlocked = s.total > 0 || (childCounts[e.id] ?? 0) > 0;
             const pct = e.capacity > 0 ? Math.min(100, Math.round((s.sold / e.capacity) * 100)) : 0;
             const minReached = e.min_attendees > 0 && s.sold >= e.min_attendees;
             return (
@@ -159,7 +198,18 @@ export default function EventDashboard() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base break-words">{e.product_name}</CardTitle>
-                    <EventStatusBadge status={e.status} />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <EventStatusBadge status={e.status} />
+                      <EventCardActions
+                        eventId={e.id}
+                        status={e.status}
+                        eventDate={e.event_date}
+                        startTime={e.start_time}
+                        endTime={e.end_time}
+                        sold={s.sold}
+                        deleteBlocked={deleteBlocked}
+                      />
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {fmtDate(e.event_date)} · {fmtTime(e.start_time)}

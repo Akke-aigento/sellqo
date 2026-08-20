@@ -2288,6 +2288,26 @@
         "hidingStatus": "Dit event wordt op {{status}} gezet. Het verdwijnt dan uit je webshop en er kunnen geen nieuwe tickets verkocht worden. Bestaande tickets blijven geldig.",
         "capacityBelowSold": "Er zijn al {{sold}} tickets verkocht. Een lagere capaciteit stopt nieuwe verkoop; bestaande tickets blijven geldig."
       }
+    },
+    "actions": {
+      "menuLabel": "Acties",
+      "edit": "Bewerken",
+      "openScanner": "Scanner openen",
+      "duplicate": "Dupliceren",
+      "complete": "Afronden",
+      "cancel": "Annuleren",
+      "delete": "Verwijderen",
+      "duplicateTitle": "Event dupliceren",
+      "duplicateDesc": "Kies een nieuwe datum en tijd. Capaciteit, locatie en tickettypes worden overgenomen. Het nieuwe event staat op \"Gepland\".",
+      "duplicateConfirm": "Dupliceren",
+      "cancelTitle": "Event annuleren?",
+      "cancelDesc": "Dit event verdwijnt uit je webshop en er kunnen geen nieuwe tickets verkocht worden. Bestaande tickets blijven geldig.",
+      "cancelConfirm": "Ja, annuleren",
+      "deleteTitle": "Event verwijderen?",
+      "deleteDesc": "Dit verwijdert het event definitief. Deze actie kan niet ongedaan gemaakt worden.",
+      "deleteBlocked": "Er zijn al tickets verkocht voor dit event. Verwijderen kan niet — annuleer het event in plaats daarvan.",
+      "deleteConfirm": "Ja, verwijderen",
+      "deleteBlockedHint": "Dit event heeft tickettypes of tickets — annuleer het in plaats van verwijderen."
     }
   }
 }

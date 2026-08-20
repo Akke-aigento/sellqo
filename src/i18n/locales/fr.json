@@ -2286,6 +2286,26 @@
         "hidingStatus": "Cet événement passera au statut {{status}}. Il disparaîtra de votre boutique et aucun nouveau ticket ne pourra être vendu. Les tickets existants restent valables.",
         "capacityBelowSold": "{{sold}} tickets ont déjà été vendus. Une capacité inférieure arrête les nouvelles ventes ; les tickets existants restent valables."
       }
+    },
+    "actions": {
+      "menuLabel": "Actions",
+      "edit": "Modifier",
+      "openScanner": "Ouvrir le scanner",
+      "duplicate": "Dupliquer",
+      "complete": "Terminer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "duplicateTitle": "Dupliquer l'événement",
+      "duplicateDesc": "Choisissez une nouvelle date et heure. La capacité, le lieu et les types de billets sont repris. Le nouvel événement est en « Planifié ».",
+      "duplicateConfirm": "Dupliquer",
+      "cancelTitle": "Annuler l'événement ?",
+      "cancelDesc": "Cet événement disparaîtra de votre boutique et aucun nouveau billet ne pourra être vendu. Les billets existants restent valables.",
+      "cancelConfirm": "Oui, annuler",
+      "deleteTitle": "Supprimer l'événement ?",
+      "deleteDesc": "Cela supprime définitivement l'événement. Cette action est irréversible.",
+      "deleteBlocked": "Des billets ont déjà été vendus pour cet événement. Suppression impossible — annulez l'événement à la place.",
+      "deleteConfirm": "Oui, supprimer",
+      "deleteBlockedHint": "Cet événement a des types de billets ou des billets — annulez-le au lieu de le supprimer."
     }
   }
 }

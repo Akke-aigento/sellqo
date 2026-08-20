@@ -2286,6 +2286,26 @@
         "hidingStatus": "Dieses Event wird auf {{status}} gesetzt. Es verschwindet dann aus deinem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
         "capacityBelowSold": "Es wurden bereits {{sold}} Tickets verkauft. Eine niedrigere Kapazität stoppt neue Verkäufe; bestehende Tickets bleiben gültig."
       }
+    },
+    "actions": {
+      "menuLabel": "Aktionen",
+      "edit": "Bearbeiten",
+      "openScanner": "Scanner öffnen",
+      "duplicate": "Duplizieren",
+      "complete": "Abschließen",
+      "cancel": "Absagen",
+      "delete": "Löschen",
+      "duplicateTitle": "Event duplizieren",
+      "duplicateDesc": "Wähle ein neues Datum und eine neue Uhrzeit. Kapazität, Ort und Ticketarten werden übernommen. Das neue Event steht auf „Geplant\".",
+      "duplicateConfirm": "Duplizieren",
+      "cancelTitle": "Event absagen?",
+      "cancelDesc": "Dieses Event verschwindet aus deinem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
+      "cancelConfirm": "Ja, absagen",
+      "deleteTitle": "Event löschen?",
+      "deleteDesc": "Damit wird das Event endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleteBlocked": "Für dieses Event wurden bereits Tickets verkauft. Löschen nicht möglich — sage das Event stattdessen ab.",
+      "deleteConfirm": "Ja, löschen",
+      "deleteBlockedHint": "Dieses Event hat Ticketarten oder Tickets — sage es ab, statt es zu löschen."
     }
   }
 }

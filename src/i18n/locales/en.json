@@ -2286,6 +2286,26 @@
         "hidingStatus": "This event will be set to {{status}}. It then disappears from your shop and no new tickets can be sold. Existing tickets stay valid.",
         "capacityBelowSold": "{{sold}} tickets have already been sold. A lower capacity stops new sales; existing tickets stay valid."
       }
+    },
+    "actions": {
+      "menuLabel": "Actions",
+      "edit": "Edit",
+      "openScanner": "Open scanner",
+      "duplicate": "Duplicate",
+      "complete": "Complete",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "duplicateTitle": "Duplicate event",
+      "duplicateDesc": "Pick a new date and time. Capacity, location and ticket types are copied over. The new event is set to \"Scheduled\".",
+      "duplicateConfirm": "Duplicate",
+      "cancelTitle": "Cancel event?",
+      "cancelDesc": "This event will disappear from your webshop and no new tickets can be sold. Existing tickets stay valid.",
+      "cancelConfirm": "Yes, cancel",
+      "deleteTitle": "Delete event?",
+      "deleteDesc": "This permanently deletes the event. This action cannot be undone.",
+      "deleteBlocked": "Tickets have already been sold for this event. It cannot be deleted — cancel the event instead.",
+      "deleteConfirm": "Yes, delete",
+      "deleteBlockedHint": "This event has ticket types or tickets — cancel it instead of deleting."
     }
   }
 }
