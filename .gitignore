@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Signing keys (never commit — zie android/keystore.properties.example)
+*.jks
+*.keystore
+keystore.properties

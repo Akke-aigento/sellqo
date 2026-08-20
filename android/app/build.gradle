@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Signing-credentials komen uit android/keystore.properties, dat bewust NIET in
+// git zit (zie .gitignore). Ontbreekt het bestand, dan blijft de release-variant
+// unsigned en blijven debug-builds gewoon werken — zie keystore.properties.example.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace "app.sellqo.admin"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,6 +16,9 @@ android {
         applicationId "app.sellqo.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // Elke upload naar de Play Console heeft een hogere versionCode nodig dan de
+        // vorige — handmatig ophogen per release. versionName is de versie die de
+        // gebruiker in de Play Store ziet.
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -16,8 +28,21 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

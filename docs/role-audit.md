@@ -1,3 +1,142 @@
+## PLAYSTORE-SIGNING-1 — upload-key-infra voor Play App Signing — 20 augustus 2026
+
+Alleen build-configuratie. Geen enkele wijziging aan applicatiecode, database of
+edge-functies.
+
+### Root cause
+
+Geen defect maar een gat: de Android-app (`app.sellqo.admin`) stond nog op de kale
+Capacitor-scaffold. `android/app/build.gradle` had **geen `signingConfigs`-blok** en
+de release-buildType geen `signingConfig`, dus `./gradlew :app:bundleRelease`
+leverde een **unsigned AAB** op — die weigert de Play Console.
+
+Twee bijvangsten uit de recon:
+
+**1. Keystores waren niet tegen git beschermd.** Het keystore-blok in
+`android/.gitignore` (regels 55-58) stond uitgecommentarieerd — de Capacitor-default
+laat de keuze aan de ontwikkelaar. `git check-ignore` op `keystore.properties`,
+`test.jks`, `android/keystore.properties` en `android/test.jks` gaf **exit 1 op alle
+vier**: een keystore of properties-bestand op schijf zou gewoon met `git add -A`
+mee zijn gegaan. Gezien de bekende `public/sitemap.xml`-valkuil (CLAUDE.md §6) een
+reëel scenario, niet een theoretisch.
+
+**2. `targetSdkVersion` stond op 35 terwijl `compileSdkVersion` al 36 was.** De
+Google-eis schuift eind augustus door naar 36; de SDK was al aanwezig, dus dit was
+één regel.
+
+### Uitgevoerd
+
+- **`android/.gitignore`** — regels 55-58: `*.jks` en `*.keystore` uit commentaar,
+  `keystore.properties` toegevoegd. De regel "Uncomment the following lines if…"
+  vervalt; die instructie is nu uitgevoerd en zou verwarrend achterblijven.
+- **`.gitignore` (root)** — dezelfde drie patronen toegevoegd. `android/.gitignore`
+  dekt alleen paden ónder `android/`; een keystore in de projectroot of in `ios/`
+  bleef anders onbeschermd.
+- **`android/variables.gradle`** — `targetSdkVersion` 35 → 36.
+- **`android/app/build.gradle`** — conditionele signing (patroon hieronder), plus
+  een comment boven `versionCode` dat elke Play-upload een hogere `versionCode`
+  nodig heeft. `versionCode 1` / `versionName "1.0"` bewust ongewijzigd: dit is v1.
+- **`android/keystore.properties.example`** (nieuw) — placeholders, wél in git als
+  naslag. De gitignore-regel `keystore.properties` matcht een bestandsnaam exact en
+  dekt `.example` niet, dus een negatie-regel was niet nodig.
+
+### Het conditionele-signing patroon
+
+De kern van deze batch, en het stuk dat je later terug wil vinden. Credentials
+staan in `android/keystore.properties` — buiten git — en Gradle leest dat bestand
+alleen als het bestaat:
+
+```gradle
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+```
+
+Zowel `signingConfigs.release` als de koppeling in `buildTypes.release` staat achter
+diezelfde `if`. Zonder die guard klapt elke verse clone, elke CI-run en elke
+debug-build om op een ontbrekend bestand. Mét de guard degradeert het netjes: geen
+keystore → release-variant blijft unsigned, debug-builds werken door.
+
+Twee valkuilen bij het invullen van het echte bestand:
+
+- **`storeFile` moet een absoluut pad zijn.** `file()` resolvet relatieve paden
+  tegen `android/app/`, niet tegen de repo-root — en de keystore hoort buiten de
+  repo. Staat zo ook in de `.example`.
+- **Een ontbrekende sleutel faalt luid.** Bij een typo geeft
+  `keystoreProps['storeFile']` null en klapt `file(null)` er tijdens de
+  configuratiefase uit. Bewust niet afgevangen: stil doorgaan met een half
+  geconfigureerde signing is erger dan een harde fout.
+
+`rootProject` is hier `android/`, niet de repo-root — vandaar dat de
+gitignore-regel in `android/.gitignore` precies het juiste pad dekt.
+
+### Security-keuzes
+
+Geen RLS-, policy- of grantwijziging; deze batch raakt de database niet. De
+security-winst zit in git-hygiëne: keystores, `.keystore`-bestanden en
+`keystore.properties` kunnen niet meer per ongeluk gecommit worden, op geen enkel
+pad in de repo. Er zijn **geen echte credentials aangemaakt of aangeraakt** — de
+keystore wordt door Akke lokaal buiten de repo gegenereerd. Play App Signing is de
+gekozen opzet: Google houdt de app-signing-key, wij uploaden met een upload-key die
+bij verlies vervangbaar is.
+
+`android/app/google-services.json` blijft bewust in git. Het bevat client-config en
+een Firebase-API-key die publiek mag zijn, geen serversecrets.
+
+### Gedeelde-paden-waarschuwing
+
+N.v.t. — en dat is hier onderbouwd, niet aangenomen. Deze batch raakt uitsluitend
+Gradle-buildconfiguratie en gitignores van de Android-wrapper. Geen React-component,
+geen tabel, geen migratie, en geen van de drie gedeelde edge-functies
+(`storefront-resolve`, `storefront-api`, `checkout-engine`). De vijf
+custom-frontend-tenants kunnen hier per constructie niets van merken.
+
+### Verificatie
+
+- `git check-ignore -v` op `android/keystore.properties`, `android/test.jks`,
+  `android/app/release.keystore` → alle drie gevangen (exit 0), respectievelijk op
+  `android/.gitignore` regels 58, 56, 57.
+- `git check-ignore -v` op `keystore.properties`, `test.jks`,
+  `sellqo-upload.keystore` vanaf de repo-root → alle drie gevangen via
+  `.gitignore` regels 34, 32, 33.
+- `git check-ignore android/keystore.properties.example` → **exit 1**, correct
+  niet-genegeerd.
+- `./gradlew :app:signingReport` → **BUILD SUCCESSFUL in 41s**, exit 0. Release-variant
+  rapporteert `Config: null` / `Store: null` / `Alias: null` — precies het gewenste
+  gedrag zonder `keystore.properties`. Daarmee is de "zonder keystore blijft alles
+  werken"-kant hard aangetoond.
+- `git status` vóór commit: alleen de vier gewijzigde bestanden plus de nieuwe
+  `.example`. Geen keystore, geen `public/sitemap.xml`-drift.
+- De twee `flatDir`-waarschuwingen in de Gradle-output zijn bestaand (uit het
+  Capacitor-gegenereerde `repositories`-blok) en geen regressie.
+
+### Bewust ongemoeid / Vervolg
+
+- **De keystore zelf en `keystore.properties`** zijn niet aangemaakt — Akke
+  genereert die lokaal. De "mét keystore"-kant van het patroon is dus nog niet
+  getest; `./gradlew :app:signingReport` hoort dan `Config: release` met store en
+  alias te tonen.
+- **`minifyEnabled false`** op release blijft staan. Dat is Capacitor-default en
+  hier verdedigbaar: het is native Java-wrapper-code die nauwelijks te krimpen
+  valt, de echte app zit in de webassets. Aanzetten kan reflectie in de plugins
+  breken.
+- **targetSdk 36 is niet op een toestel gesmoke-test.** API 36 scherpt de
+  edge-to-edge-afdwinging aan die met 35 begon; voor een Capacitor-WebView kan dat
+  content onder de statusbar of navigatiebalk schuiven. Dat moet op een echt
+  toestel gezien worden, niet uit een changelog afgeleid. Fix is dan safe-area
+  insets, geen reden om targetSdk terug te draaien.
+- **`android/build/` en `android/.gradle/`** bevatten build-output van 7 augustus
+  met een debug-dex. Gitignored, dus geen git-risico — maar draai een schone build
+  vóór de eerste AAB-upload.
+- **Geen changelog-, doc_articles- of newsletter-entry.** CLAUDE.md §4 geldt voor
+  batches die tenant-zichtbaar gedrag veranderen; dit is interne build-infra die
+  geen enkele tenant ziet. Zodra de app daadwerkelijk in de Play Store staat, is
+  dát wel changelog-waardig.
+
+---
+
 ## EVENT-UI-2 — snelacties per event-kaart, veilige delete, dashboardfilter — 20 augustus 2026
 
 Dekt batch 2a (`0f32c3e5`) en 2b (`e9f1284f`) samen.
