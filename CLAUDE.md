@@ -15,7 +15,20 @@ Dit bestand vat samen; de brondocumenten zijn leidend bij twijfel:
 | Nieuwsbrief-wachtrij | `docs/newsletter-queue.md` |
 | Geparkeerd werk | `docs/fase2-backlog.md` |
 
-Er bestaan daarnaast Lovable workspace-skills (`sellqo-gedeelde-paden`, en de werkwijze-documenten voor engineering/release/security/connector) die **niet in deze repo staan**. Verwijst een opdracht daarnaar, vraag om de inhoud in plaats van te gokken.
+Er bestaan daarnaast **workspace-skills** (Lovable-agent) en **repo-skills** (`.agents/skills/`, Claude Code). Sommige leven op beide plekken — de repo is dan de bron van waarheid.
+
+| Skill | Workspace | Repo | Bron |
+|---|---|---|---|
+| `sellqo-engineering-rules` | ✓ | — | workspace |
+| `sellqo-db-safety` | ✓ | — | workspace |
+| `sellqo-gedeelde-paden` | ✓ | — | workspace |
+| `sellqo-connector-werkwijze` | ✓ | — | workspace |
+| `sellqo-release-werkwijze` | ✓ | — | workspace |
+| `sellqo-docs-slottaak` | ✓ | — | workspace |
+| `sellqo-custom-frontend-runbook` | ✓ | ✓ | repo |
+| `sellqo-i18n-verplicht` | ✓ | ✓ | repo |
+
+Verwijst een opdracht naar een workspace-only skill, vraag om de inhoud in plaats van te gokken. Skills die op beide plekken leven: bij wijziging beide in sync houden, repo wint.
 
 ---
 
@@ -86,18 +99,20 @@ Nieuwe sectie bovenaan, format `## <ID> — <korte titel> — <datum in NL>`, me
 - **Verificatie** — wat er gedraaid is en met welke uitkomst.
 - **Bewust ongemoeid / Vervolg** — wat expliciet niet is aangeraakt, en wat er nog open staat.
 
-### 4.2 Publieke changelog in 5 talen
+### 4.2 Publieke changelog in alle ondersteunde talen
+
+**De talenlijst is de bron, nooit een vast aantal.** Het aantal talen groeit (binnenkort o.a. es/it/pt). Ga daarom nooit uit van een getal in dit document; de bron is `SUPPORTED_LANGUAGES` in `src/i18n/languages.ts`, en `scripts/i18n-parity.mjs` is de scheidsrechter. Tel de talen en de landing-bestanden na tegen die bron.
 
 Twee plekken, altijd samen:
 
 1. `src/pages/public/PublicChangelog.tsx` — entry in de `changelogEntries`-array: `{ version, dateKey, changes: [{ id, type }] }`, met `type` uit `feature | improvement | bugfix | security`.
-2. `src/i18n/locales/landing.{nl,en,fr,de,uk}.json` — `public.changelog.changes.<id>` met `{ title, description }` in **alle vijf** de talen.
+2. `src/i18n/locales/landing.{code}.json` voor **elke** code uit `SUPPORTED_LANGUAGES` — `public.changelog.changes.<id>` met `{ title, description }` in alle talen.
 
-Oekraïens hoort sinds de i18n-sprint bij de standaardset. Tel dus vijf bestanden, niet vier — `scripts/i18n-parity.mjs` leest de talen uit de bestanden zelf en faalt met exit 1 zodra één taal een key mist. Die check draait in CI (`.github/workflows/ci.yml`), dus een overgeslagen taal blokkeert de PR.
+`scripts/i18n-parity.mjs` leest de talen uit de bestanden zelf en faalt met exit 1 zodra één taal een key mist. Die check draait in CI (`.github/workflows/ci.yml`), dus een overgeslagen taal blokkeert de PR.
 
 Nieuwe entries worden **achteraan** het `changes`-object toegevoegd (geen alfabetische volgorde), en bovenaan `changelogEntries` — die array staat nieuwste-eerst.
 
-Aantallen lopen op; ga ze niet uit dit document overnemen maar tel ze na. Op 20 augustus 2026: 111 entries, gelijk in alle vijf de locales. Die pariteit moet blijven kloppen: één taal overslaan breekt de changelog voor die bezoekers.
+Volledige pariteit is verplicht: elke change-id bestaat in elke ondersteunde taal. Eén taal overslaan breekt de changelog voor die bezoekers én maakt de CI-parity rood. Bestaande content wordt bij een nieuwe taal mee vertaald (volledige dekking, geen permanente fallback-lappendeken).
 
 Versienummers volgen `JJJJ.MMx` en tellen door op de laatste in `changelogEntries` (`2026.10n` → `2026.10o`). Let op dat `dateKey` in de 2026.10-reeks op `sep_2026` staat terwijl de commits uit augustus 2026 komen; die scheefstand is bestaand. Volg de reeks, of stem af met Akke vóór je hem rechttrekt.
 
@@ -152,3 +167,14 @@ Verzameld tijdens de webshop-reeks; bespaart herhaalde fouten.
 **`Settings.tsx` leest alleen `?section=`.** De parameter `?tab=` wordt nergens uitgelezen; links daarmee landen stil op "Mijn profiel". Er staan er nog drie in edge-functies, geparkeerd in de backlog.
 
 **Antwoord in het Nederlands.** Alle documentatie, commit-messages en UI-teksten in dit project zijn Nederlands.
+
+---
+
+## 7. Proactief meedenken — twee reflexen
+
+Deze twee reflexen zijn standaard, niet optioneel. Ze bestaan omdat Akke niet zelf aan efficiëntie en skill-onderhoud wil hoeven denken — dat is de taak van de assistent.
+
+**Efficiëntie-pass (verplicht).** Vóór een oplossing: (1) bestaat er al een tool/connector/MCP/plugin/skill die dit korter of veiliger maakt? (2) gebeurt dit op de juiste plek — chat (strategie/recon) vs Claude Code (multi-file) vs Cowork (terugkerende ops) vs Design (visueel) vs connector (externe data)? (3) is dit een terugkerend patroon dat geautomatiseerd of in een skill gegoten moet worden i.p.v. handmatig herhaald? (4) wat zou toekomstige-Akke hier omslachtig aan vinden? Meld de uitkomst ongevraagd, ook als het het huidige plan doorkruist. Valt er niks te winnen: één zin ("geen kortere weg, doorknallen") — de pass mag het tempo niet doden.
+
+**Skill-onderhoudsreflex.** Leren we een harde les (productie-bug die een patroon blootlegt, omzeilde valkuil, veranderde regel), of blijkt een skill/doc iets te beweren dat niet meer met de code klopt: meld ter plekke "dit hoort in skill X" of "skill X klopt niet meer" met een kant-en-klaar voorstel. Niet wachten op een audit. Akke hoeft nooit zelf aan skill-onderhoud te denken. Skills updaten nooit stilzwijgend automatisch — elke wijziging gaat via een expliciete go, want een foute skill draagt door in al het volgende werk. Leeft een skill op beide plekken (workspace + repo), werk dan beide bij; de repo is de bron.
+\n
