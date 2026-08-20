@@ -5,10 +5,36 @@
 // andere datum. Het nieuwe event krijgt status 'scheduled' (verkoopklaar). De bronwaarden
 // worden VERS uit de DB gelezen (niet uit een dashboard-row), zodat capacity=NULL
 // (ongelimiteerd) correct meegaat en niet per ongeluk als 0 gekopieerd wordt.
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
+
+const DASHBOARD_EVENTS_KEY = ['event-dashboard-events'] as const;
+
+/**
+ * Ververst alle views die een event-mutatie kunnen tonen: het dashboard én de
+ * detailpagina met al haar tabbladen.
+ *
+ * Let op de predicate. React-query matcht query-keys per element met deep equality
+ * (`partialMatchKey`, query-core/utils.js:93), niet als string-prefix. De sub-queries
+ * heten `event-detail-attendees`, `event-detail-ticket-types`, `event-detail-zones`,
+ * `event-detail-scans` en `event-detail-scanners` — allemaal een ANDER eerste element
+ * dan `event-detail`. Een filter op `queryKey: ['event-detail']` raakt dus alleen de
+ * hoofdquery en laat elk tabblad verouderd staan. Vandaar het matchen op de naam zelf.
+ *
+ * Dat vangt ook `['event-details', productId]` (de datums-tab van het product). Bedoeld:
+ * status wijzigen, dupliceren of verwijderen verandert die lijst evengoed.
+ */
+function invalidateEventViews(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: DASHBOARD_EVENTS_KEY });
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const head = query.queryKey[0];
+      return typeof head === 'string' && head.startsWith('event-detail');
+    },
+  });
+}
 
 export interface DuplicateEventInput {
   /** Bron-event dat gekopieerd wordt. */
@@ -154,7 +180,7 @@ export function useDuplicateEvent() {
       return { id: newEvent.id, product_id: newEvent.product_id, ticketTypesCopied: ticketTypes?.length ?? 0 };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
+      invalidateEventViews(queryClient);
       toast({ title: 'Event gedupliceerd' });
     },
     onError: (error: Error) => {
@@ -188,7 +214,7 @@ export function useUpdateEventStatusQuick() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
+      invalidateEventViews(queryClient);
     },
     onError: (error: Error) => {
       toast({ title: 'Status wijzigen mislukt', description: error.message, variant: 'destructive' });
@@ -254,12 +280,33 @@ export function useDeleteEventQuick() {
         throw error;
       }
     },
+    // Optimistisch: de kaart verdwijnt meteen, vóór de server bevestigt.
+    onMutate: async ({ id }: { id: string }) => {
+      // Lopende refetches afbreken, anders kan een antwoord van vóór deze mutatie
+      // de optimistische verwijdering weer overschrijven.
+      await queryClient.cancelQueries({ queryKey: DASHBOARD_EVENTS_KEY });
+      // Prefix-match: de echte key bevat ook tenant-id en showPast, dus er kunnen
+      // meerdere varianten in de cache staan. Alle varianten snapshotten én bijwerken.
+      const snapshot = queryClient.getQueriesData({ queryKey: DASHBOARD_EVENTS_KEY });
+      queryClient.setQueriesData({ queryKey: DASHBOARD_EVENTS_KEY }, (old: unknown) =>
+        Array.isArray(old) ? old.filter((e) => (e as { id?: string })?.id !== id) : old,
+      );
+      return { snapshot };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
       toast({ title: 'Event verwijderd' });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      // Rollback: de kaart komt terug zoals hij was.
+      for (const [key, data] of context?.snapshot ?? []) {
+        queryClient.setQueryData(key, data);
+      }
       toast({ title: 'Verwijderen mislukt', description: error.message, variant: 'destructive' });
+    },
+    // In onSettled, niet in onSuccess: ook ná een rollback moet de waarheid van de
+    // server opgehaald worden, zodat de teruggezette snapshot geen oude stand blijft.
+    onSettled: () => {
+      invalidateEventViews(queryClient);
     },
   });
 }
