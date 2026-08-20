@@ -2306,6 +2306,12 @@
       "deleteBlocked": "Des billets ont déjà été vendus pour cet événement. Suppression impossible — annulez l'événement à la place.",
       "deleteConfirm": "Oui, supprimer",
       "deleteBlockedHint": "Cet événement a des types de billets ou des billets — annulez-le au lieu de le supprimer."
+    },
+    "dashboard": {
+      "showPast": "Afficher les passés"
+    },
+    "checkin": {
+      "preselectCancelled": "Cet événement a été annulé, le scan n'a aucun intérêt."
     }
   }
 }

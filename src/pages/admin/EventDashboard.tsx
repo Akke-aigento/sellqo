@@ -6,8 +6,9 @@
 //
 // MIDDERNACHT-PRINCIPE: datum-ondergrens (vandaag - 2 dagen), geen "vandaag"-afkap —
 // events lopen over middernacht (crawl 21:00 → 03:00).
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, MapPin, Check, Ticket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { EventCardActions } from '@/components/admin/events/EventCardActions';
 
 interface EventRow {
@@ -62,16 +65,24 @@ function EventStatusBadge({ status }: { status: string }) {
   return <Badge variant={variant}>{statusLabel[status] ?? status}</Badge>;
 }
 
+/** Dagen terugkijken. Uit = alleen aankomend, met marge voor events die over
+ *  middernacht lopen (een crawl van gisteren 21:00 tot 03:00 hoort nog bij nu).
+ *  Aan = een half jaar historie. */
+const PAST_WINDOW_DAYS = { upcoming: 1, past: 180 } as const;
+
 export default function EventDashboard() {
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [showPast, setShowPast] = useState(false);
 
   // Events binnen het venster (middernacht-veilige ondergrens).
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['event-dashboard-events', currentTenant?.id],
+    queryKey: ['event-dashboard-events', currentTenant?.id, showPast],
     queryFn: async (): Promise<EventRow[]> => {
       if (!currentTenant) return [];
-      const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const days = showPast ? PAST_WINDOW_DAYS.past : PAST_WINDOW_DAYS.upcoming;
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from('event_details')
         .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
@@ -136,24 +147,45 @@ export default function EventDashboard() {
     queryKey: ['event-dashboard-child-counts', currentTenant?.id, eventIds.join(',')],
     queryFn: async (): Promise<Record<string, number>> => {
       if (!currentTenant || eventIds.length === 0) return {};
-      const tables = ['event_ticket_types', 'event_zones', 'event_scanner_access'] as const;
-      const results = await Promise.all(
-        tables.map((table) =>
-          supabase
-            .from(table)
-            .select('event_detail_id')
-            .eq('tenant_id', currentTenant.id)
-            .in('event_detail_id', eventIds),
-        ),
-      );
+      // Elke query apart opschrijven in plaats van over een tabel-lijst te mappen:
+      // een conditionele .eq() op een union van query-builders laat de
+      // typechecker ontsporen (TS2589).
+      const [ticketTypes, zones, scannerAccess] = await Promise.all([
+        supabase
+          .from('event_ticket_types')
+          .select('event_detail_id')
+          .eq('tenant_id', currentTenant.id)
+          .in('event_detail_id', eventIds),
+        // Een default-zone ontstaat automatisch (fase 4c en bij dupliceren); die
+        // heeft de tenant nooit bewust aangemaakt, dus hij mag het verwijderen niet
+        // blokkeren — useDeleteEventQuick ruimt hem vlak vóór de delete op. Een
+        // zelf aangemaakte (niet-default) zone telt wél als blokker.
+        supabase
+          .from('event_zones')
+          .select('event_detail_id')
+          .eq('tenant_id', currentTenant.id)
+          .eq('is_default', false)
+          .in('event_detail_id', eventIds),
+        supabase
+          .from('event_scanner_access')
+          .select('event_detail_id')
+          .eq('tenant_id', currentTenant.id)
+          .in('event_detail_id', eventIds),
+      ]);
+
       const out: Record<string, number> = {};
-      results.forEach((res, i) => {
-        if (res.error) throw new Error(`${tables[i]}: ${res.error.message}`);
+      const named: [string, typeof ticketTypes][] = [
+        ['event_ticket_types', ticketTypes],
+        ['event_zones', zones],
+        ['event_scanner_access', scannerAccess],
+      ];
+      for (const [label, res] of named) {
+        if (res.error) throw new Error(`${label}: ${res.error.message}`);
         for (const row of res.data ?? []) {
           const key = (row as { event_detail_id: string | null }).event_detail_id;
           if (key) out[key] = (out[key] ?? 0) + 1;
         }
-      });
+      }
       return out;
     },
     enabled: !!currentTenant && eventIds.length > 0,
@@ -161,13 +193,21 @@ export default function EventDashboard() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" /> Events
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Stand van je events: verkochte tickets, check-ins en bezetting.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <CalendarDays className="h-5 w-5" /> Events
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Stand van je events: verkochte tickets, check-ins en bezetting.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 pt-1">
+          <Switch id="show-past" checked={showPast} onCheckedChange={setShowPast} />
+          <Label htmlFor="show-past" className="text-sm cursor-pointer whitespace-nowrap">
+            {t('events.dashboard.showPast', 'Toon afgelopen')}
+          </Label>
+        </div>
       </div>
 
       {isLoading ? (

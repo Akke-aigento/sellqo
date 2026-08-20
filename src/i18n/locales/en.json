@@ -2306,6 +2306,12 @@
       "deleteBlocked": "Tickets have already been sold for this event. It cannot be deleted — cancel the event instead.",
       "deleteConfirm": "Yes, delete",
       "deleteBlockedHint": "This event has ticket types or tickets — cancel it instead of deleting."
+    },
+    "dashboard": {
+      "showPast": "Show past"
+    },
+    "checkin": {
+      "preselectCancelled": "This event has been cancelled, there is no point in scanning."
     }
   }
 }

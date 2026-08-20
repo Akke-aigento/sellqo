@@ -222,6 +222,23 @@ export function useDeleteEventQuick() {
       if ((count ?? 0) > 0) {
         throw new Error('Er zijn tickets aan dit event gekoppeld; verwijderen is niet mogelijk. Zet het event op geannuleerd.');
       }
+
+      // Default-zones opruimen. Die worden automatisch aangemaakt (fase 4c en bij
+      // dupliceren), dus de tenant heeft ze nooit bewust gemaakt — ze horen een
+      // verder leeg event niet onverwijderbaar te maken. Alleen is_default = true:
+      // een zelf aangemaakte zone blijft staan en laat de delete hieronder terecht
+      // stuklopen op de FK, die het 23503-vangnet leesbaar maakt.
+      const { error: zoneDelErr } = await supabase
+        .from('event_zones')
+        .delete()
+        .eq('event_detail_id', id)
+        .eq('tenant_id', currentTenant.id)
+        .eq('is_default', true);
+      // Hangt er een scanner-toegang aan die default-zone, dan weigert Postgres deze
+      // delete (event_scanner_access.zone_id → event_zones.id). Dat is terecht: het
+      // event is dan in gebruik. Doorgeven aan de 23503-vertaling hieronder.
+      if (zoneDelErr && zoneDelErr.code !== '23503') throw zoneDelErr;
+
       const { error } = await supabase
         .from('event_details')
         .delete()

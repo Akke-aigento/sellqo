@@ -4,6 +4,7 @@
 // "vandaag" afgeleid — events lopen over middernacht (crawl 21:00 → 03:00).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode } from 'html5-qrcode';
 import { QrCode, Camera, CameraOff, Check, AlertTriangle, X, RotateCcw, CalendarDays, Users } from 'lucide-react';
@@ -71,6 +72,7 @@ export default function TicketCheckin() {
   const { currentTenant } = useTenant();
   const { roles, isPlatformAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [selectedEvent, setSelectedEvent] = useState<EventOption | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -120,21 +122,58 @@ export default function TicketCheckin() {
 
   // Voorselectie via ?event=:id (bv. vanuit het event-dashboard "Scanner openen").
   // Respecteert de bewuste-keuze-filosofie: selecteert alleen wanneer expliciet
-  // via de query-param binnengekomen, niet automatisch. De param wordt daarna
-  // opgeruimd zodat een handmatige deselectie niet meteen weer overschreven wordt.
+  // via de query-param binnengekomen, niet automatisch.
+  //
+  // Bewust LOS van de kieslijst hierboven: die filtert op scheduled/confirmed, en
+  // dat blijft zo. Een afgelopen (completed) event staat er dus niet in, terwijl
+  // nascannen of controleren daar wel zinvol is. Daarom halen we het gevraagde
+  // event apart op, ongeacht status.
+  const wantedEventId = searchParams.get('event');
   const preselectDoneRef = useRef(false);
+
+  const { data: preselectEvent } = useQuery({
+    queryKey: ['checkin-preselect-event', currentTenant?.id, wantedEventId],
+    queryFn: async (): Promise<EventOption | null> => {
+      if (!currentTenant || !wantedEventId) return null;
+      const { data, error } = await supabase
+        .from('event_details')
+        .select('id, event_date, start_time, end_time, status, location_name, products(name)')
+        .eq('id', wantedEventId)
+        .eq('tenant_id', currentTenant.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: data.id as string,
+        event_date: data.event_date as string,
+        start_time: data.start_time as string,
+        end_time: (data.end_time as string | null) ?? null,
+        status: data.status as string,
+        location_name: (data.location_name as string | null) ?? null,
+        product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',
+      };
+    },
+    enabled: !!currentTenant && !!wantedEventId,
+  });
+
   useEffect(() => {
-    if (preselectDoneRef.current) return;
-    const wanted = searchParams.get('event');
-    if (!wanted || events.length === 0) return;
-    const match = events.find((e) => e.id === wanted);
-    if (match) {
-      setSelectedEvent(match);
-      preselectDoneRef.current = true;
-      searchParams.delete('event');
-      setSearchParams(searchParams, { replace: true });
+    if (preselectDoneRef.current || !wantedEventId || !preselectEvent) return;
+    preselectDoneRef.current = true;
+
+    // Geannuleerd event: niet openen. Scannen heeft geen zin en zou de indruk
+    // wekken dat de deur nog loopt. Terugvallen op de normale kieslijst.
+    if (preselectEvent.status === 'cancelled') {
+      toast.warning(t('events.checkin.preselectCancelled', 'Dit event is geannuleerd, scannen heeft geen zin.'));
+    } else {
+      setSelectedEvent(preselectEvent);
     }
-  }, [events, searchParams, setSearchParams]);
+
+    // Param opruimen zodat een handmatige deselectie niet meteen weer
+    // overschreven wordt.
+    const next = new URLSearchParams(searchParams);
+    next.delete('event');
+    setSearchParams(next, { replace: true });
+  }, [wantedEventId, preselectEvent, searchParams, setSearchParams, t]);
   const { data: counts } = useQuery({
     queryKey: ['checkin-counts', selectedEvent?.id],
     queryFn: async () => {

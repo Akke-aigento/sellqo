@@ -2306,6 +2306,12 @@
       "deleteBlocked": "Für dieses Event wurden bereits Tickets verkauft. Löschen nicht möglich — sage das Event stattdessen ab.",
       "deleteConfirm": "Ja, löschen",
       "deleteBlockedHint": "Dieses Event hat Ticketarten oder Tickets — sage es ab, statt es zu löschen."
+    },
+    "dashboard": {
+      "showPast": "Vergangene anzeigen"
+    },
+    "checkin": {
+      "preselectCancelled": "Dieses Event wurde abgesagt, Scannen hat keinen Sinn."
     }
   }
 }

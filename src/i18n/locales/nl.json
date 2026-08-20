@@ -2308,6 +2308,12 @@
       "deleteBlocked": "Er zijn al tickets verkocht voor dit event. Verwijderen kan niet — annuleer het event in plaats daarvan.",
       "deleteConfirm": "Ja, verwijderen",
       "deleteBlockedHint": "Dit event heeft tickettypes of tickets — annuleer het in plaats van verwijderen."
+    },
+    "dashboard": {
+      "showPast": "Toon afgelopen"
+    },
+    "checkin": {
+      "preselectCancelled": "Dit event is geannuleerd, scannen heeft geen zin."
     }
   }
 }
