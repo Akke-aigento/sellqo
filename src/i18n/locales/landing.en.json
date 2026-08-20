@@ -1464,6 +1464,10 @@
         "cart_discount_totals": {
           "title": "Discounts and totals straight from your cart",
           "description": "Your cart now always returns the discount amount, shipping cost, VAT and final total. Applying a code that is already active no longer returns an error."
+        },
+        "event_checkin_double_scan_and_menu": {
+          "title": "No more double check-ins, and QR scanning now sits under Events",
+          "description": "If a ticket QR stayed in front of the camera, the same visitor could sometimes be checked in a second time. That no longer happens: after a scan the scanner waits four seconds before processing the same code again. Ticket check-in now sits under Events in the menu, together with All events. And on the Settings tab of an event your changes stay put when you glance at another tab; saving is only possible once you have actually changed something."
         }
       },
       "copyLink": "Copy link",

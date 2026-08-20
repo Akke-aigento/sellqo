@@ -1464,6 +1464,10 @@
         "cart_discount_totals": {
           "title": "Rabatte und Summen direkt im Warenkorb",
           "description": "Ihr Warenkorb gibt jetzt immer den Rabattbetrag, die Versandkosten, die Mehrwertsteuer und die Endsumme zurueck. Ein bereits angewendeter Code loest keine Fehlermeldung mehr aus."
+        },
+        "event_checkin_double_scan_and_menu": {
+          "title": "Keine doppelten Check-ins mehr, und QR-Scannen liegt jetzt unter Events",
+          "description": "Blieb ein Ticket-QR vor der Kamera, konnte derselbe Besucher manchmal ein zweites Mal eingecheckt werden. Das passiert nicht mehr: Nach einem Scan wartet der Scanner vier Sekunden, bevor er denselben Code erneut verarbeitet. Ticket-Check-in findest du im Menü jetzt unter Events, zusammen mit Alle Events. Und im Tab Einstellungen eines Events bleiben deine Änderungen erhalten, wenn du kurz in einen anderen Tab schaust; speichern kannst du nur, wenn du wirklich etwas geändert hast."
         }
       },
       "copyLink": "Link kopieren",

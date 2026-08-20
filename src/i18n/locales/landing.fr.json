@@ -1464,6 +1464,10 @@
         "cart_discount_totals": {
           "title": "Remises et totaux directement dans votre panier",
           "description": "Votre panier renvoie desormais toujours le montant de la remise, les frais de livraison, la TVA et le total final. Appliquer un code deja actif ne genere plus d'erreur."
+        },
+        "event_checkin_double_scan_and_menu": {
+          "title": "Fini les doubles enregistrements, et le scan QR se trouve sous Événements",
+          "description": "Si un QR de billet restait devant la caméra, le même visiteur pouvait parfois être enregistré une seconde fois. Ce n'est plus le cas : après un scan, le scanner attend quatre secondes avant de traiter à nouveau le même code. L'enregistrement des billets se trouve désormais sous Événements dans le menu, avec Tous les événements. Et dans l'onglet Paramètres d'un événement, vos modifications sont conservées lorsque vous consultez un autre onglet ; l'enregistrement n'est possible que si vous avez réellement modifié quelque chose."
         }
       },
       "copyLink": "Copier le lien",

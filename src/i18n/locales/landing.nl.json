@@ -1464,6 +1464,10 @@
         "cart_discount_totals": {
           "title": "Korting en totalen direct in je winkelwagen",
           "description": "Je winkelwagen geeft nu altijd het kortingsbedrag, de verzendkosten, de btw en het eindtotaal terug. Een kortingscode die al toegepast is, geeft geen foutmelding meer."
+        },
+        "event_checkin_double_scan_and_menu": {
+          "title": "Geen dubbele check-ins meer, en QR-scannen staat nu onder Events",
+          "description": "Bleef een ticket-QR voor de camera hangen, dan kon dezelfde bezoeker soms een tweede keer worden ingecheckt. Dat gebeurt niet meer: na een scan wacht de scanner vier seconden voordat hij dezelfde code opnieuw verwerkt. Ticket check-in staat nu in het menu onder Events, samen met Alle events. En op het tabblad Instellingen van een event blijven je wijzigingen staan als je even naar een ander tabblad kijkt; opslaan kan alleen wanneer je echt iets hebt aangepast."
         }
       },
       "copyLink": "Kopieer link",

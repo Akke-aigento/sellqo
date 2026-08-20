@@ -1,3 +1,128 @@
+## EVENT-UI-1 — dubbele check-in, dataverlies bij tab-wissel, scannen genest onder Events — 20 augustus 2026
+
+### Root cause
+
+Drie losse oorzaken in het event-pad, alle drie tenant-zichtbaar.
+
+**1. Dubbele check-in door een cooldown die vanaf de verkeerde kant telde.**
+`handleToken()` in `src/pages/admin/TicketCheckin.tsx` beschermde tegen herhaalde
+scans van dezelfde QR met `Date.now() - last.at < 3000`, waarbij `last.at` gezet
+werd **vóór** de netwerk-round-trip naar de `ticket-checkin`-functie. De
+`html5-qrcode`-scanner draait op `fps: 10`, dus zolang een QR voor de camera hangt
+komt er ~10× per seconde een callback binnen. Duurde de round-trip langer dan drie
+seconden — traag netwerk aan de deur is het normale geval, niet het randgeval — dan
+was het venster al verlopen op het moment dat het antwoord binnenkwam, en werd de
+eerstvolgende callback als een nieuwe scan behandeld. Resultaat: dezelfde bezoeker
+een tweede keer ingecheckt. De `busyRef`-lock van 600 ms dekte dit niet af, want die
+werd losgelaten ruim vóór het cooldown-venster verliep.
+
+**2. Onopgeslagen wijzigingen verdwenen bij een tab-wissel.**
+`EventCoreSettingsCard` houdt zijn formulier in lokale `useState`
+(`src/components/admin/events/EventCoreSettingsCard.tsx:69`). De kaart hangt in een
+Radix `TabsContent` (`src/pages/admin/EventDetail.tsx:657`). Radix rendert
+`children: present && children` met `present = forceMount || isSelected`
+(`node_modules/@radix-ui/react-tabs/dist/index.mjs:157,174`), dus zonder `forceMount`
+wordt de inactieve tab **ge-unmount** en gaat de componentstate verloren. Wie datum
+en capaciteit aanpaste, even naar Deelnemers keek en terugkwam, vond een leeg
+gewijzigd formulier terug — zonder enige waarschuwing.
+
+**3. QR-scannen stond los van Events in de sidebar.**
+`ticket-checkin` en `event-dashboard` stonden als twee ongerelateerde items naast
+elkaar in `salesItems` (`src/components/admin/sidebar/sidebarConfig.ts:130-131`),
+terwijl check-in functioneel bij een event hoort. Geen bug, wel een navigatie die
+niet met het datamodel meebewoog sinds de eventpagina er kwam (2026.10i).
+
+### Uitgevoerd
+
+- **`src/pages/admin/TicketCheckin.tsx`**
+  - `SAME_TOKEN_COOLDOWN_MS = 4000` en `SCAN_BUSY_RELEASE_MS = 800` als benoemde
+    constanten, in plaats van magische getallen op de plek van gebruik.
+  - Het cooldown-venster wordt in de `finally` opnieuw gestempeld, dus het telt
+    vanaf het **einde** van de vorige verwerking. De stempel bij de start blijft
+    staan, zodat callbacks tijdens de round-trip al genegeerd worden.
+  - De herstempeling staat achter `if (lastTokenRef.current?.token === token)`, zodat
+    een intussen gescande andere QR niet overschreven wordt.
+- **`src/pages/admin/EventDetail.tsx`** — de settings-`TabsContent` krijgt
+  `forceMount` plus `data-[state=inactive]:hidden`. Die klasse is noodzakelijk, niet
+  decoratief: met `forceMount` is `present` altijd waar en zet Radix zijn eigen
+  `hidden`-attribuut niet meer (`hidden: !present`, regel 164). Zonder de klasse zou
+  de instellingen-tab op elk tabblad zichtbaar zijn. Alleen deze tab is aangeraakt.
+- **`src/components/admin/events/EventCoreSettingsCard.tsx`** — `isDirty` via een
+  JSON-vergelijking van de huidige `form` met `toForm(event)` (`FormState` is plat,
+  dus stabiel), `resetForm()`, en de bestaande `FloatingSaveBar`. De Opslaan-knop is
+  nu disabled zolang er niets gewijzigd is.
+- **`src/components/admin/sidebar/sidebarConfig.ts`** — `ticket-checkin` is een
+  `children`-item van `event-dashboard` geworden, met een nieuw `events-all`-item dat
+  naar `/admin/events` wijst. Ongebruikte `QrCode`-import verwijderd.
+- **`src/i18n/locales/{nl,en,fr,de,uk}.json`** — `navigation.items.events_all`.
+
+### Security-keuzes
+
+n.v.t. — geen RLS, policies, grants of rechten geraakt. De `allowedRoles` op beide
+sidebar-items zijn ongewijzigd overgenomen (`platform_admin`, `tenant_admin`,
+`staff`) en gelden ook op het nieuwe `events-all`-kind. De sidebar is presentatie:
+`shouldHideItem()` bepaalt zichtbaarheid, niet toegang — die blijft bij de
+route-guards en RLS. Er is dus geen pad ontstaan waarlangs een rol iets bereikt wat
+hij eerst niet mocht.
+
+De check-in-fix verkleint het aanvalsoppervlak niet, maar wel het foutoppervlak: een
+dubbele check-in schreef een tweede rij in het scan-log en verstoorde de
+`Nu binnen`-teller.
+
+### Gedeelde-paden-waarschuwing
+
+n.v.t. — geen gedeeld pad geraakt. `storefront-api`, `checkout-engine` en
+`storefront-resolve` zijn niet aangeraakt, evenmin als `tenant_theme_settings`,
+`themes`, `homepage_sections` of `storefront_pages`. Alle vier de gewijzigde
+codebestanden zitten in het admin-pad (`src/pages/admin`, `src/components/admin`),
+dat de vijf custom frontends niet renderen. Geen migratie in deze batch. Het
+`use_custom_frontend`-pad is byte-voor-byte ongemoeid.
+
+### Verificatie
+
+- `npx tsc --noEmit -p tsconfig.app.json` — exit 0, 0 fouten (twee keer gedraaid: na
+  de eerste en na de tweede patch).
+- `npm run build` — exit 0, alleen de bestaande chunk-size-waarschuwing.
+- Radix-gedrag nagelezen in `node_modules/@radix-ui/react-tabs/dist/index.mjs:145-175`
+  in plaats van aangenomen: `data-state` wordt op `inactive` gezet, `hidden: !present`,
+  `children: present && children`.
+- Sidebar-nesting nagetrokken in `src/components/admin/AdminSidebar.tsx:221-228`: een
+  item mét `children` rendert als `CollapsibleTrigger` **zonder** `NavLink`. Het
+  `events-all`-kind is daarom noodzakelijk om `/admin/events` bereikbaar te houden —
+  geen dode affordance, en geen duplicaat.
+- `getAllMenuItems()` (`sidebarConfig.ts:276-280`) loopt door `children`, dus beide
+  items blijven zichtbaar in de aanpassen-dialoog en bestaande verberg-voorkeuren op
+  id `ticket-checkin` blijven werken.
+- `grep` op `ticket-checkin` / `event-dashboard` over `src/`: geen verwijzingen buiten
+  `sidebarConfig.ts` (de treffers zijn react-query-keys en de edge-functienaam).
+- Changelog-pariteit machinaal nagerekend: 111 ids in `changelogEntries`, 111 entries
+  in elk van de vijf `landing.*.json`, geen id zonder vertaling en geen weesvertaling.
+
+### Bewust ongemoeid / Vervolg
+
+- **De `FloatingSaveBar` is niet zichtbaar vanaf een ander tabblad.** De balk staat
+  binnen de settings-`TabsContent`, en `data-[state=inactive]:hidden` is
+  `display: none` — dat onderdrukt ook afstammelingen met `position: fixed`. De
+  **form-state overleeft** de wissel nu wel, dus het dataverlies is verholpen; de
+  zichtbare waarschuwing verschijnt pas als je terug bent op Instellingen. Wil je de
+  balk overal zien, dan moet de dirty-state omhoog naar `EventDetail` en de balk
+  buiten `Tabs` gerenderd worden. Niet gedaan: dat is een herstructurering van de
+  kaart, geen gedragsfix.
+- **De overige tabs houden hun unmount-gedrag.** Alleen `settings` heeft een
+  formulier; `forceMount` op de andere tabs zou onnodig queries warm houden.
+- **De cooldown van 4 s is een vaste waarde, niet instelbaar.** Bewust: een
+  instelling hier is een knop die niemand goed kan afstellen zonder de round-trip te
+  meten. Blijkt 4 s in de praktijk te kort bij een trage verbinding, dan is de
+  volgende stap het venster laten meeschalen met de gemeten duur, niet een
+  tenant-instelling.
+- **Niet getest met echte camera-hardware.** De race is per constructie verholpen en
+  door codelezing onderbouwd, maar een fysieke test aan de deur (QR laten hangen,
+  controleren dat er één scan-logregel bijkomt) staat nog open. Dat vraagt een
+  apparaat met camera op SellQo Speeltuin of Demo Bakkerij.
+- **`doc_articles`: n.v.t.** — geen nieuw adminscherm, geen nieuwe route. Het
+  bestaande artikel op `context_path = '/admin/events'` blijft kloppen; de
+  herschikking betreft het menu, niet de pagina.
+
 ## CART-DISCOUNT-TOTALS-1 — volledige cart-shape met korting en totalen — 19 augustus 2026
 
 **Root cause:** `cartGet` in `supabase/functions/storefront-api/index.ts` gaf enkel

@@ -4,6 +4,23 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10o — Geen dubbele check-ins, en scannen staat bij Events (bugfix, 20-08-2026)
+
+**Geen dubbele check-ins meer aan de deur** (oktober 2026)
+Bleef een ticket-QR voor de camera hangen, dan kon dezelfde bezoeker soms een tweede keer worden
+ingecheckt. Dat gebeurt niet meer: na een scan wacht de scanner vier seconden voordat hij dezelfde
+code opnieuw verwerkt. Ticket check-in staat nu in het menu onder Events, samen met Alle events.
+En op het tabblad Instellingen van een event blijven je wijzigingen staan als je even naar een
+ander tabblad kijkt; opslaan kan alleen wanneer je echt iets hebt aangepast.
+Wat betekent dit voor jou? Je scan-log en de teller Nu binnen kloppen weer met wat er echt aan de
+deur gebeurt, en je verliest geen ingevulde eventinstellingen meer door tussendoor te kijken.
+
+**i18n-key.** `public.changelog.changes.event_checkin_double_scan_and_menu` — KLAARZETTEN, nog
+niet verstuurd.
+
+**Bundel:** hoort bij de event-reeks 2026.10i t/m 2026.10o. Bundelen met de nog niet verstuurde
+event-items hieronder; niet los versturen.
+
 ### 2026.10m — Kortingscodes niet meer hoofdlettergevoelig (bugfix, 19-08-2026)
 
 **Hoofdletters in kortingscodes maken niet meer uit** (oktober 2026)
