@@ -654,7 +654,7 @@ export default function EventDetail() {
         </TabsContent>
 
         {/* ---------------- Instellingen (4d, bewerkbaar) ---------------- */}
-        <TabsContent value="settings" className="space-y-4">
+        <TabsContent value="settings" className="space-y-4 data-[state=inactive]:hidden" forceMount>
           <EventCoreSettingsCard
             event={event}
             sold={sold}

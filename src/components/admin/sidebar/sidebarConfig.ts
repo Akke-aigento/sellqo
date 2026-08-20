@@ -24,7 +24,6 @@ import {
   BellRing,
   Bot,
   Monitor,
-  QrCode,
   CalendarDays,
   Globe,
   Search,
@@ -127,8 +126,17 @@ const dailyItems: NavItem[] = [
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
   { id: 'pos', titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
-  { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', icon: QrCode, allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
-  { id: 'event-dashboard', titleKey: 'navigation.items.event_dashboard', url: '/admin/events', icon: CalendarDays, allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+  {
+    id: 'event-dashboard',
+    titleKey: 'navigation.items.event_dashboard',
+    url: '/admin/events',
+    icon: CalendarDays,
+    allowedRoles: ['platform_admin', 'tenant_admin', 'staff'],
+    children: [
+      { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+      { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+    ],
+  },
   { id: 'storefront', titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {

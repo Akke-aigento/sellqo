@@ -53,6 +53,10 @@ interface ScanEntry {
 }
 
 const SCANNER_ID = 'ticket-checkin-scanner';
+// Zelfde QR blijft in beeld bij een camera-scan; negeer hem dit venster lang na de vorige verwerking.
+const SAME_TOKEN_COOLDOWN_MS = 4000;
+// Korte globale lock zodat twee snelle frames niet tegelijk een check-in starten.
+const SCAN_BUSY_RELEASE_MS = 800;
 
 const fmtDate = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString('nl-NL', {
@@ -159,9 +163,13 @@ export default function TicketCheckin() {
 
   const handleToken = async (token: string) => {
     if (busyRef.current || !selectedEvent) return;
-    // Debounce: dezelfde QR blijft in beeld bij een continue scan.
+    // Debounce: dezelfde QR blijft continu in beeld bij een camera-scan (fps:10 → ~10 callbacks/sec).
+    // Het cooldown-venster telt vanaf het EINDE van de vorige verwerking van hetzelfde token, niet het
+    // begin — anders kan een trage round-trip het venster laten verlopen terwijl de QR nog in beeld is,
+    // wat een tweede check-in van hetzelfde ticket veroorzaakt.
     const last = lastTokenRef.current;
-    if (last && last.token === token && Date.now() - last.at < 3000) return;
+    if (last && last.token === token && Date.now() - last.at < SAME_TOKEN_COOLDOWN_MS) return;
+    // Markeer het token meteen (start) zodat frames tijdens de round-trip al genegeerd worden.
     lastTokenRef.current = { token, at: Date.now() };
     busyRef.current = true;
     try {
@@ -185,7 +193,12 @@ export default function TicketCheckin() {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(`Check-in mislukt: ${msg}`);
     } finally {
-      setTimeout(() => { busyRef.current = false; }, 600);
+      // Ververs het cooldown-venster ná de round-trip: vanaf nu telt de SAME_TOKEN_COOLDOWN_MS
+      // pas, zodat een QR die in beeld blijft niet meteen opnieuw verwerkt wordt.
+      if (lastTokenRef.current?.token === token) {
+        lastTokenRef.current = { token, at: Date.now() };
+      }
+      setTimeout(() => { busyRef.current = false; }, SCAN_BUSY_RELEASE_MS);
     }
   };
 

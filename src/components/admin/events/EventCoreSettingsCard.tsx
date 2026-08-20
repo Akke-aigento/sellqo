@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useUpdateEventDate, type EventStatus } from '@/hooks/useEventDetails';
+import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 
 const STATUSES: EventStatus[] = ['scheduled', 'confirmed', 'cancelled', 'completed', 'skipped', 'merged'];
 const HIDING_STATUSES = new Set<EventStatus>(['cancelled', 'skipped', 'merged']);
@@ -71,6 +72,11 @@ export function EventCoreSettingsCard({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  // Dirty-state: vergelijk de huidige form met de oorspronkelijke event-waarden.
+  // FormState is plat (strings/bools), dus een stabiele JSON-vergelijking volstaat.
+  const isDirty = JSON.stringify(form) !== JSON.stringify(toForm(event));
+  const resetForm = () => setForm(toForm(event));
 
   const capacityNum = form.unlimited || form.capacity.trim() === '' ? null : Number(form.capacity);
   const capacityInvalid = !form.unlimited && (form.capacity.trim() === '' || !Number.isFinite(capacityNum!) || (capacityNum as number) < 0);
@@ -171,7 +177,7 @@ export function EventCoreSettingsCard({
         <p className="text-xs text-muted-foreground">{t('events.settings.earlyBirdNote')}</p>
 
         <div className="flex justify-end">
-          <Button onClick={handleSaveClick} disabled={update.isPending || capacityInvalid || dateInvalid}>
+          <Button onClick={handleSaveClick} disabled={!isDirty || update.isPending || capacityInvalid || dateInvalid}>
             {update.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             {t('events.settings.save')}
           </Button>
@@ -205,6 +211,18 @@ export function EventCoreSettingsCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FloatingSaveBar
+        isDirty={isDirty}
+        isSaving={update.isPending}
+        onSave={() => {
+          if (capacityInvalid || dateInvalid) return;
+          handleSaveClick();
+        }}
+        onCancel={resetForm}
+        saveLabel={t('events.settings.save')}
+        cancelLabel={t('common.cancel', 'Annuleren')}
+      />
     </Card>
   );
 }
