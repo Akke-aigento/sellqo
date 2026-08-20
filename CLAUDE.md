@@ -86,16 +86,22 @@ Nieuwe sectie bovenaan, format `## <ID> — <korte titel> — <datum in NL>`, me
 - **Verificatie** — wat er gedraaid is en met welke uitkomst.
 - **Bewust ongemoeid / Vervolg** — wat expliciet niet is aangeraakt, en wat er nog open staat.
 
-### 4.2 Publieke changelog in 4 talen
+### 4.2 Publieke changelog in 5 talen
 
 Twee plekken, altijd samen:
 
-1. `src/pages/public/PublicChangelog.tsx` — entry in de `RELEASES`-array: `{ version, dateKey, changes: [{ id, type }] }`, met `type` uit `feature | improvement | bugfix | security`.
-2. `src/i18n/locales/landing.{nl,en,fr,de}.json` — `public.changelog.changes.<id>` met `{ title, description }` in **alle vier** de talen.
+1. `src/pages/public/PublicChangelog.tsx` — entry in de `changelogEntries`-array: `{ version, dateKey, changes: [{ id, type }] }`, met `type` uit `feature | improvement | bugfix | security`.
+2. `src/i18n/locales/landing.{nl,en,fr,de,uk}.json` — `public.changelog.changes.<id>` met `{ title, description }` in **alle vijf** de talen.
 
-Momenteel 89 entries, in alle vier de locales gelijk. Die pariteit moet blijven kloppen: één taal overslaan breekt de changelog voor die bezoekers.
+Oekraïens hoort sinds de i18n-sprint bij de standaardset. Tel dus vijf bestanden, niet vier — `scripts/i18n-parity.mjs` leest de talen uit de bestanden zelf en faalt met exit 1 zodra één taal een key mist. Die check draait in CI (`.github/workflows/ci.yml`), dus een overgeslagen taal blokkeert de PR.
 
-Schrijf in de tweede persoon, leg uit wat het voor de tenant betekent, en vermijd onverifieerbare marketingtaal (Belgische regels rond misleidende handelspraktijken).
+Nieuwe entries worden **achteraan** het `changes`-object toegevoegd (geen alfabetische volgorde), en bovenaan `changelogEntries` — die array staat nieuwste-eerst.
+
+Aantallen lopen op; ga ze niet uit dit document overnemen maar tel ze na. Op 20 augustus 2026: 111 entries, gelijk in alle vijf de locales. Die pariteit moet blijven kloppen: één taal overslaan breekt de changelog voor die bezoekers.
+
+Versienummers volgen `JJJJ.MMx` en tellen door op de laatste in `changelogEntries` (`2026.10n` → `2026.10o`). Let op dat `dateKey` in de 2026.10-reeks op `sep_2026` staat terwijl de commits uit augustus 2026 komen; die scheefstand is bestaand. Volg de reeks, of stem af met Akke vóór je hem rechttrekt.
+
+Schrijf in de tweede persoon, leg uit wat het voor de tenant betekent, en vermijd onverifieerbare marketingtaal (Belgische regels rond misleidende handelspraktijken). De aanspreekvorm verschilt per taal en is niet uniform in de bestaande set: de event-reeks gebruikt `du` (de) en `ти` (uk), oudere entries `Sie`. Sluit aan bij de entries in hetzelfde onderwerp.
 
 ### 4.3 `doc_articles` — in-app documentatie
 
@@ -106,7 +112,7 @@ Via een migratie-`INSERT` op `public.doc_articles`:
 - `title`, `slug`, `excerpt`, `content` (HTML), `sort_order`
 - `UNIQUE (doc_level, slug)`, dus gebruik `ON CONFLICT` bij het bijwerken
 
-Let op: `doc_articles` heeft **één** `content`-veld, geen taalvarianten. Alleen de changelog is viertalig.
+Let op: `doc_articles` heeft **één** `content`-veld, geen taalvarianten. Alleen de changelog is vijftalig.
 
 ### 4.4 Newsletter-wachtrij — `docs/newsletter-queue.md`
 

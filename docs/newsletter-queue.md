@@ -105,7 +105,7 @@ die vanaf nu verstuurd worden. Zonder eigen logo blijft het SellQo-logo staan.
 
 **i18n-keys.** `public.changelog.changes.tenant_email_branding` — KLAARZETTEN, nog niet
 gepubliceerd (meenemen in de gebundelde slottaakronde: entry in
-`src/pages/public/PublicChangelog.tsx` + `landing.{nl,en,fr,de}.json`).
+`src/pages/public/PublicChangelog.tsx` + `landing.{nl,en,fr,de,uk}.json`).
 
 ### 2026.10d — Marketingrol kan producten bewerken (improvement, 18-08-2026)
 
