@@ -16496,6 +16496,126 @@ export type Database = {
           },
         ]
       }
+      tenant_brand_dna: {
+        Row: {
+          brand_mission: string | null
+          created_at: string
+          donts: string | null
+          dos: string | null
+          format_emphasis: string
+          free_dna: string | null
+          hashtag_sets: Json
+          id: string
+          menu_counts: Json
+          target_audience: string | null
+          tenant_id: string
+          themes: string[]
+          tone_keywords: string[]
+          updated_at: string
+          usps: string[]
+        }
+        Insert: {
+          brand_mission?: string | null
+          created_at?: string
+          donts?: string | null
+          dos?: string | null
+          format_emphasis?: string
+          free_dna?: string | null
+          hashtag_sets?: Json
+          id?: string
+          menu_counts?: Json
+          target_audience?: string | null
+          tenant_id: string
+          themes?: string[]
+          tone_keywords?: string[]
+          updated_at?: string
+          usps?: string[]
+        }
+        Update: {
+          brand_mission?: string | null
+          created_at?: string
+          donts?: string | null
+          dos?: string | null
+          format_emphasis?: string
+          free_dna?: string | null
+          hashtag_sets?: Json
+          id?: string
+          menu_counts?: Json
+          target_audience?: string | null
+          tenant_id?: string
+          themes?: string[]
+          tone_keywords?: string[]
+          updated_at?: string
+          usps?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_brand_dna_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_brand_dna_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_content_categories: {
+        Row: {
+          created_at: string
+          id: string
+          instructions: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_content_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_domains: {
         Row: {
           created_at: string
