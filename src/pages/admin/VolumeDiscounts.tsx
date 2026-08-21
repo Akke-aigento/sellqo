@@ -48,9 +48,13 @@ export default function VolumeDiscounts() {
 
   const appliesToLabels: Record<string, string> = {
     all: 'Alles',
-    product: 'Product',
+    specific_products: 'Specifieke producten',
+    specific_categories: 'Categorie',
+    // Legacy waarden uit oudere data
+    product: 'Specifieke producten',
     category: 'Categorie',
   };
+
 
   return (
     <div className="space-y-6">

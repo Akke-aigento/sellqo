@@ -1528,7 +1528,63 @@ async function computeCartTotals(
   let discountTotal = 0;
   let hasFreeShipping = false;
   let canonicalCode: string | null = null;
-  const appliedDiscounts: { code: string; description: string; amount: number }[] = [];
+  const appliedDiscounts: { code: string | null; description: string; amount: number; type?: string }[] = [];
+
+  // VOLUME-CART-1 — staffelkortingen (volume_discounts) vóór de codes, zodat
+  // kortingscodes stapelen op de al volume-gereduceerde grondslag.
+  // Strikt additief: zonder actieve, matchende staffel verandert er niets.
+  if (cartItems.length > 0) {
+    const { data: volumeDiscounts } = await supabase
+      .from('volume_discounts')
+      .select('*, volume_discount_tiers(*)')
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true);
+
+    for (const vd of volumeDiscounts || []) {
+      if (!isPromotionActive(true, vd.valid_from, vd.valid_until)) continue;
+
+      let eligibleItems: any[] = [];
+      if (vd.applies_to === 'all') {
+        eligibleItems = cartItems;
+      } else if (vd.applies_to === 'specific_products' || vd.applies_to === 'product') {
+        const ids: string[] = vd.product_ids || [];
+        eligibleItems = cartItems.filter((i: any) => ids.includes(i.product_id));
+      } else if (vd.applies_to === 'specific_categories' || vd.applies_to === 'category') {
+        const catIds: string[] = vd.category_ids || [];
+        if (catIds.length > 0) {
+          const productIds = cartItems.map((i: any) => i.product_id);
+          const { data: links } = await supabase
+            .from('product_categories').select('product_id')
+            .in('product_id', productIds).in('category_id', catIds);
+          const eligible = new Set((links || []).map((l: any) => l.product_id));
+          eligibleItems = cartItems.filter((i: any) => eligible.has(i.product_id));
+        }
+      }
+
+      if (eligibleItems.length === 0) continue;
+
+      const qty = eligibleItems.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0);
+      const tiers = vd.volume_discount_tiers || [];
+      const tier = tiers
+        .filter((t: any) => qty >= t.min_quantity && (!t.max_quantity || qty <= t.max_quantity))
+        .sort((a: any, b: any) => b.min_quantity - a.min_quantity)[0];
+      if (!tier) continue;
+
+      const base = round2(eligibleItems.reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
+      if (base <= 0) continue;
+      const amt = round2(calculateDiscountValue(base, tier.discount_type, tier.discount_value));
+      if (amt <= 0) continue;
+
+      discountTotal += amt;
+      appliedDiscounts.push({
+        code: null,
+        description: vd.name || 'Staffelkorting',
+        amount: amt,
+        type: 'volume',
+      });
+    }
+  }
+
 
   for (const raw of codes) {
     const v = await validateDiscountCode(supabase, tenantId, { code: raw, subtotal });
@@ -1607,7 +1663,7 @@ async function computeCartTotals(
   return {
     subtotal,
     discount_code: canonicalCode,
-    discount_codes: appliedDiscounts.map((d) => d.code),
+    discount_codes: appliedDiscounts.map((d) => d.code).filter(Boolean),
     discount_amount: discountTotal,
     applied_discounts: appliedDiscounts,
     shipping,

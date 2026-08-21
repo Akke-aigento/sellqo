@@ -24,12 +24,15 @@ export function calculateVolumeDiscounts(
 
   for (const discount of activeDiscounts) {
     const eligibleItems = items.filter((item, index) => {
-      // Check if item matches the discount scope
-      if (discount.applies_to === 'all') return true;
-      if (discount.applies_to === 'product' && discount.product_ids?.includes(item.product_id)) return true;
-      if (discount.applies_to === 'category' && item.category_id && discount.category_ids?.includes(item.category_id)) return true;
+      // Check if item matches the discount scope.
+      // Legacy waarden ('product' / 'category') worden getolereerd i.v.m. bestaande data.
+      const appliesTo = discount.applies_to as string;
+      if (appliesTo === 'all') return true;
+      if ((appliesTo === 'specific_products' || appliesTo === 'product') && discount.product_ids?.includes(item.product_id)) return true;
+      if ((appliesTo === 'specific_categories' || appliesTo === 'category') && item.category_id && discount.category_ids?.includes(item.category_id)) return true;
       return false;
     });
+
 
     if (eligibleItems.length === 0) continue;
 

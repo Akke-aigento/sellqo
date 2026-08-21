@@ -59,7 +59,7 @@ export interface VolumeDiscount {
   tenant_id: string;
   name: string;
   description: string | null;
-  applies_to: 'all' | 'category' | 'product';
+  applies_to: 'all' | 'specific_products' | 'specific_categories';
   product_ids: string[] | null;
   category_ids: string[] | null;
   is_active: boolean;
@@ -83,7 +83,7 @@ export interface VolumeDiscountTier {
 export interface VolumeDiscountFormData {
   name: string;
   description?: string;
-  applies_to: 'all' | 'category' | 'product';
+  applies_to: 'all' | 'specific_products' | 'specific_categories';
   product_ids?: string[];
   category_ids?: string[];
   is_active: boolean;
