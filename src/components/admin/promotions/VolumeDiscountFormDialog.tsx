@@ -41,7 +41,7 @@ const tierSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
   description: z.string().optional(),
-  applies_to: z.enum(['all', 'product', 'category']),
+  applies_to: z.enum(['all', 'specific_products', 'specific_categories']),
   is_active: z.boolean(),
   valid_from: z.string().optional(),
   valid_until: z.string().optional(),
@@ -193,8 +193,8 @@ export function VolumeDiscountFormDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="all">Alle producten</SelectItem>
-                      <SelectItem value="product">Specifieke producten</SelectItem>
-                      <SelectItem value="category">Categorie</SelectItem>
+                      <SelectItem value="specific_products">Specifieke producten</SelectItem>
+                      <SelectItem value="specific_categories">Categorie</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
