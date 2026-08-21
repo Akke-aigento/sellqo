@@ -1472,6 +1472,10 @@
         "event_quick_actions_and_dashboard_filter": {
           "title": "Snelacties per event, en je dashboard toont standaard alleen wat nog komt",
           "description": "Op elke eventkaart staat nu een menu met drie puntjes: bewerken, de scanner openen, dupliceren, afronden, annuleren en verwijderen. Dupliceren neemt je capaciteit, locatie, tickettypes en zones over naar een nieuwe datum. Annuleren haalt het event uit je webshop; bestaande tickets blijven geldig. Verwijderen kan alleen bij een event zonder tickets, tickettypes of zones — in de andere gevallen staat de knop grijs met uitleg, zodat je niet op een onduidelijke foutmelding stuit. Het dashboard toont voortaan alleen aankomende events; met de schakelaar Toon afgelopen haal je de historie erbij."
+        },
+        "ai_content_menu_brand_dna": {
+          "title": "Leg je merk-DNA en ochtendmenu vast in Sellqo AI",
+          "description": "Sellqo AI heeft een nieuw tabblad Menukaart. Daar beschrijf je één keer wie je merk is: missie, doelgroep, tone of voice, sterke punten, vaste thema's, wat je wel en niet wilt zeggen, en hashtag-sets die je per thema hergebruikt. Er is ook een vrij veld voor alles wat in geen hokje past. Daaronder stel je je ochtendmenu samen: per categorie kies je hoeveel posts je wilt, van productpost en klantverhaal tot 'verras me', en je legt vast of de nadruk op korte, uitgebreide, beeldgedreven of carrousel-posts ligt. Mist er een categorie, dan maak je er zelf een aan met een eigen instructie. Die instructie is verplicht, zodat er geen categorie ontstaat waar de generator niets mee kan. Wat je hier invult is de basis voor de dagelijkse contentgeneratie die hierop volgt. Het tabblad hoort bij Pro en Enterprise."
         }
       },
       "copyLink": "Kopieer link",

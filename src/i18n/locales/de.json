@@ -53,7 +53,12 @@
     "date": "Datum",
     "noResults": "Keine Ergebnisse gefunden",
     "all": "Alle",
-    "saving": "Speichern..."
+    "saving": "Speichern...",
+    "feature_locked": {
+      "title": "Funktion nicht verfügbar",
+      "description": "Diese Funktion ist in Ihrem aktuellen Tarif nicht enthalten.",
+      "cta": "Tarife ansehen"
+    }
   },
   "auth": {
     "login": "Anmelden",
@@ -2312,6 +2317,179 @@
     },
     "checkin": {
       "preselectCancelled": "Dieses Event wurde abgesagt, Scannen hat keinen Sinn."
+    }
+  },
+  "content_menu": {
+    "tab": {
+      "label": "Menükarte"
+    },
+    "header": {
+      "title": "Tägliche Menükarte",
+      "description": "Halten Sie fest, wofür Ihre Marke steht und was jeden Morgen auf der Karte steht. Sellqo AI nutzt das als Grundlage für Ihre Social-Content."
+    },
+    "brand_dna": {
+      "title": "Marken-DNA",
+      "description": "Der feste Kern Ihrer Marke. Einmal sorgfältig ausfüllen; der Generator liest ihn bei jedem Beitrag mit.",
+      "mission": {
+        "label": "Mission",
+        "placeholder": "Wofür stehen Sie, und warum gibt es Sie?",
+        "help": "Ein oder zwei Sätze. Das bestimmt den Ton von allem, was Sie erzeugen."
+      },
+      "audience": {
+        "label": "Zielgruppe",
+        "placeholder": "Für wen machen Sie das? Alter, Situation, was beschäftigt diese Menschen?",
+        "help": "Je schärfer die Beschreibung, desto gezielter werden die Texte."
+      },
+      "tone": {
+        "label": "Tonalität",
+        "placeholder": "Wort eingeben und Enter drücken",
+        "help": "Stichwörter, die Ihren Ton beschreiben, zum Beispiel warm, sachlich oder verspielt."
+      },
+      "usps": {
+        "label": "Stärken",
+        "placeholder": "Stärke eingeben und Enter drücken",
+        "help": "Warum entscheidet sich jemand für Sie und nicht für andere?"
+      },
+      "themes": {
+        "label": "Feste Themen",
+        "placeholder": "Thema eingeben und Enter drücken",
+        "help": "Themen, auf die Sie regelmäßig zurückkommen."
+      },
+      "dos": {
+        "label": "Immer tun",
+        "placeholder": "Was soll immer durchklingen?"
+      },
+      "donts": {
+        "label": "Nie tun",
+        "placeholder": "Welche Wörter, Versprechen oder Themen wollen Sie nie sehen?"
+      },
+      "hashtags": {
+        "label": "Hashtag-Sets",
+        "help": "Gruppieren Sie Hashtags nach Thema, damit Sie sie pro Beitrag wiederverwenden können.",
+        "empty": "Noch keine Sets. Legen Sie eines an, um Hashtags zu speichern.",
+        "remove_set": "Set {{name}} entfernen",
+        "tag_placeholder": "Hashtag eingeben und Enter drücken",
+        "new_set_placeholder": "Name des Sets",
+        "add_set": "Set hinzufügen"
+      },
+      "free": {
+        "label": "Freies Feld",
+        "placeholder": "Alles, was oben nicht passte, die KI aber wissen sollte.",
+        "help": "Hintergrund, Anekdoten, Fachbegriffe, heikle Punkte — schreiben Sie auf, was zählt."
+      }
+    },
+    "morning_menu": {
+      "title": "Morgenmenü",
+      "description": "Wie viele Beiträge pro Kategorie sollen Ihnen morgens vorgelegt werden?",
+      "total_label": "Gesamt pro Morgen",
+      "total_value": "{{total}} Beiträge",
+      "freeform_badge": "Freie Wahl",
+      "custom_badge": "Eigene",
+      "decrease": "Einen weniger für {{category}}",
+      "increase": "Einen mehr für {{category}}"
+    },
+    "format_emphasis": {
+      "label": "Schwerpunkt beim Format",
+      "help": "Gilt für die gesamte Karte, nicht pro Kategorie.",
+      "mixed": {
+        "label": "Gemischt",
+        "description": "Die KI wählt pro Beitrag, was passt."
+      },
+      "short": {
+        "label": "Kurz",
+        "description": "Kurze Texte, die auf Instagram und X schnell wirken."
+      },
+      "long": {
+        "label": "Ausführlich",
+        "description": "Längere Geschichten, passend für Facebook und LinkedIn."
+      },
+      "visual": {
+        "label": "Bild zuerst",
+        "description": "Beiträge, bei denen das Foto trägt und der Text kurz bleibt."
+      },
+      "carousel": {
+        "label": "Karussell",
+        "description": "Beiträge über mehrere Karten, als Reihe aufgebaut."
+      }
+    },
+    "categories": {
+      "product_post": {
+        "label": "Produktbeitrag",
+        "description": "Ein Produkt im Rampenlicht, mit dem Grund, es jetzt zu kaufen."
+      },
+      "educational": {
+        "label": "Wissen",
+        "description": "Erklären Sie etwas aus Ihrem Fach, das Ihrer Kundschaft wirklich hilft."
+      },
+      "lifestyle": {
+        "label": "Lifestyle",
+        "description": "Ihr Produkt im Alltag, Stimmung vor technischen Daten."
+      },
+      "behind_the_scenes": {
+        "label": "Hinter den Kulissen",
+        "description": "Wie es entsteht, wer es macht, was schiefgeht."
+      },
+      "customer_story": {
+        "label": "Kundengeschichte",
+        "description": "Eine Erfahrung, Bewertung oder ein Fall aus dem echten Leben."
+      },
+      "tip_howto": {
+        "label": "Tipp oder Anleitung",
+        "description": "Ein konkreter Tipp oder Ablauf, der sofort anwendbar ist."
+      },
+      "seasonal": {
+        "label": "Saison und Aktuelles",
+        "description": "Knüpfen Sie an die Jahreszeit, einen Feiertag oder das Tagesgeschehen an."
+      },
+      "surprise_me": {
+        "label": "Überrasch mich",
+        "description": "Freiraum: Die KI wählt selbst einen Blickwinkel, der zur Marke passt."
+      }
+    },
+    "custom": {
+      "title": "Eigene Kategorien",
+      "help": "Fehlt etwas? Fügen Sie eine eigene Kategorie mit klarer Anweisung hinzu.",
+      "empty": "Sie haben noch keine eigenen Kategorien.",
+      "add": "Kategorie hinzufügen",
+      "hidden_badge": "Ausgeblendet",
+      "edit_label": "{{name}} bearbeiten",
+      "hide_label": "{{name}} ausblenden",
+      "show_label": "{{name}} wieder anzeigen",
+      "delete_label": "{{name}} löschen",
+      "name": {
+        "label": "Name",
+        "placeholder": "Zum Beispiel: Rezept der Woche"
+      },
+      "instructions": {
+        "label": "Anweisung für die KI",
+        "placeholder": "Beschreiben Sie, was in dieser Kategorie passieren soll.",
+        "help": "Pflichtfeld. Ohne Anweisung weiß der Generator nicht, was gemeint ist."
+      },
+      "errors": {
+        "name_required": "Geben Sie einen Namen ein.",
+        "instructions_required": "Geben Sie eine Anweisung ein. Ohne Anweisung lässt sich diese Kategorie nicht speichern.",
+        "name_invalid": "Verwenden Sie mindestens einen Buchstaben oder eine Ziffer im Namen.",
+        "name_reserved": "Dieser Name wird bereits von einer festen Kategorie verwendet.",
+        "name_taken": "Sie haben bereits eine Kategorie mit diesem Namen."
+      },
+      "delete_confirm": {
+        "title": "Kategorie endgültig löschen?",
+        "description": "{{name}} wird gelöscht und der zugehörige Zähler verschwindet aus Ihrer Karte. Sie können sie auch ausblenden — dann bleibt die Kategorie erhalten.",
+        "confirm": "Endgültig löschen"
+      }
+    },
+    "actions": {
+      "save": "Speichern",
+      "saving": "Wird gespeichert...",
+      "cancel": "Abbrechen",
+      "unsaved": "Nicht gespeicherte Änderungen"
+    },
+    "toast": {
+      "saved": "Gespeichert",
+      "save_failed": "Speichern fehlgeschlagen"
+    },
+    "errors": {
+      "load_failed": "Die Menükarte konnte nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut."
     }
   }
 }

@@ -31,12 +31,12 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-8 text-center">
         <Lock className="h-10 w-10 text-muted-foreground mb-4" />
-        <h3 className="font-semibold mb-2">Feature niet beschikbaar</h3>
+        <h3 className="font-semibold mb-2">{t('common.feature_locked.title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Deze feature is niet inbegrepen in je huidige abonnement.
+          {t('common.feature_locked.description')}
         </p>
         <Button onClick={() => navigate('/pricing')}>
-          Bekijk upgrade opties
+          {t('common.feature_locked.cta')}
         </Button>
       </CardContent>
     </Card>

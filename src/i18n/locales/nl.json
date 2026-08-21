@@ -25,7 +25,12 @@
     "phone": "Telefoon",
     "search": "Zoeken...",
     "yes": "Ja",
-    "saving": "Opslaan..."
+    "saving": "Opslaan...",
+    "feature_locked": {
+      "title": "Functie niet beschikbaar",
+      "description": "Deze functie zit niet in je huidige abonnement.",
+      "cta": "Bekijk abonnementen"
+    }
   },
   "auth": {
     "login": "Inloggen",
@@ -2314,6 +2319,179 @@
     },
     "checkin": {
       "preselectCancelled": "Dit event is geannuleerd, scannen heeft geen zin."
+    }
+  },
+  "content_menu": {
+    "tab": {
+      "label": "Menukaart"
+    },
+    "header": {
+      "title": "Dagelijkse menukaart",
+      "description": "Leg vast wie je merk is en wat er elke ochtend op het menu staat. Sellqo AI gebruikt dit als basis voor je social content."
+    },
+    "brand_dna": {
+      "title": "Merk-DNA",
+      "description": "De vaste kern van je merk. Vul dit één keer goed in; de generator leest het bij elke post mee.",
+      "mission": {
+        "label": "Missie",
+        "placeholder": "Waar sta je voor, en waarom besta je?",
+        "help": "Eén of twee zinnen. Dit stuurt de toon van alles wat je genereert."
+      },
+      "audience": {
+        "label": "Doelgroep",
+        "placeholder": "Voor wie maak je het? Leeftijd, situatie, wat houdt hen bezig?",
+        "help": "Hoe scherper je dit beschrijft, hoe gerichter de teksten worden."
+      },
+      "tone": {
+        "label": "Tone of voice",
+        "placeholder": "Typ een woord en druk op Enter",
+        "help": "Steekwoorden die je toon beschrijven, bijvoorbeeld warm, nuchter of speels."
+      },
+      "usps": {
+        "label": "Sterke punten",
+        "placeholder": "Typ een sterk punt en druk op Enter",
+        "help": "Waarom kiest iemand voor jou en niet voor een ander?"
+      },
+      "themes": {
+        "label": "Vaste thema's",
+        "placeholder": "Typ een thema en druk op Enter",
+        "help": "Onderwerpen waar je regelmatig op terugkomt."
+      },
+      "dos": {
+        "label": "Wel doen",
+        "placeholder": "Wat moet er altijd in terugkomen?"
+      },
+      "donts": {
+        "label": "Niet doen",
+        "placeholder": "Welke woorden, claims of onderwerpen wil je nooit zien?"
+      },
+      "hashtags": {
+        "label": "Hashtag-sets",
+        "help": "Groepeer hashtags per thema, zodat je ze per post kunt hergebruiken.",
+        "empty": "Nog geen sets. Maak er één aan om hashtags te bewaren.",
+        "remove_set": "Set {{name}} verwijderen",
+        "tag_placeholder": "Typ een hashtag en druk op Enter",
+        "new_set_placeholder": "Naam van de set",
+        "add_set": "Set toevoegen"
+      },
+      "free": {
+        "label": "Vrij veld",
+        "placeholder": "Alles wat hierboven niet paste maar de AI wel moet weten.",
+        "help": "Achtergrond, anekdotes, vaktermen, gevoeligheden — schrijf op wat je kwijt wilt."
+      }
+    },
+    "morning_menu": {
+      "title": "Ochtendmenu",
+      "description": "Hoeveel posts per categorie wil je 's ochtends voorgeschoteld krijgen?",
+      "total_label": "Totaal per ochtend",
+      "total_value": "{{total}} posts",
+      "freeform_badge": "Vrije keuze",
+      "custom_badge": "Eigen",
+      "decrease": "Eén minder voor {{category}}",
+      "increase": "Eén meer voor {{category}}"
+    },
+    "format_emphasis": {
+      "label": "Nadruk op formaat",
+      "help": "Geldt voor het hele menu, niet per categorie.",
+      "mixed": {
+        "label": "Gemengd",
+        "description": "Laat de AI per post kiezen wat past."
+      },
+      "short": {
+        "label": "Kort",
+        "description": "Korte teksten die het snel doen op Instagram en X."
+      },
+      "long": {
+        "label": "Uitgebreid",
+        "description": "Langere verhalen, geschikt voor Facebook en LinkedIn."
+      },
+      "visual": {
+        "label": "Beeld voorop",
+        "description": "Posts waarin de foto het werk doet en de tekst kort blijft."
+      },
+      "carousel": {
+        "label": "Carrousel",
+        "description": "Posts in meerdere kaarten, opgebouwd als een reeks."
+      }
+    },
+    "categories": {
+      "product_post": {
+        "label": "Productpost",
+        "description": "Eén product in de schijnwerpers, met de reden om het nu te kopen."
+      },
+      "educational": {
+        "label": "Educatief",
+        "description": "Leg iets uit uit je vakgebied waar je klant echt iets aan heeft."
+      },
+      "lifestyle": {
+        "label": "Lifestyle",
+        "description": "Je product in het dagelijks leven, sfeer boven specificaties."
+      },
+      "behind_the_scenes": {
+        "label": "Achter de schermen",
+        "description": "Hoe het gemaakt wordt, wie het maakt, wat er misgaat."
+      },
+      "customer_story": {
+        "label": "Klantverhaal",
+        "description": "Een ervaring, review of case van een echte klant."
+      },
+      "tip_howto": {
+        "label": "Tip of how-to",
+        "description": "Een concrete tip of stappenplan dat meteen toepasbaar is."
+      },
+      "seasonal": {
+        "label": "Seizoen en actualiteit",
+        "description": "Haak in op het seizoen, een feestdag of iets van vandaag."
+      },
+      "surprise_me": {
+        "label": "Verras me",
+        "description": "Vrije ruimte: de AI kiest zelf een invalshoek die bij je merk past."
+      }
+    },
+    "custom": {
+      "title": "Eigen categorieën",
+      "help": "Mist er iets? Voeg een eigen categorie toe met een duidelijke instructie.",
+      "empty": "Je hebt nog geen eigen categorieën.",
+      "add": "Categorie toevoegen",
+      "hidden_badge": "Verborgen",
+      "edit_label": "{{name}} bewerken",
+      "hide_label": "{{name}} verbergen",
+      "show_label": "{{name}} weer tonen",
+      "delete_label": "{{name}} verwijderen",
+      "name": {
+        "label": "Naam",
+        "placeholder": "Bijvoorbeeld: Recept van de week"
+      },
+      "instructions": {
+        "label": "Instructie voor de AI",
+        "placeholder": "Beschrijf wat er in deze categorie moet gebeuren.",
+        "help": "Verplicht. Zonder instructie weet de generator niet wat je bedoelt."
+      },
+      "errors": {
+        "name_required": "Vul een naam in.",
+        "instructions_required": "Vul een instructie in. Zonder instructie kan deze categorie niet bewaard worden.",
+        "name_invalid": "Gebruik minstens één letter of cijfer in de naam.",
+        "name_reserved": "Deze naam is al in gebruik door een vaste categorie.",
+        "name_taken": "Je hebt al een categorie met deze naam."
+      },
+      "delete_confirm": {
+        "title": "Categorie definitief verwijderen?",
+        "description": "{{name}} wordt verwijderd en de teller ervan verdwijnt uit je menu. Verbergen kan ook — dan blijft de categorie bewaard.",
+        "confirm": "Definitief verwijderen"
+      }
+    },
+    "actions": {
+      "save": "Opslaan",
+      "saving": "Opslaan...",
+      "cancel": "Annuleren",
+      "unsaved": "Niet-opgeslagen wijzigingen"
+    },
+    "toast": {
+      "saved": "Opgeslagen",
+      "save_failed": "Opslaan mislukt"
+    },
+    "errors": {
+      "load_failed": "De menukaart kon niet geladen worden. Herlaad de pagina of probeer het later opnieuw."
     }
   }
 }

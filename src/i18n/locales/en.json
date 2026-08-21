@@ -25,7 +25,12 @@
     "phone": "Phone",
     "search": "Search...",
     "yes": "Yes",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "feature_locked": {
+      "title": "Feature not available",
+      "description": "This feature is not included in your current plan.",
+      "cta": "View plans"
+    }
   },
   "auth": {
     "login": "Log in",
@@ -2312,6 +2317,179 @@
     },
     "checkin": {
       "preselectCancelled": "This event has been cancelled, there is no point in scanning."
+    }
+  },
+  "content_menu": {
+    "tab": {
+      "label": "Menu"
+    },
+    "header": {
+      "title": "Daily menu",
+      "description": "Record who your brand is and what goes on the menu each morning. Sellqo AI uses this as the basis for your social content."
+    },
+    "brand_dna": {
+      "title": "Brand DNA",
+      "description": "The fixed core of your brand. Fill this in properly once; the generator reads it for every post.",
+      "mission": {
+        "label": "Mission",
+        "placeholder": "What do you stand for, and why do you exist?",
+        "help": "One or two sentences. This sets the tone for everything you generate."
+      },
+      "audience": {
+        "label": "Audience",
+        "placeholder": "Who are you making this for? Age, situation, what occupies them?",
+        "help": "The sharper your description, the more focused the copy becomes."
+      },
+      "tone": {
+        "label": "Tone of voice",
+        "placeholder": "Type a word and press Enter",
+        "help": "Keywords that describe your tone, for example warm, down-to-earth or playful."
+      },
+      "usps": {
+        "label": "Selling points",
+        "placeholder": "Type a selling point and press Enter",
+        "help": "Why does someone choose you over anyone else?"
+      },
+      "themes": {
+        "label": "Recurring themes",
+        "placeholder": "Type a theme and press Enter",
+        "help": "Subjects you come back to regularly."
+      },
+      "dos": {
+        "label": "Always do",
+        "placeholder": "What should always come through?"
+      },
+      "donts": {
+        "label": "Never do",
+        "placeholder": "Which words, claims or subjects do you never want to see?"
+      },
+      "hashtags": {
+        "label": "Hashtag sets",
+        "help": "Group hashtags by theme so you can reuse them per post.",
+        "empty": "No sets yet. Create one to store hashtags.",
+        "remove_set": "Remove set {{name}}",
+        "tag_placeholder": "Type a hashtag and press Enter",
+        "new_set_placeholder": "Set name",
+        "add_set": "Add set"
+      },
+      "free": {
+        "label": "Free field",
+        "placeholder": "Anything that didn't fit above but the AI should still know.",
+        "help": "Background, anecdotes, jargon, sensitivities — write down whatever matters."
+      }
+    },
+    "morning_menu": {
+      "title": "Morning menu",
+      "description": "How many posts per category do you want served up each morning?",
+      "total_label": "Total per morning",
+      "total_value": "{{total}} posts",
+      "freeform_badge": "Free choice",
+      "custom_badge": "Custom",
+      "decrease": "One fewer for {{category}}",
+      "increase": "One more for {{category}}"
+    },
+    "format_emphasis": {
+      "label": "Format emphasis",
+      "help": "Applies to the whole menu, not per category.",
+      "mixed": {
+        "label": "Mixed",
+        "description": "Let the AI pick what fits for each post."
+      },
+      "short": {
+        "label": "Short",
+        "description": "Short copy that works fast on Instagram and X."
+      },
+      "long": {
+        "label": "Long-form",
+        "description": "Longer stories, suited to Facebook and LinkedIn."
+      },
+      "visual": {
+        "label": "Image first",
+        "description": "Posts where the photo does the work and the copy stays short."
+      },
+      "carousel": {
+        "label": "Carousel",
+        "description": "Posts across several cards, built up as a sequence."
+      }
+    },
+    "categories": {
+      "product_post": {
+        "label": "Product post",
+        "description": "One product in the spotlight, with the reason to buy it now."
+      },
+      "educational": {
+        "label": "Educational",
+        "description": "Explain something from your field that genuinely helps your customer."
+      },
+      "lifestyle": {
+        "label": "Lifestyle",
+        "description": "Your product in everyday life, atmosphere over specifications."
+      },
+      "behind_the_scenes": {
+        "label": "Behind the scenes",
+        "description": "How it is made, who makes it, what goes wrong."
+      },
+      "customer_story": {
+        "label": "Customer story",
+        "description": "An experience, review or case from a real customer."
+      },
+      "tip_howto": {
+        "label": "Tip or how-to",
+        "description": "A concrete tip or step-by-step guide you can apply right away."
+      },
+      "seasonal": {
+        "label": "Season and topical",
+        "description": "Tie in with the season, a holiday or something happening today."
+      },
+      "surprise_me": {
+        "label": "Surprise me",
+        "description": "Free rein: the AI picks an angle that suits your brand."
+      }
+    },
+    "custom": {
+      "title": "Custom categories",
+      "help": "Missing something? Add your own category with a clear instruction.",
+      "empty": "You don't have any custom categories yet.",
+      "add": "Add category",
+      "hidden_badge": "Hidden",
+      "edit_label": "Edit {{name}}",
+      "hide_label": "Hide {{name}}",
+      "show_label": "Show {{name}} again",
+      "delete_label": "Delete {{name}}",
+      "name": {
+        "label": "Name",
+        "placeholder": "For example: Recipe of the week"
+      },
+      "instructions": {
+        "label": "Instruction for the AI",
+        "placeholder": "Describe what should happen in this category.",
+        "help": "Required. Without an instruction the generator doesn't know what you mean."
+      },
+      "errors": {
+        "name_required": "Enter a name.",
+        "instructions_required": "Enter an instruction. Without one this category cannot be saved.",
+        "name_invalid": "Use at least one letter or digit in the name.",
+        "name_reserved": "This name is already used by a built-in category.",
+        "name_taken": "You already have a category with this name."
+      },
+      "delete_confirm": {
+        "title": "Permanently delete category?",
+        "description": "{{name}} will be deleted and its counter disappears from your menu. You can also hide it — then the category is kept.",
+        "confirm": "Delete permanently"
+      }
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "unsaved": "Unsaved changes"
+    },
+    "toast": {
+      "saved": "Saved",
+      "save_failed": "Could not save"
+    },
+    "errors": {
+      "load_failed": "The menu could not be loaded. Reload the page or try again later."
     }
   }
 }

@@ -53,7 +53,12 @@
     "date": "Date",
     "noResults": "Aucun résultat trouvé",
     "all": "Tous",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "feature_locked": {
+      "title": "Fonctionnalité indisponible",
+      "description": "Cette fonctionnalité n'est pas incluse dans votre formule actuelle.",
+      "cta": "Voir les formules"
+    }
   },
   "auth": {
     "login": "Connexion",
@@ -2312,6 +2317,179 @@
     },
     "checkin": {
       "preselectCancelled": "Cet événement a été annulé, le scan n'a aucun intérêt."
+    }
+  },
+  "content_menu": {
+    "tab": {
+      "label": "Carte"
+    },
+    "header": {
+      "title": "Carte du jour",
+      "description": "Définissez l'identité de votre marque et ce qui figure chaque matin à la carte. Sellqo AI s'en sert comme base pour vos contenus sociaux."
+    },
+    "brand_dna": {
+      "title": "ADN de marque",
+      "description": "Le noyau fixe de votre marque. Remplissez-le soigneusement une fois ; le générateur le relit à chaque publication.",
+      "mission": {
+        "label": "Mission",
+        "placeholder": "Que défendez-vous, et pourquoi existez-vous ?",
+        "help": "Une ou deux phrases. Cela donne le ton de tout ce que vous générez."
+      },
+      "audience": {
+        "label": "Public cible",
+        "placeholder": "Pour qui travaillez-vous ? Âge, situation, préoccupations ?",
+        "help": "Plus la description est précise, plus les textes seront ciblés."
+      },
+      "tone": {
+        "label": "Ton de la marque",
+        "placeholder": "Saisissez un mot et appuyez sur Entrée",
+        "help": "Des mots-clés qui décrivent votre ton, par exemple chaleureux, sobre ou joueur."
+      },
+      "usps": {
+        "label": "Points forts",
+        "placeholder": "Saisissez un point fort et appuyez sur Entrée",
+        "help": "Pourquoi vous choisit-on plutôt qu'un autre ?"
+      },
+      "themes": {
+        "label": "Thèmes récurrents",
+        "placeholder": "Saisissez un thème et appuyez sur Entrée",
+        "help": "Les sujets sur lesquels vous revenez régulièrement."
+      },
+      "dos": {
+        "label": "À faire",
+        "placeholder": "Que doit-on toujours retrouver ?"
+      },
+      "donts": {
+        "label": "À éviter",
+        "placeholder": "Quels mots, promesses ou sujets ne voulez-vous jamais voir ?"
+      },
+      "hashtags": {
+        "label": "Jeux de hashtags",
+        "help": "Regroupez les hashtags par thème pour les réutiliser publication par publication.",
+        "empty": "Aucun jeu pour le moment. Créez-en un pour enregistrer des hashtags.",
+        "remove_set": "Supprimer le jeu {{name}}",
+        "tag_placeholder": "Saisissez un hashtag et appuyez sur Entrée",
+        "new_set_placeholder": "Nom du jeu",
+        "add_set": "Ajouter un jeu"
+      },
+      "free": {
+        "label": "Champ libre",
+        "placeholder": "Tout ce qui n'entrait pas ci-dessus mais que l'IA doit savoir.",
+        "help": "Contexte, anecdotes, jargon, sujets sensibles — notez ce qui compte."
+      }
+    },
+    "morning_menu": {
+      "title": "Menu du matin",
+      "description": "Combien de publications par catégorie voulez-vous voir arriver chaque matin ?",
+      "total_label": "Total par matin",
+      "total_value": "{{total}} publications",
+      "freeform_badge": "Choix libre",
+      "custom_badge": "Personnalisée",
+      "decrease": "Une de moins pour {{category}}",
+      "increase": "Une de plus pour {{category}}"
+    },
+    "format_emphasis": {
+      "label": "Accent sur le format",
+      "help": "S'applique à toute la carte, pas par catégorie.",
+      "mixed": {
+        "label": "Mixte",
+        "description": "Laissez l'IA choisir ce qui convient à chaque publication."
+      },
+      "short": {
+        "label": "Court",
+        "description": "Des textes courts, efficaces sur Instagram et X."
+      },
+      "long": {
+        "label": "Développé",
+        "description": "Des récits plus longs, adaptés à Facebook et LinkedIn."
+      },
+      "visual": {
+        "label": "L'image d'abord",
+        "description": "Des publications où la photo porte le message et le texte reste bref."
+      },
+      "carousel": {
+        "label": "Carrousel",
+        "description": "Des publications en plusieurs cartes, construites comme une série."
+      }
+    },
+    "categories": {
+      "product_post": {
+        "label": "Publication produit",
+        "description": "Un produit sous les projecteurs, avec la raison de l'acheter maintenant."
+      },
+      "educational": {
+        "label": "Pédagogique",
+        "description": "Expliquez un point de votre métier réellement utile à votre clientèle."
+      },
+      "lifestyle": {
+        "label": "Art de vivre",
+        "description": "Votre produit dans la vie quotidienne, l'ambiance avant les caractéristiques."
+      },
+      "behind_the_scenes": {
+        "label": "Dans les coulisses",
+        "description": "Comment cela se fabrique, qui le fabrique, ce qui rate."
+      },
+      "customer_story": {
+        "label": "Témoignage client",
+        "description": "Une expérience, un avis ou un cas d'un vrai client."
+      },
+      "tip_howto": {
+        "label": "Astuce ou tutoriel",
+        "description": "Une astuce concrète ou une marche à suivre applicable tout de suite."
+      },
+      "seasonal": {
+        "label": "Saison et actualité",
+        "description": "Rebondissez sur la saison, une fête ou l'actualité du jour."
+      },
+      "surprise_me": {
+        "label": "Surprenez-moi",
+        "description": "Champ libre : l'IA choisit elle-même un angle qui colle à votre marque."
+      }
+    },
+    "custom": {
+      "title": "Catégories personnalisées",
+      "help": "Il manque quelque chose ? Ajoutez votre propre catégorie avec une consigne claire.",
+      "empty": "Vous n'avez pas encore de catégorie personnalisée.",
+      "add": "Ajouter une catégorie",
+      "hidden_badge": "Masquée",
+      "edit_label": "Modifier {{name}}",
+      "hide_label": "Masquer {{name}}",
+      "show_label": "Afficher à nouveau {{name}}",
+      "delete_label": "Supprimer {{name}}",
+      "name": {
+        "label": "Nom",
+        "placeholder": "Par exemple : Recette de la semaine"
+      },
+      "instructions": {
+        "label": "Consigne pour l'IA",
+        "placeholder": "Décrivez ce qui doit se passer dans cette catégorie.",
+        "help": "Obligatoire. Sans consigne, le générateur ne sait pas ce que vous voulez dire."
+      },
+      "errors": {
+        "name_required": "Saisissez un nom.",
+        "instructions_required": "Saisissez une consigne. Sans consigne, cette catégorie ne peut pas être enregistrée.",
+        "name_invalid": "Utilisez au moins une lettre ou un chiffre dans le nom.",
+        "name_reserved": "Ce nom est déjà utilisé par une catégorie intégrée.",
+        "name_taken": "Vous avez déjà une catégorie portant ce nom."
+      },
+      "delete_confirm": {
+        "title": "Supprimer définitivement la catégorie ?",
+        "description": "{{name}} sera supprimée et son compteur disparaîtra de votre carte. Vous pouvez aussi la masquer — la catégorie est alors conservée.",
+        "confirm": "Supprimer définitivement"
+      }
+    },
+    "actions": {
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "cancel": "Annuler",
+      "unsaved": "Modifications non enregistrées"
+    },
+    "toast": {
+      "saved": "Enregistré",
+      "save_failed": "Échec de l'enregistrement"
+    },
+    "errors": {
+      "load_failed": "La carte n'a pas pu être chargée. Rechargez la page ou réessayez plus tard."
     }
   }
 }

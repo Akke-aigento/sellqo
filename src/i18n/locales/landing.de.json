@@ -1472,6 +1472,10 @@
         "event_quick_actions_and_dashboard_filter": {
           "title": "Schnellaktionen pro Event, und dein Dashboard zeigt standardmäßig nur Kommendes",
           "description": "Auf jeder Eventkarte findest du jetzt ein Drei-Punkte-Menü: bearbeiten, Scanner öffnen, duplizieren, abschließen, absagen und löschen. Beim Duplizieren werden Kapazität, Ort, Ticketarten und Zonen auf ein neues Datum übernommen. Absagen nimmt das Event aus deinem Shop; bestehende Tickets bleiben gültig. Löschen geht nur bei einem Event ohne Tickets, Ticketarten und Zonen — sonst ist die Schaltfläche ausgegraut und erklärt warum, damit du nicht auf eine unklare Fehlermeldung stößt. Das Dashboard zeigt nun nur noch kommende Events; mit dem Schalter Vergangene anzeigen holst du die Historie zurück."
+        },
+        "ai_content_menu_brand_dna": {
+          "title": "Halte deine Marken-DNA und dein Morgenmenü in Sellqo AI fest",
+          "description": "Sellqo AI hat einen neuen Tab Menükarte. Dort beschreibst du einmal, wofür deine Marke steht: Mission, Zielgruppe, Tonalität, Stärken, feste Themen, was du sagen willst und was nicht, sowie Hashtag-Sets, die du je Thema wiederverwendest. Dazu gibt es ein freies Feld für alles, was in keine Schublade passt. Darunter stellst du dein Morgenmenü zusammen: Pro Kategorie wählst du, wie viele Beiträge du möchtest, vom Produktbeitrag über die Kundengeschichte bis zu „Überrasch mich“, und du legst fest, ob der Schwerpunkt auf kurzen, ausführlichen, bildgetriebenen oder Karussell-Beiträgen liegt. Fehlt eine Kategorie, legst du selbst eine mit eigener Anweisung an. Diese Anweisung ist Pflicht, damit keine Kategorie entsteht, mit der der Generator nichts anfangen kann. Was du hier einträgst, ist die Grundlage für die tägliche Content-Erzeugung, die darauf folgt. Der Tab gehört zu Pro und Enterprise."
         }
       },
       "copyLink": "Link kopieren",

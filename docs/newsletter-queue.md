@@ -4,6 +4,34 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10q — Merk-DNA en ochtendmenu in Sellqo AI (feature, 20-08-2026)
+
+**Je merk-DNA en ochtendmenu leg je nu zelf vast** (oktober 2026)
+Sellqo AI heeft een nieuw tabblad: Menukaart. Daar beschrijf je één keer wie je merk is — missie,
+doelgroep, tone of voice, sterke punten, vaste thema's, wat je wel en niet wilt zeggen, en
+hashtag-sets die je per thema hergebruikt. Er is ook een vrij veld voor alles wat in geen hokje
+past. Daaronder stel je je ochtendmenu samen: per categorie kies je hoeveel posts je wilt, van
+productpost en klantverhaal tot "verras me", en je legt vast of de nadruk op korte, uitgebreide,
+beeldgedreven of carrousel-posts ligt. Mist er een categorie, dan maak je er zelf een aan met een
+eigen instructie — die instructie is verplicht, zodat er geen categorie ontstaat waar de generator
+niets mee kan.
+Wat betekent dit voor jou? Je legt de basis vast waarop de dagelijkse contentgeneratie straks
+draait, in plaats van elke post opnieuw uit te leggen wie je bent.
+
+**i18n-key.** `public.changelog.changes.ai_content_menu_brand_dna` — KLAARZETTEN, nog niet
+verstuurd.
+
+**LET OP bij verzending.** Dit is batch 1: het fundament. Er wordt **nog niets gegenereerd** —
+het invullen werkt, de dagelijkse generatie komt in batch 2. Niet schrijven dat je nu al elke
+ochtend content krijgt. De tekst hierboven vermijdt die claim bewust ("legt de basis vast waarop
+… straks draait").
+
+**Beschikbaarheid.** Alleen Pro en Enterprise (`social_commerce`). De bestaande
+product-promowizard blijft op Starter en hoger (`ai_marketing`) — dat verandert niet.
+
+**Bundel:** eerste item van de menukaart-reeks; wacht bij voorkeur op batch 2 zodat het
+één verhaal wordt.
+
 ### 2026.10p — Snelacties per event + dashboardfilter (feature, 20-08-2026)
 
 **Alles wat je met een event doet, zit nu achter drie puntjes** (oktober 2026)

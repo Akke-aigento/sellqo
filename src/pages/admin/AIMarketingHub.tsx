@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, ArrowLeft, Library, Calendar, ImageIcon } from 'lucide-react';
+import { Bot, ArrowLeft, Library, Calendar, ImageIcon, UtensilsCrossed } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
@@ -15,12 +16,14 @@ import { RecentContentStrip } from '@/components/admin/marketing/RecentContentSt
 import { ContentCalendar } from '@/components/admin/marketing/ContentCalendar';
 import { ContentHistoryList } from '@/components/admin/marketing/ContentHistoryList';
 import { MediaAssetsLibrary } from '@/components/admin/marketing/MediaAssetsLibrary';
+import { ContentMenuTab } from '@/components/admin/marketing/menu/ContentMenuTab';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { toast } from 'sonner';
 
 export default function AIMarketingHub() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('create');
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
@@ -39,8 +42,8 @@ export default function AIMarketingHub() {
     const purchaseStatus = searchParams.get('purchase');
     const creditsAdded = searchParams.get('credits');
     
-    if (tab === 'library') {
-      setActiveTab('library');
+    if (tab === 'library' || tab === 'menu') {
+      setActiveTab(tab);
     }
     
     if (purchaseStatus === 'success' && creditsAdded) {
@@ -96,11 +99,15 @@ export default function AIMarketingHub() {
           />
         </div>
 
-        {/* Minimal Tabs: Create | Library */}
+        {/* Tabs: Creëren | Menukaart | Agenda | Historiek | Assets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full max-w-md">
+          <TabsList className="w-full max-w-2xl">
             <TabsTrigger value="create" className="flex-1">
               Creëren
+            </TabsTrigger>
+            <TabsTrigger value="menu" className="flex-1 gap-1.5">
+              <UtensilsCrossed className="h-4 w-4" />
+              {t('content_menu.tab.label')}
             </TabsTrigger>
             <TabsTrigger value="calendar" className="flex-1 gap-1.5">
               <Calendar className="h-4 w-4" />
@@ -132,6 +139,11 @@ export default function AIMarketingHub() {
 
             {/* Advanced Tools - Collapsible */}
             <AdvancedToolsGrid />
+          </TabsContent>
+
+          {/* Menukaart Tab — merk-DNA + ochtendmenu (MENU-1, social_commerce) */}
+          <TabsContent value="menu">
+            <ContentMenuTab />
           </TabsContent>
 
           {/* Calendar Tab */}

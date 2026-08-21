@@ -1,3 +1,341 @@
+## MENU-1 — Dagelijkse Menukaart, fundament — 20 augustus 2026
+
+> ⚠️ **DE MIGRATIE IS NOG NIET GEDRAAID.** Twee migratiebestanden staan klaar
+> (`20260820100000_menu1_brand_dna.sql`, `20260820100100_menu1_doc_article.sql`)
+> maar zijn niet uitgevoerd — Claude Code heeft geen databasetoegang (CLAUDE.md
+> §5). Zolang ze niet gedraaid zijn en de types niet opnieuw gegenereerd zijn,
+> staat de Menukaart-tab er wel maar faalt elke lees- en schrijfactie op
+> PostgREST. Zie **Verificatie — nog uit te voeren** onderaan.
+
+### Root cause
+
+Geen bugfix maar een uitbreiding. De Sellqo AI-pagina
+(`src/pages/admin/AIMarketingHub.tsx`, route `/admin/marketing/ai`) had één
+generator: de product-promowizard. Die is reactief — je kiest een product en
+krijgt een kit. Er bestond geen plek waar een tenant vastlegt *wie het merk is*,
+los van welk product er toevallig geselecteerd is, en geen plek waar hij bepaalt
+wat er dagelijks aan content op tafel moet komen.
+
+Batch 1 legt dat fundament: schema, RLS, categorie-registry en formulier. Er
+wordt in deze batch nog niets gegenereerd; dat is batch 2.
+
+**Drie bevindingen uit de recon die de opdracht corrigeerden** en die
+gedocumenteerd horen te blijven:
+
+1. **`ai_content_engagement_stats` is geen tabel maar een VIEW.** Aangemaakt in
+   `20260120113247`, herbouwd in `20260120114525` als
+   `CREATE VIEW … WITH (security_invoker = true)` — die migratie draagt letterlijk
+   het commentaar "Fix the security definer view". In `types.ts` staat het object
+   onder `Views:`, niet onder `Tables:`. Er kan niet in geschreven worden en het
+   heeft geen eigen RLS: het erft de policies van `ai_generated_content` en
+   `social_posts`.
+2. **`ai-product-promo-kit` boekt geen credits af.** Grep over `src/` en
+   `supabase/functions/` geeft elf edge-functies die `use_ai_credits` aanroepen
+   (`ai-generate-social`, `ai-generate-image`, `ai-generate-email`,
+   `ai-chatbot-respond`, `ai-suggest-reply`, `ai-generate-ab-variant`,
+   `ai-campaign-suggestions`, `ai-translate-content`, `ai-seo-analyzer`,
+   `ai-generate-seo-content`, `ai-generate-storefront-copy`) — en
+   `ai-product-promo-kit` staat er niet tussen. De functie berekent wel
+   `creditsUsed` (regel 307-309: 5 basis + 5 per beeld) en stuurt dat terug, maar
+   er wordt niets afgeschreven. `InlinePromoWizard.tsx` controleert vooraf
+   `hasCredits()` en roept daarna `refetchCredits()` aan, wat een ongewijzigd
+   saldo ophaalt. De promokit is de facto gratis.
+3. **`ai-product-promo-kit` schrijft naar geen enkele tabel.** De functie maakt
+   niet eens een Supabase-client aan (geen `createClient`-import). Er gaat niets
+   naar `ai_generated_content`, `ai_usage_log` of `ai_generated_images`;
+   `PromoKitResult.tsx` bevat evenmin een insert. De kit leeft alleen in
+   React-state en is weg zodra je de pagina verlaat.
+
+Punt 2 en 3 zijn bestaande bugs, geen regressie van deze batch, en bewust niet
+gefixt — het productpad bleef per opdracht ongemoeid. Zie **Bewust ongemoeid**.
+
+### Uitgevoerd
+
+**Schema — twee nieuwe tabellen**
+(`supabase/migrations/20260820100000_menu1_brand_dna.sql`)
+
+- **`public.tenant_brand_dna`** — één rij per tenant, afgedwongen met de unieke
+  index `ux_tenant_brand_dna_tenant` (die tegelijk het conflictdoel is van de
+  `upsert` in de hook). Merk-DNA: `brand_mission`, `target_audience`,
+  `tone_keywords text[]`, `usps text[]`, `dos`, `donts`, `themes text[]`,
+  `hashtag_sets jsonb`, `free_dna`. Ochtendmenu: `menu_counts jsonb` +
+  `format_emphasis text` met een `CHECK` op vijf waarden.
+- **`public.tenant_content_categories`** — de eigen categorieën (1:N), met
+  `name`, `instructions`, `slug`, `is_active`, `sort_order`, een unieke index op
+  `(tenant_id, slug)` en drie `CHECK`-constraints tegen lege waarden.
+
+**Waarom deze verdeling.** Het ochtendmenu heeft dezelfde cardinaliteit en
+levenscyclus als het merk-DNA, dus een tweede 1:1-tabel zou alleen een join
+opleveren; die velden staan daarom in `tenant_brand_dna`. De eigen categorieën
+zijn wél 1:N en hebben een echte invariant: de opdracht eist een *verplichte*
+omschrijving. In jsonb is dat hooguit een UI-belofte; als tabelrij is het een
+`CHECK (length(btrim(instructions)) > 0)`. Bijkomend voordeel: elke categorie
+krijgt een stabiel `id` voor de per-categorie statistiek die in een latere batch
+komt. Een jsonb-array had dat niet gegeven.
+
+**Categorie-registry** (`src/config/contentMenuCategories.ts`, nieuw)
+
+Acht vaste categorieën — `product_post`, `educational`, `lifestyle`,
+`behind_the_scenes`, `customer_story`, `tip_howto`, `seasonal`, `surprise_me` —
+met i18n-keys, een startwaarde en een icoon. `surprise_me` is gemarkeerd als
+`isFreeform`. Verder de vijf `FORMAT_EMPHASIS_VALUES` (één-op-één met de
+DB-`CHECK`), `RESERVED_CATEGORY_KEYS` voor slug-validatie en `slugifyCategoryName`.
+
+**Het bestand bevat bewust géén promptinstructies**, en dat is vastgelegd in een
+commentaarblok bovenaan. Een Deno edge-functie kan niet uit `src/` importeren en
+`src/` niet uit `supabase/functions/`; de instructies op beide plekken zetten
+levert twee waarheden op die gaan afdrijven. Het contract is daarom: de frontend
+stuurt alleen categorie-`key` + aantal, de promptinstructie per vaste categorie
+komt in batch 2 in `supabase/functions/_shared/contentCategories.ts`, en voor
+eigen categorieën is `tenant_content_categories.instructions` de instructie.
+
+**Frontend**
+
+- `src/types/content-menu.ts` (nieuw) — rijtypes met de hand, omdat de tabellen
+  pas ná het regenereren in `types.ts` staan.
+- `src/hooks/useBrandDna.ts` (nieuw) — react-query-hook met `maybeSingle()` op
+  het merk-DNA, `upsert` op `tenant_id`, en mutaties voor aanmaken, bijwerken,
+  verbergen en verwijderen van eigen categorieën.
+- `src/components/admin/marketing/menu/` (nieuw, vier bestanden) —
+  `ContentMenuTab` (schil met de FeatureGate), `BrandDnaCard`,
+  `MorningMenuCard` en `CustomCategoryList`.
+- `src/pages/admin/AIMarketingHub.tsx` — één `TabsTrigger` en één `TabsContent`
+  erbij, `TabsList` van `max-w-md` naar `max-w-2xl` omdat er een vijfde tab bij
+  komt, en `?tab=` accepteert nu ook `menu` naast `library`. De bestaande
+  `<FeatureGate feature="ai_marketing">` om de hele pagina is ongewijzigd en
+  `InlinePromoWizard` is niet aangeraakt.
+
+**Twee ontwerpkeuzes die uitleg verdienen**
+
+*Elke kaart stuurt bij het opslaan een compleet record.* De upsert vervangt de
+hele rij; wie alleen zijn eigen velden meestuurt, wist die van de andere kaart.
+`toBrandDnaInput()` in `ContentMenuTab.tsx` maakt daarom een volledige basis uit
+de opgeslagen rij, waar elke kaart zijn eigen velden overheen legt. Zo blijven
+de twee opslagknoppen onafhankelijk en voorspelbaar.
+
+*Geen `as any` voor de nog niet gegenereerde tabellen.* De huisstijl elders is
+`.from('tabel' as any)` (`useAIAssistant.ts`, vijf keer). Dat levert per regel
+een `@typescript-eslint/no-explicit-any`-fout op — gemeten: `npx eslint
+src/hooks/useAIAssistant.ts` geeft 5 errors. In plaats daarvan staat er in
+`useBrandDna.ts` één cast naar de ongetypeerde clientvorm
+(`const db = supabase as unknown as SupabaseClient`), met commentaar dat hij na
+het regenereren van de types verdwijnt. Nul nieuwe lint-fouten.
+
+**i18n — vijf talen, niet vier**
+
+De opdracht sprak van NL/EN/FR/DE. `src/i18n/index.ts:34-44` registreert er vijf
+(`nl`, `en`, `de`, `fr`, `uk`) en `scripts/i18n-parity.mjs` vergelijkt de
+volledige key-set van álle app-locales, niet alleen de changelog. Dat script
+draait in CI (`.github/workflows/ci.yml:47-50`) en eindigt met exit 1 bij één
+ontbrekende key. Een key in vier talen had de PR dus geblokkeerd. Er is in vijf
+talen geschreven.
+
+Nieuwe namespace `content_menu` in alle vijf de `locales/{code}.json`, 179 regels
+per bestand. Aanspreekvorm gevolgd zoals in de bestaande app-locales: NL "je",
+DE "Sie", FR "vous", UK "ви" — geteld in de `events`-namespace, die het meest
+recent is toegevoegd. (De `du`/`ти` uit CLAUDE.md §4.2 geldt voor de publieke
+changelog, niet voor de admin-locales; daar is die vorm wél aangehouden.)
+
+**Meeliftende i18n-migratie:** `src/components/FeatureGate.tsx:34-40` bevatte
+drie hardcoded Nederlandse strings ("Feature niet beschikbaar", "Deze feature is
+niet inbegrepen in je huidige abonnement.", "Bekijk upgrade opties") terwijl het
+component `useTranslation` al importeerde en `t` ophaalde zónder het te
+gebruiken. Omdat deze batch die fallback bewust toont aan Free- en
+Starter-tenants, zijn ze vervangen door `common.feature_locked.{title,description,cta}`
+in vijf talen. **Dit raakt elk bestaand `FeatureGate`-gebruik in de app** — de
+tekst is dezelfde, alleen niet langer hardcoded.
+
+### Security-keuzes
+
+**RLS op beide nieuwe tabellen**, in één `DO`-blok geschreven volgens het
+huispatroon uit `20260819083247:154-165`:
+
+- **SELECT** — `tenant_id IN (SELECT public.get_user_tenant_ids(auth.uid()))`.
+  Elk lid van de tenant mag lezen. Spiegelt `social_posts_select_members`.
+- **INSERT / UPDATE / DELETE** — datzelfde predicaat **plus**
+  `public.has_tenant_role(tenant_id, ARRAY['tenant_admin'::app_role,
+  'staff'::app_role, 'marketing'::app_role])`.
+
+**Waarom schrijven wél een rolcheck krijgt en `ai_generated_content` niet.** Die
+oudere tabel heeft vier policies op alleen het tenant-predicaat, zonder
+rolonderscheid — een `viewer` of `accountant` kan daar dus schrijven. Bij
+`social_posts` is dat later rechtgezet (`20260608205833:58-71`, de
+`*_insert_marketing`-reeks). De nieuwe tabellen volgen de latere, striktere lijn,
+niet de oudere. De rollenset komt overeen met `requireRole` in de bestaande
+AI-edge-functies (`ai-product-promo-kit:64`, `ai-generate-social:44`).
+
+`has_tenant_role` is `SECURITY DEFINER` en de signatuur is geverifieerd in
+`types.ts`: `has_tenant_role(_tenant_id uuid, _allowed_roles app_role[]) → boolean`.
+
+**GRANTs**: `SELECT, INSERT, UPDATE, DELETE` aan `authenticated`, `ALL` aan
+`service_role` — identiek aan de event-tabellen.
+
+**Feature-gating.** De nieuwe tab is gegate op `social_commerce` (Pro €79 ✓ /
+Enterprise €199 ✓, Free/Starter ✗ — geverifieerd in
+`20260127101317`, regels 29/74/119/164, de laatste migratie die `features`
+schrijft). De pagina zelf blijft op `ai_marketing`, dus de product-promowizard
+verandert niet van abonnementsdrempel. De tab is zichtbaar voor Free/Starter met
+de upsellkaart erin, zodat er een upgradepad is.
+
+**Let op bij de smoke-test:** `checkFeature` geeft `true` voor *alles* zodra
+`isUnlimited` waar is — dat is het geval bij platform-admin in adminweergave, bij
+`is_internal_tenant` én bij `is_demo` (`useUsageLimits.ts:29-32`). Speeltuin en
+Demo Bakkerij vallen daar allebei onder. De gate is daar dus **niet** te testen.
+
+Geen secrets, geen nieuwe edge-functie, geen wijziging aan bestaande policies of
+grants.
+
+### Gedeelde-paden-waarschuwing
+
+**N.v.t., en dat is geverifieerd, niet aangenomen.**
+
+- Er zijn twee **nieuwe** tabellen bijgekomen. Geen enkele bestaande tabel is
+  gewijzigd: geen `ALTER`, geen kolomhernoeming, geen defaultwijziging.
+- `tenant_theme_settings`, `themes`, `homepage_sections` en `storefront_pages`
+  zijn niet aangeraakt. Dat is de kern: `storefront-api/index.ts:270` doet
+  `supabase.from('tenant_theme_settings').select('*')` — precies de doorstroom
+  waar CLAUDE.md §2 voor waarschuwt. Omdat die tabel ongemoeid blijft, stroomt er
+  niets nieuws door naar de custom frontends.
+- `storefront-resolve/index.ts:70` leest alleen `use_custom_frontend,
+  custom_frontend_url`. Ongewijzigd.
+- Geen van de drie gedeelde edge-functies (`storefront-resolve`,
+  `storefront-api`, `checkout-engine`) is aangeraakt; er is überhaupt geen
+  edge-functie gewijzigd of toegevoegd in deze batch.
+- Alle frontendwijzigingen zitten in `src/`, de SellQo-admin. CLAUDE.md §1: geen
+  enkel React-component wordt gedeeld met de custom frontends.
+
+De enige wijziging met bereik buiten deze module is de i18n-migratie van
+`FeatureGate.tsx` — een component dat uitsluitend in de SellQo-admin draait.
+
+### Verificatie — uitgevoerd
+
+Alle checks hieronder zijn op de **definitieve** boom gedraaid, na de laatste
+correcties. Tussentijdse runs zijn afgebroken en overgedaan, zodat geen enkel
+cijfer bij een oudere stand hoort.
+
+- `npx tsc --noEmit -p tsconfig.app.json` → **exit 0**, 0 logregels.
+- `npm run build` → **exit 0**, ✓ built in 3m 41s. De chunk-size-waarschuwing en
+  de browserslist-melding zijn bestaand en geen regressie. `public/sitemap.xml`
+  is na twee builds ongewijzigd gebleven (17 entries), dus de val uit CLAUDE.md
+  §6 speelt hier niet.
+- `node scripts/i18n-parity.mjs` → **exit 0**. 5 talen, 2602 unieke keys, elke
+  taal 2602/2602. Deze batch voegde er 102 per taal toe (99 onder `content_menu`,
+  3 onder `common.feature_locked`), dus vóór deze batch waren het er 2500.
+- **Lint.** `npx eslint .` gaat op deze machine out-of-memory met de
+  standaardheap; met `NODE_OPTIONS=--max-old-space-size=8192` loopt hij door en
+  eindigt op **1509 problems (1410 errors, 99 warnings)** over de hele repo,
+  inclusief `supabase/functions/`. Dat getal staat los van de "29 problems" in
+  CLAUDE.md §6, die kennelijk een engere scope betrof — het is de moeite waard
+  die notitie een keer recht te zetten.
+
+  Voor de delta is gericht gelint op alleen de aangeraakte bestanden. Dat leverde
+  eerst **twee waarschuwingen** op, allebei `react-refresh/only-export-components`:
+
+  1. `ContentMenuTab.tsx:19` — `toBrandDnaInput` was geëxporteerd terwijl het
+     alleen in datzelfde bestand gebruikt wordt (`grep` over `src/` bevestigt
+     nul externe verwijzingen). De `export` is weggehaald; de waarschuwing is weg.
+  2. `FeatureGate.tsx:47` — de bestaande export `useFeatureAccess`. **Bestaand,
+     niet door deze batch veroorzaakt**, en dat is aantoonbaar: de HEAD-versie
+     (`git show HEAD:src/components/FeatureGate.tsx`) telt exact 50 regels net als
+     de huidige, en regel 47 is in beide `export function useFeatureAccess`. De
+     i18n-wijziging verving drie regels door drie regels en schoof dus niets op.
+
+  Na het weghalen van die overbodige export geeft een gerichte lint over de vier
+  nieuwe componenten, de config, de hook, het typebestand, `AIMarketingHub.tsx`
+  en `PublicChangelog.tsx` **nul meldingen**. Netto lint-delta van deze batch:
+  **nul**.
+- **Changelog-pariteit nageteld, niet overgenomen**: 112 entries per locale vóór,
+  **113** ná, in alle vijf de `landing.*.json`. Nieuwe id
+  `ai_content_menu_brand_dna`, versie `2026.10q` bovenaan `changelogEntries`,
+  `dateKey: 'sep_2026'` conform de bestaande (scheve) 2026.10-reeks.
+- **JSON-roundtrip vooraf getest** op alle tien locale-bestanden: `json.dumps(…,
+  indent=2, ensure_ascii=False)` is byte-identiek aan de bestanden op schijf, dus
+  de diff blijft beperkt tot de nieuwe sleutels. Gemeten: 179 toegevoegde regels
+  per app-locale, 4 per landing-locale.
+- **Hardcoded-string-scan** over de vier nieuwe componenten plus de config, hook
+  en types: `grep -nE ">[A-Z][a-zÀ-ÿ].{3,}<"` en een scan op tekstprops geven
+  **nul treffers**. De enige letterlijke strings die overblijven zijn
+  ontwikkelaarsberichten in `console.error` en een `throw new Error('useBrandDna:
+  missing tenant context')`; die bereiken de UI niet, omdat `notifyFailed` de
+  foutmelding bewust niet in de toast zet (PostgREST-teksten zijn onvertaald).
+- **Elke `t()`-key in de nieuwe en gewijzigde bestanden opgelost tegen
+  `nl.json` + `landing.nl.json`**: 74 letterlijke keys, allemaal aanwezig. De vier
+  dynamisch samengestelde keys (`category.labelKey`, `category.descriptionKey`,
+  `formatEmphasisLabelKey()`, `formatEmphasisDescriptionKey()`) zijn apart
+  uitgerold over alle acht categorieën en vijf formaatwaarden: ook nul gaten.
+- **SQL statisch gevalideerd** (draaien kan hier niet):
+  - Enkele quotes gebalanceerd in beide migraties; het HTML-blok in het
+    doc-artikel opent op regel 20, sluit op regel 50 en bevat precies één
+    correct verdubbelde apostrof (`thema''s`).
+  - Elk `CREATE` staat onder `IF NOT EXISTS`; het `$$`-blok is gebalanceerd.
+  - **Kruiscontrole code ↔ schema:** de vijf waarden in de `CHECK`-constraint
+    `format_emphasis IN (…)` zijn identiek aan `FORMAT_EMPHASIS_VALUES` in
+    `src/config/contentMenuCategories.ts` — in dezelfde volgorde. De acht
+    categorie-`key`s zijn uniek.
+- **Changelog-integriteit**: 108 versie-entries, alle versienummers uniek; 113
+  change-id's, alle uniek; alle gebruikte types binnen
+  `feature | improvement | bugfix | security`; elke id heeft een vertaling in
+  alle vijf de landing-locales.
+
+### Verificatie — nog uit te voeren
+
+Dit deel kan hier niet, en is dus nog niet gedaan.
+
+1. **De twee migraties draaien** — in volgorde `20260820100000` dan
+   `20260820100100`. Daarna de Supabase-types regenereren, want zolang dat niet
+   gebeurd is kent de client de tabellen niet.
+2. **Natrek op de policies:**
+   ```sql
+   SELECT tablename, policyname, cmd FROM pg_policies
+   WHERE schemaname='public'
+     AND tablename IN ('tenant_brand_dna','tenant_content_categories')
+   ORDER BY tablename, cmd;
+   -- verwacht: 8 rijen, 4 per tabel
+   ```
+3. **Idempotentie:** de migratie een tweede keer draaien moet slagen zonder
+   fouten en zonder wijziging.
+4. **Smoke-test op SellQo Speeltuin en Demo Bakkerij:** merk-DNA invullen,
+   opslaan, herladen — waarden staan er nog; een eigen categorie zonder
+   omschrijving → geblokkeerd met een veldfout onder het formulier; tellers
+   wijzigen en opslaan; een categorie verbergen en weer tonen; verwijderen vraagt
+   bevestiging; taal wisselen naar en/de/fr/uk → geen Nederlandse brokken.
+5. **De gate zelf** kan alleen op een echte Free- of Starter-tenant getest
+   worden (zie Security-keuzes).
+
+### Bewust ongemoeid / Vervolg
+
+- **`ai-product-promo-kit` en `InlinePromoWizard`** zijn niet aangeraakt. De twee
+  bugs uit de root cause (geen creditafschrijving, geen opslag) staan open. Ze
+  horen als los ticket in `docs/fase2-backlog.md`; dat is nog niet gebeurd omdat
+  het buiten de goedgekeurde scope viel.
+- **De dode `pages`-tak in `ai-build-knowledge-index/index.ts:164`.** Die functie
+  leest `supabase.from('pages')`; een tabel `pages` bestaat niet. Die tak vult
+  stil niets. Relevant zodra de menukaart-generator op de knowledge-index gaat
+  leunen — dan moet het `storefront_pages` worden.
+- **De twee gate-implementaties zijn niet consistent.** `AdminSidebar.tsx:90`
+  sluit af bij `features[key] !== true` (ontbrekende sleutel = op slot),
+  `Settings.tsx:209` bij `features[key] !== false` (ontbrekende sleutel = open).
+  Bestaand, niet aangeraakt.
+- **`tenant_feature_overrides` wordt door `checkFeature` niet geraadpleegd** —
+  alleen door platform-adminhooks. Een per-tenant override werkt dus niet via
+  `FeatureGate`.
+- **De rest van `src/components/admin/marketing/` blijft hardcoded.** Nul van de
+  42 bestanden gebruikt `useTranslation`; `AIMarketingHub.tsx` zelf ook niet
+  ("Sellqo AI", "Creëren", "Agenda", "Historiek", "Assets"). Alleen de string die
+  deze batch toevoegde loopt via `t()`. Opruimen van de rest is scope creep en is
+  bewust nagelaten.
+- **`doc_articles`-categorie.** Er bestaat geen Marketing-categorie; de acht
+  tenant-categorieën zijn Producten, Bestellingen, Betalingen, Verzending,
+  Promoties, Webshop, Communicatie en FAQ. Het artikel staat onder Communicatie
+  (`a0000001-0000-0000-0000-000000000007`). Een eigen categorie aanmaken viel
+  buiten deze batch.
+- **Batch 2** bouwt de generator: edge-functie met `use_ai_credits` (model:
+  `ai-generate-social:37-61`), de promptinstructies per vaste categorie in
+  `_shared/contentCategories.ts`, en het wegschrijven van resultaten naar
+  `ai_generated_content` en `social_posts`.
+
+---
+
 ## EDGE-TO-EDGE-1 — safe-area-insets na targetSdk 36 — 20 augustus 2026
 
 > ⚠️ **DE FYSIEKE TOESTEL-TEST STAAT NOG OPEN.** Deze fix is code-geverifieerd
