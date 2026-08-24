@@ -3,7 +3,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate, Link } from 'react-router-dom';
 import { Users, Search, Mail, Phone, ShoppingBag, MoreHorizontal, Eye, Trash2, Building2, Globe } from 'lucide-react';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useStorefrontCustomers } from '@/hooks/useStorefrontCustomers';
 import { useTenant } from '@/hooks/useTenant';
@@ -23,6 +22,9 @@ import type { Customer } from '@/types/order';
 import { PermissionGate } from '@/components/PermissionGate';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { useCan } from '@/hooks/useCan';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface UnifiedCustomer {
   id: string;
@@ -40,6 +42,7 @@ interface UnifiedCustomer {
 }
 
 export default function CustomersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
@@ -113,7 +116,7 @@ export default function CustomersPage() {
   if (!currentTenant) {
     return (
       <Alert>
-        <AlertDescription>Geen winkel gevonden. Neem contact op met een beheerder.</AlertDescription>
+        <AlertDescription>{t('admin.customers.geen_winkel_gevonden_neem_contact_op')}</AlertDescription>
       </Alert>
     );
   }
@@ -125,10 +128,10 @@ export default function CustomersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            Klanten
+            {t('admin.customers.klanten')}
             <ReadOnlyBadge resource="customers" />
           </h1>
-          <p className="text-muted-foreground">Beheer je klantenbestand</p>
+          <p className="text-muted-foreground">{t('admin.customers.beheer_je_klantenbestand')}</p>
         </div>
         <PermissionGate action="write" resource="customers">
           <CustomerFormDialog 
@@ -146,7 +149,7 @@ export default function CustomersPage() {
         <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek op naam of email..."
+            placeholder={t('admin.customers.zoek_op_naam_of_email')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -154,14 +157,14 @@ export default function CustomersPage() {
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Type" />
+            <SelectValue placeholder={t('admin.marketing.contentHistoryList.type')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle types</SelectItem>
+            <SelectItem value="all">{t('admin.marketing.aIContentLibrary.alle_types')}</SelectItem>
             <SelectItem value="b2c">B2C</SelectItem>
             <SelectItem value="b2b">B2B</SelectItem>
-            <SelectItem value="prospect">Prospects</SelectItem>
-            <SelectItem value="webshop">Webshop</SelectItem>
+            <SelectItem value="prospect">{t('admin.customers.prospects')}</SelectItem>
+            <SelectItem value="webshop">{t('admin.odooChannels.channels.webshop')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -170,11 +173,11 @@ export default function CustomersPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Alle klanten
+            {t('admin.marketing.segmentBuilder.alle_klanten')}
           </CardTitle>
           <CardDescription>
-            {filteredCustomers.length} klant{filteredCustomers.length !== 1 ? 'en' : ''} gevonden
-            {typeFilter !== 'all' && ` (gefilterd op ${typeFilter})`}
+            {t('admin.customers.klanten_gevonden', { count: filteredCustomers.length })}
+            {typeFilter !== 'all' && ` ${t('admin.customers.gefilterd_op', { filter: typeFilter })}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
@@ -187,11 +190,10 @@ export default function CustomersPage() {
           ) : filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg">Geen klanten gevonden</h3>
+              <h3 className="font-medium text-lg">{t('admin.customers.geen_klanten_gevonden')}</h3>
               <p className="text-muted-foreground text-sm">
                 {search 
-                  ? 'Probeer een andere zoekopdracht' 
-                  : 'Klanten verschijnen hier wanneer ze een bestelling plaatsen of een account aanmaken'}
+                  ? t('admin.customers.probeer_een_andere_zoekopdracht') : t('admin.customers.klanten_verschijnen_hier_wanneer_ze_een')}
               </p>
             </div>
           ) : isMobile ? (
@@ -218,8 +220,8 @@ export default function CustomersPage() {
                         </div>
                         <div className="text-xs text-muted-foreground truncate mt-0.5">{customer.email}</div>
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          {getSourceBadge(customer.source)}
-                          {getTypeBadge(customer.customer_type)}
+                          {getSourceBadge(customer.source, t)}
+                          {getTypeBadge(customer.customer_type, t)}
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <ShoppingBag className="h-3 w-3" />
                             {customer.total_orders}
@@ -238,7 +240,7 @@ export default function CustomersPage() {
                               <DropdownMenuItem asChild>
                                 <Link to={`/admin/customers/${customer.crm_id}`}>
                                   <Eye className="h-4 w-4 mr-2" />
-                                  Bekijken
+                                  {t('admin.marketing.aIContentLibrary.bekijken')}
                                 </Link>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -255,13 +257,13 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden sm:table-cell">Bron</TableHead>
-                  <TableHead className="hidden sm:table-cell">Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Contact</TableHead>
-                  <TableHead className="text-center">Bestellingen</TableHead>
-                  <TableHead className="text-right">Uitgegeven</TableHead>
-                  <TableHead className="hidden md:table-cell">Sinds</TableHead>
+                  <TableHead>{t('admin.marketing.variableInserter.groups.customer.label')}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t('admin.customers.bron')}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t('admin.marketing.contentHistoryList.type')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('admin.customers.contact')}</TableHead>
+                  <TableHead className="text-center">{t('admin.customers.bestellingen')}</TableHead>
+                  <TableHead className="text-right">{t('admin.customers.uitgegeven')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('admin.customers.sinds')}</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -284,25 +286,26 @@ export default function CustomersPage() {
   );
 }
 
-function getSourceBadge(source: UnifiedCustomer['source']) {
+// Helpers buiten een component: t komt als argument binnen.
+function getSourceBadge(source: UnifiedCustomer['source'], t: TFunction) {
   switch (source) {
     case 'Webshop':
-      return <Badge variant="outline" className="text-xs"><Globe className="h-3 w-3 mr-1" />Webshop</Badge>;
+      return <Badge variant="outline" className="text-xs"><Globe className="h-3 w-3 mr-1" />{t('admin.odooChannels.channels.webshop')}</Badge>;
     case 'CRM':
       return <Badge variant="secondary" className="text-xs"><Users className="h-3 w-3 mr-1" />CRM</Badge>;
     case 'Webshop + CRM':
-      return <Badge variant="default" className="text-xs">Webshop + CRM</Badge>;
+      return <Badge variant="default" className="text-xs">{t('admin.customers.webshop_crm')}</Badge>;
   }
 }
 
-function getTypeBadge(type: string) {
+function getTypeBadge(type: string, t: TFunction) {
   switch (type) {
     case 'prospect':
-      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">Prospect</Badge>;
+      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{t('admin.customers.prospect')}</Badge>;
     case 'b2b':
       return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">B2B</Badge>;
     case 'webshop':
-      return <Badge variant="outline" className="text-xs">Account</Badge>;
+      return <Badge variant="outline" className="text-xs">{t('admin.ads.platformConnections.account')}</Badge>;
     default:
       return <Badge variant="secondary">B2C</Badge>;
   }
@@ -315,6 +318,8 @@ interface UnifiedRowProps {
 }
 
 function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
   const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Onbekend';
   const canNavigate = !!customer.crm_id;
@@ -347,10 +352,10 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
         </div>
       </TableCell>
       <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
-        {getSourceBadge(customer.source)}
+        {getSourceBadge(customer.source, t)}
       </TableCell>
       <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
-        {getTypeBadge(customer.customer_type)}
+        {getTypeBadge(customer.customer_type, t)}
       </TableCell>
       <TableCell className="hidden lg:table-cell">
         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -376,7 +381,7 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
         {formatCurrency(customer.total_spent)}
       </TableCell>
       <TableCell className="hidden md:table-cell text-muted-foreground">
-        {format(new Date(customer.created_at), 'd MMM yyyy', { locale: nl })}
+        {format(new Date(customer.created_at), 'd MMM yyyy', { locale: dateLocale })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
         {onDelete ? (
@@ -391,7 +396,7 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
                 <DropdownMenuItem asChild>
                   <Link to={`/admin/customers/${customer.crm_id}`}>
                     <Eye className="h-4 w-4 mr-2" />
-                    Bekijken
+                    {t('admin.marketing.aIContentLibrary.bekijken')}
                   </Link>
                 </DropdownMenuItem>
               )}
@@ -404,21 +409,20 @@ function UnifiedCustomerRow({ customer, onDelete, formatCurrency }: UnifiedRowPr
                     onSelect={(e) => e.preventDefault()}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Verwijderen
+                    {t('common.delete')}
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Klant verwijderen?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('admin.customers.klant_verwijderen')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
-                      Bestellingen van deze klant blijven behouden.
+                      {t('admin.customers.weet_je_zeker_dat_je_deze')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Verwijderen
+                      {t('common.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

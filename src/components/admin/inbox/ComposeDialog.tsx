@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { ComposeRichEditor } from './ComposeRichEditor';
+import { useTranslation } from 'react-i18next';
 
 type ComposeChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
 
@@ -46,6 +47,7 @@ interface ComposeDialogProps {
 }
 
 export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -260,7 +262,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       } else {
         const connection = metaConnections.find(c => c.platform === channel);
         if (!connection || !selectedCustomer?.metaSenderId) {
-          throw new Error(`Geen actieve ${channelLabel(channel)} verbinding of ontvangergegevens.`);
+          throw new Error(t('admin.inbox.composeDialog.geen_actieve_verbinding', { channel: channelLabel(channel) }));
         }
         const { error } = await supabase.functions.invoke('send-meta-message', {
           body: {
@@ -276,7 +278,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
       }
 
       toast({
-        title: 'Bericht verzonden',
+        title: t('admin.inbox.composeDialog.bericht_verzonden'),
         description: `Nieuw ${channelLabel(channel)} bericht is verstuurd.`,
       });
 
@@ -299,7 +301,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
-        title: 'Verzenden mislukt',
+        title: t('admin.inbox.composeDialog.verzenden_mislukt'),
         description: error.message || 'Er is iets misgegaan.',
         variant: 'destructive',
       });
@@ -318,21 +320,21 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nieuw bericht</DialogTitle>
+          <DialogTitle>{t('admin.inbox.composeDialog.nieuw_bericht')}</DialogTitle>
           <DialogDescription>
-            Start een nieuw gesprek met een klant via e-mail, WhatsApp, Facebook of Instagram.
+            {t('admin.inbox.composeDialog.start_een_nieuw_gesprek_met_een')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Channel selector */}
           <div>
-            <Label className="text-sm font-medium">Kanaal</Label>
+            <Label className="text-sm font-medium">{t('admin.odooChannels.columnChannel')}</Label>
             <Tabs value={channel} onValueChange={(v) => setChannel(v as ComposeChannel)} className="mt-1.5">
               <TabsList className="h-9">
                 <TabsTrigger value="email" className="text-xs px-3 h-7">
                   <Mail className="h-3.5 w-3.5 mr-1.5" />
-                  Email
+                  {t('admin.marketing.aIContentLibrary.email')}
                 </TabsTrigger>
                 {canSendWhatsApp && (
                   <TabsTrigger value="whatsapp" className="text-xs px-3 h-7">
@@ -376,7 +378,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                   )}
                 </span>
                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleClearCustomer}>
-                  Wijzig
+                  {t('admin.marketing.productPromoWizard.wijzig')}
                 </Button>
               </div>
             ) : (
@@ -387,8 +389,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                     isSocialChannel
                       ? 'Zoek een bestaande klant...'
                       : channel === 'email'
-                        ? 'Zoek klant of typ e-mailadres...'
-                        : 'Zoek klant of typ telefoonnummer...'
+                        ? t('admin.inbox.composeDialog.zoek_klant_of_typ_e_mailadres') : t('admin.inbox.composeDialog.zoek_klant_of_typ_telefoonnummer')
                   }
                   className="pl-8"
                   value={recipientSearch || manualRecipient}
@@ -463,7 +464,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                     <Label className="text-xs text-muted-foreground">CC</Label>
                     <Input
                       className="mt-1 h-8 text-sm"
-                      placeholder="email1@example.com, email2@example.com"
+                      placeholder={t('admin.inbox.composeDialog.email1_example_com_email2_example_com')}
                       value={cc}
                       onChange={(e) => setCc(e.target.value)}
                     />
@@ -472,7 +473,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                     <Label className="text-xs text-muted-foreground">BCC</Label>
                     <Input
                       className="mt-1 h-8 text-sm"
-                      placeholder="email1@example.com, email2@example.com"
+                      placeholder={t('admin.inbox.composeDialog.email1_example_com_email2_example_com_2')}
                       value={bcc}
                       onChange={(e) => setBcc(e.target.value)}
                     />
@@ -485,10 +486,10 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
           {/* Subject (email only) */}
           {channel === 'email' && (
             <div>
-              <Label className="text-sm font-medium">Onderwerp</Label>
+              <Label className="text-sm font-medium">{t('admin.marketing.templateDialog.onderwerp')}</Label>
               <Input
                 className="mt-1.5"
-                placeholder="Onderwerp van je bericht..."
+                placeholder={t('admin.inbox.composeDialog.onderwerp_van_je_bericht')}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
               />
@@ -497,7 +498,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
 
           {/* Message body */}
           <div>
-            <Label className="text-sm font-medium">Bericht</Label>
+            <Label className="text-sm font-medium">{t('admin.inbox.composeDialog.bericht')}</Label>
             {channel === 'email' ? (
               <div className="mt-1.5">
                 <ComposeRichEditor
@@ -508,7 +509,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             ) : (
               <Textarea
                 className="mt-1.5 min-h-[120px] resize-y"
-                placeholder="Typ je bericht..."
+                placeholder={t('admin.inbox.composeDialog.typ_je_bericht')}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => {
@@ -538,7 +539,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-                Bijlage toevoegen
+                {t('admin.inbox.composeDialog.bijlage_toevoegen')}
               </Button>
               {attachments.length > 0 && (
                 <div className="mt-2 space-y-1.5">
@@ -562,11 +563,11 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
           {/* Send button */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              {channel === 'email' ? 'Klant kan direct antwoorden op deze email' : 'Cmd+Enter om te verzenden'}
+              {channel === 'email' ? t('admin.inbox.composeDialog.klant_kan_direct_antwoorden_op_deze') : t('admin.inbox.composeDialog.cmd_enter_om_te_verzenden')}
             </p>
             <Button onClick={handleSend} disabled={!canSend() || isSending}>
               <Send className="h-4 w-4 mr-2" />
-              {isSending ? 'Verzenden...' : 'Verzenden'}
+              {isSending ? t('admin.marketing.campaignCard.status.verzenden') : t('admin.inbox.composeDialog.verzenden')}
             </Button>
           </div>
         </div>

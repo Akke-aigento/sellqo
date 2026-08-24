@@ -1,6 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Mail, MessageSquare, User, ExternalLink, Package, Facebook, Instagram, UserPlus, ArrowLeft } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
@@ -14,6 +13,8 @@ import { ConversationActions } from './ConversationActions';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface ConversationDetailProps {
   conversation: Conversation;
@@ -36,6 +37,8 @@ export function ConversationDetail({
   onMoveToFolder,
   onBack,
 }: ConversationDetailProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { createCustomer } = useCustomers();
   const { toast } = useToast();
@@ -129,8 +132,8 @@ export function ConversationDetail({
       });
       
       toast({
-        title: 'Klant aangemaakt',
-        description: `${customer.name || customer.email} is toegevoegd als prospect.`,
+        title: t('admin.inbox.conversationDetail.klant_aangemaakt'),
+        description: t('admin.inbox.conversationDetail.toegevoegd_als_prospect', { customer: customer.name || customer.email }),
       });
       
       // Refresh the conversation to get the new customer ID
@@ -138,8 +141,8 @@ export function ConversationDetail({
     } catch (error) {
       console.error('Failed to create customer:', error);
       toast({
-        title: 'Fout',
-        description: 'Kon klant niet aanmaken.',
+        title: t('admin.adsProductMap.fout'),
+        description: t('admin.inbox.conversationDetail.kon_klant_niet_aanmaken'),
         variant: 'destructive',
       });
     } finally {
@@ -164,10 +167,10 @@ export function ConversationDetail({
             <h2 className="font-semibold truncate">{customer?.name || 'Onbekend'}</h2>
             <ChannelIcon className="h-4 w-4 text-muted-foreground shrink-0" />
             {isArchived && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded">Gearchiveerd</span>
+              <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('admin.inbox.conversationDetail.gearchiveerd')}</span>
             )}
             {isDeleted && (
-              <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">Prullenbak</span>
+              <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">{t('admin.inbox.conversationDetail.prullenbak')}</span>
             )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -187,7 +190,7 @@ export function ConversationDetail({
             <Button variant="outline" size="sm" asChild>
               <Link to={`/admin/orders/${linkedOrderId}`}>
                 <Package className="h-4 w-4 mr-1" />
-                Bestelling
+                {t('admin.inbox.conversationDetail.bestelling')}
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Link>
             </Button>
@@ -196,7 +199,7 @@ export function ConversationDetail({
             <Button variant="outline" size="sm" asChild>
               <Link to={`/admin/customers/${customer.id}`}>
                 <User className="h-4 w-4 mr-1" />
-                Klantprofiel
+                {t('admin.inbox.conversationDetail.klantprofiel')}
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Link>
             </Button>
@@ -208,7 +211,7 @@ export function ConversationDetail({
               disabled={isCreatingCustomer}
             >
               <UserPlus className="h-4 w-4 mr-1" />
-              {isCreatingCustomer ? 'Aanmaken...' : 'Maak klant aan'}
+              {isCreatingCustomer ? t('admin.promotions.giftCardFormDialog.aanmaken') : t('admin.inbox.conversationDetail.maak_klant_aan')}
             </Button>
           ))}
           {/* Conversation actions dropdown */}
@@ -231,7 +234,7 @@ export function ConversationDetail({
               <div className="flex items-center gap-4 my-4">
                 <Separator className="flex-1" />
                 <span className="text-xs text-muted-foreground px-2">
-                  {format(new Date(date), 'd MMMM yyyy', { locale: nl })}
+                  {format(new Date(date), 'd MMMM yyyy', { locale: dateLocale })}
                 </span>
                 <Separator className="flex-1" />
               </div>
@@ -263,7 +266,7 @@ export function ConversationDetail({
               onClick={onRestore} 
               className="text-primary underline hover:no-underline"
             >
-              Terugzetten naar inbox
+              {t('admin.inbox.conversationActions.terugzetten_naar_inbox')}
             </button>
           </p>
         </div>

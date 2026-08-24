@@ -1,9 +1,9 @@
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Check, CheckCheck, Mail, MessageSquare, ShoppingBag, Store, Paperclip, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessageAttachments } from './MessageAttachments';
 import type { InboxMessage, MessageChannel } from '@/hooks/useInbox';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface MessageContextData {
   marketplace?: 'bol_com' | 'amazon' | null;
@@ -31,6 +31,7 @@ const getChannelIcon = (channel: MessageChannel) => {
 };
 
 export function MessageBubble({ message }: MessageBubbleProps) {
+  const dateLocale = useDateFnsLocale();
   const isOutbound = message.direction === 'outbound';
   const ChannelIcon = getChannelIcon(message.channel);
   
@@ -154,7 +155,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           )}
         >
           <ChannelIcon className="h-3 w-3" />
-          <span>{format(new Date(message.created_at), 'HH:mm', { locale: nl })}</span>
+          <span>{format(new Date(message.created_at), 'HH:mm', { locale: dateLocale })}</span>
           {getStatusIcon()}
         </div>
       </div>

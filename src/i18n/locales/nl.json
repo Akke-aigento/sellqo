@@ -4206,6 +4206,221 @@
       "met_beschikbaar_saldo": "Met beschikbaar saldo",
       "pas_je_filters_aan": "Pas je filters aan",
       "maak_je_eerste_cadeaukaart_aan": "Maak je eerste cadeaukaart aan"
+    },
+    "inbox": {
+      "aISuggestionBox": {
+        "ai_genereert_suggestie": "AI genereert suggestie...",
+        "gecached": "(gecached)",
+        "gebruik": "Gebruik",
+        "hergenereren_1_credit": "Hergenereren (1 credit)",
+        "gebruiken": "Gebruiken"
+      },
+      "advancedSearchFilters": {
+        "zoek_in": "Zoek in",
+        "huidige_map": "Huidige map",
+        "alle_mappen": "Alle mappen",
+        "overal": "Overal",
+        "periode": "Periode",
+        "3_maanden": "3 maanden",
+        "afzender": "Afzender",
+        "wissen": "Wissen",
+        "channels": {
+          "email": "Email"
+        }
+      },
+      "composeDialog": {
+        "nieuw_bericht": "Nieuw bericht",
+        "bericht": "Bericht",
+        "email1_example_com_email2_example_com": "email1@example.com, email2@example.com",
+        "email1_example_com_email2_example_com_2": "email1@example.com, email2@example.com",
+        "onderwerp_van_je_bericht": "Onderwerp van je bericht...",
+        "typ_je_bericht": "Typ je bericht...",
+        "bericht_verzonden": "Bericht verzonden",
+        "verzenden_mislukt": "Verzenden mislukt",
+        "start_een_nieuw_gesprek_met_een": "Start een nieuw gesprek met een klant via e-mail, WhatsApp, Facebook of Instagram.",
+        "bijlage_toevoegen": "Bijlage toevoegen",
+        "verzenden": "Verzenden",
+        "klant_kan_direct_antwoorden_op_deze": "Klant kan direct antwoorden op deze email",
+        "cmd_enter_om_te_verzenden": "Cmd+Enter om te verzenden",
+        "zoek_klant_of_typ_e_mailadres": "Zoek klant of typ e-mailadres...",
+        "zoek_klant_of_typ_telefoonnummer": "Zoek klant of typ telefoonnummer...",
+        "geen_actieve_verbinding": "Geen actieve {{channel}}-verbinding of ontvangergegevens."
+      },
+      "conversationDetail": {
+        "gearchiveerd": "Gearchiveerd",
+        "prullenbak": "Prullenbak",
+        "klant_aangemaakt": "Klant aangemaakt",
+        "kon_klant_niet_aanmaken": "Kon klant niet aanmaken.",
+        "bestelling": "Bestelling",
+        "klantprofiel": "Klantprofiel",
+        "maak_klant_aan": "Maak klant aan",
+        "toegevoegd_als_prospect": "{{customer}} is toegevoegd als prospect."
+      },
+      "conversationItem": {
+        "bol_com_bericht": "Bol.com bericht",
+        "amazon_bericht": "Amazon bericht"
+      },
+      "conversationList": {
+        "geen_gesprekken": "Geen gesprekken",
+        "wanneer_klanten_contact_opnemen_verschijnen_hun": "Wanneer klanten contact opnemen, verschijnen hun berichten hier."
+      },
+      "folderList": {
+        "nieuwe_map_aanmaken": "Nieuwe map aanmaken",
+        "mapnaam": "Mapnaam",
+        "nieuwe_map": "Nieuwe map",
+        "nieuwe_map_aanmaken_2": "Nieuwe map aanmaken",
+        "mapnaam_2": "Mapnaam",
+        "bijv_vip_klanten_retour_support": "Bijv. VIP Klanten, Retour, Support",
+        "bijv_vip_klanten_retour_support_2": "Bijv. VIP Klanten, Retour, Support",
+        "maak_een_aangepaste_map_om_je": "Maak een aangepaste map om je gesprekken te organiseren.",
+        "map_aanmaken": "Map aanmaken"
+      },
+      "inboxFilters": {
+        "zoek_in_gesprekken": "Zoek in gesprekken...",
+        "alle_social": "Alle Social",
+        "te_beantw": "Te beantw."
+      },
+      "replyComposer": {
+        "typ_je_antwoord": "Typ je antwoord...",
+        "ai_suggestie": "AI suggestie",
+        "er_is_iets_misgegaan_bij_het": "Er is iets misgegaan bij het verzenden.",
+        "druk_op_cmd_enter_om_te": "Druk op Cmd+Enter om te verzenden"
+      },
+      "attachmentUploader": {
+        "toevoegen": "+ Toevoegen"
+      },
+      "bulkActionsToolbar": {
+        "herstellen": "Herstellen",
+        "inbox": "Inbox",
+        "archiveren": "Archiveren"
+      },
+      "conversationActions": {
+        "terugzetten_naar_inbox": "Terugzetten naar inbox",
+        "verplaatsen_naar_map": "Verplaatsen naar map",
+        "naar_prullenbak": "Naar prullenbak",
+        "permanent_verwijderen": "Permanent verwijderen"
+      }
+    },
+    "customers": {
+      "customerActivityTab": {
+        "activiteiten_timeline": "Activiteiten timeline",
+        "alle_events": "Alle events",
+        "pagina_bekeken": "Pagina bekeken",
+        "product_bekeken": "Product bekeken",
+        "winkelwagen": "Winkelwagen",
+        "zoekopdrachten": "Zoekopdrachten",
+        "email_opens": "Email opens",
+        "email_clicks": "Email clicks",
+        "nog_geen_activiteiten_geregistreerd": "Nog geen activiteiten geregistreerd",
+        "activiteiten_verschijnen_hier_zodra_de_klant": "Activiteiten verschijnen hier zodra de klant de webshop bezoekt",
+        "filter_events": "Filter events",
+        "engagement": "Engagement",
+        "gem_tijd": "Gem. tijd",
+        "emails_geopend": "Emails geopend",
+        "pagina_s": "Pagina's",
+        "sessies": "Sessies",
+        "events": {
+          "page_view": "Pagina bekeken",
+          "product_view": "Product bekeken",
+          "add_to_cart": "Aan winkelwagen",
+          "remove_from_cart": "Uit winkelwagen",
+          "checkout_start": "Checkout gestart",
+          "search": "Gezocht",
+          "wishlist_add": "Aan verlanglijst",
+          "email_open": "Email geopend",
+          "email_click": "Email link geklikt",
+          "purchase": "Bestelling geplaatst"
+        }
+      },
+      "customerLedgerTab": {
+        "prive_kladblok_enkel_zichtbaar_voor_platform": "Privé kladblok — enkel zichtbaar voor platform-admins",
+        "mutatie_toevoegen": "Mutatie toevoegen",
+        "mutaties": "Mutaties",
+        "nog_geen_mutaties": "Nog geen mutaties",
+        "mutatie_verwijderen": "Mutatie verwijderen?",
+        "vaste_kost": "Vaste kost",
+        "herhalend_maandbedrag_of_ander_interval": "Herhalend maandbedrag (of ander interval)",
+        "interval_maanden": "Interval (maanden)",
+        "vaste_kost_verwijderen": "Vaste kost verwijderen?",
+        "interval_maanden_2": "Interval (maanden)",
+        "volgende_datum": "Volgende datum",
+        "betaling_ontvangen": "Betaling ontvangen",
+        "maandelijkse_fee": "Maandelijkse fee",
+        "deze_actie_kan_niet_ongedaan_gemaakt": "Deze actie kan niet ongedaan gemaakt worden.",
+        "vaste_kost_instellen": "Vaste kost instellen",
+        "bestaande_mutaties_blijven_staan_enkel_de": "Bestaande mutaties blijven staan. Enkel de terugkerende instelling wordt verwijderd.",
+        "voeg_maandbedrag_toe": "Voeg maandbedrag toe"
+      },
+      "geen_winkel_gevonden_neem_contact_op": "Geen winkel gevonden. Neem contact op met een beheerder.",
+      "beheer_je_klantenbestand": "Beheer je klantenbestand",
+      "prospects": "Prospects",
+      "geen_klanten_gevonden": "Geen klanten gevonden",
+      "bron": "Bron",
+      "contact": "Contact",
+      "bestellingen": "Bestellingen",
+      "uitgegeven": "Uitgegeven",
+      "sinds": "Sinds",
+      "webshop_crm": "Webshop + CRM",
+      "prospect": "Prospect",
+      "klant_verwijderen": "Klant verwijderen?",
+      "zoek_op_naam_of_email": "Zoek op naam of email...",
+      "klanten": "Klanten",
+      "weet_je_zeker_dat_je_deze": "Weet je zeker dat je deze klant wilt verwijderen? Dit kan niet ongedaan worden gemaakt. Bestellingen van deze klant blijven behouden.",
+      "probeer_een_andere_zoekopdracht": "Probeer een andere zoekopdracht",
+      "klanten_verschijnen_hier_wanneer_ze_een": "Klanten verschijnen hier wanneer ze een bestelling plaatsen of een account aanmaken",
+      "klanten_gevonden": "{{count}} klant(en) gevonden",
+      "gefilterd_op": "(gefilterd op {{filter}})"
+    },
+    "messages": {
+      "mappen": "Mappen",
+      "selecteer_een_gesprek": "Selecteer een gesprek",
+      "kies_een_gesprek_uit_de_lijst": "Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.",
+      "beheer_alle_communicatie_met_klanten_via": "Beheer alle communicatie met klanten via email en social media",
+      "nieuw": "Nieuw",
+      "klantgesprekken": "Klantgesprekken"
+    },
+    "customerDetail": {
+      "gesprekken": "Gesprekken",
+      "geen_bestellingen_gevonden": "Geen bestellingen gevonden",
+      "deze_prospect_heeft_nog_geen_bestelling": "Deze prospect heeft nog geen bestelling geplaatst.",
+      "bestelnummer": "Bestelnummer",
+      "gesprekken_2": "Gesprekken",
+      "geen_gesprekken_gevonden": "Geen gesprekken gevonden",
+      "contactgegevens": "Contactgegevens",
+      "geverifieerd": "Geverifieerd",
+      "voorkeurstaal": "Voorkeurstaal",
+      "geen_voorkeur_tenant_standaard": "Geen voorkeur (tenant-standaard)",
+      "factuuradres": "Factuuradres",
+      "notities": "Notities",
+      "terug_naar_klanten": "Terug naar klanten",
+      "klant_nog_niet_in_klantenbestand_of": "Klant nog niet in klantenbestand of bestaat niet meer.",
+      "toevoegen_aan_klantenbestand": "Toevoegen aan klantenbestand",
+      "activiteit": "Activiteit",
+      "gegevens": "Gegevens",
+      "geen_adres_bekend": "Geen adres bekend"
+    },
+    "customerFormDialog": {
+      "voornaam": "Voornaam *",
+      "achternaam": "Achternaam *",
+      "e_mailadres": "E-mailadres *",
+      "telefoonnummer": "Telefoonnummer",
+      "bedrijfsnaam": "Bedrijfsnaam *",
+      "optioneel": "(optioneel)",
+      "afleveradres": "Afleveradres",
+      "bedrijf_b_v": "Bedrijf B.V.",
+      "bijv_0208_0123456789": "bijv. 0208:0123456789",
+      "nieuwe_klant": "Nieuwe klant",
+      "afleveradres_wijkt_af_van_factuuradres": "Afleveradres wijkt af van factuuradres",
+      "zakelijke_klant_b2b": "Zakelijke klant (B2B)",
+      "bedrijfsgegevens": "Bedrijfsgegevens",
+      "zonder_btw_nummer_kan_deze_b2b": "Zonder BTW-nummer kan deze B2B-klant niet correct via Peppol of Odoo verwerkt worden. Vul een geldig BTW-nummer in voor volledige boekhoud- en e-facturatiekoppeling.",
+      "peppol_id": "Peppol-ID",
+      "endpoint_id_voor_peppol_e_facturatie": "Endpoint-ID voor Peppol e-facturatie. Formaat: [scheme]:[identifier]",
+      "wijzigingen_opslaan": "Wijzigingen opslaan",
+      "werk_de_gegevens_van_deze_klant": "Werk de gegevens van deze klant bij.",
+      "vul_de_gegevens_in_om_een": "Vul de gegevens in om een nieuwe klant aan te maken.",
+      "klant_bewerken": "Klant bewerken",
+      "nieuwe_klant_toevoegen": "Nieuwe klant toevoegen"
     }
   },
   "product_form": {

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Conversation } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
 
 const TABLET_BREAKPOINT = 1024;
 
@@ -27,6 +28,7 @@ function useIsTablet() {
 }
 
 export default function MessagesPage() {
+  const { t } = useTranslation();
   const {
     conversations,
     selectedConversation,
@@ -171,7 +173,7 @@ export default function MessagesPage() {
           <div className={`${isSidebarCollapsed ? 'w-12' : 'w-44'} min-w-0 border-r flex flex-col shrink-0 bg-muted/30 transition-all duration-200`}>
             <div className="p-1.5 border-b flex items-center justify-between shrink-0">
               {!isSidebarCollapsed && (
-                <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">Mappen</h3>
+                <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide pl-1">{t('admin.messages.mappen')}</h3>
               )}
               {!isSinglePanel && (
                 <Button
@@ -256,9 +258,9 @@ export default function MessagesPage() {
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <MessageSquare className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium">Selecteer een gesprek</h3>
+              <h3 className="text-lg font-medium">{t('admin.messages.selecteer_een_gesprek')}</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                Kies een gesprek uit de lijst om berichten te bekijken en te beantwoorden.
+                {t('admin.messages.kies_een_gesprek_uit_de_lijst')}
               </p>
             </div>
           )}
@@ -274,17 +276,17 @@ export default function MessagesPage() {
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
               <MessageSquare className={`${isSinglePanel ? 'h-5 w-5' : 'h-6 w-6'}`} />
-              {isSinglePanel ? 'Gesprekken' : 'Klantgesprekken'}
+              {isSinglePanel ? t('admin.customerDetail.gesprekken') : t('admin.messages.klantgesprekken')}
             </h1>
             {!isSinglePanel && (
               <p className="text-muted-foreground mt-1">
-                Beheer alle communicatie met klanten via email en social media
+                {t('admin.messages.beheer_alle_communicatie_met_klanten_via')}
               </p>
             )}
           </div>
           <Button onClick={() => setComposeOpen(true)} size={isSinglePanel ? 'sm' : 'default'}>
             <PenSquare className="h-4 w-4 mr-2" />
-            {isSinglePanel ? 'Nieuw' : 'Nieuw bericht'}
+            {isSinglePanel ? t('admin.messages.nieuw') : t('admin.inbox.composeDialog.nieuw_bericht')}
           </Button>
         </div>
 

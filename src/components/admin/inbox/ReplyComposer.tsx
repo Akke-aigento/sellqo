@@ -11,6 +11,7 @@ import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionBox } from './AISuggestionBox';
 import { AttachmentUploader } from './AttachmentUploader';
 import type { Conversation, MessageChannel, isSocialChannel } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
 
 type ReplyChannel = 'email' | 'whatsapp' | 'facebook' | 'instagram';
 
@@ -25,6 +26,7 @@ interface ReplyComposerProps {
 }
 
 export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -264,7 +266,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       };
 
       toast({
-        title: 'Bericht verzonden',
+        title: t('admin.inbox.composeDialog.bericht_verzonden'),
         description: `Antwoord verstuurd via ${channelLabels[channel]}.`,
       });
 
@@ -275,8 +277,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
     } catch (error) {
       console.error('Error sending reply:', error);
       toast({
-        title: 'Verzenden mislukt',
-        description: 'Er is iets misgegaan bij het verzenden.',
+        title: t('admin.inbox.composeDialog.verzenden_mislukt'),
+        description: t('admin.inbox.replyComposer.er_is_iets_misgegaan_bij_het'),
         variant: 'destructive',
       });
     } finally {
@@ -293,7 +295,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             {canSendEmail && (
               <TabsTrigger value="email" className="text-xs px-3 h-7">
                 <Mail className="h-3 w-3 mr-1" />
-                Email
+                {t('admin.marketing.aIContentLibrary.email')}
               </TabsTrigger>
             )}
             {canSendWhatsApp && (
@@ -365,7 +367,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
-            placeholder="Typ je antwoord..."
+            placeholder={t('admin.inbox.replyComposer.typ_je_antwoord')}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="min-h-[120px] resize-y pr-10"
@@ -392,7 +394,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
               size="icon"
               className="h-8 w-8"
               onClick={handleRequestSuggestion}
-              title="AI suggestie"
+              title={t('admin.inbox.replyComposer.ai_suggestie')}
             >
               <Sparkles className="h-4 w-4" />
             </Button>
@@ -408,7 +410,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       </div>
 
       <p className="text-xs text-muted-foreground mt-2">
-        Druk op Cmd+Enter om te verzenden
+        {t('admin.inbox.replyComposer.druk_op_cmd_enter_om_te')}
       </p>
     </div>
   );

@@ -19,6 +19,7 @@ import { VatInput } from './VatInput';
 import { AddressInput } from './AddressInput';
 import { useTenant } from '@/hooks/useTenant';
 import type { Customer } from '@/types/order';
+import { useTranslation } from 'react-i18next';
 
 interface CustomerFormData {
   customer_type: 'b2c' | 'b2b';
@@ -57,6 +58,7 @@ export function CustomerFormDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: CustomerFormDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
@@ -188,19 +190,18 @@ export function CustomerFormDialog({
         <DialogTrigger asChild>
           <Button>
             <UserPlus className="h-4 w-4 mr-2" />
-            Nieuwe klant
+            {t('admin.customerFormDialog.nieuwe_klant')}
           </Button>
         </DialogTrigger>
       )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'edit' ? 'Klant bewerken' : 'Nieuwe klant toevoegen'}
+            {mode === 'edit' ? t('admin.customerFormDialog.klant_bewerken') : t('admin.customerFormDialog.nieuwe_klant_toevoegen')}
           </DialogTitle>
           <DialogDescription>
             {mode === 'edit'
-              ? 'Werk de gegevens van deze klant bij.'
-              : 'Vul de gegevens in om een nieuwe klant aan te maken.'}
+              ? t('admin.customerFormDialog.werk_de_gegevens_van_deze_klant') : t('admin.customerFormDialog.vul_de_gegevens_in_om_een')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,12 +209,12 @@ export function CustomerFormDialog({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <User className="h-4 w-4" />
-              Contactgegevens
+              {t('admin.customerDetail.contactgegevens')}
             </div>
             
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="first_name">Voornaam *</Label>
+                <Label htmlFor="first_name">{t('admin.customerFormDialog.voornaam')}</Label>
                 <Input
                   id="first_name"
                   value={formData.first_name}
@@ -222,7 +223,7 @@ export function CustomerFormDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_name">Achternaam *</Label>
+                <Label htmlFor="last_name">{t('admin.customerFormDialog.achternaam')}</Label>
                 <Input
                   id="last_name"
                   value={formData.last_name}
@@ -233,7 +234,7 @@ export function CustomerFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mailadres *</Label>
+              <Label htmlFor="email">{t('admin.customerFormDialog.e_mailadres')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -244,7 +245,7 @@ export function CustomerFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefoonnummer</Label>
+              <Label htmlFor="phone">{t('admin.customerFormDialog.telefoonnummer')}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -260,7 +261,7 @@ export function CustomerFormDialog({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <MapPin className="h-4 w-4" />
-              Factuuradres
+              {t('admin.customerDetail.factuuradres')}
             </div>
             
             <AddressInput
@@ -289,7 +290,7 @@ export function CustomerFormDialog({
               />
               <Label htmlFor="different-shipping" className="flex items-center gap-2 cursor-pointer">
                 <Truck className="h-4 w-4" />
-                Afleveradres wijkt af van factuuradres
+                {t('admin.customerFormDialog.afleveradres_wijkt_af_van_factuuradres')}
               </Label>
             </div>
 
@@ -297,7 +298,7 @@ export function CustomerFormDialog({
             {differentShipping && (
               <div className="pt-4">
                 <AddressInput
-                  label="Afleveradres"
+                  label={t('admin.customerFormDialog.afleveradres')}
                   value={{
                     street: formData.shipping_street || '',
                     city: formData.shipping_city || '',
@@ -333,7 +334,7 @@ export function CustomerFormDialog({
                 }
               />
               <Label htmlFor="is-business" className="cursor-pointer font-medium">
-                Zakelijke klant (B2B)
+                {t('admin.customerFormDialog.zakelijke_klant_b2b')}
               </Label>
             </div>
 
@@ -342,17 +343,17 @@ export function CustomerFormDialog({
               <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300">
                   <Building2 className="h-4 w-4" />
-                  Bedrijfsgegevens
+                  {t('admin.customerFormDialog.bedrijfsgegevens')}
                 </div>
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="company_name">Bedrijfsnaam *</Label>
+                    <Label htmlFor="company_name">{t('admin.customerFormDialog.bedrijfsnaam')}</Label>
                     <Input
                       id="company_name"
                       value={formData.company_name}
                       onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
-                      placeholder="Bedrijf B.V."
+                      placeholder={t('admin.customerFormDialog.bedrijf_b_v')}
                       required={formData.customer_type === 'b2b'}
                     />
                   </div>
@@ -365,24 +366,24 @@ export function CustomerFormDialog({
 
                   {formData.customer_type === 'b2b' && !formData.vat_number?.trim() && (
                     <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                      Zonder BTW-nummer kan deze B2B-klant niet correct via Peppol of Odoo verwerkt worden. Vul een geldig BTW-nummer in voor volledige boekhoud- en e-facturatiekoppeling.
+                      {t('admin.customerFormDialog.zonder_btw_nummer_kan_deze_b2b')}
                     </div>
                   )}
 
                   {/* Peppol ID Field */}
                   <div className="space-y-2">
                     <Label htmlFor="peppol_id" className="flex items-center gap-2">
-                      Peppol-ID
-                      <span className="text-xs text-muted-foreground font-normal">(optioneel)</span>
+                      {t('admin.customerFormDialog.peppol_id')}
+                      <span className="text-xs text-muted-foreground font-normal">{t('admin.customerFormDialog.optioneel')}</span>
                     </Label>
                     <Input
                       id="peppol_id"
                       value={formData.peppol_id}
                       onChange={(e) => setFormData(prev => ({ ...prev, peppol_id: e.target.value }))}
-                      placeholder="bijv. 0208:0123456789"
+                      placeholder={t('admin.customerFormDialog.bijv_0208_0123456789')}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Endpoint-ID voor Peppol e-facturatie. Formaat: [scheme]:[identifier]
+                      {t('admin.customerFormDialog.endpoint_id_voor_peppol_e_facturatie')}
                     </p>
                   </div>
                 </div>
@@ -392,14 +393,13 @@ export function CustomerFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading
                 ? 'Bezig...'
                 : mode === 'edit'
-                  ? 'Wijzigingen opslaan'
-                  : 'Toevoegen'}
+                  ? t('admin.customerFormDialog.wijzigingen_opslaan') : t('common.add')}
             </Button>
           </DialogFooter>
         </form>

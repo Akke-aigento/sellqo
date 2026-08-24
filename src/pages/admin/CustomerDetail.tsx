@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { 
   ArrowLeft, 
   Mail, 
@@ -42,8 +41,12 @@ import { useAuth } from '@/hooks/useAuth';
 import type { Customer } from '@/types/order';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export default function CustomerDetailPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
@@ -114,11 +117,11 @@ export default function CustomerDetailPage() {
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate('/admin/customers')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Terug naar klanten
+          {t('admin.customerDetail.terug_naar_klanten')}
         </Button>
         <Alert variant="destructive">
           <AlertDescription>
-            Klant nog niet in klantenbestand of bestaat niet meer.
+            {t('admin.customerDetail.klant_nog_niet_in_klantenbestand_of')}
           </AlertDescription>
         </Alert>
         {messageData?.from_email ? (
@@ -134,7 +137,7 @@ export default function CustomerDetailPage() {
           <>
             <Button onClick={() => setShowCreateDialog(true)}>
               <UserPlus className="h-4 w-4 mr-2" />
-              Toevoegen aan klantenbestand
+              {t('admin.customerDetail.toevoegen_aan_klantenbestand')}
             </Button>
             <CustomerSelectDialog
               open={showCreateDialog}
@@ -157,7 +160,7 @@ export default function CustomerDetailPage() {
   const getTypeBadge = () => {
     switch (customer.customer_type) {
       case 'prospect':
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">Prospect</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{t('admin.customers.prospect')}</Badge>;
       case 'b2b':
         return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">B2B</Badge>;
       default:
@@ -172,7 +175,7 @@ export default function CustomerDetailPage() {
       {/* Back button */}
       <Button variant="ghost" onClick={() => navigate('/admin/customers')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Terug naar klanten
+        {t('admin.customerDetail.terug_naar_klanten')}
       </Button>
 
       {/* Header Card */}
@@ -213,14 +216,14 @@ export default function CustomerDetailPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      Klant sinds {format(new Date(customer.created_at), 'd MMM yyyy', { locale: nl })}
+                      Klant sinds {format(new Date(customer.created_at), 'd MMM yyyy', { locale: dateLocale })}
                     </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                     <Edit className="h-4 w-4 mr-1" />
-                    Bewerken
+                    {t('common.edit')}
                   </Button>
                 </div>
               </div>
@@ -231,15 +234,15 @@ export default function CustomerDetailPage() {
           <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
             <div className="text-center">
               <div className="text-2xl font-semibold">{formatCurrency(Number(customer.total_spent || 0), currency)}</div>
-              <div className="text-sm text-muted-foreground">Totaal uitgegeven</div>
+              <div className="text-sm text-muted-foreground">{t('admin.giftCards.totaal_uitgegeven')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold">{customer.total_orders || 0}</div>
-              <div className="text-sm text-muted-foreground">Bestellingen</div>
+              <div className="text-sm text-muted-foreground">{t('admin.customers.bestellingen')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold">{conversations?.length || 0}</div>
-              <div className="text-sm text-muted-foreground">Gesprekken</div>
+              <div className="text-sm text-muted-foreground">{t('admin.customerDetail.gesprekken')}</div>
             </div>
           </div>
         </CardContent>
@@ -250,24 +253,24 @@ export default function CustomerDetailPage() {
         <TabsList>
           <TabsTrigger value="orders" className="gap-2">
             <ShoppingBag className="h-4 w-4" />
-            Bestellingen
+            {t('admin.customers.bestellingen')}
           </TabsTrigger>
           <TabsTrigger value="conversations" className="gap-2">
             <MessageSquare className="h-4 w-4" />
-            Gesprekken
+            {t('admin.customerDetail.gesprekken')}
           </TabsTrigger>
           <TabsTrigger value="activity" className="gap-2">
             <Activity className="h-4 w-4" />
-            Activiteit
+            {t('admin.customerDetail.activiteit')}
           </TabsTrigger>
           <TabsTrigger value="details" className="gap-2">
             <User className="h-4 w-4" />
-            Gegevens
+            {t('admin.customerDetail.gegevens')}
           </TabsTrigger>
           {isPlatformAdmin && (
             <TabsTrigger value="ledger" className="gap-2">
               <Wallet className="h-4 w-4" />
-              Saldo
+              {t('admin.giftCards.saldo')}
             </TabsTrigger>
           )}
         </TabsList>
@@ -276,7 +279,7 @@ export default function CustomerDetailPage() {
         <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Bestellingen</CardTitle>
+              <CardTitle className="text-base">{t('admin.customers.bestellingen')}</CardTitle>
               <CardDescription>{orders?.length || 0} bestelling(en)</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
@@ -287,19 +290,19 @@ export default function CustomerDetailPage() {
               ) : orders?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Geen bestellingen gevonden</p>
+                  <p>{t('admin.customerDetail.geen_bestellingen_gevonden')}</p>
                   {customer.customer_type === 'prospect' && (
-                    <p className="text-sm mt-2">Deze prospect heeft nog geen bestelling geplaatst.</p>
+                    <p className="text-sm mt-2">{t('admin.customerDetail.deze_prospect_heeft_nog_geen_bestelling')}</p>
                   )}
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Bestelnummer</TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Totaal</TableHead>
+                      <TableHead>{t('admin.customerDetail.bestelnummer')}</TableHead>
+                      <TableHead>{t('common.date')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="text-right">{t('common.total')}</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -307,7 +310,7 @@ export default function CustomerDetailPage() {
                     {orders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}</TableCell>
+                        <TableCell>{format(new Date(order.created_at), 'd MMM yyyy', { locale: dateLocale })}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{order.status}</Badge>
                         </TableCell>
@@ -332,7 +335,7 @@ export default function CustomerDetailPage() {
         <TabsContent value="conversations">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Gesprekken</CardTitle>
+              <CardTitle className="text-base">{t('admin.customerDetail.gesprekken_2')}</CardTitle>
               <CardDescription>{conversations?.length || 0} gesprek(ken)</CardDescription>
             </CardHeader>
             <CardContent>
@@ -343,7 +346,7 @@ export default function CustomerDetailPage() {
               ) : conversations?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Geen gesprekken gevonden</p>
+                  <p>{t('admin.customerDetail.geen_gesprekken_gevonden')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -363,7 +366,7 @@ export default function CustomerDetailPage() {
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {format(new Date(conversation.last_message_at), 'd MMM yyyy', { locale: nl })}
+                        {format(new Date(conversation.last_message_at), 'd MMM yyyy', { locale: dateLocale })}
                       </div>
                     </Link>
                   ))}
@@ -384,7 +387,7 @@ export default function CustomerDetailPage() {
             {/* Contact Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Contactgegevens</CardTitle>
+                <CardTitle className="text-base">{t('admin.customerDetail.contactgegevens')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -393,13 +396,13 @@ export default function CustomerDetailPage() {
                 </div>
                 {customer.phone && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Telefoon</div>
+                    <div className="text-sm text-muted-foreground">{t('common.phone')}</div>
                     <div>{customer.phone}</div>
                   </div>
                 )}
                 {customer.company_name && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Bedrijf</div>
+                    <div className="text-sm text-muted-foreground">{t('admin.marketing.variableInserter.groups.company.label')}</div>
                     <div>{customer.company_name}</div>
                   </div>
                 )}
@@ -409,13 +412,13 @@ export default function CustomerDetailPage() {
                     <div className="flex items-center gap-2">
                       {customer.vat_number}
                       {customer.vat_verified && (
-                        <Badge variant="secondary" className="text-xs">Geverifieerd</Badge>
+                        <Badge variant="secondary" className="text-xs">{t('admin.customerDetail.geverifieerd')}</Badge>
                       )}
                     </div>
                   </div>
                 )}
                 <div className="pt-2 border-t">
-                  <Label className="text-sm text-muted-foreground">Voorkeurstaal</Label>
+                  <Label className="text-sm text-muted-foreground">{t('admin.customerDetail.voorkeurstaal')}</Label>
                   <Select
                     value={(customer as any).preferred_language || 'none'}
                     onValueChange={(val) => {
@@ -430,11 +433,11 @@ export default function CustomerDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Geen voorkeur (tenant-standaard)</SelectItem>
-                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                      <SelectItem value="none">{t('admin.customerDetail.geen_voorkeur_tenant_standaard')}</SelectItem>
+                      <SelectItem value="nl">{t('admin.marketing.segmentBuilder.nederlands')}</SelectItem>
+                      <SelectItem value="en">{t('admin.marketing.segmentBuilder.english')}</SelectItem>
+                      <SelectItem value="fr">{t('admin.marketing.segmentBuilder.francais')}</SelectItem>
+                      <SelectItem value="de">{t('admin.marketing.segmentBuilder.deutsch')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -444,7 +447,7 @@ export default function CustomerDetailPage() {
             {/* Address */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Factuuradres</CardTitle>
+                <CardTitle className="text-base">{t('admin.customerDetail.factuuradres')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {hasAddress ? (
@@ -457,7 +460,7 @@ export default function CustomerDetailPage() {
                   </div>
                 ) : (
                   <div className="text-muted-foreground text-sm">
-                    Geen adres bekend
+                    {t('admin.customerDetail.geen_adres_bekend')}
                   </div>
                 )}
               </CardContent>
@@ -467,7 +470,7 @@ export default function CustomerDetailPage() {
             {customer.notes && (
               <Card className="md:col-span-2">
                 <CardHeader>
-                  <CardTitle className="text-base">Notities</CardTitle>
+                  <CardTitle className="text-base">{t('admin.customerDetail.notities')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm whitespace-pre-wrap">{customer.notes}</p>

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { X, FileText, Image, File, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface UploadedFile {
   file: File;
@@ -37,6 +38,7 @@ export function AttachmentUploader({
   maxSizeMB = 10,
   className,
 }: AttachmentUploaderProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,14 +150,14 @@ export function AttachmentUploader({
             className="h-auto py-1.5"
             onClick={openFilePicker}
           >
-            + Toevoegen
+            {t('admin.inbox.attachmentUploader.toevoegen')}
           </Button>
         )}
 
         {isUploading && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Uploaden...</span>
+            <span>{t('admin.marketing.mediaAssetsLibrary.uploaden')}</span>
           </div>
         )}
       </div>

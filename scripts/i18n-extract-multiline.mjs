@@ -53,6 +53,56 @@ for (const [key, value] of [...flattenTree(nl)].sort(([a], [b]) =>
 const reusableIn = (key, rootNs) => key.startsWith('common.') || key.startsWith(`${rootNs}.`);
 
 
+function matchParen(src, open) {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === '(') depth++;
+    else if (src[i] === ')') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+/**
+ * Regelbereiken van elke herkende componentbody.
+ *
+ * Nodig omdat `t` alleen daar in scope komt: `--repair` zet de hook in een
+ * componentbody, niet in een losse helper als `function getTypeBadge(...)`.
+ * Zonder deze grens belandde er een t()-aanroep in zo'n helper en faalde de
+ * typecheck met "Cannot find name 't'".
+ */
+function componentLineRanges(src) {
+  const lineOf = (offset) => src.slice(0, offset).split('\n').length;
+  const out = [];
+  const span = (body) => {
+    let depth = 0;
+    for (let i = body; i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') { depth--; if (depth === 0) return [lineOf(body), lineOf(i)]; }
+    }
+    return null;
+  };
+  for (const m of src.matchAll(/^(?:export\s+)?(?:default\s+)?function\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*\(/gm)) {
+    const open = src.indexOf('(', m.index + m[0].length - 1);
+    const close = matchParen(src, open);
+    if (close === -1) continue;
+    const body = src.indexOf('{', close);
+    const r = body === -1 ? null : span(body);
+    if (r) out.push(r);
+  }
+  for (const m of src.matchAll(/^(?:export\s+)?const\s+([A-Z][A-Za-z0-9_]*)(?::[^=\n]+)?\s*=\s*(?:async\s+)?\(/gm)) {
+    const open = src.indexOf('(', m.index + m[0].length - 1);
+    const close = matchParen(src, open);
+    if (close === -1) continue;
+    const arrow = src.indexOf('=>', close);
+    if (arrow === -1) continue;
+    const after = src.slice(arrow + 2).match(/^\s*/)[0].length;
+    if (src[arrow + 2 + after] !== '{') continue;
+    const r = span(arrow + 2 + after);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
 const summary = { files: 0, changed: 0, keys: 0, reused: 0 };
 
 for (const target of targets) {
@@ -61,6 +111,8 @@ for (const target of targets) {
     const src = readFileSync(abs, 'utf8');
     const lines = src.split('\n');
     const masked = maskedLineNumbers(src);
+    const ranges = componentLineRanges(src);
+    const inComponent = (lineNo) => ranges.some(([a, b]) => lineNo >= a && lineNo <= b);
     const ns = namespaceForFile(abs);
     const rootNs = ns.split('.')[0];
     const usedSlugs = new Set();
@@ -97,7 +149,7 @@ for (const target of targets) {
     let i = 0;
     const out = [];
     while (i < lines.length) {
-      if (!isTextLine(lines[i]) || masked.has(i + 1)) { out.push(lines[i]); i++; continue; }
+      if (!isTextLine(lines[i]) || masked.has(i + 1) || !inComponent(i + 1)) { out.push(lines[i]); i++; continue; }
       let end = i;
       while (end + 1 < lines.length && isTextLine(lines[end + 1]) && !masked.has(end + 2)) end++;
       const before = prevNonEmpty(i);
@@ -120,7 +172,7 @@ for (const target of targets) {
     // vermijden) en laat deze tekst dus staan. `/>` sluit altijd een JSX-tag,
     // dus wat erachter komt is per definitie tekstinhoud.
     for (let k = 0; k < out.length; k++) {
-      if (masked.has(k + 1)) continue;
+      if (masked.has(k + 1) || !inComponent(k + 1)) continue;
       const line = out[k];
       const m = line.match(/^(.*<[A-Za-z][^<>]*\/>)([ \t]*)([^<>{}\n][^<>{}\n]*?)([ \t]*)(<.*|)$/);
       if (!m) continue;

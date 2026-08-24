@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useInboxFolders, type InboxFolder } from '@/hooks/useInboxFolders';
+import { useTranslation } from 'react-i18next';
 
 interface FolderListProps {
   selectedFolderId: string | null;
@@ -66,6 +67,7 @@ function DroppableFolder({
   isSystem = true,
   onDelete 
 }: DroppableFolderProps) {
+  const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({ id: folderId });
 
   const content = (
@@ -103,7 +105,7 @@ function DroppableFolder({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }}>
                   <Trash className="h-4 w-4 mr-2" />
-                  Verwijderen
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -135,6 +137,7 @@ function DroppableFolder({
 }
 
 export function FolderList({ selectedFolderId, onFolderSelect, folderCounts, collapsed = false }: FolderListProps) {
+  const { t } = useTranslation();
   const { folders, archiveFolder, trashFolder, customFolders, createFolder, deleteFolder } = useInboxFolders();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -225,33 +228,33 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts, col
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-8">
                 <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Nieuwe map
+                {t('admin.inbox.folderList.nieuwe_map')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nieuwe map aanmaken</DialogTitle>
+                <DialogTitle>{t('admin.inbox.folderList.nieuwe_map_aanmaken')}</DialogTitle>
                 <DialogDescription>
-                  Maak een aangepaste map om je gesprekken te organiseren.
+                  {t('admin.inbox.folderList.maak_een_aangepaste_map_om_je')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="folder-name">Mapnaam</Label>
+                  <Label htmlFor="folder-name">{t('admin.inbox.folderList.mapnaam')}</Label>
                   <Input
                     id="folder-name"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Bijv. VIP Klanten, Retour, Support"
+                    placeholder={t('admin.inbox.folderList.bijv_vip_klanten_retour_support')}
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending}>
-                  {createFolder.isPending ? 'Aanmaken...' : 'Map aanmaken'}
+                  {createFolder.isPending ? t('admin.promotions.giftCardFormDialog.aanmaken') : t('admin.inbox.folderList.map_aanmaken')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -272,33 +275,33 @@ export function FolderList({ selectedFolderId, onFolderSelect, folderCounts, col
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">Nieuwe map</TooltipContent>
+            <TooltipContent side="right">{t('admin.inbox.folderList.nieuwe_map')}</TooltipContent>
           </Tooltip>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nieuwe map aanmaken</DialogTitle>
+                <DialogTitle>{t('admin.inbox.folderList.nieuwe_map_aanmaken_2')}</DialogTitle>
                 <DialogDescription>
-                  Maak een aangepaste map om je gesprekken te organiseren.
+                  {t('admin.inbox.folderList.maak_een_aangepaste_map_om_je')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="folder-name-collapsed">Mapnaam</Label>
+                  <Label htmlFor="folder-name-collapsed">{t('admin.inbox.folderList.mapnaam_2')}</Label>
                   <Input
                     id="folder-name-collapsed"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Bijv. VIP Klanten, Retour, Support"
+                    placeholder={t('admin.inbox.folderList.bijv_vip_klanten_retour_support_2')}
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending}>
-                  {createFolder.isPending ? 'Aanmaken...' : 'Map aanmaken'}
+                  {createFolder.isPending ? t('admin.promotions.giftCardFormDialog.aanmaken') : t('admin.inbox.folderList.map_aanmaken')}
                 </Button>
               </DialogFooter>
             </DialogContent>
