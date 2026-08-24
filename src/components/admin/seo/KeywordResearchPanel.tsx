@@ -348,8 +348,7 @@ export function KeywordResearchPanel({
                                   <TableCell>
                                     {kw.difficulty_estimate && (
                                       <Badge variant="outline" className={difficultyColors[kw.difficulty_estimate]}>
-                                        {kw.difficulty_estimate === 'easy' ? 'Makkelijk' : 
-                                         kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
+                                        {kw.difficulty_estimate === 'easy' ? t('admin.seo.keywordResearchPanel.makkelijk') : kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
                                       </Badge>
                                     )}
                                   </TableCell>
@@ -414,8 +413,7 @@ export function KeywordResearchPanel({
                                   <TableCell>
                                     {kw.difficulty_estimate && (
                                       <Badge variant="outline" className={difficultyColors[kw.difficulty_estimate]}>
-                                        {kw.difficulty_estimate === 'easy' ? 'Makkelijk' : 
-                                         kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
+                                        {kw.difficulty_estimate === 'easy' ? t('admin.seo.keywordResearchPanel.makkelijk') : kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
                                       </Badge>
                                     )}
                                   </TableCell>

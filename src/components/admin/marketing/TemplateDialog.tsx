@@ -248,7 +248,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Opslaan...' : template ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
+                {isLoading ? t('common.saving') : template ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

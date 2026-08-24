@@ -113,7 +113,7 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Opslaan...' : segment ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
+                {isLoading ? t('common.saving') : segment ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

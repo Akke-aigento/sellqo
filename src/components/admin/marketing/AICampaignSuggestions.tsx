@@ -136,8 +136,7 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
                           urgencyColors[suggestion.urgency]
                         )} />
                         <Badge variant="secondary" className="text-xs">
-                          {suggestion.urgency === 'high' ? 'Urgent' : 
-                           suggestion.urgency === 'medium' ? t('admin.marketing.aICampaignSuggestions.aanbevolen') : t('admin.ads.bolCampaignEditForm.optioneel')}
+                          {suggestion.urgency === 'high' ? t('admin.marketing.inlinePromoWizard.toneOptions.urgent') : suggestion.urgency === 'medium' ? t('admin.marketing.aICampaignSuggestions.aanbevolen') : t('admin.ads.bolCampaignEditForm.optioneel')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">

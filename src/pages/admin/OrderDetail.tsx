@@ -147,10 +147,10 @@ export default function OrderDetailPage() {
               <OrderReturnTag orderId={order.id} />
             </div>
             <p className="text-muted-foreground break-words">
-              {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: dateLocale })}
+              {format(new Date(order.created_at), t('admin.orderDetail.datum_tijd_formaat'), { locale: dateLocale })}
               {order.marketplace_order_id && (
                 <span className="ml-2 text-xs">
-                  • Marketplace ID: <span className="font-mono break-all">{order.marketplace_order_id}</span>
+                  • {t('admin.orderDetail.marketplace_id')} <span className="font-mono break-all">{order.marketplace_order_id}</span>
                 </span>
               )}
             </p>

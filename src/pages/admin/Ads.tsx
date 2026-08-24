@@ -164,7 +164,7 @@ export default function AdsPage() {
                   </div>
                   <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
                     <Link to={ch.link!}>
-                      Bekijk details <ArrowRight className="h-3 w-3 ml-1" />
+                      {t('admin.ads.bekijk_details')} <ArrowRight className="h-3 w-3 ml-1" />
                     </Link>
                   </Button>
                 </div>

@@ -197,7 +197,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 placeholder="-150.00"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Negatief = kost, positief = betaling
+                {t('admin.customers.customerLedgerTab.negatief_positief')}
               </p>
             </div>
             <div className="sm:col-span-4">

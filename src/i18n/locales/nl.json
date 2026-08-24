@@ -2778,7 +2778,8 @@
       "onbekend_product": "Onbekend product",
       "ads_actief": "Ads actief",
       "aanbeveling_toegepast": "Aanbeveling toegepast",
-      "aanbeveling_genegeerd": "Aanbeveling genegeerd"
+      "aanbeveling_genegeerd": "Aanbeveling genegeerd",
+      "bekijk_details": "Bekijk details"
     },
     "adsBolcom": {
       "ads": "Ads",
@@ -4377,7 +4378,8 @@
         "deze_actie_kan_niet_ongedaan_gemaakt": "Deze actie kan niet ongedaan gemaakt worden.",
         "vaste_kost_instellen": "Vaste kost instellen",
         "bestaande_mutaties_blijven_staan_enkel_de": "Bestaande mutaties blijven staan. Enkel de terugkerende instelling wordt verwijderd.",
-        "voeg_maandbedrag_toe": "Voeg maandbedrag toe"
+        "voeg_maandbedrag_toe": "Voeg maandbedrag toe",
+        "negatief_positief": "Negatief = kost, positief = betaling"
       },
       "geen_winkel_gevonden_neem_contact_op": "Geen winkel gevonden. Neem contact op met een beheerder.",
       "beheer_je_klantenbestand": "Beheer je klantenbestand",
@@ -4680,6 +4682,17 @@
           "used_acceptable": "Gebruikt - Acceptabel"
         },
         "offer_id_opgeslagen": "Offer ID {{id}}… is automatisch opgeslagen"
+      },
+      "dashboardMarketplaceWidget": {
+        "nog_niet_gesynchroniseerd": "Nog niet gesynchroniseerd",
+        "odoo_boekhouding": "Odoo Boekhouding",
+        "nog_niet_gesynchroniseerd_2": "Nog niet gesynchroniseerd",
+        "sellqo_connect": "SellQo Connect",
+        "verbind_je_verkoopkanalen": "Verbind je verkoopkanalen",
+        "verbind_bol_com_of_amazon_om": "Verbind Bol.com of Amazon om orders automatisch te importeren",
+        "verbind_marktplaats": "Verbind Marktplaats",
+        "beheer": "Beheer",
+        "sync_fout": "Sync fout"
       }
     },
     "dashboardGrid": {
@@ -4756,7 +4769,9 @@
       "geen_factuur_beschikbaar": "Geen factuur beschikbaar",
       "status_corrigeren": "Status corrigeren…",
       "klantadres": "Klantadres",
-      "verzendadres": "Verzendadres"
+      "verzendadres": "Verzendadres",
+      "marketplace_id": "Marketplace ID:",
+      "datum_tijd_formaat": "d MMMM yyyy 'om' HH:mm"
     },
     "campaignDetail": {
       "bounced": "Bounced",

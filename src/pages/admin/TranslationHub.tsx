@@ -681,7 +681,7 @@ export default function TranslationHub() {
                           ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                           : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                     }`}>
-                      {failed ? 'Mislukt' : withErrors ? t('admin.translationHub.voltooid_met_fouten', { count: job.failed_items }) : 'Voltooid'}
+                      {failed ? t('admin.marketing.contentHistoryList.status.mislukt') : withErrors ? t('admin.translationHub.voltooid_met_fouten', { count: job.failed_items }) : 'Voltooid'}
                     </span>
                   </div>
                 );

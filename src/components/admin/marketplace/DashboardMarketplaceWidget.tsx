@@ -19,7 +19,8 @@ import { useTenant } from '@/hooks/useTenant';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 const marketplaceIcons: Record<string, { icon: typeof ShoppingBag; color: string; bgColor: string }> = {
   bol_com: { icon: ShoppingBag, color: 'text-blue-600', bgColor: 'bg-blue-100' },
@@ -27,6 +28,8 @@ const marketplaceIcons: Record<string, { icon: typeof ShoppingBag; color: string
 };
 
 export function DashboardMarketplaceWidget() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { activeConnections, liveOrderCounts, isLoading, error } = useMarketplaceConnections();
   const { currentTenant } = useTenant();
   const { status: odooStatus } = useOdooConnection(currentTenant?.id);
@@ -75,10 +78,10 @@ export function DashboardMarketplaceWidget() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
-            SellQo Connect
+            {t('admin.marketplace.dashboardMarketplaceWidget.sellqo_connect')}
           </CardTitle>
           <CardDescription>
-            Verbind je verkoopkanalen
+            {t('admin.marketplace.dashboardMarketplaceWidget.verbind_je_verkoopkanalen')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,11 +90,11 @@ export function DashboardMarketplaceWidget() {
               <ShoppingBag className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Verbind Bol.com of Amazon om orders automatisch te importeren
+              {t('admin.marketplace.dashboardMarketplaceWidget.verbind_bol_com_of_amazon_om')}
             </p>
             <Button asChild size="sm">
               <Link to="/admin/connect">
-                Verbind Marktplaats
+                {t('admin.marketplace.dashboardMarketplaceWidget.verbind_marktplaats')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -108,7 +111,7 @@ export function DashboardMarketplaceWidget() {
         <div>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
-            SellQo Connect
+            {t('admin.marketplace.dashboardMarketplaceWidget.sellqo_connect')}
           </CardTitle>
           <CardDescription>
             {totalConnections} actieve {totalConnections === 1 ? 'connectie' : 'connecties'}
@@ -116,7 +119,7 @@ export function DashboardMarketplaceWidget() {
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link to="/admin/connect">
-            Beheer
+            {t('admin.marketplace.dashboardMarketplaceWidget.beheer')}
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
@@ -145,18 +148,18 @@ export function DashboardMarketplaceWidget() {
                     {hasError ? (
                       <span className="flex items-center gap-1 text-destructive">
                         <AlertCircle className="h-3 w-3" />
-                        Sync fout
+                        {t('admin.marketplace.dashboardMarketplaceWidget.sync_fout')}
                       </span>
                     ) : connection.last_sync_at ? (
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatDistanceToNow(new Date(connection.last_sync_at), { 
                           addSuffix: true, 
-                          locale: nl 
+                          locale: dateLocale 
                         })}
                       </span>
                     ) : (
-                      <span>Nog niet gesynchroniseerd</span>
+                      <span>{t('admin.marketplace.dashboardMarketplaceWidget.nog_niet_gesynchroniseerd')}</span>
                     )}
                   </div>
                 </div>
@@ -179,15 +182,15 @@ export function DashboardMarketplaceWidget() {
                 <Calculator className="h-4 w-4 text-green-600" />
               </div>
               <div>
-                <p className="font-medium text-sm">Odoo Boekhouding</p>
+                <p className="font-medium text-sm">{t('admin.marketplace.dashboardMarketplaceWidget.odoo_boekhouding')}</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {odooStats?.lastSyncedAt ? (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(odooStats.lastSyncedAt), { addSuffix: true, locale: nl })}
+                      {formatDistanceToNow(new Date(odooStats.lastSyncedAt), { addSuffix: true, locale: dateLocale })}
                     </span>
                   ) : (
-                    <span>Nog niet gesynchroniseerd</span>
+                    <span>{t('admin.marketplace.dashboardMarketplaceWidget.nog_niet_gesynchroniseerd_2')}</span>
                   )}
                 </div>
               </div>
