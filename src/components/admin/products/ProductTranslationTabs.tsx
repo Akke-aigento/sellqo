@@ -13,6 +13,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { TRANSLATION_LANGUAGES, ENTITY_TRANSLATABLE_FIELDS, FIELD_LABELS, type TranslationLanguage, type TranslatableField } from '@/types/translation';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ProductTranslationTabsProps {
   productId: string;
@@ -22,6 +23,7 @@ interface ProductTranslationTabsProps {
 const PRODUCT_FIELDS: TranslatableField[] = ENTITY_TRANSLATABLE_FIELDS.product;
 
 export function ProductTranslationTabs({ productId, defaultLocale = 'nl' }: ProductTranslationTabsProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { activeLocales } = useTenantDomains();
   const queryClient = useQueryClient();
@@ -95,7 +97,7 @@ export function ProductTranslationTabs({ productId, defaultLocale = 'nl' }: Prod
           saveTranslation.mutateAsync({ locale, field, value: values[field] || '' })
         )
       );
-      toast.success(`Vertalingen voor ${getLocaleLabel(locale)} opgeslagen`);
+      toast.success(t('admin.products.productTranslationTabs.vertalingen_opgeslagen', { locale: getLocaleLabel(locale) }));
     } catch {
       toast.error('Fout bij opslaan vertalingen');
     }
@@ -122,7 +124,7 @@ export function ProductTranslationTabs({ productId, defaultLocale = 'nl' }: Prod
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Languages className="h-4 w-4" />
-          Vertalingen
+          {t('admin.productForm.vertalingen')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -174,7 +176,7 @@ export function ProductTranslationTabs({ productId, defaultLocale = 'nl' }: Prod
                   onClick={() => handleSaveLocale(locale)}
                   disabled={saveTranslation.isPending}
                 >
-                  Vertalingen opslaan
+                  {t('admin.products.productTranslationTabs.vertalingen_opslaan')}
                 </Button>
               </div>
             </TabsContent>

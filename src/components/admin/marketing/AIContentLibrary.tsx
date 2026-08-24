@@ -62,8 +62,8 @@ const typeLabels: Record<string, string> = {
 };
 
 export function AIContentLibrary() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');

@@ -6,6 +6,7 @@ import { SOCIAL_CHANNEL_INFO, type SocialChannelType } from '@/types/socialChann
 import { Facebook, Instagram, ShoppingBag, MapPin, Send, ExternalLink, Globe, Camera, MessageCircle, Search, Image, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Search: <Search className="h-4 w-4" />,
@@ -27,6 +28,7 @@ const MARKETPLACE_CONFIG: Record<string, { label: string }> = {
 };
 
 export function BulkChannelsTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   const { connections, isLoading } = useSocialChannels();
 
   const connectedSocialChannels = connections.filter(c => c.is_active);
@@ -57,20 +59,20 @@ export function BulkChannelsTab({ state, onChange, enabledFields, onToggleField 
             onCheckedChange={() => onToggleField('social_channels')}
           />
           <Label htmlFor="enable-social-channels" className="font-medium cursor-pointer">
-            Social Commerce kanalen
+            {t('admin.products.bulk.bulkChannelsTab.social_commerce_kanalen')}
           </Label>
         </div>
         {enabledFields.has('social_channels') && (
           <div className="pl-6 space-y-2">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Laden...</p>
+              <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
             ) : connectedSocialChannels.length === 0 ? (
               <div className="text-sm text-muted-foreground">
-                <p>Geen social channels verbonden.</p>
+                <p>{t('admin.products.bulk.bulkChannelsTab.geen_social_channels_verbonden')}</p>
                 <Button variant="link" asChild className="p-0 h-auto">
                   <Link to="/admin/connect?tab=social">
                     <ExternalLink className="mr-1 h-3 w-3" />
-                    Verbind kanalen in SellQo Connect
+                    {t('admin.products.bulk.bulkChannelsTab.verbind_kanalen_in_sellqo_connect')}
                   </Link>
                 </Button>
               </div>
@@ -106,7 +108,7 @@ export function BulkChannelsTab({ state, onChange, enabledFields, onToggleField 
             onCheckedChange={() => onToggleField('sync_marketplaces')}
           />
           <Label htmlFor="enable-marketplaces" className="font-medium cursor-pointer">
-            Marketplace sync activeren
+            {t('admin.products.bulk.bulkChannelsTab.marketplace_sync_activeren')}
           </Label>
         </div>
         {enabledFields.has('sync_marketplaces') && (
@@ -124,7 +126,7 @@ export function BulkChannelsTab({ state, onChange, enabledFields, onToggleField 
               </div>
             ))}
             <p className="text-xs text-muted-foreground mt-2">
-              Geselecteerde producten worden klaargezet voor sync naar deze marketplaces.
+              {t('admin.products.bulk.bulkChannelsTab.geselecteerde_producten_worden_klaargezet_voor_sync')}
             </p>
           </div>
         )}

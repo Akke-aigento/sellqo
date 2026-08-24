@@ -50,8 +50,8 @@ const statusConfig: Record<string, { labelKey: string; className: string }> = {
 };
 
 export function ContentHistoryList() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');

@@ -23,7 +23,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   c, collectTsx, isUiText, TEXT_PROPS, namespaceForFile, slugify,
-  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot,
+  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot, buildSourceMask,
 } from './i18n-lib.mjs';
 
 const args = process.argv.slice(2);
@@ -70,27 +70,6 @@ function reusableIn(key, rootNs) {
 }
 
 /** Masker: comment- en template-literal-regio's overslaan. */
-function buildMask(src) {
-  const mask = new Uint8Array(src.length);
-  let i = 0;
-  let state = 'code';
-  while (i < src.length) {
-    const ch = src[i];
-    const next = src[i + 1];
-    if (state === 'code') {
-      if (ch === '/' && next === '/') { state = 'line'; mask[i] = 1; }
-      else if (ch === '/' && next === '*') { state = 'block'; mask[i] = 1; }
-      else if (ch === '`') { state = 'tpl'; mask[i] = 1; }
-    } else {
-      mask[i] = 1;
-      if (state === 'line' && ch === '\n') state = 'code';
-      else if (state === 'block' && src[i - 1] === '*' && ch === '/') state = 'code';
-      else if (state === 'tpl' && ch === '`' && src[i - 1] !== '\\') state = 'code';
-    }
-    i++;
-  }
-  return mask;
-}
 
 /** Index van het `)` dat hoort bij het `(` op `open`. */
 function matchParen(src, open) {
@@ -220,7 +199,7 @@ for (const target of targets) {
       continue;
     }
     const ns = namespaceForFile(abs);
-    const mask = buildMask(src);
+    const mask = buildSourceMask(src);
     const components = findComponents(src);
 
     /** @type {{start:number,end:number,replacement:string,text:string,key:string}[]} */

@@ -17,8 +17,8 @@ interface ActivityItem {
 }
 
 export function RealtimeActivityFeed() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);

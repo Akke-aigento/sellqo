@@ -184,6 +184,69 @@ export const TEXT_PROPS = [
   'emptyText', 'tooltip', 'confirmText', 'cancelText', 'submitLabel', 'heading', 'subtitle',
 ];
 
+/**
+ * Offsets die NIET als broncode tellen: comments en template literals.
+ *
+ * String-literals worden expliciet meegevolgd, want anders opent `'image/*'`
+ * een blok-comment dat nooit sluit — en dan lijkt de rest van het bestand
+ * commentaar en slaat de codemod alle strings erna stil over. Dat gebeurde
+ * echt (ProductPhotoLibraryCard: 106 van de 150 regels onterecht gemaskeerd).
+ *
+ * Strings zelf worden niet gemaskeerd: hun inhoud is juist wat de object-prop-
+ * codemod moet kunnen zien.
+ */
+export function buildSourceMask(src) {
+  const mask = new Uint8Array(src.length);
+  let state = 'code';
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    const next = src[i + 1];
+    const escaped = state !== 'code' && src[i - 1] === '\\' && src[i - 2] !== '\\';
+    switch (state) {
+      case 'code':
+        if (ch === '/' && next === '/') { state = 'line'; mask[i] = 1; }
+        else if (ch === '/' && next === '*') { state = 'block'; mask[i] = 1; }
+        else if (ch === '`') { state = 'tpl'; mask[i] = 1; }
+        else if (ch === "'") state = 'sq';
+        else if (ch === '"') state = 'dq';
+        break;
+      case 'line':
+        mask[i] = 1;
+        if (ch === '\n') state = 'code';
+        break;
+      case 'block':
+        mask[i] = 1;
+        if (ch === '/' && src[i - 1] === '*') state = 'code';
+        break;
+      case 'tpl':
+        mask[i] = 1;
+        if (ch === '`' && !escaped) state = 'code';
+        break;
+      case 'sq':
+        if (ch === '\n') state = 'code';           // onafgesloten string: niet doorslepen
+        else if (ch === "'" && !escaped) state = 'code';
+        break;
+      case 'dq':
+        if (ch === '\n') state = 'code';
+        else if (ch === '"' && !escaped) state = 'code';
+        break;
+    }
+  }
+  return mask;
+}
+
+/** Regelnummers (1-based) die volledig in een comment of template literal vallen. */
+export function maskedLineNumbers(src) {
+  const mask = buildSourceMask(src);
+  const out = new Set();
+  let line = 1;
+  for (let i = 0; i < src.length; i++) {
+    if (src[i] === '\n') { line++; continue; }
+    if (mask[i]) out.add(line);
+  }
+  return out;
+}
+
 export function relFromRoot(abs) {
   return relative(ROOT, abs);
 }

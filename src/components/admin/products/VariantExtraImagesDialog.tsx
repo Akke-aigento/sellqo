@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MediaLibraryPickerDialog } from './MediaLibraryPickerDialog';
 import { PermissionGate } from '@/components/PermissionGate';
+import { useTranslation } from 'react-i18next';
 
 interface VariantExtraImagesDialogProps {
   variantTitle: string;
@@ -16,6 +17,7 @@ interface VariantExtraImagesDialogProps {
  * `image_url` blijft de hoofdfoto; deze lijst zijn de aanvullende beelden.
  */
 export function VariantExtraImagesDialog({ variantTitle, images, onChange }: VariantExtraImagesDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -36,7 +38,7 @@ export function VariantExtraImagesDialog({ variantTitle, images, onChange }: Var
         variant="ghost"
         size="icon"
         className="h-8 w-8 relative"
-        title="Extra foto's"
+        title={t('admin.products.variantExtraImagesDialog.extra_foto_s')}
         onClick={() => setOpen(true)}
       >
         <Images className="h-4 w-4" />
@@ -52,12 +54,12 @@ export function VariantExtraImagesDialog({ variantTitle, images, onChange }: Var
           <DialogHeader>
             <DialogTitle>Extra foto's — {variantTitle}</DialogTitle>
             <DialogDescription>
-              Aanvullende beelden voor deze variant, in volgorde. De hoofdfoto blijft apart.
+              {t('admin.products.variantExtraImagesDialog.aanvullende_beelden_voor_deze_variant_in')}
             </DialogDescription>
           </DialogHeader>
 
           {images.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">Nog geen extra foto's voor deze variant.</p>
+            <p className="text-sm text-muted-foreground py-4">{t('admin.products.variantExtraImagesDialog.nog_geen_extra_foto_s_voor')}</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {images.map((url, idx) => (
@@ -80,9 +82,9 @@ export function VariantExtraImagesDialog({ variantTitle, images, onChange }: Var
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button type="button" variant="outline" onClick={() => setPickerOpen(true)}>
-              Kies uit bibliotheek
+              {t('admin.products.variantExtraImagesDialog.kies_uit_bibliotheek')}
             </Button>
-            <Button type="button" onClick={() => setOpen(false)}>Sluiten</Button>
+            <Button type="button" onClick={() => setOpen(false)}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

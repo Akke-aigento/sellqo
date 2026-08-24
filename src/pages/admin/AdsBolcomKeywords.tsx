@@ -93,7 +93,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Hash className="h-4 w-4" /> Actieve Keywords
+              <Hash className="h-4 w-4" /> {t('admin.adsBolcomKeywords.actieve_keywords')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{summary.totalActive}</div></CardContent>
@@ -101,7 +101,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Target className="h-4 w-4" /> Gemiddeld Bod
+              <Target className="h-4 w-4" /> {t('admin.adsBolcomKeywords.gemiddeld_bod')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{fmt(summary.avgBid)}</div></CardContent>
@@ -109,7 +109,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> Totale Spend
+              <DollarSign className="h-4 w-4" /> {t('admin.ads.totale_spend')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{fmt(summary.totalSpend)}</div></CardContent>
@@ -117,7 +117,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Trophy className="h-4 w-4" /> Beste Keyword
+              <Trophy className="h-4 w-4" /> {t('admin.adsBolcomKeywords.beste_keyword')}
             </CardTitle>
           </CardHeader>
           <CardContent>

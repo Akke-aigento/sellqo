@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus } from 'lucide-react';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 export function BulkTagsTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   const [newTagToAdd, setNewTagToAdd] = useState('');
   const [newTagToRemove, setNewTagToRemove] = useState('');
   const [newReplaceTag, setNewReplaceTag] = useState('');
@@ -63,14 +65,14 @@ export function BulkTagsTab({ state, onChange, enabledFields, onToggleField }: B
             onCheckedChange={() => onToggleField('tags_to_add')}
           />
           <Label htmlFor="enable-tags-add" className="font-medium cursor-pointer">
-            Tags toevoegen
+            {t('admin.products.bulk.bulkTagsTab.tags_toevoegen')}
           </Label>
         </div>
         {enabledFields.has('tags_to_add') && (
           <div className="pl-6 space-y-2">
             <div className="flex gap-2">
               <Input
-                placeholder="Nieuwe tag..."
+                placeholder={t('admin.products.bulk.bulkTagsTab.nieuwe_tag')}
                 value={newTagToAdd}
                 onChange={(e) => setNewTagToAdd(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, 'add')}
@@ -101,14 +103,14 @@ export function BulkTagsTab({ state, onChange, enabledFields, onToggleField }: B
             onCheckedChange={() => onToggleField('tags_to_remove')}
           />
           <Label htmlFor="enable-tags-remove" className="font-medium cursor-pointer">
-            Tags verwijderen
+            {t('admin.products.bulk.bulkTagsTab.tags_verwijderen')}
           </Label>
         </div>
         {enabledFields.has('tags_to_remove') && (
           <div className="pl-6 space-y-2">
             <div className="flex gap-2">
               <Input
-                placeholder="Tag om te verwijderen..."
+                placeholder={t('admin.products.bulk.bulkTagsTab.tag_om_te_verwijderen')}
                 value={newTagToRemove}
                 onChange={(e) => setNewTagToRemove(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, 'remove')}
@@ -139,17 +141,17 @@ export function BulkTagsTab({ state, onChange, enabledFields, onToggleField }: B
             onCheckedChange={() => onToggleField('tags_replace_all')}
           />
           <Label htmlFor="enable-tags-replace" className="font-medium cursor-pointer">
-            Alle tags vervangen door
+            {t('admin.products.bulk.bulkTagsTab.alle_tags_vervangen_door')}
           </Label>
         </div>
         {enabledFields.has('tags_replace_all') && (
           <div className="pl-6 space-y-2">
             <p className="text-xs text-muted-foreground">
-              ⚠️ Dit vervangt ALLE bestaande tags van de geselecteerde producten
+              {t('admin.products.bulk.bulkTagsTab.dit_vervangt_alle_bestaande_tags_van')}
             </p>
             <div className="flex gap-2">
               <Input
-                placeholder="Nieuwe tag..."
+                placeholder={t('admin.products.bulk.bulkTagsTab.nieuwe_tag_2')}
                 value={newReplaceTag}
                 onChange={(e) => setNewReplaceTag(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, 'replace')}

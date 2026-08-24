@@ -46,8 +46,8 @@ function ContentItemCard({ item }: { item: CalendarContentItem }) {
 }
 
 function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }) {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const dayItems = items.filter(item => isSameDay(new Date(item.scheduled_at), date));
   const isCurrentDay = isToday(date);
   
@@ -85,8 +85,8 @@ function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }
 }
 
 export function ContentCalendar() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [view, setView] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   

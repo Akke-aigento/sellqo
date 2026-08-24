@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, addWeeks, getDay } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
+import type { TFunction } from 'i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import {
   CalendarIcon, Plus, Pencil, Trash2, Loader2, MapPin, Users,
   CalendarClock, SkipForward, RotateCcw, CalendarPlus, Merge, X, ExternalLink,
@@ -30,25 +32,28 @@ import {
   useBulkCreateEventDates, useEventSignupCounts,
   type EventDetail, type EventStatus,
 } from '@/hooks/useEventDetails';
+import { useTranslation } from 'react-i18next';
 
 /** Handmatig kiesbare statussen. skipped/merged worden enkel via acties gezet. */
-const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
-  { value: 'scheduled', label: 'Gepland' },
-  { value: 'confirmed', label: 'Bevestigd' },
-  { value: 'cancelled', label: 'Geannuleerd' },
-  { value: 'completed', label: 'Afgerond' },
+const STATUS_OPTIONS: { value: EventStatus; labelKey: string }[] = [
+  { value: 'scheduled', labelKey: 'admin.products.productEventDatesTab.statuses.scheduled' },
+  { value: 'confirmed', labelKey: 'admin.products.productEventDatesTab.statuses.confirmed' },
+  { value: 'cancelled', labelKey: 'admin.products.productEventDatesTab.statuses.cancelled' },
+  { value: 'completed', labelKey: 'admin.products.productEventDatesTab.statuses.completed' },
 ];
 
-const ALL_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Gepland',
-  confirmed: 'Bevestigd',
-  cancelled: 'Geannuleerd',
-  completed: 'Afgerond',
-  skipped: 'Overgeslagen',
-  merged: 'Samengevoegd',
+const ALL_STATUS_LABEL_KEYS: Record<string, string> = {
+  scheduled: 'admin.products.productEventDatesTab.statuses.scheduled',
+  confirmed: 'admin.products.productEventDatesTab.statuses.confirmed',
+  cancelled: 'admin.products.productEventDatesTab.statuses.cancelled',
+  completed: 'admin.products.productEventDatesTab.statuses.completed',
+  skipped: 'admin.products.productEventDatesTab.statuses.skipped',
+  merged: 'admin.products.productEventDatesTab.statuses.merged',
 };
 
-const statusLabel = (status: string) => ALL_STATUS_LABELS[status] ?? status;
+// Helper buiten de component: t komt als argument binnen.
+const statusLabel = (status: string, t: TFunction) =>
+  (ALL_STATUS_LABEL_KEYS[status] ? t(ALL_STATUS_LABEL_KEYS[status]) : status);
 
 const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
   if (status === 'confirmed') return 'default';
@@ -60,23 +65,25 @@ const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' 
 };
 
 const WEEKDAYS = [
-  { value: '1', label: 'Maandag' },
-  { value: '2', label: 'Dinsdag' },
-  { value: '3', label: 'Woensdag' },
-  { value: '4', label: 'Donderdag' },
-  { value: '5', label: 'Vrijdag' },
-  { value: '6', label: 'Zaterdag' },
-  { value: '0', label: 'Zondag' },
+  { value: '1', labelKey: 'admin.products.productEventDatesTab.weekdays.1' },
+  { value: '2', labelKey: 'admin.products.productEventDatesTab.weekdays.2' },
+  { value: '3', labelKey: 'admin.products.productEventDatesTab.weekdays.3' },
+  { value: '4', labelKey: 'admin.products.productEventDatesTab.weekdays.4' },
+  { value: '5', labelKey: 'admin.products.productEventDatesTab.weekdays.5' },
+  { value: '6', labelKey: 'admin.products.productEventDatesTab.weekdays.6' },
+  { value: '0', labelKey: 'admin.products.productEventDatesTab.weekdays.0' },
 ];
 
 const MERGEABLE = new Set(['scheduled', 'confirmed', 'skipped']);
 const COMMS_NOTE = 'Kopers worden pas in een latere fase automatisch verwittigd.';
 
 const toDate = (iso: string) => new Date(`${iso}T00:00:00`);
-const fmtDate = (iso: string) => format(toDate(iso), 'EEE d MMM yyyy', { locale: nl });
+const fmtDate = (iso: string, locale: Locale) => format(toDate(iso), 'EEE d MMM yyyy', { locale });
 
 /** Inschrijvingsteller: balk + tekst. Puur presentatie. */
 function SignupMeter({ signed, capacity, minAttendees }: { signed: number; capacity: number; minAttendees: number }) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const cap = Math.max(1, capacity || 0);
   const pct = Math.min(100, (signed / cap) * 100);
   const minPct = minAttendees > 0 ? Math.min(100, (minAttendees / cap) * 100) : null;
@@ -98,7 +105,7 @@ function SignupMeter({ signed, capacity, minAttendees }: { signed: number; capac
             <span className="text-amber-600 dark:text-amber-500">· nog {minAttendees - signed} tot minimum</span>
           )
         )}
-        {isFull && <span className="text-destructive">· uitverkocht</span>}
+        {isFull && <span className="text-destructive">{t('admin.products.productEventDatesTab.uitverkocht')}</span>}
       </div>
       <div className="relative h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
         <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${pct}%` }} />
@@ -155,6 +162,8 @@ const emptyForm = (): FormState => ({
 const DEFAULT_EVENT_TZ = 'Europe/Brussels';
 
 export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productId: string; regularPrice?: number }) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { data: dates = [], isLoading } = useEventDetails(productId);
   const navigate = useNavigate();
   const createDate = useCreateEventDate(productId);
@@ -409,15 +418,15 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button type="button" variant="outline" onClick={toggleMergeMode} className="w-full sm:w-auto">
             {mergeMode ? <X className="mr-2 h-4 w-4" /> : <Merge className="mr-2 h-4 w-4" />}
-            {mergeMode ? 'Samenvoegen annuleren' : 'Datums samenvoegen'}
+            {mergeMode ? t('admin.products.productEventDatesTab.samenvoegen_annuleren') : t('admin.products.productEventDatesTab.datums_samenvoegen')}
           </Button>
           <Button type="button" variant="outline" onClick={openBulk} className="w-full sm:w-auto">
             <CalendarPlus className="mr-2 h-4 w-4" />
-            Plan meerdere datums
+            {t('admin.products.productEventDatesTab.plan_meerdere_datums')}
           </Button>
           <Button type="button" onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
-            Datum toevoegen
+            {t('admin.products.productEventDatesTab.datum_toevoegen')}
           </Button>
         </div>
       </div>
@@ -435,7 +444,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             className="w-full sm:w-auto"
           >
             <Merge className="mr-2 h-4 w-4" />
-            Samenvoegen
+            {t('admin.products.productEventDatesTab.samenvoegen')}
           </Button>
         </div>
       )}
@@ -465,18 +474,18 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         checked={mergeSelected.has(row.id)}
                         disabled={!selectable}
                         onCheckedChange={() => toggleMergeSelect(row.id)}
-                        aria-label="Selecteer datum om samen te voegen"
+                        aria-label={t('admin.products.productEventDatesTab.selecteer_datum_om_samen_te_voegen')}
                       />
                     )}
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={cn('font-medium', dimmed && 'line-through')}>
-                          {fmtDate(row.event_date)}
+                          {fmtDate(row.event_date, dateLocale)}
                         </span>
                         <span className="text-sm text-muted-foreground">{(row.start_time || '').slice(0, 5)}</span>
-                        <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>
+                        <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, t)}</Badge>
                         {isMerged && winner && (
-                          <span className="text-xs text-muted-foreground">→ {fmtDate(winner.event_date)}</span>
+                          <span className="text-xs text-muted-foreground">→ {fmtDate(winner.event_date, dateLocale)}</span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -503,29 +512,29 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    <ActionTooltip label="Verplaatsen naar andere dag">
+                    <ActionTooltip label={t('admin.products.productEventDatesTab.verplaatsen_naar_andere_dag')}>
                       <Button type="button" variant="outline" size="sm" onClick={() => openMove(row)}>
                         <CalendarClock className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Verplaatsen</span>
+                        <span className="ml-2 sm:hidden">{t('admin.products.productEventDatesTab.verplaatsen')}</span>
                       </Button>
                     </ActionTooltip>
                     {canSkip && (
-                      <ActionTooltip label="Overslaan">
+                      <ActionTooltip label={t('admin.products.productEventDatesTab.overslaan_2')}>
                         <Button type="button" variant="outline" size="sm" onClick={() => handleSkip(row)}>
                           <SkipForward className="h-4 w-4" />
-                          <span className="ml-2 sm:hidden">Overslaan</span>
+                          <span className="ml-2 sm:hidden">{t('admin.products.productEventDatesTab.overslaan')}</span>
                         </Button>
                       </ActionTooltip>
                     )}
                     {isSkipped && (
-                      <ActionTooltip label="Terugzetten">
+                      <ActionTooltip label={t('admin.products.productEventDatesTab.terugzetten_2')}>
                         <Button type="button" variant="outline" size="sm" onClick={() => handleUnskip(row)}>
                           <RotateCcw className="h-4 w-4" />
-                          <span className="ml-2 sm:hidden">Terugzetten</span>
+                          <span className="ml-2 sm:hidden">{t('admin.products.productEventDatesTab.terugzetten')}</span>
                         </Button>
                       </ActionTooltip>
                     )}
-                    <ActionTooltip label="Bewerken op de event-pagina">
+                    <ActionTooltip label={t('admin.products.productEventDatesTab.bewerken_op_de_event_pagina_2')}>
                       <Button
                         type="button"
                         variant="outline"
@@ -533,19 +542,19 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         onClick={() => navigate(`/admin/events/${row.id}`)}
                       >
                         <ExternalLink className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Bewerken op de event-pagina</span>
+                        <span className="ml-2 sm:hidden">{t('admin.products.productEventDatesTab.bewerken_op_de_event_pagina')}</span>
                       </Button>
                     </ActionTooltip>
-                    <ActionTooltip label="Vroegboekkorting">
+                    <ActionTooltip label={t('admin.products.productEventDatesTab.vroegboekkorting_2')}>
                       <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
                         <Pencil className="h-4 w-4" />
-                        <span className="ml-2 sm:hidden">Vroegboekkorting</span>
+                        <span className="ml-2 sm:hidden">{t('admin.products.productEventDatesTab.vroegboekkorting')}</span>
                       </Button>
                     </ActionTooltip>
-                    <ActionTooltip label="Verwijderen">
+                    <ActionTooltip label={t('common.delete')}>
                       <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(row)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
-                        <span className="ml-2 sm:hidden">Verwijderen</span>
+                        <span className="ml-2 sm:hidden">{t('common.delete')}</span>
                       </Button>
                     </ActionTooltip>
                   </div>
@@ -561,11 +570,10 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Vroegboekkorting bewerken' : 'Datum toevoegen'}</DialogTitle>
+            <DialogTitle>{editing ? t('admin.products.productEventDatesTab.vroegboekkorting_bewerken') : t('admin.products.productEventDatesTab.datum_toevoegen')}</DialogTitle>
             <DialogDescription>
               {editing
-                ? 'Datum, tijd, status, locatie en capaciteit beheer je op de event-pagina.'
-                : 'Stel datum, tijd en capaciteit in voor dit evenement.'}
+                ? t('admin.products.productEventDatesTab.datum_tijd_status_locatie_en_capaciteit') : t('admin.products.productEventDatesTab.stel_datum_tijd_en_capaciteit_in')}
             </DialogDescription>
           </DialogHeader>
 
@@ -573,7 +581,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             {editing && (
               <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-muted-foreground">
-                  De kernvelden van deze datum zijn hier alleen-lezen.
+                  {t('admin.products.productEventDatesTab.de_kernvelden_van_deze_datum_zijn')}
                 </span>
                 <Button
                   type="button"
@@ -582,13 +590,13 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                   onClick={() => navigate(`/admin/events/${editing.id}`)}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Bewerken op de event-pagina
+                  {t('admin.products.productEventDatesTab.bewerken_op_de_event_pagina')}
                 </Button>
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Datum *</Label>
+                <Label>{t('admin.products.productEventDatesTab.datum')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -598,7 +606,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       className={cn('w-full justify-start text-left font-normal', !form.event_date && 'text-muted-foreground')}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.event_date ? format(form.event_date, 'd MMM yyyy', { locale: nl }) : 'Kies een datum'}
+                      {form.event_date ? format(form.event_date, 'd MMM yyyy', { locale: dateLocale }) : t('admin.products.productEventDatesTab.kies_een_datum')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -613,7 +621,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Starttijd</Label>
+                <Label>{t('admin.products.productEventDatesTab.starttijd')}</Label>
                 <Input
                   type="time"
                   disabled={!!editing}
@@ -622,7 +630,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 />
               </div>
               <div className="space-y-2">
-                <Label>Capaciteit *</Label>
+                <Label>{t('admin.products.productEventDatesTab.capaciteit')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -632,7 +640,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 />
               </div>
               <div className="space-y-2">
-                <Label>Minimum deelnemers</Label>
+                <Label>{t('admin.products.productEventDatesTab.minimum_deelnemers')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -644,7 +652,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             </div>
 
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t('common.status')}</Label>
               <Select
                 value={form.status}
                 disabled={!!editing}
@@ -655,44 +663,43 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem key={s.value} value={s.value}>{t(s.labelKey)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Locatie (optioneel)</Label>
+              <Label>{t('admin.products.productEventDatesTab.locatie_optioneel')}</Label>
               <Input
                 disabled={!!editing}
                 value={form.location_name}
                 onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
-                placeholder="Bijv. Stadspark"
+                placeholder={t('admin.products.productEventDatesTab.bijv_stadspark')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Verzamelpunt (optioneel)</Label>
+              <Label>{t('admin.products.productEventDatesTab.verzamelpunt_optioneel')}</Label>
               <Input
                 disabled={!!editing}
                 value={form.meeting_point}
                 onChange={(e) => setForm((f) => ({ ...f, meeting_point: e.target.value }))}
-                placeholder="Bijv. hoofdingang aan de fontein"
+                placeholder={t('admin.products.productEventDatesTab.bijv_hoofdingang_aan_de_fontein')}
               />
             </div>
 
             {/* EARLY-BIRD fase D — vroegboekkorting per event */}
             <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
               <div>
-                <Label className="text-sm font-medium">Vroegboekkorting (optioneel)</Label>
+                <Label className="text-sm font-medium">{t('admin.products.productEventDatesTab.vroegboekkorting_optioneel')}</Label>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Laat de prijs leeg voor geen vroegboekkorting. Deadline en aantal zijn beide optioneel:
-                  leeg betekent geen grens.
+                  {t('admin.products.productEventDatesTab.laat_de_prijs_leeg_voor_geen')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Early-bird prijs</Label>
+                <Label>{t('admin.products.productEventDatesTab.early_bird_prijs')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -700,7 +707,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                   inputMode="decimal"
                   value={form.early_bird_price}
                   onChange={(e) => setForm((f) => ({ ...f, early_bird_price: e.target.value }))}
-                  placeholder="Bijv. 12.00"
+                  placeholder={t('admin.products.productEventDatesTab.bijv_12_00')}
                 />
                 {ebPriceError && <p className="text-xs text-destructive">{ebPriceError}</p>}
                 {ebPriceWarning && <p className="text-xs text-amber-600 dark:text-amber-500">{ebPriceWarning}</p>}
@@ -708,7 +715,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Deadline datum (Europe/Brussels)</Label>
+                  <Label>{t('admin.products.productEventDatesTab.deadline_datum_europe_brussels')}</Label>
                   <div className="flex gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
@@ -723,7 +730,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                           <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                           <span className="truncate">
                             {form.early_bird_deadline_date
-                              ? format(form.early_bird_deadline_date, 'd MMM yyyy', { locale: nl })
+                              ? format(form.early_bird_deadline_date, 'd MMM yyyy', { locale: dateLocale })
                               : 'Geen deadline'}
                           </span>
                         </Button>
@@ -744,7 +751,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        aria-label="Deadline wissen"
+                        aria-label={t('admin.products.productEventDatesTab.deadline_wissen')}
                         onClick={() => setForm((f) => ({ ...f, early_bird_deadline_date: undefined }))}
                       >
                         <X className="h-4 w-4" />
@@ -754,7 +761,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                   {ebDeadlineError && <p className="text-xs text-destructive">{ebDeadlineError}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Deadline tijd (Europe/Brussels)</Label>
+                  <Label>{t('admin.products.productEventDatesTab.deadline_tijd_europe_brussels')}</Label>
                   <Input
                     type="time"
                     value={form.early_bird_deadline_time}
@@ -764,21 +771,21 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
               </div>
 
               <div className="space-y-2">
-                <Label>Max. tickets aan early-bird prijs</Label>
+                <Label>{t('admin.products.productEventDatesTab.max_tickets_aan_early_bird_prijs')}</Label>
                 <Input
                   type="number"
                   min={1}
                   inputMode="numeric"
                   value={form.early_bird_quantity}
                   onChange={(e) => setForm((f) => ({ ...f, early_bird_quantity: e.target.value }))}
-                  placeholder="Leeg = geen grens"
+                  placeholder={t('admin.products.productEventDatesTab.leeg_geen_grens')}
                 />
                 {ebQtyError && <p className="text-xs text-destructive">{ebQtyError}</p>}
               </div>
 
               {ebPriceNum !== null && (ebDeadlineMs !== null || ebQtyNum !== null) && (
                 <p className="text-xs text-muted-foreground">
-                  De vroegste grens wint: zodra de deadline of het aantal bereikt is, geldt de reguliere prijs.
+                  {t('admin.products.productEventDatesTab.de_vroegste_grens_wint_zodra_de')}
                 </p>
               )}
             </div>
@@ -786,11 +793,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={!canSave || saving} className="w-full sm:w-auto">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editing ? 'Opslaan' : 'Toevoegen'}
+              {editing ? t('common.save') : t('common.add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -800,16 +807,16 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Plan meerdere datums</DialogTitle>
+            <DialogTitle>{t('admin.products.productEventDatesTab.plan_meerdere_datums')}</DialogTitle>
             <DialogDescription>
-              Genereer wekelijkse datums en vink uit wat niet past.
+              {t('admin.products.productEventDatesTab.genereer_wekelijkse_datums_en_vink_uit')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Startdatum *</Label>
+                <Label>{t('admin.products.productEventDatesTab.startdatum')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -818,7 +825,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                       className={cn('w-full justify-start text-left font-normal', !bulkStart && 'text-muted-foreground')}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {bulkStart ? format(bulkStart, 'd MMM yyyy', { locale: nl }) : 'Kies een datum'}
+                      {bulkStart ? format(bulkStart, 'd MMM yyyy', { locale: dateLocale }) : t('admin.products.productEventDatesTab.kies_een_datum')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -837,7 +844,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Aantal weken</Label>
+                <Label>{t('admin.products.productEventDatesTab.aantal_weken')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -847,24 +854,24 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 />
               </div>
               <div className="space-y-2">
-                <Label>Weekdag</Label>
+                <Label>{t('admin.products.productEventDatesTab.weekdag')}</Label>
                 <Select value={bulkWeekday} onValueChange={(v) => { setBulkWeekday(v); setBulkUnchecked(new Set()); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {WEEKDAYS.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>Elke {d.label.toLowerCase()}</SelectItem>
+                      <SelectItem key={d.value} value={d.value}>{t('admin.products.productEventDatesTab.elke_weekdag', { day: t(d.labelKey).toLowerCase() })}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Starttijd</Label>
+                <Label>{t('admin.products.productEventDatesTab.starttijd_2')}</Label>
                 <Input type="time" value={bulkTime} onChange={(e) => setBulkTime(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Capaciteit *</Label>
+                <Label>{t('admin.products.productEventDatesTab.capaciteit_2')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -873,7 +880,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 />
               </div>
               <div className="space-y-2">
-                <Label>Minimum deelnemers</Label>
+                <Label>{t('admin.products.productEventDatesTab.minimum_deelnemers_2')}</Label>
                 <Input type="number" min={0} value={bulkMin} onChange={(e) => setBulkMin(e.target.value)} />
               </div>
             </div>
@@ -883,7 +890,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 <Label>Voorbeeld ({bulkChecked.length} van {bulkPreview.rows.length} aangevinkt)</Label>
                 <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2">
                   {bulkPreview.rows.length === 0 ? (
-                    <p className="p-2 text-sm text-muted-foreground">Geen nieuwe datums om aan te maken.</p>
+                    <p className="p-2 text-sm text-muted-foreground">{t('admin.products.productEventDatesTab.geen_nieuwe_datums_om_aan_te')}</p>
                   ) : (
                     bulkPreview.rows.map((iso) => (
                       <label key={iso} className="flex items-center gap-2 rounded p-1 text-sm hover:bg-muted/50">
@@ -898,7 +905,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                             })
                           }
                         />
-                        <span className="truncate">{fmtDate(iso)}</span>
+                        <span className="truncate">{fmtDate(iso, dateLocale)}</span>
                       </label>
                     ))
                   )}
@@ -914,7 +921,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button type="button" variant="outline" onClick={() => setBulkOpen(false)} className="w-full sm:w-auto">
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -933,14 +940,14 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={!!moveTarget} onOpenChange={(open) => !open && setMoveTarget(null)}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Datum verplaatsen</DialogTitle>
+            <DialogTitle>{t('admin.products.productEventDatesTab.datum_verplaatsen')}</DialogTitle>
             <DialogDescription>
               Kies de nieuwe dag voor deze datum. {COMMS_NOTE}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label>Nieuwe datum</Label>
+            <Label>{t('admin.products.productEventDatesTab.nieuwe_datum')}</Label>
             <Calendar
               mode="single"
               selected={moveDate}
@@ -952,7 +959,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button type="button" variant="outline" onClick={() => setMoveTarget(null)} className="w-full sm:w-auto">
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -971,7 +978,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Datums samenvoegen</DialogTitle>
+            <DialogTitle>{t('admin.products.productEventDatesTab.datums_samenvoegen')}</DialogTitle>
             <DialogDescription>
               Kies welke datum blijft doorgaan. De overige datums worden gemarkeerd als samengevoegd. {COMMS_NOTE}
             </DialogDescription>
@@ -982,7 +989,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
               <label key={d.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
                 <RadioGroupItem value={d.id} />
                 <span className="truncate">
-                  {fmtDate(d.event_date)} · {(d.start_time || '').slice(0, 5)}
+                  {fmtDate(d.event_date, dateLocale)} · {(d.start_time || '').slice(0, 5)}
                 </span>
               </label>
             ))}
@@ -990,7 +997,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} className="w-full sm:w-auto">
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -1008,20 +1015,20 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Datum verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.products.productEventDatesTab.datum_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze datum wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.
+              {t('admin.products.productEventDatesTab.deze_datum_wordt_definitief_verwijderd_dit')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 if (deleteTarget) await deleteDate.mutateAsync(deleteTarget.id);
                 setDeleteTarget(null);
               }}
             >
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

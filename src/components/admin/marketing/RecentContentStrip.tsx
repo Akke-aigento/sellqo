@@ -45,8 +45,8 @@ interface RecentContentStripProps {
 }
 
 export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 

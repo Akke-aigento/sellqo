@@ -31,8 +31,8 @@ const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default
 };
 
 export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
 

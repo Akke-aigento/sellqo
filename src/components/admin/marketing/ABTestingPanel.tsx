@@ -32,8 +32,8 @@ import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export function ABTestingPanel() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [campaignAId, setCampaignAId] = useState('');
   const [campaignBId, setCampaignBId] = useState('');

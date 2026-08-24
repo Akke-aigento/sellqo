@@ -76,8 +76,8 @@ const platformPresets: { id: PlatformPreset; nameKey: string; dimensions?: strin
 ];
 
 export function AIImageGenerator() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [activeTab, setActiveTab] = useState<'generate' | 'enhance'>('generate');
   
   // Generate tab state

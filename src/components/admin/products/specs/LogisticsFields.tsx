@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useShippingClasses } from '@/hooks/useShippingClasses';
 import type { ProductSpecification } from '@/types/specifications';
+import { useTranslation } from 'react-i18next';
 
 interface LogisticsFieldsProps {
   spec: Partial<ProductSpecification> | null;
@@ -20,6 +21,7 @@ interface LogisticsFieldsProps {
 const NO_CLASS = '__none__';
 
 export function LogisticsFields({ spec, onChange }: LogisticsFieldsProps) {
+  const { t } = useTranslation();
   const val = (key: keyof ProductSpecification) => (spec as any)?.[key] ?? '';
   const { shippingClasses } = useShippingClasses();
 
@@ -27,49 +29,49 @@ export function LogisticsFields({ spec, onChange }: LogisticsFieldsProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label className="text-sm">Doorlooptijd (dagen)</Label>
+          <Label className="text-sm">{t('admin.products.specs.logisticsFields.doorlooptijd_dagen')}</Label>
           <Input type="number" min="0" value={val('lead_time_days')} onChange={(e) => onChange({ lead_time_days: e.target.value ? parseInt(e.target.value) : null })} placeholder="3" />
         </div>
         <div className="space-y-1">
-          <Label className="text-sm">Verzendklasse</Label>
+          <Label className="text-sm">{t('admin.products.specs.logisticsFields.verzendklasse')}</Label>
           <Select
             value={spec?.shipping_class_id ?? NO_CLASS}
             onValueChange={(v) => onChange({ shipping_class_id: v === NO_CLASS ? null : v })}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Kies een verzendklasse" />
+              <SelectValue placeholder={t('admin.products.specs.logisticsFields.kies_een_verzendklasse')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_CLASS}>Geen</SelectItem>
+              <SelectItem value={NO_CLASS}>{t('admin.products.grid.gridSelectCell.geen')}</SelectItem>
               {shippingClasses.map((cls) => (
                 <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">Bijvoorbeeld 'boxspring' voor producten die met een vrachtwagen geleverd moeten worden. Beheer klassen bij Instellingen → Verzending.</p>
+          <p className="text-xs text-muted-foreground">{t('admin.products.specs.logisticsFields.bijvoorbeeld_boxspring_voor_producten_die_met')}</p>
         </div>
       </div>
 
       <div className="flex items-center justify-between rounded-lg border p-3">
-        <Label className="text-sm">Breekbaar</Label>
+        <Label className="text-sm">{t('admin.products.specs.logisticsFields.breekbaar')}</Label>
         <Switch checked={spec?.is_fragile ?? false} onCheckedChange={(checked) => onChange({ is_fragile: checked })} />
       </div>
 
       <div className="flex items-center justify-between rounded-lg border p-3">
-        <Label className="text-sm">Gevaarlijke stoffen</Label>
+        <Label className="text-sm">{t('admin.products.specs.logisticsFields.gevaarlijke_stoffen')}</Label>
         <Switch checked={spec?.is_hazardous ?? false} onCheckedChange={(checked) => onChange({ is_hazardous: checked })} />
       </div>
 
       {spec?.is_hazardous && (
         <div className="space-y-1">
-          <Label className="text-sm">Gevarenklasse</Label>
-          <Input value={val('hazard_class')} onChange={(e) => onChange({ hazard_class: e.target.value || null })} placeholder="Bijv. UN3481" />
+          <Label className="text-sm">{t('admin.products.specs.logisticsFields.gevarenklasse')}</Label>
+          <Input value={val('hazard_class')} onChange={(e) => onChange({ hazard_class: e.target.value || null })} placeholder={t('admin.products.specs.logisticsFields.bijv_un3481')} />
         </div>
       )}
 
       <div className="space-y-1">
-        <Label className="text-sm">Opslaginstructies</Label>
-        <Textarea value={val('storage_instructions')} onChange={(e) => onChange({ storage_instructions: e.target.value || null })} placeholder="Droog en koel bewaren..." rows={2} />
+        <Label className="text-sm">{t('admin.products.specs.logisticsFields.opslaginstructies')}</Label>
+        <Textarea value={val('storage_instructions')} onChange={(e) => onChange({ storage_instructions: e.target.value || null })} placeholder={t('admin.products.specs.logisticsFields.droog_en_koel_bewaren')} rows={2} />
       </div>
     </div>
   );

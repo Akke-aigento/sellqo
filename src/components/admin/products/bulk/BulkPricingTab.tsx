@@ -3,8 +3,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   const priceAdjustmentType = state.price_adjustment?.type || 'add';
   const priceAdjustmentValue = state.price_adjustment?.value || 0;
 
@@ -37,7 +39,7 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             onCheckedChange={() => onToggleField('price_adjustment')}
           />
           <Label htmlFor="enable-price" className="font-medium cursor-pointer">
-            Verkoopprijs aanpassen
+            {t('admin.products.bulk.bulkPricingTab.verkoopprijs_aanpassen')}
           </Label>
         </div>
         {enabledFields.has('price_adjustment') && (
@@ -45,23 +47,23 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             <RadioGroup value={priceAdjustmentType} onValueChange={handlePriceTypeChange}>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="add" id="price-add" />
-                <Label htmlFor="price-add" className="cursor-pointer">Vast bedrag toevoegen</Label>
+                <Label htmlFor="price-add" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.vast_bedrag_toevoegen')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="subtract" id="price-subtract" />
-                <Label htmlFor="price-subtract" className="cursor-pointer">Vast bedrag aftrekken</Label>
+                <Label htmlFor="price-subtract" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.vast_bedrag_aftrekken')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="percentage_up" id="price-percent-up" />
-                <Label htmlFor="price-percent-up" className="cursor-pointer">Percentage verhogen</Label>
+                <Label htmlFor="price-percent-up" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.percentage_verhogen')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="percentage_down" id="price-percent-down" />
-                <Label htmlFor="price-percent-down" className="cursor-pointer">Percentage verlagen</Label>
+                <Label htmlFor="price-percent-down" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.percentage_verlagen')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="exact" id="price-exact" />
-                <Label htmlFor="price-exact" className="cursor-pointer">Exacte prijs instellen</Label>
+                <Label htmlFor="price-exact" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.exacte_prijs_instellen')}</Label>
               </div>
             </RadioGroup>
             <div className="flex items-center gap-2">
@@ -105,7 +107,7 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             onCheckedChange={() => onToggleField('compare_at_price')}
           />
           <Label htmlFor="enable-compare-price" className="font-medium cursor-pointer">
-            Vergelijkingsprijs (doorstreepprijs)
+            {t('admin.products.bulk.bulkPricingTab.vergelijkingsprijs_doorstreepprijs')}
           </Label>
         </div>
         {enabledFields.has('compare_at_price') && (
@@ -116,17 +118,17 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="remove" id="compare-remove" />
-                <Label htmlFor="compare-remove" className="cursor-pointer">Verwijderen</Label>
+                <Label htmlFor="compare-remove" className="cursor-pointer">{t('common.delete')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="set_current" id="compare-current" />
                 <Label htmlFor="compare-current" className="cursor-pointer">
-                  Instellen op huidige prijs (voor kortingsactie)
+                  {t('admin.products.bulk.bulkPricingTab.instellen_op_huidige_prijs_voor_kortingsactie')}
                 </Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="exact" id="compare-exact" />
-                <Label htmlFor="compare-exact" className="cursor-pointer">Exacte prijs</Label>
+                <Label htmlFor="compare-exact" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.exacte_prijs')}</Label>
               </div>
             </RadioGroup>
             {state.compare_at_price_action === 'exact' && (
@@ -155,7 +157,7 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             onCheckedChange={() => onToggleField('cost_price')}
           />
           <Label htmlFor="enable-cost-price" className="font-medium cursor-pointer">
-            Kostprijs aanpassen
+            {t('admin.products.bulk.bulkPricingTab.kostprijs_aanpassen')}
           </Label>
         </div>
         {enabledFields.has('cost_price') && (
@@ -166,11 +168,11 @@ export function BulkPricingTab({ state, onChange, enabledFields, onToggleField }
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="exact" id="cost-exact" />
-                <Label htmlFor="cost-exact" className="cursor-pointer">Exacte prijs</Label>
+                <Label htmlFor="cost-exact" className="cursor-pointer">{t('admin.products.bulk.bulkPricingTab.exacte_prijs_2')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="remove" id="cost-remove" />
-                <Label htmlFor="cost-remove" className="cursor-pointer">Verwijderen</Label>
+                <Label htmlFor="cost-remove" className="cursor-pointer">{t('common.delete')}</Label>
               </div>
             </RadioGroup>
             {state.cost_price_action === 'exact' && (

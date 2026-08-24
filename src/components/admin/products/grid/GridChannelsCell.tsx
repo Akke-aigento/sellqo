@@ -20,6 +20,7 @@ import {
   type ProductSocialChannels 
 } from '@/types/socialChannels';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
+import { useTranslation } from 'react-i18next';
 
 interface GridChannelsCellProps {
   value: ProductSocialChannels | null;
@@ -44,6 +45,7 @@ const CHANNEL_BADGES: Record<SocialChannelType, { letter: string; bgClass: strin
 };
 
 function ChannelBadge({ type, active }: { type: SocialChannelType; active: boolean }) {
+  const { t } = useTranslation();
   const badge = CHANNEL_BADGES[type];
   const info = SOCIAL_CHANNEL_INFO[type];
   
@@ -63,7 +65,7 @@ function ChannelBadge({ type, active }: { type: SocialChannelType; active: boole
         </div>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-xs">
-        {info.name} - {active ? 'Actief' : 'Inactief'}
+        {info.name} - {active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
       </TooltipContent>
     </Tooltip>
   );
@@ -78,6 +80,7 @@ export function GridChannelsCell({
   onStartEdit,
   onStopEdit,
 }: GridChannelsCellProps) {
+  const { t } = useTranslation();
   const { activeConnections } = useSocialChannels();
   const [open, setOpen] = useState(false);
   const [localValue, setLocalValue] = useState<ProductSocialChannels>(value || {});
@@ -134,9 +137,9 @@ export function GridChannelsCell({
           )}
         >
           {availableChannels.length === 0 ? (
-            <span className="text-xs text-muted-foreground">Geen kanalen</span>
+            <span className="text-xs text-muted-foreground">{t('admin.products.grid.gridChannelsCell.geen_kanalen')}</span>
           ) : activeChannels.length === 0 ? (
-            <span className="text-xs text-muted-foreground">Geen actief</span>
+            <span className="text-xs text-muted-foreground">{t('admin.products.grid.gridChannelsCell.geen_actief')}</span>
           ) : (
             availableChannels.slice(0, 6).map(type => (
               <ChannelBadge 
@@ -155,11 +158,11 @@ export function GridChannelsCell({
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3" align="start">
         <div className="space-y-3">
-          <h4 className="font-medium text-sm">Verkoopkanalen</h4>
+          <h4 className="font-medium text-sm">{t('admin.products.grid.gridChannelsCell.verkoopkanalen')}</h4>
           
           {availableChannels.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Geen kanalen gekoppeld. Ga naar Instellingen → Kanalen om kanalen te koppelen.
+              {t('admin.products.grid.cellBulkEditor.geen_kanalen_gekoppeld_ga_naar_instellingen')}
             </p>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
@@ -192,11 +195,11 @@ export function GridChannelsCell({
           
           <div className="flex justify-end gap-2 pt-2 border-t">
             <Button size="sm" variant="outline" onClick={handleCancel}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button size="sm" onClick={handleSave}>
               <Check className="h-3 w-3 mr-1" />
-              Opslaan
+              {t('common.save')}
             </Button>
           </div>
         </div>

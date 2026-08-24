@@ -2,8 +2,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Status */}
@@ -15,7 +17,7 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             onCheckedChange={() => onToggleField('is_active')}
           />
           <Label htmlFor="enable-status" className="font-medium cursor-pointer">
-            Status
+            {t('common.status')}
           </Label>
         </div>
         {enabledFields.has('is_active') && (
@@ -26,11 +28,11 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="active" id="status-active" />
-                <Label htmlFor="status-active" className="cursor-pointer">Activeren</Label>
+                <Label htmlFor="status-active" className="cursor-pointer">{t('admin.seo.scheduledAuditsPanel.activeren')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="inactive" id="status-inactive" />
-                <Label htmlFor="status-inactive" className="cursor-pointer">Deactiveren</Label>
+                <Label htmlFor="status-inactive" className="cursor-pointer">{t('admin.products.bulk.bulkVisibilityTab.deactiveren')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -46,7 +48,7 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             onCheckedChange={() => onToggleField('hide_from_storefront')}
           />
           <Label htmlFor="enable-storefront" className="font-medium cursor-pointer">
-            Webshop zichtbaarheid
+            {t('admin.products.bulk.bulkVisibilityTab.webshop_zichtbaarheid')}
           </Label>
         </div>
         {enabledFields.has('hide_from_storefront') && (
@@ -57,11 +59,11 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="visible" id="storefront-visible" />
-                <Label htmlFor="storefront-visible" className="cursor-pointer">Online tonen</Label>
+                <Label htmlFor="storefront-visible" className="cursor-pointer">{t('admin.products.bulk.bulkVisibilityTab.online_tonen')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="hidden" id="storefront-hidden" />
-                <Label htmlFor="storefront-hidden" className="cursor-pointer">Alleen winkel (POS)</Label>
+                <Label htmlFor="storefront-hidden" className="cursor-pointer">{t('admin.products.bulk.bulkVisibilityTab.alleen_winkel_pos')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -77,7 +79,7 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             onCheckedChange={() => onToggleField('is_featured')}
           />
           <Label htmlFor="enable-featured" className="font-medium cursor-pointer">
-            Featured/Uitgelicht
+            {t('admin.products.bulk.bulkVisibilityTab.featured_uitgelicht')}
           </Label>
         </div>
         {enabledFields.has('is_featured') && (
@@ -88,11 +90,11 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="featured" id="featured-yes" />
-                <Label htmlFor="featured-yes" className="cursor-pointer">Uitlichten</Label>
+                <Label htmlFor="featured-yes" className="cursor-pointer">{t('admin.products.bulk.bulkVisibilityTab.uitlichten')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="not-featured" id="featured-no" />
-                <Label htmlFor="featured-no" className="cursor-pointer">Niet uitlichten</Label>
+                <Label htmlFor="featured-no" className="cursor-pointer">{t('admin.products.bulk.bulkVisibilityTab.niet_uitlichten')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -108,7 +110,7 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
             onCheckedChange={() => onToggleField('requires_shipping')}
           />
           <Label htmlFor="enable-shipping" className="font-medium cursor-pointer">
-            Verzending vereist
+            {t('admin.productForm.verzending_vereist')}
           </Label>
         </div>
         {enabledFields.has('requires_shipping') && (
@@ -123,7 +125,7 @@ export function BulkVisibilityTab({ state, onChange, enabledFields, onToggleFiel
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="no" id="shipping-no" />
-                <Label htmlFor="shipping-no" className="cursor-pointer">Nee</Label>
+                <Label htmlFor="shipping-no" className="cursor-pointer">{t('common.no')}</Label>
               </div>
             </RadioGroup>
           </div>

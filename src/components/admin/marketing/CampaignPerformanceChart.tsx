@@ -16,8 +16,8 @@ interface CampaignPerformanceChartProps {
 }
 
 export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanceChartProps) {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   if (isLoading) {
     return <Skeleton className="h-[250px] w-full" />;
   }

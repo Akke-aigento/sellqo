@@ -234,11 +234,11 @@ export default function AdsAiRulesPage() {
                           <div className="flex gap-2 shrink-0">
                             <Button size="sm" variant="default" onClick={() => applyRecommendation.mutate(rec.id)}
                               disabled={applyRecommendation.isPending}>
-                              <Check className="h-4 w-4 mr-1" /> Toepassen
+                              <Check className="h-4 w-4 mr-1" /> {t('admin.ads.toepassen')}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => rejectRecommendation.mutate(rec.id)}
                               disabled={rejectRecommendation.isPending}>
-                              <X className="h-4 w-4 mr-1" /> Negeren
+                              <X className="h-4 w-4 mr-1" /> {t('admin.ads.negeren')}
                             </Button>
                           </div>
                         )}
@@ -260,7 +260,7 @@ export default function AdsAiRulesPage() {
         <TabsContent value="rules" className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={() => setRuleDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nieuwe regel
+              <Plus className="h-4 w-4 mr-1" /> {t('admin.adsAiRules.nieuwe_regel')}
             </Button>
           </div>
 

@@ -100,7 +100,7 @@ export default function AdsBolcomCampaignDetail() {
       <div className="p-6 text-center">
         <p className="text-muted-foreground">{t('admin.adsBolcomCampaignDetail.campagne_niet_gevonden')}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/ads/bolcom')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Terug
+          <ArrowLeft className="h-4 w-4 mr-2" /> {t('common.back')}
         </Button>
       </div>
     );
@@ -356,7 +356,7 @@ export default function AdsBolcomCampaignDetail() {
                         </div>
                       ) : (
                         <Button variant="ghost" size="sm" className="mt-2 ml-4" onClick={() => setAddKwGroup(ag.id)}>
-                          <Plus className="h-4 w-4 mr-1" /> Keyword toevoegen
+                          <Plus className="h-4 w-4 mr-1" /> {t('admin.adsBolcomCampaignDetail.keyword_toevoegen')}
                         </Button>
                       )}
                     </AccordionContent>
@@ -374,7 +374,7 @@ export default function AdsBolcomCampaignDetail() {
           <CardTitle>{t('admin.adsBolcomCampaignDetail.negatieve_keywords')}</CardTitle>
           {firstAdGroupId ? (
             <Button size="sm" onClick={() => setNegModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Toevoegen
+              <Plus className="h-4 w-4 mr-1" /> {t('common.add')}
             </Button>
           ) : (
             <span className="text-xs text-muted-foreground">{t('admin.adsBolcomCampaignDetail.voeg_eerst_producten_toe_aan_de')}</span>

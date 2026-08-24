@@ -21,8 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export function ContentEngagementStats() {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { stats, isLoading } = useContentAnalytics();
   const { data: trends = [] } = useContentTrends(30);
 

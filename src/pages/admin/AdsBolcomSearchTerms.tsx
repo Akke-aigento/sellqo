@@ -203,50 +203,50 @@ export default function AdsBolcomSearchTerms() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {searchTerms.map(t => (
-                    <TableRow key={`${t.search_term}-${t.campaign_id}`} className={getRowClass(t)}>
+                  {searchTerms.map(row => (
+                    <TableRow key={`${row.search_term}-${row.campaign_id}`} className={getRowClass(row)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {t.search_term}
-                          {t.ai_action && !t.ai_action_taken && (
+                          {row.search_term}
+                          {row.ai_action && !row.ai_action_taken && (
                             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-[10px]">
                               <Sparkles className="h-3 w-3 mr-1" />
-                              {t.ai_action === 'suggested_negative' ? 'Negatief' : 'Keyword'}
+                              {row.ai_action === 'suggested_negative' ? 'Negatief' : 'Keyword'}
                             </Badge>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{t.campaign_name}</TableCell>
-                      <TableCell>{t.impressions.toLocaleString()}</TableCell>
-                      <TableCell>{t.clicks.toLocaleString()}</TableCell>
-                      <TableCell>{fmt(t.spend)}</TableCell>
-                      <TableCell>{t.orders}</TableCell>
-                      <TableCell>{fmt(t.revenue)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{row.campaign_name}</TableCell>
+                      <TableCell>{row.impressions.toLocaleString()}</TableCell>
+                      <TableCell>{row.clicks.toLocaleString()}</TableCell>
+                      <TableCell>{fmt(row.spend)}</TableCell>
+                      <TableCell>{row.orders}</TableCell>
+                      <TableCell>{fmt(row.revenue)}</TableCell>
                       <TableCell>
-                        <span className={t.acos > 30 ? 'text-red-600 font-medium' : t.acos > 0 && t.acos < 10 ? 'text-green-600 font-medium' : ''}>
-                          {t.revenue > 0 ? fmtPct(t.acos) : '-'}
+                        <span className={row.acos > 30 ? 'text-red-600 font-medium' : row.acos > 0 && row.acos < 10 ? 'text-green-600 font-medium' : ''}>
+                          {row.revenue > 0 ? fmtPct(row.acos) : '-'}
                         </span>
                       </TableCell>
-                      <TableCell>{fmtPct(t.ctr)}</TableCell>
+                      <TableCell>{fmtPct(row.ctr)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7 text-xs"
-                            onClick={() => { setNegModal(t); setNegMatchType('exact'); }}
-                            disabled={!t.adgroup_id}
+                            onClick={() => { setNegModal(row); setNegMatchType('exact'); }}
+                            disabled={!row.adgroup_id}
                           >
-                            <Ban className="h-3 w-3 mr-1" />Negatief
+                            <Ban className="h-3 w-3 mr-1" />{t('admin.adsBolcomSearchTerms.negatief')}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7 text-xs"
-                            onClick={() => { setPromoModal(t); setPromoMatchType('exact'); setPromoBid('0.50'); }}
-                            disabled={!t.adgroup_id}
+                            onClick={() => { setPromoModal(row); setPromoMatchType('exact'); setPromoBid('0.50'); }}
+                            disabled={!row.adgroup_id}
                           >
-                            <Plus className="h-3 w-3 mr-1" />Keyword
+                            <Plus className="h-3 w-3 mr-1" />{t('admin.adsBolcom.keyword')}
                           </Button>
                         </div>
                       </TableCell>

@@ -29,7 +29,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   c, collectTsx, isUiText, namespaceForFile, slugify,
-  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot,
+  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot, maskedLineNumbers,
 } from './i18n-lib.mjs';
 
 const args = process.argv.slice(2);
@@ -52,27 +52,6 @@ for (const [key, value] of [...flattenTree(nl)].sort(([a], [b]) =>
 }
 const reusableIn = (key, rootNs) => key.startsWith('common.') || key.startsWith(`${rootNs}.`);
 
-/** Regelnummers die in een comment of template literal vallen. */
-function maskedLines(src) {
-  const masked = new Set();
-  let line = 1, i = 0;
-  let mode = null; // 'line' | 'block' | 'tpl'
-  while (i < src.length) {
-    const ch = src[i], next = src[i + 1];
-    if (ch === '\n') { line++; if (mode === 'line') mode = null; i++; continue; }
-    if (mode === null) {
-      if (ch === '/' && next === '/') { mode = 'line'; i += 2; continue; }
-      if (ch === '/' && next === '*') { mode = 'block'; i += 2; continue; }
-      if (ch === '`') { mode = 'tpl'; i++; continue; }
-    } else {
-      if (mode === 'block' && ch === '*' && next === '/') { mode = null; i += 2; continue; }
-      if (mode === 'tpl' && ch === '`' && src[i - 1] !== '\\') { mode = null; i++; continue; }
-      masked.add(line);
-    }
-    i++;
-  }
-  return masked;
-}
 
 const summary = { files: 0, changed: 0, keys: 0, reused: 0 };
 
@@ -81,7 +60,7 @@ for (const target of targets) {
     summary.files++;
     const src = readFileSync(abs, 'utf8');
     const lines = src.split('\n');
-    const masked = maskedLines(src);
+    const masked = maskedLineNumbers(src);
     const ns = namespaceForFile(abs);
     const rootNs = ns.split('.')[0];
     const usedSlugs = new Set();

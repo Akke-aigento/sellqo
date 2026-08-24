@@ -25,12 +25,14 @@ import { CellBulkEditor } from './CellBulkEditor';
 import { ChangesPanel } from './ChangesPanel';
 import { GRID_COLUMNS, VARIANT_EDITABLE_FIELDS, VARIANT_FIELD_MAP } from './gridTypes';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ProductGridViewProps {
   products: Product[];
 }
 
 export function ProductGridView({ products }: ProductGridViewProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { currentTenant } = useTenant();
   const { categories } = useCategories();
@@ -245,13 +247,13 @@ export function ProductGridView({ products }: ProductGridViewProps) {
       grid.clearAllVariantPendingChanges();
       const totalCount = changes.length + variantChanges.length;
       toast({
-        title: 'Wijzigingen opgeslagen',
+        title: t('admin.products.grid.productGridView.wijzigingen_opgeslagen'),
         description: `${totalCount} item(s) bijgewerkt`,
       });
     } catch (error) {
       toast({
-        title: 'Fout bij opslaan',
-        description: error instanceof Error ? error.message : 'Er ging iets mis',
+        title: t('admin.products.grid.productGridView.fout_bij_opslaan'),
+        description: error instanceof Error ? error.message : t('admin.products.grid.productGridView.er_ging_iets_mis'),
         variant: 'destructive',
       });
     } finally {
@@ -485,7 +487,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
               {canBulkEdit && (
                 <Button size="sm" variant="secondary" onClick={handleBulkEditClick}>
                   <Pencil className="h-3 w-3 mr-1" />
-                  Bulk bewerken
+                  {t('admin.products.grid.productGridView.bulk_bewerken')}
                 </Button>
               )}
               <Button
@@ -527,7 +529,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
             {/* Rows */}
             {products.length === 0 ? (
               <div className="flex items-center justify-center h-32 text-muted-foreground">
-                Geen producten om weer te geven
+                {t('admin.products.grid.productGridView.geen_producten_om_weer_te_geven')}
               </div>
             ) : (
               products.map((product) => {
@@ -553,7 +555,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                             )}
                           </button>
                         ) : grid.pendingChanges.has(product.id) ? (
-                          <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                          <div className="w-2 h-2 rounded-full bg-amber-500" title={t('admin.products.grid.productGridView.heeft_wijzigingen')} />
                         ) : null}
                       </div>
                       
@@ -581,7 +583,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                       >
                         <div className="w-10 flex-shrink-0 p-2 border-r flex items-center justify-center text-xs text-muted-foreground">
                           {grid.variantPendingChanges.has(variant.id) && (
-                            <div className="w-2 h-2 rounded-full bg-amber-500" title="Heeft wijzigingen" />
+                            <div className="w-2 h-2 rounded-full bg-amber-500" title={t('admin.products.grid.productGridView.heeft_wijzigingen_2')} />
                           )}
                         </div>
                         {grid.visibleColumnDefs.map((col) => (

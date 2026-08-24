@@ -32,6 +32,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PhotoItem {
   productId: string;
@@ -42,6 +43,7 @@ interface PhotoItem {
 }
 
 export function ProductPhotosManager() {
+  const { t } = useTranslation();
   const { products } = useProducts();
   const { categories } = useCategories();
   const { generateImage } = useAIImages();
@@ -153,7 +155,7 @@ export function ProductPhotosManager() {
     const cost = getCreditCost('image_enhancement') * selected.length;
     if (!hasCredits(cost)) {
       toast.error('Onvoldoende credits', {
-        description: `Je hebt ${cost} credits nodig voor ${selected.length} foto's.`
+        description: t('admin.products.productPhotosManager.credits_nodig_voor_fotos', { cost, count: selected.length })
       });
       return;
     }
@@ -197,7 +199,7 @@ export function ProductPhotosManager() {
         description: failed > 0 ? `${failed} mislukt` : undefined,
       });
     } else if (failed > 0) {
-      toast.error(`Alle ${failed} bewerkingen mislukt`);
+      toast.error(t('admin.products.productPhotosManager.alle_bewerkingen_mislukt', { count: failed }));
     }
   };
 
@@ -244,7 +246,7 @@ export function ProductPhotosManager() {
     await queryClient.invalidateQueries({ queryKey: ['products'] });
 
     if (success > 0) {
-      toast.success(`${success} foto('s) verwijderd`, {
+      toast.success(t('admin.products.productPhotosManager.fotos_verwijderd', { count: success }), {
         description: failed > 0 ? `${failed} mislukt` : undefined,
       });
     } else {
@@ -259,10 +261,10 @@ export function ProductPhotosManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="h-5 w-5" />
-            Fotobeheer
+            {t('admin.products.productPhotosManager.fotobeheer')}
           </CardTitle>
           <CardDescription>
-            Bekijk en bewerk alle productfoto's op één plek
+            {t('admin.products.productPhotosManager.bekijk_en_bewerk_alle_productfoto_s')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -271,7 +273,7 @@ export function ProductPhotosManager() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Zoek op productnaam..."
+                placeholder={t('admin.seo.imageAltTextPanel.zoek_op_productnaam')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -279,10 +281,10 @@ export function ProductPhotosManager() {
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Categorie" />
+                <SelectValue placeholder={t('admin.marketing.templateDialog.categorie')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle categorieën</SelectItem>
+                <SelectItem value="all">{t('admin.stockReport.allCategories')}</SelectItem>
                 {categories.map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
@@ -293,9 +295,9 @@ export function ProductPhotosManager() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle foto's</SelectItem>
-                <SelectItem value="with">Met foto</SelectItem>
-                <SelectItem value="without">Zonder foto</SelectItem>
+                <SelectItem value="all">{t('admin.products.productPhotosManager.alle_foto_s')}</SelectItem>
+                <SelectItem value="with">{t('admin.products.productPhotosManager.met_foto')}</SelectItem>
+                <SelectItem value="without">{t('admin.products.productPhotosManager.zonder_foto')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -318,7 +320,7 @@ export function ProductPhotosManager() {
                 Achtergrond verwijderen
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setSelectedPhotos(new Set())}>
-                Deselecteren
+                {t('admin.products.productPhotosManager.deselecteren')}
               </Button>
               <Button
                 size="sm"
@@ -328,7 +330,7 @@ export function ProductPhotosManager() {
                 onClick={() => setDeleteTargets(displayItems.filter(p => selectedPhotos.has(photoKey(p))))}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Verwijderen
+                {t('common.delete')}
               </Button>
             </div>
           )}
@@ -364,7 +366,7 @@ export function ProductPhotosManager() {
           ) : displayItems.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <ImageIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p>Geen foto's gevonden</p>
+              <p>{t('admin.products.productPhotosManager.geen_foto_s_gevonden')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -390,7 +392,7 @@ export function ProductPhotosManager() {
                         onClick={(e) => { e.stopPropagation(); handleEditPhoto(photo); }}
                       >
                         <Wand2 className="mr-1 h-3 w-3" />
-                        Bewerken
+                        {t('common.edit')}
                       </Button>
                       <Button
                         size="sm"
@@ -399,7 +401,7 @@ export function ProductPhotosManager() {
                         onClick={(e) => { e.stopPropagation(); setDeleteTargets([photo]); }}
                       >
                         <Trash2 className="mr-1 h-3 w-3" />
-                        Verwijderen
+                        {t('common.delete')}
                       </Button>
                     </div>
 
@@ -417,7 +419,7 @@ export function ProductPhotosManager() {
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                       <p className="text-xs text-white truncate">{photo.productName}</p>
                       {photo.isFeatured && (
-                        <Badge className="text-[10px] px-1 py-0 mt-0.5 bg-primary/80">Hoofd</Badge>
+                        <Badge className="text-[10px] px-1 py-0 mt-0.5 bg-primary/80">{t('admin.products.productPhotosManager.hoofd')}</Badge>
                       )}
                     </div>
                   </div>
@@ -448,12 +450,11 @@ export function ProductPhotosManager() {
                 : 'Foto verwijderen?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              De foto('s) worden direct losgekoppeld van het product en verdwijnen uit je webshop.
-              Dit kan niet ongedaan gemaakt worden.
+              {t('admin.products.productPhotosManager.de_foto_s_worden_direct_losgekoppeld')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
               disabled={deleting}

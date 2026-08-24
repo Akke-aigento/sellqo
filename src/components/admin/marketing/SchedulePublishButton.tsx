@@ -25,8 +25,8 @@ export function SchedulePublishButton({
   disabled,
   className 
 }: SchedulePublishButtonProps) {
-  const dateLocale = useDateFnsLocale();
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(addDays(new Date(), 1));
   const [time, setTime] = useState('09:00');

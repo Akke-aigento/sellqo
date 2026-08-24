@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface SelectOption {
   value: string;
@@ -31,6 +32,7 @@ export function GridMultiSelectCell({
   onChange,
   onStopEdit,
 }: GridMultiSelectCellProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -98,7 +100,7 @@ export function GridMultiSelectCell({
           </label>
         ))}
         {options.length === 0 && (
-          <div className="text-sm text-muted-foreground px-2 py-1.5">Geen opties</div>
+          <div className="text-sm text-muted-foreground px-2 py-1.5">{t('admin.products.grid.gridMultiSelectCell.geen_opties')}</div>
         )}
       </PopoverContent>
     </Popover>
