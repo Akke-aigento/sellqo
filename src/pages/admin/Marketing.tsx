@@ -23,8 +23,10 @@ import { useTenant } from '@/hooks/useTenant';
 import { useTenantBrand } from '@/hooks/useTenantBrand';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles as SparklesIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function MarketingPage() {
+  const { t } = useTranslation();
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
@@ -47,9 +49,9 @@ export default function MarketingPage() {
       for (const s of seeds) {
         await createTemplate.mutateAsync(s as any);
       }
-      toast({ title: '4 starterstemplates aangemaakt' });
+      toast({ title: t('admin.marketing.4_starterstemplates_aangemaakt') });
     } catch (e: any) {
-      toast({ title: 'Kon templates niet aanmaken', description: e?.message, variant: 'destructive' });
+      toast({ title: t('admin.marketing.kon_templates_niet_aanmaken'), description: e?.message, variant: 'destructive' });
     } finally {
       setSeeding(false);
     }
@@ -71,27 +73,27 @@ export default function MarketingPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 flex-wrap">
             <Megaphone className="h-6 w-6" />
-            Marketing Command Center
+            {t('admin.marketing.marketing_command_center')}
             <ReadOnlyBadge resource="marketing" />
           </h1>
           <p className="text-muted-foreground">
-            Email campagnes, analytics en klant engagement
+            {t('admin.marketing.email_campagnes_analytics_en_klant_engagement')}
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Link to="/admin/marketing/ai">
             <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
               <Sparkles className="mr-2 h-4 w-4" />
-              AI Marketing Hub
+              {t('admin.marketing.ai_marketing_hub')}
             </Button>
           </Link>
           <GatedButton action="write" resource="marketing" variant="outline" onClick={() => setSegmentDialogOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
-            Nieuw segment
+            {t('admin.marketing.nieuw_segment')}
           </GatedButton>
           <GatedButton action="write" resource="marketing" onClick={() => setCampaignDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nieuwe campagne
+            {t('admin.adsBolcom.nieuwe_campagne')}
           </GatedButton>
         </div>
       </div>
@@ -105,17 +107,17 @@ export default function MarketingPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-base">Performance Over Tijd</CardTitle>
-              <CardDescription>Verzonden, geopend en geklikt emails</CardDescription>
+              <CardTitle className="text-base">{t('admin.marketing.performance_over_tijd')}</CardTitle>
+              <CardDescription>{t('admin.marketing.verzonden_geopend_en_geklikt_emails')}</CardDescription>
             </div>
             <Select value={chartPeriod} onValueChange={(v) => setChartPeriod(v as '7d' | '30d' | '90d')}>
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7d">7 dagen</SelectItem>
-                <SelectItem value="30d">30 dagen</SelectItem>
-                <SelectItem value="90d">90 dagen</SelectItem>
+                <SelectItem value="7d">{t('admin.marketing.7_dagen')}</SelectItem>
+                <SelectItem value="30d">{t('admin.marketing.30_dagen')}</SelectItem>
+                <SelectItem value="90d">{t('admin.marketing.90_dagen')}</SelectItem>
               </SelectContent>
             </Select>
           </CardHeader>
@@ -135,7 +137,7 @@ export default function MarketingPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              Snelle Acties
+              {t('admin.marketing.snelle_acties')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -145,7 +147,7 @@ export default function MarketingPage() {
               onClick={() => setCampaignDialogOpen(true)}
             >
               <Mail className="mr-2 h-4 w-4" />
-              Nieuwe campagne starten
+              {t('admin.marketing.nieuwe_campagne_starten')}
             </Button>
             <Button 
               variant="outline" 
@@ -153,7 +155,7 @@ export default function MarketingPage() {
               onClick={() => setTemplateDialogOpen(true)}
             >
               <FileText className="mr-2 h-4 w-4" />
-              Template maken
+              {t('admin.marketing.template_maken')}
             </Button>
             <Button 
               variant="outline" 
@@ -161,12 +163,12 @@ export default function MarketingPage() {
               onClick={() => setSegmentDialogOpen(true)}
             >
               <Users className="mr-2 h-4 w-4" />
-              Segment aanmaken
+              {t('admin.marketing.segment_aanmaken')}
             </Button>
             
             {draftCampaigns.length > 0 && (
               <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-2">Concept campagnes</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('admin.marketing.concept_campagnes')}</p>
                 {draftCampaigns.slice(0, 3).map(c => (
                   <Badge key={c.id} variant="secondary" className="mr-1 mb-1">
                     {c.name}
@@ -183,20 +185,20 @@ export default function MarketingPage() {
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Recente Campagnes
+                {t('admin.marketing.recente_campagnes')}
               </CardTitle>
-              <CardDescription>Je laatste email campagnes</CardDescription>
+              <CardDescription>{t('admin.marketing.je_laatste_email_campagnes')}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             {campaignsLoading ? (
-              <div className="text-center py-4 text-muted-foreground">Laden...</div>
+              <div className="text-center py-4 text-muted-foreground">{t('common.loading')}</div>
             ) : recentCampaigns.length === 0 ? (
               <div className="text-center py-8">
                 <Mail className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">Nog geen campagnes</p>
+                <p className="text-muted-foreground">{t('admin.marketing.nog_geen_campagnes')}</p>
                 <Button size="sm" className="mt-2" onClick={() => setCampaignDialogOpen(true)}>
-                  Eerste campagne maken
+                  {t('admin.marketing.eerste_campagne_maken')}
                 </Button>
               </div>
             ) : (
@@ -234,16 +236,16 @@ export default function MarketingPage() {
 
         <TabsContent value="campaigns" className="space-y-4">
           {campaignsLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Laden...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : campaigns.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Geen campagnes</h3>
-                <p className="text-muted-foreground mb-4">Maak je eerste email campagne aan</p>
+                <h3 className="text-lg font-semibold">{t('admin.ads.campaignsList.geen_campagnes')}</h3>
+                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_je_eerste_email_campagne_aan')}</p>
                 <Button onClick={() => setCampaignDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Nieuwe campagne
+                  {t('admin.adsBolcom.nieuwe_campagne')}
                 </Button>
               </CardContent>
             </Card>
@@ -265,29 +267,29 @@ export default function MarketingPage() {
           <div className="flex justify-end">
             <Button onClick={() => setTemplateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Nieuwe template
+              {t('admin.marketing.nieuwe_template')}
             </Button>
           </div>
           {templatesLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Laden...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : templates.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Geen templates</h3>
-                <p className="text-muted-foreground mb-4">Maak herbruikbare email templates</p>
+                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_templates')}</h3>
+                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_herbruikbare_email_templates')}</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Button onClick={() => setTemplateDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Nieuwe template
+                    {t('admin.marketing.nieuwe_template')}
                   </Button>
                   <Button variant="outline" onClick={handleSeedTemplates} disabled={seeding || !currentTenant?.id}>
                     <SparklesIcon className="mr-2 h-4 w-4" />
-                    {seeding ? 'Bezig...' : 'Starterstemplates genereren'}
+                    {seeding ? t('admin.marketing.creditPurchaseDialog.bezig') : t('admin.marketing.starterstemplates_genereren')}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 max-w-md text-center">
-                  Genereert 4 templates (Nieuwsbrief, Welkomstmail, Promotie, Winback) met uw logo en merkkleuren.
+                  {t('admin.marketing.genereert_4_templates_nieuwsbrief_welkomstmail_promotie')}
                 </p>
               </CardContent>
             </Card>
@@ -312,20 +314,20 @@ export default function MarketingPage() {
           <div className="flex justify-end">
             <Button onClick={() => setSegmentDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Nieuw segment
+              {t('admin.marketing.nieuw_segment')}
             </Button>
           </div>
           {segmentsLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Laden...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : segments.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Geen segmenten</h3>
-                <p className="text-muted-foreground mb-4">Maak klantsegmenten voor gerichte campagnes</p>
+                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_segmenten')}</h3>
+                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_klantsegmenten_voor_gerichte_campagnes')}</p>
                 <Button onClick={() => setSegmentDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Nieuw segment
+                  {t('admin.marketing.nieuw_segment')}
                 </Button>
               </CardContent>
             </Card>
@@ -339,7 +341,7 @@ export default function MarketingPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{segment.member_count}</div>
-                    <p className="text-xs text-muted-foreground">klanten in dit segment</p>
+                    <p className="text-xs text-muted-foreground">{t('admin.marketing.segmentBuilder.klanten_in_dit_segment')}</p>
                   </CardContent>
                 </Card>
               ))}

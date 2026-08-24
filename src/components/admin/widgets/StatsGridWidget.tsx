@@ -1,32 +1,34 @@
 import { Package, ShoppingCart, Euro, AlertTriangle } from 'lucide-react';
 import { StatsCard } from '@/components/admin/StatsCard';
+import { useTranslation } from 'react-i18next';
 
 export function StatsGridWidget() {
+  const { t } = useTranslation();
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatsCard
-        title="Omzet deze maand"
+        title={t('admin.widgets.statsGridWidget.omzet_deze_maand')}
         value="€0,00"
-        description="vs vorige maand"
+        description={t('admin.widgets.statsGridWidget.vs_vorige_maand')}
         icon={Euro}
         trend={{ value: 0, isPositive: true }}
       />
       <StatsCard
-        title="Bestellingen"
+        title={t('admin.customers.bestellingen')}
         value="0"
-        description="deze maand"
+        description={t('admin.widgets.statsGridWidget.deze_maand')}
         icon={ShoppingCart}
       />
       <StatsCard
-        title="Actieve producten"
+        title={t('admin.widgets.statsGridWidget.actieve_producten')}
         value="0"
-        description="in catalogus"
+        description={t('admin.widgets.statsGridWidget.in_catalogus')}
         icon={Package}
       />
       <StatsCard
-        title="Openstaande bestellingen"
+        title={t('admin.widgets.statsGridWidget.openstaande_bestellingen')}
         value="0"
-        description="te verwerken"
+        description={t('admin.widgets.statsGridWidget.te_verwerken')}
         icon={AlertTriangle}
       />
     </div>

@@ -6,8 +6,10 @@ import { DocCategoryList } from '@/components/admin/docs/DocCategoryList';
 import { DocArticleViewer } from '@/components/admin/docs/DocArticleViewer';
 import { Loader2, BookOpen, MessageCircleQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export default function Help() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>();
@@ -65,8 +67,8 @@ export default function Help() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Helpcenter</h1>
-          <p className="text-muted-foreground">Vind antwoorden op je vragen</p>
+          <h1 className="text-2xl font-bold">{t('admin.help.helpcenter')}</h1>
+          <p className="text-muted-foreground">{t('admin.help.vind_antwoorden_op_je_vragen')}</p>
         </div>
         <Button
           variant="outline"
@@ -77,7 +79,7 @@ export default function Help() {
           }}
         >
           <MessageCircleQuestion className="h-4 w-4 mr-2" />
-          Vraag het de assistent
+          {t('admin.help.vraag_het_de_assistent')}
         </Button>
       </div>
 
@@ -122,7 +124,7 @@ export default function Help() {
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
               <BookOpen className="h-12 w-12 mb-4" />
-              <p>Selecteer een artikel om te lezen</p>
+              <p>{t('admin.help.selecteer_een_artikel_om_te_lezen')}</p>
             </div>
           )}
         </div>

@@ -247,6 +247,40 @@ export function maskedLineNumbers(src) {
   return out;
 }
 
+/**
+ * Offsets die BINNEN een string-literal vallen (de quotes zelf niet meegeteld).
+ *
+ * Nodig omdat een prop-patroon net zo goed in een gewone string kan staan:
+ *   document.querySelector('[title="SellQo Assistent"]')
+ * Zonder deze zeef vervangt de codemod dat `title="..."` en breekt de selector.
+ */
+export function buildStringMask(src) {
+  const mask = new Uint8Array(src.length);
+  let state = 'code';
+  let start = 0;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    const next = src[i + 1];
+    const escaped = state !== 'code' && src[i - 1] === '\\' && src[i - 2] !== '\\';
+    if (state === 'code') {
+      if (ch === '/' && next === '/') state = 'line';
+      else if (ch === '/' && next === '*') state = 'block';
+      else if (ch === "'") { state = 'sq'; start = i + 1; }
+      else if (ch === '"') { state = 'dq'; start = i + 1; }
+      else if (ch === '`') { state = 'tpl'; start = i + 1; }
+    } else if (state === 'line') {
+      if (ch === '\n') state = 'code';
+    } else if (state === 'block') {
+      if (ch === '/' && src[i - 1] === '*') state = 'code';
+    } else {
+      const closer = state === 'sq' ? "'" : state === 'dq' ? '"' : '`';
+      const ended = (ch === closer && !escaped) || (state !== 'tpl' && ch === '\n');
+      if (ended) { mask.fill(1, start, i); state = 'code'; }
+    }
+  }
+  return mask;
+}
+
 export function relFromRoot(abs) {
   return relative(ROOT, abs);
 }

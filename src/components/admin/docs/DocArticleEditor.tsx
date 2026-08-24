@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useSaveArticle, type DocArticle, type DocCategory } from '@/hooks/useDocumentation';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface DocArticleEditorProps {
   article?: DocArticle | null;
@@ -22,6 +23,7 @@ function slugify(text: string) {
 }
 
 export function DocArticleEditor({ article, categories, docLevel, onSaved, onCancel }: DocArticleEditorProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(article?.title || '');
   const [slug, setSlug] = useState(article?.slug || '');
   const [content, setContent] = useState(article?.content || '');
@@ -62,7 +64,7 @@ export function DocArticleEditor({ article, categories, docLevel, onSaved, onCan
           toast.success('Artikel opgeslagen');
           onSaved();
         },
-        onError: (e) => toast.error('Fout: ' + e.message),
+        onError: (e) => toast.error(t('admin.docs.docArticleEditor.fout', { reason: e.message })),
       }
     );
   };
@@ -71,17 +73,17 @@ export function DocArticleEditor({ article, categories, docLevel, onSaved, onCan
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label>Titel</Label>
+          <Label>{t('admin.marketing.contentHistoryList.titel')}</Label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div>
-          <Label>Slug</Label>
+          <Label>{t('admin.docs.docArticleEditor.slug')}</Label>
           <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label>Categorie</Label>
+          <Label>{t('admin.marketing.templateDialog.categorie')}</Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -92,30 +94,30 @@ export function DocArticleEditor({ article, categories, docLevel, onSaved, onCan
           </Select>
         </div>
         <div>
-          <Label>Context pad (optioneel)</Label>
+          <Label>{t('admin.docs.docArticleEditor.context_pad_optioneel')}</Label>
           <Input value={contextPath} onChange={(e) => setContextPath(e.target.value)} placeholder="/admin/products" />
         </div>
       </div>
       <div>
-        <Label>Samenvatting</Label>
+        <Label>{t('admin.docs.docArticleEditor.samenvatting')}</Label>
         <Textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} />
       </div>
       <div>
-        <Label>Tags (kommagescheiden)</Label>
-        <Input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} placeholder="producten, varianten" />
+        <Label>{t('admin.docs.docArticleEditor.tags_kommagescheiden')}</Label>
+        <Input value={tagsStr} onChange={(e) => setTagsStr(e.target.value)} placeholder={t('admin.docs.docArticleEditor.producten_varianten')} />
       </div>
       <div>
-        <Label>Content</Label>
+        <Label>{t('admin.marketing.aIEmailPlanner.content')}</Label>
         <RichTextEditor content={content} onChange={setContent} />
       </div>
       <div className="flex items-center gap-2">
         <Switch checked={isPublished} onCheckedChange={setIsPublished} />
-        <Label>Gepubliceerd</Label>
+        <Label>{t('admin.marketing.contentHistoryList.gepubliceerd')}</Label>
       </div>
       <div className="flex gap-2 justify-end">
-        <Button variant="outline" onClick={onCancel}>Annuleren</Button>
+        <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
         <Button onClick={handleSave} disabled={saveArticle.isPending}>
-          {saveArticle.isPending ? 'Opslaan...' : 'Opslaan'}
+          {saveArticle.isPending ? t('common.saving') : t('common.save')}
         </Button>
       </div>
     </div>

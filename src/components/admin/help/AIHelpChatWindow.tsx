@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -16,6 +17,7 @@ interface AIHelpChatWindowProps {
 }
 
 export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -181,10 +183,10 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5">
         <div className="flex items-center gap-2">
           <MessageCircleQuestion className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">SellQo Assistent</span>
+          <span className="font-semibold text-sm">{t('admin.help.aIHelpChatWindow.sellqo_assistent')}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={resetChat} title="Nieuw gesprek">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={resetChat} title={t('admin.help.aIHelpChatWindow.nieuw_gesprek')}>
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
@@ -198,8 +200,8 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
         {messages.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
             <MessageCircleQuestion className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">Hoe kan ik je helpen?</p>
-            <p className="text-xs mt-1">Stel een vraag over het SellQo platform</p>
+            <p className="font-medium">{t('admin.help.aIHelpChatWindow.hoe_kan_ik_je_helpen')}</p>
+            <p className="text-xs mt-1">{t('admin.help.aIHelpChatWindow.stel_een_vraag_over_het_sellqo')}</p>
           </div>
         )}
         {messages.map((msg, i) => (
@@ -236,7 +238,7 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Stel je vraag..."
+            placeholder={t('admin.help.aIHelpChatWindow.stel_je_vraag')}
             disabled={isLoading}
             className="text-sm h-9"
           />

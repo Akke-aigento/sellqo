@@ -23,7 +23,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   c, collectTsx, isUiText, TEXT_PROPS, namespaceForFile, slugify,
-  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot, buildSourceMask,
+  readLocale, writeLocale, flattenTree, setKey, getKey, relFromRoot, buildSourceMask, buildStringMask,
 } from './i18n-lib.mjs';
 
 const args = process.argv.slice(2);
@@ -121,7 +121,9 @@ function ensureHooks(src) {
     const comp = comps[i];
     const end = comps[i + 1]?.start ?? src.length;
     const body = src.slice(comp.body, end);
-    if (!/\bt\(\s*['"]/.test(body)) continue;
+    // Ook `t(item.labelKey)` telt: het key-in-de-array-patroon roept t() met een
+    // variabele aan, en die componenten hebben net zo goed de hook nodig.
+    if (!/\bt\(/.test(body)) continue;
     if (/const\s*\{[^}]*\bt\b[^}]*\}\s*=\s*useTranslation\(/.test(body)) continue;
     const indent = src.slice(comp.body + 1).match(/^\n(\s*)/)?.[1] ?? '  ';
     src = `${src.slice(0, comp.body + 1)}\n${indent}const { t } = useTranslation();${src.slice(comp.body + 1)}`;
@@ -190,7 +192,7 @@ for (const target of targets) {
     if (repair) {
       const before = src;
       src = ensureHooks(stripMisplacedHooks(src));
-      if (/\bt\(\s*['"]/.test(src)) src = ensureImport(src);
+      if (/\bt\(/.test(src)) src = ensureImport(src);
       if (src !== before) {
         if (!dry) writeFileSync(abs, src, 'utf8');
         console.log(`${c.green}✓${c.reset} ${rel} ${c.dim}(hooks hersteld)${c.reset}`);
@@ -200,6 +202,7 @@ for (const target of targets) {
     }
     const ns = namespaceForFile(abs);
     const mask = buildSourceMask(src);
+    const inString = buildStringMask(src);
     const components = findComponents(src);
 
     /** @type {{start:number,end:number,replacement:string,text:string,key:string}[]} */
@@ -238,11 +241,13 @@ for (const target of targets) {
     for (const m of src.matchAll(propRe)) {
       const text = unescape(m[2] ?? m[3]).trim();
       if (!isUiText(text)) continue;
+      if (inString[m.index]) continue;   // bijv. `'[title="…"]'` in een querySelector
       push(m.index, m.index + m[0].length, text, (key) => `${m[1]}={t('${key}')}`);
     }
     for (const m of src.matchAll(toastRe)) {
       const text = unescape(m[3] ?? m[4]).trim();
       if (!isUiText(text)) continue;
+      if (inString[m.index]) continue;
       push(m.index, m.index + m[0].length, text, (key) => `${m[1]}${m[2]}t('${key}')`);
     }
 

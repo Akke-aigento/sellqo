@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExportFormat } from '@/lib/exportUtils';
+import { useTranslation } from 'react-i18next';
 
 interface ReportCardProps {
   title: string;
@@ -31,6 +32,7 @@ export const ReportCard = ({
   isLoading = false,
   disabled = false,
 }: ReportCardProps) => {
+  const { t } = useTranslation();
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
 
   const handleExport = async (format: ExportFormat) => {
@@ -44,10 +46,10 @@ export const ReportCard = ({
 
   const formatLabels: Record<ExportFormat, { label: string; icon: ReactNode }> = {
     csv: { label: 'CSV', icon: <FileText className="h-4 w-4" /> },
-    xlsx: { label: 'Excel', icon: <FileSpreadsheet className="h-4 w-4" /> },
+    xlsx: { label: t('admin.stockReport.exportXlsx'), icon: <FileSpreadsheet className="h-4 w-4" /> },
     pdf: { label: 'PDF', icon: <FileText className="h-4 w-4" /> },
-    'intervat-xml': { label: 'INTERVAT XML', icon: <FileCode className="h-4 w-4" /> },
-    'odoo-csv': { label: 'Odoo CSV', icon: <FileArchive className="h-4 w-4" /> },
+    'intervat-xml': { label: t('admin.reports.reportCard.intervat_xml'), icon: <FileCode className="h-4 w-4" /> },
+    'odoo-csv': { label: t('admin.reports.reportCard.odoo_csv'), icon: <FileArchive className="h-4 w-4" /> },
     json: { label: 'JSON', icon: <FileJson className="h-4 w-4" /> },
   };
 

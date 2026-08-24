@@ -18,6 +18,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#fbbf24',
@@ -85,13 +86,14 @@ function StatCard({
 }
 
 export default function AnalyticsPage() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<number>(30);
   const { summary, dailyStats, orderStatus, topProducts, isLoading } = useAnalytics(period);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Laden...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     );
   }
@@ -100,16 +102,16 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('admin.analytics.analytics')}</h1>
           <p className="text-muted-foreground">
-            Inzicht in je winkelstatistieken
+            {t('admin.analytics.inzicht_in_je_winkelstatistieken')}
           </p>
         </div>
         <Tabs value={period.toString()} onValueChange={(v) => setPeriod(parseInt(v))}>
           <TabsList>
-            <TabsTrigger value="7">7 dagen</TabsTrigger>
-            <TabsTrigger value="30">30 dagen</TabsTrigger>
-            <TabsTrigger value="90">90 dagen</TabsTrigger>
+            <TabsTrigger value="7">{t('admin.marketing.7_dagen')}</TabsTrigger>
+            <TabsTrigger value="30">{t('admin.marketing.30_dagen')}</TabsTrigger>
+            <TabsTrigger value="90">{t('admin.marketing.90_dagen')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -117,26 +119,26 @@ export default function AnalyticsPage() {
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Totale omzet"
+          title={t('admin.analytics.totale_omzet')}
           value={summary?.totalRevenue ?? 0}
           change={summary?.revenueChange}
           icon={DollarSign}
           format="currency"
         />
         <StatCard
-          title="Bestellingen"
+          title={t('admin.customers.bestellingen')}
           value={summary?.totalOrders ?? 0}
           change={summary?.ordersChange}
           icon={ShoppingCart}
         />
         <StatCard
-          title="Nieuwe klanten"
+          title={t('admin.analytics.nieuwe_klanten')}
           value={summary?.totalCustomers ?? 0}
           change={summary?.customersChange}
           icon={Users}
         />
         <StatCard
-          title="Gem. orderwaarde"
+          title={t('admin.analytics.gem_orderwaarde')}
           value={summary?.averageOrderValue ?? 0}
           icon={Package}
           format="currency"
@@ -148,8 +150,8 @@ export default function AnalyticsPage() {
         {/* Revenue Chart */}
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Omzet over tijd</CardTitle>
-            <CardDescription>Dagelijkse omzet in de geselecteerde periode</CardDescription>
+            <CardTitle>{t('admin.analytics.omzet_over_tijd')}</CardTitle>
+            <CardDescription>{t('admin.analytics.dagelijkse_omzet_in_de_geselecteerde_periode')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -199,8 +201,8 @@ export default function AnalyticsPage() {
         {/* Orders Chart */}
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Bestellingen over tijd</CardTitle>
-            <CardDescription>Aantal bestellingen per dag</CardDescription>
+            <CardTitle>{t('admin.analytics.bestellingen_over_tijd')}</CardTitle>
+            <CardDescription>{t('admin.analytics.aantal_bestellingen_per_dag')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -243,8 +245,8 @@ export default function AnalyticsPage() {
         {/* Order Status Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Bestellingen per status</CardTitle>
-            <CardDescription>Verdeling van orderstatus</CardDescription>
+            <CardTitle>{t('admin.analytics.bestellingen_per_status')}</CardTitle>
+            <CardDescription>{t('admin.analytics.verdeling_van_orderstatus')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -281,7 +283,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Geen bestellingen gevonden
+                  {t('admin.customerDetail.geen_bestellingen_gevonden')}
                 </div>
               )}
             </div>
@@ -291,8 +293,8 @@ export default function AnalyticsPage() {
         {/* Top Products */}
         <Card>
           <CardHeader>
-            <CardTitle>Top producten</CardTitle>
-            <CardDescription>Best verkopende producten op basis van omzet</CardDescription>
+            <CardTitle>{t('admin.analytics.top_producten')}</CardTitle>
+            <CardDescription>{t('admin.analytics.best_verkopende_producten_op_basis_van')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -342,7 +344,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Geen verkoopdata gevonden
+                  {t('admin.analytics.geen_verkoopdata_gevonden')}
                 </div>
               )}
             </div>
@@ -353,8 +355,8 @@ export default function AnalyticsPage() {
       {/* Customer Growth */}
       <Card>
         <CardHeader>
-          <CardTitle>Klantgroei</CardTitle>
-          <CardDescription>Nieuwe klanten en subscribers per dag</CardDescription>
+          <CardTitle>{t('admin.analytics.klantgroei')}</CardTitle>
+          <CardDescription>{t('admin.analytics.nieuwe_klanten_en_subscribers_per_dag')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[250px]">

@@ -29,6 +29,7 @@ import {
   type TranslatableEntityType,
 } from '@/types/translation';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface EntityTranslationTabsProps {
   entityType: 'product' | 'category';
@@ -48,6 +49,7 @@ export function EntityTranslationTabs({
   fields,
   defaultLocale = 'nl',
 }: EntityTranslationTabsProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { activeLocales } = useTenantDomains();
   const queryClient = useQueryClient();
@@ -167,7 +169,7 @@ export function EntityTranslationTabs({
       await refetchTranslations();
       queryClient.invalidateQueries({ queryKey: ['pending-translations'] });
       queryClient.invalidateQueries({ queryKey: ['translation-stats'] });
-      toast.success(`Vertalingen opgeslagen`);
+      toast.success(t('admin.translations.entityTranslationTabs.vertalingen_opgeslagen'));
     } catch (err: any) {
       toast.error('Fout bij opslaan vertalingen', { description: err?.message });
     } finally {
@@ -220,7 +222,7 @@ export function EntityTranslationTabs({
       return;
     }
     await refetchTranslations();
-    toast.success(!current ? 'Vertaling vergrendeld' : 'Vertaling ontgrendeld');
+    toast.success(!current ? t('admin.translations.entityTranslationTabs.vertaling_vergrendeld') : t('admin.translations.entityTranslationTabs.vertaling_ontgrendeld'));
   };
 
   const updateLocalValue = (locale: string, field: string, value: string) => {
@@ -282,7 +284,7 @@ export function EntityTranslationTabs({
                         {isLocked && (
                           <Badge variant="outline" className="gap-1 text-xs">
                             <Lock className="h-3 w-3" />
-                            Vergrendeld
+                            {t('admin.translations.entityTranslationTabs.vergrendeld')}
                           </Badge>
                         )}
                       </Label>
@@ -297,15 +299,14 @@ export function EntityTranslationTabs({
                                   variant="ghost"
                                   onClick={() => handleToggleLock(existing.id, isLocked)}
                                   disabled={!canWrite}
-                                  aria-label={isLocked ? 'Ontgrendelen' : 'Vergrendelen'}
+                                  aria-label={isLocked ? t('admin.translations.entityTranslationTabs.ontgrendelen') : t('admin.translations.entityTranslationTabs.vergrendelen')}
                                 >
                                   {isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 {isLocked
-                                  ? 'Ontgrendelen — AI mag deze vertaling overschrijven'
-                                  : 'Vergrendelen — wordt niet overschreven door AI'}
+                                  ? t('admin.translations.entityTranslationTabs.ontgrendelen_ai_mag_deze_vertaling_overschrijven') : t('admin.translations.entityTranslationTabs.vergrendelen_wordt_niet_overschreven_door_ai')}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>

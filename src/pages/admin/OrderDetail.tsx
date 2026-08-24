@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare, RotateCcw } from 'lucide-react';
 import { useOrder, useOrders } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
@@ -40,6 +39,8 @@ import { AlertTriangle } from 'lucide-react';
 import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
 import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
 import { PrintfulOrderCard } from '@/components/admin/fulfilment/PrintfulOrderCard';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'In afwachting',
@@ -52,6 +53,8 @@ const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export default function OrderDetailPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
@@ -118,10 +121,10 @@ export default function OrderDetailPage() {
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate('/admin/orders')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Terug naar bestellingen
+          {t('admin.orderDetail.terug_naar_bestellingen')}
         </Button>
         <Alert variant="destructive">
-          <AlertDescription>Bestelling niet gevonden.</AlertDescription>
+          <AlertDescription>{t('admin.orderDetail.bestelling_niet_gevonden')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -144,7 +147,7 @@ export default function OrderDetailPage() {
               <OrderReturnTag orderId={order.id} />
             </div>
             <p className="text-muted-foreground break-words">
-              {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: nl })}
+              {format(new Date(order.created_at), "d MMMM yyyy 'om' HH:mm", { locale: dateLocale })}
               {order.marketplace_order_id && (
                 <span className="ml-2 text-xs">
                   • Marketplace ID: <span className="font-mono break-all">{order.marketplace_order_id}</span>
@@ -161,13 +164,13 @@ export default function OrderDetailPage() {
             title={totalReturnable === 0 ? 'Alle items uit deze bestelling zijn al geretourneerd' : undefined}
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Retour aanmaken
+            {t('admin.orderDetail.retour_aanmaken')}
           </Button>
           {canCorrectStatus && (
             <ActionsMenu
               items={[
                 {
-                  label: 'Status corrigeren…',
+                  label: t('admin.orderDetail.status_corrigeren'),
                   icon: <AlertTriangle className="h-4 w-4" />,
                   onClick: () => setShowCorrectionDialog(true),
                 },
@@ -185,7 +188,7 @@ export default function OrderDetailPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="h-4 w-4" />
-                Orderregels
+                {t('admin.orderDetail.orderregels')}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6">
@@ -226,10 +229,10 @@ export default function OrderDetailPage() {
                 <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-center">Aantal</TableHead>
-                      <TableHead className="text-right">Prijs</TableHead>
-                      <TableHead className="text-right">Totaal</TableHead>
+                      <TableHead>{t('admin.stockReport.colName')}</TableHead>
+                      <TableHead className="text-center">{t('admin.promotions.giftPromotionFormDialog.aantal')}</TableHead>
+                      <TableHead className="text-right">{t('common.price')}</TableHead>
+                      <TableHead className="text-right">{t('common.total')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -271,12 +274,12 @@ export default function OrderDetailPage() {
               {/* Totals */}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotaal</span>
+                  <span className="text-muted-foreground">{t('admin.orderDetail.subtotaal')}</span>
                   <span>{formatCurrency(Number(order.subtotal))}</span>
                 </div>
                 {Number(order.discount_amount) > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Korting</span>
+                    <span>{t('admin.promotions.volumeDiscountFormDialog.korting')}</span>
                     <span>-{formatCurrency(Number(order.discount_amount))}</span>
                   </div>
                 )}
@@ -285,12 +288,12 @@ export default function OrderDetailPage() {
                   <span>{formatCurrency(Number(order.tax_amount))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Verzendkosten</span>
+                  <span className="text-muted-foreground">{t('admin.orderDetail.verzendkosten')}</span>
                   <span>{formatCurrency(Number(order.shipping_cost))}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-semibold">
-                  <span>Totaal</span>
+                  <span>{t('common.total')}</span>
                   <span>{formatCurrency(Number(order.total))}</span>
                 </div>
               </div>
@@ -306,7 +309,7 @@ export default function OrderDetailPage() {
           {/* Card 1: Acties & Status */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Acties & Status</CardTitle>
+              <CardTitle className="text-base">{t('admin.orderDetail.acties_status')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {order.payment_status === 'pending' && (
@@ -319,7 +322,7 @@ export default function OrderDetailPage() {
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Orderstatus</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">{t('admin.orderFilters.orderstatus')}</label>
                   <Select
                     value={order.status}
                     onValueChange={(value) => updateOrderStatus.mutate({ orderId: order.id, status: value as OrderStatus })}
@@ -342,12 +345,12 @@ export default function OrderDetailPage() {
                         onClick={() => setShowCorrectionDialog(true)}
                         className="mt-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
                       >
-                        Andere status nodig? Corrigeren…
+                        {t('admin.orderDetail.andere_status_nodig_corrigeren')}
                       </button>
                     )}
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Betaalstatus</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">{t('admin.orderFilters.betaalstatus')}</label>
                   <Select
                     value={order.payment_status}
                     onValueChange={(value) => updatePaymentStatus.mutate({ orderId: order.id, paymentStatus: value as PaymentStatus })}
@@ -356,10 +359,10 @@ export default function OrderDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Onbetaald</SelectItem>
-                      <SelectItem value="paid">Betaald</SelectItem>
-                      <SelectItem value="refunded">Terugbetaald</SelectItem>
-                      <SelectItem value="failed">Mislukt</SelectItem>
+                      <SelectItem value="pending">{t('admin.orderFilters.onbetaald')}</SelectItem>
+                      <SelectItem value="paid">{t('admin.orderFilters.betaald')}</SelectItem>
+                      <SelectItem value="refunded">{t('admin.orderFilters.terugbetaald')}</SelectItem>
+                      <SelectItem value="failed">{t('admin.marketing.contentHistoryList.status.mislukt')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -376,7 +379,7 @@ export default function OrderDetailPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Klant & Adressen
+                {t('admin.orderDetail.klant_adressen')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -396,7 +399,7 @@ export default function OrderDetailPage() {
                     onClick={() => setShowMessageDialog(true)}
                   >
                     <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                    Email
+                    {t('admin.marketing.aIContentLibrary.email')}
                   </Button>
                   {order.customer_id && (
                     <Button 
@@ -404,7 +407,7 @@ export default function OrderDetailPage() {
                       size="sm"
                       onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
                     >
-                      Profiel
+                      {t('admin.orderDetail.profiel')}
                     </Button>
                   )}
                 </div>
@@ -417,14 +420,14 @@ export default function OrderDetailPage() {
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium text-xs">{order.delivery_type === 'service_point' ? 'Klantadres' : 'Verzendadres'}</span>
+                    <span className="font-medium text-xs">{order.delivery_type === 'service_point' ? t('admin.orderDetail.klantadres') : t('admin.orderDetail.verzendadres')}</span>
                   </div>
                   <p className="text-muted-foreground text-xs leading-relaxed">{formatAddress(order.shipping_address)}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <CreditCard className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium text-xs">Factuuradres</span>
+                    <span className="font-medium text-xs">{t('admin.customerDetail.factuuradres')}</span>
                   </div>
                   <p className="text-muted-foreground text-xs leading-relaxed">{formatAddress(order.billing_address)}</p>
                 </div>
@@ -462,7 +465,7 @@ export default function OrderDetailPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Truck className="h-4 w-4" />
-                Verzending & Tracking
+                {t('admin.orderDetail.verzending_tracking')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -499,7 +502,7 @@ export default function OrderDetailPage() {
                 }}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download pakbon
+                {t('admin.orderDetail.download_pakbon')}
               </Button>
 
               {/* Bol.com acties */}
@@ -512,7 +515,7 @@ export default function OrderDetailPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Documenten & Notities
+                {t('admin.orderDetail.documenten_notities')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -543,18 +546,18 @@ export default function OrderDetailPage() {
                       disabled={resendInvoice.isPending}
                     >
                       <Mail className="h-4 w-4 mr-2" />
-                      Versturen
+                      {t('admin.orderDetail.versturen')}
                     </Button>
                   </div>
                   {invoice.sent_at && (
                     <p className="text-xs text-muted-foreground">
-                      Verstuurd op {format(new Date(invoice.sent_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
+                      Verstuurd op {format(new Date(invoice.sent_at), "d MMM yyyy 'om' HH:mm", { locale: dateLocale })}
                     </p>
                   )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Geen factuur beschikbaar
+                  {t('admin.orderDetail.geen_factuur_beschikbaar')}
                 </p>
               )}
 
@@ -562,9 +565,9 @@ export default function OrderDetailPage() {
 
               {/* Interne notities */}
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Interne notities</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('admin.orderDetail.interne_notities')}</label>
                 <Textarea
-                  placeholder="Voeg een interne notitie toe..."
+                  placeholder={t('admin.orderDetail.voeg_een_interne_notitie_toe')}
                   value={internalNotes || order.internal_notes || ''}
                   onChange={(e) => setInternalNotes(e.target.value)}
                   rows={3}
@@ -576,7 +579,7 @@ export default function OrderDetailPage() {
                   onClick={() => updateOrderNotes.mutate({ orderId: order.id, internalNotes })}
                   disabled={updateOrderNotes.isPending}
                 >
-                  Opslaan
+                  {t('common.save')}
                 </Button>
               </div>
             </CardContent>
@@ -654,6 +657,7 @@ interface TimelineItemProps {
 }
 
 function TimelineItem({ icon, title, subtitle, date, completed, variant = 'default' }: TimelineItemProps) {
+  const dateLocale = useDateFnsLocale();
   return (
     <div className="flex items-start gap-3">
       <div className={`p-2 rounded-full ${
@@ -671,7 +675,7 @@ function TimelineItem({ icon, title, subtitle, date, completed, variant = 'defau
           <div className="text-xs text-muted-foreground font-mono break-all">{subtitle}</div>
         )}
         <div className="text-sm text-muted-foreground">
-          {format(new Date(date), "d MMM yyyy 'om' HH:mm", { locale: nl })}
+          {format(new Date(date), "d MMM yyyy 'om' HH:mm", { locale: dateLocale })}
         </div>
       </div>
     </div>

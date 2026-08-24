@@ -35,6 +35,7 @@ import { BadgesWidget } from './widgets/BadgesWidget';
 import { HealthBannerWidget } from './widgets/HealthBannerWidget';
 import { HealthCategoriesWidget } from './widgets/HealthCategoriesWidget';
 import { HealthActionsWidget } from './widgets/HealthActionsWidget';
+import { useTranslation } from 'react-i18next';
 
 // Widget component mapping
 const widgetComponents: Record<string, React.ComponentType> = {
@@ -50,6 +51,7 @@ const widgetComponents: Record<string, React.ComponentType> = {
 };
 
 export function DashboardGrid() {
+  const { t } = useTranslation();
   const [isEditMode, setIsEditMode] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const {
@@ -158,9 +160,9 @@ export function DashboardGrid() {
       {/* Header with controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('admin.dashboardGrid.dashboard')}</h1>
           <p className="text-muted-foreground">
-            Overzicht van je winkel
+            {t('admin.dashboardGrid.overzicht_van_je_winkel')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -174,7 +176,7 @@ export function DashboardGrid() {
                 onClick={() => setIsEditMode(false)}
               >
                 <X className="h-4 w-4 mr-2" />
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -182,7 +184,7 @@ export function DashboardGrid() {
                 disabled={isUpdating}
               >
                 <Check className="h-4 w-4 mr-2" />
-                Klaar
+                {t('admin.dashboardGrid.klaar')}
               </Button>
             </>
           ) : (
@@ -192,7 +194,7 @@ export function DashboardGrid() {
               onClick={() => setCustomizeOpen(true)}
             >
               <Settings className="h-4 w-4 mr-2" />
-              Personaliseren
+              {t('admin.dashboardGrid.personaliseren')}
             </Button>
           )}
         </div>

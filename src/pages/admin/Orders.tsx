@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { useOrders } from '@/hooks/useOrders';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,11 @@ import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { useCan } from '@/hooks/useCan';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export default function OrdersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
@@ -91,7 +93,7 @@ export default function OrdersPage() {
   if (!currentTenant) {
     return (
       <Alert>
-        <AlertDescription>Geen winkel gevonden. Neem contact op met een beheerder.</AlertDescription>
+        <AlertDescription>{t('admin.customers.geen_winkel_gevonden_neem_contact_op')}</AlertDescription>
       </Alert>
     );
   }
@@ -102,10 +104,10 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
-            Bestellingen
+            {t('admin.customers.bestellingen')}
             <ReadOnlyBadge resource="orders" />
           </h1>
-          <p className="text-sm text-muted-foreground">Beheer alle bestellingen van je winkel</p>
+          <p className="text-sm text-muted-foreground">{t('admin.orders.beheer_alle_bestellingen_van_je_winkel')}</p>
         </div>
       </div>
 
@@ -125,7 +127,7 @@ export default function OrdersPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Alle bestellingen
+            {t('admin.orders.alle_bestellingen')}
           </CardTitle>
           <CardDescription>
             {orders.length} bestelling{orders.length !== 1 ? 'en' : ''} gevonden
@@ -141,11 +143,10 @@ export default function OrdersPage() {
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg">Geen bestellingen gevonden</h3>
+              <h3 className="font-medium text-lg">{t('admin.customerDetail.geen_bestellingen_gevonden')}</h3>
               <p className="text-muted-foreground text-sm">
                 {filters.status || filters.payment_status || filters.search
-                  ? 'Probeer andere filters'
-                  : 'Bestellingen verschijnen hier zodra klanten iets bestellen'}
+                  ? t('admin.orders.probeer_andere_filters') : t('admin.orders.bestellingen_verschijnen_hier_zodra_klanten_iets')}
               </p>
             </div>
           ) : isMobile ? (
@@ -172,17 +173,17 @@ export default function OrdersPage() {
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={handleSelectAll}
-                      aria-label="Selecteer alle orders"
+                      aria-label={t('admin.orders.selecteer_alle_orders')}
                       className={isSomeSelected ? 'data-[state=checked]:bg-primary/50' : ''}
                     />
                   </TableHead>
-                  <TableHead>Bestelling</TableHead>
-                  <TableHead>Klant</TableHead>
-                  <TableHead className="hidden xl:table-cell">Bron</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Betaling</TableHead>
-                  <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="hidden xl:table-cell">Datum</TableHead>
+                  <TableHead>{t('admin.inbox.conversationDetail.bestelling')}</TableHead>
+                  <TableHead>{t('admin.marketing.variableInserter.groups.customer.label')}</TableHead>
+                  <TableHead className="hidden xl:table-cell">{t('admin.customers.bron')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('admin.orders.betaling')}</TableHead>
+                  <TableHead className="text-right">{t('common.total')}</TableHead>
+                  <TableHead className="hidden xl:table-cell">{t('common.date')}</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,19 +211,19 @@ export default function OrdersPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bestelling verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.orders.bestelling_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je bestelling {orderToDelete?.order_number} wilt verwijderen? 
               Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDeleteOrder}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -242,6 +243,8 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const canWriteOrders = useCan('write', 'orders');
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50">
@@ -277,7 +280,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
                 ? 'text-destructive font-medium'
                 : 'text-muted-foreground'
             }`}>
-              Verloopt {format(new Date(order.expires_at), 'd MMM', { locale: nl })}
+              Verloopt {format(new Date(order.expires_at), 'd MMM', { locale: dateLocale })}
             </span>
           )}
         </div>
@@ -286,7 +289,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         {formatCurrency(Number(order.total))}
       </TableCell>
       <TableCell className="hidden xl:table-cell text-muted-foreground" onClick={onView}>
-        {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
+        {format(new Date(order.created_at), 'd MMM yyyy', { locale: dateLocale })}
       </TableCell>
       <TableCell onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
@@ -298,25 +301,25 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onView}>
               <Eye className="h-4 w-4 mr-2" />
-              Bekijken
+              {t('admin.marketing.aIContentLibrary.bekijken')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {order.status !== 'processing' && order.status !== 'cancelled' && (
               <DropdownMenuItem onClick={() => onStatusChange(order.id, 'processing')}>
                 <Clock className="h-4 w-4 mr-2" />
-                In behandeling
+                {t('admin.orderFilters.in_behandeling')}
               </DropdownMenuItem>
             )}
             {order.status !== 'shipped' && order.status !== 'cancelled' && order.status !== 'delivered' && (
               <DropdownMenuItem onClick={() => onStatusChange(order.id, 'shipped')}>
                 <Truck className="h-4 w-4 mr-2" />
-                Markeer als verzonden
+                {t('admin.orders.markeer_als_verzonden')}
               </DropdownMenuItem>
             )}
             {order.status !== 'delivered' && order.status !== 'cancelled' && (
               <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Markeer als afgeleverd
+                {t('admin.orders.markeer_als_afgeleverd')}
               </DropdownMenuItem>
             )}
             {order.status !== 'cancelled' && (
@@ -327,7 +330,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
                   className="text-destructive focus:text-destructive"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Annuleren
+                  {t('common.cancel')}
                 </DropdownMenuItem>
               </>
             )}
@@ -338,7 +341,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Verwijderen
+                {t('common.delete')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -349,6 +352,8 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
 }
 
 function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const canWriteOrders = useCan('write', 'orders');
   return (
     <div 
@@ -376,7 +381,7 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
             <PaymentStatusBadge status={order.payment_status} />
           </div>
           <div className="text-xs text-muted-foreground mt-1.5">
-            {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
+            {format(new Date(order.created_at), 'd MMM yyyy', { locale: dateLocale })}
             {' · '}
             {order.order_items?.length || 0} artikel{(order.order_items?.length || 0) !== 1 ? 'en' : ''}
           </div>
@@ -391,25 +396,25 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onView}>
                 <Eye className="h-4 w-4 mr-2" />
-                Bekijken
+                {t('admin.marketing.aIContentLibrary.bekijken')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {order.status !== 'processing' && order.status !== 'cancelled' && (
                 <DropdownMenuItem onClick={() => onStatusChange(order.id, 'processing')}>
                   <Clock className="h-4 w-4 mr-2" />
-                  In behandeling
+                  {t('admin.orderFilters.in_behandeling')}
                 </DropdownMenuItem>
               )}
               {order.status !== 'shipped' && order.status !== 'cancelled' && order.status !== 'delivered' && (
                 <DropdownMenuItem onClick={() => onStatusChange(order.id, 'shipped')}>
                   <Truck className="h-4 w-4 mr-2" />
-                  Verzonden
+                  {t('admin.marketing.campaignCard.status.verzonden')}
                 </DropdownMenuItem>
               )}
               {order.status !== 'delivered' && order.status !== 'cancelled' && (
                 <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Afgeleverd
+                  {t('admin.marketing.campaignFunnel.afgeleverd')}
                 </DropdownMenuItem>
               )}
               {order.status !== 'cancelled' && (
@@ -420,7 +425,7 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
                     className="text-destructive focus:text-destructive"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
-                    Annuleren
+                    {t('common.cancel')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -431,7 +436,7 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Verwijderen
+                  {t('common.delete')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

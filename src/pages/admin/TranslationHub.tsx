@@ -66,6 +66,7 @@ import {
   type TranslationLanguage,
   type TranslatableField,
 } from '@/types/translation';
+import { useTranslation } from 'react-i18next';
 
 const ENTITY_ICONS: Record<TranslatableEntityType, React.ElementType> = {
   product: Package,
@@ -75,6 +76,7 @@ const ENTITY_ICONS: Record<TranslatableEntityType, React.ElementType> = {
 };
 
 export default function TranslationHub() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { credits, hasCredits, getCreditCost, isUnlimited } = useAICredits();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -157,7 +159,7 @@ export default function TranslationHub() {
   if (!currentTenant) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Selecteer eerst een winkel</p>
+        <p className="text-muted-foreground">{t('admin.products.selecteer_eerst_een_winkel')}</p>
       </div>
     );
   }
@@ -323,10 +325,10 @@ export default function TranslationHub() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Globe className="h-6 w-6 text-primary" />
-            Vertaal Hub
+            {t('admin.productForm.vertaal_hub')}
           </h1>
           <p className="text-muted-foreground">
-            Beheer vertalingen voor al je content met AI
+            {t('admin.translationHub.beheer_vertalingen_voor_al_je_content')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -341,16 +343,16 @@ export default function TranslationHub() {
           <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Bulk vertaling starten</DialogTitle>
+                <DialogTitle>{t('admin.translationHub.bulk_vertaling_starten')}</DialogTitle>
                 <DialogDescription>
-                  Kies wat je wil vertalen, in welke talen en op welke manier.
+                  {t('admin.translationHub.kies_wat_je_wil_vertalen_in')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-5 py-2">
                 {/* Scope */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Welke items?</Label>
+                  <Label className="text-sm font-medium mb-2 block">{t('admin.translationHub.welke_items')}</Label>
                   <RadioGroup
                     value={bulkScope}
                     onValueChange={(v) => setBulkScope(v as 'all' | 'missing' | 'selected')}
@@ -373,7 +375,7 @@ export default function TranslationHub() {
 
                 {/* Languages */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Doeltalen</Label>
+                  <Label className="text-sm font-medium mb-2 block">{t('admin.translationHub.doeltalen')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => {
                       const active = bulkLanguages.includes(lang.code as TranslationLanguage);
@@ -397,7 +399,7 @@ export default function TranslationHub() {
 
                 {/* Mode */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Modus</Label>
+                  <Label className="text-sm font-medium mb-2 block">{t('admin.translationHub.modus')}</Label>
                   <RadioGroup
                     value={bulkMode}
                     onValueChange={(v) => setBulkMode(v as 'missing' | 'all' | 'outdated')}
@@ -406,27 +408,27 @@ export default function TranslationHub() {
                     <label className="flex items-start gap-2 cursor-pointer">
                       <RadioGroupItem value="missing" id="mode-missing" className="mt-1" />
                       <div>
-                        <div>Alleen ontbrekende velden</div>
+                        <div>{t('admin.translationHub.alleen_ontbrekende_velden')}</div>
                         <div className="text-xs text-muted-foreground">
-                          Bestaande vertalingen blijven staan — goedkoopst.
+                          {t('admin.translationHub.bestaande_vertalingen_blijven_staan_goedkoopst')}
                         </div>
                       </div>
                     </label>
                     <label className="flex items-start gap-2 cursor-pointer">
                       <RadioGroupItem value="all" id="mode-all" className="mt-1" />
                       <div>
-                        <div>Alles opnieuw vertalen</div>
+                        <div>{t('admin.translationHub.alles_opnieuw_vertalen')}</div>
                         <div className="text-xs text-muted-foreground">
-                          Overschrijft bestaande, niet-vergrendelde vertalingen.
+                          {t('admin.translationHub.overschrijft_bestaande_niet_vergrendelde_vertalingen')}
                         </div>
                       </div>
                     </label>
                     <label className="flex items-start gap-2 cursor-pointer">
                       <RadioGroupItem value="outdated" id="mode-outdated" className="mt-1" />
                       <div>
-                        <div>Verouderd — bron gewijzigd sinds vertaling</div>
+                        <div>{t('admin.translationHub.verouderd_bron_gewijzigd_sinds_vertaling')}</div>
                         <div className="text-xs text-muted-foreground">
-                          Ververst alleen vertalingen waarvan de brontekst is aangepast.
+                          {t('admin.translationHub.ververst_alleen_vertalingen_waarvan_de_brontekst')}
                         </div>
                       </div>
                     </label>
@@ -436,14 +438,14 @@ export default function TranslationHub() {
                 {/* Fields */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm font-medium">Welke velden?</Label>
+                    <Label className="text-sm font-medium">{t('admin.translationHub.welke_velden')}</Label>
                     <div className="flex gap-1">
                       <button
                         type="button"
                         onClick={() => setBulkFields(availableFields)}
                         className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
-                        Alles
+                        {t('admin.marketing.mediaAssetsLibrary.folders.alles')}
                       </button>
                       <span className="text-xs text-muted-foreground">·</span>
                       <button
@@ -451,7 +453,7 @@ export default function TranslationHub() {
                         onClick={() => setBulkFields(availableFields.filter(f => CONTENT_FIELDS.includes(f)))}
                         className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
-                        Content
+                        {t('admin.marketing.aIEmailPlanner.content')}
                       </button>
                       <span className="text-xs text-muted-foreground">·</span>
                       <button
@@ -494,7 +496,7 @@ export default function TranslationHub() {
                   <p className="text-muted-foreground mt-1">
                     {isUnlimited
                       ? 'Je hebt onbeperkte credits (platform admin).'
-                      : `Je hebt ${availableCredits} credits beschikbaar.`}
+                      : t('admin.translationHub.credits_beschikbaar', { count: availableCredits })}
                   </p>
                   {!canAffordBulk && !isUnlimited && (
                     <button
@@ -505,7 +507,7 @@ export default function TranslationHub() {
                       }}
                       className="mt-2 text-sm font-medium text-primary hover:underline"
                     >
-                      Onvoldoende credits — koop bij
+                      {t('admin.translationHub.onvoldoende_credits_koop_bij')}
                     </button>
                   )}
                 </div>
@@ -513,7 +515,7 @@ export default function TranslationHub() {
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={handleBulkTranslate}
@@ -538,7 +540,7 @@ export default function TranslationHub() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totale dekking (alle content)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.translationHub.totale_dekking_alle_content')}</CardTitle>
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -558,7 +560,7 @@ export default function TranslationHub() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Producten</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.mediaAssetsLibrary.folders.producten')}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -577,7 +579,7 @@ export default function TranslationHub() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categorieën</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.mediaAssetsLibrary.folders.categorie_n')}</CardTitle>
             <FolderTree className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -596,7 +598,7 @@ export default function TranslationHub() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Per Taal</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.translationHub.per_taal')}</CardTitle>
             <Languages className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -625,7 +627,7 @@ export default function TranslationHub() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Actieve Vertaaltaken
+              {t('admin.translationHub.actieve_vertaaltaken')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -657,7 +659,7 @@ export default function TranslationHub() {
       {recentFinished.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Recente Vertaaltaken</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.translationHub.recente_vertaaltaken')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -679,7 +681,7 @@ export default function TranslationHub() {
                           ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                           : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                     }`}>
-                      {failed ? 'Mislukt' : withErrors ? `Voltooid met ${job.failed_items} fouten` : 'Voltooid'}
+                      {failed ? 'Mislukt' : withErrors ? t('admin.translationHub.voltooid_met_fouten', { count: job.failed_items }) : 'Voltooid'}
                     </span>
                   </div>
                 );
@@ -692,8 +694,8 @@ export default function TranslationHub() {
       {/* Main Content */}
       <Tabs defaultValue="content" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="settings">Instellingen</TabsTrigger>
+          <TabsTrigger value="content">{t('admin.marketing.aIEmailPlanner.content')}</TabsTrigger>
+          <TabsTrigger value="settings">{t('admin.translationHub.instellingen')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="content" className="space-y-4">
@@ -701,7 +703,7 @@ export default function TranslationHub() {
           <div className="flex flex-wrap gap-4">
             <Select value={selectedEntityType} onValueChange={(v) => setSelectedEntityType(v as TranslatableEntityType)}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Type" />
+                <SelectValue placeholder={t('admin.marketing.contentHistoryList.type')} />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(ENTITY_TYPE_LABELS).map(([key, label]) => {
@@ -720,7 +722,7 @@ export default function TranslationHub() {
 
             <Select value={selectedLanguage} onValueChange={(v) => setSelectedLanguage(v as TranslationLanguage)}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Taal" />
+                <SelectValue placeholder={t('admin.marketing.templateDialog.taal')} />
               </SelectTrigger>
               <SelectContent>
                 {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
@@ -744,7 +746,7 @@ export default function TranslationHub() {
                 {ENTITY_TYPE_LABELS[selectedEntityType]}
               </CardTitle>
               <CardDescription>
-                Dekking per item — een item is 100% wanneer alle velden in alle doeltalen vertaald zijn
+                {t('admin.translationHub.dekking_per_item_een_item_is')}
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
@@ -765,13 +767,13 @@ export default function TranslationHub() {
                               : new Set(),
                           }));
                         }}
-                        aria-label="Selecteer alles"
+                        aria-label={t('admin.translationHub.selecteer_alles')}
                       />
                     </TableHead>
-                    <TableHead>Naam</TableHead>
-                    <TableHead>Dekking</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Acties</TableHead>
+                    <TableHead>{t('common.name')}</TableHead>
+                    <TableHead>{t('admin.translationHub.dekking')}</TableHead>
+                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead className="text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -812,7 +814,7 @@ export default function TranslationHub() {
                           {item.coverage === 100 ? (
                             <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
                               <Check className="mr-1 h-3 w-3" />
-                              Compleet
+                              {t('admin.seo.sEOTranslationStatus.compleet')}
                             </Badge>
                           ) : (
                             <div className="flex flex-wrap items-center gap-1">
@@ -879,10 +881,10 @@ export default function TranslationHub() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                Vertaalinstellingen
+                {t('admin.translationHub.vertaalinstellingen')}
               </CardTitle>
               <CardDescription>
-                Configureer automatische vertalingen en gedrag
+                {t('admin.translationHub.configureer_automatische_vertalingen_en_gedrag')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -895,14 +897,14 @@ export default function TranslationHub() {
               ) : (
                 <>
                   <div className="space-y-4">
-                    <h3 className="font-medium">Brontaal</h3>
+                    <h3 className="font-medium">{t('admin.translationHub.brontaal')}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Nederlands (NL) is ingesteld als brontaal
+                      {t('admin.translationHub.nederlands_nl_is_ingesteld_als_brontaal')}
                     </p>
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="font-medium">Doeltalen</h3>
+                    <h3 className="font-medium">{t('admin.translationHub.doeltalen_2')}</h3>
                     <div className="flex flex-wrap gap-2">
                       {TRANSLATION_LANGUAGES.filter(l => l.code !== 'nl').map(lang => (
                         <Badge 
@@ -917,13 +919,13 @@ export default function TranslationHub() {
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
-                    <h3 className="font-medium">Automatische vertalingen</h3>
+                    <h3 className="font-medium">{t('admin.translationHub.automatische_vertalingen')}</h3>
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="auto-products">Producten automatisch vertalen</Label>
+                        <Label htmlFor="auto-products">{t('admin.translationHub.producten_automatisch_vertalen')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Vertaal nieuwe producten automatisch naar alle doeltalen
+                          {t('admin.translationHub.vertaal_nieuwe_producten_automatisch_naar_alle')}
                         </p>
                       </div>
                       <Switch 
@@ -935,9 +937,9 @@ export default function TranslationHub() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="auto-categories">Categorieën automatisch vertalen</Label>
+                        <Label htmlFor="auto-categories">{t('admin.translationHub.categorieen_automatisch_vertalen')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Vertaal nieuwe categorieën automatisch naar alle doeltalen
+                          {t('admin.translationHub.vertaal_nieuwe_categorieen_automatisch_naar_alle')}
                         </p>
                       </div>
                       <Switch 
@@ -949,9 +951,9 @@ export default function TranslationHub() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="auto-seo">SEO content automatisch vertalen</Label>
+                        <Label htmlFor="auto-seo">{t('admin.translationHub.seo_content_automatisch_vertalen')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Vertaal meta titels en beschrijvingen automatisch
+                          {t('admin.translationHub.vertaal_meta_titels_en_beschrijvingen_automatisch')}
                         </p>
                       </div>
                       <Switch 
@@ -963,9 +965,9 @@ export default function TranslationHub() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="auto-marketing">Marketing automatisch vertalen</Label>
+                        <Label htmlFor="auto-marketing">{t('admin.translationHub.marketing_automatisch_vertalen')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Vertaal e-mail templates en campagnes automatisch
+                          {t('admin.translationHub.vertaal_e_mail_templates_en_campagnes')}
                         </p>
                       </div>
                       <Switch 

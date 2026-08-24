@@ -1,6 +1,7 @@
 import { Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface FloatingSaveBarProps {
   isDirty: boolean;
@@ -19,6 +20,7 @@ export function FloatingSaveBar({
   saveLabel = 'Opslaan',
   cancelLabel = 'Annuleren',
 }: FloatingSaveBarProps) {
+  const { t } = useTranslation();
   if (!isDirty) return null;
 
   return (
@@ -30,7 +32,7 @@ export function FloatingSaveBar({
       <div className="flex items-center justify-between px-4 py-3 max-w-screen-xl mx-auto">
         <div className="flex items-center gap-2 text-sm">
           <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-          <span className="text-muted-foreground">Onopgeslagen wijzigingen</span>
+          <span className="text-muted-foreground">{t('admin.floatingSaveBar.onopgeslagen_wijzigingen')}</span>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
