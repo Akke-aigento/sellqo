@@ -184,7 +184,11 @@ function stripMisplacedHooks(src) {
 
 const propRe = new RegExp(`\\b(${TEXT_PROPS.join('|')})=(?:"([^"\\n]*)"|'([^'\\n]*)')`, 'g');
 // JSX-tekst: één regel, en het openende `>` mag geen operator zijn (>=, =>, ->).
-const jsxTextRe = /(?<![=!<>+\-*/&|])>([ \t]*)([^<>{}\n\s][^<>{}\n]*?)([ \t]*)</g;
+// Ook whitespace ervóór diskwalificeert: in `a.acos > 0 && a.acos < 10` staat een
+// spatie voor de `>`, terwijl een JSX-tag altijd op een naam, quote of `}` sluit.
+// Zonder die uitsluiting werd de middelste term van zo'n vergelijking als
+// UI-tekst geëxtraheerd en brak het bestand.
+const jsxTextRe = /(?<![=!<>+\-*/&|\s])>([ \t]*)([^<>{}\n\s][^<>{}\n]*?)([ \t]*)</g;
 const toastRe = /\b(title|description|message)(\s*:\s*)(?:"([^"\n]*)"|'([^'\n]*)')/g;
 
 const summary = { files: 0, changed: 0, keys: 0, reused: 0, todo: [] };

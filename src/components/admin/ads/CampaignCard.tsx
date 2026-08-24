@@ -15,22 +15,25 @@ import { MoreHorizontal, Pause, Play, Trash2, Edit, Upload, RefreshCw, Loader2 }
 import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCan } from '@/hooks/useCan';
+import { useTranslation } from 'react-i18next';
 
 interface CampaignCardProps {
   campaign: AdCampaign;
   onEdit?: (campaign: AdCampaign) => void;
 }
 
-const STATUS_CONFIG: Record<AdCampaignStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  draft: { label: 'Concept', variant: 'outline' },
-  pending_approval: { label: 'Wacht op goedkeuring', variant: 'secondary' },
-  active: { label: 'Actief', variant: 'default' },
-  paused: { label: 'Gepauzeerd', variant: 'secondary' },
-  ended: { label: 'Beëindigd', variant: 'outline' },
-  rejected: { label: 'Afgewezen', variant: 'destructive' },
+// Labels staan als i18n-key; de sleutel blijft de AdCampaignStatus-enumwaarde.
+const STATUS_CONFIG: Record<AdCampaignStatus, { labelKey: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+  draft: { labelKey: 'admin.ads.campaignCard.status.draft', variant: 'outline' },
+  pending_approval: { labelKey: 'admin.ads.campaignCard.status.pending_approval', variant: 'secondary' },
+  active: { labelKey: 'admin.ads.campaignCard.status.active', variant: 'default' },
+  paused: { labelKey: 'admin.ads.campaignCard.status.paused', variant: 'secondary' },
+  ended: { labelKey: 'admin.ads.campaignCard.status.ended', variant: 'outline' },
+  rejected: { labelKey: 'admin.ads.campaignCard.status.rejected', variant: 'destructive' },
 };
 
 export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
+  const { t } = useTranslation();
   const { updateStatus, deleteCampaign } = useAdCampaigns();
   const queryClient = useQueryClient();
   // H4d: row-action gating in dropdown — hide voor non-write rollen.
@@ -83,19 +86,19 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     setPushing(true);
     const cleanup = startStepSimulation();
     try {
-      toast({ title: 'Synchroniseren met Bol.com...', description: 'Dit kan 20-30 seconden duren' });
+      toast({ title: t('admin.ads.campaignCard.synchroniseren_met_bol_com_2'), description: t('admin.ads.campaignCard.dit_kan_20_30_seconden_duren') });
       const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
         body: { campaign_id: campaign.id },
       });
       if (error) throw error;
       if (data?.success) {
-        toast({ title: 'Campagne live op Bol.com! 🎉', description: `${data.eans_targeted?.length || 0} producten toegevoegd` });
+        toast({ title: t('admin.ads.campaignCard.campagne_live_op_bol_com'), description: t('admin.ads.campaignCard.producten_toegevoegd', { count: data.eans_targeted?.length || 0 }) });
         queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
-        toast({ title: 'Push gestart', description: data?.message || 'Status wordt verwerkt' });
+        toast({ title: t('admin.ads.campaignCard.push_gestart'), description: data?.message || 'Status wordt verwerkt' });
       }
     } catch (e: any) {
-      toast({ title: 'Push mislukt', description: e.message, variant: 'destructive' });
+      toast({ title: t('admin.ads.campaignCard.push_mislukt'), description: e.message, variant: 'destructive' });
     } finally {
       cleanup();
       setPushing(false);
@@ -109,19 +112,19 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
     const t1 = setTimeout(() => setPushStep('Ad groups bijwerken...'), 5000);
     const t2 = setTimeout(() => setPushStep('Producten toevoegen...'), 12000);
     try {
-      toast({ title: 'Opnieuw synchroniseren met Bol.com...', description: 'Dit kan 15-20 seconden duren' });
+      toast({ title: t('admin.ads.campaignCard.opnieuw_synchroniseren_met_bol_com'), description: t('admin.ads.campaignCard.dit_kan_15_20_seconden_duren') });
       const { data, error } = await supabase.functions.invoke('push-bol-campaign', {
         body: { campaign_id: campaign.id, force_repush: true },
       });
       if (error) throw error;
       if (data?.success) {
-        toast({ title: 'Campagne bijgewerkt op Bol.com! 🎉', description: `${data.eans_targeted?.length || 0} producten gesynchroniseerd` });
+        toast({ title: t('admin.ads.campaignCard.campagne_bijgewerkt_op_bol_com'), description: t('admin.ads.campaignCard.producten_gesynchroniseerd', { count: data.eans_targeted?.length || 0 }) });
         queryClient.invalidateQueries({ queryKey: ['ad-campaigns'] });
       } else {
-        toast({ title: 'Update gestart', description: data?.message || 'Status wordt verwerkt' });
+        toast({ title: t('admin.ads.campaignCard.update_gestart'), description: data?.message || 'Status wordt verwerkt' });
       }
     } catch (e: any) {
-      toast({ title: 'Update mislukt', description: e.message, variant: 'destructive' });
+      toast({ title: t('admin.ads.campaignCard.update_mislukt'), description: e.message, variant: 'destructive' });
     } finally {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -136,7 +139,7 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
       {pushing && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-background/70 backdrop-blur-[2px]">
           <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-          <p className="text-sm font-medium">Synchroniseren met Bol.com...</p>
+          <p className="text-sm font-medium">{t('admin.ads.campaignCard.synchroniseren_met_bol_com')}</p>
           {pushStep && <p className="text-xs text-muted-foreground mt-1">{pushStep}</p>}
         </div>
       )}
@@ -150,7 +153,7 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
         <div className="flex items-center gap-2">
           <h4 className="font-medium truncate">{campaign.name}</h4>
           <Badge variant={statusConfig.variant} className="shrink-0">
-            {statusConfig.label}
+            {t(statusConfig.labelKey)}
           </Badge>
           {isBol && campaign.platform_campaign_id && (
             <Badge variant="outline" className="shrink-0 text-xs">
@@ -159,7 +162,7 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
           )}
           {notPushed && (
             <Badge variant="destructive" className="shrink-0 text-xs">
-              Niet gepusht
+              {t('admin.ads.campaignCard.niet_gepusht')}
             </Badge>
           )}
         </div>
@@ -175,15 +178,15 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
       <div className="hidden md:flex items-center gap-6 text-sm">
         <div className="text-center">
           <p className="font-medium">{formatNumber(campaign.impressions)}</p>
-          <p className="text-xs text-muted-foreground">Bereik</p>
+          <p className="text-xs text-muted-foreground">{t('admin.ads.campaignCard.bereik')}</p>
         </div>
         <div className="text-center">
           <p className="font-medium">{formatNumber(campaign.clicks)}</p>
-          <p className="text-xs text-muted-foreground">Clicks</p>
+          <p className="text-xs text-muted-foreground">{t('admin.ads.campaignCard.clicks')}</p>
         </div>
         <div className="text-center">
           <p className="font-medium">{formatCurrency(campaign.spend)}</p>
-          <p className="text-xs text-muted-foreground">Uitgaven</p>
+          <p className="text-xs text-muted-foreground">{t('admin.ads.campaignCard.uitgaven')}</p>
         </div>
         <div className="text-center">
           <p className="font-medium">{campaign.roas?.toFixed(1) || '-'}x</p>
@@ -225,38 +228,38 @@ export function CampaignCard({ campaign, onEdit }: CampaignCardProps) {
           {canWriteAds && (
             <DropdownMenuItem onClick={() => onEdit?.(campaign)}>
               <Edit className="h-4 w-4 mr-2" />
-              Bewerken
+              {t('common.edit')}
             </DropdownMenuItem>
           )}
           {canWriteAds && notPushed && (
             <DropdownMenuItem onClick={handlePushToBol} disabled={pushing}>
               <Upload className="h-4 w-4 mr-2" />
-              Push naar Bol.com
+              {t('admin.ads.campaignCard.push_naar_bol_com')}
             </DropdownMenuItem>
           )}
           {canWriteAds && isBol && campaign.platform_campaign_id && (
             <DropdownMenuItem onClick={handleRepushToBol} disabled={pushing}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Producten opnieuw pushen
+              {t('admin.ads.campaignCard.producten_opnieuw_pushen')}
             </DropdownMenuItem>
           )}
           {canWriteAds && <DropdownMenuSeparator />}
           {canWriteAds && campaign.status === 'active' ? (
             <DropdownMenuItem onClick={handlePause}>
               <Pause className="h-4 w-4 mr-2" />
-              Pauzeren
+              {t('admin.adsBolcomCampaignDetail.pauzeren')}
             </DropdownMenuItem>
           ) : canWriteAds && campaign.status === 'paused' ? (
             <DropdownMenuItem onClick={handleActivate}>
               <Play className="h-4 w-4 mr-2" />
-              Hervatten
+              {t('admin.adsBolcomCampaignDetail.hervatten')}
             </DropdownMenuItem>
           ) : null}
           {canWriteAds && <DropdownMenuSeparator />}
           {canWriteAds && (
             <DropdownMenuItem onClick={handleDelete} className="text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
-              Verwijderen
+              {t('common.delete')}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

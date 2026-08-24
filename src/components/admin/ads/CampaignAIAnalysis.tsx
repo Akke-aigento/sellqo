@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, TrendingUp, TrendingDown, Pause, Ban, Play, Check, X, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   campaignId: string;
@@ -49,6 +50,7 @@ const priorityColors: Record<string, string> = {
 };
 
 export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
+  const { t } = useTranslation();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [noDataMessage, setNoDataMessage] = useState<string | null>(null);
@@ -126,13 +128,13 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">AI Campagne Optimizer</CardTitle>
+            <CardTitle className="text-lg">{t('admin.ads.campaignAIAnalysis.ai_campagne_optimizer')}</CardTitle>
           </div>
           <Button onClick={analyze} disabled={isAnalyzing} size="sm">
             {isAnalyzing ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyseren...</>
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t('admin.ads.campaignAIAnalysis.analyseren')}</>
             ) : (
-              <><Sparkles className="h-4 w-4 mr-2" /> Analyseer campagne</>
+              <><Sparkles className="h-4 w-4 mr-2" /> {t('admin.ads.campaignAIAnalysis.analyseer_campagne')}</>
             )}
           </Button>
         </div>
@@ -161,13 +163,13 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
 
         {!isAnalyzing && !noDataMessage && !hasAnalyzed && (
           <p className="text-center text-muted-foreground py-6">
-            Klik op "Analyseer campagne" om AI-suggesties te genereren op basis van je performance data.
+            {t('admin.ads.campaignAIAnalysis.klik_op_analyseer_campagne_om_ai')}
           </p>
         )}
 
         {!isAnalyzing && !noDataMessage && hasAnalyzed && pendingSuggestions.length === 0 && processedSuggestions.length === 0 && (
           <p className="text-center text-muted-foreground py-6">
-            De AI heeft geen suggesties op basis van de huidige data.
+            {t('admin.ads.campaignAIAnalysis.de_ai_heeft_geen_suggesties_op')}
           </p>
         )}
 
@@ -232,7 +234,7 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
 
         {!isAnalyzing && processedSuggestions.length > 0 && (
           <div className="mt-3 space-y-2">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Verwerkt</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('admin.ads.campaignAIAnalysis.verwerkt')}</p>
             {processedSuggestions.map((rec) => {
               const Icon = actionIcons[rec.action_type] || Sparkles;
               return (

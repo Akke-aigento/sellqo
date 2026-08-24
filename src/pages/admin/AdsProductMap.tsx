@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   id: string;
@@ -33,6 +34,7 @@ interface RowState {
 const CHANNEL = 'bolcom';
 
 export default function AdsProductMap() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id ?? null;
   const qc = useQueryClient();
@@ -115,10 +117,10 @@ export default function AdsProductMap() {
         return next;
       });
       qc.invalidateQueries({ queryKey: ['ads-product-channel-map', tenantId] });
-      toast({ title: 'Opgeslagen', description: 'Mapping bijgewerkt.' });
+      toast({ title: t('admin.adsProductMap.opgeslagen'), description: t('admin.adsProductMap.mapping_bijgewerkt') });
     },
     onError: (err: any) => {
-      toast({ title: 'Fout', description: err?.message ?? 'Opslaan mislukt', variant: 'destructive' });
+      toast({ title: t('admin.adsProductMap.fout'), description: err?.message ?? 'Opslaan mislukt', variant: 'destructive' });
     },
   });
 
@@ -152,7 +154,7 @@ export default function AdsProductMap() {
       setOverrides({});
       qc.invalidateQueries({ queryKey: ['ads-product-channel-map', tenantId] });
       toast({
-        title: 'Bulk opgeslagen',
+        title: t('admin.adsProductMap.bulk_opgeslagen'),
         description: `${ok} succesvol${fail ? `, ${fail} mislukt` : ''}`,
         variant: fail ? 'destructive' : 'default',
       });
@@ -173,25 +175,25 @@ export default function AdsProductMap() {
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-          <span>Ads</span><span>/</span><span>Product Mapping</span>
+          <span>{t('admin.adsBolcom.ads')}</span><span>/</span><span>{t('admin.adsProductMap.product_mapping')}</span>
         </div>
-        <h1 className="text-2xl font-bold">Product Mapping</h1>
+        <h1 className="text-2xl font-bold">{t('admin.adsProductMap.product_mapping_2')}</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Bepaal welke producten geadverteerd worden op Bol.com en de minimale voorraad waaronder ads automatisch worden gepauzeerd.
+          {t('admin.adsProductMap.bepaal_welke_producten_geadverteerd_worden_op')}
         </p>
       </div>
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-lg">Producten</CardTitle>
+            <CardTitle className="text-lg">{t('admin.marketing.mediaAssetsLibrary.folders.producten')}</CardTitle>
             <CardDescription>Bol.com kanaal — {filtered.length} resultaten</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Zoek product..."
+                placeholder={t('admin.marketing.inlinePromoWizard.zoek_product')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 w-[220px]"
@@ -212,18 +214,18 @@ export default function AdsProductMap() {
               {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Geen producten gevonden.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">{t('admin.marketing.inlinePromoWizard.geen_producten_gevonden')}</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="w-[100px]">Stock</TableHead>
-                    <TableHead className="w-[160px]">Adverteren</TableHead>
-                    <TableHead className="w-[160px]">Min stock voor ads</TableHead>
-                    <TableHead className="w-[120px]">Status</TableHead>
-                    <TableHead className="w-[100px] text-right">Actie</TableHead>
+                    <TableHead>{t('admin.stockReport.colName')}</TableHead>
+                    <TableHead className="w-[100px]">{t('admin.adsProductMap.stock')}</TableHead>
+                    <TableHead className="w-[160px]">{t('admin.adsProductMap.adverteren')}</TableHead>
+                    <TableHead className="w-[160px]">{t('admin.adsProductMap.min_stock_voor_ads')}</TableHead>
+                    <TableHead className="w-[120px]">{t('common.status')}</TableHead>
+                    <TableHead className="w-[100px] text-right">{t('admin.adsProductMap.actie')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -252,11 +254,11 @@ export default function AdsProductMap() {
                         </TableCell>
                         <TableCell>
                           {!row.is_advertised ? (
-                            <Badge variant="outline">Uit</Badge>
+                            <Badge variant="outline">{t('admin.adsProductMap.uit')}</Badge>
                           ) : paused ? (
-                            <Badge variant="secondary">Gepauzeerd</Badge>
+                            <Badge variant="secondary">{t('admin.marketing.campaignCard.status.gepauzeerd')}</Badge>
                           ) : (
-                            <Badge variant="default">Actief</Badge>
+                            <Badge variant="default">{t('admin.marketing.aBTestingPanel.actief')}</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -266,7 +268,7 @@ export default function AdsProductMap() {
                             disabled={!row.dirty || saveOne.isPending}
                             onClick={() => saveOne.mutate({ productId: p.id, row })}
                           >
-                            Opslaan
+                            {t('common.save')}
                           </Button>
                         </TableCell>
                       </TableRow>

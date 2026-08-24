@@ -15,6 +15,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useCustomerSegments } from '@/hooks/useCustomerSegments';
 import { AD_PLATFORMS, CAMPAIGN_TYPES, type AdPlatform, type CampaignType, type AdCampaign, type BidStrategy } from '@/types/ads';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, Package, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CampaignWizardProps {
   onClose: () => void;
@@ -24,6 +25,7 @@ interface CampaignWizardProps {
 type WizardStep = 'platform' | 'type' | 'products' | 'audience' | 'budget' | 'review';
 
 export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
+  const { t } = useTranslation();
   const { createCampaign, updateCampaign } = useAdCampaigns();
   const { connectedPlatforms, isConnected } = useAdPlatforms();
   const { products } = useProducts();
@@ -178,8 +180,8 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'platform' && (
           <>
             <CardHeader>
-              <CardTitle>Kies Platform</CardTitle>
-              <CardDescription>Op welk platform wil je adverteren?</CardDescription>
+              <CardTitle>{t('admin.ads.campaignWizard.kies_platform')}</CardTitle>
+              <CardDescription>{t('admin.ads.campaignWizard.op_welk_platform_wil_je_adverteren')}</CardDescription>
             </CardHeader>
             <CardContent>
               <RadioGroup
@@ -216,7 +218,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                         <p className="text-sm text-muted-foreground">{info.description}</p>
                       </div>
                       {!connected && (
-                        <span className="text-xs text-muted-foreground">Niet gekoppeld</span>
+                        <span className="text-xs text-muted-foreground">{t('admin.ads.campaignWizard.niet_gekoppeld')}</span>
                       )}
                     </Label>
                   );
@@ -229,15 +231,15 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'type' && (
           <>
             <CardHeader>
-              <CardTitle>Campagne Details</CardTitle>
-              <CardDescription>Geef je campagne een naam en kies het type</CardDescription>
+              <CardTitle>{t('admin.ads.campaignWizard.campagne_details')}</CardTitle>
+              <CardDescription>{t('admin.ads.campaignWizard.geef_je_campagne_een_naam_en')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Campagnenaam</Label>
+                <Label htmlFor="name">{t('admin.ads.bolCampaignEditForm.campagnenaam')}</Label>
                 <Input
                   id="name"
-                  placeholder="bijv. Zomercollectie 2026"
+                  placeholder={t('admin.ads.campaignWizard.bijv_zomercollectie_2026')}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -245,7 +247,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
 
               {!isEditMode && (
                 <div className="space-y-2">
-                  <Label>Campagne Type</Label>
+                  <Label>{t('admin.ads.campaignWizard.campagne_type')}</Label>
                   <RadioGroup
                     value={formData.campaign_type}
                     onValueChange={(v) => setFormData({ ...formData, campaign_type: v as CampaignType })}
@@ -272,7 +274,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
 
               {isEditMode && (
                 <div className="flex justify-between py-2 border rounded-lg px-3">
-                  <span className="text-muted-foreground">Type</span>
+                  <span className="text-muted-foreground">{t('admin.marketing.contentHistoryList.type')}</span>
                   <span className="font-medium">
                     {formData.campaign_type && CAMPAIGN_TYPES[formData.campaign_type as CampaignType]?.name}
                   </span>
@@ -285,16 +287,16 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'products' && (
           <>
             <CardHeader>
-              <CardTitle>Producten selecteren</CardTitle>
+              <CardTitle>{t('admin.ads.campaignWizard.producten_selecteren')}</CardTitle>
               <CardDescription>
-                Kies welke producten je wilt adverteren (optioneel — laat leeg voor alle producten)
+                {t('admin.ads.campaignWizard.kies_welke_producten_je_wilt_adverteren')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Zoek producten..."
+                  placeholder={t('admin.ads.campaignWizard.zoek_producten')}
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   className="pl-9"
@@ -311,7 +313,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                     size="sm" 
                     onClick={() => setFormData({ ...formData, product_ids: [] })}
                   >
-                    Alles deselecteren
+                    {t('admin.ads.campaignWizard.alles_deselecteren')}
                   </Button>
                 </div>
               )}
@@ -321,7 +323,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                   {filteredProducts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                       <Package className="h-8 w-8 mb-2 opacity-50" />
-                      <p className="text-sm">Geen producten gevonden</p>
+                      <p className="text-sm">{t('admin.marketing.productSelectDialog.geen_producten_gevonden')}</p>
                     </div>
                   ) : (
                     filteredProducts.map(product => (
@@ -365,9 +367,9 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'audience' && (
           <>
             <CardHeader>
-              <CardTitle>Doelgroep</CardTitle>
+              <CardTitle>{t('admin.marketing.campaignDialog.doelgroep')}</CardTitle>
               <CardDescription>
-                Koppel een klantsegment aan deze campagne (optioneel)
+                {t('admin.ads.campaignWizard.koppel_een_klantsegment_aan_deze_campagne')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -376,10 +378,10 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                 onValueChange={(v) => setFormData({ ...formData, segment_id: v === 'none' ? '' : v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Kies een segment" />
+                  <SelectValue placeholder={t('admin.ads.campaignWizard.kies_een_segment')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Alle klanten (geen segment)</SelectItem>
+                  <SelectItem value="none">{t('admin.ads.campaignWizard.alle_klanten_geen_segment')}</SelectItem>
                   {segments.map(segment => (
                     <SelectItem key={segment.id} value={segment.id}>
                       {segment.name} ({segment.member_count || 0} klanten)
@@ -392,10 +394,10 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                 <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
                   <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Nog geen klantsegmenten aangemaakt.
+                    {t('admin.ads.campaignWizard.nog_geen_klantsegmenten_aangemaakt')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Je kunt segmenten aanmaken bij Marketing → Segmenten
+                    {t('admin.ads.campaignWizard.je_kunt_segmenten_aanmaken_bij_marketing')}
                   </p>
                 </div>
               )}
@@ -417,13 +419,13 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'budget' && (
           <>
             <CardHeader>
-              <CardTitle>Budget & Biedingen</CardTitle>
-              <CardDescription>Stel je budget en biedstrategie in</CardDescription>
+              <CardTitle>{t('admin.ads.campaignWizard.budget_biedingen')}</CardTitle>
+              <CardDescription>{t('admin.ads.campaignWizard.stel_je_budget_en_biedstrategie_in')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {formData.platform === 'bol_ads' && (
                 <div className="space-y-3">
-                  <Label>Campagne modus (Bol.com)</Label>
+                  <Label>{t('admin.ads.campaignWizard.campagne_modus_bol_com')}</Label>
                   <RadioGroup
                     value={formData.bid_strategy}
                     onValueChange={(v) => setFormData({ ...formData, bid_strategy: v as BidStrategy })}
@@ -437,9 +439,9 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                     >
                       <RadioGroupItem value="auto" id="bid-auto" className="mt-0.5" />
                       <div>
-                        <p className="font-medium">Automatisch (aanbevolen)</p>
+                        <p className="font-medium">{t('admin.ads.campaignWizard.automatisch_aanbevolen')}</p>
                         <p className="text-sm text-muted-foreground">
-                          Bol optimaliseert biedingen automatisch op basis van je doel-ROAS. Geen keywords nodig.
+                          {t('admin.ads.campaignWizard.bol_optimaliseert_biedingen_automatisch_op_basis')}
                         </p>
                       </div>
                     </Label>
@@ -451,9 +453,9 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                     >
                       <RadioGroupItem value="manual_cpc" id="bid-manual" className="mt-0.5" />
                       <div>
-                        <p className="font-medium">Handmatig</p>
+                        <p className="font-medium">{t('admin.odooChannels.channels.manual')}</p>
                         <p className="text-sm text-muted-foreground">
-                          Je stelt zelf keywords en biedingen in. Meer controle, maar vereist actief beheer.
+                          {t('admin.ads.campaignWizard.je_stelt_zelf_keywords_en_biedingen')}
                         </p>
                       </div>
                     </Label>
@@ -462,7 +464,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
               )}
 
               <div className="space-y-2">
-                <Label>Budget Type</Label>
+                <Label>{t('admin.ads.campaignWizard.budget_type')}</Label>
                 <Select 
                   value={formData.budget_type}
                   onValueChange={(v) => setFormData({ ...formData, budget_type: v as 'daily' | 'lifetime' })}
@@ -471,15 +473,15 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Dagbudget</SelectItem>
-                    <SelectItem value="lifetime">Totaalbudget</SelectItem>
+                    <SelectItem value="daily">{t('admin.ads.campaignWizard.dagbudget')}</SelectItem>
+                    <SelectItem value="lifetime">{t('admin.ads.campaignWizard.totaalbudget')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Budget</Label>
+                  <Label>{t('admin.ads.campaignWizard.budget')}</Label>
                   <span className="text-lg font-semibold">€{formData.budget_amount}</span>
                 </div>
                 <Slider
@@ -498,7 +500,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Doel ROAS</Label>
+                  <Label>{t('admin.ads.campaignWizard.doel_roas')}</Label>
                   <span className="text-lg font-semibold">{formData.target_roas}x</span>
                 </div>
                 <Slider
@@ -525,31 +527,31 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
             <CardContent>
               <dl className="space-y-4">
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Platform</dt>
+                  <dt className="text-muted-foreground">{t('admin.marketing.contentHistoryList.platform')}</dt>
                   <dd className="font-medium">
                     {formData.platform && AD_PLATFORMS[formData.platform].name}
                   </dd>
                 </div>
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Naam</dt>
+                  <dt className="text-muted-foreground">{t('common.name')}</dt>
                   <dd className="font-medium">{formData.name}</dd>
                 </div>
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Type</dt>
+                  <dt className="text-muted-foreground">{t('admin.marketing.contentHistoryList.type')}</dt>
                   <dd className="font-medium">
                     {formData.campaign_type && CAMPAIGN_TYPES[formData.campaign_type as CampaignType]?.name}
                   </dd>
                 </div>
                 {formData.platform === 'bol_ads' && (
                   <div className="flex justify-between py-2 border-b">
-                    <dt className="text-muted-foreground">Campagne modus</dt>
+                    <dt className="text-muted-foreground">{t('admin.ads.bolCampaignEditForm.campagne_modus')}</dt>
                     <dd className="font-medium">
                       {formData.bid_strategy === 'auto' ? 'Automatisch' : 'Handmatig'}
                     </dd>
                   </div>
                 )}
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Producten</dt>
+                  <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.folders.producten')}</dt>
                   <dd className="font-medium">
                     {formData.product_ids.length > 0 
                       ? `${formData.product_ids.length} geselecteerd`
@@ -557,7 +559,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                   </dd>
                 </div>
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Doelgroep</dt>
+                  <dt className="text-muted-foreground">{t('admin.marketing.campaignDialog.doelgroep')}</dt>
                   <dd className="font-medium">
                     {formData.segment_id 
                       ? segments.find(s => s.id === formData.segment_id)?.name || 'Segment'
@@ -565,13 +567,13 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                   </dd>
                 </div>
                 <div className="flex justify-between py-2 border-b">
-                  <dt className="text-muted-foreground">Budget</dt>
+                  <dt className="text-muted-foreground">{t('admin.ads.campaignWizard.budget_2')}</dt>
                   <dd className="font-medium">
                     €{formData.budget_amount} {formData.budget_type === 'daily' ? '/dag' : 'totaal'}
                   </dd>
                 </div>
                 <div className="flex justify-between py-2">
-                  <dt className="text-muted-foreground">Doel ROAS</dt>
+                  <dt className="text-muted-foreground">{t('admin.ads.campaignWizard.doel_roas_2')}</dt>
                   <dd className="font-medium">{formData.target_roas}x</dd>
                 </div>
               </dl>
@@ -604,7 +606,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
             </Button>
           ) : (
             <Button onClick={handleNext} disabled={!canProceed()}>
-              Volgende
+              {t('common.next')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}

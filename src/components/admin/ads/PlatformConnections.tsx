@@ -9,8 +9,10 @@ import { useAdCampaigns } from '@/hooks/useAdCampaigns';
 import { AD_PLATFORMS, type AdPlatform } from '@/types/ads';
 import { Link2, Unlink, Info, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export function PlatformConnections() {
+  const { t, i18n } = useTranslation();
   const { 
     connections, 
     isLoading, 
@@ -30,23 +32,23 @@ export function PlatformConnections() {
     
     if (status === 'requires_connection') {
       toast({
-        title: 'Retailer koppeling vereist',
-        description: 'Koppel eerst je Bol.com account in SellQo Connect.',
+        title: t('admin.ads.platformConnections.retailer_koppeling_vereist'),
+        description: t('admin.ads.platformConnections.koppel_eerst_je_bol_com_account'),
       });
       return;
     }
     
     if (status === 'requires_advertising_credentials') {
       toast({
-        title: 'Advertising API vereist',
-        description: 'Voeg de Bol.com Advertising API credentials toe in SellQo Connect.',
+        title: t('admin.ads.platformConnections.advertising_api_vereist'),
+        description: t('admin.ads.platformConnections.voeg_de_bol_com_advertising_api'),
       });
       return;
     }
     
     if (status === 'coming_soon') {
       toast({
-        title: 'Binnenkort beschikbaar',
+        title: t('admin.ads.platformConnections.binnenkort_beschikbaar'),
         description: `${AD_PLATFORMS[platform].name} koppeling komt binnenkort.`,
       });
       return;
@@ -75,7 +77,7 @@ export function PlatformConnections() {
   };
 
   const handleDisconnect = async (platform: AdPlatform) => {
-    if (confirm(`Weet je zeker dat je ${AD_PLATFORMS[platform].name} wilt ontkoppelen?`)) {
+    if (confirm(t('admin.ads.platformConnections.ontkoppelen_bevestigen', { platform: AD_PLATFORMS[platform].name }))) {
       await disconnectPlatform.mutateAsync(platform);
     }
   };
@@ -124,19 +126,19 @@ export function PlatformConnections() {
               {connection && (
                 <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Gekoppeld
+                  {t('admin.ads.platformConnections.gekoppeld')}
                 </Badge>
               )}
               {isComingSoon && !connection && (
                 <Badge variant="secondary" className="gap-1">
                   <Clock className="h-3 w-3" />
-                  Binnenkort
+                  {t('admin.ads.platformConnections.binnenkort')}
                 </Badge>
               )}
               {(requiresConnection || requiresAdvertisingCredentials) && !connection && (
                 <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
                   <AlertTriangle className="h-3 w-3" />
-                  Actie vereist
+                  {t('admin.ads.platformConnections.actie_vereist')}
                 </Badge>
               )}
             </div>
@@ -146,18 +148,18 @@ export function PlatformConnections() {
           {connection ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Account</span>
+                <span className="text-muted-foreground">{t('admin.ads.platformConnections.account')}</span>
                 <span className="font-medium">{connection.account_name || connection.account_id || 'Gekoppeld'}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Campagnes</span>
+                <span className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.folders.campagnes')}</span>
                 <span className="font-medium">{campaignCount}</span>
               </div>
               {connection.last_sync_at && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Laatste sync</span>
+                  <span className="text-muted-foreground">{t('admin.ads.platformConnections.laatste_sync')}</span>
                   <span className="font-medium">
-                    {new Date(connection.last_sync_at).toLocaleDateString('nl-NL')}
+                    {new Date(connection.last_sync_at).toLocaleDateString(i18n.language)}
                   </span>
                 </div>
               )}
@@ -169,7 +171,7 @@ export function PlatformConnections() {
                   className="text-destructive"
                 >
                   <Unlink className="h-4 w-4 mr-2" />
-                  Ontkoppelen
+                  {t('admin.ads.platformConnections.ontkoppelen')}
                 </Button>
               </div>
             </div>
@@ -179,7 +181,7 @@ export function PlatformConnections() {
                 <Alert className="border-amber-200 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-amber-800">
-                    Om Bol.com Ads te gebruiken moet je eerst je Bol.com Retailer account koppelen.
+                    {t('admin.ads.platformConnections.om_bol_com_ads_te_gebruiken')}
                   </AlertDescription>
                 </Alert>
               )}
@@ -188,7 +190,7 @@ export function PlatformConnections() {
                 <Alert className="border-amber-200 bg-amber-50">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-amber-800">
-                    Voeg de Bol.com Advertising API credentials toe aan je bestaande koppeling.
+                    {t('admin.ads.platformConnections.voeg_de_bol_com_advertising_api_2')}
                   </AlertDescription>
                 </Alert>
               )}
@@ -219,7 +221,7 @@ export function PlatformConnections() {
                   variant="secondary"
                 >
                   <Clock className="h-4 w-4 mr-2" />
-                  Binnenkort beschikbaar
+                  {t('admin.ads.platformConnections.binnenkort_beschikbaar')}
                 </Button>
               ) : (
                 <Button 
@@ -249,8 +251,7 @@ export function PlatformConnections() {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Koppel je advertentie-accounts om campagnes direct vanuit SellQo te beheren. 
-          Je advertentiebudget wordt rechtstreeks via je eigen account afgerekend.
+          {t('admin.ads.platformConnections.koppel_je_advertentie_accounts_om_campagnes')}
         </AlertDescription>
       </Alert>
 

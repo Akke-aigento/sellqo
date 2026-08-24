@@ -11,11 +11,13 @@ import { ChevronLeft, ArrowUpDown, Loader2, Search, Hash, TrendingDown, AlertTri
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const fmt = (v: number) => `€${v.toFixed(2)}`;
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 export default function AdsBolcomSearchTerms() {
+  const { t } = useTranslation();
   const {
     searchTerms, summary, isLoading,
     period, setPeriod,
@@ -96,13 +98,13 @@ export default function AdsBolcomSearchTerms() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Link to="/admin/ads" className="hover:text-foreground">Ads</Link>
+            <Link to="/admin/ads" className="hover:text-foreground">{t('admin.adsBolcom.ads')}</Link>
             <ChevronLeft className="h-3 w-3 rotate-180" />
             <Link to="/admin/ads/bolcom" className="hover:text-foreground">Bol.com</Link>
             <ChevronLeft className="h-3 w-3 rotate-180" />
-            <span className="text-foreground">Zoektermen</span>
+            <span className="text-foreground">{t('admin.adsBolcomSearchTerms.zoektermen')}</span>
           </div>
-          <h1 className="text-2xl font-bold">Bol.com Zoektermen</h1>
+          <h1 className="text-2xl font-bold">{t('admin.adsBolcomSearchTerms.bol_com_zoektermen')}</h1>
         </div>
         <div className="flex flex-wrap gap-1">
           {(['7d', '30d', '90d'] as const).map(p => (
@@ -117,14 +119,14 @@ export default function AdsBolcomSearchTerms() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Unieke Zoektermen</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.adsBolcomSearchTerms.unieke_zoektermen')}</CardTitle>
             <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent><p className="text-2xl font-bold">{summary.totalUnique}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Met Conversies</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.adsBolcomSearchTerms.met_conversies')}</CardTitle>
             <TrendingDown className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -134,7 +136,7 @@ export default function AdsBolcomSearchTerms() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Zonder Conversies</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.adsBolcomSearchTerms.zonder_conversies')}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -144,7 +146,7 @@ export default function AdsBolcomSearchTerms() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">AI Suggesties</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.marketing.contentHistoryList.ai_suggesties')}</CardTitle>
             <Sparkles className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent><p className="text-2xl font-bold">{summary.aiPending}</p></CardContent>
@@ -156,7 +158,7 @@ export default function AdsBolcomSearchTerms() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek zoekterm..."
+            placeholder={t('admin.adsBolcomSearchTerms.zoek_zoekterm')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9"
@@ -164,11 +166,11 @@ export default function AdsBolcomSearchTerms() {
         </div>
         <div className="flex items-center gap-2">
           <Switch checked={onlyNoConversions} onCheckedChange={setOnlyNoConversions} />
-          <span className="text-sm">Alleen zonder conversies</span>
+          <span className="text-sm">{t('admin.adsBolcomSearchTerms.alleen_zonder_conversies')}</span>
         </div>
         <div className="flex items-center gap-2">
           <Switch checked={onlyWithAiSuggestion} onCheckedChange={setOnlyWithAiSuggestion} />
-          <span className="text-sm">Alleen met AI suggestie</span>
+          <span className="text-sm">{t('admin.adsBolcomSearchTerms.alleen_met_ai_suggestie')}</span>
         </div>
       </div>
 
@@ -177,8 +179,8 @@ export default function AdsBolcomSearchTerms() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">Geen zoektermen gevonden</h3>
-            <p className="text-muted-foreground">Zoektermen worden beschikbaar nadat je campagnes actief zijn en data genereren.</p>
+            <h3 className="text-lg font-semibold">{t('admin.adsBolcomSearchTerms.geen_zoektermen_gevonden')}</h3>
+            <p className="text-muted-foreground">{t('admin.adsBolcomSearchTerms.zoektermen_worden_beschikbaar_nadat_je_campagnes')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -188,16 +190,16 @@ export default function AdsBolcomSearchTerms() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <SortHeader label="Zoekterm" field="search_term" />
-                    <TableHead>Campagne</TableHead>
-                    <SortHeader label="Impressies" field="impressions" />
-                    <SortHeader label="Clicks" field="clicks" />
-                    <SortHeader label="Spend" field="spend" />
-                    <SortHeader label="Orders" field="orders" />
-                    <SortHeader label="Revenue" field="revenue" />
-                    <SortHeader label="ACoS" field="acos" />
+                    <SortHeader label={t('admin.adsBolcom.zoekterm')} field="search_term" />
+                    <TableHead>{t('admin.marketing.aiEmailPlanner.campagne')}</TableHead>
+                    <SortHeader label={t('admin.adsBolcomCampaignDetail.impressies')} field="impressions" />
+                    <SortHeader label={t('admin.ads.campaignCard.clicks')} field="clicks" />
+                    <SortHeader label={t('admin.ads.spend')} field="spend" />
+                    <SortHeader label={t('admin.adsBolcom.orders')} field="orders" />
+                    <SortHeader label={t('admin.adsBolcomKeywords.revenue')} field="revenue" />
+                    <SortHeader label={t('admin.ads.acos')} field="acos" />
                     <SortHeader label="CTR" field="ctr" />
-                    <TableHead>Acties</TableHead>
+                    <TableHead>{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,26 +263,26 @@ export default function AdsBolcomSearchTerms() {
       <Dialog open={!!negModal} onOpenChange={() => setNegModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Negatief keyword toevoegen</DialogTitle>
+            <DialogTitle>{t('admin.adsBolcomCampaignDetail.negatief_keyword_toevoegen')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Zoekterm:</p>
+              <p className="text-sm text-muted-foreground">{t('admin.adsBolcomSearchTerms.zoekterm')}</p>
               <p className="font-medium">{negModal?.search_term}</p>
             </div>
             <div>
-              <label className="text-sm font-medium">Match type</label>
+              <label className="text-sm font-medium">{t('admin.adsBolcomSearchTerms.match_type')}</label>
               <Select value={negMatchType} onValueChange={setNegMatchType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="exact">Exact</SelectItem>
-                  <SelectItem value="phrase">Phrase</SelectItem>
+                  <SelectItem value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</SelectItem>
+                  <SelectItem value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNegModal(null)}>Annuleren</Button>
+            <Button variant="outline" onClick={() => setNegModal(null)}>{t('common.cancel')}</Button>
             <Button onClick={handleAddNegative} disabled={addAsNegativeKeyword.isPending}>
               {addAsNegativeKeyword.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Toevoegen
@@ -293,26 +295,26 @@ export default function AdsBolcomSearchTerms() {
       <Dialog open={!!promoModal} onOpenChange={() => setPromoModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Promoveren tot keyword</DialogTitle>
+            <DialogTitle>{t('admin.adsBolcomSearchTerms.promoveren_tot_keyword')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Zoekterm:</p>
+              <p className="text-sm text-muted-foreground">{t('admin.adsBolcomSearchTerms.zoekterm')}</p>
               <p className="font-medium">{promoModal?.search_term}</p>
             </div>
             <div>
-              <label className="text-sm font-medium">Match type</label>
+              <label className="text-sm font-medium">{t('admin.adsBolcomSearchTerms.match_type')}</label>
               <Select value={promoMatchType} onValueChange={setPromoMatchType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="exact">Exact</SelectItem>
-                  <SelectItem value="phrase">Phrase</SelectItem>
-                  <SelectItem value="broad">Broad</SelectItem>
+                  <SelectItem value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</SelectItem>
+                  <SelectItem value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</SelectItem>
+                  <SelectItem value="broad">{t('admin.ads.bolCampaignEditForm.broad')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium">Bod (€)</label>
+              <label className="text-sm font-medium">{t('admin.adsBolcomSearchTerms.bod')}</label>
               <Input
                 type="number"
                 step="0.01"
@@ -323,7 +325,7 @@ export default function AdsBolcomSearchTerms() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPromoModal(null)}>Annuleren</Button>
+            <Button variant="outline" onClick={() => setPromoModal(null)}>{t('common.cancel')}</Button>
             <Button onClick={handlePromote} disabled={promoteToKeyword.isPending}>
               {promoteToKeyword.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Toevoegen als keyword
