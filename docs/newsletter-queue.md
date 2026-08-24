@@ -4,6 +4,37 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10r — De menukaart maakt nu je posts (feature + security, 21-08-2026)
+
+**Eén klik en je ochtendmenu ligt uitgewerkt op tafel** (oktober 2026)
+Boven in het tabblad Menukaart staat nu "Menu van vandaag". Sellqo AI werkt je ochtendmenu in één
+keer uit tot kant-en-klare kaarten: per categorie een tekst met hashtags, in het formaat dat er het
+beste bij past — post, reel, verhaal of carrousel. Elke kaart zie je als preview zoals hij op het
+kanaal zou landen, dus een te lange tekst voor een verhaal valt meteen op. De categorie "verras me"
+kiest zelf een invalshoek op basis van je merk-DNA en wat er in je winkel speelt, en vertelt erbij
+waarom. Per kaart kies je: klaarzetten als concept, bijstellen of weggooien.
+Wat betekent dit voor jou? Een heel menu kost 5 credits, ongeacht het aantal kaarten. Beeld wordt
+niet automatisch gemaakt — dat vraag je per kaart aan voor 5 credits, zodat je alleen betaalt voor
+wat je gebruikt.
+
+**Twee AI-functies strenger afgeschermd** (oktober 2026)
+Beeldgeneratie en de marketinginzichten controleerden wel of je ingelogd was, maar niet bij welke
+winkel je hoort. Dat is dichtgezet: beide controleren nu je toegang tot de winkel én je rol. Aan het
+gebruik verandert niets.
+
+**i18n-keys.** `public.changelog.changes.ai_daily_menu_generator` en
+`public.changelog.changes.ai_image_tenant_check` — KLAARZETTEN, nog niet verstuurd.
+
+**LET OP bij verzending.** Niet schrijven dat het menu zichzelf elke ochtend klaarzet: er is nog
+géén planning of automatische ronde, het blijft voorlopig een knop. De tekst hierboven vermijdt die
+claim bewust. Ook niet beloven dat posts automatisch gepubliceerd worden — kiezen levert een
+concept, publiceren doet de tenant zelf via het gekoppelde kanaal.
+
+**Beschikbaarheid.** Alleen Pro en Enterprise (`social_commerce`).
+
+**Bundel:** hoort bij 2026.10q. Die twee samen versturen als één verhaal over de menukaart — het
+q-item is het fundament, dit item maakt het bruikbaar.
+
 ### 2026.10q — Merk-DNA en ochtendmenu in Sellqo AI (feature, 20-08-2026)
 
 **Je merk-DNA en ochtendmenu leg je nu zelf vast** (oktober 2026)

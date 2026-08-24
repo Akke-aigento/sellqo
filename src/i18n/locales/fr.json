@@ -58,6 +58,10 @@
       "title": "Fonctionnalité indisponible",
       "description": "Cette fonctionnalité n'est pas incluse dans votre formule actuelle.",
       "cta": "Voir les formules"
+    },
+    "tag_input": {
+      "placeholder": "Saisissez une valeur et appuyez sur Entrée",
+      "remove": "Supprimer {{value}}"
     }
   },
   "auth": {
@@ -2490,6 +2494,51 @@
     },
     "errors": {
       "load_failed": "La carte n'a pas pu être chargée. Rechargez la page ou réessayez plus tard."
+    },
+    "today": {
+      "title": "Menu du jour",
+      "description": "Laissez Sellqo AI transformer votre menu du matin en cartes prêtes à l'emploi.",
+      "generate": "Générer le menu ({{credits}} crédits)",
+      "generating": "Composition en cours...",
+      "empty": "Aucune carte pour le moment. Cliquez sur Générer le menu pour composer votre première série.",
+      "formats": {
+        "post": "Publication",
+        "reel": "Reel",
+        "story": "Story",
+        "carousel": "Carrousel"
+      },
+      "preview": {
+        "no_image": "Pas encore d'image",
+        "freeform": "Choix libre",
+        "angle": "Angle retenu : {{reason}}"
+      },
+      "actions": {
+        "choose": "Choisir",
+        "chosen": "En attente",
+        "edit": "Ajuster",
+        "discard": "Écarter",
+        "generate_image": "Ajouter une image ({{credits}})"
+      },
+      "edit": {
+        "title": "Titre de travail",
+        "caption": "Texte",
+        "hashtags": "Hashtags",
+        "hashtags_placeholder": "Saisissez un hashtag et appuyez sur Entrée"
+      },
+      "toast": {
+        "generated": "{{amount}} cartes prêtes",
+        "skipped": "{{amount}} cartes étaient inutilisables et ont été ignorées.",
+        "updated": "Carte mise à jour",
+        "discarded": "Carte écartée"
+      },
+      "errors": {
+        "brand_dna_missing": "Renseignez d'abord votre ADN de marque ci-dessous. Sans lui, l'IA ne sait ni pour qui ni sur quoi écrire.",
+        "menu_empty": "Votre menu du matin est encore à zéro. Choisissez ci-dessous combien de publications vous voulez par catégorie.",
+        "insufficient_credits": "Vous n'avez pas assez de crédits IA pour un menu.",
+        "rate_limit": "Trop de requêtes. Réessayez dans une minute.",
+        "generate_failed": "Le menu n'a pas pu être généré.",
+        "save_failed": "Échec de l'enregistrement"
+      }
     }
   }
 }

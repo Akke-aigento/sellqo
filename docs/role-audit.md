@@ -1,3 +1,291 @@
+## MENU-2 — de generator, plus twee fixes uit de smoke-test — 21 augustus 2026
+
+> ⚠️ **DE MIGRATIES ZIJN NOG STEEDS NIET GEDRAAID.** MENU-1 liet er twee
+> klaarstaan; deze batch legt er een derde bij
+> (`20260821100000_menu2_doc_article.sql`). Zolang die niet via de
+> Lovable-connector gedraaid zijn en de types niet opnieuw gegenereerd zijn,
+> faalt de hele Menukaart-tab op PostgREST — inclusief de nieuwe generator, die
+> `tenant_brand_dna` leest. **Deel B is daardoor code-geverifieerd maar niet
+> functioneel getest.**
+
+### Root cause
+
+Twee dingen in één batch.
+
+**Deel A** — twee bugs uit de smoke-test van MENU-1:
+
+1. **De tellers stonden voorgevuld.** `src/config/contentMenuCategories.ts` gaf
+   `defaultCount` 2 aan productpost en 1 aan zes andere categorieën. `countFor`
+   in `MorningMenuCard.tsx:144,181` valt op die waarde terug zolang er niets is
+   opgeslagen, dus een verse tenant zag **8 posts** in de totaalteller zonder
+   ooit iets gekozen te hebben — en dacht dus dat het al ingesteld was.
+   Geverifieerd dat de voorvulling nergens anders vandaan kwam:
+   `EMPTY_BRAND_DNA.menu_counts` is `{}` en de kolomdefault is `'{}'::jsonb`.
+2. **De tag-inputs splitsten alleen op komma.** `tag-input.tsx:23` deed
+   `raw.split(",")`, en de plak-handler riep diezelfde functie aan. Een geplakt
+   blok met regeleindes of ` · ` werd dus één onbruikbare tag. De split-regel
+   stond bovendien twee keer uitgeschreven (`addTags` én `commitPending`), wat
+   precies verklaart waarom de plak-route achterbleef.
+
+**Deel B** — de generator zelf. MENU-1 leverde het fundament maar genereerde
+niets; de menukaart was een formulier zonder uitkomst.
+
+**En een derde ding dat de recon opleverde en niet kon blijven liggen:**
+
+> **Cross-tenant-lek in twee bestaande edge-functies.**
+> `ai-generate-image` en `ai-marketing-context` lazen `tenantId` uit de
+> request-body en verifieerden alleen `supabase.auth.getUser()`. `grep` op
+> `authenticateRequest|requireRole|get_user_tenant_ids|user_roles` gaf in beide
+> bestanden **nul treffers**. Elke ingelogde gebruiker van tenant A kon dus een
+> vreemde `tenantId` meesturen en daarmee de AI-credits van tenant B opmaken,
+> rijen in hun `ai_generated_images` schrijven, of via de context hun omzet-,
+> klant- en voorraadcijfers uitlezen. Beide staan bovendien op
+> `verify_jwt = false` in `config.toml`, dus Supabase ving het ook niet af.
+>
+> Dit zat precies in het pad dat de nieuwe generator gebruikt (de beeldknop per
+> kaart), dus het is meegenomen in plaats van doorgeschoven.
+
+### Uitgevoerd
+
+**Deel A**
+
+- `src/config/contentMenuCategories.ts` — alle acht `defaultCount`-waarden op
+  `0`. Het veld blijft bestaan als haakje voor een later startvoorstel per
+  branche; dat staat nu in het commentaar, zodat de volgende lezer het niet als
+  dode code opruimt.
+- `src/components/ui/tag-input.tsx` — één gedeelde `splitRawTags()` die splitst
+  op `\n`, `\r`, komma, puntkomma, `·` en `|`, per waarde trimt, leidende
+  opsommingstekens (`-`, `•`, `*`, `–`, `—`) weghaalt en lege waarden weggooit.
+  `addTags` en `commitPending` gebruiken nu dezelfde functie — de duplicatie is
+  weg. Dedupliceren gebeurt zowel tegen de bestaande waarden als binnen de
+  geplakte reeks zelf.
+  - `handleKeyDown` accepteert nu ook `;` als commit-toets, zodat typen en
+    plakken hetzelfde gedrag hebben.
+  - **De plak-handler grijpt alleen in als er een scheidingsteken in zit.**
+    Anders blijft het normale plakgedrag staan; zonder die voorwaarde kun je een
+    tag niet meer uit stukjes samenstellen.
+  - De hardcoded placeholder `"Typ waarde + Enter"` en het kruisje zonder
+    `aria-label` gingen naar `common.tag_input.*`.
+
+**Deel B — de generator**
+
+- **`supabase/functions/_shared/contentCategories.ts`** (nieuw) — de
+  promptinstructie per vaste categorie, plus `FORMAT_EMPHASIS_GUIDANCE` en
+  `CARD_FORMATS`. Dit is de andere helft van het contract dat MENU-1 vastlegde:
+  de frontend bezit de sleutels en de i18n, deze kant bezit de instructie.
+- **`supabase/functions/ai-generate-daily-menu/index.ts`** (nieuw, ~370 regels):
+  1. `authenticateRequest` + `requireRole(['tenant_admin','staff','marketing'])`.
+  2. Leest `tenant_brand_dna` en de actieve `tenant_content_categories`.
+     Geen merk-DNA-rij → **409 `brand_dna_missing`**; totaal 0 slots → **422
+     `menu_empty`**. Eigen foutcodes, zodat de UI een bruikbare zin kan tonen in
+     plaats van "er ging iets mis".
+  3. `use_ai_credits(5, 'daily_menu')` → 402 bij onvoldoende.
+  4. Haalt producten (actief, niet verborgen), gepubliceerde `storefront_pages`
+     en de tenantgegevens op; leidt daaruit nieuw-binnen, bijna-uitverkocht,
+     uitgelicht en het seizoen af.
+  5. **Eén AI-call** (`google/gemini-3-flash-preview`, `temperature: 0.85`) met
+     JSON-uitvoer voor álle kaarten samen.
+  6. Valideert per kaart en schrijft naar `ai_generated_content` met
+     `content_type: 'menu_card'`. Geen schemawijziging — alles wat een menukaart
+     eigen is zit in `metadata`.
+- **`src/types/daily-menu.ts`**, **`src/hooks/useDailyMenu.ts`** en drie
+  componenten onder `src/components/admin/marketing/menu/today/`
+  (`TodayMenuSection`, `MenuCardPreview`, `MenuCardActions`), ingehangen boven
+  het merk-DNA-formulier in `ContentMenuTab.tsx`.
+- **`scripts/content-menu-contract.mjs`** (nieuw) — bewaakt het contract tussen
+  de twee registries. Zie Verificatie.
+
+**Vier ontwerpkeuzes die uitleg verdienen**
+
+**Het kredietmodel — 5 per menu, niet 2 per kaart.** De bestaande tarieven zijn
+2 credits per social post (`ai-generate-social:49`) en 5 per beeld
+(`ai-generate-image:95`). Pro krijgt 500 credits per maand
+(`20260127101317:132`), Enterprise `-1` (onbeperkt). Bij acht kaarten zou
+per-kaart-afrekenen 16 credits per ochtend kosten, oftewel **480 per maand** —
+de hele maand opgesoupeerd door alleen de tekst. Met beeld erbij 56 per ochtend
+en na negen dagen op. Vandaar: één AI-call voor het hele menu tegen een vaste
+5 credits, en beeld **niet** automatisch maar per kaart op verzoek. Een
+dagelijks menu kost zo ~150 credits per maand en laat ruimte over.
+
+**Het slot is de bron van waarheid, niet wat het model teruggeeft.** De
+kaartvolgorde en de categorie komen uit de slotlijst die de functie zelf
+opbouwde, niet uit `card.category_key`. Anders kan het model de volgorde
+stilzwijgend omgooien en landen kaarten onder de verkeerde categorie.
+
+**Gehallucineerde product-ids worden weggefilterd.** Alleen ids die
+daadwerkelijk in de opgehaalde productlijst zitten komen in `product_ids`
+terecht.
+
+**Weggooien is verbergen.** Een weggegooide kaart krijgt
+`metadata.discarded_at` en verdwijnt uit de weergave, maar de rij blijft staan —
+CLAUDE.md §2, en het houdt `ai_content_engagement_stats` kloppend.
+
+**De auth-fix (B5)**
+
+- `ai-generate-image` — `authenticateRequest` + `requireRole(['tenant_admin',
+  'staff','marketing'])`, geplaatst ná het parsen van de body (daar is `tenantId`
+  pas bekend) en vóór de creditcheck, plus `AuthError`-afhandeling in de `catch`.
+- `ai-marketing-context` — idem, maar met een **ruimere rollenset**:
+  `['tenant_admin','staff','marketing','viewer']`.
+
+> **Waarom die twee sets verschillen, en waarom dat geen slordigheid is.**
+> `useCan.ts:205` geeft `viewer` leesrecht op `ai_assistant`. Een viewer kan de
+> Sellqo AI-pagina dus openen, en die pagina haalt bij het laden de
+> marketingcontext op. Had ik daar dezelfde strikte set gebruikt, dan brak de
+> inzichtenkaart voor een rol die er vandaag legitiem bij mag. De context is
+> bovendien een **lees**-actie die geen credits kost; beeldgeneratie schrijft en
+> kost er vijf. Dat rechtvaardigt het verschil.
+>
+> Bijvangst van de recon: `marketing` staat níét in de leesrollen van
+> `ai_assistant` in `useCan.ts`, terwijl alle AI-edge-functies die rol wél
+> toelaten. Die scheefstand is bestaand en is hier **niet** rechtgetrokken —
+> zie Bewust ongemoeid.
+
+### Security-keuzes
+
+- **Twee cross-tenant-lekken gedicht**, zoals hierboven beschreven. Dit is de
+  kern van deze batch qua security.
+- **De nieuwe edge-functie** volgt vanaf regel één het strengste patroon in de
+  repo: `authenticateRequest` + `requireRole` vóór alles, service-role-client
+  alleen server-side, `verify_jwt = false` in `config.toml` omdat de functie zijn
+  eigen auth doet (identiek aan `ai-generate-social`).
+- **Geen nieuwe tabellen, geen nieuwe RLS.** De generator schrijft naar
+  `ai_generated_content`, dat al vier tenant-policies heeft
+  (`20260120102454:77-92`). De frontend leest en schrijft die rijen via de
+  ingelogde client, dus onder RLS.
+- **Prompt-injectie beperkt.** Het merk-DNA en de eigen categorie-instructies
+  zijn tenant-invoer die in de systeemprompt belandt. Dat kan de tenant alleen
+  zijn *eigen* generatie laten ontsporen — er zit geen andermans data in de
+  context en de uitvoer gaat alleen naar zijn eigen rijen. De opgehaalde
+  producten zijn strikt gefilterd op `tenant_id`.
+- **Inhoudelijke rem in de prompt**: geen verzonnen producten of prijzen, geen
+  onverifieerbare superlatieven (Belgische regels rond misleidende
+  handelspraktijken), en geen verzonnen klantcitaten die als echt worden
+  gepresenteerd.
+- **`config.toml`** kreeg één nieuwe tabel. Nageteld: 152 functie-tabellen,
+  **geen duplicaten** — de fout die eerder deze reeks de hele CLI blokkeerde is
+  niet opnieuw geïntroduceerd.
+
+### Gedeelde-paden-waarschuwing
+
+**N.v.t., en dat is geverifieerd.** Geen enkele bestaande tabel is gewijzigd;
+er is in deze batch überhaupt geen schemamigratie behalve het bijwerken van één
+`doc_articles`-rij via `ON CONFLICT`. `tenant_theme_settings`, `themes`,
+`homepage_sections` en `storefront_pages` zijn niet aangeraakt — `storefront_pages`
+wordt door de generator alleen **gelezen**, met `select('title, slug, content')`
+en een filter op `tenant_id`. Van de drie gedeelde edge-functies
+(`storefront-resolve`, `storefront-api`, `checkout-engine`) is er geen gewijzigd.
+
+De twee edge-functies die wél gewijzigd zijn, zijn admin-AI-functies die door
+geen enkele custom frontend worden aangeroepen.
+
+### Verificatie — uitgevoerd
+
+Alle checks zijn op de **definitieve** boom gedraaid; tussentijdse runs zijn
+afgebroken en overgedaan zodat geen cijfer bij een oudere stand hoort.
+
+- `npx tsc --noEmit -p tsconfig.app.json` → **exit 0**.
+
+  > De eerste run stond niet op 0. `MenuCardActions.tsx` riep
+  > `useSocialConnections().createPost` aan, maar die mutatie hoort bij
+  > **`useSocialPosts`** — beide hooks staan in hetzelfde bestand
+  > (`src/hooks/useSocialConnections.ts`, regel 44 en 108), en de recon had de
+  > regelverwijzing wel maar de hooknaam niet nagelopen. Dit is precies het
+  > soort fout dat de typechecker hoort te vangen en dat een oogtest mist:
+  > gecorrigeerd naar `useSocialPosts`, daarna exit 0.
+
+- `npm run build` → **exit 0**, 4928 modules, ✓ built in **34m 55s**. De
+  chunk-size-waarschuwing en de `pdf-lib`-melding over een dynamische import die
+  ook statisch geïmporteerd wordt, zijn allebei bestaand en geen regressie.
+
+  > Die 35 minuten zeggen niets over deze code. De machine stond tijdens de run
+  > op een load average van ~990, met WindowServer, twee Lovable-helpers en
+  > Chrome samen ruim 200% CPU. Het buildproces kreeg 11-18% van één core: in
+  > 28 minuten wandklok verbruikte het 7:50 CPU. Eerdere builds in dezelfde
+  > sessie, op vrijwel dezelfde boom, deden 3m58s en 3m41s. Vastgesteld met drie
+  > `ps`-metingen op hetzelfde PID; de CPU-tijd liep continu op en de status
+  > bleef `R`, dus het proces hing niet — het werd uitgehongerd.
+
+- **Lint gericht** op alle aangeraakte frontendbestanden → **nul meldingen**.
+  De eerste run gaf twee waarschuwingen, allebei van deze batch en allebei
+  echte problemen, niet alleen ruis:
+  1. `tag-input.tsx` exporteerde `splitRawTags` terwijl het alleen in datzelfde
+     bestand gebruikt wordt (`grep` over `src/` bevestigt nul externe
+     verwijzingen) — `export` weggehaald.
+  2. `useDailyMenu.ts` had `const allCards = cardsQuery.data ?? []` bóven de
+     `useMemo` staan. Die fallback maakt elke render een nieuwe array, waardoor
+     de memo bij elke render opnieuw draaide en dus niets deed — verplaatst naar
+     binnen de callback, met `cardsQuery.data` als afhankelijkheid.
+- `node scripts/i18n-parity.mjs` → **exit 0**. **2641** keys per taal in vijf
+  talen, tegen 2602 vóór deze batch: 35 onder `content_menu.today.*` en
+  `common.tag_input.*`, plus 4 uit de twee changelog-entries (elk een `title` en
+  een `description`). **Het aantal talen is uit
+  `SUPPORTED_LANGUAGES` gelezen, niet aangenomen** — het i18n-script in de
+  scratchpad leest `src/i18n/languages.ts` en stopt met een foutmelding zodra er
+  een taal bij komt waarvoor geen vertaling klaarstaat. Dat is de werkwijze die
+  CLAUDE.md §4.2 sinds deze week voorschrijft.
+- `node scripts/content-menu-contract.mjs` → **exit 0**. Bevestigt dat de acht
+  categorie-keys aan beide kanten identiek zijn, dat `format_emphasis` gelijk is
+  aan de CHECK-constraint in de migratie, dat `CARD_FORMATS` aan beide kanten
+  hetzelfde is, en dat elke categorie- en formaatsleutel een i18n-key heeft in
+  alle vijf de talen.
+- **Changelog nageteld**: 113 entries per locale vóór, **115** ná, in alle vijf.
+  109 versie-entries, alle versienummers uniek, alle types geldig, elke id
+  vertaald in elke taal. Nieuwe versie `2026.10r` met twee changes: de generator
+  (`feature`) en de auth-fix (`security`).
+- **Elke `t()`-aanroep opgelost**: 94 letterlijke keys plus zeven dynamisch
+  samengestelde (de vier kaartformaten en drie foutcodes) — nul gaten.
+- **Hardcoded-string-scan** over de nieuwe componenten en `tag-input.tsx`: nul
+  treffers, ook op tekstprops.
+- **SQL statisch gevalideerd**: quotes gebalanceerd, één correct verdubbelde
+  apostrof (`thema''s`), `ON CONFLICT` aanwezig.
+
+### Verificatie — nog uit te voeren
+
+1. **Drie migraties draaien** via de Lovable-connector, in volgorde:
+   `20260820100000`, `20260820100100`, `20260821100000`. Daarna **types
+   regenereren**.
+2. **Deel A smoke-testen:** verse tenant → totaal staat op 0. Een blok van vijf
+   regels in een tag-veld plakken → vijf losse tags; idem met komma's,
+   puntkomma's en ` · `. Eén woord zonder scheidingsteken plakken → blijft één
+   tag.
+3. **Deel B smoke-testen:** merk-DNA leeg → de melding "vul eerst je merk-DNA
+   in", geen generieke fout. Menu op 0 → eigen melding. Menu genereren → kaarten
+   verschijnen, saldo daalt met **precies 5**. `surprise_me` toont een
+   gemotiveerde invalshoek. Beeld genereren op één kaart → 5 credits erbij, en
+   een story levert een staand beeld (1080×1920). Kiezen → concept in
+   `social_posts`. Weggooien → kaart verdwijnt, rij blijft.
+4. **De auth-fix testen:** een `viewer` moet een nette 403 krijgen op
+   beeldgeneratie, en de inzichtenkaart moet voor die rol blijven werken.
+
+### Bewust ongemoeid / Vervolg
+
+- **`InlinePromoWizard` en `ai-product-promo-kit`** opnieuw niet aangeraakt. De
+  twee bugs uit de MENU-1-audit (geen creditafschrijving, geen tabelschrijving)
+  staan nog open en horen in een eigen ticket.
+- **`ai-generate-social` is niet verbouwd.** Zijn contract is één post op één
+  platform en hij levert platte tekst; hij is bovendien in gebruik via
+  `useAIMarketing.ts:135`. Alleen zijn auth- en creditpatroon is gekopieerd.
+- **De rolscheefstand in `useCan.ts`** — `marketing` heeft daar geen leesrecht op
+  `ai_assistant`, terwijl alle AI-edge-functies die rol toelaten. Bestaand, niet
+  aangeraakt, maar het betekent dat een marketing-gebruiker de pagina mogelijk
+  niet kan openen terwijl de backend hem wel zou bedienen. Waard om apart uit te
+  zoeken.
+- **Geen planning of cron.** "Elke ochtend automatisch" is een volgende batch;
+  nu is het een knop. De changelog- en nieuwsbrieftekst vermijden die belofte
+  expliciet.
+- **Geen automatisch publiceren.** Kiezen levert een concept in `social_posts`.
+- **Geen GIN-index op `ai_generated_content.metadata`.** Het filteren op
+  `metadata->>'menu_run_id'` werkt zonder, en indexeren zonder meting is
+  optimaliseren op gevoel. Wordt relevant als de historie groeit.
+- **`scripts/content-menu-contract.mjs` staat nog niet in CI.** Het draait nu
+  alleen wanneer iemand eraan denkt — precies de zwakte die het script moet
+  afdekken. Voorstel: als extra stap naast `i18n-parity` in
+  `.github/workflows/ci.yml`. Niet gedaan, want dat blokkeert PR's en is jouw
+  beslissing.
+
+---
+
 ## MENU-1 — Dagelijkse Menukaart, fundament — 20 augustus 2026
 
 > ⚠️ **DE MIGRATIE IS NOG NIET GEDRAAID.** Twee migratiebestanden staan klaar

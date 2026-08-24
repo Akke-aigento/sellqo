@@ -58,6 +58,10 @@
       "title": "Funktion nicht verfügbar",
       "description": "Diese Funktion ist in Ihrem aktuellen Tarif nicht enthalten.",
       "cta": "Tarife ansehen"
+    },
+    "tag_input": {
+      "placeholder": "Wert eingeben und Enter drücken",
+      "remove": "{{value}} entfernen"
     }
   },
   "auth": {
@@ -2490,6 +2494,51 @@
     },
     "errors": {
       "load_failed": "Die Menükarte konnte nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut."
+    },
+    "today": {
+      "title": "Menü von heute",
+      "description": "Lassen Sie Sellqo AI Ihr Morgenmenü zu fertigen Karten ausarbeiten.",
+      "generate": "Menü erzeugen ({{credits}} Credits)",
+      "generating": "Wird zusammengestellt...",
+      "empty": "Noch keine Karten. Klicken Sie auf Menü erzeugen, um die erste Runde zusammenzustellen.",
+      "formats": {
+        "post": "Beitrag",
+        "reel": "Reel",
+        "story": "Story",
+        "carousel": "Karussell"
+      },
+      "preview": {
+        "no_image": "Noch kein Bild",
+        "freeform": "Freie Wahl",
+        "angle": "Gewählter Blickwinkel: {{reason}}"
+      },
+      "actions": {
+        "choose": "Auswählen",
+        "chosen": "Bereitgestellt",
+        "edit": "Anpassen",
+        "discard": "Verwerfen",
+        "generate_image": "Bild dazu ({{credits}})"
+      },
+      "edit": {
+        "title": "Arbeitstitel",
+        "caption": "Text",
+        "hashtags": "Hashtags",
+        "hashtags_placeholder": "Hashtag eingeben und Enter drücken"
+      },
+      "toast": {
+        "generated": "{{amount}} Karten fertig",
+        "skipped": "{{amount}} Karten waren unbrauchbar und wurden übersprungen.",
+        "updated": "Karte aktualisiert",
+        "discarded": "Karte verworfen"
+      },
+      "errors": {
+        "brand_dna_missing": "Füllen Sie zuerst unten Ihre Marken-DNA aus. Ohne sie weiß die KI nicht, für wen und worüber sie schreibt.",
+        "menu_empty": "Ihr Morgenmenü steht noch auf null. Wählen Sie unten, wie viele Beiträge Sie pro Kategorie möchten.",
+        "insufficient_credits": "Sie haben nicht genügend AI-Credits für ein Menü.",
+        "rate_limit": "Zu viele Anfragen. Versuchen Sie es in einer Minute erneut.",
+        "generate_failed": "Das Menü konnte nicht erzeugt werden.",
+        "save_failed": "Speichern fehlgeschlagen"
+      }
     }
   }
 }

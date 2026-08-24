@@ -1476,6 +1476,14 @@
         "ai_content_menu_brand_dna": {
           "title": "Record your brand DNA and morning menu in Sellqo AI",
           "description": "Sellqo AI has a new Menu tab. There you describe once who your brand is: mission, audience, tone of voice, selling points, recurring themes, what you do and don't want to say, and hashtag sets you reuse per theme. There is also a free field for anything that doesn't fit a box. Below that you put together your morning menu: for each category you choose how many posts you want, from product post and customer story through to 'surprise me', and you set whether the emphasis is on short, long-form, image-led or carousel posts. If a category is missing, you add your own with its own instruction. That instruction is required, so no category can exist that the generator cannot work with. What you enter here is the basis for the daily content generation that follows. The tab is part of Pro and Enterprise."
+        },
+        "ai_daily_menu_generator": {
+          "title": "Sellqo AI puts together your daily menu",
+          "description": "Under Sellqo AI, the Menu tab now opens with 'Today's menu'. One click and the AI works your morning menu into ready-to-use cards: copy with hashtags per category, in whichever format fits best — post, reel, story or carousel. Each card is shown as a preview the way it would land on the channel, so copy that is too long for a story stands out immediately. The 'surprise me' category picks its own angle based on your brand DNA and what is happening in your shop, and tells you why. Per card you choose: queue it as a draft, adjust it, or discard it. A whole menu costs 5 credits regardless of how many cards it holds. Images are not made automatically — you request one per card for 5 credits, so you only pay for what you use. The feature is part of Pro and Enterprise."
+        },
+        "ai_image_tenant_check": {
+          "title": "Tighter access control on AI image generation and marketing insights",
+          "description": "Two AI functions checked whether you were logged in, but not which shop you belong to. In theory that allowed someone to spend another shop's AI credits or pull up their revenue and stock figures. That has been closed: both functions now verify your access to the shop and your role, just like the other AI tools. Nothing changes in how you use them. If you work with team members: image generation is available to admins, staff and the marketing role; insights remain readable for the viewer role as well."
         }
       },
       "copyLink": "Copy link",

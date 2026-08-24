@@ -30,6 +30,10 @@
       "title": "Functie niet beschikbaar",
       "description": "Deze functie zit niet in je huidige abonnement.",
       "cta": "Bekijk abonnementen"
+    },
+    "tag_input": {
+      "placeholder": "Typ een waarde en druk op Enter",
+      "remove": "{{value}} verwijderen"
     }
   },
   "auth": {
@@ -2492,6 +2496,51 @@
     },
     "errors": {
       "load_failed": "De menukaart kon niet geladen worden. Herlaad de pagina of probeer het later opnieuw."
+    },
+    "today": {
+      "title": "Menu van vandaag",
+      "description": "Laat Sellqo AI je ochtendmenu uitwerken tot kant-en-klare kaarten.",
+      "generate": "Genereer menu ({{credits}} credits)",
+      "generating": "Bezig met samenstellen...",
+      "empty": "Nog geen kaarten. Klik op Genereer menu om je eerste ronde samen te stellen.",
+      "formats": {
+        "post": "Post",
+        "reel": "Reel",
+        "story": "Verhaal",
+        "carousel": "Carrousel"
+      },
+      "preview": {
+        "no_image": "Nog geen beeld",
+        "freeform": "Vrije keuze",
+        "angle": "Gekozen invalshoek: {{reason}}"
+      },
+      "actions": {
+        "choose": "Kiezen",
+        "chosen": "Klaargezet",
+        "edit": "Bijstellen",
+        "discard": "Weggooien",
+        "generate_image": "Beeld erbij ({{credits}})"
+      },
+      "edit": {
+        "title": "Werktitel",
+        "caption": "Tekst",
+        "hashtags": "Hashtags",
+        "hashtags_placeholder": "Typ een hashtag en druk op Enter"
+      },
+      "toast": {
+        "generated": "{{amount}} kaarten klaar",
+        "skipped": "{{amount}} kaarten waren onbruikbaar en zijn overgeslagen.",
+        "updated": "Kaart bijgewerkt",
+        "discarded": "Kaart weggegooid"
+      },
+      "errors": {
+        "brand_dna_missing": "Vul eerst je merk-DNA hieronder in. Zonder dat weet de AI niet voor wie en waarover hij schrijft.",
+        "menu_empty": "Je ochtendmenu staat nog op nul. Kies hieronder hoeveel posts je per categorie wilt.",
+        "insufficient_credits": "Je hebt niet genoeg AI credits voor een menu.",
+        "rate_limit": "Te veel verzoeken. Probeer het over een minuut opnieuw.",
+        "generate_failed": "Het menu kon niet gegenereerd worden.",
+        "save_failed": "Opslaan mislukt"
+      }
     }
   }
 }

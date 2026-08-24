@@ -1476,6 +1476,14 @@
         "ai_content_menu_brand_dna": {
           "title": "Leg je merk-DNA en ochtendmenu vast in Sellqo AI",
           "description": "Sellqo AI heeft een nieuw tabblad Menukaart. Daar beschrijf je één keer wie je merk is: missie, doelgroep, tone of voice, sterke punten, vaste thema's, wat je wel en niet wilt zeggen, en hashtag-sets die je per thema hergebruikt. Er is ook een vrij veld voor alles wat in geen hokje past. Daaronder stel je je ochtendmenu samen: per categorie kies je hoeveel posts je wilt, van productpost en klantverhaal tot 'verras me', en je legt vast of de nadruk op korte, uitgebreide, beeldgedreven of carrousel-posts ligt. Mist er een categorie, dan maak je er zelf een aan met een eigen instructie. Die instructie is verplicht, zodat er geen categorie ontstaat waar de generator niets mee kan. Wat je hier invult is de basis voor de dagelijkse contentgeneratie die hierop volgt. Het tabblad hoort bij Pro en Enterprise."
+        },
+        "ai_daily_menu_generator": {
+          "title": "Sellqo AI stelt je dagelijkse menukaart samen",
+          "description": "Onder Sellqo AI staat bovenaan het tabblad Menukaart nu 'Menu van vandaag'. Eén klik en de AI werkt je ochtendmenu uit tot kant-en-klare kaarten: per categorie een tekst met hashtags, in het formaat dat er het beste bij past — post, reel, verhaal of carrousel. Je ziet elke kaart als preview zoals hij op het kanaal zou landen, dus een te lange tekst voor een verhaal valt meteen op. De categorie 'verras me' kiest zelf een invalshoek op basis van je merk-DNA en wat er in je winkel speelt, en vertelt erbij waarom. Per kaart kies je: klaarzetten als concept, bijstellen of weggooien. Een heel menu kost 5 credits, ongeacht het aantal kaarten. Beeld wordt niet automatisch gemaakt — dat vraag je per kaart aan voor 5 credits, zodat je alleen betaalt voor wat je gebruikt. De functie hoort bij Pro en Enterprise."
+        },
+        "ai_image_tenant_check": {
+          "title": "AI-beeldgeneratie en marketinginzichten strenger afgeschermd",
+          "description": "Twee AI-functies controleerden wel of je ingelogd was, maar niet bij wélke winkel je hoort. In theorie kon iemand daarmee de AI-credits van een andere winkel opmaken of hun omzet- en voorraadcijfers opvragen. Dat is dichtgezet: beide functies controleren nu je toegang tot de winkel én je rol, net als de andere AI-tools. Voor jou verandert er niets aan het gebruik. Werk je met teamleden: beeldgeneratie is er voor beheerders, medewerkers en de marketingrol; de inzichten blijven daarnaast leesbaar voor de kijker-rol."
         }
       },
       "copyLink": "Kopieer link",

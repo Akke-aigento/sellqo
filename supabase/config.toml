@@ -243,6 +243,9 @@ verify_jwt = false
 [functions.ai-generate-social]
 verify_jwt = false
 
+[functions.ai-generate-daily-menu]
+verify_jwt = false
+
 [functions.ai-campaign-suggestions]
 verify_jwt = false
 

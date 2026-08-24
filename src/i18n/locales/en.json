@@ -30,6 +30,10 @@
       "title": "Feature not available",
       "description": "This feature is not included in your current plan.",
       "cta": "View plans"
+    },
+    "tag_input": {
+      "placeholder": "Type a value and press Enter",
+      "remove": "Remove {{value}}"
     }
   },
   "auth": {
@@ -2490,6 +2494,51 @@
     },
     "errors": {
       "load_failed": "The menu could not be loaded. Reload the page or try again later."
+    },
+    "today": {
+      "title": "Today's menu",
+      "description": "Let Sellqo AI turn your morning menu into ready-to-use cards.",
+      "generate": "Generate menu ({{credits}} credits)",
+      "generating": "Putting it together...",
+      "empty": "No cards yet. Click Generate menu to put together your first round.",
+      "formats": {
+        "post": "Post",
+        "reel": "Reel",
+        "story": "Story",
+        "carousel": "Carousel"
+      },
+      "preview": {
+        "no_image": "No image yet",
+        "freeform": "Free choice",
+        "angle": "Chosen angle: {{reason}}"
+      },
+      "actions": {
+        "choose": "Choose",
+        "chosen": "Queued",
+        "edit": "Adjust",
+        "discard": "Discard",
+        "generate_image": "Add image ({{credits}})"
+      },
+      "edit": {
+        "title": "Working title",
+        "caption": "Copy",
+        "hashtags": "Hashtags",
+        "hashtags_placeholder": "Type a hashtag and press Enter"
+      },
+      "toast": {
+        "generated": "{{amount}} cards ready",
+        "skipped": "{{amount}} cards were unusable and have been skipped.",
+        "updated": "Card updated",
+        "discarded": "Card discarded"
+      },
+      "errors": {
+        "brand_dna_missing": "Fill in your brand DNA below first. Without it the AI doesn't know who or what to write for.",
+        "menu_empty": "Your morning menu is still at zero. Choose below how many posts you want per category.",
+        "insufficient_credits": "You don't have enough AI credits for a menu.",
+        "rate_limit": "Too many requests. Try again in a minute.",
+        "generate_failed": "The menu could not be generated.",
+        "save_failed": "Could not save"
+      }
     }
   }
 }
