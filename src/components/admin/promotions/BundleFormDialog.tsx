@@ -29,9 +29,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateBundle, useUpdateBundle } from '@/hooks/useBundles';
 import type { ProductBundle, ProductBundleFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   bundle_type: z.enum(['fixed', 'mix_match']),
   discount_type: z.enum(['percentage', 'fixed_amount', 'fixed_price']),
@@ -56,6 +57,7 @@ export function BundleFormDialog({
   onOpenChange,
   bundle,
 }: BundleFormDialogProps) {
+  const { t } = useTranslation();
   const createBundle = useCreateBundle();
   const updateBundle = useUpdateBundle();
   const isEditing = !!bundle;
@@ -143,7 +145,7 @@ export function BundleFormDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Bundel Bewerken' : 'Nieuwe Bundel'}
+            {isEditing ? t('admin.promotions.bundleFormDialog.bundel_bewerken') : t('admin.bundles.nieuwe_bundel')}
           </DialogTitle>
         </DialogHeader>
 
@@ -154,9 +156,9 @@ export function BundleFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Zomerbundel" {...field} />
+                    <Input placeholder={t('admin.promotions.bundleFormDialog.zomerbundel')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -168,10 +170,10 @@ export function BundleFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Beschrijf de bundel..."
+                      placeholder={t('admin.promotions.bundleFormDialog.beschrijf_de_bundel')}
                       {...field}
                     />
                   </FormControl>
@@ -186,7 +188,7 @@ export function BundleFormDialog({
                 name="bundle_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
+                    <FormLabel>{t('admin.marketing.contentHistoryList.type')}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -197,8 +199,8 @@ export function BundleFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="fixed">Vaste bundel</SelectItem>
-                        <SelectItem value="mix_match">Mix & Match</SelectItem>
+                        <SelectItem value="fixed">{t('admin.promotions.bundleFormDialog.vaste_bundel')}</SelectItem>
+                        <SelectItem value="mix_match">{t('admin.promotions.bundleFormDialog.mix_match')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -211,7 +213,7 @@ export function BundleFormDialog({
                 name="discount_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Korting type</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.korting_type')}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -222,9 +224,9 @@ export function BundleFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed_amount">Vast bedrag</SelectItem>
-                        <SelectItem value="fixed_price">Vaste prijs</SelectItem>
+                        <SelectItem value="percentage">{t('admin.promotions.autoDiscountFormDialog.percentage')}</SelectItem>
+                        <SelectItem value="fixed_amount">{t('admin.promotions.autoDiscountFormDialog.vast_bedrag')}</SelectItem>
+                        <SelectItem value="fixed_price">{t('admin.promotions.bundleFormDialog.vaste_prijs')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -240,8 +242,7 @@ export function BundleFormDialog({
                 <FormItem>
                   <FormLabel>
                     {form.watch('discount_type') === 'percentage'
-                      ? 'Korting (%)'
-                      : 'Bedrag (€)'}
+                      ? t('admin.productForm.korting') : t('admin.promotions.autoDiscountFormDialog.bedrag')}
                   </FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
@@ -258,7 +259,7 @@ export function BundleFormDialog({
                   name="min_items"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Min. items</FormLabel>
+                      <FormLabel>{t('admin.promotions.bundleFormDialog.min_items')}</FormLabel>
                       <FormControl>
                         <Input type="number" min="1" {...field} />
                       </FormControl>
@@ -272,7 +273,7 @@ export function BundleFormDialog({
                   name="max_items"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Max. items</FormLabel>
+                      <FormLabel>{t('admin.promotions.bundleFormDialog.max_items')}</FormLabel>
                       <FormControl>
                         <Input type="number" min="1" {...field} />
                       </FormControl>
@@ -289,7 +290,7 @@ export function BundleFormDialog({
                 name="valid_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig vanaf</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_vanaf')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -303,7 +304,7 @@ export function BundleFormDialog({
                 name="valid_until"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig tot</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -318,7 +319,7 @@ export function BundleFormDialog({
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel className="cursor-pointer">Actief</FormLabel>
+                  <FormLabel className="cursor-pointer">{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                   <FormControl>
                     <Switch
                       checked={field.value}
@@ -335,13 +336,13 @@ export function BundleFormDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={createBundle.isPending || updateBundle.isPending}
               >
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

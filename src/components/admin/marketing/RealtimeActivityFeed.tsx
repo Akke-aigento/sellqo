@@ -148,7 +148,7 @@ export function RealtimeActivityFeed() {
             }`}
           />
           <span className="text-xs text-muted-foreground">
-            {isConnected ? 'Live' : 'Verbinden...'}
+            {isConnected ? t('admin.marketing.realtimeActivityFeed.live') : t('admin.marketing.realtimeActivityFeed.verbinden')}
           </span>
         </div>
       </CardHeader>

@@ -387,7 +387,7 @@ export function ScheduledAuditsPanel() {
                         </p>
                       </div>
                       <Badge variant={audit.is_active ? 'default' : 'secondary'}>
-                        {audit.is_active ? 'Actief' : 'Gepauzeerd'}
+                        {audit.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.marketing.campaignCard.status.gepauzeerd')}
                       </Badge>
                     </div>
                     

@@ -86,7 +86,7 @@ export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanc
             verticalAlign="top"
             height={36}
             formatter={(value) => (
-              <span className="text-sm text-muted-foreground">{value === 'opens' ? 'Opens' : 'Clicks'}</span>
+              <span className="text-sm text-muted-foreground">{value === 'opens' ? t('admin.marketing.campaignPerformanceChart.opens') : t('admin.ads.campaignCard.clicks')}</span>
             )}
           />
           <Area

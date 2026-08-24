@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCreateVolumeDiscount, useUpdateVolumeDiscount } from '@/hooks/useVolumeDiscounts';
 import type { VolumeDiscount, VolumeDiscountFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const tierSchema = z.object({
   min_quantity: z.coerce.number().min(0),
@@ -39,13 +40,13 @@ const tierSchema = z.object({
 });
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   applies_to: z.enum(['all', 'specific_products', 'specific_categories']),
   is_active: z.boolean(),
   valid_from: z.string().optional(),
   valid_until: z.string().optional(),
-  tiers: z.array(tierSchema).min(1, 'Minimaal 1 staffel vereist'),
+  tiers: z.array(tierSchema).min(1, 'admin.promotions.volumeDiscountFormDialog.validation.minimaal_1_staffel_vereist'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -61,6 +62,7 @@ export function VolumeDiscountFormDialog({
   onOpenChange,
   discount,
 }: VolumeDiscountFormDialogProps) {
+  const { t } = useTranslation();
   const createDiscount = useCreateVolumeDiscount();
   const updateDiscount = useUpdateVolumeDiscount();
   const isEditing = !!discount;
@@ -145,7 +147,7 @@ export function VolumeDiscountFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Staffelkorting Bewerken' : 'Nieuwe Staffelkorting'}
+            {isEditing ? t('admin.promotions.volumeDiscountFormDialog.staffelkorting_bewerken') : t('admin.promotions.volumeDiscountFormDialog.nieuwe_staffelkorting')}
           </DialogTitle>
         </DialogHeader>
 
@@ -156,9 +158,9 @@ export function VolumeDiscountFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Kwantumkorting" {...field} />
+                    <Input placeholder={t('admin.promotions.volumeDiscountFormDialog.kwantumkorting')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -170,9 +172,9 @@ export function VolumeDiscountFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Beschrijf de staffelkorting..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.volumeDiscountFormDialog.beschrijf_de_staffelkorting')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,7 +186,7 @@ export function VolumeDiscountFormDialog({
               name="applies_to"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Toepassen op</FormLabel>
+                  <FormLabel>{t('admin.promotions.autoDiscountFormDialog.toepassen_op')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -192,9 +194,9 @@ export function VolumeDiscountFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="all">Alle producten</SelectItem>
-                      <SelectItem value="specific_products">Specifieke producten</SelectItem>
-                      <SelectItem value="specific_categories">Categorie</SelectItem>
+                      <SelectItem value="all">{t('admin.promotions.volumeDiscountFormDialog.alle_producten')}</SelectItem>
+                      <SelectItem value="specific_products">{t('admin.promotions.autoDiscountFormDialog.specifieke_producten')}</SelectItem>
+                      <SelectItem value="specific_categories">{t('admin.marketing.templateDialog.categorie')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -204,7 +206,7 @@ export function VolumeDiscountFormDialog({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <FormLabel>Staffels</FormLabel>
+                <FormLabel>{t('admin.promotions.volumeDiscountFormDialog.staffels')}</FormLabel>
                 <Button
                   type="button"
                   variant="outline"
@@ -214,7 +216,7 @@ export function VolumeDiscountFormDialog({
                   }
                 >
                   <Plus className="mr-1 h-4 w-4" />
-                  Staffel
+                  {t('admin.promotions.volumeDiscountFormDialog.staffel')}
                 </Button>
               </div>
               
@@ -225,7 +227,7 @@ export function VolumeDiscountFormDialog({
                     name={`tiers.${index}.min_quantity`}
                     render={({ field }) => (
                       <FormItem className="col-span-3">
-                        <FormLabel className="text-xs">Min. stuks</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.volumeDiscountFormDialog.min_stuks')}</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -237,7 +239,7 @@ export function VolumeDiscountFormDialog({
                     name={`tiers.${index}.max_quantity`}
                     render={({ field }) => (
                       <FormItem className="col-span-3">
-                        <FormLabel className="text-xs">Max (optioneel)</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.volumeDiscountFormDialog.max_optioneel')}</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -249,7 +251,7 @@ export function VolumeDiscountFormDialog({
                     name={`tiers.${index}.discount_type`}
                     render={({ field }) => (
                       <FormItem className="col-span-3">
-                        <FormLabel className="text-xs">Type</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.marketing.contentHistoryList.type')}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -269,7 +271,7 @@ export function VolumeDiscountFormDialog({
                     name={`tiers.${index}.discount_value`}
                     render={({ field }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel className="text-xs">Korting</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.volumeDiscountFormDialog.korting')}</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" {...field} />
                         </FormControl>
@@ -296,7 +298,7 @@ export function VolumeDiscountFormDialog({
                 name="valid_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig vanaf</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_vanaf')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -309,7 +311,7 @@ export function VolumeDiscountFormDialog({
                 name="valid_until"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig tot</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -324,7 +326,7 @@ export function VolumeDiscountFormDialog({
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel className="cursor-pointer">Actief</FormLabel>
+                  <FormLabel className="cursor-pointer">{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
@@ -334,10 +336,10 @@ export function VolumeDiscountFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createDiscount.isPending || updateDiscount.isPending}>
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

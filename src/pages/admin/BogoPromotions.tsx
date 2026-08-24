@@ -33,10 +33,13 @@ import { useBogoPromotions, useUpdateBogoPromotion, useDeleteBogoPromotion } fro
 import { BogoPromotionFormDialog } from '@/components/admin/promotions/BogoPromotionFormDialog';
 import type { BogoPromotion } from '@/types/promotions';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export default function BogoPromotionsPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { data: promotions = [], isLoading } = useBogoPromotions();
   const updatePromotion = useUpdateBogoPromotion();
   const deletePromotion = useDeleteBogoPromotion();
@@ -97,14 +100,14 @@ export default function BogoPromotionsPage() {
           </NavLink>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">BOGO Acties</h1>
+          <h1 className="text-2xl font-semibold">{t('admin.bogoPromotions.bogo_acties')}</h1>
           <p className="text-muted-foreground">
-            Koop X krijg Y gratis of met korting
+            {t('admin.bogoPromotions.koop_x_krijg_y_gratis_of')}
           </p>
         </div>
         <Button onClick={() => { setEditingPromotion(null); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe BOGO Actie
+          {t('admin.bogoPromotions.nieuwe_bogo_actie')}
         </Button>
       </div>
 
@@ -113,7 +116,7 @@ export default function BogoPromotionsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek acties..."
+            placeholder={t('admin.bogoPromotions.zoek_acties')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -131,23 +134,23 @@ export default function BogoPromotionsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
           {isLoading ? (
-            <p className="text-muted-foreground">Laden...</p>
+            <p className="text-muted-foreground">{t('common.loading')}</p>
           ) : filteredPromotions.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Geen BOGO acties gevonden
+              {t('admin.bogoPromotions.geen_bogo_acties_gevonden')}
             </p>
           ) : (
             <div className="min-w-[650px]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Naam</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Koop</TableHead>
-                  <TableHead>Krijg</TableHead>
-                  <TableHead>Korting</TableHead>
-                  <TableHead className="hidden md:table-cell">Geldig tot</TableHead>
-                  <TableHead>Actief</TableHead>
+                  <TableHead>{t('common.name')}</TableHead>
+                  <TableHead>{t('admin.marketing.contentHistoryList.type')}</TableHead>
+                  <TableHead>{t('admin.bogoPromotions.koop')}</TableHead>
+                  <TableHead>{t('admin.bogoPromotions.krijg')}</TableHead>
+                  <TableHead>{t('admin.promotions.volumeDiscountFormDialog.korting')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</TableHead>
+                  <TableHead>{t('admin.marketing.aBTestingPanel.actief')}</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -171,7 +174,7 @@ export default function BogoPromotionsPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {promotion.valid_until
-                        ? format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: nl })
+                        ? format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: dateLocale })
                         : '—'}
                     </TableCell>
                     <TableCell>
@@ -190,14 +193,14 @@ export default function BogoPromotionsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(promotion)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Bewerken
+                            {t('common.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(promotion)}
                             className="text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Verwijderen
+                            {t('common.delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -222,16 +225,16 @@ export default function BogoPromotionsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>BOGO actie verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.bogoPromotions.bogo_actie_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je "{promotionToDelete?.name}" wilt verwijderen?
               Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

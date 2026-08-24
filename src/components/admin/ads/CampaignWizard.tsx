@@ -521,7 +521,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         {step === 'review' && (
           <>
             <CardHeader>
-              <CardTitle>{isEditMode ? 'Wijzigingen controleren' : 'Controleer Campagne'}</CardTitle>
+              <CardTitle>{isEditMode ? t('admin.ads.campaignWizard.wijzigingen_controleren') : t('admin.ads.campaignWizard.controleer_campagne')}</CardTitle>
               <CardDescription>Bekijk je instellingen voordat je {isEditMode ? 'opslaat' : 'de campagne aanmaakt'}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -546,7 +546,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
                   <div className="flex justify-between py-2 border-b">
                     <dt className="text-muted-foreground">{t('admin.ads.bolCampaignEditForm.campagne_modus')}</dt>
                     <dd className="font-medium">
-                      {formData.bid_strategy === 'auto' ? 'Automatisch' : 'Handmatig'}
+                      {formData.bid_strategy === 'auto' ? t('admin.ads.campaignWizard.automatisch') : t('admin.odooChannels.channels.manual')}
                     </dd>
                   </div>
                 )}
@@ -584,7 +584,7 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
         <CardFooter className="flex justify-between">
           <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {currentStepIndex === 0 ? 'Annuleren' : 'Vorige'}
+            {currentStepIndex === 0 ? t('common.cancel') : t('admin.products.bulkAIGenerateDialog.vorige')}
           </Button>
           
           {step === 'review' ? (
@@ -595,12 +595,12 @@ export function CampaignWizard({ onClose, campaign }: CampaignWizardProps) {
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {isEditMode ? 'Opslaan...' : 'Aanmaken...'}
+                  {isEditMode ? t('common.saving') : t('admin.promotions.giftCardFormDialog.aanmaken')}
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4 mr-2" />
-                  {isEditMode ? 'Opslaan' : 'Campagne Aanmaken'}
+                  {isEditMode ? t('common.save') : t('admin.ads.campaignWizard.campagne_aanmaken')}
                 </>
               )}
             </Button>

@@ -1763,7 +1763,8 @@
         "ai_campagne_suggesties": "AI Campagne Suggesties",
         "slimme_campagne_ideeen_gebaseerd_op_je": "Slimme campagne-ideeën gebaseerd op je data",
         "laat_ai_analyseren_welke_campagnes_het": "Laat AI analyseren welke campagnes het meest impactvol zijn",
-        "analyseren": "Analyseren..."
+        "analyseren": "Analyseren...",
+        "aanbevolen": "Aanbevolen"
       },
       "aIContentLibrary": {
         "alle_types": "Alle types",
@@ -1794,7 +1795,8 @@
         "beoordeling": "Beoordeling",
         "opmerkingen_optioneel": "Opmerkingen (optioneel)",
         "vertel_ons_meer": "Vertel ons meer...",
-        "aanpassen": "Aanpassen"
+        "aanpassen": "Aanpassen",
+        "verstuur": "Verstuur"
       },
       "aIInsightsCard": {
         "geen_data_beschikbaar": "Geen data beschikbaar",
@@ -1826,7 +1828,8 @@
         }
       },
       "campaignPerformanceChart": {
-        "nog_geen_activiteit_geregistreerd": "Nog geen activiteit geregistreerd"
+        "nog_geen_activiteit_geregistreerd": "Nog geen activiteit geregistreerd",
+        "opens": "Opens"
       },
       "contentCalendar": {
         "week": "Week",
@@ -2000,7 +2003,9 @@
           "professioneel": "Professioneel",
           "speels": "Speels"
         },
-        "credits_nodig": "Je hebt {{count}} credits nodig."
+        "credits_nodig": "Je hebt {{count}} credits nodig.",
+        "minder_opties": "Minder opties",
+        "meer_opties": "Meer opties"
       },
       "marketingStatsCards": {
         "open_rate": "Open Rate",
@@ -2066,7 +2071,9 @@
       "realtimeActivityFeed": {
         "live_activiteit": "Live Activiteit",
         "realtime_email_interacties": "Realtime email interacties",
-        "nog_geen_activiteit": "Nog geen activiteit"
+        "nog_geen_activiteit": "Nog geen activiteit",
+        "live": "Live",
+        "verbinden": "Verbinden..."
       },
       "recentContentStrip": {
         "start_met_de_product_promo_wizard": "Start met de Product Promo Wizard hierboven",
@@ -2131,7 +2138,9 @@
         "beschrijving_optioneel": "Beschrijving (optioneel)",
         "filterregels": "Filterregels",
         "bijv_vip_klanten": "bijv. VIP Klanten",
-        "beschrijf_dit_segment": "Beschrijf dit segment..."
+        "beschrijf_dit_segment": "Beschrijf dit segment...",
+        "segment_bewerken": "Segment bewerken",
+        "nieuw_segment_aanmaken": "Nieuw segment aanmaken"
       },
       "templateDialog": {
         "uw_bericht_hier": "Uw bericht hier...",
@@ -2144,7 +2153,9 @@
         "bijv_welkomstmail": "bijv. Welkomstmail",
         "schrijf_je_template_inhoud": "Schrijf je template inhoud...",
         "html_email_content": "HTML email content...",
-        "hallo": "Hallo"
+        "hallo": "Hallo",
+        "template_bewerken": "Template bewerken",
+        "nieuwe_template_aanmaken": "Nieuwe template aanmaken"
       },
       "variableInserter": {
         "variabelen_invoegen": "Variabelen invoegen",
@@ -2542,7 +2553,18 @@
         "email_onderwerp_3": "Email onderwerp...",
         "tekst_die_na_het_onderwerp_wordt_3": "Tekst die na het onderwerp wordt getoond in de inbox...",
         "wat_is_een_trigger": "Wat is een trigger?",
-        "ai_gegenereerd": "AI gegenereerd"
+        "ai_gegenereerd": "AI gegenereerd",
+        "validation": {
+          "content_is_verplicht": "Content is verplicht",
+          "onderwerp_is_verplicht": "Onderwerp is verplicht"
+        },
+        "bijwerken": "Bijwerken",
+        "opslaan_als_concept": "Opslaan als concept",
+        "elke_klant_krijgt_automatisch_de_mail": "Elke klant krijgt automatisch de mail in zijn voorkeurstaal. Klanten zonder voorkeur krijgen de Nederlandse versie.",
+        "alleen_nederlands_voeg_extra_talen_toe": "Alleen Nederlands. Voeg extra talen toe om per taal een variant op te maken; elke klant krijgt dan zijn eigen taalversie.",
+        "deze_campagne_is_door_ai_gegenereerd": "Deze campagne is door AI gegenereerd. Pas aan waar nodig.",
+        "maak_een_email_campagne_aan_om": "Maak een email campagne aan om naar je klanten te versturen.",
+        "nieuwe_campagne_aanmaken": "Nieuwe campagne aanmaken"
       },
       "promptFavoritesDropdown": {
         "favorieten": "Favorieten",
@@ -2605,7 +2627,9 @@
         "klik_op_analyseer_campagne_om_ai": "Klik op \"Analyseer campagne\" om AI-suggesties te genereren op basis van je performance data.",
         "de_ai_heeft_geen_suggesties_op": "De AI heeft geen suggesties op basis van de huidige data.",
         "analyseren": "Analyseren...",
-        "analyseer_campagne": "Analyseer campagne"
+        "analyseer_campagne": "Analyseer campagne",
+        "toegepast": "Toegepast",
+        "genegeerd": "Genegeerd"
       },
       "campaignCard": {
         "synchroniseren_met_bol_com": "Synchroniseren met Bol.com...",
@@ -2665,7 +2689,11 @@
         "nog_geen_klantsegmenten_aangemaakt": "Nog geen klantsegmenten aangemaakt.",
         "je_kunt_segmenten_aanmaken_bij_marketing": "Je kunt segmenten aanmaken bij Marketing → Segmenten",
         "bol_optimaliseert_biedingen_automatisch_op_basis": "Bol optimaliseert biedingen automatisch op basis van je doel-ROAS. Geen keywords nodig.",
-        "je_stelt_zelf_keywords_en_biedingen": "Je stelt zelf keywords en biedingen in. Meer controle, maar vereist actief beheer."
+        "je_stelt_zelf_keywords_en_biedingen": "Je stelt zelf keywords en biedingen in. Meer controle, maar vereist actief beheer.",
+        "campagne_aanmaken": "Campagne Aanmaken",
+        "automatisch": "Automatisch",
+        "wijzigingen_controleren": "Wijzigingen controleren",
+        "controleer_campagne": "Controleer Campagne"
       },
       "campaignsList": {
         "alle_platforms": "Alle platforms",
@@ -2674,7 +2702,9 @@
         "zoek_campagnes": "Zoek campagnes...",
         "nieuwe_campagne": "Nieuwe Campagne",
         "eerste_campagne_maken": "Eerste Campagne Maken",
-        "geen_campagnes_gevonden_met_de_huidige": "Geen campagnes gevonden met de huidige filters."
+        "geen_campagnes_gevonden_met_de_huidige": "Geen campagnes gevonden met de huidige filters.",
+        "koppel_eerst_een_advertentieplatform_om_campagnes": "Koppel eerst een advertentieplatform om campagnes te kunnen maken.",
+        "maak_je_eerste_advertentiecampagne_om_meer": "Maak je eerste advertentiecampagne om meer klanten te bereiken."
       },
       "platformConnections": {
         "account": "Account",
@@ -2691,7 +2721,11 @@
         "om_bol_com_ads_te_gebruiken": "Om Bol.com Ads te gebruiken moet je eerst je Bol.com Retailer account koppelen.",
         "voeg_de_bol_com_advertising_api_2": "Voeg de Bol.com Advertising API credentials toe aan je bestaande koppeling.",
         "koppel_je_advertentie_accounts_om_campagnes": "Koppel je advertentie-accounts om campagnes direct vanuit SellQo te beheren. Je advertentiebudget wordt rechtstreeks via je eigen account afgerekend.",
-        "ontkoppelen_bevestigen": "Weet je zeker dat je {{platform}} wilt ontkoppelen?"
+        "ontkoppelen_bevestigen": "Weet je zeker dat je {{platform}} wilt ontkoppelen?",
+        "advertising_api_toevoegen": "Advertising API toevoegen",
+        "ga_naar_sellqo_connect": "Ga naar SellQo Connect",
+        "verbind_je_google_ads_account_voor": "Verbind je Google Ads account voor Shopping, Search en Display campagnes.",
+        "koppel_je_amazon_seller_central_account": "Koppel je Amazon Seller Central account voor Sponsored Products."
       },
       "ads_overzicht": "Ads Overzicht",
       "geen_advertentiekanalen_verbonden": "Geen advertentiekanalen verbonden",
@@ -2713,7 +2747,10 @@
       "negeren": "Negeren",
       "alle_geadverteerde_producten_zijn_boven_de": "Alle geadverteerde producten zijn boven de voorraaddrempel",
       "voorraad_bijwerken": "Voorraad bijwerken",
-      "onbekend_product": "Onbekend product"
+      "onbekend_product": "Onbekend product",
+      "ads_actief": "Ads actief",
+      "aanbeveling_toegepast": "Aanbeveling toegepast",
+      "aanbeveling_genegeerd": "Aanbeveling genegeerd"
     },
     "adsBolcom": {
       "ads": "Ads",
@@ -2742,7 +2779,8 @@
       "sync_mislukt": "Sync mislukt: {{reason}}",
       "onbekende_fout": "Onbekende fout",
       "budget_per_dag": "€{{amount}}/dag",
-      "budget_totaal": "€{{amount}} totaal"
+      "budget_totaal": "€{{amount}} totaal",
+      "synchroniseren": "Synchroniseren..."
     },
     "adsBolcomCampaignDetail": {
       "campagne_niet_gevonden": "Campagne niet gevonden",
@@ -2839,7 +2877,8 @@
       "door": "Door",
       "bijv_auto_negatief_hoge_spend": "Bijv. Auto negatief hoge spend",
       "merchant": "Merchant",
-      "nieuwe_regel": "Nieuwe regel"
+      "nieuwe_regel": "Nieuwe regel",
+      "auto": "Auto"
     },
     "seo": {
       "aISearchOptimizer": {
@@ -2908,7 +2947,9 @@
         "comprimeer_afbeeldingen_gebruik_lazy_loading_en": "Comprimeer afbeeldingen, gebruik lazy loading, en optimaliseer de server response.",
         "stel_afmetingen_in_voor_afbeeldingen_en": "Stel afmetingen in voor afbeeldingen en iframes, vermijd dynamische content inserts.",
         "gebruik_een_cdn_optimaliseer_database_queries": "Gebruik een CDN, optimaliseer database queries, en schakel caching in.",
-        "je_core_web_vitals_scoren_goed": "Je Core Web Vitals scoren goed. Blijf de prestaties monitoren."
+        "je_core_web_vitals_scoren_goed": "Je Core Web Vitals scoren goed. Blijf de prestaties monitoren.",
+        "redelijk_er_zijn_enkele_verbeterpunten_om": "Redelijk. Er zijn enkele verbeterpunten om de snelheid te optimaliseren.",
+        "verbetering_nodig_je_site_is_traag": "Verbetering nodig. Je site is traag en kan de gebruikerservaring verbeteren."
       },
       "imageAltTextPanel": {
         "geen_afbeeldingen_gevonden": "Geen afbeeldingen gevonden",
@@ -3032,7 +3073,8 @@
         "gebruik_een_afbeelding_van_minimaal_1200x630": "• Gebruik een afbeelding van minimaal 1200x630 pixels",
         "voeg_een_duidelijke_call_to_action": "• Voeg een duidelijke call-to-action toe in de beschrijving",
         "social_media_preview": "Social Media Preview",
-        "twitter": "Twitter"
+        "twitter": "Twitter",
+        "ai_genereren": "AI Genereren"
       },
       "structuredDataPreview": {
         "geen_producten": "Geen producten",
@@ -3079,7 +3121,8 @@
         "preset_geladen": "Preset \"{{preset}}\" geladen",
         "waar_te_plaatsen": "Waar te plaatsen?",
         "user_agent_10_allow": "User-agent: *&#10;Allow: /",
-        "upload_naar_root": "Upload dit bestand naar de root van je domein:"
+        "upload_naar_root": "Upload dit bestand naar de root van je domein:",
+        "gekopieerd": "Gekopieerd!"
       },
       "sEOHealthChecklist": {
         "technische_seo_checklist": "Technische SEO Checklist",
@@ -3220,7 +3263,9 @@
       "structured_data": "Structured Data",
       "product_afbeeldingen": "Product Afbeeldingen",
       "meta_descriptions": "Meta Descriptions",
-      "meta_titles": "Meta Titles"
+      "meta_titles": "Meta Titles",
+      "er_zijn_verbeterpunten_voor_je_seo": "Er zijn verbeterpunten voor je SEO.",
+      "start_met_de_quick_wins_hieronder": "Start met de quick wins hieronder."
     },
     "products": {
       "bulkAIGenerateDialog": {
@@ -3791,7 +3836,376 @@
       "niet_van_toepassing_voor_digitale_producten": "Niet van toepassing voor digitale producten",
       "houd_de_voorraad_automatisch_bij": "Houd de voorraad automatisch bij",
       "product_bewerken": "Product bewerken",
-      "product_nummer": "Product {{number}}"
+      "product_nummer": "Product {{number}}",
+      "validation": {
+        "meta_beschrijving_mag_maximaal_160_tekens": "Meta beschrijving mag maximaal 160 tekens zijn",
+        "meta_titel_mag_maximaal_60_tekens": "Meta titel mag maximaal 60 tekens zijn",
+        "voorraad_moet_0_of_hoger_zijn": "Voorraad moet 0 of hoger zijn",
+        "prijs_moet_0_of_hoger_zijn": "Prijs moet 0 of hoger zijn",
+        "korte_beschrijving_mag_maximaal_500_tekens": "Korte beschrijving mag maximaal 500 tekens zijn",
+        "beschrijving_is_te_lang": "Beschrijving is te lang",
+        "slug_mag_alleen_kleine_letters_cijfers": "Slug mag alleen kleine letters, cijfers en streepjes bevatten",
+        "slug_is_verplicht": "Slug is verplicht",
+        "naam_mag_maximaal_200_tekens_zijn": "Naam mag maximaal 200 tekens zijn"
+      }
+    },
+    "promotions": {
+      "autoDiscountFormDialog": {
+        "winkelwagen_totaal": "Winkelwagen totaal",
+        "aantal_producten": "Aantal producten",
+        "specifieke_producten": "Specifieke producten",
+        "eerste_bestelling": "Eerste bestelling",
+        "korting_type": "Korting type",
+        "percentage": "Percentage",
+        "vast_bedrag": "Vast bedrag",
+        "gratis_verzending": "Gratis verzending",
+        "gratis_product": "Gratis product",
+        "toepassen_op": "Toepassen op",
+        "hele_bestelling": "Hele bestelling",
+        "specifieke_producten_2": "Specifieke producten",
+        "specifieke_categorieen": "Specifieke categorieën",
+        "max_korting": "Max. korting (€)",
+        "optioneel_maximum": "Optioneel maximum",
+        "prioriteit": "Prioriteit",
+        "lager_eerder_toegepast": "Lager = eerder toegepast",
+        "geldig_vanaf": "Geldig vanaf",
+        "geldig_tot": "Geldig tot",
+        "gratis_verzending_vanaf_50": "Gratis verzending vanaf €50",
+        "interne_beschrijving": "Interne beschrijving...",
+        "bedrag": "Bedrag (€)",
+        "min_bedrag": "Min. bedrag (€)",
+        "min_aantal": "Min. aantal",
+        "automatische_korting_bewerken": "Automatische Korting Bewerken",
+        "nieuwe_automatische_korting": "Nieuwe Automatische Korting",
+        "validation": {
+          "naam_is_verplicht": "Naam is verplicht"
+        }
+      },
+      "bogoPromotionFormDialog": {
+        "type_actie": "Type actie",
+        "koop_x_krijg_y_gratis": "Koop X krijg Y gratis",
+        "koop_x_korting_op_y": "Koop X, korting op Y",
+        "koop_aantal": "Koop aantal",
+        "hoeveel_moet_klant_kopen": "Hoeveel moet klant kopen",
+        "krijg_aantal": "Krijg aantal",
+        "hoeveel_krijgt_klant": "Hoeveel krijgt klant",
+        "kortingstype": "Kortingstype",
+        "gratis_100": "Gratis (100%)",
+        "max_per_bestelling": "Max per bestelling",
+        "leeg_laten_voor_onbeperkt": "Leeg laten voor onbeperkt",
+        "koop_2_krijg_1_gratis": "Koop 2 krijg 1 gratis",
+        "optionele_beschrijving": "Optionele beschrijving...",
+        "actie_is_direct_zichtbaar_en_toepasbaar": "Actie is direct zichtbaar en toepasbaar",
+        "kortingsbedrag": "Kortingsbedrag",
+        "bogo_actie_bewerken": "BOGO Actie Bewerken"
+      },
+      "bundleFormDialog": {
+        "vaste_bundel": "Vaste bundel",
+        "mix_match": "Mix & Match",
+        "vaste_prijs": "Vaste prijs",
+        "min_items": "Min. items",
+        "max_items": "Max. items",
+        "zomerbundel": "Zomerbundel",
+        "beschrijf_de_bundel": "Beschrijf de bundel...",
+        "bundel_bewerken": "Bundel Bewerken"
+      },
+      "customerGroupFormDialog": {
+        "min_bestelbedrag": "Min. bestelbedrag (€)",
+        "lager_hogere_prioriteit": "Lager = hogere prioriteit",
+        "btw_vrijgesteld": "BTW vrijgesteld",
+        "geen_btw_berekenen_voor_deze_groep": "Geen BTW berekenen voor deze groep",
+        "groothandel": "Groothandel",
+        "beschrijving_van_de_groep": "Beschrijving van de groep...",
+        "geen_standaard_korting": "Geen standaard korting",
+        "geen_minimum": "Geen minimum",
+        "korting": "Korting (€)",
+        "klantengroep_bewerken": "Klantengroep Bewerken",
+        "nieuwe_klantengroep": "Nieuwe Klantengroep",
+        "validation": {
+          "code_is_verplicht": "Code is verplicht"
+        }
+      },
+      "giftCardBalanceDialog": {
+        "saldo_aanpassen": "Saldo aanpassen",
+        "bedrag": "Bedrag",
+        "reden_optioneel": "Reden (optioneel)",
+        "nieuw_saldo_na_aanpassing": "Nieuw saldo na aanpassing:",
+        "bijv_correctie_compensatie": "Bijv: Correctie, Compensatie, ...",
+        "ophogen": "Ophogen",
+        "verlagen": "Verlagen",
+        "saldo_verhoogd": "Saldo verhoogd",
+        "saldo_verlaagd": "Saldo verlaagd",
+        "code": "Code:"
+      },
+      "giftCardDesignDialog": {
+        "thema": "Thema",
+        "volgorde": "Volgorde",
+        "bijv_verjaardag_feestelijk": "Bijv. Verjaardag Feestelijk",
+        "selecteer_thema": "Selecteer thema",
+        "klik_om_afbeelding_te_uploaden": "Klik om afbeelding te uploaden",
+        "aanbevolen_1200x630_pixels_16_9": "Aanbevolen: 1200x630 pixels (16:9)",
+        "lagere_nummers_worden_eerst_getoond": "Lagere nummers worden eerst getoond",
+        "toon_dit_ontwerp_aan_klanten": "Toon dit ontwerp aan klanten",
+        "pas_de_instellingen_van_dit_ontwerp": "Pas de instellingen van dit ontwerp aan",
+        "maak_een_nieuw_cadeaukaart_ontwerp": "Maak een nieuw cadeaukaart ontwerp",
+        "ontwerp_bewerken": "Ontwerp bewerken",
+        "nieuw_ontwerp": "Nieuw ontwerp",
+        "validation": {
+          "thema_is_verplicht": "Thema is verplicht"
+        }
+      },
+      "giftCardFormDialog": {
+        "naam_ontvanger": "Naam ontvanger",
+        "email_ontvanger": "Email ontvanger",
+        "persoonlijk_bericht": "Persoonlijk bericht",
+        "ontwerp": "Ontwerp",
+        "vervaldatum_optioneel": "Vervaldatum (optioneel)",
+        "jan_voorbeeld_nl": "jan@voorbeeld.nl",
+        "veel_plezier_met_je_cadeau": "Veel plezier met je cadeau!",
+        "kies_een_ontwerp": "Kies een ontwerp",
+        "nieuwe_cadeaukaart": "Nieuwe Cadeaukaart",
+        "dit_bericht_wordt_getoond_aan_de": "Dit bericht wordt getoond aan de ontvanger",
+        "laat_leeg_voor_geen_vervaldatum": "Laat leeg voor geen vervaldatum",
+        "aanmaken": "Aanmaken...",
+        "cadeaukaart_aanmaken": "Cadeaukaart aanmaken",
+        "validation": {
+          "ongeldig_emailadres": "Ongeldig emailadres",
+          "minimaal_1": "Minimaal €1"
+        }
+      },
+      "giftPromotionFormDialog": {
+        "bestelwaarde": "Bestelwaarde",
+        "cadeau_product": "Cadeau Product",
+        "aantal": "Aantal",
+        "max_bestelling": "Max/bestelling",
+        "voorraad_limiet": "Voorraad limiet",
+        "stapelbaar": "Stapelbaar",
+        "meerdere_keren_toepassen_per_bestelling": "Meerdere keren toepassen per bestelling",
+        "gratis_sample_bij_75_bestelling": "Gratis sample bij €75+ bestelling",
+        "selecteer_een_product": "Selecteer een product",
+        "gift_actie_bewerken": "Gift Actie Bewerken",
+        "validation": {
+          "cadeau_product_is_verplicht": "Cadeau product is verplicht"
+        }
+      },
+      "loyaltyProgramFormDialog": {
+        "punten_per_1": "Punten per €1",
+        "hoeveel_punten_per_euro": "Hoeveel punten per euro",
+        "waarde_per_punt": "Waarde per punt (€)",
+        "euro_waarde_bij_inwisselen": "Euro waarde bij inwisselen",
+        "min_inwisselen": "Min. inwisselen",
+        "minimum_punten": "Minimum punten",
+        "tiers": "Tiers",
+        "min_punten": "Min. punten",
+        "multiplier": "Multiplier",
+        "korting": "Korting %",
+        "vip_spaarprogramma": "VIP Spaarprogramma",
+        "spaar_punten_bij_elke_aankoop": "Spaar punten bij elke aankoop...",
+        "tier_toevoegen": "Tier toevoegen",
+        "klanten_kunnen_punten_sparen_en_inwisselen": "Klanten kunnen punten sparen en inwisselen",
+        "gold": "Gold",
+        "silver": "Silver",
+        "bronze": "Bronze",
+        "programma_bewerken": "Programma Bewerken",
+        "nieuw_loyaliteitsprogramma": "Nieuw Loyaliteitsprogramma"
+      },
+      "stackingRuleFormDialog": {
+        "regeltype": "Regeltype",
+        "van_toepassing_op": "Van toepassing op",
+        "max_aantal_stapelbare_kortingen": "Max. aantal stapelbare kortingen",
+        "max_totale_korting": "Max. totale korting (%)",
+        "exclusieve_kortingscode_regel": "Exclusieve kortingscode regel",
+        "exclusief_kan_niet_met_andere_kortingen": "Exclusief - Kan niet met andere kortingen",
+        "stapelbaar_mag_combineren_met_andere_kortingen": "Stapelbaar - Mag combineren met andere kortingen",
+        "prioriteit_bepaal_volgorde_van_toepassing": "Prioriteit - Bepaal volgorde van toepassing",
+        "selecteer_welke_kortingstypes_deze_regel_beinvloedt": "Selecteer welke kortingstypes deze regel beïnvloedt",
+        "voorkom_extreem_hoge_kortingen_door_combinatie": "Voorkom extreem hoge kortingen door combinatie",
+        "regel_wordt_toegepast_bij_berekening": "Regel wordt toegepast bij berekening",
+        "stapelregel_bewerken": "Stapelregel Bewerken",
+        "nieuwe_stapelregel": "Nieuwe Stapelregel",
+        "discountTypes": {
+          "discount_code": "Kortingscodes",
+          "volume_discount": "Staffelkortingen",
+          "automatic_discount": "Automatische kortingen",
+          "bundle_discount": "Bundelkortingen",
+          "bogo": "BOGO acties",
+          "customer_group": "Klantengroep kortingen",
+          "loyalty": "Loyaliteitspunten",
+          "gift_promotion": "Cadeauacties"
+        },
+        "validation": {
+          "selecteer_minimaal_1_type": "Selecteer minimaal 1 type"
+        }
+      },
+      "volumeDiscountFormDialog": {
+        "alle_producten": "Alle producten",
+        "staffels": "Staffels",
+        "min_stuks": "Min. stuks",
+        "max_optioneel": "Max (optioneel)",
+        "korting": "Korting",
+        "kwantumkorting": "Kwantumkorting",
+        "beschrijf_de_staffelkorting": "Beschrijf de staffelkorting...",
+        "staffel": "Staffel",
+        "staffelkorting_bewerken": "Staffelkorting Bewerken",
+        "nieuwe_staffelkorting": "Nieuwe Staffelkorting",
+        "validation": {
+          "minimaal_1_staffel_vereist": "Minimaal 1 staffel vereist"
+        }
+      },
+      "beheer_alle_kortingsacties_en_promoties_voor": "Beheer alle kortingsacties en promoties voor je webshop",
+      "premium": "Premium",
+      "upgrade": "Upgrade",
+      "beheren": "Beheren",
+      "modules": {
+        "discount-codes": {
+          "title": "Kortingscodes",
+          "description": "Manuele codes die klanten kunnen invoeren"
+        },
+        "bundles": {
+          "title": "Product Bundels",
+          "description": "Combineer producten voor een speciale prijs"
+        },
+        "volume": {
+          "title": "Staffelkortingen",
+          "description": "Korting op basis van bestelde hoeveelheid"
+        },
+        "bogo": {
+          "title": "BOGO Acties",
+          "description": "Koop X krijg Y gratis of met korting"
+        },
+        "customer-groups": {
+          "title": "Klantengroepen",
+          "description": "VIP prijzen en groepskortingen"
+        },
+        "auto": {
+          "title": "Automatische Kortingen",
+          "description": "Kortingen die automatisch worden toegepast"
+        },
+        "gifts": {
+          "title": "Cadeaus bij Aankoop",
+          "description": "Gratis producten bij bepaalde aankopen"
+        },
+        "loyalty": {
+          "title": "Loyaliteitsprogramma",
+          "description": "Spaarpunten en VIP tiers"
+        },
+        "gift-cards": {
+          "title": "Cadeaukaarten",
+          "description": "Digitale cadeaukaarten als betaalmiddel"
+        },
+        "stacking": {
+          "title": "Stapelregels",
+          "description": "Bepaal welke kortingen mogen combineren"
+        }
+      },
+      "promoties_kortingen": "Promoties & Kortingen",
+      "actieve_promoties": "Actieve Promoties"
+    },
+    "bundles": {
+      "product_bundels": "Product Bundels",
+      "geen_bundels": "Geen bundels",
+      "korting": "Korting:",
+      "producten": "Producten:",
+      "geldig_tot": "Geldig tot:",
+      "bundel_verwijderen": "Bundel verwijderen?",
+      "maak_bundels_van_producten_met_speciale": "Maak bundels van producten met speciale prijzen",
+      "nieuwe_bundel": "Nieuwe Bundel",
+      "maak_je_eerste_product_bundel_aan": "Maak je eerste product bundel aan",
+      "bundel_aanmaken": "Bundel Aanmaken",
+      "deze_actie_kan_niet_ongedaan_worden": "Deze actie kan niet ongedaan worden gemaakt."
+    },
+    "bogoPromotions": {
+      "bogo_acties": "BOGO Acties",
+      "koop": "Koop",
+      "krijg": "Krijg",
+      "bogo_actie_verwijderen": "BOGO actie verwijderen?",
+      "zoek_acties": "Zoek acties...",
+      "koop_x_krijg_y_gratis_of": "Koop X krijg Y gratis of met korting",
+      "nieuwe_bogo_actie": "Nieuwe BOGO Actie",
+      "geen_bogo_acties_gevonden": "Geen BOGO acties gevonden"
+    },
+    "volumeDiscounts": {
+      "staffelkortingen": "Staffelkortingen",
+      "geen_staffelkortingen": "Geen staffelkortingen",
+      "staffels": "Staffels:",
+      "staffelkorting_verwijderen": "Staffelkorting verwijderen?",
+      "geef_korting_op_basis_van_bestelwaarde": "Geef korting op basis van bestelwaarde of aantal",
+      "nieuwe_staffel": "Nieuwe Staffel",
+      "maak_je_eerste_staffelkorting_aan": "Maak je eerste staffelkorting aan",
+      "staffel_aanmaken": "Staffel Aanmaken"
+    },
+    "autoDiscounts": {
+      "automatische_kortingen": "Automatische Kortingen",
+      "geen_automatische_kortingen": "Geen automatische kortingen",
+      "trigger": "Trigger:",
+      "waarde": "Waarde:",
+      "gebruik": "Gebruik:",
+      "automatische_korting_verwijderen": "Automatische korting verwijderen?",
+      "kortingen_die_automatisch_toegepast_worden_bij": "Kortingen die automatisch toegepast worden bij checkout",
+      "nieuwe_korting": "Nieuwe Korting",
+      "maak_je_eerste_automatische_korting_aan": "Maak je eerste automatische korting aan",
+      "korting_aanmaken": "Korting Aanmaken"
+    },
+    "giftPromotions": {
+      "cadeaus_bij_aankoop": "Cadeaus bij Aankoop",
+      "geen_gift_acties": "Geen gift acties",
+      "cadeau": "Cadeau:",
+      "voorraad": "Voorraad:",
+      "gift_actie_verwijderen": "Gift actie verwijderen?",
+      "gratis_producten_bij_bepaalde_bestellingen": "Gratis producten bij bepaalde bestellingen",
+      "nieuwe_gift_actie": "Nieuwe Gift Actie",
+      "maak_je_eerste_cadeau_actie_aan": "Maak je eerste cadeau actie aan",
+      "gift_actie_aanmaken": "Gift Actie Aanmaken"
+    },
+    "loyaltyPrograms": {
+      "loyaliteitsprogramma_s": "Loyaliteitsprogramma's",
+      "geen_loyaliteitsprogramma_s": "Geen loyaliteitsprogramma's",
+      "leden": "Leden",
+      "tier": "Tier",
+      "min_punten": "Min. Punten",
+      "punten_multiplier": "Punten Multiplier",
+      "programma_verwijderen": "Programma verwijderen?",
+      "spaarpunten_en_vip_tiers_voor_je": "Spaarpunten en VIP tiers voor je klanten",
+      "nieuw_programma": "Nieuw Programma",
+      "start_een_spaarprogramma_om_klanten_te": "Start een spaarprogramma om klanten te belonen",
+      "eerste_programma_aanmaken": "Eerste programma aanmaken"
+    },
+    "customerGroups": {
+      "klantengroepen": "Klantengroepen",
+      "geen_klantengroepen": "Geen klantengroepen",
+      "standaard_korting": "Standaard korting:",
+      "min_bestelling": "Min. bestelling:",
+      "btw_vrijgesteld": "BTW vrijgesteld:",
+      "prioriteit": "Prioriteit:",
+      "klantengroep_verwijderen": "Klantengroep verwijderen?",
+      "speciale_prijzen_en_kortingen_voor_klantgroepen": "Speciale prijzen en kortingen voor klantgroepen",
+      "nieuwe_groep": "Nieuwe Groep",
+      "maak_je_eerste_klantengroep_aan": "Maak je eerste klantengroep aan",
+      "groep_aanmaken": "Groep Aanmaken",
+      "deze_actie_kan_niet_ongedaan_worden": "Deze actie kan niet ongedaan worden gemaakt. Alle leden worden losgekoppeld."
+    },
+    "giftCards": {
+      "nog_in_te_wisselen": "Nog in te wisselen",
+      "overzicht": "Overzicht",
+      "opgebruikt": "Opgebruikt",
+      "verlopen": "Verlopen",
+      "gedeactiveerd": "Gedeactiveerd",
+      "geen_cadeaukaarten_gevonden": "Geen cadeaukaarten gevonden",
+      "ontvanger": "Ontvanger",
+      "oorspronkelijk": "Oorspronkelijk",
+      "saldo": "Saldo",
+      "aangemaakt": "Aangemaakt",
+      "zoek_op_code_email_of_naam": "Zoek op code, email of naam...",
+      "cadeaukaarten": "Cadeaukaarten",
+      "beheer_digitale_cadeaukaarten_voor_je_webshop": "Beheer digitale cadeaukaarten voor je webshop",
+      "nieuwe_cadeaukaart": "Nieuwe cadeaukaart",
+      "totaal_uitgegeven": "Totaal uitgegeven",
+      "openstaand_saldo": "Openstaand saldo",
+      "ingewisseld": "Ingewisseld",
+      "actieve_kaarten": "Actieve kaarten",
+      "met_beschikbaar_saldo": "Met beschikbaar saldo",
+      "pas_je_filters_aan": "Pas je filters aan",
+      "maak_je_eerste_cadeaukaart_aan": "Maak je eerste cadeaukaart aan"
     }
   },
   "product_form": {

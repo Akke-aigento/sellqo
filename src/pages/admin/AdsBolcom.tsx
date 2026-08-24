@@ -106,7 +106,7 @@ export default function AdsBolcomPage() {
           <p className="text-muted-foreground mb-4">{t('admin.adsBolcom.synchroniseer_je_bol_com_advertenties_om')}</p>
           <Button onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+            {syncing ? t('admin.adsBolcom.synchroniseren') : t('admin.adsBolcomCampaignDetail.synchroniseer')}
           </Button>
         </Card>
       </div>
@@ -149,7 +149,7 @@ export default function AdsBolcomPage() {
           </div>
           <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="hidden sm:inline ml-2">{syncing ? 'Synchroniseren...' : 'Synchroniseer'}</span>
+            <span className="hidden sm:inline ml-2">{syncing ? t('admin.adsBolcom.synchroniseren') : t('admin.adsBolcomCampaignDetail.synchroniseer')}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowWizard(true)}>
             <Plus className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('admin.adsBolcom.nieuwe_campagne')}</span>

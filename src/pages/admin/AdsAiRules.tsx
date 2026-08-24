@@ -418,7 +418,7 @@ export default function AdsAiRulesPage() {
                           <td className="p-3 max-w-xs truncate">{h.reason}</td>
                           <td className="p-3">
                             <Badge variant={h.status === 'auto_applied' ? 'secondary' : 'default'}>
-                              {h.status === 'auto_applied' ? 'Auto' : 'Handmatig'}
+                              {h.status === 'auto_applied' ? t('admin.adsAiRules.auto') : t('admin.odooChannels.channels.manual')}
                             </Badge>
                           </td>
                           <td className="p-3">

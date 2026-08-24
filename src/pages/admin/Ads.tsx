@@ -71,7 +71,7 @@ export default function AdsPage() {
     if (error) {
       toast.error('Actie mislukt');
     } else {
-      toast.success(status === 'accepted' ? 'Aanbeveling toegepast' : 'Aanbeveling genegeerd');
+      toast.success(status === 'accepted' ? t('admin.ads.aanbeveling_toegepast') : t('admin.ads.aanbeveling_genegeerd'));
       queryClient.invalidateQueries({ queryKey: ['ads-ai-recommendations'] });
     }
   };
@@ -148,7 +148,7 @@ export default function AdsPage() {
                 <span className="font-medium text-sm">{ch.name}</span>
                 {ch.enabled && bolConnection && (
                   <Badge variant={bolConnection.is_active ? 'default' : 'secondary'} className="ml-auto text-[10px]">
-                    {bolConnection.is_active ? 'Actief' : 'Inactief'}
+                    {bolConnection.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                   </Badge>
                 )}
               </div>
@@ -198,11 +198,11 @@ export default function AdsPage() {
                 />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `€${v}`} className="text-muted-foreground" />
                 <Tooltip
-                  formatter={(value: number, name: string) => [formatCurrency(value), name === 'spend' ? 'Spend' : 'Omzet']}
+                  formatter={(value: number, name: string) => [formatCurrency(value), name === 'spend' ? t('admin.ads.spend') : t('admin.adsBolcom.omzet')]}
                   labelFormatter={(label) => format(new Date(label), 'd MMMM yyyy', { locale: dateLocale })}
                   contentStyle={{ borderRadius: 8, fontSize: 13 }}
                 />
-                <Legend formatter={(value) => (value === 'spend' ? 'Spend' : 'Omzet')} />
+                <Legend formatter={(value) => (value === 'spend' ? t('admin.ads.spend') : t('admin.adsBolcom.omzet'))} />
                 <Line type="monotone" dataKey="spend" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
@@ -289,7 +289,7 @@ export default function AdsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="destructive" className="text-xs">
-                      {item.is_advertised ? 'Ads actief' : 'Gepauzeerd'}
+                      {item.is_advertised ? t('admin.ads.ads_actief') : t('admin.marketing.campaignCard.status.gepauzeerd')}
                     </Badge>
                     <Button variant="outline" size="sm" asChild>
                       <Link to={`/admin/products/${item.product_id}`}>

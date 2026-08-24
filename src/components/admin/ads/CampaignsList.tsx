@@ -107,8 +107,7 @@ export function CampaignsList() {
             <h3 className="text-lg font-medium mb-1">{t('admin.ads.campaignsList.geen_campagnes')}</h3>
             <p className="text-muted-foreground text-center max-w-md mb-4">
               {connectedPlatforms.length === 0 
-                ? 'Koppel eerst een advertentieplatform om campagnes te kunnen maken.'
-                : 'Maak je eerste advertentiecampagne om meer klanten te bereiken.'}
+                ? t('admin.ads.campaignsList.koppel_eerst_een_advertentieplatform_om_campagnes') : t('admin.ads.campaignsList.maak_je_eerste_advertentiecampagne_om_meer')}
             </p>
             <Button onClick={() => setShowWizard(true)}>
               <Plus className="h-4 w-4 mr-2" />

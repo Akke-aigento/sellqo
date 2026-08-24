@@ -283,7 +283,7 @@ function FeedbackDetailsForm({
           {t('common.cancel')}
         </Button>
         <Button size="sm" onClick={onSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Verzenden...' : 'Verstuur'}
+          {isSubmitting ? t('admin.marketing.campaignCard.status.verzenden') : t('admin.marketing.aIFeedbackWidget.verstuur')}
         </Button>
       </div>
     </div>

@@ -299,7 +299,7 @@ export function SlugManager({
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {item.entityType === 'product' ? 'Product' : 'Categorie'}
+                            {item.entityType === 'product' ? t('admin.stockReport.colName') : t('admin.marketing.templateDialog.categorie')}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">

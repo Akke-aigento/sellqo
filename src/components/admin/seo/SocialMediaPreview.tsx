@@ -89,7 +89,7 @@ export function SocialMediaPreview({
               disabled={isGenerating}
             >
               <Wand2 className="h-4 w-4 mr-2" />
-              {isGenerating ? 'Genereren...' : 'AI Genereren'}
+              {isGenerating ? t('admin.marketing.aIImageGenerator.genereren') : t('admin.seo.socialMediaPreview.ai_genereren')}
             </Button>
           )}
         </div>

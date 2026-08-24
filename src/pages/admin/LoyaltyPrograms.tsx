@@ -32,8 +32,10 @@ import { useLoyaltyPrograms, useUpdateLoyaltyProgram, useDeleteLoyaltyProgram } 
 import { LoyaltyProgramFormDialog } from '@/components/admin/promotions/LoyaltyProgramFormDialog';
 import type { LoyaltyProgram } from '@/types/promotions';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function LoyaltyProgramsPage() {
+  const { t } = useTranslation();
   const { data: programs = [], isLoading } = useLoyaltyPrograms();
   const updateProgram = useUpdateLoyaltyProgram();
   const deleteProgram = useDeleteLoyaltyProgram();
@@ -78,31 +80,31 @@ export default function LoyaltyProgramsPage() {
           </NavLink>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">Loyaliteitsprogramma's</h1>
+          <h1 className="text-2xl font-semibold">{t('admin.loyaltyPrograms.loyaliteitsprogramma_s')}</h1>
           <p className="text-muted-foreground">
-            Spaarpunten en VIP tiers voor je klanten
+            {t('admin.loyaltyPrograms.spaarpunten_en_vip_tiers_voor_je')}
           </p>
         </div>
         <Button onClick={() => { setEditingProgram(null); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuw Programma
+          {t('admin.loyaltyPrograms.nieuw_programma')}
         </Button>
       </div>
 
       {/* Programs */}
       {isLoading ? (
-        <p className="text-muted-foreground">Laden...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : programs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Heart className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Geen loyaliteitsprogramma's</h3>
+            <h3 className="text-lg font-medium mb-2">{t('admin.loyaltyPrograms.geen_loyaliteitsprogramma_s')}</h3>
             <p className="text-muted-foreground mb-4">
-              Start een spaarprogramma om klanten te belonen
+              {t('admin.loyaltyPrograms.start_een_spaarprogramma_om_klanten_te')}
             </p>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Eerste programma aanmaken
+              {t('admin.loyaltyPrograms.eerste_programma_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -120,9 +122,9 @@ export default function LoyaltyProgramsPage() {
                       <CardTitle className="flex items-center gap-2">
                         {program.name}
                         {program.is_active ? (
-                          <Badge>Actief</Badge>
+                          <Badge>{t('admin.marketing.aBTestingPanel.actief')}</Badge>
                         ) : (
-                          <Badge variant="secondary">Inactief</Badge>
+                          <Badge variant="secondary">{t('admin.products.inactief')}</Badge>
                         )}
                       </CardTitle>
                       <CardDescription>{program.description}</CardDescription>
@@ -142,14 +144,14 @@ export default function LoyaltyProgramsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(program)}>
                           <Edit className="mr-2 h-4 w-4" />
-                          Bewerken
+                          {t('common.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(program)}
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -160,15 +162,15 @@ export default function LoyaltyProgramsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold">{program.points_per_euro}</div>
-                    <div className="text-sm text-muted-foreground">Punten per €1</div>
+                    <div className="text-sm text-muted-foreground">{t('admin.promotions.loyaltyProgramFormDialog.punten_per_1')}</div>
                   </div>
                   <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold">{program.tiers?.length || 0}</div>
-                    <div className="text-sm text-muted-foreground">Tiers</div>
+                    <div className="text-sm text-muted-foreground">{t('admin.promotions.loyaltyProgramFormDialog.tiers')}</div>
                   </div>
                   <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold">—</div>
-                    <div className="text-sm text-muted-foreground">Leden</div>
+                    <div className="text-sm text-muted-foreground">{t('admin.loyaltyPrograms.leden')}</div>
                   </div>
                 </div>
 
@@ -177,16 +179,16 @@ export default function LoyaltyProgramsPage() {
                   <div>
                     <h4 className="font-medium mb-3 flex items-center gap-2">
                       <Crown className="h-4 w-4" />
-                      Tiers
+                      {t('admin.promotions.loyaltyProgramFormDialog.tiers')}
                     </h4>
                     <div className="w-full overflow-x-auto">
                     <Table className="min-w-[640px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Tier</TableHead>
-                          <TableHead>Min. Punten</TableHead>
-                          <TableHead>Punten Multiplier</TableHead>
-                          <TableHead>Korting</TableHead>
+                          <TableHead>{t('admin.loyaltyPrograms.tier')}</TableHead>
+                          <TableHead>{t('admin.loyaltyPrograms.min_punten')}</TableHead>
+                          <TableHead>{t('admin.loyaltyPrograms.punten_multiplier')}</TableHead>
+                          <TableHead>{t('admin.promotions.volumeDiscountFormDialog.korting')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -224,16 +226,16 @@ export default function LoyaltyProgramsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Programma verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.loyaltyPrograms.programma_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je "{programToDelete?.name}" wilt verwijderen?
               Alle spaarpunten van klanten gaan verloren.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

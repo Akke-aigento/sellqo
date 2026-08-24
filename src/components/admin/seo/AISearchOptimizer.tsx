@@ -206,7 +206,7 @@ export function AISearchOptimizer({
                     <div className="flex items-center gap-2 mb-1">
                       <h5 className="font-medium">{tip.title}</h5>
                       <Badge variant={tip.priority === 'high' ? 'default' : 'secondary'} className="text-xs">
-                        {tip.priority === 'high' ? 'Hoog' : 'Medium'}
+                        {tip.priority === 'high' ? t('admin.seo.keywordResearchPanel.hoog') : t('admin.seo.keywordResearchPanel.medium')}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{tip.description}</p>

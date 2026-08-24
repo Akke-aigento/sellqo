@@ -286,8 +286,7 @@ export function CoreWebVitalsPanel() {
                 {performanceScore && performanceScore >= 90 
                   ? 'Uitstekend! Je site laadt snel en biedt een goede gebruikerservaring.'
                   : performanceScore && performanceScore >= 50
-                  ? 'Redelijk. Er zijn enkele verbeterpunten om de snelheid te optimaliseren.'
-                  : 'Verbetering nodig. Je site is traag en kan de gebruikerservaring verbeteren.'}
+                  ? t('admin.seo.coreWebVitalsPanel.redelijk_er_zijn_enkele_verbeterpunten_om') : t('admin.seo.coreWebVitalsPanel.verbetering_nodig_je_site_is_traag')}
               </p>
               
               <div className="flex items-center gap-2">

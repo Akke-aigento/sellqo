@@ -202,8 +202,7 @@ export function PlatformConnections() {
                     : platform === 'meta_ads'
                     ? 'Koppel je Facebook Business Manager account om te adverteren op Facebook en Instagram.'
                     : platform === 'google_ads'
-                    ? 'Verbind je Google Ads account voor Shopping, Search en Display campagnes.'
-                    : 'Koppel je Amazon Seller Central account voor Sponsored Products.'}
+                    ? t('admin.ads.platformConnections.verbind_je_google_ads_account_voor') : t('admin.ads.platformConnections.koppel_je_amazon_seller_central_account')}
                 </p>
               )}
               
@@ -211,7 +210,7 @@ export function PlatformConnections() {
                 <Button asChild className="w-full">
                   <Link to="/admin/connect?tab=marketplace">
                     <Link2 className="h-4 w-4 mr-2" />
-                    {requiresAdvertisingCredentials ? 'Advertising API toevoegen' : 'Ga naar SellQo Connect'}
+                    {requiresAdvertisingCredentials ? t('admin.ads.platformConnections.advertising_api_toevoegen') : t('admin.ads.platformConnections.ga_naar_sellqo_connect')}
                   </Link>
                 </Button>
               ) : isComingSoon ? (
@@ -234,7 +233,7 @@ export function PlatformConnections() {
                   ) : (
                     <>
                       <Link2 className="h-4 w-4 mr-2" />
-                      {platform === 'bol_ads' ? 'Activeren' : 'Koppelen'}
+                      {platform === 'bol_ads' ? t('admin.seo.scheduledAuditsPanel.activeren') : t('admin.products.productVariantsTab.koppelen')}
                     </>
                   )}
                 </Button>

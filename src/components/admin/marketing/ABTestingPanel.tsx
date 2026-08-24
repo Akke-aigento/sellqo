@@ -164,7 +164,7 @@ export function ABTestingPanel() {
                         </div>
                         <p className="text-2xl font-bold">{stats.aRate}%</p>
                         <p className="text-xs text-muted-foreground">
-                          {test.test_metric === 'open_rate' ? 'Open rate' : 'Click rate'}
+                          {test.test_metric === 'open_rate' ? t('admin.marketing.aBTestingPanel.open_rate') : t('admin.marketing.aBTestingPanel.click_rate')}
                         </p>
                       </div>
 
@@ -180,7 +180,7 @@ export function ABTestingPanel() {
                         </div>
                         <p className="text-2xl font-bold">{stats.bRate}%</p>
                         <p className="text-xs text-muted-foreground">
-                          {test.test_metric === 'open_rate' ? 'Open rate' : 'Click rate'}
+                          {test.test_metric === 'open_rate' ? t('admin.marketing.aBTestingPanel.open_rate') : t('admin.marketing.aBTestingPanel.click_rate')}
                         </p>
                       </div>
                     </div>

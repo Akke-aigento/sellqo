@@ -23,8 +23,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { VolumeDiscountFormDialog } from '@/components/admin/promotions/VolumeDiscountFormDialog';
 import type { VolumeDiscount } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 export default function VolumeDiscounts() {
+  const { t } = useTranslation();
   const { data: discounts = [], isLoading } = useVolumeDiscounts();
   const deleteDiscount = useDeleteVolumeDiscount();
   const updateDiscount = useUpdateVolumeDiscount();
@@ -60,14 +62,14 @@ export default function VolumeDiscounts() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Staffelkortingen</h1>
+          <h1 className="text-2xl font-bold">{t('admin.volumeDiscounts.staffelkortingen')}</h1>
           <p className="text-muted-foreground">
-            Geef korting op basis van bestelwaarde of aantal
+            {t('admin.volumeDiscounts.geef_korting_op_basis_van_bestelwaarde')}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Staffel
+          {t('admin.volumeDiscounts.nieuwe_staffel')}
         </Button>
       </div>
 
@@ -84,13 +86,13 @@ export default function VolumeDiscounts() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Geen staffelkortingen</h3>
+            <h3 className="text-lg font-medium">{t('admin.volumeDiscounts.geen_staffelkortingen')}</h3>
             <p className="text-muted-foreground mb-4">
-              Maak je eerste staffelkorting aan
+              {t('admin.volumeDiscounts.maak_je_eerste_staffelkorting_aan')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Staffel Aanmaken
+              {t('admin.volumeDiscounts.staffel_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -103,7 +105,7 @@ export default function VolumeDiscounts() {
                   <CardTitle className="text-base">{discount.name}</CardTitle>
                   <div className="flex gap-2">
                     <Badge variant={discount.is_active ? 'default' : 'secondary'}>
-                      {discount.is_active ? 'Actief' : 'Inactief'}
+                      {discount.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                     </Badge>
                     <Badge variant="outline">
                       {appliesToLabels[discount.applies_to] || discount.applies_to}
@@ -119,14 +121,14 @@ export default function VolumeDiscounts() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditDiscount(discount)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Bewerken
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeleteId(discount.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Verwijderen
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -136,7 +138,7 @@ export default function VolumeDiscounts() {
                   {discount.description || 'Geen beschrijving'}
                 </p>
                 <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Staffels:</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.volumeDiscounts.staffels')}</span>
                   <div className="space-y-1">
                     {discount.tiers?.slice(0, 3).map((tier, i) => (
                       <div key={i} className="flex justify-between text-sm">
@@ -156,7 +158,7 @@ export default function VolumeDiscounts() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</span>
                   <Switch
                     checked={discount.is_active}
                     onCheckedChange={() => handleToggleActive(discount)}
@@ -182,14 +184,14 @@ export default function VolumeDiscounts() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Staffelkorting verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.volumeDiscounts.staffelkorting_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze actie kan niet ongedaan worden gemaakt.
+              {t('admin.bundles.deze_actie_kan_niet_ongedaan_worden')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

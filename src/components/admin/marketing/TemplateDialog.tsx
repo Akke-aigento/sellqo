@@ -19,11 +19,11 @@ import { LANG_CODES_TUPLE } from '@/i18n/languages';
 import { useTranslation } from 'react-i18next';
 
 const templateSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
-  subject: z.string().min(1, 'Onderwerp is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
+  subject: z.string().min(1, 'admin.marketing.campaignDialog.validation.onderwerp_is_verplicht'),
   category: z.enum(['general', 'promotional', 'transactional', 'newsletter']),
   language: z.enum(LANG_CODES_TUPLE),
-  html_content: z.string().min(1, 'Content is verplicht'),
+  html_content: z.string().min(1, 'admin.marketing.campaignDialog.validation.content_is_verplicht'),
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
@@ -101,7 +101,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {template ? 'Template bewerken' : 'Nieuwe template aanmaken'}
+            {template ? t('admin.marketing.templateDialog.template_bewerken') : t('admin.marketing.templateDialog.nieuwe_template_aanmaken')}
           </DialogTitle>
         </DialogHeader>
 
@@ -248,7 +248,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Opslaan...' : template ? 'Bijwerken' : 'Aanmaken'}
+                {isLoading ? 'Opslaan...' : template ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

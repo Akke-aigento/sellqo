@@ -219,7 +219,7 @@ export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCopy}>
             {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-            {copied ? 'Gekopieerd!' : 'Kopiëren'}
+            {copied ? t('admin.seo.robotsTxtEditor.gekopieerd') : t('admin.marketing.aIContentLibrary.kopieren')}
           </Button>
           <Button variant="outline" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />

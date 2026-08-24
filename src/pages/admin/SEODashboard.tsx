@@ -243,8 +243,7 @@ export default function SEODashboard() {
                   {overallScore >= 80 
                     ? 'Uitstekend! Je SEO is goed op orde.' 
                     : overallScore >= 50 
-                    ? 'Er zijn verbeterpunten voor je SEO.'
-                    : 'Start met de quick wins hieronder.'}
+                    ? t('admin.sEODashboard.er_zijn_verbeterpunten_voor_je_seo') : t('admin.sEODashboard.start_met_de_quick_wins_hieronder')}
                 </p>
                 {productsNeedingAttention > 0 && (
                   <div className="flex items-center gap-2 mt-1">

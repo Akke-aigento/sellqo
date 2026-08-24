@@ -211,7 +211,7 @@ export default function AdsBolcomSearchTerms() {
                           {row.ai_action && !row.ai_action_taken && (
                             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-[10px]">
                               <Sparkles className="h-3 w-3 mr-1" />
-                              {row.ai_action === 'suggested_negative' ? 'Negatief' : 'Keyword'}
+                              {row.ai_action === 'suggested_negative' ? t('admin.adsBolcomSearchTerms.negatief') : t('admin.adsBolcom.keyword')}
                             </Badge>
                           )}
                         </div>

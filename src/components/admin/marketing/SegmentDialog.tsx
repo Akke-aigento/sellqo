@@ -14,7 +14,7 @@ import type { CustomerSegment, SegmentFilterRules } from '@/types/marketing';
 import { useTranslation } from 'react-i18next';
 
 const segmentSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
 });
 
@@ -62,7 +62,7 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {segment ? 'Segment bewerken' : 'Nieuw segment aanmaken'}
+            {segment ? t('admin.marketing.segmentDialog.segment_bewerken') : t('admin.marketing.segmentDialog.nieuw_segment_aanmaken')}
           </DialogTitle>
         </DialogHeader>
 
@@ -113,7 +113,7 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Opslaan...' : segment ? 'Bijwerken' : 'Aanmaken'}
+                {isLoading ? 'Opslaan...' : segment ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

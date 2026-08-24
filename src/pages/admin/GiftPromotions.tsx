@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { GiftPromotionFormDialog } from '@/components/admin/promotions/GiftPromotionFormDialog';
 import type { GiftPromotion } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const triggerLabels: Record<string, string> = {
   cart_total: 'Bestelwaarde',
@@ -34,6 +35,7 @@ const triggerLabels: Record<string, string> = {
 };
 
 export default function GiftPromotions() {
+  const { t } = useTranslation();
   const { data: promotions = [], isLoading } = useGiftPromotions();
   const deletePromotion = useDeleteGiftPromotion();
   const updatePromotion = useUpdateGiftPromotion();
@@ -59,14 +61,14 @@ export default function GiftPromotions() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Cadeaus bij Aankoop</h1>
+          <h1 className="text-2xl font-bold">{t('admin.giftPromotions.cadeaus_bij_aankoop')}</h1>
           <p className="text-muted-foreground">
-            Gratis producten bij bepaalde bestellingen
+            {t('admin.giftPromotions.gratis_producten_bij_bepaalde_bestellingen')}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Gift Actie
+          {t('admin.giftPromotions.nieuwe_gift_actie')}
         </Button>
       </div>
 
@@ -83,13 +85,13 @@ export default function GiftPromotions() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Gift className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Geen gift acties</h3>
+            <h3 className="text-lg font-medium">{t('admin.giftPromotions.geen_gift_acties')}</h3>
             <p className="text-muted-foreground mb-4">
-              Maak je eerste cadeau actie aan
+              {t('admin.giftPromotions.maak_je_eerste_cadeau_actie_aan')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Gift Actie Aanmaken
+              {t('admin.giftPromotions.gift_actie_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -102,10 +104,10 @@ export default function GiftPromotions() {
                   <CardTitle className="text-base">{promo.name}</CardTitle>
                   <div className="flex gap-2">
                     <Badge variant={promo.is_active ? 'default' : 'secondary'}>
-                      {promo.is_active ? 'Actief' : 'Inactief'}
+                      {promo.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                     </Badge>
                     {promo.is_stackable && (
-                      <Badge variant="outline">Stapelbaar</Badge>
+                      <Badge variant="outline">{t('admin.promotions.giftPromotionFormDialog.stapelbaar')}</Badge>
                     )}
                   </div>
                 </div>
@@ -118,14 +120,14 @@ export default function GiftPromotions() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditPromotion(promo)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Bewerken
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeleteId(promo.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Verwijderen
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -136,12 +138,12 @@ export default function GiftPromotions() {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Trigger:</span>
+                    <span className="text-muted-foreground">{t('admin.autoDiscounts.trigger')}</span>
                     <span>{triggerLabels[promo.trigger_type] || promo.trigger_type}</span>
                   </div>
                   {promo.trigger_value && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Waarde:</span>
+                      <span className="text-muted-foreground">{t('admin.autoDiscounts.waarde')}</span>
                       <span>
                         {promo.trigger_type === 'cart_total' || promo.trigger_type === 'order_total'
                           ? `≥ €${promo.trigger_value}`
@@ -150,12 +152,12 @@ export default function GiftPromotions() {
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cadeau:</span>
+                    <span className="text-muted-foreground">{t('admin.giftPromotions.cadeau')}</span>
                     <span>{promo.gift_quantity}x product</span>
                   </div>
                   {promo.stock_limit && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Voorraad:</span>
+                      <span className="text-muted-foreground">{t('admin.giftPromotions.voorraad')}</span>
                       <span>
                         {promo.stock_used}/{promo.stock_limit}
                       </span>
@@ -163,7 +165,7 @@ export default function GiftPromotions() {
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</span>
                   <Switch
                     checked={promo.is_active}
                     onCheckedChange={() => handleToggleActive(promo)}
@@ -189,14 +191,14 @@ export default function GiftPromotions() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Gift actie verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.giftPromotions.gift_actie_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze actie kan niet ongedaan worden gemaakt.
+              {t('admin.bundles.deze_actie_kan_niet_ongedaan_worden')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

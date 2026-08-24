@@ -50,14 +50,14 @@ const translationSchema = z.object({
 });
 
 const campaignSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
-  subject: z.string().min(1, 'Onderwerp is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
+  subject: z.string().min(1, 'admin.marketing.campaignDialog.validation.onderwerp_is_verplicht'),
   preview_text: z.string().optional(),
   segment_id: z.string().optional(),
   template_id: z.string().optional(),
   language: z.enum(['any', ...LANG_CODES_TUPLE] as ['any', ...LangCode[]]).default('any'),
   preset_key: z.string().optional(),
-  html_content: z.string().min(1, 'Content is verplicht'),
+  html_content: z.string().min(1, 'admin.marketing.campaignDialog.validation.content_is_verplicht'),
   available_languages: z.array(z.enum(LANG_CODES_TUPLE)).min(1).default([DEFAULT_LANG]),
   translations: z.record(translationSchema).default({}),
 });
@@ -438,7 +438,7 @@ export function CampaignDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {campaign ? 'Campagne bewerken' : 'Nieuwe campagne aanmaken'}
+            {campaign ? t('admin.adsBolcomCampaignDetail.campagne_bewerken') : t('admin.marketing.campaignDialog.nieuwe_campagne_aanmaken')}
             {isAIGenerated && (
               <Badge variant="secondary" className="ml-2 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
@@ -448,8 +448,7 @@ export function CampaignDialog({
           </DialogTitle>
           <DialogDescription>
             {isAIGenerated 
-              ? 'Deze campagne is door AI gegenereerd. Pas aan waar nodig.'
-              : 'Maak een email campagne aan om naar je klanten te versturen.'
+              ? t('admin.marketing.campaignDialog.deze_campagne_is_door_ai_gegenereerd') : t('admin.marketing.campaignDialog.maak_een_email_campagne_aan_om')
             }
           </DialogDescription>
         </DialogHeader>
@@ -593,8 +592,7 @@ export function CampaignDialog({
               </ToggleGroup>
               <p className="text-xs text-muted-foreground">
                 {isMultiLang
-                  ? 'Elke klant krijgt automatisch de mail in zijn voorkeurstaal. Klanten zonder voorkeur krijgen de Nederlandse versie.'
-                  : 'Alleen Nederlands. Voeg extra talen toe om per taal een variant op te maken; elke klant krijgt dan zijn eigen taalversie.'}
+                  ? t('admin.marketing.campaignDialog.elke_klant_krijgt_automatisch_de_mail') : t('admin.marketing.campaignDialog.alleen_nederlands_voeg_extra_talen_toe')}
               </p>
             </FormItem>
 
@@ -864,8 +862,7 @@ export function CampaignDialog({
                   : sendMode === 'scheduled' 
                     ? 'Inplannen' 
                     : campaign 
-                      ? 'Bijwerken' 
-                      : 'Opslaan als concept'
+                      ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.marketing.campaignDialog.opslaan_als_concept')
                 }
               </Button>
             </DialogFooter>

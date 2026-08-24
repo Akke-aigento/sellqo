@@ -28,30 +28,32 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 interface PromotionModule {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   icon: React.ElementType;
   href: string;
   color: string;
   featureKey?: string;
 }
 
+// Labels staan als i18n-key; `id`, `href` en `featureKey` blijven letterlijk.
 const promotionModules: PromotionModule[] = [
   {
     id: 'discount-codes',
-    title: 'Kortingscodes',
-    description: 'Manuele codes die klanten kunnen invoeren',
+    titleKey: 'admin.promotions.modules.discount-codes.title',
+    descriptionKey: 'admin.promotions.modules.discount-codes.description',
     icon: Tag,
     href: '/admin/orders/discounts',
     color: 'bg-orange-500',
   },
   {
     id: 'bundles',
-    title: 'Product Bundels',
-    description: 'Combineer producten voor een speciale prijs',
+    titleKey: 'admin.promotions.modules.bundles.title',
+    descriptionKey: 'admin.promotions.modules.bundles.description',
     icon: Package,
     href: '/admin/promotions/bundles',
     color: 'bg-blue-500',
@@ -59,8 +61,8 @@ const promotionModules: PromotionModule[] = [
   },
   {
     id: 'volume',
-    title: 'Staffelkortingen',
-    description: 'Korting op basis van bestelde hoeveelheid',
+    titleKey: 'admin.promotions.modules.volume.title',
+    descriptionKey: 'admin.promotions.modules.volume.description',
     icon: Layers,
     href: '/admin/promotions/volume',
     color: 'bg-green-500',
@@ -68,8 +70,8 @@ const promotionModules: PromotionModule[] = [
   },
   {
     id: 'bogo',
-    title: 'BOGO Acties',
-    description: 'Koop X krijg Y gratis of met korting',
+    titleKey: 'admin.promotions.modules.bogo.title',
+    descriptionKey: 'admin.promotions.modules.bogo.description',
     icon: Gift,
     href: '/admin/promotions/bogo',
     color: 'bg-purple-500',
@@ -77,32 +79,32 @@ const promotionModules: PromotionModule[] = [
   },
   {
     id: 'customer-groups',
-    title: 'Klantengroepen',
-    description: 'VIP prijzen en groepskortingen',
+    titleKey: 'admin.promotions.modules.customer-groups.title',
+    descriptionKey: 'admin.promotions.modules.customer-groups.description',
     icon: Users,
     href: '/admin/promotions/customer-groups',
     color: 'bg-indigo-500',
   },
   {
     id: 'auto',
-    title: 'Automatische Kortingen',
-    description: 'Kortingen die automatisch worden toegepast',
+    titleKey: 'admin.promotions.modules.auto.title',
+    descriptionKey: 'admin.promotions.modules.auto.description',
     icon: Zap,
     href: '/admin/promotions/auto',
     color: 'bg-amber-500',
   },
   {
     id: 'gifts',
-    title: 'Cadeaus bij Aankoop',
-    description: 'Gratis producten bij bepaalde aankopen',
+    titleKey: 'admin.promotions.modules.gifts.title',
+    descriptionKey: 'admin.promotions.modules.gifts.description',
     icon: Gift,
     href: '/admin/promotions/gifts',
     color: 'bg-pink-500',
   },
   {
     id: 'loyalty',
-    title: 'Loyaliteitsprogramma',
-    description: 'Spaarpunten en VIP tiers',
+    titleKey: 'admin.promotions.modules.loyalty.title',
+    descriptionKey: 'admin.promotions.modules.loyalty.description',
     icon: Heart,
     href: '/admin/promotions/loyalty',
     color: 'bg-red-500',
@@ -110,8 +112,8 @@ const promotionModules: PromotionModule[] = [
   },
   {
     id: 'gift-cards',
-    title: 'Cadeaukaarten',
-    description: 'Digitale cadeaukaarten als betaalmiddel',
+    titleKey: 'admin.promotions.modules.gift-cards.title',
+    descriptionKey: 'admin.promotions.modules.gift-cards.description',
     icon: CreditCard,
     href: '/admin/promotions/gift-cards',
     color: 'bg-teal-500',
@@ -119,8 +121,8 @@ const promotionModules: PromotionModule[] = [
   },
   {
     id: 'stacking',
-    title: 'Stapelregels',
-    description: 'Bepaal welke kortingen mogen combineren',
+    titleKey: 'admin.promotions.modules.stacking.title',
+    descriptionKey: 'admin.promotions.modules.stacking.description',
     icon: Settings2,
     href: '/admin/promotions/stacking',
     color: 'bg-slate-500',
@@ -128,6 +130,7 @@ const promotionModules: PromotionModule[] = [
 ];
 
 export default function Promotions() {
+  const { t } = useTranslation();
   const { data: bundles = [] } = useBundles();
   const { data: volumeDiscounts = [] } = useVolumeDiscounts();
   const { data: bogoPromotions = [] } = useBogoPromotions();
@@ -191,9 +194,9 @@ export default function Promotions() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Promoties & Kortingen</h1>
+          <h1 className="text-2xl font-semibold">{t('admin.promotions.promoties_kortingen')}</h1>
           <p className="text-muted-foreground">
-            Beheer alle kortingsacties en promoties voor je webshop
+            {t('admin.promotions.beheer_alle_kortingsacties_en_promoties_voor')}
           </p>
         </div>
       </div>
@@ -202,7 +205,7 @@ export default function Promotions() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Actieve Promoties</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.promotions.actieve_promoties')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalActive}</div>
@@ -210,7 +213,7 @@ export default function Promotions() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Klantengroepen</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.promotions.modules.customer-groups.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{customerGroups.length}</div>
@@ -218,7 +221,7 @@ export default function Promotions() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Loyaliteitsprogramma's</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('admin.loyaltyPrograms.loyaliteitsprogramma_s')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{loyaltyPrograms.length}</div>
@@ -240,7 +243,7 @@ export default function Promotions() {
                   </div>
                   {locked ? (
                     <Badge variant="outline" className="border-amber-500 text-amber-600">
-                      Premium
+                      {t('admin.promotions.premium')}
                     </Badge>
                   ) : counts.total > 0 ? (
                     <Badge variant="secondary">
@@ -248,8 +251,8 @@ export default function Promotions() {
                     </Badge>
                   ) : null}
                 </div>
-                <CardTitle className="text-lg mt-3">{module.title}</CardTitle>
-                <CardDescription>{module.description}</CardDescription>
+                <CardTitle className="text-lg mt-3">{t(module.titleKey)}</CardTitle>
+                <CardDescription>{t(module.descriptionKey)}</CardDescription>
               </CardHeader>
               <CardContent>
                 {locked ? (
@@ -257,7 +260,7 @@ export default function Promotions() {
                     <NavLink to="/admin/billing">
                       <span className="flex items-center gap-2">
                         <Lock className="h-3.5 w-3.5" />
-                        Upgrade
+                        {t('admin.promotions.upgrade')}
                       </span>
                       <ArrowRight className="h-4 w-4" />
                     </NavLink>
@@ -265,7 +268,7 @@ export default function Promotions() {
                 ) : (
                   <Button asChild variant="ghost" className="w-full justify-between group-hover:bg-accent">
                     <NavLink to={module.href}>
-                      Beheren
+                      {t('admin.promotions.beheren')}
                       <ArrowRight className="h-4 w-4" />
                     </NavLink>
                   </Button>

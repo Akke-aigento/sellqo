@@ -30,9 +30,10 @@ import {
 } from '@/components/ui/select';
 import { useCreateBogoPromotion, useUpdateBogoPromotion } from '@/hooks/useBogoPromotions';
 import type { BogoPromotion, BogoPromotionFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   promotion_type: z.enum(['buy_x_get_y', 'buy_x_get_y_discount']),
   buy_quantity: z.coerce.number().min(1),
@@ -58,6 +59,7 @@ export function BogoPromotionFormDialog({
   onOpenChange,
   promotion,
 }: BogoPromotionFormDialogProps) {
+  const { t } = useTranslation();
   const createPromotion = useCreateBogoPromotion();
   const updatePromotion = useUpdateBogoPromotion();
 
@@ -140,7 +142,7 @@ export function BogoPromotionFormDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {promotion ? 'BOGO Actie Bewerken' : 'Nieuwe BOGO Actie'}
+            {promotion ? t('admin.promotions.bogoPromotionFormDialog.bogo_actie_bewerken') : t('admin.bogoPromotions.nieuwe_bogo_actie')}
           </DialogTitle>
         </DialogHeader>
 
@@ -151,9 +153,9 @@ export function BogoPromotionFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Koop 2 krijg 1 gratis" {...field} />
+                    <Input placeholder={t('admin.promotions.bogoPromotionFormDialog.koop_2_krijg_1_gratis')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,9 +167,9 @@ export function BogoPromotionFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Optionele beschrijving..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.bogoPromotionFormDialog.optionele_beschrijving')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +181,7 @@ export function BogoPromotionFormDialog({
               name="promotion_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type actie</FormLabel>
+                  <FormLabel>{t('admin.promotions.bogoPromotionFormDialog.type_actie')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -187,8 +189,8 @@ export function BogoPromotionFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="buy_x_get_y">Koop X krijg Y gratis</SelectItem>
-                      <SelectItem value="buy_x_get_y_discount">Koop X, korting op Y</SelectItem>
+                      <SelectItem value="buy_x_get_y">{t('admin.promotions.bogoPromotionFormDialog.koop_x_krijg_y_gratis')}</SelectItem>
+                      <SelectItem value="buy_x_get_y_discount">{t('admin.promotions.bogoPromotionFormDialog.koop_x_korting_op_y')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -202,11 +204,11 @@ export function BogoPromotionFormDialog({
                 name="buy_quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Koop aantal</FormLabel>
+                    <FormLabel>{t('admin.promotions.bogoPromotionFormDialog.koop_aantal')}</FormLabel>
                     <FormControl>
                       <Input type="number" min={1} {...field} />
                     </FormControl>
-                    <FormDescription>Hoeveel moet klant kopen</FormDescription>
+                    <FormDescription>{t('admin.promotions.bogoPromotionFormDialog.hoeveel_moet_klant_kopen')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -217,11 +219,11 @@ export function BogoPromotionFormDialog({
                 name="get_quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Krijg aantal</FormLabel>
+                    <FormLabel>{t('admin.promotions.bogoPromotionFormDialog.krijg_aantal')}</FormLabel>
                     <FormControl>
                       <Input type="number" min={1} {...field} />
                     </FormControl>
-                    <FormDescription>Hoeveel krijgt klant</FormDescription>
+                    <FormDescription>{t('admin.promotions.bogoPromotionFormDialog.hoeveel_krijgt_klant')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -233,7 +235,7 @@ export function BogoPromotionFormDialog({
               name="discount_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kortingstype</FormLabel>
+                  <FormLabel>{t('admin.promotions.bogoPromotionFormDialog.kortingstype')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -241,9 +243,9 @@ export function BogoPromotionFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="free">Gratis (100%)</SelectItem>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="fixed_amount">Vast bedrag</SelectItem>
+                      <SelectItem value="free">{t('admin.promotions.bogoPromotionFormDialog.gratis_100')}</SelectItem>
+                      <SelectItem value="percentage">{t('admin.promotions.autoDiscountFormDialog.percentage')}</SelectItem>
+                      <SelectItem value="fixed_amount">{t('admin.promotions.autoDiscountFormDialog.vast_bedrag')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -258,7 +260,7 @@ export function BogoPromotionFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {discountType === 'percentage' ? 'Kortingspercentage' : 'Kortingsbedrag'}
+                      {discountType === 'percentage' ? t('admin.marketing.productPromoWizard.kortingspercentage') : t('admin.promotions.bogoPromotionFormDialog.kortingsbedrag')}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -279,17 +281,17 @@ export function BogoPromotionFormDialog({
               name="max_uses_per_order"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Max per bestelling</FormLabel>
+                  <FormLabel>{t('admin.promotions.bogoPromotionFormDialog.max_per_bestelling')}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min={1}
-                      placeholder="Onbeperkt"
+                      placeholder={t('admin.productForm.onbeperkt')}
                       {...field}
                       value={field.value ?? ''}
                     />
                   </FormControl>
-                  <FormDescription>Leeg laten voor onbeperkt</FormDescription>
+                  <FormDescription>{t('admin.promotions.bogoPromotionFormDialog.leeg_laten_voor_onbeperkt')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -301,7 +303,7 @@ export function BogoPromotionFormDialog({
                 name="valid_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig vanaf</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_vanaf')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -315,7 +317,7 @@ export function BogoPromotionFormDialog({
                 name="valid_until"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig tot</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -331,9 +333,9 @@ export function BogoPromotionFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel>Actief</FormLabel>
+                    <FormLabel>{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                     <FormDescription>
-                      Actie is direct zichtbaar en toepasbaar
+                      {t('admin.promotions.bogoPromotionFormDialog.actie_is_direct_zichtbaar_en_toepasbaar')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -345,10 +347,10 @@ export function BogoPromotionFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createPromotion.isPending || updatePromotion.isPending}>
-                {promotion ? 'Opslaan' : 'Aanmaken'}
+                {promotion ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

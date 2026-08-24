@@ -242,7 +242,7 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm flex-1">{rec.entity_name} — {actionLabels[rec.action_type]}</span>
                   <Badge variant="outline" className={rec.status === 'accepted' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted'}>
-                    {rec.status === 'accepted' ? 'Toegepast' : 'Genegeerd'}
+                    {rec.status === 'accepted' ? t('admin.ads.campaignAIAnalysis.toegepast') : t('admin.ads.campaignAIAnalysis.genegeerd')}
                   </Badge>
                 </div>
               );

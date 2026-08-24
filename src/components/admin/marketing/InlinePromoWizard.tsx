@@ -295,7 +295,7 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="text-muted-foreground"
             >
-              {showAdvanced ? 'Minder opties' : 'Meer opties'}
+              {showAdvanced ? t('admin.marketing.inlinePromoWizard.minder_opties') : t('admin.marketing.inlinePromoWizard.meer_opties')}
               <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", showAdvanced && "rotate-180")} />
             </Button>
           </div>
