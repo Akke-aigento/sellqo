@@ -1727,6 +1727,559 @@
         "opening": "Початковий залишок",
         "adjustment": "Коригування"
       }
+    },
+    "marketing": {
+      "aBTestingPanel": {
+        "geannuleerd": "Скасовано",
+        "in_afwachting": "Очікує"
+      },
+      "aIContentLibrary": {
+        "social_media": "Соціальні мережі",
+        "email": "Пошта"
+      },
+      "aIFeedbackWidget": {
+        "bedankt": "Дякуємо!"
+      },
+      "campaignCard": {
+        "status": {
+          "concept": "Чернетка",
+          "gepland": "Заплановано",
+          "verzonden": "Надіслано",
+          "gepauzeerd": "Призупинено",
+          "geannuleerd": "Скасовано"
+        }
+      },
+      "contentCalendar": {
+        "maand": "Місяць"
+      },
+      "contentHistoryList": {
+        "gepland": "Заплановано",
+        "verzonden": "Надіслано",
+        "type": "Тип",
+        "platform": "Платформа",
+        "status": {
+          "gepland": "Заплановано",
+          "verzonden": "Надіслано",
+          "mislukt": "Не вдалося"
+        }
+      },
+      "creditPurchaseDialog": {
+        "bezig": "Виконується...",
+        "afrekenen": "Оформити замовлення"
+      },
+      "emailBlockPalette": {
+        "inhoud": "Вміст"
+      },
+      "emailBlockProperties": {
+        "tekst": "Текст",
+        "product_naam": "Назва товару",
+        "bedrijfsnaam": "Назва компанії"
+      },
+      "emailPreview": {
+        "preview": "Попередній перегляд",
+        "jan_jansen": "Іван Петренко"
+      },
+      "inlinePromoWizard": {
+        "korting_toevoegen": "Додати знижку"
+      },
+      "mediaAssetsLibrary": {
+        "downloaden": "Завантажити",
+        "verwijderen": "Видалити",
+        "folders": {
+          "producten": "Товари",
+          "categorie_n": "Категорії",
+          "campagnes": "Кампанії"
+        }
+      },
+      "productSelectDialog": {
+        "geen_producten_gevonden": "Товарів не знайдено"
+      },
+      "promoKitResult": {
+        "afbeeldingen": "Зображення"
+      },
+      "realtimeActivityFeed": {
+        "verbinden": "Під’єднання..."
+      },
+      "segmentBuilder": {
+        "klanttype": "Тип клієнта",
+        "tags": "Теги"
+      },
+      "templateDialog": {
+        "categorie": "Категорія",
+        "taal": "Мова",
+        "voorbeeld": "Попередній перегляд",
+        "nieuwe_template_aanmaken": "Створити новий шаблон"
+      },
+      "variableInserter": {
+        "groups": {
+          "customer": {
+            "label": "Клієнт",
+            "vars": {
+              "customer_name": "Повне ім'я",
+              "customer_phone": "Телефон",
+              "customer_company": "Назва компанії",
+              "customer_vat_number": "Номер ПДВ",
+              "customer_country": "Країна"
+            }
+          },
+          "company": {
+            "label": "Компанія",
+            "vars": {
+              "company_name": "Назва компанії",
+              "company_phone": "Телефон",
+              "company_address": "Адреса"
+            }
+          }
+        }
+      },
+      "advancedToolsGrid": {
+        "tools": {
+          "social": {
+            "name": "Соціальні мережі"
+          },
+          "images": {
+            "name": "Зображення"
+          }
+        }
+      },
+      "aiEmailPlanner": {
+        "campaignTypes": {
+          "newsletter": {
+            "name": "Розсилка"
+          }
+        }
+      },
+      "aiImageGenerator": {
+        "styles": {
+          "lifestyle": {
+            "name": "Стиль життя"
+          }
+        },
+        "settingPresets": {
+          "lifestyle": {
+            "name": "Стиль життя"
+          }
+        }
+      },
+      "campaignDialog": {
+        "doelgroep": "Цільова аудиторія",
+        "doelgroep_2": "Цільова аудиторія",
+        "opslaan_als_concept": "Зберегти як чернетку"
+      },
+      "campaignFunnel": {
+        "afgeleverd": "Доставлено"
+      },
+      "nieuwe_template": "Новий шаблон"
+    },
+    "ads": {
+      "bolCampaignEditForm": {
+        "startdatum": "Дата початку",
+        "toevoegen": "Додати"
+      },
+      "campaignAIAnalysis": {
+        "verwerkt": "Оброблено"
+      },
+      "campaignCard": {
+        "status": {
+          "draft": "Чернетка",
+          "paused": "Призупинено",
+          "ended": "Завершено",
+          "rejected": "Відхилено"
+        }
+      },
+      "campaignWizard": {
+        "niet_gekoppeld": "Не під’єднано"
+      },
+      "campaignsList": {
+        "beeindigd": "Завершено"
+      },
+      "platformConnections": {
+        "account": "Обліковий запис",
+        "gekoppeld": "Під’єднано"
+      },
+      "onbekend_product": "Невідомий товар"
+    },
+    "adsBolcom": {
+      "ads": "Реклама",
+      "ads_2": "Реклама",
+      "omzet": "Виручка"
+    },
+    "adsBolcomCampaignDetail": {
+      "pauzeren": "Призупинити",
+      "hervatten": "Відновити",
+      "toegevoegd_op": "Додано"
+    },
+    "adsProductMap": {
+      "product_mapping": "Зіставлення товарів",
+      "product_mapping_2": "Зіставлення товарів",
+      "uit": "Вихід",
+      "opgeslagen": "Збережено",
+      "fout": "Помилка"
+    },
+    "adsAiRules": {
+      "afgewezen": "Відхилено",
+      "aanmaken": "Створити"
+    },
+    "seo": {
+      "imageAltTextPanel": {
+        "zoek_op_productnaam": "Пошук за назвою товару..."
+      },
+      "keywordResearchPanel": {
+        "secundair": "Додатковий",
+        "laag": "Низька"
+      },
+      "sEOCategoryTable": {
+        "geen_categorieen_gevonden": "Категорій не знайдено"
+      },
+      "structuredDataPreview": {
+        "organisatie": "Організація"
+      },
+      "robotsTxtEditor": {
+        "presetLabels": {
+          "default": {
+            "label": "Стандартна"
+          }
+        },
+        "gekopieerd": "Скопійовано!"
+      },
+      "sEOHealthChecklist": {
+        "download": "Завантаження"
+      },
+      "scheduledAuditsPanel": {
+        "frequencies": {
+          "daily": "Щоденне",
+          "monthly": "Щомісяця"
+        },
+        "activeren": "Активувати"
+      }
+    },
+    "products": {
+      "bulkAIGenerateDialog": {
+        "fields": {
+          "meta_description": "Метаопис",
+          "meta_title": "Метазаголовок",
+          "short_description": "Короткий опис"
+        }
+      },
+      "productAdsSection": {
+        "advertenties": "Реклама"
+      },
+      "productBulkEditDialog": {
+        "prijzen": "Ціни"
+      },
+      "productEventDatesTab": {
+        "starttijd": "Час початку",
+        "minimum_deelnemers": "Мінімум учасників",
+        "starttijd_2": "Час початку",
+        "minimum_deelnemers_2": "Мінімум учасників",
+        "statuses": {
+          "scheduled": "Заплановано",
+          "confirmed": "Підтверджено",
+          "cancelled": "Скасовано",
+          "completed": "Завершено",
+          "skipped": "Пропущено",
+          "merged": "Об'єднано"
+        }
+      },
+      "productPhotosManager": {
+        "hoofd": "Головне"
+      },
+      "variantExtraImagesDialog": {
+        "kies_uit_bibliotheek": "Вибрати з бібліотеки"
+      },
+      "bulk": {
+        "bulkVisibilityTab": {
+          "deactiveren": "Деактивувати"
+        }
+      },
+      "grid": {
+        "productGridView": {
+          "fout_bij_opslaan": "Помилка збереження",
+          "er_ging_iets_mis": "Щось пішло не так"
+        }
+      },
+      "specs": {
+        "customSpecsEditor": {
+          "nummer": "Номер"
+        },
+        "dimensionsFields": {
+          "gewicht_kg": "Вага (кг)"
+        }
+      },
+      "uitverkocht": "Розпродано",
+      "inactief": "Неактивний",
+      "selecteer_eerst_een_winkel": "Спочатку виберіть магазин",
+      "inactief_2": "Неактивний",
+      "verborgen": "Прихована",
+      "uitverkocht_2": "Розпродано",
+      "nieuw_product": "Новий товар",
+      "dupliceren": "Дублювати"
+    },
+    "productForm": {
+      "vertalingen": "Переклади",
+      "marketplaces": "Маркетплейси",
+      "product_type": "Тип товару",
+      "kies_het_type_product_dat_je": "Виберіть тип товару, який ви хочете продавати",
+      "leveringsmethode": "Спосіб доставки",
+      "hoe_wordt_het_digitale_product_aan": "Як цифровий товар буде доставлено клієнту?",
+      "leveringsmethode_2": "Спосіб доставки",
+      "download_limiet": "Ліміт завантажень",
+      "max_aantal_downloads_per_aankoop_leeg": "Максимальна кількість завантажень на одну покупку (порожньо = без обмежень)",
+      "geldigheid_uren": "Термін дії (годин)",
+      "hoelang_de_download_link_geldig_is": "Скільки часу діє посилання на завантаження",
+      "licentiebeheer": "Керування ліцензіями",
+      "handmatig_voer_codes_in": "Вручну (ввести коди)",
+      "automatisch_genereren": "Генерувати автоматично",
+      "toegangsduur_dagen": "Тривалість доступу (днів)",
+      "hoelang_klant_toegang_heeft_leeg_permanent": "Скільки часу клієнт матиме доступ (порожньо = безстроково)",
+      "product_informatie": "Інформація про товар",
+      "basis_gegevens_van_het_product": "Основні дані товару",
+      "naam": "Назва *",
+      "slug": "Slug *",
+      "url_vriendelijke_naam_voor_het_product": "Зручна для URL назва товару",
+      "korte_beschrijving": "Короткий опис",
+      "volledige_beschrijving": "Повний опис",
+      "stel_de_prijzen_in_voor_dit": "Установіть ціни для цього товару",
+      "verkoopprijs_wordt_per_variant_beheerd": "Ціна продажу задається для кожного варіанта окремо",
+      "verkoopprijs": "Ціна продажу *",
+      "vergelijkingsprijs": "Ціна для порівняння",
+      "inkoopprijs": "Закупівельна ціна",
+      "voorraad_identificatie": "Залишки та ідентифікація",
+      "barcode": "Штрихкод",
+      "voorraad_bijhouden": "Відстежувати залишки",
+      "voorraad_wordt_per_variant_beheerd": "Залишки задаються для кожного варіанта окремо",
+      "huidige_voorraad": "Поточні залишки",
+      "lage_voorraad_drempel": "Поріг низьких залишків",
+      "backorders_toestaan": "Дозволити дозамовлення",
+      "klanten_kunnen_bestellen_als_uitverkocht": "Клієнти можуть замовляти товар, якого немає в наявності",
+      "verzending_vereist": "Потрібна доставка",
+      "sla_eerst_het_product_op": "Спочатку збережіть товар",
+      "je_kunt_digitale_bestanden_en_licentiecodes": "Цифрові файли та ліцензійні коди можна додати після збереження товару.",
+      "upload_de_bestanden_die_klanten_kunnen": "Завантажте файли, які клієнти зможуть отримати після покупки",
+      "klik_om_te_uploaden": "Натисніть, щоб завантажити",
+      "of_sleep_bestanden_hierheen": "або перетягніть файли сюди",
+      "pdf_zip_mp3_mp4_epub_etc": "PDF, ZIP, MP3, MP4, EPUB тощо (макс. 100 МБ)",
+      "nog_geen_bestanden_geupload": "Файлів ще не завантажено",
+      "beheer_de_licentiecodes_die_worden_toegewezen": "Керуйте ліцензійними кодами, які призначаються під час покупки",
+      "beschikbaar": "Доступно",
+      "toegewezen": "Призначено",
+      "licentiecodes_toevoegen": "Додати ліцензійні коди",
+      "nog_geen_licentiecodes_toegevoegd": "Ліцензійних кодів ще не додано",
+      "stel_de_beschikbare_bedragen_en_opties": "Установіть доступні номінали та параметри цієї подарункової картки",
+      "vaste_bedragen": "Фіксовані номінали",
+      "voeg_de_vaste_bedragen_toe_die": "Додайте фіксовані номінали, з яких зможуть вибирати клієнти",
+      "vrij_bedrag_toestaan": "Дозволити довільну суму",
+      "laat_klanten_een_eigen_bedrag_kiezen": "Дозвольте клієнтам вибрати власну суму в межах ліміту",
+      "minimum_bedrag": "Мінімальна сума",
+      "maximum_bedrag": "Максимальна сума",
+      "standaard_ontwerp": "Стандартний дизайн",
+      "geen_standaard_ontwerp": "Без стандартного дизайну",
+      "klanten_kunnen_bij_aankoop_ook_een": "Під час покупки клієнти можуть вибрати інший дизайн",
+      "geldigheid_maanden": "Термін дії (місяців)",
+      "laat_leeg_voor_onbeperkte_geldigheid": "Залиште порожнім для безстрокової дії",
+      "stel_de_producten_en_het_prijsmodel": "Визначте товари та модель ціноутворення для цього комплекту",
+      "prijsmodel": "Модель ціноутворення",
+      "vaste_bundelprijs": "Фіксована ціна комплекту",
+      "je_stelt_zelf_een_totaalprijs_in": "Ви самі встановлюєте загальну ціну",
+      "dynamische_prijs": "Динамічна ціна",
+      "som_van_individuele_productprijzen": "Сума цін окремих товарів",
+      "vaste_bundelprijs_2": "Фіксована ціна комплекту *",
+      "de_totaalprijs_waarvoor_de_bundel_wordt": "Загальна ціна, за якою продається комплект",
+      "bundelkorting_optioneel": "Знижка на комплект (необов'язково)",
+      "type_korting": "Тип знижки",
+      "geen_korting": "Без знижки",
+      "percentage": "Відсоток (%)",
+      "bundel_inhoud": "Вміст комплекту",
+      "nog_geen_producten_toegevoegd_aan_de": "До комплекту ще не додано товарів",
+      "aantal": "Кількість:",
+      "klant_kan_hoeveelheid_aanpassen": "Клієнт може змінювати кількість",
+      "de_klant_kan_de_hoeveelheid_in": "Клієнт може змінити кількість у магазині",
+      "minimum": "Мінімум",
+      "maximum": "Максимум",
+      "som_individuele_prijzen": "Сума окремих цін:",
+      "bundelkorting": "Знижка на комплект:",
+      "varianten": "Варіанти",
+      "beheer_productvarianten_zoals_maat_kleur_etc": "Керуйте варіантами товару, як-от розмір, колір тощо.",
+      "sla_het_product_eerst_op_om": "Спочатку збережіть товар, щоб керувати варіантами",
+      "upload_afbeeldingen_of_kies_uit_je": "Завантажте зображення або виберіть із медіабібліотеки",
+      "klik_om_te_uploaden_2": "Натисніть, щоб завантажити",
+      "png_jpg_webp_of_gif": "PNG, JPG, WebP або GIF",
+      "product_is_zichtbaar_in_de_winkel": "Товар видимий у магазині",
+      "verbergen_op_webshop": "Приховати в магазині",
+      "niet_zichtbaar_online_wel_via_pos": "Не показувати онлайн, доступно лише через POS",
+      "uitgelicht": "Рекомендований",
+      "toon_op_homepage_en_in_speciale": "Показувати на головній сторінці та в спеціальних розділах",
+      "zoekmachine_optimalisatie": "Оптимізація для пошукових систем",
+      "meta_titel": "Метазаголовок",
+      "meta_beschrijving": "Метаопис",
+      "vertalingen_2": "Переклади",
+      "sla_het_product_eerst_op_om_3": "Спочатку збережіть товар, щоб керувати перекладами",
+      "sla_het_product_eerst_op_om_4": "Спочатку збережіть товар, щоб налаштувати маркетплейси",
+      "sla_het_product_eerst_op_om_5": "Спочатку збережіть товар, щоб налаштувати рекламу",
+      "selecteer_methode": "Виберіть спосіб",
+      "onbeperkt": "Без обмежень",
+      "permanent": "Безстроково",
+      "korte_beschrijving_voor_productlijsten": "Короткий опис для списків товарів",
+      "voer_licentiecodes_in_een_per_regel": "Введіть ліцензійні коди, по одному в рядку...",
+      "nieuw_bedrag_bijv_25": "Новий номінал (наприклад, 25)",
+      "selecteer_een_ontwerp": "Виберіть дизайн",
+      "onbeperkt_geldig": "Безстроково",
+      "geen_korting_2": "Без знижки",
+      "geen_limiet": "Без обмежень",
+      "geen_limiet_2": "Без обмежень",
+      "zoek_categorie": "Пошук категорії...",
+      "voeg_tag_toe": "Додати тег",
+      "controleer_bestandstype_en_grootte_max_20": "Перевірте тип і розмір файлу (макс. 20 МБ на фото).",
+      "zoek_product_om_toe_te_voegen": "Знайдіть товар, щоб додати...",
+      "digitale_bestanden": "Цифрові файли",
+      "licentiecodes": "Ліцензійні коди",
+      "cadeaukaart_configuratie": "Налаштування подарункової картки",
+      "bundel_configuratie": "Налаштування комплекту",
+      "vertaal_hub": "Центр перекладів",
+      "maak_hoofdafbeelding": "Зробити головним зображенням",
+      "ai_bewerken": "Редагувати за допомогою ШІ",
+      "korting": "Знижка (%)",
+      "digitale_producten_vereisen_geen_verzending": "Цифрові товари не потребують доставки",
+      "dit_is_een_fysiek_product": "Це фізичний товар",
+      "niet_van_toepassing_voor_digitale_producten": "Не застосовується до цифрових товарів",
+      "houd_de_voorraad_automatisch_bij": "Автоматично відстежувати залишки",
+      "product_bewerken": "Редагувати товар",
+      "validation": {
+        "meta_beschrijving_mag_maximaal_160_tekens": "Метаопис може містити щонайбільше 160 символів",
+        "meta_titel_mag_maximaal_60_tekens": "Метазаголовок може містити щонайбільше 60 символів",
+        "voorraad_moet_0_of_hoger_zijn": "Залишки мають бути 0 або більше",
+        "prijs_moet_0_of_hoger_zijn": "Ціна має бути 0 або більше",
+        "korte_beschrijving_mag_maximaal_500_tekens": "Короткий опис може містити щонайбільше 500 символів",
+        "beschrijving_is_te_lang": "Опис задовгий",
+        "slug_mag_alleen_kleine_letters_cijfers": "Slug може містити лише малі літери, цифри та дефіси",
+        "slug_is_verplicht": "Slug обов'язковий",
+        "naam_mag_maximaal_200_tekens_zijn": "Назва може містити щонайбільше 200 символів"
+      }
+    },
+    "promotions": {
+      "autoDiscountFormDialog": {
+        "percentage": "Відсоток",
+        "gratis_verzending": "Безкоштовна доставка",
+        "geldig_tot": "Дійсний до",
+        "validation": {
+          "naam_is_verplicht": "Назва обов'язкова"
+        }
+      },
+      "customerGroupFormDialog": {
+        "korting": "Знижка (€)"
+      },
+      "giftCardBalanceDialog": {
+        "bedrag": "Сума"
+      },
+      "giftPromotionFormDialog": {
+        "aantal": "Кількість"
+      },
+      "stackingRuleFormDialog": {
+        "discountTypes": {
+          "discount_code": "Промокоди",
+          "bogo": "Акції BOGO",
+          "gift_promotion": "Подарункові акції"
+        }
+      },
+      "volumeDiscountFormDialog": {
+        "korting": "Знижка"
+      },
+      "modules": {
+        "discount-codes": {
+          "title": "Промокоди"
+        }
+      }
+    },
+    "giftCards": {
+      "overzicht": "Огляд",
+      "aangemaakt": "Створено"
+    },
+    "inbox": {
+      "aISuggestionBox": {
+        "gebruik": "Використання"
+      },
+      "advancedSearchFilters": {
+        "periode": "Період",
+        "wissen": "Очистити",
+        "channels": {
+          "email": "Пошта"
+        }
+      },
+      "conversationDetail": {
+        "bestelling": "Замовлення"
+      },
+      "bulkActionsToolbar": {
+        "inbox": "Вхідні"
+      }
+    },
+    "customers": {
+      "customerActivityTab": {
+        "alle_events": "Усі події"
+      },
+      "bestellingen": "Замовлення",
+      "klanten": "Клієнти"
+    },
+    "customerFormDialog": {
+      "telefoonnummer": "Номер телефону",
+      "afleveradres": "Адреса доставки",
+      "bijv_0208_0123456789": "наприклад, 0208:0123456789",
+      "bedrijfsgegevens": "Дані компанії",
+      "peppol_id": "Peppol-ID",
+      "wijzigingen_opslaan": "Зберегти зміни"
+    },
+    "docs": {
+      "docArticleEditor": {
+        "samenvatting": "Підсумок"
+      }
+    },
+    "marketplace": {
+      "productMarketplaceTab": {
+        "verbonden": "Під’єднано",
+        "bol_conditions": {
+          "moderate": "Середня"
+        }
+      },
+      "dashboardMarketplaceWidget": {
+        "sellqo_connect": "SellQo Connect",
+        "beheer": "Керування"
+      }
+    },
+    "dashboardGrid": {
+      "dashboard": "Панель керування"
+    },
+    "orderFilters": {
+      "onbetaald": "Не сплачено",
+      "betaald": "Сплачено",
+      "terugbetaald": "Повернено"
+    },
+    "orders": {
+      "alle_bestellingen": "Усі замовлення"
+    },
+    "orderDetail": {
+      "subtotaal": "Проміжний підсумок",
+      "verzendkosten": "Вартість доставки",
+      "profiel": "Профіль"
+    },
+    "campaignDetail": {
+      "van_totaal": "% від загальної суми",
+      "versturen": "Надсилання..."
+    },
+    "translationHub": {
+      "instellingen": "Налаштування"
+    },
+    "analytics": {
+      "totale_omzet": "Загальна виручка"
+    },
+    "orderStatusBadge": {
+      "status": {
+        "pending": "Не сплачено",
+        "shipped": "Надіслано",
+        "delivered": "Доставлено",
+        "cancelled": "Скасовано",
+        "paid": "Сплачено",
+        "refunded": "Повернено",
+        "failed": "Не вдалося"
+      }
     }
   },
   "product_form": {

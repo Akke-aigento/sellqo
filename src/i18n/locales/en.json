@@ -1713,6 +1713,561 @@
         "opening": "Opening balance",
         "adjustment": "Adjustment"
       }
+    },
+    "marketing": {
+      "aBTestingPanel": {
+        "geannuleerd": "Cancelled",
+        "actief": "Active",
+        "in_afwachting": "Pending"
+      },
+      "aIContentLibrary": {
+        "social_media": "Social media",
+        "email": "Email"
+      },
+      "aIFeedbackWidget": {
+        "bedankt": "Thank you!"
+      },
+      "campaignCard": {
+        "status": {
+          "concept": "Draft",
+          "gepland": "Scheduled",
+          "verzonden": "Sent",
+          "gepauzeerd": "Paused",
+          "geannuleerd": "Cancelled"
+        }
+      },
+      "contentCalendar": {
+        "maand": "Month"
+      },
+      "contentHistoryList": {
+        "gepland": "Scheduled",
+        "verzonden": "Sent",
+        "type": "Type",
+        "platform": "Platform",
+        "status": {
+          "gepland": "Scheduled",
+          "verzonden": "Sent",
+          "mislukt": "Failed"
+        }
+      },
+      "creditPurchaseDialog": {
+        "bezig": "Working...",
+        "afrekenen": "Checkout"
+      },
+      "emailBlockPalette": {
+        "inhoud": "Contents"
+      },
+      "emailBlockProperties": {
+        "product_naam": "Product name",
+        "bedrijfsnaam": "Business name"
+      },
+      "emailPreview": {
+        "preview": "Preview",
+        "jan_jansen": "John Smith"
+      },
+      "inlinePromoWizard": {
+        "korting_toevoegen": "Add discount"
+      },
+      "mediaAssetsLibrary": {
+        "downloaden": "Download",
+        "verwijderen": "Delete",
+        "folders": {
+          "producten": "Products",
+          "categorie_n": "Categories",
+          "campagnes": "Campaigns"
+        }
+      },
+      "productSelectDialog": {
+        "geen_producten_gevonden": "No products found"
+      },
+      "promoKitResult": {
+        "afbeeldingen": "Images"
+      },
+      "realtimeActivityFeed": {
+        "verbinden": "Connecting..."
+      },
+      "segmentBuilder": {
+        "klanttype": "Customer type",
+        "tags": "Tags"
+      },
+      "templateDialog": {
+        "categorie": "Category",
+        "taal": "Language",
+        "voorbeeld": "Preview",
+        "nieuwe_template_aanmaken": "Create a new template"
+      },
+      "variableInserter": {
+        "groups": {
+          "customer": {
+            "label": "Customer",
+            "vars": {
+              "customer_name": "Full name",
+              "customer_email": "Email",
+              "customer_phone": "Phone",
+              "customer_company": "Business name",
+              "customer_vat_number": "VAT number",
+              "customer_country": "Country"
+            }
+          },
+          "company": {
+            "label": "Business",
+            "vars": {
+              "company_name": "Business name",
+              "company_email": "Email",
+              "company_phone": "Phone",
+              "company_address": "Address"
+            }
+          },
+          "system": {
+            "label": "System"
+          }
+        }
+      },
+      "advancedToolsGrid": {
+        "tools": {
+          "social": {
+            "name": "Social media"
+          },
+          "images": {
+            "name": "Images"
+          }
+        }
+      },
+      "aiEmailPlanner": {
+        "campaignTypes": {
+          "newsletter": {
+            "name": "Newsletter"
+          }
+        }
+      },
+      "aiImageGenerator": {
+        "styles": {
+          "lifestyle": {
+            "name": "Lifestyle"
+          }
+        },
+        "settingPresets": {
+          "lifestyle": {
+            "name": "Lifestyle"
+          }
+        }
+      },
+      "campaignDialog": {
+        "doelgroep": "Audience",
+        "doelgroep_2": "Audience",
+        "opslaan_als_concept": "Save as draft"
+      },
+      "campaignFunnel": {
+        "afgeleverd": "Delivered"
+      },
+      "nieuwe_template": "New template"
+    },
+    "ads": {
+      "bolCampaignEditForm": {
+        "startdatum": "Start date",
+        "toevoegen": "Add"
+      },
+      "campaignAIAnalysis": {
+        "verwerkt": "Processed"
+      },
+      "campaignCard": {
+        "status": {
+          "draft": "Draft",
+          "active": "Active",
+          "paused": "Paused",
+          "ended": "Ended",
+          "rejected": "Rejected"
+        }
+      },
+      "campaignWizard": {
+        "niet_gekoppeld": "Not connected"
+      },
+      "campaignsList": {
+        "beeindigd": "Ended"
+      },
+      "platformConnections": {
+        "account": "Account",
+        "gekoppeld": "Connected"
+      },
+      "onbekend_product": "Unknown product"
+    },
+    "adsBolcom": {
+      "ads": "Ads",
+      "ads_2": "Ads",
+      "omzet": "Revenue"
+    },
+    "adsBolcomCampaignDetail": {
+      "pauzeren": "Pause",
+      "hervatten": "Resume",
+      "toegevoegd_op": "Added on"
+    },
+    "adsProductMap": {
+      "product_mapping": "Product mapping",
+      "product_mapping_2": "Product mapping",
+      "uit": "Out",
+      "opgeslagen": "Saved",
+      "fout": "Error"
+    },
+    "adsAiRules": {
+      "afgewezen": "Rejected",
+      "aanmaken": "Create"
+    },
+    "seo": {
+      "imageAltTextPanel": {
+        "zoek_op_productnaam": "Search by product name..."
+      },
+      "keywordResearchPanel": {
+        "primair": "Primary",
+        "secundair": "Secondary",
+        "laag": "Low"
+      },
+      "sEOCategoryTable": {
+        "geen_categorieen_gevonden": "No categories found"
+      },
+      "structuredDataPreview": {
+        "organisatie": "Organization"
+      },
+      "robotsTxtEditor": {
+        "presetLabels": {
+          "default": {
+            "label": "Standard"
+          }
+        },
+        "gekopieerd": "Copied!"
+      },
+      "sEOHealthChecklist": {
+        "download": "Download"
+      },
+      "scheduledAuditsPanel": {
+        "frequencies": {
+          "daily": "Daily",
+          "monthly": "Monthly"
+        },
+        "activeren": "Activate"
+      }
+    },
+    "products": {
+      "bulkAIGenerateDialog": {
+        "fields": {
+          "meta_description": "Meta description",
+          "meta_title": "Meta title",
+          "short_description": "Short description"
+        }
+      },
+      "productAdsSection": {
+        "advertenties": "Ads"
+      },
+      "productBulkEditDialog": {
+        "prijzen": "Pricing"
+      },
+      "productEventDatesTab": {
+        "starttijd": "Start time",
+        "minimum_deelnemers": "Minimum attendees",
+        "starttijd_2": "Start time",
+        "minimum_deelnemers_2": "Minimum attendees",
+        "statuses": {
+          "scheduled": "Scheduled",
+          "confirmed": "Confirmed",
+          "cancelled": "Cancelled",
+          "completed": "Completed",
+          "skipped": "Skipped",
+          "merged": "Merged"
+        }
+      },
+      "productPhotosManager": {
+        "hoofd": "Main"
+      },
+      "variantExtraImagesDialog": {
+        "kies_uit_bibliotheek": "Choose from library"
+      },
+      "bulk": {
+        "bulkVisibilityTab": {
+          "deactiveren": "Deactivate"
+        }
+      },
+      "grid": {
+        "productGridView": {
+          "er_ging_iets_mis": "Something went wrong"
+        }
+      },
+      "specs": {
+        "customSpecsEditor": {
+          "nummer": "Number"
+        },
+        "dimensionsFields": {
+          "gewicht_kg": "Weight (kg)"
+        }
+      },
+      "uitverkocht": "Sold out",
+      "inactief": "Inactive",
+      "selecteer_eerst_een_winkel": "Select a store first",
+      "inactief_2": "Inactive",
+      "verborgen": "Hidden",
+      "uitverkocht_2": "Sold out",
+      "nieuw_product": "New product",
+      "dupliceren": "Duplicate"
+    },
+    "productForm": {
+      "vertalingen": "Translations",
+      "marketplaces": "Marketplaces",
+      "product_type": "Product type",
+      "kies_het_type_product_dat_je": "Choose the type of product you want to sell",
+      "leveringsmethode": "Delivery method",
+      "hoe_wordt_het_digitale_product_aan": "How is the digital product delivered to the customer?",
+      "leveringsmethode_2": "Delivery method",
+      "download_limiet": "Download limit",
+      "max_aantal_downloads_per_aankoop_leeg": "Max downloads per purchase (empty = unlimited)",
+      "geldigheid_uren": "Validity (hours)",
+      "hoelang_de_download_link_geldig_is": "How long the download link is valid",
+      "licentiebeheer": "License management",
+      "handmatig_voer_codes_in": "Manual (enter codes)",
+      "automatisch_genereren": "Generate automatically",
+      "toegangsduur_dagen": "Access duration (days)",
+      "hoelang_klant_toegang_heeft_leeg_permanent": "How long the customer has access (empty = permanent)",
+      "product_informatie": "Product information",
+      "basis_gegevens_van_het_product": "Basic product details",
+      "naam": "Name *",
+      "slug": "Slug *",
+      "url_vriendelijke_naam_voor_het_product": "URL-friendly name for the product",
+      "korte_beschrijving": "Short description",
+      "volledige_beschrijving": "Full description",
+      "stel_de_prijzen_in_voor_dit": "Set the prices for this product",
+      "verkoopprijs_wordt_per_variant_beheerd": "Sale price is managed per variant",
+      "verkoopprijs": "Sale price *",
+      "vergelijkingsprijs": "Compare-at price",
+      "inkoopprijs": "Cost price",
+      "voorraad_identificatie": "Inventory & Identification",
+      "barcode": "Barcode",
+      "voorraad_bijhouden": "Track inventory",
+      "voorraad_wordt_per_variant_beheerd": "Inventory is managed per variant",
+      "huidige_voorraad": "Current stock",
+      "lage_voorraad_drempel": "Low stock threshold",
+      "backorders_toestaan": "Allow backorders",
+      "klanten_kunnen_bestellen_als_uitverkocht": "Customers can order when sold out",
+      "verzending_vereist": "Shipping required",
+      "sla_eerst_het_product_op": "Save the product first",
+      "je_kunt_digitale_bestanden_en_licentiecodes": "You can add digital files and license keys after the product is saved.",
+      "upload_de_bestanden_die_klanten_kunnen": "Upload the files customers can download after purchase",
+      "klik_om_te_uploaden": "Click to upload",
+      "of_sleep_bestanden_hierheen": "or drag files here",
+      "pdf_zip_mp3_mp4_epub_etc": "PDF, ZIP, MP3, MP4, EPUB, etc. (max 100MB)",
+      "nog_geen_bestanden_geupload": "No files uploaded yet",
+      "beheer_de_licentiecodes_die_worden_toegewezen": "Manage the license keys assigned at purchase",
+      "beschikbaar": "Available",
+      "toegewezen": "Assigned",
+      "licentiecodes_toevoegen": "Add license keys",
+      "nog_geen_licentiecodes_toegevoegd": "No license keys added yet",
+      "stel_de_beschikbare_bedragen_en_opties": "Set the available amounts and options for this gift card",
+      "vaste_bedragen": "Fixed amounts",
+      "voeg_de_vaste_bedragen_toe_die": "Add the fixed amounts customers can choose",
+      "vrij_bedrag_toestaan": "Allow custom amount",
+      "laat_klanten_een_eigen_bedrag_kiezen": "Let customers choose their own amount within limits",
+      "minimum_bedrag": "Minimum amount",
+      "maximum_bedrag": "Maximum amount",
+      "standaard_ontwerp": "Default design",
+      "geen_standaard_ontwerp": "No default design",
+      "klanten_kunnen_bij_aankoop_ook_een": "Customers can also choose a different design at purchase",
+      "geldigheid_maanden": "Validity (months)",
+      "laat_leeg_voor_onbeperkte_geldigheid": "Leave empty for unlimited validity",
+      "stel_de_producten_en_het_prijsmodel": "Set the products and pricing model for this bundle",
+      "prijsmodel": "Pricing model",
+      "vaste_bundelprijs": "Fixed bundle price",
+      "je_stelt_zelf_een_totaalprijs_in": "You set a total price yourself",
+      "dynamische_prijs": "Dynamic price",
+      "som_van_individuele_productprijzen": "Sum of individual product prices",
+      "vaste_bundelprijs_2": "Fixed bundle price *",
+      "de_totaalprijs_waarvoor_de_bundel_wordt": "The total price the bundle sells for",
+      "bundelkorting_optioneel": "Bundle discount (optional)",
+      "type_korting": "Discount type",
+      "geen_korting": "No discount",
+      "percentage": "Percentage (%)",
+      "bundel_inhoud": "Bundle contents",
+      "nog_geen_producten_toegevoegd_aan_de": "No products added to the bundle yet",
+      "aantal": "Quantity:",
+      "klant_kan_hoeveelheid_aanpassen": "Customer can adjust quantity",
+      "de_klant_kan_de_hoeveelheid_in": "The customer can change the quantity in the store",
+      "minimum": "Minimum",
+      "maximum": "Maximum",
+      "som_individuele_prijzen": "Sum of individual prices:",
+      "bundelkorting": "Bundle discount:",
+      "varianten": "Variants",
+      "beheer_productvarianten_zoals_maat_kleur_etc": "Manage product variants such as size, color, etc.",
+      "sla_het_product_eerst_op_om": "Save the product first to manage variants",
+      "upload_afbeeldingen_of_kies_uit_je": "Upload images or choose from your media library",
+      "klik_om_te_uploaden_2": "Click to upload",
+      "png_jpg_webp_of_gif": "PNG, JPG, WebP or GIF",
+      "product_is_zichtbaar_in_de_winkel": "Product is visible in the store",
+      "verbergen_op_webshop": "Hide from webshop",
+      "niet_zichtbaar_online_wel_via_pos": "Not visible online, but available via POS",
+      "uitgelicht": "Featured",
+      "toon_op_homepage_en_in_speciale": "Show on homepage and in special sections",
+      "zoekmachine_optimalisatie": "Search engine optimization",
+      "meta_titel": "Meta title",
+      "meta_beschrijving": "Meta description",
+      "vertalingen_2": "Translations",
+      "sla_het_product_eerst_op_om_3": "Save the product first to manage translations",
+      "sla_het_product_eerst_op_om_4": "Save the product first to configure marketplace settings",
+      "sla_het_product_eerst_op_om_5": "Save the product first to configure ad settings",
+      "selecteer_methode": "Select method",
+      "onbeperkt": "Unlimited",
+      "permanent": "Permanent",
+      "korte_beschrijving_voor_productlijsten": "Short description for product lists",
+      "voer_licentiecodes_in_een_per_regel": "Enter license keys, one per line...",
+      "nieuw_bedrag_bijv_25": "New amount (e.g. 25)",
+      "selecteer_een_ontwerp": "Select a design",
+      "onbeperkt_geldig": "Valid indefinitely",
+      "geen_korting_2": "No discount",
+      "geen_limiet": "No limit",
+      "geen_limiet_2": "No limit",
+      "zoek_categorie": "Search category...",
+      "voeg_tag_toe": "Add tag",
+      "controleer_bestandstype_en_grootte_max_20": "Check file type and size (max 20 MB per photo).",
+      "zoek_product_om_toe_te_voegen": "Search product to add...",
+      "digitale_bestanden": "Digital files",
+      "licentiecodes": "License keys",
+      "cadeaukaart_configuratie": "Gift card configuration",
+      "bundel_configuratie": "Bundle configuration",
+      "vertaal_hub": "Translation Hub",
+      "maak_hoofdafbeelding": "Set as main image",
+      "ai_bewerken": "AI edit",
+      "korting": "Discount (%)",
+      "ingetrokken": "Revoked",
+      "digitale_producten_vereisen_geen_verzending": "Digital products don't require shipping",
+      "dit_is_een_fysiek_product": "This is a physical product",
+      "niet_van_toepassing_voor_digitale_producten": "Not applicable for digital products",
+      "houd_de_voorraad_automatisch_bij": "Track inventory automatically",
+      "product_bewerken": "Edit product",
+      "validation": {
+        "meta_beschrijving_mag_maximaal_160_tekens": "Meta description may be max 160 characters",
+        "meta_titel_mag_maximaal_60_tekens": "Meta title may be max 60 characters",
+        "voorraad_moet_0_of_hoger_zijn": "Stock must be 0 or higher",
+        "prijs_moet_0_of_hoger_zijn": "Price must be 0 or higher",
+        "korte_beschrijving_mag_maximaal_500_tekens": "Short description may be max 500 characters",
+        "beschrijving_is_te_lang": "Description is too long",
+        "slug_mag_alleen_kleine_letters_cijfers": "Slug may only contain lowercase letters, numbers and hyphens",
+        "slug_is_verplicht": "Slug is required",
+        "naam_mag_maximaal_200_tekens_zijn": "Name may be max 200 characters"
+      }
+    },
+    "promotions": {
+      "autoDiscountFormDialog": {
+        "percentage": "Percentage",
+        "gratis_verzending": "Free shipping",
+        "geldig_tot": "Valid until",
+        "validation": {
+          "naam_is_verplicht": "Name is required"
+        }
+      },
+      "customerGroupFormDialog": {
+        "korting": "Discount (€)"
+      },
+      "giftCardBalanceDialog": {
+        "bedrag": "Amount"
+      },
+      "giftPromotionFormDialog": {
+        "aantal": "Quantity"
+      },
+      "stackingRuleFormDialog": {
+        "discountTypes": {
+          "bogo": "BOGO deals",
+          "gift_promotion": "Gift promotions"
+        }
+      },
+      "volumeDiscountFormDialog": {
+        "korting": "Discount"
+      },
+      "upgrade": "Upgrade"
+    },
+    "giftCards": {
+      "verlopen": "Expired",
+      "aangemaakt": "Created"
+    },
+    "inbox": {
+      "aISuggestionBox": {
+        "gebruik": "Usage"
+      },
+      "advancedSearchFilters": {
+        "periode": "Period",
+        "wissen": "Clear",
+        "channels": {
+          "email": "Email"
+        }
+      },
+      "conversationDetail": {
+        "bestelling": "Order"
+      },
+      "bulkActionsToolbar": {
+        "inbox": "Inbox"
+      }
+    },
+    "customers": {
+      "customerActivityTab": {
+        "alle_events": "All events"
+      },
+      "bestellingen": "Orders",
+      "klanten": "Customers"
+    },
+    "customerFormDialog": {
+      "telefoonnummer": "Phone number",
+      "afleveradres": "Ship to",
+      "bijv_0208_0123456789": "e.g. 0208:0123456789",
+      "bedrijfsgegevens": "Company details",
+      "peppol_id": "Peppol ID",
+      "wijzigingen_opslaan": "Save changes"
+    },
+    "docs": {
+      "docArticleEditor": {
+        "samenvatting": "Summary"
+      }
+    },
+    "marketplace": {
+      "productMarketplaceTab": {
+        "verbonden": "Connected",
+        "bol_conditions": {
+          "moderate": "Medium"
+        }
+      },
+      "dashboardMarketplaceWidget": {
+        "sellqo_connect": "SellQo Connect",
+        "beheer": "Management"
+      }
+    },
+    "dashboardGrid": {
+      "dashboard": "Dashboard"
+    },
+    "orderFilters": {
+      "onbetaald": "Unpaid",
+      "betaald": "Paid",
+      "terugbetaald": "Refunded"
+    },
+    "orders": {
+      "alle_bestellingen": "All orders"
+    },
+    "orderDetail": {
+      "subtotaal": "Subtotal",
+      "verzendkosten": "Shipping costs",
+      "profiel": "Profile"
+    },
+    "campaignDetail": {
+      "van_totaal": "% of total",
+      "versturen": "Sending..."
+    },
+    "translationHub": {
+      "instellingen": "Settings"
+    },
+    "analytics": {
+      "totale_omzet": "Total revenue"
+    },
+    "orderStatusBadge": {
+      "status": {
+        "pending": "Unpaid",
+        "shipped": "Sent",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled",
+        "paid": "Paid",
+        "refunded": "Refunded",
+        "failed": "Failed"
+      }
     }
   },
   "product_form": {

@@ -1493,6 +1493,558 @@
         "opening": "Solde d'ouverture",
         "adjustment": "Correction"
       }
+    },
+    "marketing": {
+      "aBTestingPanel": {
+        "geannuleerd": "Annulé",
+        "actief": "Actif",
+        "in_afwachting": "En attente"
+      },
+      "aIContentLibrary": {
+        "social_media": "Réseaux sociaux",
+        "email": "E-mail"
+      },
+      "aIFeedbackWidget": {
+        "bedankt": "Merci !"
+      },
+      "campaignCard": {
+        "status": {
+          "concept": "Brouillon",
+          "gepland": "Planifié",
+          "verzonden": "Envoyé",
+          "gepauzeerd": "En pause",
+          "geannuleerd": "Annulé"
+        }
+      },
+      "contentCalendar": {
+        "maand": "Mois"
+      },
+      "contentHistoryList": {
+        "gepland": "Planifié",
+        "verzonden": "Envoyé",
+        "type": "Type",
+        "platform": "Plateforme",
+        "status": {
+          "gepland": "Planifié",
+          "verzonden": "Envoyé"
+        }
+      },
+      "creditPurchaseDialog": {
+        "bezig": "En cours...",
+        "afrekenen": "Payer"
+      },
+      "emailBlockPalette": {
+        "inhoud": "Contenu"
+      },
+      "emailBlockProperties": {
+        "tekst": "Texte",
+        "product_naam": "Nom du produit",
+        "bedrijfsnaam": "Nom de l'entreprise"
+      },
+      "emailPreview": {
+        "preview": "Aperçu",
+        "jan_jansen": "Jean Dupont"
+      },
+      "inlinePromoWizard": {
+        "korting_toevoegen": "Ajouter remise"
+      },
+      "mediaAssetsLibrary": {
+        "downloaden": "Télécharger",
+        "verwijderen": "Supprimer",
+        "folders": {
+          "producten": "Produits",
+          "categorie_n": "Catégories",
+          "campagnes": "Campagnes"
+        }
+      },
+      "productSelectDialog": {
+        "geen_producten_gevonden": "Aucun produit trouvé"
+      },
+      "promoKitResult": {
+        "afbeeldingen": "Images"
+      },
+      "realtimeActivityFeed": {
+        "verbinden": "Connexion..."
+      },
+      "segmentBuilder": {
+        "klanttype": "Type de client",
+        "tags": "Étiquettes"
+      },
+      "templateDialog": {
+        "categorie": "Catégorie",
+        "taal": "Langue",
+        "voorbeeld": "Aperçu",
+        "nieuwe_template_aanmaken": "Créer un nouveau modèle"
+      },
+      "variableInserter": {
+        "groups": {
+          "customer": {
+            "label": "Client",
+            "vars": {
+              "customer_name": "Nom complet",
+              "customer_email": "E-mail",
+              "customer_phone": "Téléphone",
+              "customer_company": "Nom de l'entreprise",
+              "customer_vat_number": "Numéro de TVA",
+              "customer_country": "Pays"
+            }
+          },
+          "company": {
+            "label": "Entreprise",
+            "vars": {
+              "company_name": "Nom de l'entreprise",
+              "company_email": "E-mail",
+              "company_phone": "Téléphone",
+              "company_address": "Adresse"
+            }
+          },
+          "system": {
+            "label": "Système"
+          }
+        }
+      },
+      "advancedToolsGrid": {
+        "tools": {
+          "social": {
+            "name": "Réseaux sociaux"
+          },
+          "images": {
+            "name": "Images"
+          }
+        }
+      },
+      "aiEmailPlanner": {
+        "campaignTypes": {
+          "newsletter": {
+            "name": "Newsletter"
+          }
+        }
+      },
+      "aiImageGenerator": {
+        "styles": {
+          "lifestyle": {
+            "name": "Art de vivre"
+          }
+        },
+        "settingPresets": {
+          "lifestyle": {
+            "name": "Art de vivre"
+          }
+        }
+      },
+      "campaignDialog": {
+        "doelgroep": "Public cible",
+        "doelgroep_2": "Public cible",
+        "opslaan_als_concept": "Enregistrer comme brouillon"
+      },
+      "campaignFunnel": {
+        "afgeleverd": "Livré"
+      },
+      "nieuwe_template": "Nouveau modèle"
+    },
+    "ads": {
+      "bolCampaignEditForm": {
+        "startdatum": "Date de début",
+        "toevoegen": "Ajouter"
+      },
+      "campaignAIAnalysis": {
+        "verwerkt": "Traitée"
+      },
+      "campaignCard": {
+        "status": {
+          "draft": "Brouillon",
+          "active": "Actif",
+          "paused": "En pause",
+          "ended": "Terminé",
+          "rejected": "Refusé"
+        }
+      },
+      "campaignWizard": {
+        "niet_gekoppeld": "Non connecté"
+      },
+      "campaignsList": {
+        "beeindigd": "Terminé"
+      },
+      "platformConnections": {
+        "account": "Compte",
+        "gekoppeld": "Connecté"
+      },
+      "onbekend_product": "Produit inconnu"
+    },
+    "adsBolcom": {
+      "ads": "Publicités",
+      "ads_2": "Publicités",
+      "omzet": "Chiffre d'affaires"
+    },
+    "adsBolcomCampaignDetail": {
+      "pauzeren": "Mettre en pause",
+      "hervatten": "Reprendre",
+      "toegevoegd_op": "Ajouté le"
+    },
+    "adsProductMap": {
+      "product_mapping": "Mappage des produits",
+      "product_mapping_2": "Mappage des produits",
+      "uit": "Sortie",
+      "opgeslagen": "Enregistré",
+      "fout": "Erreur"
+    },
+    "adsAiRules": {
+      "afgewezen": "Refusé",
+      "aanmaken": "Créer"
+    },
+    "seo": {
+      "imageAltTextPanel": {
+        "zoek_op_productnaam": "Rechercher par nom de produit..."
+      },
+      "keywordResearchPanel": {
+        "secundair": "Secondaire",
+        "laag": "Faible"
+      },
+      "sEOCategoryTable": {
+        "geen_categorieen_gevonden": "Aucune catégorie trouvée"
+      },
+      "structuredDataPreview": {
+        "organisatie": "Organisation"
+      },
+      "robotsTxtEditor": {
+        "presetLabels": {
+          "default": {
+            "label": "Standard"
+          }
+        },
+        "gekopieerd": "Copié !"
+      },
+      "sEOHealthChecklist": {
+        "download": "Téléchargement"
+      },
+      "scheduledAuditsPanel": {
+        "frequencies": {
+          "daily": "Quotidien",
+          "monthly": "Mensuel"
+        },
+        "activeren": "Activer"
+      }
+    },
+    "products": {
+      "bulkAIGenerateDialog": {
+        "fields": {
+          "meta_description": "Méta-description",
+          "meta_title": "Méta-titre",
+          "short_description": "Description courte"
+        }
+      },
+      "productAdsSection": {
+        "advertenties": "Publicités"
+      },
+      "productBulkEditDialog": {
+        "prijzen": "Prix"
+      },
+      "productEventDatesTab": {
+        "starttijd": "Heure de début",
+        "minimum_deelnemers": "Participants minimum",
+        "starttijd_2": "Heure de début",
+        "minimum_deelnemers_2": "Participants minimum",
+        "statuses": {
+          "scheduled": "Planifié",
+          "confirmed": "Confirmé",
+          "cancelled": "Annulé",
+          "completed": "Terminé",
+          "skipped": "Ignoré",
+          "merged": "Fusionné"
+        }
+      },
+      "productPhotosManager": {
+        "hoofd": "Principale"
+      },
+      "variantExtraImagesDialog": {
+        "kies_uit_bibliotheek": "Choisir dans la bibliothèque"
+      },
+      "bulk": {
+        "bulkVisibilityTab": {
+          "deactiveren": "Désactiver"
+        }
+      },
+      "grid": {
+        "productGridView": {
+          "er_ging_iets_mis": "Une erreur s'est produite"
+        }
+      },
+      "specs": {
+        "customSpecsEditor": {
+          "nummer": "Numéro"
+        },
+        "dimensionsFields": {
+          "gewicht_kg": "Poids (kg)"
+        }
+      },
+      "uitverkocht": "En rupture de stock",
+      "inactief": "Inactif",
+      "selecteer_eerst_een_winkel": "Sélectionnez d'abord une boutique",
+      "inactief_2": "Inactif",
+      "verborgen": "Masquée",
+      "uitverkocht_2": "En rupture de stock",
+      "nieuw_product": "Nouveau produit",
+      "dupliceren": "Dupliquer"
+    },
+    "productForm": {
+      "vertalingen": "Traductions",
+      "marketplaces": "Places de marché",
+      "product_type": "Type de produit",
+      "kies_het_type_product_dat_je": "Choisissez le type de produit à vendre",
+      "leveringsmethode": "Méthode de livraison",
+      "hoe_wordt_het_digitale_product_aan": "Comment le produit numérique est-il livré au client ?",
+      "leveringsmethode_2": "Méthode de livraison",
+      "download_limiet": "Limite de téléchargement",
+      "max_aantal_downloads_per_aankoop_leeg": "Nombre max. de téléchargements par achat (vide = illimité)",
+      "geldigheid_uren": "Validité (heures)",
+      "hoelang_de_download_link_geldig_is": "Durée de validité du lien de téléchargement",
+      "licentiebeheer": "Gestion des licences",
+      "handmatig_voer_codes_in": "Manuel (saisir les codes)",
+      "automatisch_genereren": "Générer automatiquement",
+      "toegangsduur_dagen": "Durée d'accès (jours)",
+      "hoelang_klant_toegang_heeft_leeg_permanent": "Durée d'accès du client (vide = permanent)",
+      "product_informatie": "Informations produit",
+      "basis_gegevens_van_het_product": "Données de base du produit",
+      "naam": "Nom *",
+      "slug": "Slug *",
+      "url_vriendelijke_naam_voor_het_product": "Nom convivial pour l'URL du produit",
+      "korte_beschrijving": "Description courte",
+      "volledige_beschrijving": "Description complète",
+      "stel_de_prijzen_in_voor_dit": "Définissez les prix de ce produit",
+      "verkoopprijs_wordt_per_variant_beheerd": "Le prix de vente est géré par variante",
+      "verkoopprijs": "Prix de vente *",
+      "vergelijkingsprijs": "Prix de comparaison",
+      "inkoopprijs": "Prix d'achat",
+      "voorraad_identificatie": "Stock et identification",
+      "barcode": "Code-barres",
+      "voorraad_bijhouden": "Suivre le stock",
+      "voorraad_wordt_per_variant_beheerd": "Le stock est géré par variante",
+      "huidige_voorraad": "Stock actuel",
+      "lage_voorraad_drempel": "Seuil de stock bas",
+      "backorders_toestaan": "Autoriser les commandes en attente",
+      "klanten_kunnen_bestellen_als_uitverkocht": "Les clients peuvent commander en cas de rupture",
+      "verzending_vereist": "Expédition requise",
+      "sla_eerst_het_product_op": "Enregistrez d'abord le produit",
+      "je_kunt_digitale_bestanden_en_licentiecodes": "Vous pouvez ajouter des fichiers numériques et des clés de licence après l'enregistrement.",
+      "upload_de_bestanden_die_klanten_kunnen": "Téléchargez les fichiers que les clients peuvent obtenir après l'achat",
+      "klik_om_te_uploaden": "Cliquez pour téléverser",
+      "of_sleep_bestanden_hierheen": "ou glissez les fichiers ici",
+      "pdf_zip_mp3_mp4_epub_etc": "PDF, ZIP, MP3, MP4, EPUB, etc. (max. 100 Mo)",
+      "nog_geen_bestanden_geupload": "Aucun fichier téléversé",
+      "beheer_de_licentiecodes_die_worden_toegewezen": "Gérez les clés de licence attribuées à l'achat",
+      "beschikbaar": "Disponible",
+      "toegewezen": "Attribué",
+      "licentiecodes_toevoegen": "Ajouter des clés de licence",
+      "nog_geen_licentiecodes_toegevoegd": "Aucune clé de licence ajoutée",
+      "stel_de_beschikbare_bedragen_en_opties": "Définissez les montants et options disponibles pour cette carte cadeau",
+      "vaste_bedragen": "Montants fixes",
+      "voeg_de_vaste_bedragen_toe_die": "Ajoutez les montants fixes que les clients peuvent choisir",
+      "vrij_bedrag_toestaan": "Autoriser un montant libre",
+      "laat_klanten_een_eigen_bedrag_kiezen": "Laissez les clients choisir leur montant dans les limites",
+      "minimum_bedrag": "Montant minimum",
+      "maximum_bedrag": "Montant maximum",
+      "standaard_ontwerp": "Modèle par défaut",
+      "geen_standaard_ontwerp": "Aucun modèle par défaut",
+      "klanten_kunnen_bij_aankoop_ook_een": "Les clients peuvent aussi choisir un autre modèle à l'achat",
+      "geldigheid_maanden": "Validité (mois)",
+      "laat_leeg_voor_onbeperkte_geldigheid": "Laissez vide pour une validité illimitée",
+      "stel_de_producten_en_het_prijsmodel": "Définissez les produits et le modèle tarifaire de ce lot",
+      "prijsmodel": "Modèle tarifaire",
+      "vaste_bundelprijs": "Prix de lot fixe",
+      "je_stelt_zelf_een_totaalprijs_in": "Vous définissez vous-même un prix total",
+      "dynamische_prijs": "Prix dynamique",
+      "som_van_individuele_productprijzen": "Somme des prix des produits individuels",
+      "vaste_bundelprijs_2": "Prix de lot fixe *",
+      "de_totaalprijs_waarvoor_de_bundel_wordt": "Le prix total de vente du lot",
+      "bundelkorting_optioneel": "Remise sur le lot (facultatif)",
+      "type_korting": "Type de remise",
+      "geen_korting": "Aucune remise",
+      "percentage": "Pourcentage (%)",
+      "bundel_inhoud": "Contenu du lot",
+      "nog_geen_producten_toegevoegd_aan_de": "Aucun produit ajouté au lot",
+      "aantal": "Quantité :",
+      "klant_kan_hoeveelheid_aanpassen": "Le client peut ajuster la quantité",
+      "de_klant_kan_de_hoeveelheid_in": "Le client peut modifier la quantité en boutique",
+      "minimum": "Minimum",
+      "maximum": "Maximum",
+      "som_individuele_prijzen": "Somme des prix individuels :",
+      "bundelkorting": "Remise sur le lot :",
+      "varianten": "Variantes",
+      "beheer_productvarianten_zoals_maat_kleur_etc": "Gérez les variantes comme la taille, la couleur, etc.",
+      "sla_het_product_eerst_op_om": "Enregistrez d'abord le produit pour gérer les variantes",
+      "upload_afbeeldingen_of_kies_uit_je": "Téléchargez des images ou choisissez dans votre médiathèque",
+      "klik_om_te_uploaden_2": "Cliquez pour téléverser",
+      "png_jpg_webp_of_gif": "PNG, JPG, WebP ou GIF",
+      "product_is_zichtbaar_in_de_winkel": "Le produit est visible en boutique",
+      "verbergen_op_webshop": "Masquer sur la boutique en ligne",
+      "niet_zichtbaar_online_wel_via_pos": "Non visible en ligne, mais via le POS",
+      "uitgelicht": "Mis en avant",
+      "toon_op_homepage_en_in_speciale": "Afficher sur la page d'accueil et dans les sections spéciales",
+      "zoekmachine_optimalisatie": "Optimisation pour les moteurs de recherche",
+      "meta_titel": "Méta-titre",
+      "meta_beschrijving": "Méta-description",
+      "vertalingen_2": "Traductions",
+      "sla_het_product_eerst_op_om_3": "Enregistrez d'abord le produit pour gérer les traductions",
+      "sla_het_product_eerst_op_om_4": "Enregistrez d'abord le produit pour configurer les places de marché",
+      "sla_het_product_eerst_op_om_5": "Enregistrez d'abord le produit pour configurer les publicités",
+      "selecteer_methode": "Sélectionner une méthode",
+      "onbeperkt": "Illimité",
+      "permanent": "Permanent",
+      "korte_beschrijving_voor_productlijsten": "Description courte pour les listes de produits",
+      "voer_licentiecodes_in_een_per_regel": "Saisissez les clés de licence, une par ligne...",
+      "nieuw_bedrag_bijv_25": "Nouveau montant (par ex. 25)",
+      "selecteer_een_ontwerp": "Sélectionner un modèle",
+      "onbeperkt_geldig": "Valable indéfiniment",
+      "geen_korting_2": "Aucune remise",
+      "geen_limiet": "Aucune limite",
+      "geen_limiet_2": "Aucune limite",
+      "zoek_categorie": "Rechercher une catégorie...",
+      "voeg_tag_toe": "Ajouter une étiquette",
+      "controleer_bestandstype_en_grootte_max_20": "Vérifiez le type et la taille du fichier (max 20 Mo par photo).",
+      "zoek_product_om_toe_te_voegen": "Rechercher un produit à ajouter...",
+      "digitale_bestanden": "Fichiers numériques",
+      "licentiecodes": "Clés de licence",
+      "cadeaukaart_configuratie": "Configuration de la carte cadeau",
+      "bundel_configuratie": "Configuration du lot",
+      "vertaal_hub": "Hub de traduction",
+      "maak_hoofdafbeelding": "Définir comme image principale",
+      "ai_bewerken": "Édition IA",
+      "korting": "Remise (%)",
+      "ingetrokken": "Révoqué",
+      "digitale_producten_vereisen_geen_verzending": "Les produits numériques ne nécessitent pas d'expédition",
+      "dit_is_een_fysiek_product": "Ceci est un produit physique",
+      "niet_van_toepassing_voor_digitale_producten": "Non applicable aux produits numériques",
+      "houd_de_voorraad_automatisch_bij": "Suivre le stock automatiquement",
+      "product_bewerken": "Modifier le produit",
+      "validation": {
+        "meta_beschrijving_mag_maximaal_160_tekens": "La méta-description ne peut dépasser 160 caractères",
+        "meta_titel_mag_maximaal_60_tekens": "Le méta-titre ne peut dépasser 60 caractères",
+        "voorraad_moet_0_of_hoger_zijn": "Le stock doit être ≥ 0",
+        "prijs_moet_0_of_hoger_zijn": "Le prix doit être ≥ 0",
+        "korte_beschrijving_mag_maximaal_500_tekens": "La description courte ne peut dépasser 500 caractères",
+        "beschrijving_is_te_lang": "La description est trop longue",
+        "slug_mag_alleen_kleine_letters_cijfers": "Le slug ne peut contenir que des minuscules, chiffres et tirets",
+        "slug_is_verplicht": "Le slug est requis",
+        "naam_mag_maximaal_200_tekens_zijn": "Le nom ne peut dépasser 200 caractères"
+      }
+    },
+    "promotions": {
+      "autoDiscountFormDialog": {
+        "percentage": "Pourcentage",
+        "gratis_verzending": "Livraison gratuite",
+        "geldig_tot": "Valable jusqu'au",
+        "validation": {
+          "naam_is_verplicht": "Le nom est requis"
+        }
+      },
+      "customerGroupFormDialog": {
+        "korting": "Remise (€)"
+      },
+      "giftCardBalanceDialog": {
+        "bedrag": "Montant"
+      },
+      "giftPromotionFormDialog": {
+        "aantal": "Quantité"
+      },
+      "stackingRuleFormDialog": {
+        "discountTypes": {
+          "bogo": "Offres BOGO",
+          "gift_promotion": "Offres cadeaux"
+        }
+      },
+      "volumeDiscountFormDialog": {
+        "korting": "Remise"
+      }
+    },
+    "giftCards": {
+      "overzicht": "Aperçu",
+      "verlopen": "Expiré",
+      "aangemaakt": "Créée"
+    },
+    "inbox": {
+      "aISuggestionBox": {
+        "gebruik": "Utilisation"
+      },
+      "advancedSearchFilters": {
+        "periode": "Période",
+        "wissen": "Effacer",
+        "channels": {
+          "email": "E-mail"
+        }
+      },
+      "conversationDetail": {
+        "bestelling": "Commande"
+      },
+      "bulkActionsToolbar": {
+        "inbox": "Boîte de réception"
+      }
+    },
+    "customers": {
+      "customerActivityTab": {
+        "alle_events": "Tous les événements"
+      },
+      "bestellingen": "Commandes",
+      "klanten": "Clients"
+    },
+    "customerFormDialog": {
+      "telefoonnummer": "Numéro de téléphone",
+      "afleveradres": "Livré à",
+      "bijv_0208_0123456789": "ex. 0208:0123456789",
+      "peppol_id": "Identifiant Peppol",
+      "wijzigingen_opslaan": "Enregistrer les modifications"
+    },
+    "docs": {
+      "docArticleEditor": {
+        "samenvatting": "Résumé"
+      }
+    },
+    "marketplace": {
+      "productMarketplaceTab": {
+        "verbonden": "Connecté",
+        "bol_conditions": {
+          "moderate": "Moyenne"
+        }
+      },
+      "dashboardMarketplaceWidget": {
+        "sellqo_connect": "SellQo Connect",
+        "beheer": "Gestion"
+      }
+    },
+    "dashboardGrid": {
+      "dashboard": "Tableau de bord"
+    },
+    "orderFilters": {
+      "onbetaald": "Impayé",
+      "betaald": "Payée",
+      "terugbetaald": "Remboursé"
+    },
+    "orders": {
+      "alle_bestellingen": "Toutes les commandes"
+    },
+    "orderDetail": {
+      "subtotaal": "Sous-total",
+      "verzendkosten": "Frais de livraison",
+      "profiel": "Profil"
+    },
+    "campaignDetail": {
+      "van_totaal": "% du total",
+      "versturen": "Envoi..."
+    },
+    "translationHub": {
+      "instellingen": "Paramètres"
+    },
+    "analytics": {
+      "totale_omzet": "Chiffre d'affaires total"
+    },
+    "orderStatusBadge": {
+      "status": {
+        "pending": "Impayé",
+        "shipped": "Envoyé",
+        "delivered": "Livré",
+        "cancelled": "Annulé",
+        "paid": "Payée",
+        "refunded": "Remboursé"
+      }
     }
   },
   "billing": {
