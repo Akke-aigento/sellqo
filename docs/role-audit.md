@@ -180,7 +180,7 @@ het commentaar.
 | `npx tsc --noEmit -p tsconfig.app.json` | **exit 0** |
 | `npm run build` | **exit 0**, 3m32s (chunk-size-waarschuwing is bestaand) |
 | `node scripts/i18n-parity.mjs` | **exit 0** — 5 talen, 5.146 keys, volledige pariteit (was 2.641) |
-| ESLint tegen baseline | **654 errors / 80 warnings**, exact gelijk aan `main` |
+| ESLint tegen baseline | **654 errors** (identiek aan `main`), **79 warnings** (één minder dan de 80 op `main`) |
 | esbuild-parse van elk aangeraakt bestand | OK — dit ving alle vier de codemod-bugs |
 | `nl.json` strikt additief | 2.501 nieuw, **0 verwijderd** |
 | Cross-namespace | alles wat deze batch toevoegt zit onder `admin.*` (2.824 + 315) of `common.*` (276). Nul treffers buiten die twee. |
@@ -188,9 +188,15 @@ het commentaar.
 | Vertaalkwaliteit per taal | 0 ontbrekend, 0 leeg, 0 placeholder-drift; en/fr/de/uk elk gecontroleerd |
 
 De lint-vergelijking is gemeten door `main` tijdelijk in de working tree te zetten
-en opnieuw te linten, niet uit het geheugen. Er waren aanvankelijk 4 warnings méér
-(`react-hooks/exhaustive-deps`, `t` ontbrak in drie dependency-arrays); die zijn
-opgelost, waarna het aantal weer op de baseline stond.
+en opnieuw te linten, niet uit het geheugen. Er waren aanvankelijk 5 warnings méér
+(`react-hooks/exhaustive-deps`): `t` ontbrak in de dependency-array van een
+useCallback in `CampaignRichEditor` en `ProductPhotoLibraryCard` en van een
+useEffect in `LoyaltyProgramFormDialog`, en de twee `default*Content`-constanten
+die van moduleniveau naar de component verhuisden ontbraken in twee useEffects van
+`CampaignDialog`. Alle vijf opgelost. Die laatste twee zijn strings en dus
+waarde-gelijk tussen renders, waardoor ze veilig in de dependency-array kunnen
+zonder extra effect-runs. Netto staat het aantal warnings nu één ónder de baseline,
+omdat een van de opgeloste meldingen al op `main` stond.
 
 **Nog niet gedaan, hoort bij Akke:**
 - De `doc_articles`-migratie is geschreven en gevalideerd (quote-balans, idempotent),

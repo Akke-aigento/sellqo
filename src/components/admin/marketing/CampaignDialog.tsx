@@ -291,7 +291,7 @@ export function CampaignDialog({
         setTriggerDelayHours(1);
       }
     }
-  }, [open, campaign, defaultValues, form]);
+  }, [open, campaign, defaultValues, form, defaultRichContent, defaultHtmlContent]);
 
   const selectedSegmentId = form.watch('segment_id');
   const selectedSegment = segments.find(s => s.id === selectedSegmentId);
@@ -306,7 +306,7 @@ export function CampaignDialog({
       : (((form.getValues('translations') as any)?.[activeLangTab]?.html_content) || form.getValues('html_content') || '');
     const body = extractEmailBody(html);
     setRichContent(body || defaultRichContent);
-  }, [activeLangTab, open]);
+  }, [activeLangTab, open, form, defaultRichContent]);
 
   // If the active tab was removed from selection, reset to NL.
   useEffect(() => {
