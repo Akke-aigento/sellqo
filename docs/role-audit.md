@@ -198,9 +198,30 @@ waarde-gelijk tussen renders, waardoor ze veilig in de dependency-array kunnen
 zonder extra effect-runs. Netto staat het aantal warnings nu één ónder de baseline,
 omdat een van de opgeloste meldingen al op `main` stond.
 
+**SQL-natrek — uitgevoerd 24 augustus 2026 door Akke via de Lovable-connector**
+op project `gczmfcabnoofnmfpzeop`. Claude Code heeft geen DB-toegang; de migratie
+is hier geschreven en gevalideerd, daar gedraaid.
+
+- *Pre-flight:* categorie Webshop (`a0000001-0000-0000-0000-000000000006`) bestond,
+  het artikel bestond nog niet. De `ON CONFLICT`-tak is dus niet geraakt — dit was
+  een schone INSERT.
+- *Resultaat:* INSERT foutloos.
+- *Natrek via SELECT:* `slug = admin-taal-instellen`, `doc_level = tenant`,
+  `context_path = /admin/settings`, `sort_order = 9`, `content` 2.486 tekens,
+  `created_at` 2026-08-24 12:59 UTC.
+- *Verificatie achteraf:* de contentlengte in de migratie is nagemeten na
+  SQL-unescaping en komt exact op 2.486 uit. Wat in de database staat is dus
+  byte-voor-byte wat in de repo staat.
+
+**Eén schema-correctie onderweg, buiten de migratie om.** De ad-hoc pre-flight-query
+las `doc_categories.name`; die kolom heet `title`. De migratie zelf raakt geen enkele
+kolom van `doc_categories` aan — alleen `category_id` als FK-waarde — en hoefde dus
+niet aangepast te worden. Ook de repo claimt nergens `name`: de aanmaakmigratie
+`20260212104235_*.sql:111` gebruikt `title`, en de enige `name`-treffer in de
+codebase is de constraint-naam `doc_categories_parent_id_fkey`. Genoteerd omdat het
+tijd kan schelen bij de volgende hand-geschreven query tegen die tabel.
+
 **Nog niet gedaan, hoort bij Akke:**
-- De `doc_articles`-migratie is geschreven en gevalideerd (quote-balans, idempotent),
-  maar niet gedraaid — Claude Code heeft geen DB-toegang.
 - De UI-steekproef met `npm run dev` in fr en uk.
 
 ### Vervolg
