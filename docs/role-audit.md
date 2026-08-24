@@ -1,8 +1,11 @@
 
 ## CUSTAUTH-1 — e-mailverificatie voor storefront-klanten — 24 augustus 2026
 
-**Status: code klaar, NIET gedraaid en NIET gedeployed.** De migratie en de deploy wachten op
-de pre-flight (zie Verificatie). De volgorde is niet vrij.
+**Status: gedeployed en gedraaid, maar in de verkeerde volgorde.** De edge function ging live
+vóórdat de grandfather-migratie was toegepast, waardoor vijf bestaande klanten tijdelijk hun
+orderhistorie kwijt waren. Hersteld met een handmatige UPDATE; zie **Nalevering** onderaan deze
+entry voor de root cause, de natrek en wat er nog openstaat. De hieronder beschreven volgorde
+is dus wél opgeschreven maar níet gevolgd.
 
 ### Root cause
 
@@ -195,6 +198,108 @@ of tijdens de deploy.
 6. **Het admin-klantenoverzicht toont `email_verified` niet.** Support kan nu niet zien of een
    klant bevestigd is. Kleine UI-toevoeging, aparte batch.
 7. **`storefront-customer-api` toevoegen aan de eerste wet** in CLAUDE.md §1 en het masterplan.
+
+---
+
+### Nalevering — de migratie draaide niet, de deploy wel (24 augustus 2026)
+
+**Wat er misging.** De edge function met de enforcement is gedeployed zonder dat de
+grandfather-migratie was toegepast. De vijf bestaande accounts (VanXcel 3, Mancini 2) stonden
+daardoor op `email_verified = false` terwijl `get_orders` al weigerde: die klanten waren
+tijdelijk afgesloten van hun orderhistorie. Akke heeft de `UPDATE` daarna handmatig tegen de
+live database gedraaid en geverifieerd — alle vijf staan nu op `true`, toegang hersteld.
+
+**Root cause — niet wat het leek.** Het vermoeden was dat de migratie nooit als bestand is
+geschreven, of alleen inline is gedraaid. Dat klopt niet:
+
+- `supabase/migrations/20260824155706_custauth1_grandfather_email_verified.sql` is geschreven
+  én gecommit in `a45153dd`, mét een vaste grens en een DOWN-instructie.
+- De commit-message zei letterlijk **"NIET GEDRAAID EN NIET GEDEPLOYED"** en gaf de vereiste
+  volgorde: pre-flight → migratie → natrek → pas dan deployen.
+
+De werkelijke oorzaak zit een laag dieper: **een migratiebestand committen past hem niet toe.**
+In dit project bestaat geen enkel automatisme dat migraties uitvoert — geen CI-stap
+(`.github/workflows/ci.yml` draait alleen tsc, i18n-pariteit en build), geen npm-script, geen
+`supabase db push`. Toepassen gebeurt handmatig via de Lovable-connector. De deploy van de edge
+function is een aparte handeling die daar niet aan gekoppeld is, en er is niets dat de volgorde
+afdwingt of zelfs maar signaleert.
+
+Daar bovenop kwam een rapportagefout: de migratiestap is als uitgevoerd gemeld terwijl de
+database dat tegensprak. Wie of wat dat rapporteerde is vanuit de repo niet te achterhalen —
+Claude Code heeft geen DB-toegang en geen zicht op de connector-sessie. Vastgelegd als feit,
+niet als toewijzing.
+
+**Waarom dit precies de reden is dat core-wijzigingen een directe SQL-natrek krijgen.** Het
+zelfrapport van de uitvoerende stap zei "gedraaid"; de database zei iets anders. Alleen de
+`SELECT` bracht dat aan het licht, en pas nadat klanten al buitengesloten waren.
+
+### Post-migratie natrek
+
+Uitgevoerd door Akke via de connector, ná de handmatige `UPDATE`:
+
+```sql
+-- Alle pre-existing accounts staan op true — verwacht 0 rijen.
+SELECT sc.id, t.slug, sc.email_verified, sc.created_at
+FROM public.storefront_customers sc
+JOIN public.tenants t ON t.id = sc.tenant_id
+WHERE sc.email_verified = false
+  AND sc.created_at < TIMESTAMPTZ '2026-08-24 15:57:06+00';
+-- Uitkomst: 0 rijen.
+
+-- Telling per tenant.
+SELECT t.slug, sc.email_verified, count(*)
+FROM public.storefront_customers sc
+JOIN public.tenants t ON t.id = sc.tenant_id
+GROUP BY 1, 2 ORDER BY 1, 2;
+-- Uitkomst: VanXcel 3 × true, Mancini 2 × true. Totaal 5 geverifieerd, 0 onverified.
+```
+
+**Reconciliatie repo ↔ productie.** De grens in het bestand blijft `2026-08-24 15:57:06+00` —
+het moment van schrijven, niet van de deploy. Zijn er accounts aangemaakt tussen die grens en
+het live gaan van de enforcement, dan vallen die buiten de `WHERE` van de migratie terwijl de
+handmatige run ze mogelijk wél heeft meegenomen. Bij vijf accounts in totaal is dat
+onwaarschijnlijk, maar niet uitgesloten. Query om het gat zichtbaar te maken:
+
+```sql
+SELECT id, email, email_verified, created_at
+FROM public.storefront_customers
+WHERE created_at >= TIMESTAMPTZ '2026-08-24 15:57:06+00'
+ORDER BY created_at;
+```
+Levert dit rijen op met `email_verified = true` die niet via `verify_email` zijn gegaan, dan
+lopen repo en productie uiteen en moet de grens in het bestand omhoog naar het
+enforcement-moment.
+
+**De migratie staat nog niet in `supabase_migrations.schema_migrations`.** Draait de runner hem
+alsnog, dan is dat een no-op: de vijf rijen staan al op `true` en accounts van ná de grens
+vallen buiten de `WHERE`. Niet opnieuw handmatig draaien.
+
+### Nog niet geverifieerd
+
+De end-to-end enforcement is **niet** bevestigd. Een verse registratie ná het live gaan hoort
+`email_verified = false` terug te geven en `get_orders` hoort te weigeren met
+`EMAIL_NOT_VERIFIED`. Dat vraagt een echte registratie tegen een testbed-tenant (SellQo
+Speeltuin of Demo Bakkerij) en dus een echte klantrij plus een echte e-mail; het commando staat
+klaar maar is bewust niet vanuit Claude Code uitgevoerd. Zolang dit openstaat is bewezen dát de
+grandfather-set klopt, maar niet dát de poort werkt.
+
+### Vervolgpunt — regel ontbreekt
+
+CLAUDE.md §3 stap 5 zegt "en **waar relevant** een SQL-natrek", en §5 zegt "een SQL-natrek
+formuleren die Akke uitvoert. Vraag de uitkomst en verwerk die in de paper trail." Beide zijn
+discretionair en gaan over het *formuleren* van een natrek. Nergens staat dat een runrapport
+géén bewijs is, en nergens staat dat het bij een migratie op gedeelde core verplicht is.
+
+Voorstel voor CLAUDE.md §3 (en de workspace-skill `sellqo-connector-werkwijze`, die hierover
+leidend is en niet in deze repo staat):
+
+> **Een migratie op gedeelde core geldt pas als gedraaid wanneer een `SELECT` het effect
+> bevestigt.** Het rapport van de uitvoerende stap — connector, agent of mens — telt niet als
+> bewijs. Draait er een migratie én een deploy in dezelfde batch, dan is de volgorde
+> migratie → natrek → deploy, en wordt de deploy uitgesteld tot de natrek klopt.
+
+Niet toegepast: skill- en CLAUDE.md-wijzigingen gaan via een expliciete go, en
+`sellqo-connector-werkwijze` leeft alleen in de workspace.
 
 ---
 

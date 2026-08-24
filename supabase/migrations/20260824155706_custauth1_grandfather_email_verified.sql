@@ -27,6 +27,20 @@
 --
 -- Idempotent: een tweede run raakt niets meer, want alle rijen vóór de grens staan
 -- dan al op true.
+
+-- WAT ER IN PRODUCTIE IS GEBEURD (24 augustus 2026).
+-- Dit bestand is geschreven en gecommit in a45153dd, maar NIET toegepast: er is in
+-- dit project geen automatisme dat migraties uitvoert (geen CI-stap, geen
+-- npm-script) — dat gebeurt handmatig via de Lovable-connector. De edge function
+-- met de enforcement is wél gedeployed. Daardoor stonden de vijf bestaande
+-- accounts (VanXcel 3, Mancini 2) tijdelijk zonder toegang tot hun orderhistorie.
+-- De UPDATE is daarna handmatig tegen de live database gedraaid en geverifieerd:
+-- alle vijf staan op email_verified = true.
+--
+-- Deze migratie is dus in productie al effectief, maar ontbreekt in
+-- supabase_migrations.schema_migrations. Draait de migratierunner hem alsnog, dan
+-- is dat een no-op: de vijf rijen staan al op true en accounts van ná de grens
+-- vallen buiten de WHERE. Veilig om te laten staan; niet opnieuw handmatig draaien.
 --
 -- Handmatig terugdraaien: niet generiek mogelijk — er is geen kolom die vastlegt
 -- welke rijen door DEZE migratie zijn omgezet. De geraakte id's worden vastgelegd
