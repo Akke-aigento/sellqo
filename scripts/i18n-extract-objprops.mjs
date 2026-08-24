@@ -32,7 +32,11 @@ const PROPS = ['label', 'name', 'text', 'placeholder', 'tooltip', 'heading', 'su
 // Let op de escapes: 'Productpagina\'s' is één string, geen twee. Zonder de
 // tak `(?:[^'\\\n]|\\.)*` knipt de match midden in de waarde en breekt het bestand.
 const propRe = new RegExp(`\\b(${PROPS.join('|')})(\\s*:\\s*)(?:"((?:[^"\\\\\\n]|\\\\.)*)"|'((?:[^'\\\\\\n]|\\\\.)*)')`, 'g');
-const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
+const unescape = (v) =>
+  v.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+   .replace(/\\n/g, '\n')
+   .replace(/\\t/g, '\t')
+   .replace(/\\(['"\\])/g, '$1');
 
 const nl = readLocale('nl');
 const valueToKeys = new Map();

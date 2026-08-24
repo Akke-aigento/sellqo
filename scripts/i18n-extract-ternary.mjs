@@ -37,7 +37,11 @@ const ternaryRe = new RegExp(String.raw`\?\s*${STR}\s*:\s*${STR}`, 'g');
 // binnen naar buiten omgezet, dus na de eerste ronde staat er `? 'X' : t(...)`.
 // Dat de andere tak al een t()-aanroep is, bewijst dat deze tak UI-tekst is.
 const chainedRe = new RegExp(String.raw`\?\s*${STR}\s*:\s*(?=[^\n;{}]*\?\s*t\()`, 'g');
-const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
+const unescape = (v) =>
+  v.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+   .replace(/\\n/g, '\n')
+   .replace(/\\t/g, '\t')
+   .replace(/\\(['"\\])/g, '$1');
 
 const nl = readLocale('nl');
 const valueToKeys = new Map();

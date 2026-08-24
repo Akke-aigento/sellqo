@@ -175,7 +175,11 @@ const jsxTextRe = /(?<![=!<>+\-*/&|\s])>([ \t]*)([^<>{}\n\s][^<>{}\n]*?)([ \t]*)
 const toastRe = /\b(title|description|message)(\s*:\s*)(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)')/g;
 
 // De captures bevatten nog de bron-escapes; de JSON-waarde moet de echte tekst zijn.
-const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
+const unescape = (v) =>
+  v.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+   .replace(/\\n/g, '\n')
+   .replace(/\\t/g, '\t')
+   .replace(/\\(['"\\])/g, '$1');
 
 const summary = { files: 0, changed: 0, keys: 0, reused: 0, todo: [] };
 const filesSeen = new Set();

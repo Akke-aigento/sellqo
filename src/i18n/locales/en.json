@@ -1718,14 +1718,54 @@
       "aBTestingPanel": {
         "geannuleerd": "Cancelled",
         "actief": "Active",
-        "in_afwachting": "Pending"
+        "in_afwachting": "Pending",
+        "a_b_test": "A/B test",
+        "a_b_testing": "A/B testing",
+        "automatisch_winnaar_kiezen": "Pick a winner automatically",
+        "campagne_a_controle": "Campaign A (control)",
+        "campagne_b_variant": "Campaign B (variant)",
+        "click_rate": "Click rate",
+        "kies_a_als_winnaar": "Pick A as the winner",
+        "kies_b_als_winnaar": "Pick B as the winner",
+        "maak_een_test_om_campagne_varianten": "Create a test to compare campaign variants",
+        "minimum_verschil": "Minimum difference (%)",
+        "na_voldoende_data_automatisch_de_beste": "Automatically pick the best once there is enough data",
+        "nieuwe_a_b_test": "New A/B test",
+        "nieuwe_test": "New test",
+        "nog_geen_a_b_tests": "No A/B tests yet",
+        "open_rate": "Open rate",
+        "selecteer_campagne_a": "Select campaign A",
+        "selecteer_campagne_b": "Select campaign B",
+        "test_metriek": "Test metric",
+        "test_verdeling": "Test split",
+        "test_verschillende_versies_van_je_campagnes": "Test different versions of your campaigns",
+        "verdeling_naar_variant_b": "Split (% to variant B)",
+        "versie_a": "Version A",
+        "versie_b": "Version B",
+        "voltooid": "Completed"
       },
       "aIContentLibrary": {
         "social_media": "Social media",
-        "email": "Email"
+        "email": "Email",
+        "alle_types": "All types",
+        "bekijken": "View",
+        "content_bibliotheek": "Content library",
+        "gebruikt": "Used",
+        "genereer_content_via_de_andere_tabs": "Generate content via the other tabs",
+        "kopieren": "Copy",
+        "markeer_als_gebruikt": "Mark as used",
+        "nog_geen_ai_content_gegenereerd": "No AI content generated yet",
+        "suggesties": "Suggestions"
       },
       "aIFeedbackWidget": {
-        "bedankt": "Thank you!"
+        "bedankt": "Thank you!",
+        "aanpassen": "Adjust",
+        "beoordeling": "Rating",
+        "opmerkingen_optioneel": "Comments (optional)",
+        "verstuur": "Send",
+        "vertel_ons_meer": "Tell us more...",
+        "was_dit_nuttig": "Was this helpful?",
+        "wat_kunnen_we_verbeteren": "What can we improve?"
       },
       "campaignCard": {
         "status": {
@@ -1733,11 +1773,24 @@
           "gepland": "Scheduled",
           "verzonden": "Sent",
           "gepauzeerd": "Paused",
-          "geannuleerd": "Cancelled"
-        }
+          "geannuleerd": "Cancelled",
+          "verzenden": "Sending..."
+        },
+        "bekijk_analytics": "View analytics",
+        "click_rate": "click rate",
+        "nu_verzenden": "Send now",
+        "open_rate": "open rate",
+        "segment": "Segment:"
       },
       "contentCalendar": {
-        "maand": "Month"
+        "maand": "Month",
+        "content_agenda": "Content calendar",
+        "geen_content": "No content",
+        "geen_geplande_content_voor_deze_periode": "No content scheduled for this period",
+        "plan_content_in_om_je_kalender": "Schedule content to fill your calendar",
+        "vandaag": "Today",
+        "week": "Week",
+        "week_van": "Week {{week}} — {{month}}"
       },
       "contentHistoryList": {
         "gepland": "Scheduled",
@@ -1747,26 +1800,139 @@
         "status": {
           "gepland": "Scheduled",
           "verzonden": "Sent",
-          "mislukt": "Failed"
-        }
+          "mislukt": "Failed",
+          "draft": "Draft",
+          "gepubliceerd": "Published",
+          "wachtend": "Pending"
+        },
+        "ai_content": "AI content",
+        "ai_suggesties": "AI suggestions",
+        "alle_statussen": "All statuses",
+        "alle_statussen_2": "All statuses",
+        "content_historiek": "Content history",
+        "draft": "Draft",
+        "geen_content_gevonden": "No content found",
+        "gepubliceerd": "Published",
+        "probeer_andere_filters_of_zoektermen": "Try different filters or search terms",
+        "social_posts": "Social posts",
+        "titel": "Title"
       },
       "creditPurchaseDialog": {
         "bezig": "Working...",
-        "afrekenen": "Checkout"
+        "afrekenen": "Checkout",
+        "campagne_suggesties_3_credits": "• Campaign suggestions: 3 credits",
+        "email_content_2_credits": "• Email content: 2 credits",
+        "social_media_post_1_credit": "• Social media post: 1 credit",
+        "ai_credits_bijkopen": "Buy more AI credits",
+        "credit_kosten_per_actie": "Credit cost per action",
+        "je_credits_worden_geactiveerd_zodra_we": "Your credits are activated as soon as we receive your payment.",
+        "koop_extra_ai_credits_om_meer": "Buy extra AI credits to generate more content. Credits do not expire and are added on top of your monthly credits.",
+        "naar_betaling": "To payment",
+        "populair": "Popular",
+        "probeer_het_opnieuw": "Try again"
       },
       "emailBlockPalette": {
-        "inhoud": "Contents"
+        "inhoud": "Contents",
+        "blokken": "Blocks",
+        "commerce": "Commerce",
+        "footer": "Footer",
+        "layout": "Layout"
       },
       "emailBlockProperties": {
         "product_naam": "Product name",
-        "bedrijfsnaam": "Business name"
+        "bedrijfsnaam": "Business name",
+        "achtergrondkleur": "Background colour",
+        "afbeelding_url": "Image URL",
+        "afbeelding_url_2": "Image URL",
+        "alt_tekst": "Alt text",
+        "beschrijving": "Description",
+        "beschrijving_van_de_afbeelding": "Description of the image",
+        "doorgetrokken": "Solid",
+        "extra_groot_24px": "Extra large (24px)",
+        "facebook_url": "Facebook URL",
+        "gestippeld": "Dotted",
+        "gestreept": "Dashed",
+        "groot_18px": "Large (18px)",
+        "header_tekst": "Header text",
+        "instagram_url": "Instagram URL",
+        "klein_12px": "Small (12px)",
+        "klik_hier": "Click here",
+        "knop_tekst": "Button text",
+        "lijn_stijl": "Line style",
+        "link_url": "Link URL",
+        "link_url_optioneel": "Link URL (optional)",
+        "linkedin_url": "LinkedIn URL",
+        "links": "Left",
+        "logo_url": "Logo URL",
+        "medium_16px": "Medium (16px)",
+        "midden": "Centre",
+        "normaal_14px": "Normal (14px)",
+        "rechts": "Right",
+        "selecteer_een_blok_om_te_bewerken": "Select a block to edit",
+        "stijl": "Style",
+        "tekst": "Text",
+        "tekstgrootte": "Text size",
+        "tekstkleur": "Text colour",
+        "toon_voorkeuren_link": "Show preferences link",
+        "twitter_x_url": "Twitter/X URL",
+        "uitlijning": "Alignment",
+        "uitschrijf_tekst": "Unsubscribe text",
+        "uitschrijven": "Unsubscribe",
+        "voeg_hier_je_tekst_toe": "Add your text here...",
+        "welkom": "Welcome!"
       },
       "emailPreview": {
         "preview": "Preview",
-        "jan_jansen": "John Smith"
+        "jan_jansen": "John Smith",
+        "test_prefix_in_onderwerp": "• [TEST] prefix in the subject line",
+        "banner_bovenaan_dat_het_een_test": "• A banner at the top stating it is a test",
+        "gebruik_een_herkenbare_afzendernaam": "• Use a recognisable sender name",
+        "houd_de_afbeelding_tekst_verhouding_in": "• Keep the image-to-text ratio balanced",
+        "ingevulde_variabelen_met_test_data": "• Variables filled in with test data",
+        "vermijd_spam_trigger_woorden_in_het": "• Avoid spam trigger words in the subject line",
+        "voeg_altijd_een_duidelijke_uitschrijflink_toe": "• Always include a clear unsubscribe link",
+        "tips_voor_betere_deliverability": "💡 Tips for better deliverability",
+        "alt_tekst_afbeeldingen": "Image alt text",
+        "email_adres": "Email address",
+        "email_kwaliteit_score": "Email quality score",
+        "email_preview": "Email preview",
+        "geen_caps_lock": "No CAPS LOCK",
+        "test_emails_bevatten": "ℹ️ Test emails contain:",
+        "jouw_email_nl": "your@email.com",
+        "kwaliteit": "Quality",
+        "onderwerp_lengte": "Subject length",
+        "test_email_verzenden": "Send test email",
+        "test_klantnaam_voor_variabelen": "Test customer name (for variables)",
+        "test_verzenden": "Send test",
+        "test_verzonden_naar": "Test email sent to {{email}}",
+        "unsubscribe_link": "Unsubscribe link",
+        "verstuur_test": "Send test",
+        "verzenden": "Sending..."
       },
       "inlinePromoWizard": {
-        "korting_toevoegen": "Add discount"
+        "korting_toevoegen": "Add discount",
+        "10_cr": "+10 cr",
+        "afbeeldingen_genereren": "Generate images",
+        "benadruk_een_kortingsactie": "Highlight a discount campaign",
+        "toneOptions": {
+          "casual": "Casual",
+          "professioneel": "Professional",
+          "speels": "Playful",
+          "urgent": "Urgent"
+        },
+        "credits_kopen": "Buy credits",
+        "enhanced_en_nieuwe_visuals": "Enhanced and new visuals",
+        "geen_producten_gevonden": "No products found.",
+        "genereer_marketing_kit": "Generate marketing kit",
+        "credits_nodig": "You need {{count}} credits.",
+        "meer_opties": "More options",
+        "minder_opties": "Fewer options",
+        "product_promoten": "Promote product",
+        "selecteer_een_product_kies_de_toon": "Select a product, choose the tone, and AI generates a complete marketing kit",
+        "selecteer_product": "Select product...",
+        "taal": "Language:",
+        "toon": "Tone",
+        "zoek_product": "Search for a product..."
       },
       "mediaAssetsLibrary": {
         "downloaden": "Download",
@@ -1774,27 +1940,111 @@
         "folders": {
           "producten": "Products",
           "categorie_n": "Categories",
-          "campagnes": "Campaigns"
-        }
+          "campagnes": "Campaigns",
+          "alles": "All",
+          "favorieten": "Favourites",
+          "social": "Social"
+        },
+        "achtergronden_verwijderd": "{{success}} of {{total}} backgrounds removed",
+        "assets_verwijderd": "{{success}} of {{total}} assets deleted",
+        "achtergrond_verwijderen": "Remove background",
+        "drop_de_bestanden_hier": "Drop the files here...",
+        "geen_assets_gevonden": "No assets found",
+        "jpg_png_webp_gif_tot_10mb": "JPG, PNG, WebP, GIF up to 10 MB",
+        "sleep_bestanden_hierheen_of_klik_om": "Drag files here or click to upload",
+        "upload_je_eerste_asset_om_te": "Upload your first asset to get started",
+        "uploaden": "Uploading...",
+        "zoeken_in_assets": "Search assets..."
       },
       "productSelectDialog": {
-        "geen_producten_gevonden": "No products found"
+        "geen_producten_gevonden": "No products found",
+        "lage_voorraad": "Low stock",
+        "producten_selecteren": "Select products",
+        "wis_alles": "Clear all"
       },
       "promoKitResult": {
-        "afbeeldingen": "Images"
+        "afbeeldingen": "Images",
+        "ai_generated": "AI generated",
+        "beste_posting_moment": "Best time to post",
+        "body_tekst": "Body text",
+        "enhanced": "Enhanced",
+        "enhanced_lifestyle": "Enhanced lifestyle",
+        "extra": "Extra",
+        "geen_afbeeldingen_gegenereerd": "No images generated",
+        "je_marketing_kit_is_klaar": "Your marketing kit is ready!",
+        "marketing_slogans": "Marketing slogans",
+        "nieuwe_kit": "New kit",
+        "onderwerp_regels_a_b_test": "Subject lines (A/B test)",
+        "original": "Original",
+        "originele_foto": "Original photo",
+        "preview_tekst": "Preview text",
+        "social": "Social",
+        "zet_afbeeldingen_genereren_aan_voor_marketing": "Turn on \"Generate images\" for marketing visuals"
       },
       "realtimeActivityFeed": {
-        "verbinden": "Connecting..."
+        "verbinden": "Connecting...",
+        "live": "Live",
+        "live_activiteit": "Live activity",
+        "nog_geen_activiteit": "No activity yet",
+        "realtime_email_interacties": "Real-time email interactions"
       },
       "segmentBuilder": {
         "klanttype": "Customer type",
-        "tags": "Tags"
+        "tags": "Tags",
+        "deutsch": "🇩🇪 Deutsch",
+        "francais": "🇫🇷 Français",
+        "english": "🇬🇧 English",
+        "nederlands": "🇳🇱 Nederlands",
+        "alle_klanten": "All customers",
+        "alle_klanten_2": "All customers",
+        "alle_tags_en": "All tags (AND)",
+        "alle_talen": "All languages",
+        "countries": {
+          "BE": "Belgium",
+          "DE": "Germany",
+          "FR": "France",
+          "LU": "Luxembourg",
+          "NL": "Netherlands"
+        },
+        "bijv_30": "e.g. 30",
+        "bijv_90": "e.g. 90",
+        "geabonneerd": "Subscribed",
+        "geen_tags_beschikbaar_bij_klanten": "No tags available on customers",
+        "inactief_sinds_dagen": "Inactive since (days)",
+        "klant_aangemaakt_na": "Customer created after",
+        "klant_aangemaakt_voor": "Customer created before",
+        "klanten_in_dit_segment": "customers in this segment",
+        "laatste_bestelling_dagen_geleden": "Last order (days ago)",
+        "land_toevoegen": "Add country...",
+        "landen": "Countries",
+        "match_logica": "Match logic:",
+        "max_besteed": "Max spent (€)",
+        "max_bestellingen": "Max orders",
+        "min_besteed": "Min spent (€)",
+        "min_bestellingen": "Min orders",
+        "min_engagement_score_0_100": "Min engagement score (0-100)",
+        "minstens_een_tag_of": "At least one tag (OR)",
+        "niet_geabonneerd": "Not subscribed",
+        "nieuwsbrief_status": "Newsletter status",
+        "particulier_b2c": "Consumer (B2C)",
+        "tag_toevoegen": "Add tag...",
+        "voorkeurstaal_klant": "Customer's preferred language",
+        "zakelijk_b2b": "Business (B2B)"
       },
       "templateDialog": {
         "categorie": "Category",
         "taal": "Language",
         "voorbeeld": "Preview",
-        "nieuwe_template_aanmaken": "Create a new template"
+        "nieuwe_template_aanmaken": "Create a new template",
+        "bijv_welkomstmail": "e.g. Welcome email",
+        "hallo": "Hello",
+        "html_email_content": "HTML email content...",
+        "met_vriendelijke_groet": "Kind regards,",
+        "onderwerp": "Subject",
+        "schrijf_je_template_inhoud": "Write your template content...",
+        "template_bewerken": "Edit template",
+        "uw_bericht_hier": "Your message here...",
+        "visueel": "Visual"
       },
       "variableInserter": {
         "groups": {
@@ -1806,7 +2056,12 @@
               "customer_phone": "Phone",
               "customer_company": "Business name",
               "customer_vat_number": "VAT number",
-              "customer_country": "Country"
+              "customer_country": "Country",
+              "total_orders": "Number of orders",
+              "customer_last_name": "Last name",
+              "customer_city": "City",
+              "total_spent": "Total spent",
+              "customer_first_name": "First name"
             }
           },
           "company": {
@@ -1815,60 +2070,580 @@
               "company_name": "Business name",
               "company_email": "Email",
               "company_phone": "Phone",
-              "company_address": "Address"
+              "company_address": "Address",
+              "company_iban": "IBAN",
+              "company_website": "Website"
             }
           },
           "system": {
-            "label": "System"
+            "label": "System",
+            "vars": {
+              "current_date": "Current date",
+              "subject": "Subject",
+              "unsubscribe_url": "Unsubscribe link"
+            }
+          },
+          "brand": {
+            "vars": {
+              "brand_accent_color": "Accent colour",
+              "tenant_logo": "Logo (image)",
+              "tenant_logo_url": "Logo URL",
+              "brand_primary_color": "Primary colour",
+              "brand_heading_font": "Heading font"
+            },
+            "label": "Brand"
           }
-        }
+        },
+        "variabelen_invoegen": "Insert variables"
       },
       "advancedToolsGrid": {
         "tools": {
           "social": {
-            "name": "Social media"
+            "name": "Social media",
+            "description": "Posts for Instagram, Facebook, LinkedIn & X"
           },
           "images": {
-            "name": "Images"
+            "name": "Images",
+            "description": "Marketing visuals and product styling"
+          },
+          "email": {
+            "name": "Email content",
+            "description": "Newsletters, promotions & win-back"
           }
-        }
+        },
+        "geavanceerde_tools": "Advanced tools"
       },
       "aiEmailPlanner": {
         "campaignTypes": {
           "newsletter": {
-            "name": "Newsletter"
+            "name": "Newsletter",
+            "description": "Monthly update"
+          },
+          "win_back": {
+            "description": "Inactive customers",
+            "name": "Win-back"
+          },
+          "promotion": {
+            "description": "Discount or offer",
+            "name": "Promotion"
+          },
+          "low_stock": {
+            "name": "Last chance",
+            "description": "Urgency campaign"
+          },
+          "new_product": {
+            "name": "New product",
+            "description": "Product launch"
           }
-        }
+        },
+        "producten_geselecteerd": "{{count}} product(s) selected",
+        "campagne": "Campaign"
       },
       "aiImageGenerator": {
         "styles": {
           "lifestyle": {
-            "name": "Lifestyle"
+            "name": "Lifestyle",
+            "description": "Product in context"
+          },
+          "custom": {
+            "description": "Describe it yourself",
+            "name": "Custom style"
+          },
+          "flat_lay": {
+            "description": "Top-down styling",
+            "name": "Flat lay"
+          },
+          "minimalist": {
+            "description": "Clean and crisp",
+            "name": "Minimalist"
+          },
+          "vibrant": {
+            "description": "Colourful and eye-catching",
+            "name": "Vibrant"
+          },
+          "product_photo": {
+            "name": "Product photo",
+            "description": "Professional product photo"
           }
         },
         "settingPresets": {
           "lifestyle": {
-            "name": "Lifestyle"
+            "name": "Lifestyle",
+            "description": "Product in use by a person"
+          },
+          "geometric": {
+            "description": "Abstract shapes",
+            "name": "Geometric"
+          },
+          "custom": {
+            "description": "Describe your own setting",
+            "name": "Custom setting"
+          },
+          "outdoor": {
+            "name": "Outdoors",
+            "description": "Natural outdoor setting"
+          },
+          "spring": {
+            "description": "Fresh and blooming",
+            "name": "Spring"
+          },
+          "winter": {
+            "description": "Cosy winter atmosphere",
+            "name": "Winter/Christmas"
+          },
+          "gradient": {
+            "name": "Gradient",
+            "description": "Smooth colour gradient"
+          },
+          "office": {
+            "name": "Office",
+            "description": "Professional workspace"
+          },
+          "kitchen": {
+            "name": "Kitchen",
+            "description": "Modern kitchen setting"
+          },
+          "living_room": {
+            "description": "Stylish living room",
+            "name": "Living room"
+          },
+          "studio": {
+            "name": "Studio",
+            "description": "White background, professional"
+          },
+          "summer": {
+            "name": "Summer/beach",
+            "description": "Sunny beach scene"
           }
-        }
+        },
+        "platformPresets": {
+          "custom": {
+            "name": "Custom",
+            "dimensions": "Choose yourself"
+          },
+          "email_header": {
+            "name": "Email header"
+          },
+          "facebook_banner": {
+            "name": "Facebook banner"
+          },
+          "instagram_post": {
+            "name": "Instagram post"
+          },
+          "instagram_story": {
+            "name": "Instagram story"
+          },
+          "linkedin_post": {
+            "name": "LinkedIn post"
+          }
+        },
+        "sizes": {
+          "1792_1024": {
+            "name": "Landscape"
+          },
+          "1024_1792": {
+            "name": "Portrait"
+          },
+          "1024_1024": {
+            "name": "Square"
+          }
+        },
+        "marketingafbeelding_voor": "Marketing image for {{product}}"
       },
       "campaignDialog": {
         "doelgroep": "Audience",
         "doelgroep_2": "Audience",
-        "opslaan_als_concept": "Save as draft"
+        "opslaan_als_concept": "Save as draft",
+        "ai_gegenereerd": "AI generated",
+        "alle_geabonneerde_klanten": "All subscribed customers",
+        "alleen_nederlands_voeg_extra_talen_toe": "Dutch only. Add more languages to create a variant per language; each customer then receives their own language version.",
+        "andere_talen": "Other languages",
+        "automatische_trigger": "Automatic trigger",
+        "bepaalt_wie_de_mail_krijgt_bij": "determines who receives the email for a one-off send.",
+        "triggers": {
+          "welcome": {
+            "description": "On a new newsletter sign-up",
+            "label": "Welcome email — new customer"
+          },
+          "reactivation": {
+            "label": "Reactivation — inactive customer",
+            "description": "When a customer has not bought anything for X days"
+          },
+          "post_purchase": {
+            "label": "After purchase",
+            "description": "X hours after an order has been paid"
+          },
+          "birthday": {
+            "description": "On the customer's birthday",
+            "label": "Birthday"
+          },
+          "abandoned_cart": {
+            "label": "Abandoned cart",
+            "description": "When a customer does not complete a cart"
+          }
+        },
+        "bijv_nieuwsbrief_januari_2025": "e.g. Newsletter January 2025",
+        "bijwerken": "Update",
+        "campagne_naam": "Campaign name",
+        "validation": {
+          "content_is_verplicht": "Content is required",
+          "onderwerp_is_verplicht": "Subject is required"
+        },
+        "deze_campagne_is_door_ai_gegenereerd": "This campaign was generated by AI. Adjust it where needed.",
+        "direct_verzenden_opslaan_als_concept": "Send immediately (save as draft)",
+        "elke_klant_krijgt_automatisch_de_mail": "Every customer automatically receives the email in their preferred language. Customers without a preference get the Dutch version.",
+        "email_onderwerp": "Email subject...",
+        "email_onderwerp_2": "Email subject...",
+        "email_onderwerp_3": "Email subject...",
+        "geen_template": "No template",
+        "hallo": "Hello",
+        "inplannen_op_datum_tijd": "Schedule for a date & time",
+        "maak_een_email_campagne_aan_om": "Create an email campaign to send to your customers.",
+        "met_vriendelijke_groet": "Kind regards,",
+        "nieuwe_campagne_aanmaken": "Create a new campaign",
+        "onderwerp_nederlands": "Subject (Dutch)",
+        "opgeslagen_segmenten": "Saved segments",
+        "preview_tekst_optioneel": "Preview text (optional)",
+        "preview_tekst_optioneel_2": "Preview text (optional)",
+        "preview_tekst_optioneel_3": "Preview text (optional)",
+        "selecteer_een_template": "Select a template...",
+        "snelle_doelgroepen": "Quick audiences",
+        "stuurt_de_mail_automatisch_elke_keer": "sends the email automatically every time a customer triggers an event (sign-up, purchase, birthday …). \"Welcome email — new customer\" fires on a new subscriber.",
+        "talen": "Languages",
+        "tekst_die_na_het_onderwerp_wordt": "Text shown after the subject line in the inbox...",
+        "tekst_die_na_het_onderwerp_wordt_2": "Text shown after the subject line in the inbox...",
+        "tekst_die_na_het_onderwerp_wordt_3": "Text shown after the subject line in the inbox...",
+        "template_optioneel": "Template (optional)",
+        "trigger": "Trigger",
+        "uur_na_trigger": "hours after the trigger",
+        "uw_bericht_hier": "Your message here...",
+        "vertraging": "Delay:",
+        "wanneer_verzenden": "When to send?",
+        "wat_is_een_trigger": "What is a trigger?"
       },
       "campaignFunnel": {
-        "afgeleverd": "Delivered"
+        "afgeleverd": "Delivered",
+        "geklikt": "Clicked",
+        "geopend": "Opened"
       },
-      "nieuwe_template": "New template"
+      "nieuwe_template": "New template",
+      "aiInsightsCard": {
+        "win_back": "{{count}} customer(s) are not subscribed. A win-back campaign can bring them back.",
+        "nieuwe_producten": "{{count}} new product(s) are waiting to be promoted.",
+        "bijna_uitverkocht": "{{count}} product(s) are almost sold out. Consider a \"Last Chance\" campaign.",
+        "actief_segment": "Your segment \"{{segment}}\" is very active. Suitable for an exclusive offer.",
+        "feestdag_nadert": "{{days}} days until {{holiday}}. A good moment for a seasonal campaign."
+      },
+      "socialPostGenerator": {
+        "producten_geselecteerd": "{{count}} product(s) selected",
+        "feestdag_over_dagen": "{{holiday}} in {{days}} days",
+        "aanbevolen_afbeeldingen": "Recommended images",
+        "ai_kent_je_data": "AI knows your data: {{products}} products, {{subscribers}} subscribers,",
+        "beschrijf_wat_je_wilt_promoten": "Describe what you want to promote...",
+        "tones": {
+          "casual": {
+            "name": "Casual"
+          },
+          "professional": {
+            "name": "Professional"
+          },
+          "playful": {
+            "name": "Playful"
+          },
+          "urgent": {
+            "name": "Urgent"
+          }
+        },
+        "contentTypes": {
+          "custom": {
+            "name": "Your own idea",
+            "description": "Write your own prompt"
+          },
+          "new_arrival": {
+            "description": "Announce new products",
+            "name": "New collection"
+          },
+          "low_stock_alert": {
+            "name": "Last chance",
+            "description": "Urgency for items that are nearly sold out"
+          },
+          "seasonal": {
+            "description": "Matching the season or a holiday",
+            "name": "Seasonal"
+          },
+          "product_highlight": {
+            "name": "Product highlight",
+            "description": "Put a product in the spotlight"
+          }
+        },
+        "genereer_posts_voor_instagram_facebook_linkedin": "Generate posts for Instagram, Facebook, LinkedIn and X",
+        "gepost_naar": "Posted to {{platform}}",
+        "ingepland_voor": "Scheduled for {{moment}}",
+        "je_idee": "Your idea",
+        "klik_om_te_selecteren": "Click to select",
+        "product_nummer": "Product {{number}}",
+        "social_media_generator": "Social media generator",
+        "type_content": "Content type"
+      },
+      "marketingStatsCards": {
+        "groei_deze_maand": "+{{count}} this month",
+        "click_rate": "Click rate",
+        "open_rate": "Open rate",
+        "subscribers": "Subscribers",
+        "uitschrijvingen": "Unsubscribes"
+      },
+      "productPromoWizard": {
+        "10_credits": "+10 credits",
+        "benadruk_een_kortingsactie_in_de_content": "Highlight a discount campaign in the content",
+        "toneOptions": {
+          "casual": {
+            "label": "Casual",
+            "description": "Friendly and relaxed"
+          },
+          "playful": {
+            "description": "Fun and energetic!",
+            "label": "Playful"
+          },
+          "urgent": {
+            "description": "Buy now! Limited time!",
+            "label": "Urgent"
+          },
+          "professional": {
+            "label": "Professional",
+            "description": "Business-like and trustworthy"
+          }
+        },
+        "configureer_je_campagne": "Configure your campaign",
+        "geschatte_kosten": "Estimated cost",
+        "credits_tekort": "You need {{needed}} credits, but you have {{available}}.",
+        "kies_de_toon_en_opties_voor": "Choose the tone and options for your marketing content",
+        "kies_een_product": "Choose a product",
+        "kortingspercentage": "Discount percentage",
+        "maak_enhanced_en_nieuwe_marketing_afbeeldingen": "Create enhanced and new marketing images",
+        "product_promotie_wizard": "Product promotion wizard",
+        "selecteer_het_product_dat_je_wilt": "Select the product you want to promote",
+        "selecteer_product": "Select product",
+        "wijzig": "Change"
+      },
+      "emailBlockItem": {
+        "afbeelding": "🖼️ Image",
+        "logo": "Logo",
+        "social_media_links": "Social media links"
+      },
+      "30_dagen": "30 days",
+      "4_starterstemplates_aangemaakt": "4 starter templates created",
+      "7_dagen": "7 days",
+      "90_dagen": "90 days",
+      "aICampaignSuggestions": {
+        "aanbevolen": "Recommended",
+        "ai_campagne_suggesties": "AI campaign suggestions",
+        "ai_zekerheid": "AI confidence:",
+        "analyseren": "Analysing...",
+        "laat_ai_analyseren_welke_campagnes_het": "Let AI analyse which campaigns have the most impact",
+        "slimme_campagne_ideeen_gebaseerd_op_je": "Smart campaign ideas based on your data"
+      },
+      "aIImageGenerator": {
+        "aanvullende_instructies_voor_de_ai": "Additional instructions for the AI...",
+        "ai_afbeelding_generator": "AI image generator",
+        "beschrijf_de_afbeelding_die_je_wilt": "Describe the image you want to generate...",
+        "beschrijf_je_eigen_setting": "Describe your own setting...",
+        "bewerk_productfoto": "Edit product photo",
+        "bewerkt": "Edited",
+        "bv_30_korting_of_nieuw": "e.g. '30% OFF' or 'New!'",
+        "dit_product_heeft_geen_afbeelding": "This product has no image",
+        "doelformaat": "Target format",
+        "extra_instructies_optioneel": "Extra instructions (optional)",
+        "formaat": "Format",
+        "gebruik_de_generator_hierboven": "Use the generator above",
+        "gegenereerde_afbeeldingen": "Generated images",
+        "genereer_nieuw": "Generate new",
+        "genereer_of_bewerk_afbeeldingen_voor_je": "Generate or edit images for your marketing",
+        "genereren": "Generating...",
+        "kies_een_product": "Choose a product...",
+        "marketing_tekst_optioneel": "Marketing text (optional)",
+        "nog_geen_afbeeldingen_gegenereerd": "No images generated yet",
+        "selecteer_product": "Select product",
+        "setting_omgeving": "Setting / environment",
+        "tekst_die_op_de_afbeelding_wordt": "Text placed on the image",
+        "tip_wees_specifiek_over_kleuren_stijl": "Tip: be specific about colours, style and composition",
+        "transformeren": "Transforming..."
+      },
+      "aIInsightsCard": {
+        "abonnees": "Subscribers",
+        "actief_segment": "Active segment",
+        "ai_inzichten": "AI insights",
+        "ai_inzichten_van_vandaag": "Today's AI insights",
+        "geen_data_beschikbaar": "No data available",
+        "geen_specifieke_inzichten_op_dit_moment": "No specific insights right now.",
+        "gem_open_rate": "Avg. open rate",
+        "gem_order": "Avg. order",
+        "lage_voorraad_alert": "Low stock alert",
+        "nieuwe_producten": "New products",
+        "voeg_meer_data_toe_voor_betere": "Add more data for better suggestions.",
+        "win_back_mogelijkheid": "Win-back opportunity"
+      },
+      "campaignRichEditor": {
+        "afbeelding_url": "Image URL"
+      },
+      "aICreditsBadge": {
+        "ai_credits": "AI credits",
+        "bijkopen": "Buy more",
+        "bijna_op_klik_om_bij_te": "Almost out — click to buy more",
+        "email_3": "Email: 3",
+        "inzichten_1": "Insights: 1",
+        "kosten_per_actie": "Cost per action:",
+        "post_2": "Post: 2"
+      },
+      "aIEmailPlanner": {
+        "ai_email_planner": "AI email planner",
+        "ai_gegenereerd": "AI generated",
+        "alle_abonnees": "All subscribers",
+        "alle_abonnees_2": "All subscribers",
+        "beschrijf_je_campagne": "Describe your campaign",
+        "call_to_action": "Call to action",
+        "content": "Content",
+        "doelgroep_segment_optioneel": "Audience segment (optional)",
+        "email_genereren": "Generating email...",
+        "email_inhoud": "Email content",
+        "email_preview": "Email preview",
+        "gebruik_in_nieuwe_campagne": "Use in a new campaign",
+        "kies_de_beste_onderwerpregel_voor_je": "Choose the best subject line for your campaign:",
+        "laat_ai_je_email_campagne_content": "Let AI write your email campaign content",
+        "onderwerpen": "Subjects",
+        "onderwerpregel": "Subject line",
+        "preview_tekst": "Preview text",
+        "producten_optioneel": "Products (optional)",
+        "selectie_wissen": "Clear selection",
+        "type_campagne": "Campaign type",
+        "voeg_een_kortingspercentage_toe_aan_de": "Add a discount percentage to the email",
+        "wat_wil_je_communiceren_welke_producten": "What do you want to communicate? Which products or message?"
+      },
+      "dashboardAIWidget": {
+        "ai_hub_openen": "Open AI hub",
+        "ai_marketing": "AI marketing",
+        "bijna_op_overweeg_extra_credits_te": "Almost out. Consider buying extra credits.",
+        "credits_bijkopen": "Buy more credits",
+        "geen_credits_meer_koop_extra_credits": "Out of credits. Buy extra credits to continue.",
+        "genereer_content_met_ai": "Generate content with AI",
+        "social_post": "Social post"
+      },
+      "ai_marketing_hub": "AI marketing hub",
+      "promptFavoriteButton": {
+        "al_opgeslagen_als_favoriet": "Already saved as a favourite",
+        "geef_deze_prompt_een_naam": "Give this prompt a name...",
+        "opslaan_als_favoriet": "Save as favourite",
+        "prompt_opslaan_als_favoriet": "Save prompt as favourite",
+        "prompt_preview": "Prompt preview:"
+      },
+      "aiFeedbackWidget": {
+        "editReasons": {
+          "anders": "Other",
+          "feitelijke_fouten": "Factual errors",
+          "niet_relevant_voor_doelgroep": "Not relevant to the audience",
+          "stijl_past_niet_bij_merk": "Style does not match the brand",
+          "te_lang_of_te_kort": "Too long or too short",
+          "toon_was_niet_goed": "The tone was not right"
+        }
+      },
+      "recentContentStrip": {
+        "bekijk_alles": "View all",
+        "recente_content": "Recent content",
+        "start_met_de_product_promo_wizard": "Start with the product promo wizard above"
+      },
+      "segmentDialog": {
+        "beschrijf_dit_segment": "Describe this segment...",
+        "beschrijving_optioneel": "Description (optional)",
+        "bijv_vip_klanten": "e.g. VIP customers",
+        "filterregels": "Filter rules",
+        "nieuw_segment_aanmaken": "Create a new segment",
+        "segment_bewerken": "Edit segment"
+      },
+      "contentEngagementStats": {
+        "best_presterende_content": "Best performing content",
+        "content_engagement_analytics": "Content engagement analytics",
+        "engagement_analytics": "Engagement analytics",
+        "gem_engagement": "Avg. engagement",
+        "nog_geen_engagement_data": "No engagement data yet",
+        "performance_van_je_ai_gegenereerde_content": "Performance of your AI-generated content",
+        "publiceer_content_om_statistieken_te_zien": "Publish content to see statistics",
+        "totaal_content": "Total content"
+      },
+      "concept_campagnes": "Draft campaigns",
+      "eerste_campagne_maken": "Create your first campaign",
+      "email_campagnes_analytics_en_klant_engagement": "Email campaigns, analytics and customer engagement",
+      "promptFavoritesDropdown": {
+        "favorieten": "Favourites",
+        "klik_om_prompt_te_laden": "Click to load the prompt"
+      },
+      "geen_segmenten": "No segments",
+      "geen_templates": "No templates",
+      "genereert_4_templates_nieuwsbrief_welkomstmail_promotie": "Generates 4 templates (Newsletter, Welcome email, Promotion, Win-back) with your logo and brand colours.",
+      "schedulePublishButton": {
+        "gepland_voor": "Scheduled for:",
+        "inplannen": "Schedule",
+        "morgen_12_00": "Tomorrow 12:00",
+        "morgen_9_00": "Tomorrow 09:00",
+        "of_kies_datum_en_tijd": "Or choose a date and time",
+        "om": "at",
+        "over_3_dagen": "In 3 days",
+        "snel_inplannen": "Quick schedule",
+        "volgende_week": "Next week"
+      },
+      "je_laatste_email_campagnes": "Your latest email campaigns",
+      "kon_templates_niet_aanmaken": "Could not create the templates",
+      "maak_herbruikbare_email_templates": "Create reusable email templates",
+      "maak_je_eerste_email_campagne_aan": "Create your first email campaign",
+      "maak_klantsegmenten_voor_gerichte_campagnes": "Create customer segments for targeted campaigns",
+      "marketing_command_center": "Marketing command centre",
+      "nieuw_segment": "New segment",
+      "nieuwe_campagne_starten": "Start a new campaign",
+      "campaignPerformanceChart": {
+        "nog_geen_activiteit_geregistreerd": "No activity recorded yet",
+        "opens": "Opens"
+      },
+      "nog_geen_campagnes": "No campaigns yet",
+      "performance_over_tijd": "Performance over time",
+      "recente_campagnes": "Recent campaigns",
+      "segment_aanmaken": "Create segment",
+      "snelle_acties": "Quick actions",
+      "starterstemplates_genereren": "Generate starter templates",
+      "template_maken": "Create template",
+      "verzonden_geopend_en_geklikt_emails": "Sent, opened and clicked emails"
     },
     "ads": {
       "bolCampaignEditForm": {
         "startdatum": "Start date",
-        "toevoegen": "Add"
+        "toevoegen": "Add",
+        "gebruik_de_pauzeren_hervatten_knop_om": "(Use the Pause/Resume button to change the status)",
+        "algemeen": "General",
+        "bijv_10_00": "E.g. 10.00",
+        "bol_com_kiest_automatisch_zoekwoorden": "Bol.com selects search terms automatically",
+        "broad": "Broad",
+        "campagne_modus": "Campaign mode",
+        "campagnenaam": "Campaign name",
+        "dagbudget": "Daily budget (€)",
+        "einddatum": "End date",
+        "exact": "Exact",
+        "je_kiest_zelf_de_zoekwoorden_en": "You choose the search terms and bids yourself",
+        "laat_leeg_voor_doorlopend": "Leave empty for ongoing",
+        "laat_leeg_voor_onbeperkt": "Leave empty for unlimited",
+        "negatief_keyword": "Negative keyword",
+        "negatieve_keywords_worden_bij_het_opslaan": "Negative keywords are sent to Bol.com when you save.",
+        "optioneel": "Optional",
+        "phrase": "Phrase",
+        "planning": "Planning",
+        "totaalbudget": "Total budget (€)",
+        "voeg_eerst_producten_toe_aan_de": "Add products to the campaign first to be able to add negative keywords."
       },
       "campaignAIAnalysis": {
-        "verwerkt": "Processed"
+        "verwerkt": "Processed",
+        "ai_campagne_optimizer": "AI campaign optimiser",
+        "analyseer_campagne": "Analyse campaign",
+        "analyseren": "Analysing...",
+        "de_ai_heeft_geen_suggesties_op": "The AI has no suggestions based on the current data.",
+        "genegeerd": "Dismissed",
+        "klik_op_analyseer_campagne_om_ai": "Click \"Analyse campaign\" to generate AI suggestions based on your performance data.",
+        "toegepast": "Applied"
       },
       "campaignCard": {
         "status": {
@@ -1876,74 +2651,564 @@
           "active": "Active",
           "paused": "Paused",
           "ended": "Ended",
-          "rejected": "Rejected"
-        }
+          "rejected": "Rejected",
+          "pending_approval": "Awaiting approval"
+        },
+        "producten_gesynchroniseerd": "{{count}} product(s) synced",
+        "producten_toegevoegd": "{{count}} product(s) added",
+        "bereik": "Reach",
+        "campagne_bijgewerkt_op_bol_com": "Campaign updated on Bol.com! 🎉",
+        "campagne_live_op_bol_com": "Campaign live on Bol.com! 🎉",
+        "clicks": "Clicks",
+        "dit_kan_15_20_seconden_duren": "This can take 15-20 seconds",
+        "dit_kan_20_30_seconden_duren": "This can take 20-30 seconds",
+        "niet_gepusht": "Not pushed",
+        "opnieuw_synchroniseren_met_bol_com": "Re-syncing with Bol.com...",
+        "producten_opnieuw_pushen": "Push products again",
+        "push_gestart": "Push started",
+        "push_mislukt": "Push failed",
+        "push_naar_bol_com": "Push to Bol.com",
+        "synchroniseren_met_bol_com": "Syncing with Bol.com...",
+        "synchroniseren_met_bol_com_2": "Syncing with Bol.com...",
+        "uitgaven": "Spend",
+        "update_gestart": "Update started",
+        "update_mislukt": "Update failed"
       },
       "campaignWizard": {
-        "niet_gekoppeld": "Not connected"
+        "niet_gekoppeld": "Not connected",
+        "alle_klanten_geen_segment": "All customers (no segment)",
+        "alles_deselecteren": "Deselect all",
+        "automatisch": "Automatic",
+        "automatisch_aanbevolen": "Automatic (recommended)",
+        "bijv_zomercollectie_2026": "e.g. Summer collection 2026",
+        "bol_optimaliseert_biedingen_automatisch_op_basis": "Bol optimises bids automatically based on your target ROAS. No keywords needed.",
+        "budget": "Budget",
+        "budget_2": "Budget",
+        "budget_biedingen": "Budget & bids",
+        "budget_type": "Budget type",
+        "campagne_aanmaken": "Create campaign",
+        "campagne_details": "Campaign details",
+        "campagne_modus_bol_com": "Campaign mode (Bol.com)",
+        "campagne_type": "Campaign type",
+        "controleer_campagne": "Review campaign",
+        "dagbudget": "Daily budget",
+        "doel_roas": "Target ROAS",
+        "doel_roas_2": "Target ROAS",
+        "geef_je_campagne_een_naam_en": "Name your campaign and choose the type",
+        "je_kunt_segmenten_aanmaken_bij_marketing": "You can create segments under Marketing → Segments",
+        "je_stelt_zelf_keywords_en_biedingen": "You set keywords and bids yourself. More control, but it requires active management.",
+        "kies_een_segment": "Choose a segment",
+        "kies_platform": "Choose platform",
+        "kies_welke_producten_je_wilt_adverteren": "Choose which products you want to advertise (optional — leave empty for all products)",
+        "koppel_een_klantsegment_aan_deze_campagne": "Link a customer segment to this campaign (optional)",
+        "nog_geen_klantsegmenten_aangemaakt": "No customer segments created yet.",
+        "op_welk_platform_wil_je_adverteren": "Which platform do you want to advertise on?",
+        "producten_selecteren": "Select products",
+        "stel_je_budget_en_biedstrategie_in": "Set your budget and bidding strategy",
+        "totaalbudget": "Total budget",
+        "wijzigingen_controleren": "Review changes",
+        "zoek_producten": "Search products..."
       },
       "campaignsList": {
-        "beeindigd": "Ended"
+        "beeindigd": "Ended",
+        "alle_platforms": "All platforms",
+        "eerste_campagne_maken": "Create your first campaign",
+        "geen_campagnes": "No campaigns",
+        "geen_campagnes_gevonden_met_de_huidige": "No campaigns found with the current filters.",
+        "koppel_eerst_een_advertentieplatform_om_campagnes": "Connect an advertising platform first to be able to create campaigns.",
+        "maak_je_eerste_advertentiecampagne_om_meer": "Create your first ad campaign to reach more customers.",
+        "nieuwe_campagne": "New campaign",
+        "zoek_campagnes": "Search campaigns..."
       },
       "platformConnections": {
         "account": "Account",
-        "gekoppeld": "Connected"
+        "gekoppeld": "Connected",
+        "actie_vereist": "Action required",
+        "advertising_api_toevoegen": "Add Advertising API",
+        "advertising_api_vereist": "Advertising API required",
+        "binnenkort": "Coming soon",
+        "binnenkort_beschikbaar": "Coming soon",
+        "ga_naar_sellqo_connect": "Go to SellQo Connect",
+        "koppel_eerst_je_bol_com_account": "Connect your Bol.com account in SellQo Connect first.",
+        "koppel_je_advertentie_accounts_om_campagnes": "Connect your advertising accounts to manage campaigns directly from SellQo. Your ad budget is charged directly through your own account.",
+        "koppel_je_amazon_seller_central_account": "Connect your Amazon Seller Central account for Sponsored Products.",
+        "laatste_sync": "Last sync",
+        "om_bol_com_ads_te_gebruiken": "To use Bol.com Ads you first need to connect your Bol.com Retailer account.",
+        "ontkoppelen": "Disconnect",
+        "retailer_koppeling_vereist": "Retailer connection required",
+        "verbind_je_google_ads_account_voor": "Connect your Google Ads account for Shopping, Search and Display campaigns.",
+        "voeg_de_bol_com_advertising_api_2": "Add the Bol.com Advertising API credentials to your existing connection.",
+        "voeg_de_bol_com_advertising_api": "Add the Bol.com Advertising API credentials in SellQo Connect.",
+        "ontkoppelen_bevestigen": "Are you sure you want to disconnect {{platform}}?"
       },
-      "onbekend_product": "Unknown product"
+      "onbekend_product": "Unknown product",
+      "aanbeveling_genegeerd": "Recommendation dismissed",
+      "aanbeveling_toegepast": "Recommendation applied",
+      "acos": "ACoS",
+      "ads_actief": "Ads active",
+      "ads_overzicht": "Ads overview",
+      "ai_aanbevelingen": "AI recommendations",
+      "alle_geadverteerde_producten_zijn_boven_de": "All advertised products are above the stock threshold",
+      "alle_regels": "All rules",
+      "bekijk_details": "View details",
+      "blended_acos": "Blended ACoS",
+      "cross_channel_advertentie_performance": "Cross-channel ad performance",
+      "geen_advertentiekanalen_verbonden": "No advertising channels connected",
+      "geen_openstaande_aanbevelingen_ai_analyseert_continu": "No open recommendations. AI analyses your campaigns continuously.",
+      "negeren": "Dismiss",
+      "performance_over_tijd": "Performance over time",
+      "producten_met_voorraad_onder_de_minimumdrempel": "Products with stock below the minimum threshold for ads",
+      "spend": "Spend",
+      "start_met_adverteren_verbind_je_marketplace": "Start advertising — connect your marketplace account to manage campaigns, track performance and receive AI recommendations.",
+      "toepassen": "Apply",
+      "totale_omzet": "Total revenue",
+      "totale_spend": "Total spend",
+      "verbind_je_marketplace_account": "Connect your marketplace account",
+      "voorraad_alerts": "Stock alerts",
+      "voorraad_bijwerken": "Update stock"
     },
     "adsBolcom": {
       "ads": "Ads",
       "ads_2": "Ads",
-      "omzet": "Revenue"
+      "omzet": "Revenue",
+      "budget_totaal": "€{{amount}} total",
+      "budget_per_dag": "€{{amount}}/day",
+      "alle_keywords": "All keywords →",
+      "alle_zoektermen": "All search terms →",
+      "bod": "Bid",
+      "bol_com_ads": "Bol.com Ads",
+      "conversieratio": "Conversion rate",
+      "geen_campagnes_gevonden": "No campaigns found",
+      "geen_keyword_data": "No keyword data",
+      "geen_zoekterm_data": "No search term data",
+      "keyword": "Keyword",
+      "match": "Match",
+      "nieuwe_campagne": "New campaign",
+      "nog_geen_bol_com_campagnes": "No Bol.com campaigns yet",
+      "onbekende_fout": "Unknown error",
+      "orders": "Orders",
+      "performance": "Performance",
+      "performance_data_ophalen_van_bol_com": "Fetching performance data from Bol.com...",
+      "sync_mislukt": "Sync failed: {{reason}}",
+      "sync_voltooid": "Sync complete: {{campaigns}} campaigns, {{adgroups}} ad groups, {{keywords}} keywords, {{products}} products",
+      "synchroniseer_je_bol_com_advertenties_om": "Sync your Bol.com ads to get started.",
+      "synchroniseren": "Syncing...",
+      "top_keywords": "Top keywords",
+      "top_zoektermen": "Top search terms",
+      "zoekterm": "Search term"
     },
     "adsBolcomCampaignDetail": {
       "pauzeren": "Pause",
       "hervatten": "Resume",
-      "toegevoegd_op": "Added on"
+      "toegevoegd_op": "Added on",
+      "ad_groups_keywords": "Ad groups & keywords",
+      "campagne_bewerken": "Edit campaign",
+      "campagne_niet_gevonden": "Campaign not found",
+      "campagne_verwijderen": "Delete campaign?",
+      "de_campagne_wordt_gepauzeerd_op_bol": "The campaign is paused on Bol.com and deleted locally. This cannot be undone.",
+      "geen_ad_groups_gevonden": "No ad groups found",
+      "geen_negatieve_keywords": "No negative keywords",
+      "geen_performance_data_voor_deze_periode": "No performance data for this period",
+      "impressies": "Impressions",
+      "keyword_toevoegen": "Add keyword",
+      "match_type": "Match type",
+      "negatief_keyword_toevoegen": "Add negative keyword",
+      "negatieve_keywords": "Negative keywords",
+      "start_eind": "Start / end",
+      "synchroniseer": "Sync",
+      "voeg_eerst_producten_toe_aan_de": "Add products to the campaign first"
     },
     "adsProductMap": {
       "product_mapping": "Product mapping",
       "product_mapping_2": "Product mapping",
       "uit": "Out",
       "opgeslagen": "Saved",
-      "fout": "Error"
+      "fout": "Error",
+      "actie": "Action",
+      "adverteren": "Advertising",
+      "bepaal_welke_producten_geadverteerd_worden_op": "Decide which products are advertised on Bol.com and the minimum stock below which ads are paused automatically.",
+      "bulk_opgeslagen": "Bulk saved",
+      "mapping_bijgewerkt": "Mapping updated.",
+      "min_stock_voor_ads": "Min stock for ads",
+      "stock": "Stock"
     },
     "adsAiRules": {
       "afgewezen": "Rejected",
-      "aanmaken": "Create"
+      "aanmaken": "Create",
+      "aanbevelingen": "Recommendations",
+      "ai_analyseert_je_campagne_data_continu": "AI continuously analyses your campaign data and lets you know when improvements are possible.",
+      "alle_kanalen": "All channels",
+      "auto": "Auto",
+      "automation_regels": "Automation rules",
+      "bijv_auto_negatief_hoge_spend": "E.g. Auto-negative high spend",
+      "confidence": "Confidence",
+      "direct_activeren": "Activate immediately",
+      "door": "By",
+      "geaccepteerd": "Accepted",
+      "geen_aanbevelingen_op_dit_moment": "No recommendations right now",
+      "geschiedenis": "History",
+      "lookback_dagen": "Lookback (days)",
+      "maak_regels_aan_om_ai_automatisch": "Create rules to let AI carry out optimisations automatically.",
+      "max_conversies": "Max conversions",
+      "merchant": "Merchant",
+      "min_clicks": "Min clicks",
+      "min_spend": "Min spend (€)",
+      "nieuwe_automation_regel": "New automation rule",
+      "nieuwe_regel": "New rule",
+      "nog_geen_ai_acties_uitgevoerd": "No AI actions carried out yet",
+      "nog_geen_automation_regels": "No automation rules yet",
+      "pending": "Pending",
+      "uitgevoerde_aanbevelingen_verschijnen_hier": "Applied recommendations appear here."
     },
     "seo": {
       "imageAltTextPanel": {
-        "zoek_op_productnaam": "Search by product name..."
+        "zoek_op_productnaam": "Search by product name...",
+        "afbeelding_alt_teksten": "Image alt texts",
+        "afbeelding_seo_checklist": "Image SEO checklist",
+        "afmetingen": "Dimensions",
+        "alle_afbeeldingen_hebben_alt_tekst": "All images have alt text",
+        "alt_teksten_aanwezig": "Alt texts present",
+        "bestandsgroottes": "File sizes",
+        "gebruik_consistente_afmetingen": "Use consistent dimensions",
+        "geen_afbeeldingen_gevonden": "No images found",
+        "modern_formaat": "Modern format",
+        "optimaliseer_afbeeldingen_lt_200kb": "Optimise images &lt; 200KB",
+        "optimaliseer_alt_teksten_voor_betere_seo": "Optimise alt texts for better SEO and accessibility",
+        "webp_avif_voor_betere_performance": "WebP/AVIF for better performance"
       },
       "keywordResearchPanel": {
         "primair": "Primary",
         "secundair": "Secondary",
-        "laag": "Low"
+        "laag": "Low",
+        "beheer_je_seo_keywords_per_taal": "Manage your SEO keywords per language for better findability",
+        "bijv_handgemaakte_sieraden": "e.g. handmade jewellery",
+        "commercieel_vergelijkt_opties": "Commercial — comparing options",
+        "hoog": "High",
+        "informatief_wil_iets_leren": "Informational — wants to learn something",
+        "intentie": "Intent",
+        "intentie_2": "Intent",
+        "keyword_research": "Keyword research",
+        "keyword_toevoegen": "Add keyword",
+        "makkelijk": "Easy",
+        "medium": "Medium",
+        "medium_2": "Medium",
+        "moeilijk": "Hard",
+        "navigatie_zoekt_specifieke_site": "Navigational — looking for a specific site",
+        "nieuw_keyword_toevoegen": "Add new keyword",
+        "transactioneel_wil_kopen": "Transactional — wants to buy",
+        "voeg_een_nieuw_keyword_toe_aan": "Add a new keyword to your SEO strategy.",
+        "voeg_keywords_toe_of_gebruik_ai": "Add keywords or use AI suggestions",
+        "zoekintentie": "Search intent",
+        "zoekvolume": "Search volume"
       },
       "sEOCategoryTable": {
-        "geen_categorieen_gevonden": "No categories found"
+        "geen_categorieen_gevonden": "No categories found",
+        "afbeelding": "Image",
+        "bekijk_categorie": "View category",
+        "beschrijving_optimaliseren": "Optimise description",
+        "beschrijvingen_optimaliseren": "Optimise descriptions",
+        "categorie_seo_status": "Category SEO status",
+        "genereer_meta_description": "Generate meta description",
+        "genereer_meta_title": "Generate meta title",
+        "issues": "Issues",
+        "meta_desc": "Meta desc",
+        "meta_description_genereren": "Generate meta description",
+        "meta_descriptions_genereren": "Generate meta descriptions",
+        "meta_title": "Meta title",
+        "meta_title_genereren": "Generate meta title",
+        "meta_titles_genereren": "Generate meta titles",
+        "optimaliseer": "Optimise",
+        "optimaliseer_beschrijving": "Optimise description",
+        "zoek_categorieen": "Search categories..."
       },
       "structuredDataPreview": {
-        "organisatie": "Organization"
+        "organisatie": "Organization",
+        "breadcrumb": "Breadcrumb",
+        "breadcrumb_structured_data_wordt_automatisch_gegenereerd": "Breadcrumb structured data is generated automatically from your category structure.",
+        "configureer_je_bedrijfsgegevens_in_instellingen_om": "Configure your company details in Settings to generate organisation structured data.",
+        "fouten_gevonden": "Errors found",
+        "geen_bedrijfsgegevens": "No company details",
+        "geen_breadcrumbs": "No breadcrumbs",
+        "geen_producten": "No products",
+        "gestructureerde_data_helpt_zoekmachines_je_content": "Structured data helps search engines understand your content better",
+        "structured_data_json_ld": "Structured data (JSON-LD)",
+        "test_in_google_rich_results": "Test in Google Rich Results",
+        "voeg_producten_toe_om_structured_data": "Add products to generate structured data."
       },
       "robotsTxtEditor": {
         "presetLabels": {
           "default": {
-            "label": "Standard"
+            "label": "Standard",
+            "description": "Basic configuration for webshops"
+          },
+          "aiOptimized": {
+            "label": "AI-optimised",
+            "description": "Visible in AI search engines"
+          },
+          "blockAll": {
+            "label": "Block all",
+            "description": "No crawl access"
+          },
+          "allowAll": {
+            "label": "Allow all",
+            "description": "Full crawl access"
+          },
+          "ecommerce": {
+            "label": "E-commerce",
+            "description": "Optimised for webshops"
           }
         },
-        "gekopieerd": "Copied!"
+        "gekopieerd": "Copied!",
+        "bepaal_welke_pagina_s_zoekmachines_mogen": "Decide which pages search engines may index",
+        "blokkeert_alles": "Blocks everything",
+        "je_kunt_dit_ook_configureren_via": "You can also configure this via your hosting provider or CDN.",
+        "preset_geladen": "Preset \"{{preset}}\" loaded",
+        "presets": "Presets",
+        "robots_txt_configuratie": "Robots.txt configuration",
+        "upload_naar_root": "Upload this file to the root of your domain:",
+        "user_agent_10_allow": "User-agent: *&#10;Allow: /",
+        "waar_te_plaatsen": "Where to place it?"
       },
       "sEOHealthChecklist": {
-        "download": "Download"
+        "download": "Download",
+        "genereer": "Generate",
+        "genereer_een_xml_sitemap_voor_zoekmachines": "Generate an XML sitemap for search engines with all your products and categories.",
+        "met_afbeeldingen": "With images",
+        "sitemap_genereren": "Generate sitemap",
+        "technische_seo_checklist": "Technical SEO checklist",
+        "urls": "URLs",
+        "website_url": "Website URL"
       },
       "scheduledAuditsPanel": {
         "frequencies": {
           "daily": "Daily",
-          "monthly": "Monthly"
+          "monthly": "Monthly",
+          "biweekly": "Fortnightly",
+          "weekly": "Weekly"
         },
-        "activeren": "Activate"
+        "activeren": "Activate",
+        "auditTypes": {
+          "full": {
+            "description": "All SEO aspects",
+            "label": "Full audit"
+          },
+          "content": {
+            "label": "Content audit",
+            "description": "Meta tags, descriptions"
+          },
+          "performance": {
+            "label": "Performance audit",
+            "description": "Speed, Core Web Vitals"
+          },
+          "technical": {
+            "label": "Technical audit",
+            "description": "URLs, redirects, sitemap"
+          }
+        },
+        "audit_geschiedenis": "Audit history",
+        "audit_inplannen": "Schedule an audit",
+        "automatische_seo_audits": "Automatic SEO audits",
+        "bezig": "In progress",
+        "email_voorbeeld_nl": "email@example.com",
+        "frequentie": "Frequency",
+        "geplande_audits": "Scheduled audits",
+        "melden_bij_problemen": "Notify me of problems",
+        "nieuwe_audit_plannen": "Schedule a new audit",
+        "nog_geen_audits_gepland": "No audits scheduled yet",
+        "nog_geen_audits_uitgevoerd": "No audits carried out yet",
+        "nu_uitvoeren": "Run now",
+        "ontvang_email_bij_gevonden_issues": "Receive an email when issues are found",
+        "plan_automatische_seo_analyses_en_ontvang": "Schedule automatic SEO analyses and receive notifications",
+        "type_audit": "Audit type"
+      },
+      "searchConsolePanel": {
+        "binnenkort_beschikbaar": "(Coming soon)",
+        "apparaat_verdeling": "Device breakdown",
+        "bekijk_hoe_je_site_presteert_in": "See how your site performs in Google search results",
+        "gem_ctr": "Avg. CTR",
+        "gem_positie": "Avg. position",
+        "google_search_console_koppelen": "Connect Google Search Console",
+        "klikken": "Clicks",
+        "klikken_2": "Clicks",
+        "koppel_je_google_search_console_account": "Connect your Google Search Console account to see real search data. Or load demo data to explore the functionality.",
+        "koppel_search_console": "Connect Search Console",
+        "laatste_28_dagen": "Last 28 days",
+        "laatste_3_maanden": "Last 3 months",
+        "laatste_7_dagen": "Last 7 days",
+        "positie": "Position",
+        "query": "Query",
+        "search_console": "Search Console",
+        "top_zoekopdrachten": "Top searches",
+        "zoek_query": "Search query..."
+      },
+      "socialMediaPreview": {
+        "gebruik_een_afbeelding_van_minimaal_1200x630": "• Use an image of at least 1200x630 pixels",
+        "houd_de_titel_onder_60_tekens": "• Keep the title under 60 characters for optimal display",
+        "voeg_een_duidelijke_call_to_action": "• Add a clear call to action in the description",
+        "ai_genereren": "AI generation",
+        "social_media_preview": "Social media preview",
+        "tips_voor_social_media": "Tips for social media:",
+        "twitter": "Twitter"
+      },
+      "aISearchOptimizer": {
+        "ai_content_genereren": "Generate AI content",
+        "ai_search_optimalisatie": "AI search optimisation",
+        "ai_search_readiness": "AI search readiness",
+        "ai_search_tips": "AI search tips",
+        "beantwoord_natuurlijke_vragen_in_je_content": "Answer natural questions in your content",
+        "beantwoord_veelgestelde_vragen": "Answer frequently asked questions",
+        "citeerbare_content": "Quotable content",
+        "conversational_content": "Conversational content",
+        "e_e_a_t_signalen": "E-E-A-T signals",
+        "faq_secties": "FAQ sections",
+        "gebruik_natuurlijke_taal": "Use natural language",
+        "geef_specifieke_feiten_cijfers_en_unieke": "Give specific facts, figures and unique information. AI systems cite sources with concrete, verifiable information.",
+        "optimalisatie_checklist": "Optimisation checklist",
+        "optimaliseer_je_content_voor_ai_zoekmachines": "Optimise your content for AI search engines such as ChatGPT, Perplexity and Google AI Overview",
+        "schrijf_content_die_ai_s_graag": "Write content that AI systems like to cite as a source",
+        "schrijf_productbeschrijvingen_alsof_je_een_vraag": "Write product descriptions as if you were answering a question. \"This product is ideal for...\" instead of short bullet lists.",
+        "toon_expertise_en_autoriteit_in_je": "Show expertise and authority in your product descriptions",
+        "voeg_een_faq_sectie_toe_aan": "Add an FAQ section to your product pages. AI systems use this information to give direct answers.",
+        "voeg_veelgestelde_vragen_toe_aan_productpagina": "Add frequently asked questions to product pages",
+        "wees_citeerbaar": "Be quotable"
+      },
+      "sEOScoreCard": {
+        "ai_zoeken": "AI search",
+        "meta_tags": "Meta tags",
+        "seo_score": "SEO score",
+        "technisch": "Technical"
+      },
+      "seOHealthChecklist": {
+        "checks": {
+          "alt_texts": {
+            "description": "All images have alt text",
+            "label": "Alt texts"
+          },
+          "meta_descriptions": {
+            "description": "All products have a meta description",
+            "label": "Meta descriptions"
+          },
+          "meta_titles": {
+            "description": "All products have a meta title",
+            "label": "Meta titles"
+          },
+          "canonical_urls": {
+            "label": "Canonical URLs",
+            "description": "Prevent duplicate content"
+          },
+          "sitemap": {
+            "description": "Dynamic sitemap with all products",
+            "label": "Sitemap.xml"
+          },
+          "robots": {
+            "description": "Configured for search engines",
+            "label": "Robots.txt"
+          },
+          "structured_data": {
+            "description": "JSON-LD Product schema present",
+            "label": "Structured data"
+          },
+          "og_tags": {
+            "label": "Open Graph tags",
+            "description": "Social media sharing optimised"
+          }
+        }
+      },
+      "slugManager": {
+        "alles_geoptimaliseerd": "Everything optimised",
+        "bijwerken": "Updating...",
+        "conflict": "Conflict",
+        "geen_items_gevonden": "No items found",
+        "huidige_url": "Current URL",
+        "ontbrekend": "Missing",
+        "optimaliseer_je_url_structuur_voor_betere": "Optimise your URL structure for better SEO",
+        "suboptimaal": "Suboptimal",
+        "suggestie": "Suggestion",
+        "te_optimaliseren": "To optimise",
+        "url_slug_manager": "URL/slug manager"
+      },
+      "sEOProductTable": {
+        "alt_teksten_genereren": "Generate alt texts",
+        "product_seo_status": "Product SEO status"
+      },
+      "sEOScoreHistoryChart": {
+        "analyses": "Analyses",
+        "eerste_meting": "First measurement",
+        "geen_verandering": "No change",
+        "huidige_score": "Current score",
+        "nog_geen_analyse_geschiedenis_beschikbaar": "No analysis history available yet.",
+        "score_trend": "Score trend",
+        "start_een_seo_analyse_om_je": "Start an SEO analysis to track your progress."
+      },
+      "seOQuickWins": {
+        "actions": {
+          "view_product": "View product",
+          "generate_description": "Generate description",
+          "generate_faq": "Generate FAQ",
+          "generate_meta_description": "Generate meta description",
+          "generate_meta": "Generate meta tags",
+          "generate_meta_title": "Generate meta title",
+          "optimize_categories": "Optimise categories",
+          "uitvoeren": "Run",
+          "improve_content": "Improve content"
+        }
+      },
+      "sEOTranslationStatus": {
+        "compleet": "Complete",
+        "deels": "Partly",
+        "ontbreekt": "Missing",
+        "seo_vertalingen": "SEO translations"
+      },
+      "coreWebVitalsPanel": {
+        "comprimeer_afbeeldingen_gebruik_lazy_loading_en": "Compress images, use lazy loading and optimise the server response.",
+        "core_web_vitals": "Core Web Vitals",
+        "desktop": "Desktop",
+        "eerste_inputvertraging": "First input delay",
+        "gebruik_een_cdn_optimaliseer_database_queries": "Use a CDN, optimise database queries and enable caching.",
+        "interactie_responsiviteit": "Interaction responsiveness",
+        "je_core_web_vitals_scoren_goed": "Your Core Web Vitals score well. Keep monitoring performance.",
+        "laadtijd_van_grootste_element": "Load time of the largest element",
+        "mobiel": "Mobile",
+        "monitor_de_prestaties_van_je_webwinkel": "Monitor your webshop's performance",
+        "ontwikkeling_van_core_web_vitals_over": "Core Web Vitals development over time",
+        "optimaliseer_lcp": "Optimise LCP",
+        "performance_score": "Performance score",
+        "prestatie_trend": "Performance trend",
+        "redelijk_er_zijn_enkele_verbeterpunten_om": "Reasonable. There are a few improvements to optimise speed.",
+        "score": "Score",
+        "server_responstijd": "Server response time",
+        "stel_afmetingen_in_voor_afbeeldingen_en": "Set dimensions for images and iframes, and avoid dynamic content inserts.",
+        "uitstekende_prestaties": "Excellent performance!",
+        "url_om_te_testen_optioneel": "URL to test (optional)",
+        "verbeter_ttfb": "Improve TTFB",
+        "verbetering_nodig_je_site_is_traag": "Improvement needed. Your site is slow and the user experience can be better.",
+        "verminder_cls": "Reduce CLS",
+        "visuele_stabiliteit": "Visual stability"
+      },
+      "competitorAnalysisPanel": {
+        "concurrent": "Competitor",
+        "concurrent_analyse": "Competitor analysis",
+        "concurrent_naam": "Competitor name",
+        "concurrent_toevoegen": "Add competitor",
+        "concurrenten": "Competitors",
+        "domein": "Domain",
+        "gelijk": "Equal",
+        "jouw_positie": "Your position",
+        "keyword_vergelijking": "Keyword comparison",
+        "moeilijkheid": "Difficulty",
+        "nieuw_keyword_toevoegen": "Add a new keyword...",
+        "nieuwe_concurrent": "New competitor",
+        "nog_geen_concurrenten_toegevoegd": "No competitors added yet",
+        "selecteer_een_concurrent_om_keywords_te": "Select a competitor to compare keywords",
+        "track": "Track",
+        "vergelijk_je_seo_prestaties_met_concurrenten": "Compare your SEO performance with competitors",
+        "verschil": "Difference",
+        "voeg_keywords_toe_om_te_vergelijken": "Add keywords to compare",
+        "volume": "Volume"
+      },
+      "sEOQuickWins": {
+        "geen_verbeterpunten_gevonden": "No improvements found",
+        "voer_een_analyse_uit_om_suggesties": "Run an analysis to get suggestions"
       }
     },
     "products": {
@@ -1952,13 +3217,32 @@
           "meta_description": "Meta description",
           "meta_title": "Meta title",
           "short_description": "Short description"
-        }
+        },
+        "producten_bijgewerkt": "{{count}} product(s) updated",
+        "bijv_focus_op_duurzaamheid_of_noem": "E.g. 'focus on sustainability' or 'always mention the price'",
+        "bulk_ai_generatie": "Bulk AI generation",
+        "extra_instructie_optioneel": "Extra instruction (optional)",
+        "geen_resultaat": "No result",
+        "niet_genoeg_credits": "Not enough credits. You need {{count}} credits.",
+        "vorige": "Previous",
+        "welk_veld_wil_je_genereren": "Which field do you want to generate?"
       },
       "productAdsSection": {
-        "advertenties": "Ads"
+        "advertenties": "Ads",
+        "ads_worden_automatisch_gepauzeerd_als_voorraad": "Ads are paused automatically when stock drops below this",
+        "beheer_op_welke_kanalen_dit_product": "Manage which channels this product is advertised on",
+        "channel_ref_ean": "Channel ref (EAN)",
+        "ean_barcode": "EAN / barcode",
+        "min_voorraad_voor_ads": "Min stock for ads",
+        "wordt_automatisch_ingevuld_vanuit_productgegevens": "Filled in automatically from the product data"
       },
       "productBulkEditDialog": {
-        "prijzen": "Pricing"
+        "prijzen": "Pricing",
+        "basis": "Basic",
+        "bulk_bewerking": "Bulk edit",
+        "kanalen": "Channels",
+        "specs": "Specs",
+        "zichtbaar": "Visible"
       },
       "productEventDatesTab": {
         "starttijd": "Start time",
@@ -1972,30 +3256,263 @@
           "completed": "Completed",
           "skipped": "Skipped",
           "merged": "Merged"
-        }
+        },
+        "uitverkocht": "· sold out",
+        "aantal_weken": "Number of weeks",
+        "bewerken_op_de_event_pagina": "Edit on the event page",
+        "bewerken_op_de_event_pagina_2": "Edit on the event page",
+        "bijv_12_00": "E.g. 12.00",
+        "bijv_hoofdingang_aan_de_fontein": "E.g. main entrance by the fountain",
+        "bijv_stadspark": "E.g. City park",
+        "capaciteit": "Capacity *",
+        "capaciteit_2": "Capacity *",
+        "datum": "Date *",
+        "datum_toevoegen": "Add date",
+        "datum_verplaatsen": "Move date",
+        "datum_verwijderen": "Delete date?",
+        "datum_tijd_status_locatie_en_capaciteit": "You manage date, time, status, location and capacity on the event page.",
+        "datums_samenvoegen": "Merge dates",
+        "de_kernvelden_van_deze_datum_zijn": "The core fields of this date are read-only here.",
+        "de_vroegste_grens_wint_zodra_de": "The earliest limit wins: once the deadline or the quantity is reached, the regular price applies.",
+        "deadline_datum_europe_brussels": "Deadline date (Europe/Brussels)",
+        "deadline_tijd_europe_brussels": "Deadline time (Europe/Brussels)",
+        "deadline_wissen": "Clear deadline",
+        "deze_datum_wordt_definitief_verwijderd_dit": "This date is deleted permanently. This cannot be undone.",
+        "weekdays": {
+          "0": "Sunday",
+          "1": "Monday",
+          "2": "Tuesday",
+          "3": "Wednesday",
+          "4": "Thursday",
+          "5": "Friday",
+          "6": "Saturday"
+        },
+        "early_bird_prijs": "Early-bird price",
+        "elke_weekdag": "Every {{day}}",
+        "geen_nieuwe_datums_om_aan_te": "No new dates to create.",
+        "genereer_wekelijkse_datums_en_vink_uit": "Generate weekly dates and untick what does not fit.",
+        "kies_een_datum": "Choose a date",
+        "laat_de_prijs_leeg_voor_geen": "Leave the price empty for no early-bird discount. Deadline and quantity are both optional: empty means no limit.",
+        "leeg_geen_grens": "Empty = no limit",
+        "locatie_optioneel": "Location (optional)",
+        "max_tickets_aan_early_bird_prijs": "Max tickets at the early-bird price",
+        "nieuwe_datum": "New date",
+        "overslaan": "Skip",
+        "overslaan_2": "Skip",
+        "plan_meerdere_datums": "Schedule multiple dates",
+        "samenvoegen": "Merge",
+        "samenvoegen_annuleren": "Cancel merge",
+        "selecteer_datum_om_samen_te_voegen": "Select a date to merge",
+        "startdatum": "Start date *",
+        "stel_datum_tijd_en_capaciteit_in": "Set the date, time and capacity for this event.",
+        "terugzetten": "Restore",
+        "terugzetten_2": "Restore",
+        "verplaatsen": "Move",
+        "verplaatsen_naar_andere_dag": "Move to another day",
+        "verzamelpunt_optioneel": "Meeting point (optional)",
+        "vroegboekkorting": "Early-bird discount",
+        "vroegboekkorting_2": "Early-bird discount",
+        "vroegboekkorting_optioneel": "Early-bird discount (optional)",
+        "vroegboekkorting_bewerken": "Edit early-bird discount",
+        "weekdag": "Weekday"
       },
       "productPhotosManager": {
-        "hoofd": "Main"
+        "hoofd": "Main",
+        "fotos_verwijderd": "{{count}} photo(s) deleted",
+        "alle_bewerkingen_mislukt": "All {{count}} edits failed",
+        "alle_foto_s": "All photos",
+        "bekijk_en_bewerk_alle_productfoto_s": "View and edit all product photos in one place",
+        "de_foto_s_worden_direct_losgekoppeld": "The photo(s) are unlinked from the product immediately and disappear from your webshop. This cannot be undone.",
+        "deselecteren": "Deselect",
+        "fotobeheer": "Photo management",
+        "geen_foto_s_gevonden": "No photos found",
+        "credits_nodig_voor_fotos": "You need {{cost}} credits for {{count}} photo(s).",
+        "met_foto": "With photo",
+        "zonder_foto": "Without photo"
       },
       "variantExtraImagesDialog": {
-        "kies_uit_bibliotheek": "Choose from library"
+        "kies_uit_bibliotheek": "Choose from library",
+        "aanvullende_beelden_voor_deze_variant_in": "Additional images for this variant, in order. The main photo stays separate.",
+        "extra_foto_s": "Extra photos",
+        "nog_geen_extra_foto_s_voor": "No extra photos for this variant yet."
       },
       "bulk": {
         "bulkVisibilityTab": {
-          "deactiveren": "Deactivate"
+          "deactiveren": "Deactivate",
+          "alleen_winkel_pos": "Store only (POS)",
+          "featured_uitgelicht": "Featured",
+          "niet_uitlichten": "Do not feature",
+          "online_tonen": "Show online",
+          "uitlichten": "Feature",
+          "webshop_zichtbaarheid": "Webshop visibility"
+        },
+        "bulkTagsTab": {
+          "dit_vervangt_alle_bestaande_tags_van": "⚠️ This replaces ALL existing tags on the selected products",
+          "alle_tags_vervangen_door": "Replace all tags with",
+          "nieuwe_tag": "New tag...",
+          "nieuwe_tag_2": "New tag...",
+          "tag_om_te_verwijderen": "Tag to remove...",
+          "tags_toevoegen": "Add tags",
+          "tags_verwijderen": "Remove tags"
+        },
+        "bulkStockTab": {
+          "aftrekken": "Deduct",
+          "backorder_toestaan": "Allow backorders",
+          "exact_instellen": "Set exactly",
+          "inschakelen": "Enable",
+          "uitschakelen": "Disable",
+          "voorraad_aanpassen": "Adjust stock",
+          "voorraad_tracking": "Stock tracking"
+        },
+        "bulkBasicTab": {
+          "btw_tarief_wijzigen": "Change VAT rate",
+          "categorie_wijzigen": "Change category",
+          "geen_btw_tarief": "No VAT rate",
+          "geen_categorie": "No category",
+          "product_type_wijzigen": "Change product type",
+          "selecteer_btw_tarief": "Select VAT rate",
+          "selecteer_categorie": "Select category",
+          "selecteer_type": "Select type"
+        },
+        "bulkSpecificationsTab": {
+          "douanecode": "Customs code",
+          "fabrikant_instellen": "Set manufacturer",
+          "herkomstland_instellen": "Set country of origin",
+          "hs_taric_code_instellen": "Set HS/TARIC code",
+          "merk_instellen": "Set brand",
+          "merknaam": "Brand name",
+          "naam_fabrikant": "Manufacturer name",
+          "nl_de_cn": "NL, DE, CN..."
+        },
+        "bulkPricingTab": {
+          "exacte_prijs": "Exact price",
+          "exacte_prijs_2": "Exact price",
+          "exacte_prijs_instellen": "Set exact price",
+          "instellen_op_huidige_prijs_voor_kortingsactie": "Set to the current price (for a discount campaign)",
+          "kostprijs_aanpassen": "Adjust cost price",
+          "percentage_verhogen": "Increase by percentage",
+          "percentage_verlagen": "Decrease by percentage",
+          "vast_bedrag_aftrekken": "Deduct a fixed amount",
+          "vast_bedrag_toevoegen": "Add a fixed amount",
+          "vergelijkingsprijs_doorstreepprijs": "Compare-at price (strikethrough price)",
+          "verkoopprijs_aanpassen": "Adjust selling price"
+        },
+        "bulkChannelsTab": {
+          "geen_social_channels_verbonden": "No social channels connected.",
+          "geselecteerde_producten_worden_klaargezet_voor_sync": "Selected products are queued for syncing to these marketplaces.",
+          "marketplace_sync_activeren": "Enable marketplace sync",
+          "social_commerce_kanalen": "Social commerce channels",
+          "verbind_kanalen_in_sellqo_connect": "Connect channels in SellQo Connect"
         }
       },
       "grid": {
         "productGridView": {
-          "er_ging_iets_mis": "Something went wrong"
+          "er_ging_iets_mis": "Something went wrong",
+          "bulk_bewerken": "Bulk edit",
+          "fout_bij_opslaan": "Error while saving",
+          "geen_producten_om_weer_te_geven": "No products to display",
+          "heeft_wijzigingen": "Has changes",
+          "heeft_wijzigingen_2": "Has changes",
+          "wijzigingen_opgeslagen": "Changes saved"
+        },
+        "changesPanel": {
+          "alle_wijzigingen_opslaan": "Save all changes ({{count}})",
+          "alles_wissen": "Clear all"
+        },
+        "cellBulkEditor": {
+          "bedrag_aftrekken": "Deduct amount",
+          "bedrag_aftrekken_2": "Deduct amount (€)",
+          "bedrag_toevoegen": "Add amount",
+          "bedrag_toevoegen_2": "Add amount (€)",
+          "exacte_waarde_2": "Exact value",
+          "exacte_waarde": "Exact value (€)",
+          "exacte_waarde_instellen": "Set exact value",
+          "geen_kanalen_gekoppeld_ga_naar_instellingen": "No channels connected. Go to Settings → Channels to connect channels.",
+          "selecteer_kanalen_om_in_te_schakelen": "Select channels to enable for all selected products:",
+          "selecteer_kanalen_om_uit_te_schakelen": "Select channels to disable for all selected products:",
+          "waarde_aftrekken": "Deduct value",
+          "waarde_toevoegen": "Add value"
+        },
+        "gridSelectCell": {
+          "geen": "None"
+        },
+        "gridChannelsCell": {
+          "geen_actief": "None active",
+          "geen_kanalen": "No channels",
+          "verkoopkanalen": "Sales channels"
+        },
+        "gridMultiSelectCell": {
+          "geen_opties": "No options"
+        },
+        "gridTagsCell": {
+          "geen_tags": "No tags"
+        },
+        "columnConfig": {
+          "kolommen": "Columns",
+          "zichtbare_kolommen": "Visible columns"
         }
       },
       "specs": {
         "customSpecsEditor": {
-          "nummer": "Number"
+          "nummer": "Number",
+          "bestaande_groep": "Existing group...",
+          "ja_nee": "Yes/No",
+          "nieuwe_groepsnaam": "New group name",
+          "specificatie_toevoegen": "Add specification",
+          "waarde": "Value",
+          "waarde_2": "Value"
         },
         "dimensionsFields": {
-          "gewicht_kg": "Weight (kg)"
+          "gewicht_kg": "Weight (kg)",
+          "breedte_cm": "Width (cm)",
+          "breedte_cm_2": "Width (cm)",
+          "brutogewicht_kg": "Gross weight (kg)",
+          "hoogte_cm": "Height (cm)",
+          "hoogte_cm_2": "Height (cm)",
+          "lengte_cm": "Length (cm)",
+          "lengte_cm_2": "Length (cm)",
+          "productafmetingen": "Product dimensions",
+          "stuks_per_verpakking": "Units per pack",
+          "verpakkingsafmetingen": "Packaging dimensions"
+        },
+        "complianceFields": {
+          "a_tot_g": "A+++ to G",
+          "energielabel": "Energy label",
+          "garantie_maanden": "Warranty (months)",
+          "veiligheidsinstructies": "Safety instructions",
+          "veiligheidswaarschuwingen_en_instructies": "Safety warnings and instructions"
+        },
+        "materialFields": {
+          "bijv_katoen": "E.g. Cotton",
+          "bijv_xl": "E.g. XL",
+          "bijv_zwart": "E.g. Black",
+          "kleur": "Colour",
+          "maat": "Size",
+          "materiaal": "Material",
+          "materiaal_2": "Material",
+          "samenstelling": "Composition"
+        },
+        "logisticsFields": {
+          "bijv_un3481": "E.g. UN3481",
+          "bijvoorbeeld_boxspring_voor_producten_die_met": "For example 'box spring' for products that must be delivered by truck. Manage classes under Settings → Shipping.",
+          "breekbaar": "Fragile",
+          "doorlooptijd_dagen": "Lead time (days)",
+          "droog_en_koel_bewaren": "Store in a cool, dry place...",
+          "gevaarlijke_stoffen": "Hazardous substances",
+          "gevarenklasse": "Hazard class",
+          "kies_een_verzendklasse": "Choose a shipping class",
+          "opslaginstructies": "Storage instructions",
+          "verzendklasse": "Shipping class"
+        },
+        "identificationFields": {
+          "fabrikant": "Manufacturer",
+          "herkomstland": "Country of origin",
+          "hs_taric_code": "HS/TARIC code",
+          "manufacturer_part_number": "Manufacturer part number",
+          "model_nummer": "Model number",
+          "modelnummer": "Model number",
+          "universal_product_code": "Universal Product Code",
+          "voor_boeken": "For books"
         }
       },
       "uitverkocht": "Sold out",
@@ -2005,7 +3522,126 @@
       "verborgen": "Hidden",
       "uitverkocht_2": "Sold out",
       "nieuw_product": "New product",
-      "dupliceren": "Duplicate"
+      "dupliceren": "Duplicate",
+      "productPhotoLibraryCard": {
+        "fotos_toegevoegd": "{{count}} photo(s) added to the library",
+        "fotobibliotheek": "Photo library",
+        "jpg_png_webp_gif_of_heic": "JPG, PNG, WebP, GIF or HEIC up to 20 MB",
+        "nog_geen_losse_foto_s_in": "No standalone photos in the library yet",
+        "sleep_foto_s_hierheen_of_klik": "Drag photos here or click to upload",
+        "upload_foto_s_zonder_ze_meteen": "Upload photos without linking them to a product straight away. When creating or editing a product you pick them via \"Choose from library\".",
+        "url_kopieren": "Copy URL",
+        "zoek_in_bibliotheek": "Search the library..."
+      },
+      "overgeslagen_variantvoorraad": "{{count}} product(s) skipped — stock is managed per variant.",
+      "productSpecificationsSection": {
+        "afmetingen_gewicht": "Dimensions & weight",
+        "garantie_compliance": "Warranty & compliance",
+        "gedetailleerde_productinformatie_voor_marketplaces_en_kanalen": "Detailed product information for marketplaces and channels",
+        "identificatie": "Identification",
+        "logistiek": "Logistics",
+        "materiaal_samenstelling": "Material & composition",
+        "technische_specificaties": "Technical specifications",
+        "vrije_specificaties": "Custom specifications"
+      },
+      "imageEditorDialog": {
+        "ai_bewerkt_je_foto": "AI is editing your photo...",
+        "bewerk_achtergrond_van": "Edit the background of \"{{product}}\"",
+        "presets": {
+          "custom_color": "Custom colour",
+          "lifestyle_wood": "Wooden table",
+          "lifestyle_marble": "Marble surface",
+          "nature_green": "Nature green",
+          "studio_gray": "Studio grey",
+          "studio_white": "Studio white",
+          "transparent": "Transparent",
+          "seasonal_winter": "Winter atmosphere",
+          "gradient_soft": "Soft gradient"
+        },
+        "foto_bewerken": "Edit photo",
+        "kies_achtergrond": "Choose background",
+        "kies_een_achtergrond_hieronder": "Choose a background below",
+        "origineel": "Original",
+        "origineel_2": "Original",
+        "resultaat": "Result",
+        "resultaat_2": "Result"
+      },
+      "ai_genereer": "AI generate",
+      "alle_voorraad": "All stock",
+      "alle_zichtbaarheid": "All visibility",
+      "alleen_winkel": "Store only",
+      "alleen_winkel_2": "Store only",
+      "productVariantsTab": {
+        "beheer_individuele_varianten_prijzen_voorraad_en": "Manage individual variants, prices, stock and product links.",
+        "bijv_kleur": "e.g. Colour",
+        "definieer_opties_zoals_kleur_maat_etc": "Define options such as Colour, Size, etc. and their possible values.",
+        "foto": "Photo",
+        "geen_productafbeeldingen_beschikbaar": "No product images available.",
+        "geen_productafbeeldingen_beschikbaar_2": "No product images available.",
+        "geen_varianten_voeg_opties_toe_en": "No variants. Add options and generate variants, or add them manually.",
+        "kies_afbeelding": "Choose image",
+        "kies_afbeelding_2": "Choose image",
+        "kies_een_bestaand_product_om_aan": "Choose an existing product to link to this variant. The linked product appears as a standalone product in the catalogue, but customers can navigate via the variant selector.",
+        "koppelen": "Connect",
+        "niet_bijgehouden": "Not tracked",
+        "optie_verwijderen": "Delete option?",
+        "optienaam": "Option name",
+        "product_selecteren": "Select product",
+        "typ_waarde": "Type a value...",
+        "typ_waarde_2": "Type a value...",
+        "variant_koppelen_aan_product": "Link variant to product",
+        "variant_opties": "Variant options",
+        "variant_verwijderen": "Delete variant?",
+        "variant_verwijderen_2": "Delete variant?",
+        "varianten_genereren_uit_opties": "Generate variants from options",
+        "waarden": "Values"
+      },
+      "beheer_je_productcatalogus": "Manage your product catalogue",
+      "catalogus": "Catalogue",
+      "productDescriptionEditor": {
+        "citaat": "Quote",
+        "code": "Code",
+        "cursief": "Italic",
+        "doorhalen": "Strikethrough",
+        "genummerde_lijst": "Numbered list",
+        "horizontale_lijn": "Horizontal rule",
+        "kop_2": "Heading 2",
+        "kop_3": "Heading 3",
+        "kop_4": "Heading 4",
+        "link": "Link",
+        "onderstrepen": "Underline",
+        "ongedaan_maken": "Undo",
+        "opnieuw": "Again",
+        "opsommingslijst": "Bulleted list",
+        "schrijf_een_uitgebreide_productbeschrijving": "Write a detailed product description...",
+        "vet": "Bold"
+      },
+      "dynamisch": "Dynamic",
+      "foto_s": "Photos",
+      "geen_producten_gevonden_met_deze_filters": "No products found with these filters",
+      "let_op": "Note",
+      "lijstweergave": "List view",
+      "limiet_bereikt_upgrade_je_plan": "Limit reached — upgrade your plan",
+      "mediaLibraryPickerDialog": {
+        "nog_geen_afbeeldingen_in_je_bibliotheek": "No images in your library yet",
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Select existing images or upload new ones to your media library."
+      },
+      "nog_geen_producten": "No products yet.",
+      "nog_geen_producten_voeg_je_eerste": "No products yet. Add your first product!",
+      "online": "Online",
+      "online_zichtbaar": "Visible online",
+      "op_voorraad": "In stock",
+      "product_toevoegen": "Add product",
+      "product_verwijderen": "Delete product?",
+      "producten_verwijderen": "Delete products?",
+      "rasterweergave": "Grid view",
+      "productTranslationTabs": {
+        "vertalingen_opslaan": "Save translations",
+        "vertalingen_opgeslagen": "Translations for {{locale}} saved"
+      },
+      "zichtbaarheid": "Visibility",
+      "zichtbaarheid_2": "Visibility",
+      "zoek_op_naam_sku_of_barcode": "Search by name, SKU or barcode..."
     },
     "productForm": {
       "vertalingen": "Translations",
@@ -2147,7 +3783,15 @@
         "slug_mag_alleen_kleine_letters_cijfers": "Slug may only contain lowercase letters, numbers and hyphens",
         "slug_is_verplicht": "Slug is required",
         "naam_mag_maximaal_200_tekens_zijn": "Name may be max 200 characters"
-      }
+      },
+      "primair": "(primary)",
+      "beheer_de_datums_tijden_en_capaciteit": "Manage the dates, times and capacity of this event.",
+      "events_datums": "Events & dates",
+      "events_datums_2": "Events & dates",
+      "korting_u20ac": "Discount (€)",
+      "product_nummer": "Product {{number}}",
+      "sla_het_product_eerst_op_om_2": "Save the product first to manage dates",
+      "vast_bedrag_euro": "Fixed amount (&euro;)"
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -2156,56 +3800,438 @@
         "geldig_tot": "Valid until",
         "validation": {
           "naam_is_verplicht": "Name is required"
-        }
+        },
+        "aantal_producten": "Number of products",
+        "automatische_korting_bewerken": "Edit automatic discount",
+        "bedrag": "Amount (€)",
+        "eerste_bestelling": "First order",
+        "geldig_vanaf": "Valid from",
+        "gratis_product": "Free product",
+        "gratis_verzending_vanaf_50": "Free shipping from €50",
+        "hele_bestelling": "Entire order",
+        "interne_beschrijving": "Internal description...",
+        "korting_type": "Discount type",
+        "lager_eerder_toegepast": "Lower = applied earlier",
+        "max_korting": "Max discount (€)",
+        "min_aantal": "Min quantity",
+        "min_bedrag": "Min amount (€)",
+        "nieuwe_automatische_korting": "New automatic discount",
+        "optioneel_maximum": "Optional maximum",
+        "prioriteit": "Priority",
+        "specifieke_categorieen": "Specific categories",
+        "specifieke_producten": "Specific products",
+        "specifieke_producten_2": "Specific products",
+        "toepassen_op": "Apply to",
+        "vast_bedrag": "Fixed amount",
+        "winkelwagen_totaal": "Cart total"
       },
       "customerGroupFormDialog": {
-        "korting": "Discount (€)"
+        "korting": "Discount (€)",
+        "beschrijving_van_de_groep": "Description of the group...",
+        "btw_vrijgesteld": "VAT exempt",
+        "validation": {
+          "code_is_verplicht": "Code is required"
+        },
+        "geen_btw_berekenen_voor_deze_groep": "Do not charge VAT for this group",
+        "geen_minimum": "No minimum",
+        "geen_standaard_korting": "No default discount",
+        "groothandel": "Wholesale",
+        "klantengroep_bewerken": "Edit customer group",
+        "lager_hogere_prioriteit": "Lower = higher priority",
+        "min_bestelbedrag": "Min order amount (€)",
+        "nieuwe_klantengroep": "New customer group"
       },
       "giftCardBalanceDialog": {
-        "bedrag": "Amount"
+        "bedrag": "Amount",
+        "bijv_correctie_compensatie": "E.g. Correction, Compensation, ...",
+        "code": "Code:",
+        "nieuw_saldo_na_aanpassing": "New balance after adjustment:",
+        "ophogen": "Increase",
+        "reden_optioneel": "Reason (optional)",
+        "saldo_aanpassen": "Adjust balance",
+        "saldo_verhoogd": "Balance increased",
+        "saldo_verlaagd": "Balance decreased",
+        "verlagen": "Decrease"
       },
       "giftPromotionFormDialog": {
-        "aantal": "Quantity"
+        "aantal": "Quantity",
+        "bestelwaarde": "Order value",
+        "cadeau_product": "Gift product",
+        "validation": {
+          "cadeau_product_is_verplicht": "A gift product is required"
+        },
+        "gift_actie_bewerken": "Edit gift promotion",
+        "gratis_sample_bij_75_bestelling": "Free sample on orders over €75",
+        "max_bestelling": "Max/order",
+        "meerdere_keren_toepassen_per_bestelling": "Apply multiple times per order",
+        "selecteer_een_product": "Select a product",
+        "stapelbaar": "Stackable",
+        "voorraad_limiet": "Stock limit"
       },
       "stackingRuleFormDialog": {
         "discountTypes": {
           "bogo": "BOGO deals",
-          "gift_promotion": "Gift promotions"
-        }
+          "gift_promotion": "Gift promotions",
+          "automatic_discount": "Automatic discounts",
+          "bundle_discount": "Bundle discounts",
+          "customer_group": "Customer group discounts",
+          "discount_code": "Discount codes",
+          "loyalty": "Loyalty points",
+          "volume_discount": "Volume discounts"
+        },
+        "exclusief_kan_niet_met_andere_kortingen": "Exclusive — cannot be combined with other discounts",
+        "exclusieve_kortingscode_regel": "Exclusive discount code rule",
+        "max_aantal_stapelbare_kortingen": "Max number of stackable discounts",
+        "max_totale_korting": "Max total discount (%)",
+        "nieuwe_stapelregel": "New stacking rule",
+        "prioriteit_bepaal_volgorde_van_toepassing": "Priority — determines the order of application",
+        "regel_wordt_toegepast_bij_berekening": "The rule is applied during calculation",
+        "regeltype": "Rule type",
+        "validation": {
+          "selecteer_minimaal_1_type": "Select at least 1 type"
+        },
+        "selecteer_welke_kortingstypes_deze_regel_beinvloedt": "Select which discount types this rule affects",
+        "stapelbaar_mag_combineren_met_andere_kortingen": "Stackable — can be combined with other discounts",
+        "stapelregel_bewerken": "Edit stacking rule",
+        "van_toepassing_op": "Applies to",
+        "voorkom_extreem_hoge_kortingen_door_combinatie": "Prevent extremely high discounts from combining"
       },
       "volumeDiscountFormDialog": {
-        "korting": "Discount"
+        "korting": "Discount",
+        "alle_producten": "All products",
+        "beschrijf_de_staffelkorting": "Describe the volume discount...",
+        "kwantumkorting": "Quantity discount",
+        "max_optioneel": "Max (optional)",
+        "min_stuks": "Min units",
+        "validation": {
+          "minimaal_1_staffel_vereist": "At least 1 tier is required"
+        },
+        "nieuwe_staffelkorting": "New volume discount",
+        "staffel": "Tier",
+        "staffelkorting_bewerken": "Edit volume discount",
+        "staffels": "Tiers"
       },
-      "upgrade": "Upgrade"
+      "upgrade": "Upgrade",
+      "giftCardDesignDialog": {
+        "aanbevolen_1200x630_pixels_16_9": "Recommended: 1200x630 pixels (16:9)",
+        "bijv_verjaardag_feestelijk": "E.g. Birthday Festive",
+        "klik_om_afbeelding_te_uploaden": "Click to upload an image",
+        "lagere_nummers_worden_eerst_getoond": "Lower numbers are shown first",
+        "maak_een_nieuw_cadeaukaart_ontwerp": "Create a new gift card design",
+        "nieuw_ontwerp": "New design",
+        "ontwerp_bewerken": "Edit design",
+        "pas_de_instellingen_van_dit_ontwerp": "Adjust the settings of this design",
+        "selecteer_thema": "Select theme",
+        "thema": "Theme",
+        "validation": {
+          "thema_is_verplicht": "Theme is required"
+        },
+        "toon_dit_ontwerp_aan_klanten": "Show this design to customers",
+        "volgorde": "Order"
+      },
+      "giftCardFormDialog": {
+        "aanmaken": "Creating...",
+        "cadeaukaart_aanmaken": "Create gift card",
+        "dit_bericht_wordt_getoond_aan_de": "This message is shown to the recipient",
+        "email_ontvanger": "Email recipient",
+        "jan_voorbeeld_nl": "john@example.com",
+        "kies_een_ontwerp": "Choose a design",
+        "laat_leeg_voor_geen_vervaldatum": "Leave empty for no expiry date",
+        "validation": {
+          "minimaal_1": "At least €1",
+          "ongeldig_emailadres": "Invalid email address"
+        },
+        "naam_ontvanger": "Recipient name",
+        "nieuwe_cadeaukaart": "New gift card",
+        "ontwerp": "Design",
+        "persoonlijk_bericht": "Personal message",
+        "veel_plezier_met_je_cadeau": "Enjoy your gift!",
+        "vervaldatum_optioneel": "Expiry date (optional)"
+      },
+      "bogoPromotionFormDialog": {
+        "actie_is_direct_zichtbaar_en_toepasbaar": "The action is immediately visible and applicable",
+        "bogo_actie_bewerken": "Edit BOGO promotion",
+        "gratis_100": "Free (100%)",
+        "hoeveel_krijgt_klant": "How much the customer gets",
+        "hoeveel_moet_klant_kopen": "How much the customer must buy",
+        "koop_2_krijg_1_gratis": "Buy 2 get 1 free",
+        "koop_aantal": "Buy quantity",
+        "koop_x_krijg_y_gratis": "Buy X get Y free",
+        "koop_x_korting_op_y": "Buy X, discount on Y",
+        "kortingsbedrag": "Discount amount",
+        "kortingstype": "Discount type",
+        "krijg_aantal": "Get quantity",
+        "leeg_laten_voor_onbeperkt": "Leave empty for unlimited",
+        "max_per_bestelling": "Max per order",
+        "optionele_beschrijving": "Optional description...",
+        "type_actie": "Action type"
+      },
+      "actieve_promoties": "Active promotions",
+      "modules": {
+        "auto": {
+          "title": "Automatic discounts",
+          "description": "Discounts applied automatically"
+        },
+        "stacking": {
+          "description": "Decide which discounts may be combined",
+          "title": "Stacking rules"
+        },
+        "bogo": {
+          "title": "BOGO promotions",
+          "description": "Buy X get Y free or discounted"
+        },
+        "gift-cards": {
+          "title": "Gift cards",
+          "description": "Digital gift cards as a payment method"
+        },
+        "gifts": {
+          "title": "Gifts with purchase",
+          "description": "Free products with certain purchases"
+        },
+        "bundles": {
+          "description": "Combine products for a special price",
+          "title": "Product bundles"
+        },
+        "customer-groups": {
+          "title": "Customer groups",
+          "description": "VIP prices and group discounts"
+        },
+        "volume": {
+          "description": "Discount based on the quantity ordered",
+          "title": "Volume discounts"
+        },
+        "discount-codes": {
+          "title": "Discount codes",
+          "description": "Manual codes customers can enter"
+        },
+        "loyalty": {
+          "title": "Loyalty programme",
+          "description": "Loyalty points and VIP tiers"
+        }
+      },
+      "beheer_alle_kortingsacties_en_promoties_voor": "Manage all discounts and promotions for your webshop",
+      "beheren": "Manage",
+      "bundleFormDialog": {
+        "beschrijf_de_bundel": "Describe the bundle...",
+        "bundel_bewerken": "Edit bundle",
+        "max_items": "Max items",
+        "min_items": "Min items",
+        "mix_match": "Mix & match",
+        "vaste_bundel": "Fixed bundle",
+        "vaste_prijs": "Fixed price",
+        "zomerbundel": "Summer bundle"
+      },
+      "loyaltyProgramFormDialog": {
+        "bronze": "Bronze",
+        "euro_waarde_bij_inwisselen": "Euro value on redemption",
+        "gold": "Gold",
+        "hoeveel_punten_per_euro": "How many points per euro",
+        "klanten_kunnen_punten_sparen_en_inwisselen": "Customers can collect and redeem points",
+        "korting": "Discount %",
+        "min_inwisselen": "Min redemption",
+        "min_punten": "Min points",
+        "minimum_punten": "Minimum points",
+        "multiplier": "Multiplier",
+        "nieuw_loyaliteitsprogramma": "New loyalty programme",
+        "programma_bewerken": "Edit programme",
+        "punten_per_1": "Points per €1",
+        "silver": "Silver",
+        "spaar_punten_bij_elke_aankoop": "Collect points with every purchase...",
+        "tier_toevoegen": "Add tier",
+        "tiers": "Tiers",
+        "vip_spaarprogramma": "VIP loyalty programme",
+        "waarde_per_punt": "Value per point (€)"
+      },
+      "premium": "Premium",
+      "promoties_kortingen": "Promotions & discounts"
     },
     "giftCards": {
       "verlopen": "Expired",
-      "aangemaakt": "Created"
+      "aangemaakt": "Created",
+      "actieve_kaarten": "Active cards",
+      "beheer_digitale_cadeaukaarten_voor_je_webshop": "Manage digital gift cards for your webshop",
+      "cadeaukaarten": "Gift cards",
+      "gedeactiveerd": "Deactivated",
+      "geen_cadeaukaarten_gevonden": "No gift cards found",
+      "ingewisseld": "Redeemed",
+      "maak_je_eerste_cadeaukaart_aan": "Create your first gift card",
+      "met_beschikbaar_saldo": "With available balance",
+      "nieuwe_cadeaukaart": "New gift card",
+      "nog_in_te_wisselen": "Still to redeem",
+      "ontvanger": "Recipient",
+      "oorspronkelijk": "Original",
+      "openstaand_saldo": "Outstanding balance",
+      "opgebruikt": "Used up",
+      "overzicht": "Overview",
+      "pas_je_filters_aan": "Adjust your filters",
+      "saldo": "Balance",
+      "totaal_uitgegeven": "Total spent",
+      "zoek_op_code_email_of_naam": "Search by code, email or name..."
     },
     "inbox": {
       "aISuggestionBox": {
-        "gebruik": "Usage"
+        "gebruik": "Usage",
+        "gecached": "(cached)",
+        "ai_genereert_suggestie": "AI is generating a suggestion...",
+        "gebruiken": "Use",
+        "hergenereren_1_credit": "Regenerate (1 credit)"
       },
       "advancedSearchFilters": {
         "periode": "Period",
         "wissen": "Clear",
         "channels": {
           "email": "Email"
-        }
+        },
+        "3_maanden": "3 months",
+        "afzender": "Sender",
+        "alle_mappen": "All folders",
+        "huidige_map": "Current folder",
+        "overal": "Everywhere",
+        "zoek_in": "Search in"
       },
       "conversationDetail": {
-        "bestelling": "Order"
+        "bestelling": "Order",
+        "toegevoegd_als_prospect": "{{customer}} has been added as a prospect.",
+        "gearchiveerd": "Archived",
+        "klant_aangemaakt": "Customer created",
+        "klantprofiel": "Customer profile",
+        "kon_klant_niet_aanmaken": "Could not create the customer.",
+        "maak_klant_aan": "Create customer",
+        "prullenbak": "Bin"
       },
       "bulkActionsToolbar": {
-        "inbox": "Inbox"
+        "inbox": "Inbox",
+        "archiveren": "Archive",
+        "herstellen": "Restore"
+      },
+      "attachmentUploader": {
+        "toevoegen": "+ Add"
+      },
+      "replyComposer": {
+        "ai_suggestie": "AI suggestion",
+        "druk_op_cmd_enter_om_te": "Press Cmd+Enter to send",
+        "er_is_iets_misgegaan_bij_het": "Something went wrong while sending.",
+        "typ_je_antwoord": "Type your reply..."
+      },
+      "inboxFilters": {
+        "alle_social": "All social",
+        "te_beantw": "To answer",
+        "zoek_in_gesprekken": "Search conversations..."
+      },
+      "conversationItem": {
+        "amazon_bericht": "Amazon message",
+        "bol_com_bericht": "Bol.com message"
+      },
+      "composeDialog": {
+        "bericht": "Message",
+        "bericht_verzonden": "Message sent",
+        "bijlage_toevoegen": "Add attachment",
+        "cmd_enter_om_te_verzenden": "Cmd+Enter to send",
+        "email1_example_com_email2_example_com": "email1@example.com, email2@example.com",
+        "email1_example_com_email2_example_com_2": "email1@example.com, email2@example.com",
+        "geen_actieve_verbinding": "No active {{channel}} connection or recipient details.",
+        "klant_kan_direct_antwoorden_op_deze": "The customer can reply directly to this email",
+        "nieuw_bericht": "New message",
+        "onderwerp_van_je_bericht": "Subject of your message...",
+        "start_een_nieuw_gesprek_met_een": "Start a new conversation with a customer via email, WhatsApp, Facebook or Instagram.",
+        "typ_je_bericht": "Type your message...",
+        "verzenden": "Send",
+        "verzenden_mislukt": "Sending failed",
+        "zoek_klant_of_typ_e_mailadres": "Search for a customer or type an email address...",
+        "zoek_klant_of_typ_telefoonnummer": "Search for a customer or type a phone number..."
+      },
+      "folderList": {
+        "bijv_vip_klanten_retour_support": "E.g. VIP customers, Return, Support",
+        "bijv_vip_klanten_retour_support_2": "E.g. VIP customers, Return, Support",
+        "maak_een_aangepaste_map_om_je": "Create a custom folder to organise your conversations.",
+        "map_aanmaken": "Create folder",
+        "mapnaam": "Folder name",
+        "mapnaam_2": "Folder name",
+        "nieuwe_map": "New folder",
+        "nieuwe_map_aanmaken": "Create a new folder",
+        "nieuwe_map_aanmaken_2": "Create a new folder"
+      },
+      "conversationList": {
+        "geen_gesprekken": "No conversations",
+        "wanneer_klanten_contact_opnemen_verschijnen_hun": "When customers get in touch, their messages appear here."
+      },
+      "conversationActions": {
+        "naar_prullenbak": "Move to bin",
+        "permanent_verwijderen": "Delete permanently",
+        "terugzetten_naar_inbox": "Move back to inbox",
+        "verplaatsen_naar_map": "Move to folder"
       }
     },
     "customers": {
       "customerActivityTab": {
-        "alle_events": "All events"
+        "alle_events": "All events",
+        "events": {
+          "wishlist_add": "To wishlist",
+          "add_to_cart": "To cart",
+          "purchase": "Order placed",
+          "checkout_start": "Checkout started",
+          "email_open": "Email opened",
+          "email_click": "Email link clicked",
+          "search": "Searched",
+          "page_view": "Page viewed",
+          "product_view": "Product viewed",
+          "remove_from_cart": "From cart"
+        },
+        "activiteiten_timeline": "Activity timeline",
+        "activiteiten_verschijnen_hier_zodra_de_klant": "Activities appear here as soon as the customer visits the webshop",
+        "email_clicks": "Email clicks",
+        "email_opens": "Email opens",
+        "emails_geopend": "Emails opened",
+        "engagement": "Engagement",
+        "filter_events": "Filter events",
+        "gem_tijd": "Avg. time",
+        "nog_geen_activiteiten_geregistreerd": "No activities recorded yet",
+        "pagina_bekeken": "Page viewed",
+        "pagina_s": "Pages",
+        "product_bekeken": "Product viewed",
+        "sessies": "Sessions",
+        "winkelwagen": "Cart",
+        "zoekopdrachten": "Searches"
       },
       "bestellingen": "Orders",
-      "klanten": "Customers"
+      "klanten": "Customers",
+      "gefilterd_op": "(filtered by {{filter}})",
+      "klanten_gevonden": "{{count}} customer(s) found",
+      "beheer_je_klantenbestand": "Manage your customer base",
+      "customerLedgerTab": {
+        "bestaande_mutaties_blijven_staan_enkel_de": "Existing entries remain. Only the recurring setting is removed.",
+        "betaling_ontvangen": "Payment received",
+        "deze_actie_kan_niet_ongedaan_gemaakt": "This action cannot be undone.",
+        "herhalend_maandbedrag_of_ander_interval": "Recurring monthly amount (or another interval)",
+        "interval_maanden": "Interval (months)",
+        "interval_maanden_2": "Interval (months)",
+        "maandelijkse_fee": "Monthly fee",
+        "mutatie_toevoegen": "Add entry",
+        "mutatie_verwijderen": "Delete entry?",
+        "mutaties": "Entries",
+        "negatief_positief": "Negative = cost, positive = payment",
+        "nog_geen_mutaties": "No entries yet",
+        "prive_kladblok_enkel_zichtbaar_voor_platform": "Private scratchpad — visible only to platform admins",
+        "vaste_kost": "Fixed cost",
+        "vaste_kost_instellen": "Set fixed cost",
+        "vaste_kost_verwijderen": "Delete fixed cost?",
+        "voeg_maandbedrag_toe": "Add monthly amount",
+        "volgende_datum": "Next date"
+      },
+      "bron": "Source",
+      "contact": "Contact",
+      "geen_klanten_gevonden": "No customers found",
+      "geen_winkel_gevonden_neem_contact_op": "No store found. Please contact an administrator.",
+      "klant_verwijderen": "Delete customer?",
+      "klanten_verschijnen_hier_wanneer_ze_een": "Customers appear here when they place an order or create an account",
+      "probeer_een_andere_zoekopdracht": "Try a different search",
+      "prospect": "Prospect",
+      "prospects": "Prospects",
+      "sinds": "Since",
+      "uitgegeven": "Spent",
+      "webshop_crm": "Webshop + CRM",
+      "weet_je_zeker_dat_je_deze": "Are you sure you want to delete this customer? This cannot be undone. This customer's orders are kept.",
+      "zoek_op_naam_of_email": "Search by name or email..."
     },
     "customerFormDialog": {
       "telefoonnummer": "Phone number",
@@ -2213,50 +4239,332 @@
       "bijv_0208_0123456789": "e.g. 0208:0123456789",
       "bedrijfsgegevens": "Company details",
       "peppol_id": "Peppol ID",
-      "wijzigingen_opslaan": "Save changes"
+      "wijzigingen_opslaan": "Save changes",
+      "optioneel": "(optional)",
+      "achternaam": "Last name *",
+      "afleveradres_wijkt_af_van_factuuradres": "Delivery address differs from billing address",
+      "bedrijf_b_v": "Company Ltd.",
+      "bedrijfsnaam": "Company name *",
+      "e_mailadres": "Email address *",
+      "endpoint_id_voor_peppol_e_facturatie": "Endpoint ID for Peppol e-invoicing. Format: [scheme]:[identifier]",
+      "klant_bewerken": "Edit customer",
+      "nieuwe_klant": "New customer",
+      "nieuwe_klant_toevoegen": "Add a new customer",
+      "voornaam": "First name *",
+      "vul_de_gegevens_in_om_een": "Fill in the details to create a new customer.",
+      "werk_de_gegevens_van_deze_klant": "Update this customer's details.",
+      "zakelijke_klant_b2b": "Business customer (B2B)",
+      "zonder_btw_nummer_kan_deze_b2b": "Without a VAT number this B2B customer cannot be processed correctly via Peppol or Odoo. Enter a valid VAT number for full accounting and e-invoicing integration."
     },
     "docs": {
       "docArticleEditor": {
-        "samenvatting": "Summary"
+        "samenvatting": "Summary",
+        "context_pad_optioneel": "Context path (optional)",
+        "fout": "Error: {{reason}}",
+        "producten_varianten": "products, variants",
+        "slug": "Slug",
+        "tags_kommagescheiden": "Tags (comma-separated)"
       }
     },
     "marketplace": {
       "productMarketplaceTab": {
         "verbonden": "Connected",
         "bol_conditions": {
-          "moderate": "Medium"
-        }
+          "moderate": "Medium",
+          "as_new": "As new",
+          "good": "Good",
+          "new": "New",
+          "reasonable": "Reasonable"
+        },
+        "bol_delivery_codes": {
+          "1_2d": "1-2 business days",
+          "1_8d": "1-8 business days",
+          "2_3d": "2-3 business days",
+          "24uurs_21": "24 hours (ordered before 21:00)",
+          "24uurs_23": "24 hours (ordered before 23:00)",
+          "3_5d": "3-5 business days",
+          "4_8d": "4-8 business days"
+        },
+        "ai_content_optimalisatie": "AI content optimisation",
+        "ai_content_optimalisatie_2": "AI content optimisation",
+        "ai_content_optimalisatie_3": "AI content optimisation",
+        "ai_content_optimalisatie_4": "AI content optimisation",
+        "ai_content_optimalisatie_5": "AI content optimisation",
+        "ai_content_optimalisatie_6": "AI content optimisation",
+        "ai_geoptimaliseerde_titel_voor_amazon": "AI-optimised title for Amazon",
+        "ai_geoptimaliseerde_titel_voor_bol_com": "AI-optimised title for Bol.com",
+        "ai_geoptimaliseerde_titel_voor_odoo": "AI-optimised title for Odoo",
+        "ai_geoptimaliseerde_titel_voor_shopify": "AI-optimised title for Shopify",
+        "ai_geoptimaliseerde_titel_voor_woocommerce": "AI-optimised title for WooCommerce",
+        "asin_optioneel": "ASIN (optional)",
+        "bullet_points_max_5": "Bullet points (max 5)",
+        "bullet_points_max_5_2": "Bullet points (max 5)",
+        "conditie": "Condition",
+        "conditie_2": "Condition",
+        "conditie_3": "Condition",
+        "amazon_fulfillment": {
+          "afn": "By Amazon (FBA)",
+          "mfn": "Ship yourself (FBM)"
+        },
+        "ean_code": "EAN code *",
+        "ean_ingevuld_maar_offer_id_ontbreekt": "EAN filled in but Offer ID is missing",
+        "fout_bij_opzoeken": "Error while looking up",
+        "amazon_conditions": {
+          "used_acceptable": "Used — acceptable",
+          "used_like_new": "Used — as new",
+          "used_good": "Used — good",
+          "used_very_good": "Used — very good",
+          "new": "New"
+        },
+        "ebay_conditions": {
+          "used_acceptable": "Used — acceptable",
+          "used_good": "Used — good",
+          "used_excellent": "Used — excellent",
+          "used_very_good": "Used — very good",
+          "new": "New"
+        },
+        "geen_offer_id_gevonden": "No Offer ID found",
+        "geoptimaliseerde_beschrijving": "Optimised description",
+        "geoptimaliseerde_beschrijving_2": "Optimised description",
+        "geoptimaliseerde_titel": "Optimised title",
+        "geoptimaliseerde_titel_2": "Optimised title",
+        "geoptimaliseerde_titel_3": "Optimised title",
+        "geoptimaliseerde_titel_max_80_tekens": "Optimised title (max 80 characters)",
+        "gesynchroniseerd": "Synced!",
+        "gesynchroniseerd_2": "Synced!",
+        "gesynchroniseerd_3": "Synced!",
+        "html_geformatteerde_beschrijving": "HTML-formatted description...",
+        "je_aanbieding_wordt_verwerkt_door_amazon": "Your offer is being processed by Amazon",
+        "je_aanbieding_wordt_verwerkt_door_bol": "Your offer is being processed by Bol.com",
+        "je_hebt_onopgeslagen_wijzigingen": "You have unsaved changes",
+        "je_hebt_onopgeslagen_wijzigingen_2": "You have unsaved changes",
+        "je_hebt_onopgeslagen_wijzigingen_3": "You have unsaved changes",
+        "je_hebt_onopgeslagen_wijzigingen_4": "You have unsaved changes",
+        "je_hebt_onopgeslagen_wijzigingen_5": "You have unsaved changes",
+        "je_hebt_onopgeslagen_wijzigingen_6": "You have unsaved changes",
+        "je_product_is_bijgewerkt_in_odoo": "Your product has been updated in Odoo",
+        "je_product_is_bijgewerkt_in_shopify": "Your product has been updated in Shopify",
+        "je_product_is_bijgewerkt_in_woocommerce": "Your product has been updated in WooCommerce",
+        "je_product_is_succesvol_gepubliceerd_naar_3": "Your product has been published to Odoo successfully",
+        "je_product_is_succesvol_gepubliceerd_naar": "Your product has been published to Shopify successfully",
+        "je_product_is_succesvol_gepubliceerd_naar_2": "Your product has been published to WooCommerce successfully",
+        "je_product_wordt_verwerkt_door_ebay": "Your product is being processed by eBay...",
+        "je_product_wordt_verwerkt_door_odoo": "Your product is being processed by Odoo...",
+        "je_product_wordt_verwerkt_door_shopify": "Your product is being processed by Shopify...",
+        "je_product_wordt_verwerkt_door_woocommerce": "Your product is being processed by WooCommerce...",
+        "je_publiceert_met_0_voorraad_het": "You are publishing with 0 stock. The product will show as sold out straight away.",
+        "je_publiceert_met_0_voorraad_het_2": "You are publishing with 0 stock. The product will show as sold out straight away.",
+        "kon_offer_id_niet_ophalen_probeer": "Could not fetch the Offer ID. Please try again later.",
+        "kon_product_niet_publiceren": "Could not publish the product",
+        "kon_product_niet_publiceren_2": "Could not publish the product",
+        "kon_product_niet_publiceren_3": "Could not publish the product",
+        "kon_product_niet_synchroniseren": "Could not sync the product",
+        "kon_product_niet_synchroniseren_2": "Could not sync the product",
+        "kon_product_niet_synchroniseren_3": "Could not sync the product",
+        "laat_ai_je_productcontent_optimaliseren_voor_3": "Let AI optimise your product content for Amazon",
+        "laat_ai_je_productcontent_optimaliseren_voor_2": "Let AI optimise your product content for Bol.com",
+        "laat_ai_je_productcontent_optimaliseren_voor": "Let AI optimise your product content for eBay",
+        "laat_ai_je_productcontent_optimaliseren_voor_6": "Let AI optimise your product content for Odoo",
+        "laat_ai_je_productcontent_optimaliseren_voor_4": "Let AI optimise your product content for Shopify SEO",
+        "laat_ai_je_productcontent_optimaliseren_voor_5": "Let AI optimise your product content for WooCommerce SEO",
+        "laat_leeg_voor_nieuw_product": "Leave empty for a new product",
+        "levertijd": "Delivery time",
+        "bol_fulfillment": {
+          "fbb": "Logistics by Bol (LVB)",
+          "fbr": "Ship yourself (FBR)"
+        },
+        "naar_connect": "To Connect",
+        "naar_connect_2": "To Connect",
+        "naar_connect_3": "To Connect",
+        "naar_connect_4": "To Connect",
+        "naar_connect_5": "To Connect",
+        "naar_connect_6": "To Connect",
+        "niet_gepubliceerd": "Not published",
+        "niet_verbonden_ga_naar_connect_om": "Not connected — go to Connect to link it",
+        "offer_id_opgeslagen": "Offer ID {{id}}… has been saved automatically",
+        "offer_id_gevonden": "Offer ID found",
+        "offer_id_ophalen": "Fetch Offer ID",
+        "ongeldige_ean": "Invalid EAN",
+        "product_gepubliceerd": "Product published!",
+        "product_gepubliceerd_2": "Product published!",
+        "product_gepubliceerd_3": "Product published!",
+        "productomschrijving": "Product description",
+        "publicatie_mislukt": "Publishing failed",
+        "publicatie_mislukt_2": "Publishing failed",
+        "publicatie_mislukt_3": "Publishing failed",
+        "seo_geoptimaliseerde_beschrijving": "SEO-optimised description",
+        "seo_geoptimaliseerde_beschrijving_html": "SEO-optimised description (HTML)",
+        "seo_geoptimaliseerde_titel": "SEO-optimised title",
+        "seo_geoptimaliseerde_titel_2": "SEO-optimised title",
+        "synchronisatie_mislukt": "Sync failed",
+        "synchronisatie_mislukt_2": "Sync failed",
+        "synchronisatie_mislukt_3": "Sync failed",
+        "uitgebreide_productomschrijving_voor_amazon": "Detailed product description for Amazon...",
+        "uitgebreide_productomschrijving_voor_odoo": "Detailed product description for Odoo...",
+        "uitgebreide_productomschrijving_voor_shopify": "Detailed product description for Shopify...",
+        "uitgebreide_productomschrijving_voor_woocommerce": "Detailed product description for WooCommerce...",
+        "verbind_eerst_je_amazon_seller_central": "Connect your Amazon Seller Central account first to be able to publish products",
+        "verbind_eerst_je_bol_com_retailer": "Connect your Bol.com Retailer account first to be able to publish products",
+        "verbind_eerst_je_ebay_account_om": "Connect your eBay account first to be able to publish products",
+        "verbind_eerst_je_odoo_erp_om": "Connect your Odoo ERP first to be able to publish products",
+        "verbind_eerst_je_shopify_winkel_om": "Connect your Shopify store first to be able to publish products",
+        "verbind_eerst_je_woocommerce_webshop_om": "Connect your WooCommerce webshop first to be able to publish products",
+        "verplicht_voor_bol_com_ean_13": "Required for Bol.com (EAN-13)",
+        "verzendmethode": "Shipping method",
+        "verzendmethode_2": "Shipping method",
+        "voorraadsync_werkt_pas_na_koppeling_met": "Stock sync only works once it is linked to your existing Bol.com offer",
+        "waarschuwing": "Warning",
+        "waarschuwing_2": "Warning",
+        "wordt_verwerkt": "Processing"
       },
       "dashboardMarketplaceWidget": {
         "sellqo_connect": "SellQo Connect",
-        "beheer": "Management"
+        "beheer": "Management",
+        "nog_niet_gesynchroniseerd": "Not synced yet",
+        "nog_niet_gesynchroniseerd_2": "Not synced yet",
+        "odoo_boekhouding": "Odoo accounting",
+        "sync_fout": "Sync error",
+        "verbind_bol_com_of_amazon_om": "Connect Bol.com or Amazon to import orders automatically",
+        "verbind_je_verkoopkanalen": "Connect your sales channels",
+        "verbind_marktplaats": "Connect marketplace"
       }
     },
     "dashboardGrid": {
-      "dashboard": "Dashboard"
+      "dashboard": "Dashboard",
+      "klaar": "Done",
+      "overzicht_van_je_winkel": "Overview of your store",
+      "personaliseren": "Personalise"
     },
     "orderFilters": {
       "onbetaald": "Unpaid",
       "betaald": "Paid",
-      "terugbetaald": "Refunded"
+      "terugbetaald": "Refunded",
+      "alle_betalingen": "All payments",
+      "alle_bronnen": "All sources",
+      "betaalstatus": "Payment status",
+      "filters_wissen": "Clear filters",
+      "in_behandeling": "Processing",
+      "orderstatus": "Order status",
+      "sellqo_webshop": "SellQo webshop",
+      "zoek_op_ordernummer_email": "Search by order number, email..."
     },
     "orders": {
-      "alle_bestellingen": "All orders"
+      "alle_bestellingen": "All orders",
+      "beheer_alle_bestellingen_van_je_winkel": "Manage all your store's orders",
+      "bestelling_verwijderen": "Delete order?",
+      "bestellingen_verschijnen_hier_zodra_klanten_iets": "Orders appear here as soon as customers place them",
+      "betaling": "Payment",
+      "markeer_als_afgeleverd": "Mark as delivered",
+      "markeer_als_verzonden": "Mark as shipped",
+      "probeer_andere_filters": "Try different filters",
+      "selecteer_alle_orders": "Select all orders"
     },
     "orderDetail": {
       "subtotaal": "Subtotal",
       "verzendkosten": "Shipping costs",
-      "profiel": "Profile"
+      "profiel": "Profile",
+      "acties_status": "Actions & status",
+      "andere_status_nodig_corrigeren": "Need a different status? Correct it…",
+      "bestelling_niet_gevonden": "Order not found.",
+      "datum_tijd_formaat": "d MMMM yyyy 'at' HH:mm",
+      "documenten_notities": "Documents & notes",
+      "download_pakbon": "Download packing slip",
+      "geen_factuur_beschikbaar": "No invoice available",
+      "interne_notities": "Internal notes",
+      "klant_adressen": "Customer & addresses",
+      "klantadres": "Customer address",
+      "marketplace_id": "Marketplace ID:",
+      "orderregels": "Order lines",
+      "retour_aanmaken": "Create return",
+      "status_corrigeren": "Correct status…",
+      "terug_naar_bestellingen": "Back to orders",
+      "versturen": "Send",
+      "verzendadres": "Shipping address",
+      "verzending_tracking": "Shipping & tracking",
+      "voeg_een_interne_notitie_toe": "Add an internal note..."
     },
     "campaignDetail": {
       "van_totaal": "% of total",
-      "versturen": "Sending..."
+      "versturen": "Sending...",
+      "activiteit_over_tijd": "Activity over time",
+      "alle_link_clicks": "All link clicks",
+      "alle_ontvangers_en_hun_status": "All recipients and their status",
+      "bounced": "Bounced",
+      "delivery_funnel": "Delivery funnel",
+      "gedetailleerd_overzicht_van_alle_clicks": "Detailed overview of all clicks",
+      "link_clicks": "Link clicks",
+      "nog_geen_link_clicks_geregistreerd": "No link clicks recorded yet",
+      "nog_geen_link_clicks_geregistreerd_2": "No link clicks recorded yet",
+      "nog_geen_ontvangers": "No recipients yet",
+      "ontvangers": "Recipients",
+      "opens_en_clicks_per_uur": "Opens and clicks per hour",
+      "terug_naar_marketing": "Back to marketing",
+      "top_geklikte_links": "Top clicked links",
+      "totaal_clicks": "Total clicks",
+      "uitgeschreven": "Unsubscribed",
+      "unieke_clicks": "Unique clicks",
+      "van_verzending_tot_conversie": "From sending to conversion",
+      "vernieuwen": "Refresh",
+      "wachten": "Waiting",
+      "welke_links_presteren_het_best": "Which links perform best"
     },
     "translationHub": {
-      "instellingen": "Settings"
+      "instellingen": "Settings",
+      "actieve_vertaaltaken": "Active translation jobs",
+      "alleen_ontbrekende_velden": "Only missing fields",
+      "alles_opnieuw_vertalen": "Retranslate everything",
+      "automatische_vertalingen": "Automatic translations",
+      "beheer_vertalingen_voor_al_je_content": "Manage translations for all your content with AI",
+      "bestaande_vertalingen_blijven_staan_goedkoopst": "Existing translations are kept — the cheapest option.",
+      "brontaal": "Source language",
+      "bulk_vertaling_starten": "Start bulk translation",
+      "categorieen_automatisch_vertalen": "Translate categories automatically",
+      "configureer_automatische_vertalingen_en_gedrag": "Configure automatic translations and behaviour",
+      "dekking": "Coverage",
+      "dekking_per_item_een_item_is": "Coverage per item — an item is 100% when all fields are translated into all target languages",
+      "doeltalen": "Target languages",
+      "doeltalen_2": "Target languages",
+      "credits_beschikbaar": "You have {{count}} credits available.",
+      "kies_wat_je_wil_vertalen_in": "Choose what you want to translate, into which languages and how.",
+      "marketing_automatisch_vertalen": "Translate marketing automatically",
+      "modus": "Mode",
+      "nederlands_nl_is_ingesteld_als_brontaal": "Dutch (NL) is set as the source language",
+      "onvoldoende_credits_koop_bij": "Not enough credits — buy more",
+      "overschrijft_bestaande_niet_vergrendelde_vertalingen": "Overwrites existing, unlocked translations.",
+      "per_taal": "Per language",
+      "producten_automatisch_vertalen": "Translate products automatically",
+      "recente_vertaaltaken": "Recent translation jobs",
+      "selecteer_alles": "Select all",
+      "seo_content_automatisch_vertalen": "Translate SEO content automatically",
+      "totale_dekking_alle_content": "Total coverage (all content)",
+      "verouderd_bron_gewijzigd_sinds_vertaling": "Outdated — the source changed since the translation",
+      "vertaal_e_mail_templates_en_campagnes": "Translate email templates and campaigns automatically",
+      "vertaal_meta_titels_en_beschrijvingen_automatisch": "Translate meta titles and descriptions automatically",
+      "vertaal_nieuwe_categorieen_automatisch_naar_alle": "Translate new categories automatically into all target languages",
+      "vertaal_nieuwe_producten_automatisch_naar_alle": "Translate new products automatically into all target languages",
+      "vertaalinstellingen": "Translation settings",
+      "ververst_alleen_vertalingen_waarvan_de_brontekst": "Refreshes only translations whose source text has changed.",
+      "voltooid_met_fouten": "Completed with {{count}} errors",
+      "welke_items": "Which items?",
+      "welke_velden": "Which fields?"
     },
     "analytics": {
-      "totale_omzet": "Total revenue"
+      "totale_omzet": "Total revenue",
+      "aantal_bestellingen_per_dag": "Number of orders per day",
+      "analytics": "Analytics",
+      "best_verkopende_producten_op_basis_van": "Best-selling products by revenue",
+      "bestellingen_over_tijd": "Orders over time",
+      "bestellingen_per_status": "Orders by status",
+      "dagelijkse_omzet_in_de_geselecteerde_periode": "Daily revenue in the selected period",
+      "geen_verkoopdata_gevonden": "No sales data found",
+      "gem_orderwaarde": "Avg. order value",
+      "inzicht_in_je_winkelstatistieken": "Insight into your store statistics",
+      "klantgroei": "Customer growth",
+      "nieuwe_klanten": "New customers",
+      "nieuwe_klanten_en_subscribers_per_dag": "New customers and subscribers per day",
+      "omzet_over_tijd": "Revenue over time",
+      "top_producten": "Top products",
+      "verdeling_van_orderstatus": "Order status breakdown"
     },
     "orderStatusBadge": {
       "status": {
@@ -2266,7 +4574,295 @@
         "cancelled": "Cancelled",
         "paid": "Paid",
         "refunded": "Refunded",
-        "failed": "Failed"
+        "failed": "Failed",
+        "partially_returned": "Partly returned",
+        "partially_refunded": "Partly refunded",
+        "returned": "Returned",
+        "processing": "Processing"
+      }
+    },
+    "orderBulkActions": {
+      "orders_bijgewerkt": "{{count}} order(s) updated to {{status}}",
+      "orders_niet_bijgewerkt": "{{count}} order(s) not updated: {{reason}}",
+      "betaalstatus_wijzigen": "Change payment status",
+      "exporteren_naar_csv": "Export to CSV",
+      "fout_bij_betaalstatus": "Payment status error",
+      "fout_bij_pakbonnen": "Error with packing slips",
+      "fout_bij_statuswijziging": "Error while changing status",
+      "fout_bij_verwijderen": "Error while deleting",
+      "labels_printen": "Print labels",
+      "orders_verwijderen": "Delete orders?",
+      "pakbonnen_downloaden": "Download packing slips",
+      "status_wijzigen": "Change status"
+    },
+    "widgets": {
+      "todayWidget": {
+        "vandaag": "📊 Today"
+      },
+      "statsGridWidget": {
+        "actieve_producten": "Active products",
+        "deze_maand": "this month",
+        "in_catalogus": "in the catalogue",
+        "omzet_deze_maand": "Revenue this month",
+        "openstaande_bestellingen": "Open orders",
+        "te_verwerken": "to process",
+        "vs_vorige_maand": "vs last month"
+      },
+      "recentOrdersWidget": {
+        "alles_bekijken": "View all",
+        "bestellingen_verschijnen_hier_zodra_ze_binnenkomen": "Orders appear here as soon as they come in",
+        "laatste_5_bestellingen": "Last 5 orders",
+        "nog_geen_bestellingen": "No orders yet",
+        "recente_bestellingen": "Recent orders"
+      },
+      "quickActionsWidget": {
+        "actions": {
+          "orders-all": "View orders",
+          "categories": "Manage categories",
+          "products": "Add a new product"
+        },
+        "snelle_acties": "Quick actions",
+        "veelgebruikte_taken": "Common tasks"
+      },
+      "lowStockWidget": {
+        "geen_producten_met_lage_voorraad": "No products with low stock",
+        "producten_die_bijna_op_zijn": "Products that are nearly out of stock"
+      },
+      "badgesWidget": {
+        "jouw_badges": "Your badges"
+      }
+    },
+    "reports": {
+      "globalDateRangePicker": {
+        "aangepaste_periode": "Custom period...",
+        "presets": {
+          "this_month": "This month",
+          "this_year": "This year",
+          "this_quarter": "This quarter",
+          "last_year": "Last year",
+          "last_quarter": "Last quarter",
+          "last_month": "Last month"
+        },
+        "selecteer_periode": "Select period"
+      },
+      "reportCard": {
+        "intervat_xml": "INTERVAT XML",
+        "odoo_csv": "Odoo CSV"
+      }
+    },
+    "adsBolcomKeywords": {
+      "actieve_keywords": "Active keywords",
+      "active": "Active",
+      "ad_group": "Ad group",
+      "alle_campagnes": "All campaigns",
+      "beste_keyword": "Best keyword",
+      "bol_com_keywords": "Bol.com keywords",
+      "geen_keywords_gevonden": "No keywords found",
+      "gemiddeld_bod": "Average bid",
+      "keywords": "Keywords",
+      "maak_eerst_een_campagne_aan_of": "Create a campaign first, or sync existing campaigns.",
+      "paused": "Paused",
+      "revenue": "Revenue",
+      "zoek_keyword": "Search keyword..."
+    },
+    "customerDetail": {
+      "activiteit": "Activity",
+      "bestelnummer": "Order number",
+      "contactgegevens": "Contact details",
+      "deze_prospect_heeft_nog_geen_bestelling": "This prospect has not placed an order yet.",
+      "factuuradres": "Billing address",
+      "geen_adres_bekend": "No address on file",
+      "geen_bestellingen_gevonden": "No orders found",
+      "geen_gesprekken_gevonden": "No conversations found",
+      "geen_voorkeur_tenant_standaard": "No preference (tenant default)",
+      "gegevens": "Details",
+      "gesprekken": "Conversations",
+      "gesprekken_2": "Conversations",
+      "geverifieerd": "Verified",
+      "klant_nog_niet_in_klantenbestand_of": "The customer is not in the customer base yet, or no longer exists.",
+      "notities": "Notes",
+      "terug_naar_klanten": "Back to customers",
+      "toevoegen_aan_klantenbestand": "Add to customer base",
+      "voorkeurstaal": "Preferred language"
+    },
+    "sEODashboard": {
+      "afbeelding_alt_teksten": "Image alt texts",
+      "ai_zoekprestaties": "AI & search performance",
+      "ai_analyse_starten": "Start AI analysis",
+      "ai_search": "AI search",
+      "ai_search_optimalisatie_en_google_search": "AI search optimisation and Google Search Console",
+      "alle_producten_hebben_afbeeldingen": "All products have images",
+      "alle_producten_hebben_een_meta_description": "All products have a meta description",
+      "alle_producten_hebben_een_meta_title": "All products have a meta title",
+      "automatische_audits": "Automatic audits",
+      "bekijk_de_ontwikkeling_van_je_seo": "See how your SEO score develops over time",
+      "categorie_seo": "Category SEO",
+      "content_optimalisatie": "Content optimisation",
+      "de_belangrijkste_verbeterpunten_om_je_seo": "The most important improvements to raise your SEO score quickly",
+      "dynamische_sitemap_met_alle_producten": "Dynamic sitemap with all products",
+      "er_zijn_verbeterpunten_voor_je_seo": "There are improvements to make to your SEO.",
+      "geconfigureerd_voor_zoekmachines": "Configured for search engines",
+      "json_ld_product_schema_aanwezig": "JSON-LD Product schema present",
+      "keyword_research_concurrent_analyse_en_automatische": "Keyword research, competitor analysis and automatic audits",
+      "meta_descriptions": "Meta descriptions",
+      "meta_score": "Meta score",
+      "meta_titles": "Meta titles",
+      "optimaliseer_meta_tags_beschrijvingen_en_afbeeldingen": "Optimise meta tags, descriptions and images",
+      "product_afbeeldingen": "Product images",
+      "product_seo": "Product SEO",
+      "robots_txt": "Robots.txt",
+      "score_geschiedenis": "Score history",
+      "seo_dashboard": "SEO dashboard",
+      "sitemap_xml": "Sitemap.xml",
+      "start_hier_quick_wins": "Start here: quick wins",
+      "start_met_de_quick_wins_hieronder": "Start with the quick wins below.",
+      "structured_data": "Structured data",
+      "technische_seo": "Technical SEO",
+      "web_vitals_structured_data_robots_txt": "Web Vitals, structured data, robots.txt and sitemap"
+    },
+    "adsBolcomSearchTerms": {
+      "alleen_met_ai_suggestie": "Only with an AI suggestion",
+      "alleen_zonder_conversies": "Only without conversions",
+      "bod": "Bid (€)",
+      "bol_com_zoektermen": "Bol.com search terms",
+      "geen_zoektermen_gevonden": "No search terms found",
+      "match_type": "Match type",
+      "met_conversies": "With conversions",
+      "negatief": "Negative",
+      "promoveren_tot_keyword": "Promote to keyword",
+      "unieke_zoektermen": "Unique search terms",
+      "zoek_zoekterm": "Search a search term...",
+      "zoekterm": "Search term:",
+      "zoektermen": "Search terms",
+      "zoektermen_worden_beschikbaar_nadat_je_campagnes": "Search terms become available once your campaigns are active and generating data.",
+      "zonder_conversies": "Without conversions"
+    },
+    "autoDiscounts": {
+      "automatische_korting_verwijderen": "Delete automatic discount?",
+      "automatische_kortingen": "Automatic discounts",
+      "gebruik": "Usage:",
+      "geen_automatische_kortingen": "No automatic discounts",
+      "korting_aanmaken": "Create discount",
+      "kortingen_die_automatisch_toegepast_worden_bij": "Discounts applied automatically at checkout",
+      "maak_je_eerste_automatische_korting_aan": "Create your first automatic discount",
+      "nieuwe_korting": "New discount",
+      "trigger": "Trigger:",
+      "waarde": "Value:"
+    },
+    "messages": {
+      "beheer_alle_communicatie_met_klanten_via": "Manage all customer communication via email and social media",
+      "kies_een_gesprek_uit_de_lijst": "Choose a conversation from the list to view and reply to messages.",
+      "klantgesprekken": "Customer conversations",
+      "mappen": "Folders",
+      "nieuw": "New",
+      "selecteer_een_gesprek": "Select a conversation"
+    },
+    "bogoPromotions": {
+      "bogo_actie_verwijderen": "Delete BOGO promotion?",
+      "bogo_acties": "BOGO promotions",
+      "geen_bogo_acties_gevonden": "No BOGO promotions found",
+      "koop": "Buy",
+      "koop_x_krijg_y_gratis_of": "Buy X get Y free or discounted",
+      "krijg": "Get",
+      "nieuwe_bogo_actie": "New BOGO promotion",
+      "zoek_acties": "Search actions..."
+    },
+    "customerGroups": {
+      "btw_vrijgesteld": "VAT exempt:",
+      "deze_actie_kan_niet_ongedaan_worden": "This action cannot be undone. All members will be unlinked.",
+      "geen_klantengroepen": "No customer groups",
+      "groep_aanmaken": "Create group",
+      "klantengroep_verwijderen": "Delete customer group?",
+      "klantengroepen": "Customer groups",
+      "maak_je_eerste_klantengroep_aan": "Create your first customer group",
+      "min_bestelling": "Min order:",
+      "nieuwe_groep": "New group",
+      "prioriteit": "Priority:",
+      "speciale_prijzen_en_kortingen_voor_klantgroepen": "Special prices and discounts for customer groups",
+      "standaard_korting": "Default discount:"
+    },
+    "bundles": {
+      "bundel_aanmaken": "Create bundle",
+      "bundel_verwijderen": "Delete bundle?",
+      "deze_actie_kan_niet_ongedaan_worden": "This action cannot be undone.",
+      "geen_bundels": "No bundles",
+      "geldig_tot": "Valid until:",
+      "korting": "Discount:",
+      "maak_bundels_van_producten_met_speciale": "Create product bundles with special prices",
+      "maak_je_eerste_product_bundel_aan": "Create your first product bundle",
+      "nieuwe_bundel": "New bundle",
+      "product_bundels": "Product bundles",
+      "producten": "Products:"
+    },
+    "giftPromotions": {
+      "cadeau": "Gift:",
+      "cadeaus_bij_aankoop": "Gifts with purchase",
+      "geen_gift_acties": "No gift promotions",
+      "gift_actie_aanmaken": "Create gift promotion",
+      "gift_actie_verwijderen": "Delete gift promotion?",
+      "gratis_producten_bij_bepaalde_bestellingen": "Free products with certain orders",
+      "maak_je_eerste_cadeau_actie_aan": "Create your first gift promotion",
+      "nieuwe_gift_actie": "New gift promotion",
+      "voorraad": "Stock:"
+    },
+    "loyaltyPrograms": {
+      "eerste_programma_aanmaken": "Create your first programme",
+      "geen_loyaliteitsprogramma_s": "No loyalty programmes",
+      "leden": "Members",
+      "loyaliteitsprogramma_s": "Loyalty programmes",
+      "min_punten": "Min points",
+      "nieuw_programma": "New programme",
+      "programma_verwijderen": "Delete programme?",
+      "punten_multiplier": "Points multiplier",
+      "spaarpunten_en_vip_tiers_voor_je": "Loyalty points and VIP tiers for your customers",
+      "start_een_spaarprogramma_om_klanten_te": "Start a loyalty programme to reward customers",
+      "tier": "Tier"
+    },
+    "dashboard": {
+      "ga_naar_platform_beheer": "Go to platform administration",
+      "geen_winkel_gevonden": "No store found",
+      "je_hebt_nog_geen_toegang_tot": "You do not have access to a store yet. Please contact an administrator.",
+      "je_hebt_volledige_toegang_tot_het": "You have full access to the platform",
+      "platform_administrator": "Platform administrator"
+    },
+    "volumeDiscounts": {
+      "geef_korting_op_basis_van_bestelwaarde": "Give a discount based on order value or quantity",
+      "geen_staffelkortingen": "No volume discounts",
+      "maak_je_eerste_staffelkorting_aan": "Create your first volume discount",
+      "nieuwe_staffel": "New tier",
+      "staffel_aanmaken": "Create tier",
+      "staffelkorting_verwijderen": "Delete volume discount?",
+      "staffelkortingen": "Volume discounts",
+      "staffels": "Tiers:"
+    },
+    "help": {
+      "helpcenter": "Help centre",
+      "aIHelpChatWindow": {
+        "hoe_kan_ik_je_helpen": "How can I help you?",
+        "nieuw_gesprek": "New conversation",
+        "stel_een_vraag_over_het_sellqo": "Ask a question about the SellQo platform",
+        "stel_je_vraag": "Ask your question..."
+      },
+      "aIHelpWidget": {
+        "minimaliseer": "Minimise"
+      },
+      "selecteer_een_artikel_om_te_lezen": "Select an article to read",
+      "vind_antwoorden_op_je_vragen": "Find answers to your questions",
+      "vraag_het_de_assistent": "Ask the assistant"
+    },
+    "floatingSaveBar": {
+      "onopgeslagen_wijzigingen": "Unsaved changes"
+    },
+    "translations": {
+      "entityTranslationTabs": {
+        "ontgrendelen": "Unlock",
+        "ontgrendelen_ai_mag_deze_vertaling_overschrijven": "Unlock — AI may overwrite this translation",
+        "vergrendeld": "Locked",
+        "vergrendelen": "Lock",
+        "vergrendelen_wordt_niet_overschreven_door_ai": "Lock — will not be overwritten by AI",
+        "vertaling_ontgrendeld": "Translation unlocked",
+        "vertaling_vergrendeld": "Translation locked",
+        "vertalingen_opgeslagen": "Translations saved"
       }
     }
   },

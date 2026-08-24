@@ -32,7 +32,11 @@ const VALIDATORS = ['min', 'max', 'email', 'url', 'uuid', 'regex', 'length', 'no
 const STR = String.raw`(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")`;
 const msgRe = new RegExp(String.raw`\.(${VALIDATORS.join('|')})\(([^()'"]*?,\s*)${STR}\)`, 'g');
 const bareRe = new RegExp(String.raw`\.(email|url|uuid|nonempty|positive|int)\(\s*${STR}\s*\)`, 'g');
-const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
+const unescape = (v) =>
+  v.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+   .replace(/\\n/g, '\n')
+   .replace(/\\t/g, '\t')
+   .replace(/\\(['"\\])/g, '$1');
 
 const nl = readLocale('nl');
 const valueToKeys = new Map();
