@@ -21,14 +21,15 @@ import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 
 const folderConfig = [
-  { id: 'all', label: 'Alles', icon: FolderOpen },
-  { id: 'products', label: 'Producten', icon: Package },
-  { id: 'categories', label: 'Categorieën', icon: FolderTree },
-  { id: 'campaigns', label: 'Campagnes', icon: Sparkles },
-  { id: 'social', label: 'Social', icon: ImageIcon },
-  { id: 'favorites', label: 'Favorieten', icon: Star },
+  { id: 'all', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.alles', icon: FolderOpen },
+  { id: 'products', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.producten', icon: Package },
+  { id: 'categories', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.categorie_n', icon: FolderTree },
+  { id: 'campaigns', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.campagnes', icon: Sparkles },
+  { id: 'social', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.social', icon: ImageIcon },
+  { id: 'favorites', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.favorieten', icon: Star },
 ];
 
 interface VirtualAsset {
@@ -56,6 +57,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
   onSelect: () => void;
   selectionActive: boolean;
 }) {
+  const { t } = useTranslation();
   const isProduct = asset.source === 'product';
   const isCategory = asset.source === 'category';
 
@@ -131,12 +133,12 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
                       <a href={asset.file_url} download={asset.file_name} target="_blank" rel="noreferrer">
-                        <Download className="h-4 w-4 mr-2" />Downloaden
+                        <Download className="h-4 w-4 mr-2" />{t('admin.marketing.mediaAssetsLibrary.downloaden')}
                       </a>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                      <Trash2 className="h-4 w-4 mr-2" />Verwijderen
+                      <Trash2 className="h-4 w-4 mr-2" />{t('admin.marketing.mediaAssetsLibrary.verwijderen')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -149,13 +151,13 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
             {isProduct && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700">
                 <Package className="h-2.5 w-2.5 mr-0.5" />
-                Product
+                {t('admin.stockReport.colName')}
               </Badge>
             )}
             {isCategory && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-100 text-green-700">
                 <FolderTree className="h-2.5 w-2.5 mr-0.5" />
-                Categorie
+                {t('admin.marketing.templateDialog.categorie')}
               </Badge>
             )}
             {asset.is_ai_generated && (
@@ -192,6 +194,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
 }
 
 export function MediaAssetsLibrary() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [folder, setFolder] = useState('all');
@@ -327,7 +330,7 @@ export function MediaAssetsLibrary() {
         // continue
       }
     }
-    toast.success(`${success} van ${deletable.length} assets verwijderd`);
+    toast.success(t('admin.marketing.mediaAssetsLibrary.assets_verwijderd', { success, total: deletable.length }));
     clearSelection();
   };
 
@@ -364,7 +367,7 @@ export function MediaAssetsLibrary() {
     }
 
     setBulkProcessing(false);
-    toast.success(`${success} van ${selectedAssets.length} achtergronden verwijderd`);
+    toast.success(t('admin.marketing.mediaAssetsLibrary.achtergronden_verwijderd', { success, total: selectedAssets.length }));
     clearSelection();
   };
 
@@ -414,7 +417,7 @@ export function MediaAssetsLibrary() {
           )}
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Zoeken in assets..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-[250px]" />
+            <Input placeholder={t('admin.marketing.mediaAssetsLibrary.zoeken_in_assets')} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-[250px]" />
           </div>
         </div>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'list')}>
@@ -430,7 +433,7 @@ export function MediaAssetsLibrary() {
         <TabsList>
           {folderConfig.map(f => (
             <TabsTrigger key={f.id} value={f.id} className="gap-1.5">
-              <f.icon className="h-3.5 w-3.5" />{f.label}
+              <f.icon className="h-3.5 w-3.5" />{t(f.labelKey)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -448,13 +451,13 @@ export function MediaAssetsLibrary() {
         <input {...getInputProps()} />
         <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
         {isDragActive ? (
-          <p className="text-sm">Drop de bestanden hier...</p>
+          <p className="text-sm">{t('admin.marketing.mediaAssetsLibrary.drop_de_bestanden_hier')}</p>
         ) : uploading ? (
-          <p className="text-sm">Uploaden...</p>
+          <p className="text-sm">{t('admin.marketing.mediaAssetsLibrary.uploaden')}</p>
         ) : (
           <>
-            <p className="text-sm font-medium">Sleep bestanden hierheen of klik om te uploaden</p>
-            <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP, GIF tot 10MB</p>
+            <p className="text-sm font-medium">{t('admin.marketing.mediaAssetsLibrary.sleep_bestanden_hierheen_of_klik_om')}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('admin.marketing.mediaAssetsLibrary.jpg_png_webp_gif_tot_10mb')}</p>
           </>
         )}
       </div>
@@ -467,8 +470,8 @@ export function MediaAssetsLibrary() {
       ) : allAssets.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-          <p>Geen assets gevonden</p>
-          <p className="text-sm mt-1">Upload je eerste asset om te beginnen</p>
+          <p>{t('admin.marketing.mediaAssetsLibrary.geen_assets_gevonden')}</p>
+          <p className="text-sm mt-1">{t('admin.marketing.mediaAssetsLibrary.upload_je_eerste_asset_om_te')}</p>
         </div>
       ) : (
         <div className={cn(
@@ -509,16 +512,16 @@ export function MediaAssetsLibrary() {
               <div className="h-6 w-px bg-border" />
               <Button size="sm" variant="outline" onClick={handleBulkRemoveBackground} className="gap-1.5">
                 <Eraser className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Achtergrond verwijderen</span>
+                <span className="hidden sm:inline">{t('admin.marketing.mediaAssetsLibrary.achtergrond_verwijderen')}</span>
               </Button>
               <Button size="sm" variant="outline" onClick={handleBulkDownload} className="gap-1.5">
                 <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Downloaden</span>
+                <span className="hidden sm:inline">{t('admin.marketing.mediaAssetsLibrary.downloaden')}</span>
               </Button>
               {selectedAssets.some(a => a.source === 'upload') && (
                 <Button size="sm" variant="outline" onClick={handleBulkDelete} className="gap-1.5 text-destructive hover:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Verwijderen</span>
+                  <span className="hidden sm:inline">{t('common.delete')}</span>
                 </Button>
               )}
               <div className="h-6 w-px bg-border" />

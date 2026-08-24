@@ -33,7 +33,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface AIContent {
   id: string;
@@ -61,6 +62,8 @@ const typeLabels: Record<string, string> = {
 };
 
 export function AIContentLibrary() {
+  const dateLocale = useDateFnsLocale();
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -145,7 +148,7 @@ export function AIContentLibrary() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Library className="h-5 w-5" />
-            Content Bibliotheek
+            {t('admin.marketing.aIContentLibrary.content_bibliotheek')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -164,7 +167,7 @@ export function AIContentLibrary() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Library className="h-5 w-5" />
-              Content Bibliotheek
+              {t('admin.marketing.aIContentLibrary.content_bibliotheek')}
             </CardTitle>
             <Badge variant="secondary">{content?.length || 0} items</Badge>
           </div>
@@ -175,7 +178,7 @@ export function AIContentLibrary() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Zoeken..."
+                placeholder={t('common.search')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -187,10 +190,10 @@ export function AIContentLibrary() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle types</SelectItem>
-                <SelectItem value="social">Social Media</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="suggestion">Suggesties</SelectItem>
+                <SelectItem value="all">{t('admin.marketing.aIContentLibrary.alle_types')}</SelectItem>
+                <SelectItem value="social">{t('admin.marketing.aIContentLibrary.social_media')}</SelectItem>
+                <SelectItem value="email">{t('admin.marketing.aIContentLibrary.email')}</SelectItem>
+                <SelectItem value="suggestion">{t('admin.marketing.aIContentLibrary.suggesties')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -199,8 +202,8 @@ export function AIContentLibrary() {
           {filteredContent?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Library className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Nog geen AI content gegenereerd</p>
-              <p className="text-sm">Genereer content via de andere tabs</p>
+              <p>{t('admin.marketing.aIContentLibrary.nog_geen_ai_content_gegenereerd')}</p>
+              <p className="text-sm">{t('admin.marketing.aIContentLibrary.genereer_content_via_de_andere_tabs')}</p>
             </div>
           ) : (
             <ScrollArea className="h-[400px]">
@@ -230,7 +233,7 @@ export function AIContentLibrary() {
                           )}
                           {item.is_used && (
                             <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs shrink-0">
-                              Gebruikt
+                              {t('admin.marketing.aIContentLibrary.gebruikt')}
                             </Badge>
                           )}
                         </div>
@@ -238,7 +241,7 @@ export function AIContentLibrary() {
                           {item.content_text?.substring(0, 150)}...
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(item.created_at), 'PPp', { locale: nl })}
+                          {format(new Date(item.created_at), 'PPp', { locale: dateLocale })}
                         </p>
                       </div>
                       <DropdownMenu>
@@ -250,7 +253,7 @@ export function AIContentLibrary() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setPreviewContent(item)}>
                             <Eye className="mr-2 h-4 w-4" />
-                            Bekijken
+                            {t('admin.marketing.aIContentLibrary.bekijken')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleCopy(item)}>
                             {copiedId === item.id ? (
@@ -263,7 +266,7 @@ export function AIContentLibrary() {
                           {!item.is_used && (
                             <DropdownMenuItem onClick={() => markAsUsedMutation.mutate(item.id)}>
                               <ExternalLink className="mr-2 h-4 w-4" />
-                              Markeer als gebruikt
+                              {t('admin.marketing.aIContentLibrary.markeer_als_gebruikt')}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -271,7 +274,7 @@ export function AIContentLibrary() {
                             className="text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Verwijderen
+                            {t('common.delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -302,12 +305,12 @@ export function AIContentLibrary() {
           </ScrollArea>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setPreviewContent(null)}>
-              Sluiten
+              {t('common.close')}
             </Button>
             {previewContent && (
               <Button onClick={() => handleCopy(previewContent)}>
                 <Copy className="mr-2 h-4 w-4" />
-                Kopiëren
+                {t('admin.marketing.aIContentLibrary.kopieren')}
               </Button>
             )}
           </div>

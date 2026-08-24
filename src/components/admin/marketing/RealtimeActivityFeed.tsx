@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface ActivityItem {
   id: string;
@@ -16,6 +17,8 @@ interface ActivityItem {
 }
 
 export function RealtimeActivityFeed() {
+  const dateLocale = useDateFnsLocale();
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -135,8 +138,8 @@ export function RealtimeActivityFeed() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardTitle className="text-base">Live Activiteit</CardTitle>
-          <CardDescription>Realtime email interacties</CardDescription>
+          <CardTitle className="text-base">{t('admin.marketing.realtimeActivityFeed.live_activiteit')}</CardTitle>
+          <CardDescription>{t('admin.marketing.realtimeActivityFeed.realtime_email_interacties')}</CardDescription>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -153,7 +156,7 @@ export function RealtimeActivityFeed() {
         {activities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Nog geen activiteit</p>
+            <p className="text-sm">{t('admin.marketing.realtimeActivityFeed.nog_geen_activiteit')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -176,7 +179,7 @@ export function RealtimeActivityFeed() {
                   <p className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(activity.timestamp), {
                       addSuffix: true,
-                      locale: nl,
+                      locale: dateLocale,
                     })}
                   </p>
                 </div>

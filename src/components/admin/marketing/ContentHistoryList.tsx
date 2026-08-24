@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Search, Filter, Mail, Instagram, Facebook, Linkedin, Twitter, Sparkles, Lightbulb, MoreHorizontal, Eye, Copy, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface ContentHistoryItem {
   id: string;
@@ -39,16 +40,18 @@ const platformIcons: Record<string, React.ReactNode> = {
   email: <Mail className="h-3 w-3" />,
 };
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  draft: { label: 'Draft', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
-  scheduled: { label: 'Gepland', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-  published: { label: 'Gepubliceerd', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-  sent: { label: 'Verzonden', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-  pending: { label: 'Wachtend', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
-  failed: { label: 'Mislukt', className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+const statusConfig: Record<string, { labelKey: string; className: string }> = {
+  draft: { labelKey: 'admin.marketing.contentHistoryList.status.draft', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+  scheduled: { labelKey: 'admin.marketing.contentHistoryList.status.gepland', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  published: { labelKey: 'admin.marketing.contentHistoryList.status.gepubliceerd', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  sent: { labelKey: 'admin.marketing.contentHistoryList.status.verzonden', className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  pending: { labelKey: 'admin.marketing.contentHistoryList.status.wachtend', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+  failed: { labelKey: 'admin.marketing.contentHistoryList.status.mislukt', className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
 };
 
 export function ContentHistoryList() {
+  const dateLocale = useDateFnsLocale();
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -147,12 +150,12 @@ export function ContentHistoryList() {
     <Card>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle>Content Historiek</CardTitle>
+          <CardTitle>{t('admin.marketing.contentHistoryList.content_historiek')}</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Zoeken..."
+                placeholder={t('common.search')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 w-[200px]"
@@ -160,26 +163,26 @@ export function ContentHistoryList() {
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Alle types" />
+                <SelectValue placeholder={t('admin.marketing.aIContentLibrary.alle_types')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle types</SelectItem>
-                <SelectItem value="social_post">Social Posts</SelectItem>
-                <SelectItem value="email_campaign">Email</SelectItem>
-                <SelectItem value="ai_content">AI Content</SelectItem>
-                <SelectItem value="ai_suggestion">AI Suggesties</SelectItem>
+                <SelectItem value="all">{t('admin.marketing.aIContentLibrary.alle_types')}</SelectItem>
+                <SelectItem value="social_post">{t('admin.marketing.contentHistoryList.social_posts')}</SelectItem>
+                <SelectItem value="email_campaign">{t('admin.marketing.aIContentLibrary.email')}</SelectItem>
+                <SelectItem value="ai_content">{t('admin.marketing.contentHistoryList.ai_content')}</SelectItem>
+                <SelectItem value="ai_suggestion">{t('admin.marketing.contentHistoryList.ai_suggesties')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Alle statussen" />
+                <SelectValue placeholder={t('admin.marketing.contentHistoryList.alle_statussen_2')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle statussen</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="scheduled">Gepland</SelectItem>
-                <SelectItem value="published">Gepubliceerd</SelectItem>
-                <SelectItem value="sent">Verzonden</SelectItem>
+                <SelectItem value="all">{t('admin.marketing.contentHistoryList.alle_statussen')}</SelectItem>
+                <SelectItem value="draft">{t('admin.marketing.contentHistoryList.draft')}</SelectItem>
+                <SelectItem value="scheduled">{t('admin.marketing.contentHistoryList.gepland')}</SelectItem>
+                <SelectItem value="published">{t('admin.marketing.contentHistoryList.gepubliceerd')}</SelectItem>
+                <SelectItem value="sent">{t('admin.marketing.contentHistoryList.verzonden')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -193,18 +196,18 @@ export function ContentHistoryList() {
         ) : filteredItems.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             <Filter className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>Geen content gevonden</p>
-            <p className="text-sm mt-1">Probeer andere filters of zoektermen</p>
+            <p>{t('admin.marketing.contentHistoryList.geen_content_gevonden')}</p>
+            <p className="text-sm mt-1">{t('admin.marketing.contentHistoryList.probeer_andere_filters_of_zoektermen')}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">Type</TableHead>
-                <TableHead>Titel</TableHead>
-                <TableHead className="w-[100px]">Platform</TableHead>
-                <TableHead className="w-[120px]">Status</TableHead>
-                <TableHead className="w-[120px]">Datum</TableHead>
+                <TableHead className="w-[50px]">{t('admin.marketing.contentHistoryList.type')}</TableHead>
+                <TableHead>{t('admin.marketing.contentHistoryList.titel')}</TableHead>
+                <TableHead className="w-[100px]">{t('admin.marketing.contentHistoryList.platform')}</TableHead>
+                <TableHead className="w-[120px]">{t('common.status')}</TableHead>
+                <TableHead className="w-[120px]">{t('common.date')}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -230,11 +233,11 @@ export function ContentHistoryList() {
                       variant="secondary" 
                       className={cn('text-xs', statusConfig[item.status]?.className)}
                     >
-                      {statusConfig[item.status]?.label || item.status}
+                      {statusConfig[item.status] ? t(statusConfig[item.status].labelKey) : item.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {format(new Date(item.created_at), 'd MMM yyyy', { locale: nl })}
+                    {format(new Date(item.created_at), 'd MMM yyyy', { locale: dateLocale })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -246,15 +249,15 @@ export function ContentHistoryList() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>
                           <Eye className="h-4 w-4 mr-2" />
-                          Bekijken
+                          {t('admin.marketing.aIContentLibrary.bekijken')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Copy className="h-4 w-4 mr-2" />
-                          Kopiëren
+                          {t('admin.marketing.aIContentLibrary.kopieren')}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Verwijderen
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

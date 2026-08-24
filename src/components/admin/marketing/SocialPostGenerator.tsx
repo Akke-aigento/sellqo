@@ -31,11 +31,13 @@ import { ProductSelectDialog } from './ProductSelectDialog';
 import { SchedulePublishButton } from './SchedulePublishButton';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 type Platform = 'instagram' | 'facebook' | 'linkedin' | 'twitter';
 type ContentType = 'product_highlight' | 'low_stock_alert' | 'new_arrival' | 'seasonal' | 'custom';
 type Tone = 'professional' | 'casual' | 'playful' | 'urgent';
 
+// Merknamen blijven letterlijk staan.
 const platforms = [
   { id: 'instagram' as Platform, name: 'Instagram', icon: Instagram, color: 'text-pink-500' },
   { id: 'facebook' as Platform, name: 'Facebook', icon: Facebook, color: 'text-blue-600' },
@@ -43,19 +45,20 @@ const platforms = [
   { id: 'twitter' as Platform, name: 'X / Twitter', icon: Twitter, color: 'text-foreground' },
 ];
 
+// Labels staan als i18n-key; `id` blijft de ContentType-enumwaarde.
 const contentTypes = [
-  { id: 'product_highlight' as ContentType, name: 'Product Highlight', description: 'Zet een product in de spotlight', needsProducts: true },
-  { id: 'low_stock_alert' as ContentType, name: 'Laatste Kans', description: 'Urgentie voor bijna uitverkochte items', needsProducts: false },
-  { id: 'new_arrival' as ContentType, name: 'Nieuwe Collectie', description: 'Kondig nieuwe producten aan', needsProducts: true },
-  { id: 'seasonal' as ContentType, name: 'Seizoensgebonden', description: 'Passend bij het seizoen of feestdag', needsProducts: false },
-  { id: 'custom' as ContentType, name: 'Eigen Idee', description: 'Schrijf je eigen prompt', needsProducts: false },
+  { id: 'product_highlight' as ContentType, nameKey: 'admin.marketing.socialPostGenerator.contentTypes.product_highlight.name', descriptionKey: 'admin.marketing.socialPostGenerator.contentTypes.product_highlight.description', needsProducts: true },
+  { id: 'low_stock_alert' as ContentType, nameKey: 'admin.marketing.socialPostGenerator.contentTypes.low_stock_alert.name', descriptionKey: 'admin.marketing.socialPostGenerator.contentTypes.low_stock_alert.description', needsProducts: false },
+  { id: 'new_arrival' as ContentType, nameKey: 'admin.marketing.socialPostGenerator.contentTypes.new_arrival.name', descriptionKey: 'admin.marketing.socialPostGenerator.contentTypes.new_arrival.description', needsProducts: true },
+  { id: 'seasonal' as ContentType, nameKey: 'admin.marketing.socialPostGenerator.contentTypes.seasonal.name', descriptionKey: 'admin.marketing.socialPostGenerator.contentTypes.seasonal.description', needsProducts: false },
+  { id: 'custom' as ContentType, nameKey: 'admin.marketing.socialPostGenerator.contentTypes.custom.name', descriptionKey: 'admin.marketing.socialPostGenerator.contentTypes.custom.description', needsProducts: false },
 ];
 
 const tones = [
-  { id: 'casual' as Tone, name: 'Casual', emoji: '😊' },
-  { id: 'professional' as Tone, name: 'Professioneel', emoji: '💼' },
-  { id: 'playful' as Tone, name: 'Speels', emoji: '🎉' },
-  { id: 'urgent' as Tone, name: 'Urgent', emoji: '⚡' },
+  { id: 'casual' as Tone, nameKey: 'admin.marketing.socialPostGenerator.tones.casual.name', emoji: '😊' },
+  { id: 'professional' as Tone, nameKey: 'admin.marketing.socialPostGenerator.tones.professional.name', emoji: '💼' },
+  { id: 'playful' as Tone, nameKey: 'admin.marketing.socialPostGenerator.tones.playful.name', emoji: '🎉' },
+  { id: 'urgent' as Tone, nameKey: 'admin.marketing.socialPostGenerator.tones.urgent.name', emoji: '⚡' },
 ];
 
 interface SocialPostGeneratorProps {
@@ -64,6 +67,7 @@ interface SocialPostGeneratorProps {
 }
 
 export function SocialPostGenerator({ initialContentType, initialProductIds }: SocialPostGeneratorProps) {
+  const { t, i18n } = useTranslation();
   const [platform, setPlatform] = useState<Platform>('instagram');
   const [contentType, setContentType] = useState<ContentType>(initialContentType || 'product_highlight');
   const [tone, setTone] = useState<Tone>('casual');
@@ -132,16 +136,16 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
             <div className="p-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500">
               <Wand2 className="h-4 w-4 text-white" />
             </div>
-            Social Media Generator
+            {t('admin.marketing.socialPostGenerator.social_media_generator')}
           </CardTitle>
           <CardDescription>
-            Genereer posts voor Instagram, Facebook, LinkedIn en X
+            {t('admin.marketing.socialPostGenerator.genereer_posts_voor_instagram_facebook_linkedin')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Platform Selection */}
           <div className="space-y-2">
-            <Label>Platform</Label>
+            <Label>{t('admin.marketing.contentHistoryList.platform')}</Label>
             <div className="flex gap-2">
               {platforms.map((p) => (
                 <Button
@@ -165,7 +169,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
 
           {/* Content Type */}
           <div className="space-y-2">
-            <Label>Type Content</Label>
+            <Label>{t('admin.marketing.socialPostGenerator.type_content')}</Label>
             <Select value={contentType} onValueChange={(v) => {
               setContentType(v as ContentType);
               // Reset products if new type doesn't need them
@@ -180,9 +184,9 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                 {contentTypes.map((ct) => (
                   <SelectItem key={ct.id} value={ct.id}>
                     <div>
-                      <span className="font-medium">{ct.name}</span>
+                      <span className="font-medium">{t(ct.nameKey)}</span>
                       <span className="text-muted-foreground text-xs ml-2">
-                        {ct.description}
+                        {t(ct.descriptionKey)}
                       </span>
                     </div>
                   </SelectItem>
@@ -194,7 +198,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
           {/* Product Selection */}
           {needsProducts && (
             <div className="space-y-2">
-              <Label>Producten (optioneel)</Label>
+              <Label>{t('admin.marketing.aIEmailPlanner.producten_optioneel')}</Label>
               <Button
                 variant="outline"
                 className="w-full justify-start"
@@ -202,7 +206,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
               >
                 <Package className="h-4 w-4 mr-2" />
                 {selectedProductIds.length > 0 
-                  ? `${selectedProductIds.length} product${selectedProductIds.length > 1 ? 'en' : ''} geselecteerd`
+                  ? t('admin.marketing.socialPostGenerator.producten_geselecteerd', { count: selectedProductIds.length })
                   : 'Kies producten om te highlighten'
                 }
               </Button>
@@ -213,7 +217,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                   onClick={() => setSelectedProductIds([])}
                   className="text-muted-foreground"
                 >
-                  Selectie wissen
+                  {t('admin.marketing.aIEmailPlanner.selectie_wissen')}
                 </Button>
               )}
             </div>
@@ -222,9 +226,9 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
           {/* Custom Prompt */}
           {contentType === 'custom' && (
             <div className="space-y-2">
-              <Label>Je idee</Label>
+              <Label>{t('admin.marketing.socialPostGenerator.je_idee')}</Label>
               <Textarea
-                placeholder="Beschrijf wat je wilt promoten..."
+                placeholder={t('admin.marketing.socialPostGenerator.beschrijf_wat_je_wilt_promoten')}
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 rows={3}
@@ -234,16 +238,16 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
 
           {/* Tone Selection */}
           <div className="space-y-2">
-            <Label>Toon</Label>
+            <Label>{t('admin.marketing.inlinePromoWizard.toon')}</Label>
             <div className="flex gap-2">
-              {tones.map((t) => (
+              {tones.map((opt) => (
                 <Button
-                  key={t.id}
-                  variant={tone === t.id ? 'default' : 'outline'}
+                  key={opt.id}
+                  variant={tone === opt.id ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTone(t.id)}
+                  onClick={() => setTone(opt.id)}
                 >
-                  {t.emoji} {t.name}
+                  {opt.emoji} {t(opt.nameKey)}
                 </Button>
               ))}
             </div>
@@ -258,7 +262,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
             {generateSocialPost.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Genereren...
+                {t('admin.marketing.aIImageGenerator.genereren')}
               </>
             ) : (
               <>
@@ -310,7 +314,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                           });
                           if (error) throw error;
                           if (data.success) {
-                            toast.success(`Gepost naar ${selectedPlatform?.name}!`);
+                            toast.success(t('admin.marketing.socialPostGenerator.gepost_naar', { platform: selectedPlatform?.name ?? '' }));
                             setGeneratedContent(null);
                           } else {
                             toast.error(data.error || 'Publiceren mislukt');
@@ -345,7 +349,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                         });
                         if (error) throw error;
                         if (data.success || data.scheduled) {
-                          toast.success(`Ingepland voor ${scheduledAt.toLocaleString('nl-NL')}`);
+                          toast.success(t('admin.marketing.socialPostGenerator.ingepland_voor', { moment: scheduledAt.toLocaleString(i18n.language) }));
                           setGeneratedContent(null);
                         } else {
                           throw new Error(data.error || 'Inplannen mislukt');
@@ -368,14 +372,14 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     <ImageIcon className="h-4 w-4" />
-                    Aanbevolen afbeeldingen
+                    {t('admin.marketing.socialPostGenerator.aanbevolen_afbeeldingen')}
                   </Label>
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {suggestedImages.map((img, i) => (
                       <img
                         key={i}
                         src={img}
-                        alt={`Product ${i + 1}`}
+                        alt={t('admin.marketing.socialPostGenerator.product_nummer', { number: i + 1 })}
                         className="h-20 w-20 object-cover rounded-md border"
                       />
                     ))}
@@ -404,7 +408,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                       >
                         <p className="text-sm">{alt}</p>
                         <Badge variant="secondary" className="mt-2">
-                          Klik om te selecteren
+                          {t('admin.marketing.socialPostGenerator.klik_om_te_selecteren')}
                         </Badge>
                       </div>
                     ))}
@@ -418,8 +422,14 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
           {context && (
             <div className="text-xs text-muted-foreground pt-2 border-t">
               <p>
-                AI kent je data: {context.products.total} producten, {context.customers.subscribers} abonnees,
-                {context.seasonality.upcomingHolidays[0] && ` ${context.seasonality.upcomingHolidays[0].name} over ${context.seasonality.upcomingHolidays[0].daysUntil} dagen`}
+                {t('admin.marketing.socialPostGenerator.ai_kent_je_data', {
+                  products: context.products.total,
+                  subscribers: context.customers.subscribers,
+                })}
+                {context.seasonality.upcomingHolidays[0] && ` ${t('admin.marketing.socialPostGenerator.feestdag_over_dagen', {
+                  holiday: context.seasonality.upcomingHolidays[0].name,
+                  days: context.seasonality.upcomingHolidays[0].daysUntil,
+                })}`}
               </p>
             </div>
           )}

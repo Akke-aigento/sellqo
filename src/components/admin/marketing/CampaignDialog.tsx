@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 import { format } from 'date-fns';
 import { Sparkles, CalendarIcon, Clock, Code, Eye, Type, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -35,6 +36,7 @@ import {
   DEFAULT_LANG,
   type LangCode,
 } from '@/i18n/languages';
+import { useTranslation } from 'react-i18next';
 
 type CampaignLang = LangCode;
 
@@ -64,20 +66,21 @@ type CampaignFormData = z.infer<typeof campaignSchema>;
 
 type SendMode = 'now' | 'scheduled' | 'trigger';
 
-const triggerLabels: Record<AutomationTrigger, string> = {
-  welcome: 'Welkomstmail — nieuwe klant',
-  abandoned_cart: 'Verlaten winkelmandje',
-  post_purchase: 'Na aankoop',
-  birthday: 'Verjaardag',
-  reactivation: 'Heractivering — inactieve klant',
+// Labels staan als i18n-key; de sleutel blijft de AutomationTrigger-enumwaarde.
+const triggerLabelKeys: Record<AutomationTrigger, string> = {
+  welcome: 'admin.marketing.campaignDialog.triggers.welcome.label',
+  abandoned_cart: 'admin.marketing.campaignDialog.triggers.abandoned_cart.label',
+  post_purchase: 'admin.marketing.campaignDialog.triggers.post_purchase.label',
+  birthday: 'admin.marketing.campaignDialog.triggers.birthday.label',
+  reactivation: 'admin.marketing.campaignDialog.triggers.reactivation.label',
 };
 
-const triggerDescriptions: Record<AutomationTrigger, string> = {
-  welcome: 'Bij nieuwe inschrijving op de nieuwsbrief',
-  abandoned_cart: 'Wanneer een klant een winkelmandje niet afrondt',
-  post_purchase: 'X uur nadat een bestelling betaald is',
-  birthday: 'Op de verjaardag van de klant',
-  reactivation: 'Wanneer een klant X dagen niets kocht',
+const triggerDescriptionKeys: Record<AutomationTrigger, string> = {
+  welcome: 'admin.marketing.campaignDialog.triggers.welcome.description',
+  abandoned_cart: 'admin.marketing.campaignDialog.triggers.abandoned_cart.description',
+  post_purchase: 'admin.marketing.campaignDialog.triggers.post_purchase.description',
+  birthday: 'admin.marketing.campaignDialog.triggers.birthday.description',
+  reactivation: 'admin.marketing.campaignDialog.triggers.reactivation.description',
 };
 
 interface CampaignDefaultValues {
@@ -103,13 +106,16 @@ interface CampaignDialogProps {
   isAIGenerated?: boolean;
 }
 
-const defaultRichContent =
-  '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
-const defaultHtmlContent = defaultRichContent;
+// Startinhoud voor een nieuwe campagne. De merge-tags {{customer_name}} en
+// {{company_name}} staan BUITEN t() — anders leest i18next ze als interpolatie
+// en blijven ze leeg in de verzonden mail.
+const buildDefaultRichContent = (t: TFunction) =>
+  `<p>${t('admin.marketing.campaignDialog.hallo')} {{customer_name}},</p><p>${t('admin.marketing.campaignDialog.uw_bericht_hier')}</p><p>${t('admin.marketing.campaignDialog.met_vriendelijke_groet')}<br>{{company_name}}</p>`;
 
 // Renders subject + preview inputs bound to the correct field for a language.
 // NL uses the top-level columns; other languages use translations.<lang>.*.
 function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnType<typeof useForm<CampaignFormData>> }) {
+  const { t } = useTranslation();
   if (lang === 'nl') {
     return (
       <>
@@ -118,9 +124,9 @@ function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnTy
           name="subject"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Onderwerp (Nederlands)</FormLabel>
+              <FormLabel>{t('admin.marketing.campaignDialog.onderwerp_nederlands')}</FormLabel>
               <FormControl>
-                <Input placeholder="Email onderwerp..." {...field} />
+                <Input placeholder={t('admin.marketing.campaignDialog.email_onderwerp')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,9 +137,9 @@ function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnTy
           name="preview_text"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preview tekst (optioneel)</FormLabel>
+              <FormLabel>{t('admin.marketing.campaignDialog.preview_tekst_optioneel')}</FormLabel>
               <FormControl>
-                <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} />
+                <Input placeholder={t('admin.marketing.campaignDialog.tekst_die_na_het_onderwerp_wordt')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -152,7 +158,7 @@ function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnTy
           <FormItem>
             <FormLabel>Onderwerp ({meta?.label})</FormLabel>
             <FormControl>
-              <Input placeholder="Email onderwerp..." {...field} value={field.value || ''} />
+              <Input placeholder={t('admin.marketing.campaignDialog.email_onderwerp_2')} {...field} value={field.value || ''} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -163,9 +169,9 @@ function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnTy
         name={`translations.${lang}.preview_text` as any}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Preview tekst (optioneel)</FormLabel>
+            <FormLabel>{t('admin.marketing.campaignDialog.preview_tekst_optioneel_2')}</FormLabel>
             <FormControl>
-              <Input placeholder="Tekst die na het onderwerp wordt getoond in de inbox..." {...field} value={field.value || ''} />
+              <Input placeholder={t('admin.marketing.campaignDialog.tekst_die_na_het_onderwerp_wordt_2')} {...field} value={field.value || ''} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -184,10 +190,14 @@ export function CampaignDialog({
   defaultValues,
   isAIGenerated 
 }: CampaignDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { templates } = useEmailTemplates();
   const { segments } = useCustomerSegments();
   const { data: brand } = useTenantBrand();
+
+  const defaultRichContent = buildDefaultRichContent(t);
+  const defaultHtmlContent = defaultRichContent;
 
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [richContent, setRichContent] = useState(defaultRichContent);
@@ -432,7 +442,7 @@ export function CampaignDialog({
             {isAIGenerated && (
               <Badge variant="secondary" className="ml-2 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                AI gegenereerd
+                {t('admin.marketing.campaignDialog.ai_gegenereerd')}
               </Badge>
             )}
           </DialogTitle>
@@ -451,9 +461,9 @@ export function CampaignDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Campagne naam</FormLabel>
+                  <FormLabel>{t('admin.marketing.campaignDialog.campagne_naam')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="bijv. Nieuwsbrief Januari 2025" {...field} />
+                    <Input placeholder={t('admin.marketing.campaignDialog.bijv_nieuwsbrief_januari_2025')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -466,15 +476,15 @@ export function CampaignDialog({
                 name="template_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Template (optioneel)</FormLabel>
+                    <FormLabel>{t('admin.marketing.campaignDialog.template_optioneel')}</FormLabel>
                     <Select onValueChange={(val) => handleTemplateChange(val === "none" ? "" : val)} value={field.value || "none"}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecteer een template..." />
+                          <SelectValue placeholder={t('admin.marketing.campaignDialog.selecteer_een_template')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">Geen template</SelectItem>
+                        <SelectItem value="none">{t('admin.marketing.campaignDialog.geen_template')}</SelectItem>
                         {sortedTemplates.match.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
                             {template.name}
@@ -482,7 +492,7 @@ export function CampaignDialog({
                         ))}
                         {sortedTemplates.other.length > 0 && (
                           <>
-                            <div className="px-2 py-1.5 text-xs text-muted-foreground border-t mt-1">Andere talen</div>
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground border-t mt-1">{t('admin.marketing.campaignDialog.andere_talen')}</div>
                             {sortedTemplates.other.map((template) => (
                               <SelectItem key={template.id} value={template.id}>
                                 {template.name}
@@ -502,7 +512,7 @@ export function CampaignDialog({
                 name="segment_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Doelgroep</FormLabel>
+                    <FormLabel>{t('admin.marketing.campaignDialog.doelgroep')}</FormLabel>
                     <Select
                       onValueChange={(val) => {
                         if (val === 'all') {
@@ -520,17 +530,17 @@ export function CampaignDialog({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Alle klanten" />
+                          <SelectValue placeholder={t('admin.marketing.segmentBuilder.alle_klanten')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">Alle geabonneerde klanten</SelectItem>
-                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">Snelle doelgroepen</div>
+                        <SelectItem value="all">{t('admin.marketing.campaignDialog.alle_geabonneerde_klanten')}</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">{t('admin.marketing.campaignDialog.snelle_doelgroepen')}</div>
                         {AUDIENCE_PRESETS.map((p) => (
                           <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
                         ))}
                         {segments.length > 0 && (
-                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">Opgeslagen segmenten</div>
+                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1">{t('admin.marketing.campaignDialog.opgeslagen_segmenten')}</div>
                         )}
                         {segments.map((segment) => (
                           <SelectItem key={segment.id} value={segment.id}>
@@ -557,7 +567,7 @@ export function CampaignDialog({
 
             {/* Language selector: multi-select. NL is always required (default fallback). */}
             <FormItem>
-              <FormLabel>Talen</FormLabel>
+              <FormLabel>{t('admin.marketing.campaignDialog.talen')}</FormLabel>
               <ToggleGroup
                 type="multiple"
                 value={availableLangs}
@@ -615,9 +625,9 @@ export function CampaignDialog({
                   name="subject"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Onderwerp</FormLabel>
+                      <FormLabel>{t('admin.marketing.templateDialog.onderwerp')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Email onderwerp..." {...field} />
+                        <Input placeholder={t('admin.marketing.campaignDialog.email_onderwerp_3')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -628,10 +638,10 @@ export function CampaignDialog({
                   name="preview_text"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Preview tekst (optioneel)</FormLabel>
+                      <FormLabel>{t('admin.marketing.campaignDialog.preview_tekst_optioneel_3')}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Tekst die na het onderwerp wordt getoond in de inbox..."
+                          placeholder={t('admin.marketing.campaignDialog.tekst_die_na_het_onderwerp_wordt_3')}
                           {...field}
                         />
                       </FormControl>
@@ -662,7 +672,7 @@ export function CampaignDialog({
                     onClick={() => setShowPreview(!showPreview)}
                   >
                     <Eye className="h-3.5 w-3.5" />
-                    Voorbeeld
+                    {t('admin.marketing.templateDialog.voorbeeld')}
                   </Button>
                   <div className="flex items-center gap-2">
                     <Type className="h-3.5 w-3.5 text-muted-foreground" />
@@ -681,16 +691,16 @@ export function CampaignDialog({
               {showPreview ? (
                 <div className="border border-input rounded-md overflow-hidden bg-muted/30">
                   <div className="p-2 border-b border-input bg-muted/50 text-xs text-muted-foreground flex items-center justify-between">
-                    <span>Email preview</span>
+                    <span>{t('admin.marketing.emailPreview.email_preview')}</span>
                     <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowPreview(false)}>
-                      Sluiten
+                      {t('common.close')}
                     </Button>
                   </div>
                   <iframe
                     srcDoc={previewHtml}
                     className="w-full h-[300px] bg-white"
                     sandbox=""
-                    title="Email preview"
+                    title={t('admin.marketing.emailPreview.email_preview')}
                   />
                 </div>
               ) : editorMode === 'visual' ? (
@@ -708,7 +718,7 @@ export function CampaignDialog({
                   <FormControl>
                     <Textarea
                       className="font-mono text-sm min-h-[250px]"
-                      placeholder="HTML email content..."
+                      placeholder={t('admin.marketing.templateDialog.html_email_content')}
                       value={
                         activeLangTab === 'nl'
                           ? (form.watch('html_content') || '')
@@ -744,29 +754,29 @@ export function CampaignDialog({
 
             {/* Scheduling section */}
             <div className="space-y-3">
-              <FormLabel>Wanneer verzenden?</FormLabel>
+              <FormLabel>{t('admin.marketing.campaignDialog.wanneer_verzenden')}</FormLabel>
               <RadioGroup value={sendMode} onValueChange={(v) => setSendMode(v as SendMode)} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="now" id="send-now" />
-                  <Label htmlFor="send-now" className="font-normal cursor-pointer">Direct verzenden (opslaan als concept)</Label>
+                  <Label htmlFor="send-now" className="font-normal cursor-pointer">{t('admin.marketing.campaignDialog.direct_verzenden_opslaan_als_concept')}</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="scheduled" id="send-scheduled" />
-                  <Label htmlFor="send-scheduled" className="font-normal cursor-pointer">Inplannen op datum & tijd</Label>
+                  <Label htmlFor="send-scheduled" className="font-normal cursor-pointer">{t('admin.marketing.campaignDialog.inplannen_op_datum_tijd')}</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="trigger" id="send-trigger" />
-                  <Label htmlFor="send-trigger" className="font-normal cursor-pointer">Automatische trigger</Label>
+                  <Label htmlFor="send-trigger" className="font-normal cursor-pointer">{t('admin.marketing.campaignDialog.automatische_trigger')}</Label>
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Wat is een trigger?">
+                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t('admin.marketing.campaignDialog.wat_is_een_trigger')}>
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        <p className="mb-1"><strong>Doelgroep</strong> bepaalt wie de mail krijgt bij een eenmalige verzending.</p>
-                        <p><strong>Trigger</strong> stuurt de mail automatisch elke keer dat een klant een gebeurtenis triggert (inschrijving, aankoop, verjaardag …). "Welkomstmail — nieuwe klant" vuurt bij een nieuwe subscriber.</p>
+                        <p className="mb-1"><strong>{t('admin.marketing.campaignDialog.doelgroep_2')}</strong> {t('admin.marketing.campaignDialog.bepaalt_wie_de_mail_krijgt_bij')}</p>
+                        <p><strong>{t('admin.marketing.campaignDialog.trigger')}</strong> {t('admin.marketing.campaignDialog.stuurt_de_mail_automatisch_elke_keer')}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -819,18 +829,18 @@ export function CampaignDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.entries(triggerLabels) as [AutomationTrigger, string][]).map(([value, label]) => (
+                      {(Object.entries(triggerLabelKeys) as [AutomationTrigger, string][]).map(([value, labelKey]) => (
                         <SelectItem key={value} value={value}>
                           <div className="flex flex-col">
-                            <span>{label}</span>
-                            <span className="text-xs text-muted-foreground">{triggerDescriptions[value]}</span>
+                            <span>{t(labelKey)}</span>
+                            <span className="text-xs text-muted-foreground">{t(triggerDescriptionKeys[value])}</span>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground whitespace-nowrap">Vertraging:</Label>
+                    <Label className="text-sm text-muted-foreground whitespace-nowrap">{t('admin.marketing.campaignDialog.vertraging')}</Label>
                     <Input
                       type="number"
                       min={0}
@@ -838,7 +848,7 @@ export function CampaignDialog({
                       onChange={(e) => setTriggerDelayHours(Number(e.target.value))}
                       className="w-[80px]"
                     />
-                    <span className="text-sm text-muted-foreground">uur na trigger</span>
+                    <span className="text-sm text-muted-foreground">{t('admin.marketing.campaignDialog.uur_na_trigger')}</span>
                   </div>
                 </div>
               )}
@@ -846,7 +856,7 @@ export function CampaignDialog({
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading 

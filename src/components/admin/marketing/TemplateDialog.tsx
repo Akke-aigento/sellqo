@@ -16,6 +16,7 @@ import { VariableInserter } from './VariableInserter';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import type { EmailTemplate } from '@/types/marketing';
 import { LANG_CODES_TUPLE } from '@/i18n/languages';
+import { useTranslation } from 'react-i18next';
 
 const templateSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
@@ -45,12 +46,13 @@ const categoryLabels = {
 const extractBodyFromHtml = extractEmailBody;
 
 export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading }: TemplateDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { data: brand } = useTenantBrand();
   const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual');
   const [richContent, setRichContent] = useState(() => {
     if (template?.html_content) return extractBodyFromHtml(template.html_content);
-    return '<p>Hallo {{customer_name}},</p><p>Uw bericht hier...</p><p>Met vriendelijke groet,<br>{{company_name}}</p>';
+    return `<p>${t('admin.marketing.templateDialog.hallo')} {{customer_name}},</p><p>${t('admin.marketing.templateDialog.uw_bericht_hier')}</p><p>${t('admin.marketing.templateDialog.met_vriendelijke_groet')}<br>{{company_name}}</p>`;
   });
 
   const form = useForm<TemplateFormData>({
@@ -111,9 +113,9 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Naam</FormLabel>
+                    <FormLabel>{t('common.name')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="bijv. Welkomstmail" {...field} />
+                      <Input placeholder={t('admin.marketing.templateDialog.bijv_welkomstmail')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,7 +127,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categorie</FormLabel>
+                    <FormLabel>{t('admin.marketing.templateDialog.categorie')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -149,7 +151,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
               name="language"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Taal</FormLabel>
+                  <FormLabel>{t('admin.marketing.templateDialog.taal')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-[220px]">
@@ -157,10 +159,10 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                      <SelectItem value="nl">{t('admin.marketing.segmentBuilder.nederlands')}</SelectItem>
+                      <SelectItem value="en">{t('admin.marketing.segmentBuilder.english')}</SelectItem>
+                      <SelectItem value="fr">{t('admin.marketing.segmentBuilder.francais')}</SelectItem>
+                      <SelectItem value="de">{t('admin.marketing.segmentBuilder.deutsch')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -173,7 +175,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
               name="subject"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Onderwerp</FormLabel>
+                  <FormLabel>{t('admin.marketing.templateDialog.onderwerp')}</FormLabel>
                   <FormControl>
                     <Input placeholder="bijv. Welkom bij {{company_name}}!" {...field} />
                   </FormControl>
@@ -184,10 +186,10 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
 
             {/* Editor with visual/HTML toggle */}
             <div className="space-y-2">
-              <FormLabel>Inhoud</FormLabel>
+              <FormLabel>{t('admin.marketing.emailBlockPalette.inhoud')}</FormLabel>
               <Tabs value={editorMode} onValueChange={handleModeChange}>
                 <TabsList className="mb-2">
-                  <TabsTrigger value="visual">Visueel</TabsTrigger>
+                  <TabsTrigger value="visual">{t('admin.marketing.templateDialog.visueel')}</TabsTrigger>
                   <TabsTrigger value="html">HTML</TabsTrigger>
                 </TabsList>
 
@@ -195,7 +197,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                   <CampaignRichEditor
                     content={richContent}
                     onChange={handleRichContentChange}
-                    placeholder="Schrijf je template inhoud..."
+                    placeholder={t('admin.marketing.templateDialog.schrijf_je_template_inhoud')}
                   />
                 </TabsContent>
 
@@ -208,7 +210,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                         <FormControl>
                           <Textarea
                             className="font-mono text-sm min-h-[300px]"
-                            placeholder="HTML email content..."
+                            placeholder={t('admin.marketing.templateDialog.html_email_content')}
                             {...field}
                           />
                         </FormControl>
@@ -230,12 +232,12 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
 
             {/* Email Preview */}
             <div className="space-y-2">
-              <FormLabel>Voorbeeld</FormLabel>
+              <FormLabel>{t('admin.marketing.templateDialog.voorbeeld')}</FormLabel>
               <div className="border rounded-lg overflow-hidden bg-muted/30">
                 <iframe
                   srcDoc={currentHtml}
                   className="w-full h-[300px] bg-white"
-                  title="Email preview"
+                  title={t('admin.marketing.emailPreview.email_preview')}
                   sandbox=""
                 />
               </div>
@@ -243,7 +245,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? 'Opslaan...' : template ? 'Bijwerken' : 'Aanmaken'}

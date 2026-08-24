@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface AICreditsBadgeProps {
   variant?: 'compact' | 'full';
@@ -16,6 +17,7 @@ interface AICreditsBadgeProps {
 }
 
 export function AICreditsBadge({ variant = 'compact', onUpgrade }: AICreditsBadgeProps) {
+  const { t } = useTranslation();
   const { credits, isLoading } = useAICredits();
 
   if (isLoading) {
@@ -51,7 +53,7 @@ export function AICreditsBadge({ variant = 'compact', onUpgrade }: AICreditsBadg
         </TooltipTrigger>
         <TooltipContent>
           <p>{available} AI credits beschikbaar</p>
-          {isLow && <p className="text-amber-400 text-xs">Bijna op - klik om bij te kopen</p>}
+          {isLow && <p className="text-amber-400 text-xs">{t('admin.marketing.aICreditsBadge.bijna_op_klik_om_bij_te')}</p>}
         </TooltipContent>
       </Tooltip>
     );
@@ -72,7 +74,7 @@ export function AICreditsBadge({ variant = 'compact', onUpgrade }: AICreditsBadg
             )}
           </div>
           <div>
-            <p className="font-medium text-sm">AI Credits</p>
+            <p className="font-medium text-sm">{t('admin.marketing.aICreditsBadge.ai_credits')}</p>
             <p className="text-xs text-muted-foreground">
               {available} van {total} beschikbaar
             </p>
@@ -87,7 +89,7 @@ export function AICreditsBadge({ variant = 'compact', onUpgrade }: AICreditsBadg
           )}
         >
           <Zap className="h-3 w-3 mr-1" />
-          Bijkopen
+          {t('admin.marketing.aICreditsBadge.bijkopen')}
         </Button>
       </div>
 
@@ -102,13 +104,13 @@ export function AICreditsBadge({ variant = 'compact', onUpgrade }: AICreditsBadg
       />
 
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>Kosten per actie:</span>
+        <span>{t('admin.marketing.aICreditsBadge.kosten_per_actie')}</span>
         <div className="space-x-2">
-          <span>Inzichten: 1</span>
+          <span>{t('admin.marketing.aICreditsBadge.inzichten_1')}</span>
           <span>•</span>
-          <span>Post: 2</span>
+          <span>{t('admin.marketing.aICreditsBadge.post_2')}</span>
           <span>•</span>
-          <span>Email: 3</span>
+          <span>{t('admin.marketing.aICreditsBadge.email_3')}</span>
         </div>
       </div>
     </div>

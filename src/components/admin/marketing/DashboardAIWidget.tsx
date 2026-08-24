@@ -8,8 +8,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export function DashboardAIWidget() {
+  const { t } = useTranslation();
   const { credits, isLoading } = useAICredits();
 
   if (isLoading) {
@@ -19,7 +21,7 @@ export function DashboardAIWidget() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              AI Marketing
+              {t('admin.marketing.dashboardAIWidget.ai_marketing')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -46,17 +48,17 @@ export function DashboardAIWidget() {
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            AI Marketing
+            {t('admin.marketing.dashboardAIWidget.ai_marketing')}
           </CardTitle>
           <CardDescription>
-            Genereer content met AI
+            {t('admin.marketing.dashboardAIWidget.genereer_content_met_ai')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Credits Status */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">AI Credits</span>
+              <span className="text-muted-foreground">{t('admin.marketing.aICreditsBadge.ai_credits')}</span>
               <Badge 
                 variant={isEmpty ? 'destructive' : isLow ? 'secondary' : 'outline'}
                 className={cn(
@@ -77,12 +79,12 @@ export function DashboardAIWidget() {
             />
             {isEmpty && (
               <p className="text-xs text-red-500">
-                Geen credits meer. Koop extra credits om door te gaan.
+                {t('admin.marketing.dashboardAIWidget.geen_credits_meer_koop_extra_credits')}
               </p>
             )}
             {isLow && !isEmpty && (
               <p className="text-xs text-amber-600">
-                Bijna op. Overweeg extra credits te kopen.
+                {t('admin.marketing.dashboardAIWidget.bijna_op_overweeg_extra_credits_te')}
               </p>
             )}
           </div>
@@ -97,7 +99,7 @@ export function DashboardAIWidget() {
             >
               <Link to="/admin/marketing/ai?tab=social">
                 <Zap className="h-4 w-4 text-pink-500" />
-                <span className="text-xs">Social Post</span>
+                <span className="text-xs">{t('admin.marketing.dashboardAIWidget.social_post')}</span>
               </Link>
             </Button>
             <Button 
@@ -108,7 +110,7 @@ export function DashboardAIWidget() {
             >
               <Link to="/admin/marketing/ai?tab=email">
                 <Zap className="h-4 w-4 text-blue-500" />
-                <span className="text-xs">Email</span>
+                <span className="text-xs">{t('admin.marketing.aIContentLibrary.email')}</span>
               </Link>
             </Button>
           </div>
@@ -117,7 +119,7 @@ export function DashboardAIWidget() {
           <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
             <Link to="/admin/marketing/ai">
               <Sparkles className="mr-2 h-4 w-4" />
-              AI Hub openen
+              {t('admin.marketing.dashboardAIWidget.ai_hub_openen')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -126,7 +128,7 @@ export function DashboardAIWidget() {
             <Button asChild variant="outline" size="sm" className="w-full">
               <Link to="/admin/marketing/ai?purchase=open">
                 <CreditCard className="mr-2 h-4 w-4" />
-                Credits bijkopen
+                {t('admin.marketing.dashboardAIWidget.credits_bijkopen')}
               </Link>
             </Button>
           )}

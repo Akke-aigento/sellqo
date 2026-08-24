@@ -11,6 +11,7 @@ import { SegmentBuilder } from './SegmentBuilder';
 import { useSegmentMemberCount } from '@/hooks/useCustomerSegments';
 import { useTenant } from '@/hooks/useTenant';
 import type { CustomerSegment, SegmentFilterRules } from '@/types/marketing';
+import { useTranslation } from 'react-i18next';
 
 const segmentSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
@@ -28,6 +29,7 @@ interface SegmentDialogProps {
 }
 
 export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }: SegmentDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [filterRules, setFilterRules] = useState<SegmentFilterRules>(
     segment?.filter_rules || {}
@@ -71,9 +73,9 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="bijv. VIP Klanten" {...field} />
+                    <Input placeholder={t('admin.marketing.segmentDialog.bijv_vip_klanten')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,10 +87,10 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving (optioneel)</FormLabel>
+                  <FormLabel>{t('admin.marketing.segmentDialog.beschrijving_optioneel')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Beschrijf dit segment..."
+                      placeholder={t('admin.marketing.segmentDialog.beschrijf_dit_segment')}
                       {...field}
                     />
                   </FormControl>
@@ -98,7 +100,7 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
             />
 
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-4">Filterregels</h3>
+              <h3 className="text-sm font-medium mb-4">{t('admin.marketing.segmentDialog.filterregels')}</h3>
               <SegmentBuilder 
                 filterRules={filterRules} 
                 onChange={setFilterRules}
@@ -108,7 +110,7 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? 'Opslaan...' : segment ? 'Bijwerken' : 'Aanmaken'}

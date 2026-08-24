@@ -16,30 +16,32 @@ import { AIEmailPlanner } from './AIEmailPlanner';
 import { AIImageGenerator } from './AIImageGenerator';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type ToolType = 'social' | 'email' | 'images' | null;
 
+// Labels staan als i18n-key in de array; `id` blijft de enum-waarde.
 const tools = [
   {
     id: 'social' as const,
-    name: 'Social Media',
-    description: 'Posts voor Instagram, Facebook, LinkedIn & X',
+    nameKey: 'admin.marketing.advancedToolsGrid.tools.social.name',
+    descriptionKey: 'admin.marketing.advancedToolsGrid.tools.social.description',
     icon: Instagram,
     gradient: 'from-pink-500 to-purple-500',
     credits: 2,
   },
   {
     id: 'email' as const,
-    name: 'Email Content',
-    description: 'Nieuwsbrieven, promoties & win-back',
+    nameKey: 'admin.marketing.advancedToolsGrid.tools.email.name',
+    descriptionKey: 'admin.marketing.advancedToolsGrid.tools.email.description',
     icon: Mail,
     gradient: 'from-blue-500 to-cyan-500',
     credits: 3,
   },
   {
     id: 'images' as const,
-    name: 'Afbeeldingen',
-    description: 'Marketing visuals en product styling',
+    nameKey: 'admin.marketing.advancedToolsGrid.tools.images.name',
+    descriptionKey: 'admin.marketing.advancedToolsGrid.tools.images.description',
     icon: ImageIcon,
     gradient: 'from-amber-500 to-orange-500',
     credits: 5,
@@ -47,6 +49,7 @@ const tools = [
 ];
 
 export function AdvancedToolsGrid() {
+  const { t } = useTranslation();
   const [openTool, setOpenTool] = useState<ToolType>(null);
   const { getCreditCost } = useAICredits();
 
@@ -58,7 +61,7 @@ export function AdvancedToolsGrid() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Wand2 className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-lg font-semibold">Geavanceerde Tools</h3>
+        <h3 className="text-lg font-semibold">{t('admin.marketing.advancedToolsGrid.geavanceerde_tools')}</h3>
       </div>
       
       <div className="grid gap-3">
@@ -84,13 +87,13 @@ export function AdvancedToolsGrid() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-base flex items-center gap-2">
-                            {tool.name}
+                            {t(tool.nameKey)}
                             <Badge variant="outline" className="text-xs font-normal">
                               {getCreditCost(tool.id === 'social' ? 'social_post' : tool.id === 'email' ? 'email_content' : 'image_generation')} cr
                             </Badge>
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            {tool.description}
+                            {t(tool.descriptionKey)}
                           </p>
                         </div>
                         <ChevronRight className={cn(

@@ -18,6 +18,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CampaignRichEditorProps {
   content: string;
@@ -26,6 +27,7 @@ interface CampaignRichEditorProps {
 }
 
 export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf je email...' }: CampaignRichEditorProps) {
+  const { t } = useTranslation();
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -73,7 +75,7 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
 
   const addImage = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt('Afbeelding URL');
+    const url = window.prompt(t('admin.marketing.campaignRichEditor.afbeelding_url'));
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }

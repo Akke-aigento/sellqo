@@ -1727,6 +1727,852 @@
         "opening": "Openingssaldo",
         "adjustment": "Correctie"
       }
+    },
+    "marketing": {
+      "aBTestingPanel": {
+        "nog_geen_a_b_tests": "Nog geen A/B tests",
+        "maak_een_test_om_campagne_varianten": "Maak een test om campagne varianten te vergelijken",
+        "a_b_test": "A/B Test",
+        "versie_a": "Versie A",
+        "versie_b": "Versie B",
+        "test_verdeling": "Test verdeling",
+        "nieuwe_a_b_test": "Nieuwe A/B Test",
+        "campagne_a_controle": "Campagne A (Controle)",
+        "campagne_b_variant": "Campagne B (Variant)",
+        "test_metriek": "Test metriek",
+        "open_rate": "Open rate",
+        "click_rate": "Click rate",
+        "verdeling_naar_variant_b": "Verdeling (% naar variant B)",
+        "automatisch_winnaar_kiezen": "Automatisch winnaar kiezen",
+        "minimum_verschil": "Minimum verschil (%)",
+        "selecteer_campagne_a": "Selecteer campagne A",
+        "selecteer_campagne_b": "Selecteer campagne B",
+        "a_b_testing": "A/B Testing",
+        "test_verschillende_versies_van_je_campagnes": "Test verschillende versies van je campagnes",
+        "nieuwe_test": "Nieuwe Test",
+        "kies_a_als_winnaar": "Kies A als winnaar",
+        "kies_b_als_winnaar": "Kies B als winnaar",
+        "na_voldoende_data_automatisch_de_beste": "Na voldoende data automatisch de beste selecteren",
+        "geannuleerd": "Geannuleerd",
+        "voltooid": "Voltooid",
+        "actief": "Actief",
+        "in_afwachting": "In afwachting"
+      },
+      "aICampaignSuggestions": {
+        "ai_zekerheid": "AI Zekerheid:",
+        "ai_campagne_suggesties": "AI Campagne Suggesties",
+        "slimme_campagne_ideeen_gebaseerd_op_je": "Slimme campagne-ideeën gebaseerd op je data",
+        "laat_ai_analyseren_welke_campagnes_het": "Laat AI analyseren welke campagnes het meest impactvol zijn",
+        "analyseren": "Analyseren..."
+      },
+      "aIContentLibrary": {
+        "alle_types": "Alle types",
+        "social_media": "Social Media",
+        "email": "Email",
+        "suggesties": "Suggesties",
+        "nog_geen_ai_content_gegenereerd": "Nog geen AI content gegenereerd",
+        "genereer_content_via_de_andere_tabs": "Genereer content via de andere tabs",
+        "content_bibliotheek": "Content Bibliotheek",
+        "gebruikt": "Gebruikt",
+        "bekijken": "Bekijken",
+        "markeer_als_gebruikt": "Markeer als gebruikt",
+        "kopieren": "Kopiëren"
+      },
+      "aICreditsBadge": {
+        "bijna_op_klik_om_bij_te": "Bijna op - klik om bij te kopen",
+        "ai_credits": "AI Credits",
+        "kosten_per_actie": "Kosten per actie:",
+        "inzichten_1": "Inzichten: 1",
+        "post_2": "Post: 2",
+        "email_3": "Email: 3",
+        "bijkopen": "Bijkopen"
+      },
+      "aIFeedbackWidget": {
+        "bedankt": "Bedankt!",
+        "was_dit_nuttig": "Was dit nuttig?",
+        "wat_kunnen_we_verbeteren": "Wat kunnen we verbeteren?",
+        "beoordeling": "Beoordeling",
+        "opmerkingen_optioneel": "Opmerkingen (optioneel)",
+        "vertel_ons_meer": "Vertel ons meer...",
+        "aanpassen": "Aanpassen"
+      },
+      "aIInsightsCard": {
+        "geen_data_beschikbaar": "Geen data beschikbaar",
+        "geen_specifieke_inzichten_op_dit_moment": "Geen specifieke inzichten op dit moment.",
+        "voeg_meer_data_toe_voor_betere": "Voeg meer data toe voor betere suggesties.",
+        "abonnees": "Abonnees",
+        "gem_open_rate": "Gem. open rate",
+        "gem_order": "Gem. order",
+        "lage_voorraad_alert": "Lage voorraad alert",
+        "win_back_mogelijkheid": "Win-back mogelijkheid",
+        "nieuwe_producten": "Nieuwe producten",
+        "actief_segment": "Actief segment",
+        "ai_inzichten": "AI Inzichten",
+        "ai_inzichten_van_vandaag": "AI Inzichten van Vandaag"
+      },
+      "campaignCard": {
+        "open_rate": "open rate",
+        "click_rate": "click rate",
+        "bekijk_analytics": "Bekijk analytics",
+        "nu_verzenden": "Nu verzenden",
+        "segment": "Segment:",
+        "status": {
+          "concept": "Concept",
+          "gepland": "Gepland",
+          "verzenden": "Verzenden...",
+          "verzonden": "Verzonden",
+          "gepauzeerd": "Gepauzeerd",
+          "geannuleerd": "Geannuleerd"
+        }
+      },
+      "campaignPerformanceChart": {
+        "nog_geen_activiteit_geregistreerd": "Nog geen activiteit geregistreerd"
+      },
+      "contentCalendar": {
+        "week": "Week",
+        "maand": "Maand",
+        "geen_geplande_content_voor_deze_periode": "Geen geplande content voor deze periode",
+        "plan_content_in_om_je_kalender": "Plan content in om je kalender te vullen",
+        "geen_content": "Geen content",
+        "content_agenda": "Content Agenda",
+        "vandaag": "Vandaag",
+        "week_van": "Week {{week}} — {{month}}"
+      },
+      "contentEngagementStats": {
+        "nog_geen_engagement_data": "Nog geen engagement data",
+        "publiceer_content_om_statistieken_te_zien": "Publiceer content om statistieken te zien",
+        "engagement_analytics": "Engagement Analytics",
+        "content_engagement_analytics": "Content Engagement Analytics",
+        "performance_van_je_ai_gegenereerde_content": "Performance van je AI-gegenereerde content",
+        "best_presterende_content": "Best presterende content",
+        "gem_engagement": "Gem. Engagement",
+        "totaal_content": "Totaal Content"
+      },
+      "contentHistoryList": {
+        "content_historiek": "Content Historiek",
+        "social_posts": "Social Posts",
+        "ai_content": "AI Content",
+        "ai_suggesties": "AI Suggesties",
+        "alle_statussen": "Alle statussen",
+        "draft": "Draft",
+        "gepland": "Gepland",
+        "gepubliceerd": "Gepubliceerd",
+        "verzonden": "Verzonden",
+        "geen_content_gevonden": "Geen content gevonden",
+        "probeer_andere_filters_of_zoektermen": "Probeer andere filters of zoektermen",
+        "type": "Type",
+        "titel": "Titel",
+        "platform": "Platform",
+        "alle_statussen_2": "Alle statussen",
+        "status": {
+          "draft": "Draft",
+          "gepland": "Gepland",
+          "gepubliceerd": "Gepubliceerd",
+          "verzonden": "Verzonden",
+          "wachtend": "Wachtend",
+          "mislukt": "Mislukt"
+        }
+      },
+      "creditPurchaseDialog": {
+        "credit_kosten_per_actie": "Credit kosten per actie",
+        "social_media_post_1_credit": "• Social media post: 1 credit",
+        "email_content_2_credits": "• Email content: 2 credits",
+        "campagne_suggesties_3_credits": "• Campagne suggesties: 3 credits",
+        "probeer_het_opnieuw": "Probeer het opnieuw",
+        "je_credits_worden_geactiveerd_zodra_we": "Je credits worden geactiveerd zodra we je betaling ontvangen.",
+        "ai_credits_bijkopen": "AI Credits Bijkopen",
+        "koop_extra_ai_credits_om_meer": "Koop extra AI credits om meer content te genereren. Credits verlopen niet en worden bovenop je maandelijkse credits toegevoegd.",
+        "populair": "Populair",
+        "bezig": "Bezig...",
+        "naar_betaling": "Naar betaling",
+        "afrekenen": "Afrekenen"
+      },
+      "dashboardAIWidget": {
+        "social_post": "Social Post",
+        "ai_marketing": "AI Marketing",
+        "genereer_content_met_ai": "Genereer content met AI",
+        "geen_credits_meer_koop_extra_credits": "Geen credits meer. Koop extra credits om door te gaan.",
+        "bijna_op_overweeg_extra_credits_te": "Bijna op. Overweeg extra credits te kopen.",
+        "ai_hub_openen": "AI Hub openen",
+        "credits_bijkopen": "Credits bijkopen"
+      },
+      "emailBlockItem": {
+        "social_media_links": "Social media links",
+        "logo": "Logo",
+        "afbeelding": "🖼️ Afbeelding"
+      },
+      "emailBlockPalette": {
+        "blokken": "Blokken",
+        "inhoud": "Inhoud",
+        "layout": "Layout",
+        "commerce": "Commerce",
+        "footer": "Footer"
+      },
+      "emailBlockProperties": {
+        "header_tekst": "Header tekst",
+        "logo_url": "Logo URL",
+        "tekst": "Tekst",
+        "afbeelding_url": "Afbeelding URL",
+        "alt_tekst": "Alt tekst",
+        "link_url_optioneel": "Link URL (optioneel)",
+        "knop_tekst": "Knop tekst",
+        "link_url": "Link URL",
+        "lijn_stijl": "Lijn stijl",
+        "doorgetrokken": "Doorgetrokken",
+        "gestreept": "Gestreept",
+        "gestippeld": "Gestippeld",
+        "product_naam": "Product naam",
+        "afbeelding_url_2": "Afbeelding URL",
+        "beschrijving": "Beschrijving",
+        "facebook_url": "Facebook URL",
+        "instagram_url": "Instagram URL",
+        "twitter_x_url": "Twitter/X URL",
+        "linkedin_url": "LinkedIn URL",
+        "bedrijfsnaam": "Bedrijfsnaam",
+        "uitschrijf_tekst": "Uitschrijf tekst",
+        "toon_voorkeuren_link": "Toon voorkeuren link",
+        "stijl": "Stijl",
+        "achtergrondkleur": "Achtergrondkleur",
+        "tekstkleur": "Tekstkleur",
+        "tekstgrootte": "Tekstgrootte",
+        "klein_12px": "Klein (12px)",
+        "normaal_14px": "Normaal (14px)",
+        "medium_16px": "Medium (16px)",
+        "groot_18px": "Groot (18px)",
+        "extra_groot_24px": "Extra groot (24px)",
+        "uitlijning": "Uitlijning",
+        "links": "Links",
+        "midden": "Midden",
+        "rechts": "Rechts",
+        "welkom": "Welkom!",
+        "voeg_hier_je_tekst_toe": "Voeg hier je tekst toe...",
+        "beschrijving_van_de_afbeelding": "Beschrijving van de afbeelding",
+        "klik_hier": "Klik hier",
+        "uitschrijven": "Uitschrijven",
+        "selecteer_een_blok_om_te_bewerken": "Selecteer een blok om te bewerken"
+      },
+      "emailPreview": {
+        "preview": "Preview",
+        "kwaliteit": "Kwaliteit",
+        "email_kwaliteit_score": "Email Kwaliteit Score",
+        "tips_voor_betere_deliverability": "💡 Tips voor betere deliverability",
+        "gebruik_een_herkenbare_afzendernaam": "• Gebruik een herkenbare afzendernaam",
+        "houd_de_afbeelding_tekst_verhouding_in": "• Houd de afbeelding/tekst verhouding in balans",
+        "vermijd_spam_trigger_woorden_in_het": "• Vermijd spam-trigger woorden in het onderwerp",
+        "voeg_altijd_een_duidelijke_uitschrijflink_toe": "• Voeg altijd een duidelijke uitschrijflink toe",
+        "test_email_verzenden": "Test Email Verzenden",
+        "email_adres": "Email adres",
+        "test_klantnaam_voor_variabelen": "Test klantnaam (voor variabelen)",
+        "test_emails_bevatten": "ℹ️ Test emails bevatten:",
+        "test_prefix_in_onderwerp": "• [TEST] prefix in onderwerp",
+        "banner_bovenaan_dat_het_een_test": "• Banner bovenaan dat het een test is",
+        "ingevulde_variabelen_met_test_data": "• Ingevulde variabelen met test data",
+        "email_preview": "Email preview",
+        "jouw_email_nl": "jouw@email.nl",
+        "jan_jansen": "Jan Jansen",
+        "test_verzenden": "Test verzenden",
+        "verzenden": "Verzenden...",
+        "verstuur_test": "Verstuur Test",
+        "onderwerp_lengte": "Onderwerp lengte",
+        "alt_tekst_afbeeldingen": "Alt tekst afbeeldingen",
+        "unsubscribe_link": "Unsubscribe link",
+        "geen_caps_lock": "Geen CAPS LOCK",
+        "test_verzonden_naar": "Testmail verzonden naar {{email}}"
+      },
+      "inlinePromoWizard": {
+        "product_promoten": "Product Promoten",
+        "selecteer_product": "Selecteer product...",
+        "geen_producten_gevonden": "Geen producten gevonden.",
+        "toon": "Toon",
+        "taal": "Taal:",
+        "korting_toevoegen": "Korting toevoegen",
+        "benadruk_een_kortingsactie": "Benadruk een kortingsactie",
+        "10_cr": "+10 cr",
+        "enhanced_en_nieuwe_visuals": "Enhanced en nieuwe visuals",
+        "zoek_product": "Zoek product...",
+        "selecteer_een_product_kies_de_toon": "Selecteer een product, kies de toon, en AI genereert een complete marketing kit",
+        "afbeeldingen_genereren": "Afbeeldingen genereren",
+        "genereer_marketing_kit": "Genereer Marketing Kit",
+        "credits_kopen": "Credits kopen",
+        "toneOptions": {
+          "urgent": "Urgent",
+          "casual": "Casual",
+          "professioneel": "Professioneel",
+          "speels": "Speels"
+        },
+        "credits_nodig": "Je hebt {{count}} credits nodig."
+      },
+      "marketingStatsCards": {
+        "open_rate": "Open Rate",
+        "click_rate": "Click Rate",
+        "subscribers": "Subscribers",
+        "uitschrijvingen": "Uitschrijvingen",
+        "groei_deze_maand": "+{{count}} deze maand"
+      },
+      "mediaAssetsLibrary": {
+        "drop_de_bestanden_hier": "Drop de bestanden hier...",
+        "uploaden": "Uploaden...",
+        "sleep_bestanden_hierheen_of_klik_om": "Sleep bestanden hierheen of klik om te uploaden",
+        "jpg_png_webp_gif_tot_10mb": "JPG, PNG, WebP, GIF tot 10MB",
+        "geen_assets_gevonden": "Geen assets gevonden",
+        "upload_je_eerste_asset_om_te": "Upload je eerste asset om te beginnen",
+        "achtergrond_verwijderen": "Achtergrond verwijderen",
+        "downloaden": "Downloaden",
+        "zoeken_in_assets": "Zoeken in assets...",
+        "verwijderen": "Verwijderen",
+        "folders": {
+          "alles": "Alles",
+          "producten": "Producten",
+          "categorie_n": "Categorieën",
+          "campagnes": "Campagnes",
+          "social": "Social",
+          "favorieten": "Favorieten"
+        },
+        "assets_verwijderd": "{{success}} van {{total}} assets verwijderd",
+        "achtergronden_verwijderd": "{{success}} van {{total}} achtergronden verwijderd"
+      },
+      "productSelectDialog": {
+        "geen_producten_gevonden": "Geen producten gevonden",
+        "producten_selecteren": "Producten Selecteren",
+        "wis_alles": "Wis alles",
+        "lage_voorraad": "Lage voorraad"
+      },
+      "promoKitResult": {
+        "je_marketing_kit_is_klaar": "Je Marketing Kit is klaar!",
+        "social": "Social",
+        "afbeeldingen": "Afbeeldingen",
+        "extra": "Extra",
+        "onderwerp_regels_a_b_test": "Onderwerp Regels (A/B Test)",
+        "preview_tekst": "Preview Tekst",
+        "body_tekst": "Body Tekst",
+        "geen_afbeeldingen_gegenereerd": "Geen afbeeldingen gegenereerd",
+        "zet_afbeeldingen_genereren_aan_voor_marketing": "Zet \"Afbeeldingen genereren\" aan voor marketing visuals",
+        "original": "Original",
+        "enhanced": "Enhanced",
+        "ai_generated": "AI Generated",
+        "originele_foto": "Originele Foto",
+        "enhanced_lifestyle": "Enhanced Lifestyle",
+        "marketing_slogans": "Marketing Slogans",
+        "beste_posting_moment": "Beste Posting Moment",
+        "nieuwe_kit": "Nieuwe Kit"
+      },
+      "promptFavoriteButton": {
+        "prompt_opslaan_als_favoriet": "Prompt opslaan als favoriet",
+        "prompt_preview": "Prompt preview:",
+        "al_opgeslagen_als_favoriet": "Al opgeslagen als favoriet",
+        "opslaan_als_favoriet": "Opslaan als favoriet",
+        "geef_deze_prompt_een_naam": "Geef deze prompt een naam..."
+      },
+      "realtimeActivityFeed": {
+        "live_activiteit": "Live Activiteit",
+        "realtime_email_interacties": "Realtime email interacties",
+        "nog_geen_activiteit": "Nog geen activiteit"
+      },
+      "recentContentStrip": {
+        "start_met_de_product_promo_wizard": "Start met de Product Promo Wizard hierboven",
+        "recente_content": "Recente Content",
+        "bekijk_alles": "Bekijk alles"
+      },
+      "schedulePublishButton": {
+        "snel_inplannen": "Snel inplannen",
+        "of_kies_datum_en_tijd": "Of kies datum en tijd",
+        "inplannen": "Inplannen",
+        "gepland_voor": "Gepland voor:",
+        "om": "om",
+        "volgende_week": "Volgende week",
+        "over_3_dagen": "Over 3 dagen",
+        "morgen_12_00": "Morgen 12:00",
+        "morgen_9_00": "Morgen 9:00"
+      },
+      "segmentBuilder": {
+        "klanten_in_dit_segment": "klanten in dit segment",
+        "klanttype": "Klanttype",
+        "alle_klanten": "Alle klanten",
+        "particulier_b2c": "Particulier (B2C)",
+        "zakelijk_b2b": "Zakelijk (B2B)",
+        "tags": "Tags",
+        "geen_tags_beschikbaar_bij_klanten": "Geen tags beschikbaar bij klanten",
+        "match_logica": "Match logica:",
+        "minstens_een_tag_of": "Minstens één tag (OF)",
+        "alle_tags_en": "Alle tags (EN)",
+        "nieuwsbrief_status": "Nieuwsbrief status",
+        "alle_klanten_2": "Alle klanten",
+        "geabonneerd": "Geabonneerd",
+        "niet_geabonneerd": "Niet geabonneerd",
+        "landen": "Landen",
+        "min_bestellingen": "Min. bestellingen",
+        "max_bestellingen": "Max. bestellingen",
+        "min_besteed": "Min. besteed (€)",
+        "max_besteed": "Max. besteed (€)",
+        "klant_aangemaakt_na": "Klant aangemaakt na",
+        "klant_aangemaakt_voor": "Klant aangemaakt voor",
+        "laatste_bestelling_dagen_geleden": "Laatste bestelling (dagen geleden)",
+        "inactief_sinds_dagen": "Inactief sinds (dagen)",
+        "min_engagement_score_0_100": "Min. engagement score (0-100)",
+        "voorkeurstaal_klant": "Voorkeurstaal klant",
+        "alle_talen": "Alle talen",
+        "nederlands": "🇳🇱 Nederlands",
+        "english": "🇬🇧 English",
+        "francais": "🇫🇷 Français",
+        "deutsch": "🇩🇪 Deutsch",
+        "tag_toevoegen": "Tag toevoegen...",
+        "land_toevoegen": "Land toevoegen...",
+        "bijv_30": "bijv. 30",
+        "bijv_90": "bijv. 90",
+        "countries": {
+          "NL": "Nederland",
+          "BE": "België",
+          "DE": "Duitsland",
+          "FR": "Frankrijk",
+          "LU": "Luxemburg"
+        }
+      },
+      "segmentDialog": {
+        "beschrijving_optioneel": "Beschrijving (optioneel)",
+        "filterregels": "Filterregels",
+        "bijv_vip_klanten": "bijv. VIP Klanten",
+        "beschrijf_dit_segment": "Beschrijf dit segment..."
+      },
+      "templateDialog": {
+        "uw_bericht_hier": "Uw bericht hier...",
+        "met_vriendelijke_groet": "Met vriendelijke groet,",
+        "categorie": "Categorie",
+        "taal": "Taal",
+        "onderwerp": "Onderwerp",
+        "visueel": "Visueel",
+        "voorbeeld": "Voorbeeld",
+        "bijv_welkomstmail": "bijv. Welkomstmail",
+        "schrijf_je_template_inhoud": "Schrijf je template inhoud...",
+        "html_email_content": "HTML email content...",
+        "hallo": "Hallo"
+      },
+      "variableInserter": {
+        "variabelen_invoegen": "Variabelen invoegen",
+        "groups": {
+          "customer": {
+            "label": "Klant",
+            "vars": {
+              "customer_name": "Volledige naam",
+              "customer_first_name": "Voornaam",
+              "customer_last_name": "Achternaam",
+              "customer_email": "E-mail",
+              "customer_phone": "Telefoon",
+              "customer_company": "Bedrijfsnaam",
+              "customer_vat_number": "BTW-nummer",
+              "customer_city": "Stad",
+              "customer_country": "Land",
+              "total_orders": "Aantal bestellingen",
+              "total_spent": "Totaal besteed"
+            }
+          },
+          "company": {
+            "label": "Bedrijf",
+            "vars": {
+              "company_name": "Bedrijfsnaam",
+              "company_email": "E-mail",
+              "company_phone": "Telefoon",
+              "company_website": "Website",
+              "company_address": "Adres",
+              "company_iban": "IBAN"
+            }
+          },
+          "brand": {
+            "label": "Merk",
+            "vars": {
+              "tenant_logo": "Logo (afbeelding)",
+              "tenant_logo_url": "Logo URL",
+              "brand_primary_color": "Primaire kleur",
+              "brand_accent_color": "Accentkleur",
+              "brand_heading_font": "Titel-lettertype"
+            }
+          },
+          "system": {
+            "label": "Systeem",
+            "vars": {
+              "current_date": "Huidige datum",
+              "unsubscribe_url": "Uitschrijflink",
+              "subject": "Onderwerp"
+            }
+          }
+        }
+      },
+      "advancedToolsGrid": {
+        "geavanceerde_tools": "Geavanceerde Tools",
+        "tools": {
+          "social": {
+            "name": "Social Media",
+            "description": "Posts voor Instagram, Facebook, LinkedIn & X"
+          },
+          "email": {
+            "name": "Email Content",
+            "description": "Nieuwsbrieven, promoties & win-back"
+          },
+          "images": {
+            "name": "Afbeeldingen",
+            "description": "Marketing visuals en product styling"
+          }
+        }
+      },
+      "aiEmailPlanner": {
+        "campaignTypes": {
+          "newsletter": {
+            "name": "Nieuwsbrief",
+            "description": "Maandelijkse update"
+          },
+          "promotion": {
+            "name": "Promotie",
+            "description": "Korting of aanbieding"
+          },
+          "win_back": {
+            "name": "Win-back",
+            "description": "Inactieve klanten"
+          },
+          "new_product": {
+            "name": "Nieuw Product",
+            "description": "Productlancering"
+          },
+          "low_stock": {
+            "name": "Laatste Kans",
+            "description": "Urgentie campagne"
+          }
+        },
+        "campagne": "Campagne",
+        "producten_geselecteerd": "{{count}} product(en) geselecteerd"
+      },
+      "aIEmailPlanner": {
+        "type_campagne": "Type Campagne",
+        "doelgroep_segment_optioneel": "Doelgroep Segment (optioneel)",
+        "alle_abonnees": "Alle abonnees",
+        "producten_optioneel": "Producten (optioneel)",
+        "beschrijf_je_campagne": "Beschrijf je campagne",
+        "content": "Content",
+        "onderwerpen": "Onderwerpen",
+        "onderwerpregel": "Onderwerpregel",
+        "preview_tekst": "Preview tekst",
+        "email_inhoud": "Email inhoud",
+        "call_to_action": "Call-to-Action",
+        "alle_abonnees_2": "Alle abonnees",
+        "wat_wil_je_communiceren_welke_producten": "Wat wil je communiceren? Welke producten of boodschap?",
+        "email_preview": "Email Preview",
+        "ai_email_planner": "AI Email Planner",
+        "laat_ai_je_email_campagne_content": "Laat AI je email campagne content schrijven",
+        "selectie_wissen": "Selectie wissen",
+        "voeg_een_kortingspercentage_toe_aan_de": "Voeg een kortingspercentage toe aan de email",
+        "email_genereren": "Email genereren...",
+        "ai_gegenereerd": "AI Gegenereerd",
+        "kies_de_beste_onderwerpregel_voor_je": "Kies de beste onderwerpregel voor je campagne:",
+        "gebruik_in_nieuwe_campagne": "Gebruik in nieuwe campagne"
+      },
+      "aiImageGenerator": {
+        "styles": {
+          "product_photo": {
+            "name": "Product Foto",
+            "description": "Professionele productfoto"
+          },
+          "lifestyle": {
+            "name": "Lifestyle",
+            "description": "Product in context"
+          },
+          "flat_lay": {
+            "name": "Flat Lay",
+            "description": "Bovenaanzicht styling"
+          },
+          "minimalist": {
+            "name": "Minimalistisch",
+            "description": "Clean en strak"
+          },
+          "vibrant": {
+            "name": "Levendig",
+            "description": "Kleurrijk en opvallend"
+          },
+          "custom": {
+            "name": "Eigen stijl",
+            "description": "Beschrijf zelf"
+          }
+        },
+        "sizes": {
+          "1024_1024": {
+            "name": "Vierkant"
+          },
+          "1792_1024": {
+            "name": "Liggend"
+          },
+          "1024_1792": {
+            "name": "Staand"
+          }
+        },
+        "settingPresets": {
+          "lifestyle": {
+            "name": "Lifestyle",
+            "description": "Product in gebruik door persoon"
+          },
+          "summer": {
+            "name": "Zomer/Strand",
+            "description": "Zonnig strandtafereel"
+          },
+          "winter": {
+            "name": "Winter/Kerst",
+            "description": "Gezellige wintersfeer"
+          },
+          "spring": {
+            "name": "Lente",
+            "description": "Fris en bloeiend"
+          },
+          "kitchen": {
+            "name": "Keuken",
+            "description": "Moderne keukenomgeving"
+          },
+          "living_room": {
+            "name": "Woonkamer",
+            "description": "Stijlvolle woonkamer"
+          },
+          "office": {
+            "name": "Kantoor",
+            "description": "Professionele werkplek"
+          },
+          "outdoor": {
+            "name": "Buiten",
+            "description": "Natuurlijke buitenomgeving"
+          },
+          "studio": {
+            "name": "Studio",
+            "description": "Witte achtergrond, professioneel"
+          },
+          "gradient": {
+            "name": "Gradient",
+            "description": "Vloeiende kleurovergang"
+          },
+          "geometric": {
+            "name": "Geometrisch",
+            "description": "Abstracte vormen"
+          },
+          "custom": {
+            "name": "Eigen setting",
+            "description": "Beschrijf je eigen setting"
+          }
+        },
+        "platformPresets": {
+          "instagram_post": {
+            "name": "Instagram Post"
+          },
+          "instagram_story": {
+            "name": "Instagram Story"
+          },
+          "facebook_banner": {
+            "name": "Facebook Banner"
+          },
+          "email_header": {
+            "name": "Email Header"
+          },
+          "linkedin_post": {
+            "name": "LinkedIn Post"
+          },
+          "custom": {
+            "name": "Aangepast",
+            "dimensions": "Kies zelf"
+          }
+        },
+        "marketingafbeelding_voor": "Marketingafbeelding voor {{product}}"
+      },
+      "aIImageGenerator": {
+        "formaat": "Formaat",
+        "selecteer_product": "Selecteer Product",
+        "setting_omgeving": "Setting / Omgeving",
+        "marketing_tekst_optioneel": "Marketing Tekst (optioneel)",
+        "doelformaat": "Doelformaat",
+        "extra_instructies_optioneel": "Extra instructies (optioneel)",
+        "nog_geen_afbeeldingen_gegenereerd": "Nog geen afbeeldingen gegenereerd",
+        "gebruik_de_generator_hierboven": "Gebruik de generator hierboven",
+        "beschrijf_de_afbeelding_die_je_wilt": "Beschrijf de afbeelding die je wilt genereren...",
+        "beschrijf_je_eigen_setting": "Beschrijf je eigen setting...",
+        "bv_30_korting_of_nieuw": "bv. '30% KORTING' of 'Nieuw!'",
+        "aanvullende_instructies_voor_de_ai": "Aanvullende instructies voor de AI...",
+        "ai_afbeelding_generator": "AI Afbeelding Generator",
+        "genereer_of_bewerk_afbeeldingen_voor_je": "Genereer of bewerk afbeeldingen voor je marketing",
+        "genereer_nieuw": "Genereer Nieuw",
+        "bewerk_productfoto": "Bewerk Productfoto",
+        "tip_wees_specifiek_over_kleuren_stijl": "Tip: Wees specifiek over kleuren, stijl en compositie",
+        "genereren": "Genereren...",
+        "kies_een_product": "Kies een product...",
+        "dit_product_heeft_geen_afbeelding": "Dit product heeft geen afbeelding",
+        "tekst_die_op_de_afbeelding_wordt": "Tekst die op de afbeelding wordt geplaatst",
+        "transformeren": "Transformeren...",
+        "gegenereerde_afbeeldingen": "Gegenereerde Afbeeldingen",
+        "bewerkt": "Bewerkt"
+      },
+      "productPromoWizard": {
+        "toneOptions": {
+          "urgent": {
+            "label": "Urgent",
+            "description": "Nu kopen! Beperkte tijd!"
+          },
+          "casual": {
+            "label": "Casual",
+            "description": "Vriendelijk en relaxed"
+          },
+          "professional": {
+            "label": "Professioneel",
+            "description": "Zakelijk en betrouwbaar"
+          },
+          "playful": {
+            "label": "Speels",
+            "description": "Fun en energiek!"
+          }
+        },
+        "kies_een_product": "Kies een product",
+        "selecteer_product": "Selecteer product",
+        "configureer_je_campagne": "Configureer je campagne",
+        "kortingspercentage": "Kortingspercentage",
+        "10_credits": "+10 credits",
+        "geschatte_kosten": "Geschatte kosten",
+        "product_promotie_wizard": "Product Promotie Wizard",
+        "selecteer_het_product_dat_je_wilt": "Selecteer het product dat je wilt promoten",
+        "wijzig": "Wijzig",
+        "kies_de_toon_en_opties_voor": "Kies de toon en opties voor je marketing content",
+        "benadruk_een_kortingsactie_in_de_content": "Benadruk een kortingsactie in de content",
+        "maak_enhanced_en_nieuwe_marketing_afbeeldingen": "Maak enhanced en nieuwe marketing afbeeldingen",
+        "credits_tekort": "Je hebt {{needed}} credits nodig, maar je hebt er {{available}}."
+      },
+      "socialPostGenerator": {
+        "contentTypes": {
+          "product_highlight": {
+            "name": "Product Highlight",
+            "description": "Zet een product in de spotlight"
+          },
+          "low_stock_alert": {
+            "name": "Laatste Kans",
+            "description": "Urgentie voor bijna uitverkochte items"
+          },
+          "new_arrival": {
+            "name": "Nieuwe Collectie",
+            "description": "Kondig nieuwe producten aan"
+          },
+          "seasonal": {
+            "name": "Seizoensgebonden",
+            "description": "Passend bij het seizoen of feestdag"
+          },
+          "custom": {
+            "name": "Eigen Idee",
+            "description": "Schrijf je eigen prompt"
+          }
+        },
+        "tones": {
+          "casual": {
+            "name": "Casual"
+          },
+          "professional": {
+            "name": "Professioneel"
+          },
+          "playful": {
+            "name": "Speels"
+          },
+          "urgent": {
+            "name": "Urgent"
+          }
+        },
+        "type_content": "Type Content",
+        "je_idee": "Je idee",
+        "beschrijf_wat_je_wilt_promoten": "Beschrijf wat je wilt promoten...",
+        "social_media_generator": "Social Media Generator",
+        "genereer_posts_voor_instagram_facebook_linkedin": "Genereer posts voor Instagram, Facebook, LinkedIn en X",
+        "aanbevolen_afbeeldingen": "Aanbevolen afbeeldingen",
+        "klik_om_te_selecteren": "Klik om te selecteren",
+        "producten_geselecteerd": "{{count}} product(en) geselecteerd",
+        "gepost_naar": "Gepost naar {{platform}}",
+        "ingepland_voor": "Ingepland voor {{moment}}",
+        "product_nummer": "Product {{number}}",
+        "ai_kent_je_data": "AI kent je data: {{products}} producten, {{subscribers}} abonnees,",
+        "feestdag_over_dagen": "{{holiday}} over {{days}} dagen"
+      },
+      "campaignDialog": {
+        "triggers": {
+          "welcome": {
+            "label": "Welkomstmail — nieuwe klant",
+            "description": "Bij nieuwe inschrijving op de nieuwsbrief"
+          },
+          "abandoned_cart": {
+            "label": "Verlaten winkelmandje",
+            "description": "Wanneer een klant een winkelmandje niet afrondt"
+          },
+          "post_purchase": {
+            "label": "Na aankoop",
+            "description": "X uur nadat een bestelling betaald is"
+          },
+          "birthday": {
+            "label": "Verjaardag",
+            "description": "Op de verjaardag van de klant"
+          },
+          "reactivation": {
+            "label": "Heractivering — inactieve klant",
+            "description": "Wanneer een klant X dagen niets kocht"
+          }
+        },
+        "hallo": "Hallo",
+        "uw_bericht_hier": "Uw bericht hier...",
+        "met_vriendelijke_groet": "Met vriendelijke groet,",
+        "onderwerp_nederlands": "Onderwerp (Nederlands)",
+        "preview_tekst_optioneel": "Preview tekst (optioneel)",
+        "preview_tekst_optioneel_2": "Preview tekst (optioneel)",
+        "campagne_naam": "Campagne naam",
+        "template_optioneel": "Template (optioneel)",
+        "geen_template": "Geen template",
+        "andere_talen": "Andere talen",
+        "doelgroep": "Doelgroep",
+        "alle_geabonneerde_klanten": "Alle geabonneerde klanten",
+        "snelle_doelgroepen": "Snelle doelgroepen",
+        "opgeslagen_segmenten": "Opgeslagen segmenten",
+        "talen": "Talen",
+        "preview_tekst_optioneel_3": "Preview tekst (optioneel)",
+        "wanneer_verzenden": "Wanneer verzenden?",
+        "direct_verzenden_opslaan_als_concept": "Direct verzenden (opslaan als concept)",
+        "inplannen_op_datum_tijd": "Inplannen op datum & tijd",
+        "automatische_trigger": "Automatische trigger",
+        "doelgroep_2": "Doelgroep",
+        "bepaalt_wie_de_mail_krijgt_bij": "bepaalt wie de mail krijgt bij een eenmalige verzending.",
+        "trigger": "Trigger",
+        "stuurt_de_mail_automatisch_elke_keer": "stuurt de mail automatisch elke keer dat een klant een gebeurtenis triggert (inschrijving, aankoop, verjaardag …). \"Welkomstmail — nieuwe klant\" vuurt bij een nieuwe subscriber.",
+        "vertraging": "Vertraging:",
+        "uur_na_trigger": "uur na trigger",
+        "email_onderwerp": "Email onderwerp...",
+        "tekst_die_na_het_onderwerp_wordt": "Tekst die na het onderwerp wordt getoond in de inbox...",
+        "email_onderwerp_2": "Email onderwerp...",
+        "tekst_die_na_het_onderwerp_wordt_2": "Tekst die na het onderwerp wordt getoond in de inbox...",
+        "bijv_nieuwsbrief_januari_2025": "bijv. Nieuwsbrief Januari 2025",
+        "selecteer_een_template": "Selecteer een template...",
+        "email_onderwerp_3": "Email onderwerp...",
+        "tekst_die_na_het_onderwerp_wordt_3": "Tekst die na het onderwerp wordt getoond in de inbox...",
+        "wat_is_een_trigger": "Wat is een trigger?",
+        "ai_gegenereerd": "AI gegenereerd"
+      },
+      "promptFavoritesDropdown": {
+        "favorieten": "Favorieten",
+        "klik_om_prompt_te_laden": "Klik om prompt te laden"
+      },
+      "campaignRichEditor": {
+        "afbeelding_url": "Afbeelding URL"
+      },
+      "campaignFunnel": {
+        "geklikt": "Geklikt",
+        "geopend": "Geopend",
+        "afgeleverd": "Afgeleverd"
+      },
+      "aiFeedbackWidget": {
+        "editReasons": {
+          "toon_was_niet_goed": "Toon was niet goed",
+          "te_lang_of_te_kort": "Te lang of te kort",
+          "niet_relevant_voor_doelgroep": "Niet relevant voor doelgroep",
+          "stijl_past_niet_bij_merk": "Stijl past niet bij merk",
+          "feitelijke_fouten": "Feitelijke fouten",
+          "anders": "Anders"
+        }
+      },
+      "aiInsightsCard": {
+        "bijna_uitverkocht": "{{count}} product(en) zijn bijna uitverkocht. Overweeg een \"Laatste Kans\"-campagne.",
+        "win_back": "{{count}} klant(en) zijn niet geabonneerd. Een win-back-campagne kan hen terughalen.",
+        "feestdag_nadert": "Nog {{days}} dagen tot {{holiday}}. Een goed moment voor een seizoenscampagne.",
+        "nieuwe_producten": "{{count}} nieuw(e) product(en) wachten om gepromoot te worden.",
+        "actief_segment": "Je segment \"{{segment}}\" is zeer actief. Geschikt voor een exclusieve aanbieding."
+      }
     }
   },
   "product_form": {

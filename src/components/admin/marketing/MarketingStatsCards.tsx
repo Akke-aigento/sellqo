@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedCounter } from './AnimatedCounter';
 import type { MarketingStats } from '@/types/marketing';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface MarketingStatsCardsProps {
   stats: MarketingStats;
@@ -11,9 +12,10 @@ interface MarketingStatsCardsProps {
 }
 
 export function MarketingStatsCards({ stats, isLoading }: MarketingStatsCardsProps) {
+  const { t } = useTranslation();
   const cards = [
     {
-      title: 'Verzonden',
+      title: t('admin.marketing.contentHistoryList.verzonden'),
       value: stats.totalSent,
       description: `${stats.totalCampaigns} campagnes`,
       icon: Send,
@@ -24,7 +26,7 @@ export function MarketingStatsCards({ stats, isLoading }: MarketingStatsCardsPro
       valueColor: 'text-blue-700',
     },
     {
-      title: 'Open Rate',
+      title: t('admin.marketing.marketingStatsCards.open_rate'),
       value: stats.avgOpenRate,
       isPercentage: true,
       description: `${stats.totalOpened.toLocaleString('nl-NL')} geopend`,
@@ -37,7 +39,7 @@ export function MarketingStatsCards({ stats, isLoading }: MarketingStatsCardsPro
       valueColor: 'text-purple-700',
     },
     {
-      title: 'Click Rate',
+      title: t('admin.marketing.marketingStatsCards.click_rate'),
       value: stats.avgClickRate,
       isPercentage: true,
       description: `${stats.totalClicked.toLocaleString('nl-NL')} clicks`,
@@ -50,10 +52,10 @@ export function MarketingStatsCards({ stats, isLoading }: MarketingStatsCardsPro
       valueColor: 'text-orange-700',
     },
     {
-      title: 'Subscribers',
+      title: t('admin.marketing.marketingStatsCards.subscribers'),
       value: stats.subscriberCount,
       description: stats.subscriberGrowth > 0 
-        ? `+${stats.subscriberGrowth} deze maand` 
+        ? t('admin.marketing.marketingStatsCards.groei_deze_maand', { count: stats.subscriberGrowth }) 
         : 'actieve ontvangers',
       icon: Users,
       trend: stats.subscriberGrowth > 0 ? 'up' : null,
@@ -64,7 +66,7 @@ export function MarketingStatsCards({ stats, isLoading }: MarketingStatsCardsPro
       valueColor: 'text-green-700',
     },
     {
-      title: 'Uitschrijvingen',
+      title: t('admin.marketing.marketingStatsCards.uitschrijvingen'),
       value: stats.unsubscribeCount,
       description: 'totaal',
       icon: UserMinus,

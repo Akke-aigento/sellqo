@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useContentAnalytics, useContentTrends } from '@/hooks/useContentAnalytics';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
   AreaChart,
@@ -18,14 +17,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export function ContentEngagementStats() {
+  const dateLocale = useDateFnsLocale();
+  const { t } = useTranslation();
   const { stats, isLoading } = useContentAnalytics();
   const { data: trends = [] } = useContentTrends(30);
 
   // Transform data for chart
   const chartData = trends.slice(-10).map((trend) => ({
-    date: format(new Date(trend.date), 'dd MMM', { locale: nl }),
+    date: format(new Date(trend.date), 'dd MMM', { locale: dateLocale }),
     generated: trend.count,
     used: trend.used,
   }));
@@ -36,7 +39,7 @@ export function ContentEngagementStats() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Engagement Analytics
+            {t('admin.marketing.contentEngagementStats.engagement_analytics')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -55,7 +58,7 @@ export function ContentEngagementStats() {
 
   const statCards = [
     {
-      label: 'Totaal Content',
+      label: t('admin.marketing.contentEngagementStats.totaal_content'),
       value: stats.totalContent.toLocaleString(),
       icon: Eye,
       color: 'text-blue-500',
@@ -63,7 +66,7 @@ export function ContentEngagementStats() {
       change: 12.5,
     },
     {
-      label: 'Gebruikt',
+      label: t('admin.marketing.aIContentLibrary.gebruikt'),
       value: stats.usedContent.toLocaleString(),
       icon: MousePointer,
       color: 'text-green-500',
@@ -71,7 +74,7 @@ export function ContentEngagementStats() {
       change: 8.3,
     },
     {
-      label: 'Gepubliceerd',
+      label: t('admin.marketing.contentHistoryList.gepubliceerd'),
       value: stats.publishedContent.toLocaleString(),
       icon: Share2,
       color: 'text-purple-500',
@@ -79,7 +82,7 @@ export function ContentEngagementStats() {
       change: -2.1,
     },
     {
-      label: 'Gem. Engagement',
+      label: t('admin.marketing.contentEngagementStats.gem_engagement'),
       value: `${stats.avgEngagementRate.toFixed(1)}%`,
       icon: Heart,
       color: 'text-pink-500',
@@ -95,10 +98,10 @@ export function ContentEngagementStats() {
           <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
             <BarChart3 className="h-4 w-4 text-white" />
           </div>
-          Content Engagement Analytics
+          {t('admin.marketing.contentEngagementStats.content_engagement_analytics')}
         </CardTitle>
         <CardDescription>
-          Performance van je AI-gegenereerde content
+          {t('admin.marketing.contentEngagementStats.performance_van_je_ai_gegenereerde_content')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -179,8 +182,8 @@ export function ContentEngagementStats() {
           <div className="h-64 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Nog geen engagement data</p>
-              <p className="text-sm">Publiceer content om statistieken te zien</p>
+              <p>{t('admin.marketing.contentEngagementStats.nog_geen_engagement_data')}</p>
+              <p className="text-sm">{t('admin.marketing.contentEngagementStats.publiceer_content_om_statistieken_te_zien')}</p>
             </div>
           </div>
         )}
@@ -190,7 +193,7 @@ export function ContentEngagementStats() {
           <div className="space-y-3">
             <h4 className="font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Best presterende content
+              {t('admin.marketing.contentEngagementStats.best_presterende_content')}
             </h4>
             <div className="space-y-2">
               {stats.topPerformingContent.map((item, index) => (

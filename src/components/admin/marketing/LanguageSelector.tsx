@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/i18n/languages';
+import { useTranslation } from 'react-i18next';
 
 export type AILanguage = LangCode;
 
@@ -22,12 +23,13 @@ const languages: { id: AILanguage; name: string; flag: string }[] =
   SUPPORTED_LANGUAGES.map(({ code, label, flag }) => ({ id: code, name: label, flag }));
 
 export function LanguageSelector({ value, onChange, className, showLabel = true }: LanguageSelectorProps) {
+  const { t } = useTranslation();
   return (
     <div className={className}>
       {showLabel && (
         <Label className="flex items-center gap-1 mb-2">
           <Languages className="h-4 w-4" />
-          Taal
+          {t('admin.marketing.templateDialog.taal')}
         </Label>
       )}
       <Select value={value} onValueChange={(v) => onChange(v as AILanguage)}>

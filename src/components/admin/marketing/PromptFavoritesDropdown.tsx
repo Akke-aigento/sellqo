@@ -11,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePromptFavorites, type PromptFavorite } from '@/hooks/usePromptFavorites';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PromptFavoritesDropdownProps {
   promptType: 'social' | 'email' | 'image';
@@ -23,6 +24,7 @@ export function PromptFavoritesDropdown({
   onSelect,
   className 
 }: PromptFavoritesDropdownProps) {
+  const { t } = useTranslation();
   const { favorites, isLoading, deleteFavorite, incrementUsage } = usePromptFavorites(promptType);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -47,7 +49,7 @@ export function PromptFavoritesDropdown({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className={cn('gap-2', className)}>
           <Star className="h-4 w-4" />
-          Favorieten
+          {t('admin.marketing.promptFavoritesDropdown.favorieten')}
           <Badge variant="secondary" className="ml-1">
             {favorites.length}
           </Badge>
@@ -97,7 +99,7 @@ export function PromptFavoritesDropdown({
               <>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  Klik om prompt te laden
+                  {t('admin.marketing.promptFavoritesDropdown.klik_om_prompt_te_laden')}
                 </div>
               </>
             )}

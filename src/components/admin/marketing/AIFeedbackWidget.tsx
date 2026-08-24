@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/popover';
 import { useAIFeedback } from '@/hooks/useAIFeedback';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface AIFeedbackWidgetProps {
   contentId?: string;
@@ -22,12 +23,12 @@ interface AIFeedbackWidgetProps {
 }
 
 const EDIT_REASONS = [
-  { id: 'tone', label: 'Toon was niet goed' },
-  { id: 'length', label: 'Te lang of te kort' },
-  { id: 'relevance', label: 'Niet relevant voor doelgroep' },
-  { id: 'style', label: 'Stijl past niet bij merk' },
-  { id: 'factual', label: 'Feitelijke fouten' },
-  { id: 'other', label: 'Anders' },
+  { id: 'tone', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.toon_was_niet_goed' },
+  { id: 'length', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.te_lang_of_te_kort' },
+  { id: 'relevance', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.niet_relevant_voor_doelgroep' },
+  { id: 'style', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.stijl_past_niet_bij_merk' },
+  { id: 'factual', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.feitelijke_fouten' },
+  { id: 'other', labelKey: 'admin.marketing.aiFeedbackWidget.editReasons.anders' },
 ];
 
 export function AIFeedbackWidget({
@@ -38,6 +39,7 @@ export function AIFeedbackWidget({
   compact = false,
   onEdit,
 }: AIFeedbackWidgetProps) {
+  const { t } = useTranslation();
   const { submitFeedback } = useAIFeedback();
   const [feedbackGiven, setFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -87,7 +89,7 @@ export function AIFeedbackWidget({
     return (
       <div className={cn('flex items-center gap-2 text-sm text-green-600', className)}>
         <Check className="h-4 w-4" />
-        <span>Bedankt!</span>
+        <span>{t('admin.marketing.aIFeedbackWidget.bedankt')}</span>
       </div>
     );
   }
@@ -147,7 +149,7 @@ export function AIFeedbackWidget({
   return (
     <div className={cn('space-y-3', className)}>
       <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Was dit nuttig?</span>
+        <span className="text-sm text-muted-foreground">{t('admin.marketing.aIFeedbackWidget.was_dit_nuttig')}</span>
         <div className="flex items-center gap-1">
           <Button
             variant={feedbackGiven === 'positive' ? 'default' : 'outline'}
@@ -167,7 +169,7 @@ export function AIFeedbackWidget({
                 disabled={submitFeedback.isPending}
               >
                 <ThumbsDown className="h-4 w-4 mr-1" />
-                Nee
+                {t('common.no')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
@@ -188,7 +190,7 @@ export function AIFeedbackWidget({
         {onEdit && (
           <Button variant="ghost" size="sm" onClick={onEdit}>
             <Edit2 className="h-4 w-4 mr-1" />
-            Aanpassen
+            {t('admin.marketing.aIFeedbackWidget.aanpassen')}
           </Button>
         )}
       </div>
@@ -219,10 +221,11 @@ function FeedbackDetailsForm({
   onCancel,
   isSubmitting,
 }: FeedbackDetailsFormProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-medium">Wat kunnen we verbeteren?</h4>
+        <h4 className="font-medium">{t('admin.marketing.aIFeedbackWidget.wat_kunnen_we_verbeteren')}</h4>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onCancel}>
           <X className="h-4 w-4" />
         </Button>
@@ -237,14 +240,14 @@ function FeedbackDetailsForm({
               onCheckedChange={() => onReasonToggle(reason.id)}
             />
             <Label htmlFor={reason.id} className="text-sm font-normal cursor-pointer">
-              {reason.label}
+              {t(reason.labelKey)}
             </Label>
           </div>
         ))}
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm">Beoordeling</Label>
+        <Label className="text-sm">{t('admin.marketing.aIFeedbackWidget.beoordeling')}</Label>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map(star => (
             <button
@@ -265,19 +268,19 @@ function FeedbackDetailsForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="comments" className="text-sm">Opmerkingen (optioneel)</Label>
+        <Label htmlFor="comments" className="text-sm">{t('admin.marketing.aIFeedbackWidget.opmerkingen_optioneel')}</Label>
         <Textarea
           id="comments"
           value={comments}
           onChange={(e) => onCommentsChange(e.target.value)}
-          placeholder="Vertel ons meer..."
+          placeholder={t('admin.marketing.aIFeedbackWidget.vertel_ons_meer')}
           className="h-20 resize-none"
         />
       </div>
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onCancel}>
-          Annuleren
+          {t('common.cancel')}
         </Button>
         <Button size="sm" onClick={onSubmit} disabled={isSubmitting}>
           {isSubmitting ? 'Verzenden...' : 'Verstuur'}

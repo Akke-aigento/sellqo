@@ -29,15 +29,16 @@ import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type Tone = 'urgent' | 'casual' | 'professional' | 'playful';
 type Language = 'nl' | 'en' | 'de' | 'fr';
 
-const toneOptions: { value: Tone; label: string; icon: React.ElementType; color: string }[] = [
-  { value: 'urgent', label: 'Urgent', icon: Zap, color: 'text-red-500 bg-red-500/10 border-red-500/50 hover:bg-red-500/20' },
-  { value: 'casual', label: 'Casual', icon: Smile, color: 'text-blue-500 bg-blue-500/10 border-blue-500/50 hover:bg-blue-500/20' },
-  { value: 'professional', label: 'Professioneel', icon: Briefcase, color: 'text-slate-600 bg-slate-500/10 border-slate-500/50 hover:bg-slate-500/20' },
-  { value: 'playful', label: 'Speels', icon: PartyPopper, color: 'text-purple-500 bg-purple-500/10 border-purple-500/50 hover:bg-purple-500/20' },
+const toneOptions: { value: Tone; labelKey: string; icon: React.ElementType; color: string }[] = [
+  { value: 'urgent', labelKey: 'admin.marketing.inlinePromoWizard.toneOptions.urgent', icon: Zap, color: 'text-red-500 bg-red-500/10 border-red-500/50 hover:bg-red-500/20' },
+  { value: 'casual', labelKey: 'admin.marketing.inlinePromoWizard.toneOptions.casual', icon: Smile, color: 'text-blue-500 bg-blue-500/10 border-blue-500/50 hover:bg-blue-500/20' },
+  { value: 'professional', labelKey: 'admin.marketing.inlinePromoWizard.toneOptions.professioneel', icon: Briefcase, color: 'text-slate-600 bg-slate-500/10 border-slate-500/50 hover:bg-slate-500/20' },
+  { value: 'playful', labelKey: 'admin.marketing.inlinePromoWizard.toneOptions.speels', icon: PartyPopper, color: 'text-purple-500 bg-purple-500/10 border-purple-500/50 hover:bg-purple-500/20' },
 ];
 
 const languageOptions: { value: Language; flag: string }[] = [
@@ -52,6 +53,7 @@ interface InlinePromoWizardProps {
 }
 
 export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
+  const { t } = useTranslation();
   const [productOpen, setProductOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [tone, setTone] = useState<Tone>('casual');
@@ -76,8 +78,8 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
 
     if (!hasCredits(estimatedCredits)) {
       toast.error('Onvoldoende AI credits', {
-        description: `Je hebt ${estimatedCredits} credits nodig.`,
-        action: onNeedCredits ? { label: 'Credits kopen', onClick: onNeedCredits } : undefined,
+        description: t('admin.marketing.inlinePromoWizard.credits_nodig', { count: estimatedCredits }),
+        action: onNeedCredits ? { label: t('admin.marketing.inlinePromoWizard.credits_kopen'), onClick: onNeedCredits } : undefined,
       });
       return;
     }
@@ -153,9 +155,9 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
             <Rocket className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-semibold">Product Promoten</h2>
+            <h2 className="text-xl font-semibold">{t('admin.marketing.inlinePromoWizard.product_promoten')}</h2>
             <p className="text-sm text-muted-foreground">
-              Selecteer een product, kies de toon, en AI genereert een complete marketing kit
+              {t('admin.marketing.inlinePromoWizard.selecteer_een_product_kies_de_toon')}
             </p>
           </div>
         </div>
@@ -165,7 +167,7 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
           <div className="grid gap-4 md:grid-cols-2">
             {/* Product Selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Product</Label>
+              <Label className="text-sm font-medium">{t('admin.stockReport.colName')}</Label>
               <Popover open={productOpen} onOpenChange={setProductOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -190,16 +192,16 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
                         <span className="truncate">{selectedProduct.name}</span>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">Selecteer product...</span>
+                      <span className="text-muted-foreground">{t('admin.marketing.inlinePromoWizard.selecteer_product')}</span>
                     )}
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Zoek product..." />
+                    <CommandInput placeholder={t('admin.marketing.inlinePromoWizard.zoek_product')} />
                     <CommandList>
-                      <CommandEmpty>Geen producten gevonden.</CommandEmpty>
+                      <CommandEmpty>{t('admin.marketing.inlinePromoWizard.geen_producten_gevonden')}</CommandEmpty>
                       <CommandGroup>
                         {products?.slice(0, 20).map((product) => (
                           <CommandItem
@@ -241,7 +243,7 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
 
             {/* Tone Selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Toon</Label>
+              <Label className="text-sm font-medium">{t('admin.marketing.inlinePromoWizard.toon')}</Label>
               <div className="grid grid-cols-4 gap-2">
                 {toneOptions.map((option) => {
                   const Icon = option.icon;
@@ -257,7 +259,7 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
                       )}
                     >
                       <Icon className="h-5 w-5 mb-1" />
-                      <span className="text-xs font-medium">{option.label}</span>
+                      <span className="text-xs font-medium">{t(option.labelKey)}</span>
                     </button>
                   );
                 })}
@@ -268,7 +270,7 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
           {/* Row 2: Language + Options (collapsible) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Label className="text-sm font-medium">Taal:</Label>
+              <Label className="text-sm font-medium">{t('admin.marketing.inlinePromoWizard.taal')}</Label>
               <div className="flex gap-1">
                 {languageOptions.map((lang) => (
                   <button
@@ -304,8 +306,8 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
               {/* Discount Toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-medium">Korting toevoegen</Label>
-                  <p className="text-xs text-muted-foreground">Benadruk een kortingsactie</p>
+                  <Label className="text-sm font-medium">{t('admin.marketing.inlinePromoWizard.korting_toevoegen')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('admin.marketing.inlinePromoWizard.benadruk_een_kortingsactie')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {includeDiscount && (
@@ -329,10 +331,10 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    Afbeeldingen genereren
-                    <Badge variant="outline" className="text-xs">+10 cr</Badge>
+                    {t('admin.marketing.inlinePromoWizard.afbeeldingen_genereren')}
+                    <Badge variant="outline" className="text-xs">{t('admin.marketing.inlinePromoWizard.10_cr')}</Badge>
                   </Label>
-                  <p className="text-xs text-muted-foreground">Enhanced en nieuwe visuals</p>
+                  <p className="text-xs text-muted-foreground">{t('admin.marketing.inlinePromoWizard.enhanced_en_nieuwe_visuals')}</p>
                 </div>
                 <Switch checked={generateImages} onCheckedChange={setGenerateImages} />
               </div>
@@ -356,12 +358,12 @@ export function InlinePromoWizard({ onNeedCredits }: InlinePromoWizardProps) {
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Genereren...
+                  {t('admin.marketing.aIImageGenerator.genereren')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Genereer Marketing Kit
+                  {t('admin.marketing.inlinePromoWizard.genereer_marketing_kit')}
                 </>
               )}
             </Button>
