@@ -1,11 +1,11 @@
 
 ## CUSTAUTH-1 — e-mailverificatie voor storefront-klanten — 24 augustus 2026
 
-**Status: gedeployed en gedraaid, maar in de verkeerde volgorde.** De edge function ging live
-vóórdat de grandfather-migratie was toegepast, waardoor vijf bestaande klanten tijdelijk hun
-orderhistorie kwijt waren. Hersteld met een handmatige UPDATE; zie **Nalevering** onderaan deze
-entry voor de root cause, de natrek en wat er nog openstaat. De hieronder beschreven volgorde
-is dus wél opgeschreven maar níet gevolgd.
+**Status: sinds 24 augustus 20:50 UTC live en end-to-end bewezen.** Twee nalever-rondes waren
+daarvoor nodig. De grandfather-migratie was niet gedraaid (**Nalevering 1**) en de edge function
+was in het geheel niet gedeployed (**Nalevering 2**) — beide keren gemeld als uitgevoerd terwijl
+productie iets anders zei. Lees beide secties onderaan deze entry vóór je op de volgorde
+hieronder afgaat: die is wél opgeschreven, maar niet gevolgd.
 
 ### Root cause
 
@@ -201,13 +201,18 @@ of tijdens de deploy.
 
 ---
 
-### Nalevering — de migratie draaide niet, de deploy wel (24 augustus 2026)
+### Nalevering 1 — de migratie draaide niet (24 augustus 2026)
 
-**Wat er misging.** De edge function met de enforcement is gedeployed zonder dat de
-grandfather-migratie was toegepast. De vijf bestaande accounts (VanXcel 3, Mancini 2) stonden
-daardoor op `email_verified = false` terwijl `get_orders` al weigerde: die klanten waren
-tijdelijk afgesloten van hun orderhistorie. Akke heeft de `UPDATE` daarna handmatig tegen de
-live database gedraaid en geverifieerd — alle vijf staan nu op `true`, toegang hersteld.
+> **Correctie achteraf (Nalevering 2).** De titel van deze sectie luidde "de migratie draaide
+> niet, de deploy wel". Dat tweede deel is onjuist: de edge function was op dat moment nog
+> nooit gedeployed. De enforcement stond dus niet aan en er is nooit iemand buitengesloten
+> geweest. Wat hieronder over de migratie staat klopt wel; de schade-inschatting niet.
+
+**Wat er misging.** De grandfather-migratie was niet toegepast terwijl de batch als gedeployed
+gold. De vijf bestaande accounts (VanXcel 3, Mancini 2) stonden op `email_verified = false`.
+Akke heeft de `UPDATE` handmatig tegen de live database gedraaid en geverifieerd — alle vijf
+staan nu op `true`. Achteraf bleek dat geen herstel maar een vooruitwerkende maatregel: ze
+stonden al goed vóórdat de enforcement voor het eerst aanging.
 
 **Root cause — niet wat het leek.** Het vermoeden was dat de migratie nooit als bestand is
 geschreven, of alleen inline is gedraaid. Dat klopt niet:
@@ -274,14 +279,12 @@ enforcement-moment.
 alsnog, dan is dat een no-op: de vijf rijen staan al op `true` en accounts van ná de grens
 vallen buiten de `WHERE`. Niet opnieuw handmatig draaien.
 
-### Nog niet geverifieerd
+### Nog niet geverifieerd (afgehandeld in Nalevering 2)
 
-De end-to-end enforcement is **niet** bevestigd. Een verse registratie ná het live gaan hoort
-`email_verified = false` terug te geven en `get_orders` hoort te weigeren met
-`EMAIL_NOT_VERIFIED`. Dat vraagt een echte registratie tegen een testbed-tenant (SellQo
-Speeltuin of Demo Bakkerij) en dus een echte klantrij plus een echte e-mail; het commando staat
-klaar maar is bewust niet vanuit Claude Code uitgevoerd. Zolang dit openstaat is bewezen dát de
-grandfather-set klopt, maar niet dát de poort werkt.
+*Stond hier als open punt: de end-to-end enforcement was niet bevestigd — bewezen was dát de
+grandfather-set klopte, niet dát de poort werkte. Inmiddels wél bevestigd, met een echte
+registratie tegen SellQo Speeltuin. Zie de ketentest in Nalevering 2 hieronder. Dat de poort
+tot dan toe niet werkte had een andere oorzaak dan hier vermoed: hij was er niet.*
 
 ### Vervolgpunt — regel ontbreekt
 
@@ -300,6 +303,103 @@ leidend is en niet in deze repo staat):
 
 Niet toegepast: skill- en CLAUDE.md-wijzigingen gaan via een expliciete go, en
 `sellqo-connector-werkwijze` leeft alleen in de workspace.
+
+
+### Nalevering 2 — de deploy draaide níet (24 augustus 2026)
+
+**Wat er misging.** Twee keer op rij is een stap als uitgevoerd gemeld terwijl productie iets
+anders deed. Ronde 1 was de migratie; ronde 2 is de deploy zelf. Een verse registratie op
+BennyRich om 20:17 UTC kreeg geen verificatietoken, en over álle zes `storefront_customers`
+had er nooit één een token gehad — een register dat de nieuwe code draait had dat onmogelijk
+kunnen nalaten.
+
+**Hoe is vastgesteld wat er live draaide.** Niet door het repobestand nog eens te lezen. Drie
+POST's op de live functie, geen van drie schrijft iets (een onzin-token faalt op de HMAC-check
+vóór er een `update` gebeurt):
+
+| Probe | Vóór de deploy | Ná de deploy |
+|---|---|---|
+| `verify_email` + onzin-token | `400 Unknown action: verify_email` | `500 Invalid or expired verification token` |
+| `resend_verification`, geen sessie | `400 Unknown action: resend_verification` | `500 Authentication required` |
+| `zzz_does_not_exist` (controle) | `400 Unknown action: zzz_does_not_exist` | idem — ongewijzigd |
+
+De controle-actie is het punt van de opzet: die blijft op `Unknown action`, dus de omslag van
+de andere twee komt door nieuwe code en niet door een gewijzigde foutafhandeling.
+
+**Root cause — een code-sync is geen deploy.** De code stond wél goed op het Lovable-project
+(`read_file` gaf `verify_email`, `resend_verification`, de tokengeneratie in `register` en beide
+403-takken), en `list_edits` toont `a45153dd` netjes als `developer_update` op 16:07 UTC. De
+GitHub→Lovable-sync werkte dus. Wat ontbreekt is de stap daarna: er is in dit project **niets**
+dat edge functions uitrolt. Geen CI-stap (`ci.yml` draait alleen tsc, i18n-pariteit en build),
+geen npm-script, geen `db push`. Een edge function gaat live wanneer de Lovable-agent hem
+deployt, en sinds de sync van 16:07 had er geen agent-sessie gedraaid — geen enkele `ai_update`
+in die periode. De functie was niet te laat gedeployed; hij was **nooit** gedeployed.
+
+Dat is exact hetzelfde mechanisme als in Nalevering 1: het bestand kwam aan, de handeling niet.
+Migraties en deploys zijn in dit project allebei losse, handmatige stappen zonder enige koppeling
+aan de commit die ze nodig heeft.
+
+**Waarom de CLI geen uitweg was.** `supabase functions list --project-ref gczmfcabnoofnmfpzeop`
+geeft `403 — your account does not have the necessary privileges`, en `projects list` geeft nul
+projecten terug. Het Supabase-project is Lovable-beheerd; deployen kan alleen via Lovable.
+
+**De deploy.** Via de Lovable-agent, met de opdracht de bestaande functie opnieuw uit te rollen
+en geen regel code te wijzigen. Uitgevoerd om 20:50 UTC (`bf543a2f`, merge van `8cb49305`). De
+diff bevestigt dat `supabase/functions/**` niet is aangeraakt. Wel meegekomen als bijvangst:
+twee auto-gegenereerde bestanden van het platform zelf
+(`src/integrations/supabase/client.ts` + het nieuwe `previewAuthStorage.ts`, beide met
+"automatically generated"-header). Die brokeren de auth-sessie op Lovable-previews en vallen
+buiten een preview-iframe terug op `localStorage`. Niet gevraagd, niet door de agent bedacht —
+platform-huishouding die bij elke agent-run meekomt.
+
+### Ketentest — live, tegen SellQo Speeltuin
+
+Eén testrij op tenant `bc18b2e3-…` met `a.aigento+custauth1@outlook.com`. Volgorde en uitkomst:
+
+| # | Stap | Uitkomst |
+|---|---|---|
+| 1 | `register` | `200`, `email_verified: false` + sessietoken |
+| 2 | SQL-natrek | token aanwezig (294 tekens), `expires_at` exact **48,00 uur** — precies wat productie hiervóór nooit deed |
+| 3 | `get_orders` met die sessie | **`403 EMAIL_NOT_VERIFIED`** — enforcement live |
+| 4 | `get_profile` | `200`, geeft `email_verified: false` terug |
+| 5 | verificatietoken als sessietoken | `Invalid or expired token` — de `purpose`-check houdt |
+| 6 | `verify_email` met de echte token | `200 Email verified successfully` |
+| 7 | dezelfde link nogmaals | `Invalid or expired verification token` — eenmalig |
+| 8 | `get_orders` opnieuw | **`200`** — keten rond |
+| 9 | `resend_verification` op het nu bevestigde account | `200 Email is already verified`, geen tweede mail |
+
+De registratie in stap 1 ging bewust met `url_base: "https://evil.example.com"` mee. Dat adres
+staat niet in `tenant_domains`, is niet het `custom_domain` van deze tenant en eindigt niet op
+`.lovable.app`, dus `resolveStorefrontBase` hoort hem te weigeren en terug te vallen op het
+legacy-pad. De link in de daadwerkelijk verstuurde mail is daarmee het bewijs van de
+anti-phishing-controle — te lezen in de inbox, niet af te leiden uit de API-respons.
+
+De testrij is daarna verwijderd:
+
+```sql
+DELETE FROM public.storefront_customers
+WHERE id = '3d4b8514-4258-4299-85b6-39986865aa95'
+  AND tenant_id = 'bc18b2e3-dcda-4af1-8203-8f04a16836cd'
+  AND email = 'a.aigento+custauth1@outlook.com';
+-- 1 rij, bevestigd via RETURNING.
+```
+
+### Wat hiervan blijft staan
+
+- **Het BennyRich-account van 20:17** (`aaron.mercken@hotmail.com`) staat op
+  `email_verified = false` zónder token — aangemaakt door de oude code. Verifiëren kan alleen
+  via een nieuwe mail: de knop **"Send it again"** op `/account` in BennyRich roept
+  `resend_verification` aan. Geen handmatige SQL nodig.
+- **De regel uit Nalevering 1 is niet streng genoeg gebleken.** Die eiste een `SELECT` na een
+  migratie. Voorstel, nu aangescherpt naar beide handelingen (nog niet toegepast — CLAUDE.md
+  en skills gaan via een expliciete go):
+
+> **Een migratie én een deploy op gedeelde core gelden pas als uitgevoerd wanneer productie
+> zelf het bevestigt.** Voor een migratie is dat een `SELECT` die het effect toont; voor een
+> edge function een runtime-probe die aantoonbaar nieuwe code raakt, met een controle-aanroep
+> ernaast die níet verandert. Het rapport van de uitvoerende stap — connector, agent of mens —
+> is geen bewijs.
+
 
 ---
 
