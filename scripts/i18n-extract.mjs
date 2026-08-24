@@ -182,14 +182,19 @@ function stripMisplacedHooks(src) {
   return src;
 }
 
-const propRe = new RegExp(`\\b(${TEXT_PROPS.join('|')})=(?:"([^"\\n]*)"|'([^'\\n]*)')`, 'g');
+// Escapes meenemen: 'Productpagina\'s' is één string. Zonder die tak knipt de
+// match midden in de waarde en breekt het bestand.
+const propRe = new RegExp(`\\b(${TEXT_PROPS.join('|')})=(?:"((?:[^"\\\\\\n]|\\\\.)*)"|'((?:[^'\\\\\\n]|\\\\.)*)')`, 'g');
 // JSX-tekst: één regel, en het openende `>` mag geen operator zijn (>=, =>, ->).
 // Ook whitespace ervóór diskwalificeert: in `a.acos > 0 && a.acos < 10` staat een
 // spatie voor de `>`, terwijl een JSX-tag altijd op een naam, quote of `}` sluit.
 // Zonder die uitsluiting werd de middelste term van zo'n vergelijking als
 // UI-tekst geëxtraheerd en brak het bestand.
 const jsxTextRe = /(?<![=!<>+\-*/&|\s])>([ \t]*)([^<>{}\n\s][^<>{}\n]*?)([ \t]*)</g;
-const toastRe = /\b(title|description|message)(\s*:\s*)(?:"([^"\n]*)"|'([^'\n]*)')/g;
+const toastRe = /\b(title|description|message)(\s*:\s*)(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)')/g;
+
+// De captures bevatten nog de bron-escapes; de JSON-waarde moet de echte tekst zijn.
+const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
 
 const summary = { files: 0, changed: 0, keys: 0, reused: 0, todo: [] };
 const filesSeen = new Set();
@@ -252,12 +257,12 @@ for (const target of targets) {
       push(start, start + m[0].length, text, (key) => `>${m[1]}{t('${key}')}${m[3]}<`);
     }
     for (const m of src.matchAll(propRe)) {
-      const text = (m[2] ?? m[3]).trim();
+      const text = unescape(m[2] ?? m[3]).trim();
       if (!isUiText(text)) continue;
       push(m.index, m.index + m[0].length, text, (key) => `${m[1]}={t('${key}')}`);
     }
     for (const m of src.matchAll(toastRe)) {
-      const text = (m[3] ?? m[4]).trim();
+      const text = unescape(m[3] ?? m[4]).trim();
       if (!isUiText(text)) continue;
       push(m.index, m.index + m[0].length, text, (key) => `${m[1]}${m[2]}t('${key}')`);
     }

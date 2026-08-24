@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface AISearchOptimizerProps {
   aiSearchScore: number | null;
@@ -47,6 +48,7 @@ export function AISearchOptimizer({
   onGenerateLongForm,
   isGenerating,
 }: AISearchOptimizerProps) {
+  const { t } = useTranslation();
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   // Calculate optimization status
@@ -65,32 +67,32 @@ export function AISearchOptimizer({
   const tips: OptimizationTip[] = [
     {
       id: 'eeat',
-      title: 'E-E-A-T Signalen',
-      description: 'Toon expertise en autoriteit in je productbeschrijvingen',
+      title: t('admin.seo.aISearchOptimizer.e_e_a_t_signalen'),
+      description: t('admin.seo.aISearchOptimizer.toon_expertise_en_autoriteit_in_je'),
       status: getStatus(productsWithLongDescription, totalProducts),
       icon: Lightbulb,
       priority: 'high',
     },
     {
       id: 'conversational',
-      title: 'Conversational Content',
-      description: 'Beantwoord natuurlijke vragen in je content',
+      title: t('admin.seo.aISearchOptimizer.conversational_content'),
+      description: t('admin.seo.aISearchOptimizer.beantwoord_natuurlijke_vragen_in_je_content'),
       status: 'partial',
       icon: MessageSquare,
       priority: 'high',
     },
     {
       id: 'faq',
-      title: 'FAQ Secties',
-      description: 'Voeg veelgestelde vragen toe aan productpagina\'s',
+      title: t('admin.seo.aISearchOptimizer.faq_secties'),
+      description: t('admin.seo.aISearchOptimizer.voeg_veelgestelde_vragen_toe_aan_productpagina'),
       status: 'missing',
       icon: FileText,
       priority: 'medium',
     },
     {
       id: 'citations',
-      title: 'Citeerbare Content',
-      description: 'Schrijf content die AI\'s graag citeren als bron',
+      title: t('admin.seo.aISearchOptimizer.citeerbare_content'),
+      description: t('admin.seo.aISearchOptimizer.schrijf_content_die_ai_s_graag'),
       status: getStatus(productsWithDescription, totalProducts),
       icon: Link2,
       priority: 'medium',
@@ -124,10 +126,10 @@ export function AISearchOptimizer({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            AI Search Optimalisatie
+            {t('admin.seo.aISearchOptimizer.ai_search_optimalisatie')}
           </CardTitle>
           <CardDescription>
-            Optimaliseer je content voor AI-zoekmachines zoals ChatGPT, Perplexity en Google AI Overview
+            {t('admin.seo.aISearchOptimizer.optimaliseer_je_content_voor_ai_zoekmachines')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -161,7 +163,7 @@ export function AISearchOptimizer({
               </div>
             </div>
             <div className="flex-1">
-              <h4 className="font-medium mb-2">AI Search Readiness</h4>
+              <h4 className="font-medium mb-2">{t('admin.seo.aISearchOptimizer.ai_search_readiness')}</h4>
               <p className="text-sm text-muted-foreground mb-3">
                 Je content is {aiSearchScore && aiSearchScore >= 70 ? 'goed' : 'nog niet optimaal'} voorbereid op AI-zoekmachines.
               </p>
@@ -174,7 +176,7 @@ export function AISearchOptimizer({
 
           {/* Optimization Tips */}
           <div className="space-y-3">
-            <h4 className="font-medium">Optimalisatie Checklist</h4>
+            <h4 className="font-medium">{t('admin.seo.aISearchOptimizer.optimalisatie_checklist')}</h4>
             {tips.map((tip) => {
               const Icon = tip.icon;
               return (
@@ -226,7 +228,7 @@ export function AISearchOptimizer({
 
           {/* Action Buttons */}
           <div className="pt-4 border-t">
-            <h4 className="font-medium mb-3">AI Content Genereren</h4>
+            <h4 className="font-medium mb-3">{t('admin.seo.aISearchOptimizer.ai_content_genereren')}</h4>
             <div className="grid gap-3 sm:grid-cols-2">
               <Button
                 variant="outline"
@@ -262,37 +264,34 @@ export function AISearchOptimizer({
       {/* Tips Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">AI Search Tips</CardTitle>
+          <CardTitle className="text-lg">{t('admin.seo.aISearchOptimizer.ai_search_tips')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-4 rounded-lg border bg-blue-500/5 border-blue-500/30">
             <h4 className="font-medium mb-2 flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-blue-500" />
-              Gebruik natuurlijke taal
+              {t('admin.seo.aISearchOptimizer.gebruik_natuurlijke_taal')}
             </h4>
             <p className="text-sm text-muted-foreground">
-              Schrijf productbeschrijvingen alsof je een vraag beantwoordt. 
-              "Dit product is ideaal voor..." in plaats van korte opsommingen.
+              {t('admin.seo.aISearchOptimizer.schrijf_productbeschrijvingen_alsof_je_een_vraag')}
             </p>
           </div>
           <div className="p-4 rounded-lg border bg-green-500/5 border-green-500/30">
             <h4 className="font-medium mb-2 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-green-500" />
-              Beantwoord veelgestelde vragen
+              {t('admin.seo.aISearchOptimizer.beantwoord_veelgestelde_vragen')}
             </h4>
             <p className="text-sm text-muted-foreground">
-              Voeg een FAQ sectie toe aan je productpagina's. AI's gebruiken deze 
-              informatie om directe antwoorden te geven.
+              {t('admin.seo.aISearchOptimizer.voeg_een_faq_sectie_toe_aan')}
             </p>
           </div>
           <div className="p-4 rounded-lg border bg-purple-500/5 border-purple-500/30">
             <h4 className="font-medium mb-2 flex items-center gap-2">
               <Link2 className="h-4 w-4 text-purple-500" />
-              Wees citeerbaar
+              {t('admin.seo.aISearchOptimizer.wees_citeerbaar')}
             </h4>
             <p className="text-sm text-muted-foreground">
-              Geef specifieke feiten, cijfers en unieke informatie. 
-              AI's citeren bronnen met concrete, verifieerbare informatie.
+              {t('admin.seo.aISearchOptimizer.geef_specifieke_feiten_cijfers_en_unieke')}
             </p>
           </div>
         </CardContent>

@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { SEOIssue, SEOSuggestion } from '@/types/seo';
+import { useTranslation } from 'react-i18next';
 
 interface SEOQuickWinsProps {
   issues: SEOIssue[];
@@ -39,31 +40,34 @@ const getSeverityIcon = (severity: string) => {
   }
 };
 
-function getActionForIssue(issue: SEOIssue): { label: string; action: string } | null {
-  const t = issue.type.toLowerCase();
-  if (t.includes('meta_title')) return { label: 'Genereer meta title', action: 'generate_meta_title' };
-  if (t.includes('meta_description')) return { label: 'Genereer meta description', action: 'generate_meta_description' };
-  if (t.includes('content') || t.includes('description_short') || t.includes('description_missing')) return { label: 'Genereer beschrijving', action: 'generate_description' };
-  if (t.includes('image') || t.includes('alt')) return { label: 'Bekijk product', action: 'view_product' };
+// Beide helpers staan buiten een component en geven daarom een i18n-key terug;
+// t() wordt op de rendersite aangeroepen. `action` blijft de enum-waarde.
+function getActionForIssue(issue: SEOIssue): { labelKey: string; action: string } | null {
+  const type = issue.type.toLowerCase();
+  if (type.includes('meta_title')) return { labelKey: 'admin.seo.seOQuickWins.actions.generate_meta_title', action: 'generate_meta_title' };
+  if (type.includes('meta_description')) return { labelKey: 'admin.seo.seOQuickWins.actions.generate_meta_description', action: 'generate_meta_description' };
+  if (type.includes('content') || type.includes('description_short') || type.includes('description_missing')) return { labelKey: 'admin.seo.seOQuickWins.actions.generate_description', action: 'generate_description' };
+  if (type.includes('image') || type.includes('alt')) return { labelKey: 'admin.seo.seOQuickWins.actions.view_product', action: 'view_product' };
   return null;
 }
 
-function getActionForSuggestion(sug: SEOSuggestion): { label: string; action: string } | null {
+function getActionForSuggestion(sug: SEOSuggestion): { labelKey: string; action: string } | null {
   if (sug.action) {
-    const labels: Record<string, string> = {
-      'generate_meta': 'Genereer meta tags',
-      'improve_content': 'Verbeter content',
-      'optimize_categories': 'Optimaliseer categorieën',
-      'generate_faq': 'Genereer FAQ',
-      'generate_meta_title': 'Genereer meta title',
-      'generate_meta_description': 'Genereer meta description',
+    const labelKeys: Record<string, string> = {
+      'generate_meta': 'admin.seo.seOQuickWins.actions.generate_meta',
+      'improve_content': 'admin.seo.seOQuickWins.actions.improve_content',
+      'optimize_categories': 'admin.seo.seOQuickWins.actions.optimize_categories',
+      'generate_faq': 'admin.seo.seOQuickWins.actions.generate_faq',
+      'generate_meta_title': 'admin.seo.seOQuickWins.actions.generate_meta_title',
+      'generate_meta_description': 'admin.seo.seOQuickWins.actions.generate_meta_description',
     };
-    return { label: labels[sug.action] || 'Uitvoeren', action: sug.action };
+    return { labelKey: labelKeys[sug.action] || 'admin.seo.seOQuickWins.actions.uitvoeren', action: sug.action };
   }
   return null;
 }
 
 export function SEOQuickWins({ issues, suggestions, onAction, isLoading }: SEOQuickWinsProps) {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -83,8 +87,8 @@ export function SEOQuickWins({ issues, suggestions, onAction, isLoading }: SEOQu
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p>Geen verbeterpunten gevonden</p>
-        <p className="text-sm">Voer een analyse uit om suggesties te krijgen</p>
+        <p>{t('admin.seo.sEOQuickWins.geen_verbeterpunten_gevonden')}</p>
+        <p className="text-sm">{t('admin.seo.sEOQuickWins.voer_een_analyse_uit_om_suggesties')}</p>
       </div>
     );
   }
@@ -136,7 +140,7 @@ export function SEOQuickWins({ issues, suggestions, onAction, isLoading }: SEOQu
                 onClick={() => onAction(actionInfo.action, entityId)}
               >
                 <Wand2 className="h-3.5 w-3.5" />
-                {actionInfo.label}
+                {t(actionInfo.labelKey)}
               </Button>
             )}
           </div>

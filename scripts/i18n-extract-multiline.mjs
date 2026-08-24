@@ -1,5 +1,8 @@
 /**
- * Aanvullende codemod: JSX-tekst die op een EIGEN regel staat.
+ * Aanvullende codemod: JSX-tekst die de hoofdcodemod niet ziet.
+ *
+ * Twee gevallen: tekst op een eigen regel, en tekst direct achter een
+ * self-closing tag (`<Icon />Tekst`).
  *
  * `i18n-extract.mjs` matcht alleen `>tekst<` binnen één regel. Veel JSX staat
  * echter zo:
@@ -130,6 +133,28 @@ for (const target of targets) {
       }
       for (let j = i; j <= end; j++) out.push(lines[j]);
       i = end + 1;
+    }
+
+    // Tweede regel: tekst direct achter een self-closing tag, zoals
+    //     <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
+    // De hoofdcodemod sluit `/>` uit in zijn lookbehind (om `=>` en deling te
+    // vermijden) en laat deze tekst dus staan. `/>` sluit altijd een JSX-tag,
+    // dus wat erachter komt is per definitie tekstinhoud.
+    for (let k = 0; k < out.length; k++) {
+      if (masked.has(k + 1)) continue;
+      const line = out[k];
+      const m = line.match(/^(.*<[A-Za-z][^<>]*\/>)([ \t]*)([^<>{}\n][^<>{}\n]*?)([ \t]*)(<.*|)$/);
+      if (!m) continue;
+      const text = m[3].trim();
+      if (!isUiText(text)) continue;
+      // sluitende tag moet op deze of de eerstvolgende niet-lege regel staan
+      if (!m[5].startsWith('<')) {
+        let nxt = '';
+        for (let j = k + 1; j < out.length; j++) if (out[j].trim()) { nxt = out[j].trim(); break; }
+        if (!nxt.startsWith('<')) continue;
+      }
+      out[k] = `${m[1]}${m[2]}{t('${keyFor(text)}')}${m[4]}${m[5]}`;
+      changed = true;
     }
 
     if (changed) {

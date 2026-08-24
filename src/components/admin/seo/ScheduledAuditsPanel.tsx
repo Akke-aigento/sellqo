@@ -29,7 +29,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useTranslation } from 'react-i18next';
 
 interface ScheduledAudit {
   id: string;
@@ -54,21 +55,34 @@ interface AuditResult {
   results: Record<string, any>;
 }
 
+// Labels staan als i18n-key; `value` blijft de opgeslagen audit-type-waarde.
 const AUDIT_TYPES = [
-  { value: 'full', label: 'Volledige audit', description: 'Alle SEO aspecten' },
-  { value: 'content', label: 'Content audit', description: 'Meta tags, beschrijvingen' },
-  { value: 'technical', label: 'Technische audit', description: 'URLs, redirects, sitemap' },
-  { value: 'performance', label: 'Performance audit', description: 'Snelheid, Core Web Vitals' },
+  { value: 'full', labelKey: 'admin.seo.scheduledAuditsPanel.auditTypes.full.label', descriptionKey: 'admin.seo.scheduledAuditsPanel.auditTypes.full.description' },
+  { value: 'content', labelKey: 'admin.seo.scheduledAuditsPanel.auditTypes.content.label', descriptionKey: 'admin.seo.scheduledAuditsPanel.auditTypes.content.description' },
+  { value: 'technical', labelKey: 'admin.seo.scheduledAuditsPanel.auditTypes.technical.label', descriptionKey: 'admin.seo.scheduledAuditsPanel.auditTypes.technical.description' },
+  { value: 'performance', labelKey: 'admin.seo.scheduledAuditsPanel.auditTypes.performance.label', descriptionKey: 'admin.seo.scheduledAuditsPanel.auditTypes.performance.description' },
 ];
 
 const FREQUENCIES = [
-  { value: 'daily', label: 'Dagelijks' },
-  { value: 'weekly', label: 'Wekelijks' },
-  { value: 'biweekly', label: 'Tweewekelijks' },
-  { value: 'monthly', label: 'Maandelijks' },
+  { value: 'daily', labelKey: 'admin.seo.scheduledAuditsPanel.frequencies.daily' },
+  { value: 'weekly', labelKey: 'admin.seo.scheduledAuditsPanel.frequencies.weekly' },
+  { value: 'biweekly', labelKey: 'admin.seo.scheduledAuditsPanel.frequencies.biweekly' },
+  { value: 'monthly', labelKey: 'admin.seo.scheduledAuditsPanel.frequencies.monthly' },
 ];
 
 export function ScheduledAuditsPanel() {
+  const { t } = useTranslation();
+
+  const auditTypeLabel = (value: string) => {
+    const at = AUDIT_TYPES.find((x) => x.value === value);
+    return at ? t(at.labelKey) : value;
+  };
+  const frequencyLabel = (value: string) => {
+    const fr = FREQUENCIES.find((x) => x.value === value);
+    return fr ? t(fr.labelKey) : value;
+  };
+
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -225,11 +239,11 @@ export function ScheduledAuditsPanel() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="bg-green-500/10 text-green-500"><CheckCircle className="h-3 w-3 mr-1" />Voltooid</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500"><CheckCircle className="h-3 w-3 mr-1" />{t('admin.marketing.aBTestingPanel.voltooid')}</Badge>;
       case 'running':
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Bezig</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />{t('admin.seo.scheduledAuditsPanel.bezig')}</Badge>;
       case 'failed':
-        return <Badge variant="outline" className="bg-red-500/10 text-red-500"><XCircle className="h-3 w-3 mr-1" />Mislukt</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-500"><XCircle className="h-3 w-3 mr-1" />{t('admin.marketing.contentHistoryList.status.mislukt')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -247,9 +261,9 @@ export function ScheduledAuditsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Automatische SEO Audits</h2>
+          <h2 className="text-lg font-semibold">{t('admin.seo.scheduledAuditsPanel.automatische_seo_audits')}</h2>
           <p className="text-sm text-muted-foreground">
-            Plan automatische SEO analyses en ontvang meldingen
+            {t('admin.seo.scheduledAuditsPanel.plan_automatische_seo_analyses_en_ontvang')}
           </p>
         </div>
         
@@ -257,16 +271,16 @@ export function ScheduledAuditsPanel() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Nieuwe audit plannen
+              {t('admin.seo.scheduledAuditsPanel.nieuwe_audit_plannen')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Audit inplannen</DialogTitle>
+              <DialogTitle>{t('admin.seo.scheduledAuditsPanel.audit_inplannen')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Type audit</Label>
+                <Label>{t('admin.seo.scheduledAuditsPanel.type_audit')}</Label>
                 <Select 
                   value={newAudit.audit_type} 
                   onValueChange={(v) => setNewAudit(prev => ({ ...prev, audit_type: v }))}
@@ -278,8 +292,8 @@ export function ScheduledAuditsPanel() {
                     {AUDIT_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div>
-                          <p className="font-medium">{type.label}</p>
-                          <p className="text-xs text-muted-foreground">{type.description}</p>
+                          <p className="font-medium">{t(type.labelKey)}</p>
+                          <p className="text-xs text-muted-foreground">{t(type.descriptionKey)}</p>
                         </div>
                       </SelectItem>
                     ))}
@@ -288,7 +302,7 @@ export function ScheduledAuditsPanel() {
               </div>
               
               <div className="space-y-2">
-                <Label>Frequentie</Label>
+                <Label>{t('admin.seo.scheduledAuditsPanel.frequentie')}</Label>
                 <Select 
                   value={newAudit.frequency} 
                   onValueChange={(v) => setNewAudit(prev => ({ ...prev, frequency: v }))}
@@ -299,7 +313,7 @@ export function ScheduledAuditsPanel() {
                   <SelectContent>
                     {FREQUENCIES.map((freq) => (
                       <SelectItem key={freq.value} value={freq.value}>
-                        {freq.label}
+                        {t(freq.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -308,8 +322,8 @@ export function ScheduledAuditsPanel() {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Melden bij problemen</Label>
-                  <p className="text-xs text-muted-foreground">Ontvang email bij gevonden issues</p>
+                  <Label>{t('admin.seo.scheduledAuditsPanel.melden_bij_problemen')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('admin.seo.scheduledAuditsPanel.ontvang_email_bij_gevonden_issues')}</p>
                 </div>
                 <Switch
                   checked={newAudit.notify_on_issues}
@@ -319,10 +333,10 @@ export function ScheduledAuditsPanel() {
               
               {newAudit.notify_on_issues && (
                 <div className="space-y-2">
-                  <Label>Email adres</Label>
+                  <Label>{t('admin.marketing.emailPreview.email_adres')}</Label>
                   <Input
                     type="email"
-                    placeholder="email@voorbeeld.nl"
+                    placeholder={t('admin.seo.scheduledAuditsPanel.email_voorbeeld_nl')}
                     value={newAudit.notify_email}
                     onChange={(e) => setNewAudit(prev => ({ ...prev, notify_email: e.target.value }))}
                   />
@@ -334,7 +348,7 @@ export function ScheduledAuditsPanel() {
                 onClick={() => createAuditMutation.mutate(newAudit)}
                 disabled={createAuditMutation.isPending}
               >
-                Audit inplannen
+                {t('admin.seo.scheduledAuditsPanel.audit_inplannen')}
               </Button>
             </div>
           </DialogContent>
@@ -347,14 +361,14 @@ export function ScheduledAuditsPanel() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Geplande Audits
+              {t('admin.seo.scheduledAuditsPanel.geplande_audits')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {scheduledAudits.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Settings2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nog geen audits gepland</p>
+                <p>{t('admin.seo.scheduledAuditsPanel.nog_geen_audits_gepland')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -366,10 +380,10 @@ export function ScheduledAuditsPanel() {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className="font-medium">
-                          {AUDIT_TYPES.find(t => t.value === audit.audit_type)?.label || audit.audit_type}
+                          {auditTypeLabel(audit.audit_type)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {FREQUENCIES.find(f => f.value === audit.frequency)?.label}
+                          {frequencyLabel(audit.frequency)}
                         </p>
                       </div>
                       <Badge variant={audit.is_active ? 'default' : 'secondary'}>
@@ -380,12 +394,12 @@ export function ScheduledAuditsPanel() {
                     <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        Volgende: {format(new Date(audit.next_run_at), 'd MMM HH:mm', { locale: nl })}
+                        Volgende: {format(new Date(audit.next_run_at), 'd MMM HH:mm', { locale: dateLocale })}
                       </div>
                       {audit.last_run_at && (
                         <div className="flex items-center gap-1">
                           <History className="h-3 w-3" />
-                          Laatste: {formatDistanceToNow(new Date(audit.last_run_at), { locale: nl, addSuffix: true })}
+                          Laatste: {formatDistanceToNow(new Date(audit.last_run_at), { locale: dateLocale, addSuffix: true })}
                         </div>
                       )}
                     </div>
@@ -405,7 +419,7 @@ export function ScheduledAuditsPanel() {
                         disabled={runAuditNowMutation.isPending}
                       >
                         <Play className="h-3 w-3 mr-1" />
-                        Nu uitvoeren
+                        {t('admin.seo.scheduledAuditsPanel.nu_uitvoeren')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -416,9 +430,9 @@ export function ScheduledAuditsPanel() {
                         })}
                       >
                         {audit.is_active ? (
-                          <><Pause className="h-3 w-3 mr-1" />Pauzeren</>
+                          <><Pause className="h-3 w-3 mr-1" />{t('admin.adsBolcomCampaignDetail.pauzeren')}</>
                         ) : (
-                          <><Play className="h-3 w-3 mr-1" />Activeren</>
+                          <><Play className="h-3 w-3 mr-1" />{t('admin.seo.scheduledAuditsPanel.activeren')}</>
                         )}
                       </Button>
                       <Button
@@ -441,14 +455,14 @@ export function ScheduledAuditsPanel() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <History className="h-4 w-4" />
-              Audit Geschiedenis
+              {t('admin.seo.scheduledAuditsPanel.audit_geschiedenis')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {auditResults.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nog geen audits uitgevoerd</p>
+                <p>{t('admin.seo.scheduledAuditsPanel.nog_geen_audits_uitgevoerd')}</p>
               </div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
@@ -456,22 +470,22 @@ export function ScheduledAuditsPanel() {
                   <Table className="min-w-[720px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Datum</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Score</TableHead>
-                        <TableHead>Issues</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead>{t('admin.marketing.contentHistoryList.type')}</TableHead>
+                        <TableHead>{t('admin.seo.coreWebVitalsPanel.score')}</TableHead>
+                        <TableHead>{t('admin.seo.sEOCategoryTable.issues')}</TableHead>
+                        <TableHead>{t('common.status')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {auditResults.map((result) => (
                         <TableRow key={result.id}>
                           <TableCell className="text-xs">
-                            {format(new Date(result.started_at), 'd MMM HH:mm', { locale: nl })}
+                            {format(new Date(result.started_at), 'd MMM HH:mm', { locale: dateLocale })}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
-                              {AUDIT_TYPES.find(t => t.value === result.audit_type)?.label || result.audit_type}
+                              {auditTypeLabel(result.audit_type)}
                             </Badge>
                           </TableCell>
                           <TableCell>

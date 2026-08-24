@@ -54,6 +54,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import type { ProductStructuredData, BusinessStructuredData } from '@/lib/structuredData';
+import { useTranslation } from 'react-i18next';
 
 interface SectionCardProps {
   title: string;
@@ -109,6 +110,7 @@ function SectionCard({ title, description, icon: Icon, children, defaultOpen = f
 }
 
 export default function SEODashboard() {
+  const { t } = useTranslation();
   const { 
     tenantScore, 
     productScores,
@@ -188,14 +190,16 @@ export default function SEODashboard() {
     return 'incomplete';
   };
 
+  // Labels als i18n-key: SEOHealthChecklist roept t() zelf aan.
   const healthItems = [
-    { id: 'meta_titles', label: 'Meta Titles', description: 'Alle producten hebben een meta title', status: getStatus(productsWithMeta, totalProducts), count: { done: productsWithMeta, total: totalProducts } },
-    { id: 'meta_descriptions', label: 'Meta Descriptions', description: 'Alle producten hebben een meta description', status: getStatus(productsWithDesc, totalProducts), count: { done: productsWithDesc, total: totalProducts } },
-    { id: 'product_images', label: 'Product Afbeeldingen', description: 'Alle producten hebben afbeeldingen', status: getStatus(productsWithImages, totalProducts), count: { done: productsWithImages, total: totalProducts } },
-    { id: 'structured_data', label: 'Structured Data', description: 'JSON-LD Product schema aanwezig', status: 'incomplete' as const },
-    { id: 'sitemap', label: 'Sitemap.xml', description: 'Dynamische sitemap met alle producten', status: 'incomplete' as const },
-    { id: 'robots', label: 'Robots.txt', description: 'Geconfigureerd voor zoekmachines', status: 'incomplete' as const },
+    { id: 'meta_titles', labelKey: 'admin.sEODashboard.meta_titles', descriptionKey: 'admin.sEODashboard.alle_producten_hebben_een_meta_title', status: getStatus(productsWithMeta, totalProducts), count: { done: productsWithMeta, total: totalProducts } },
+    { id: 'meta_descriptions', labelKey: 'admin.sEODashboard.meta_descriptions', descriptionKey: 'admin.sEODashboard.alle_producten_hebben_een_meta_description', status: getStatus(productsWithDesc, totalProducts), count: { done: productsWithDesc, total: totalProducts } },
+    { id: 'product_images', labelKey: 'admin.sEODashboard.product_afbeeldingen', descriptionKey: 'admin.sEODashboard.alle_producten_hebben_afbeeldingen', status: getStatus(productsWithImages, totalProducts), count: { done: productsWithImages, total: totalProducts } },
+    { id: 'structured_data', labelKey: 'admin.sEODashboard.structured_data', descriptionKey: 'admin.sEODashboard.json_ld_product_schema_aanwezig', status: 'incomplete' as const },
+    { id: 'sitemap', labelKey: 'admin.sEODashboard.sitemap_xml', descriptionKey: 'admin.sEODashboard.dynamische_sitemap_met_alle_producten', status: 'incomplete' as const },
+    { id: 'robots', labelKey: 'admin.sEODashboard.robots_txt', descriptionKey: 'admin.sEODashboard.geconfigureerd_voor_zoekmachines', status: 'incomplete' as const },
   ];
+
 
   const handleGenerateContent = (type: string, productIds: string[]) => {
     generateContent({ type: type as any, productIds });
@@ -232,7 +236,7 @@ export default function SEODashboard() {
               
               <div>
                 <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 flex-wrap">
-                  SEO Dashboard
+                  {t('admin.sEODashboard.seo_dashboard')}
                   <ReadOnlyBadge resource="seo" />
                 </h1>
                 <p className="text-muted-foreground">
@@ -260,12 +264,12 @@ export default function SEODashboard() {
               {isAnalyzing ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  Analyseren...
+                  {t('admin.marketing.aICampaignSuggestions.analyseren')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  AI Analyse starten
+                  {t('admin.sEODashboard.ai_analyse_starten')}
                 </>
               )}
             </Button>
@@ -274,10 +278,10 @@ export default function SEODashboard() {
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             {[
-              { label: 'Meta Score', icon: TrendingUp, value: tenantScore?.meta_score },
-              { label: 'Technisch', icon: FileCode, value: tenantScore?.technical_score },
-              { label: 'AI Search', icon: Bot, value: tenantScore?.ai_search_score },
-              { label: 'Content', icon: Package, value: tenantScore?.content_score },
+              { label: t('admin.sEODashboard.meta_score'), icon: TrendingUp, value: tenantScore?.meta_score },
+              { label: t('admin.seo.sEOScoreCard.technisch'), icon: FileCode, value: tenantScore?.technical_score },
+              { label: t('admin.sEODashboard.ai_search'), icon: Bot, value: tenantScore?.ai_search_score },
+              { label: t('admin.marketing.aIEmailPlanner.content'), icon: Package, value: tenantScore?.content_score },
             ].map(({ label, icon: StatIcon, value }) => {
               const color = value == null ? '' : value >= 70 ? 'text-green-600' : value >= 50 ? 'text-orange-500' : 'text-destructive';
               return (
@@ -298,10 +302,10 @@ export default function SEODashboard() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              <CardTitle>Start hier: Quick Wins</CardTitle>
+              <CardTitle>{t('admin.sEODashboard.start_hier_quick_wins')}</CardTitle>
             </div>
             <CardDescription>
-              De belangrijkste verbeterpunten om je SEO score snel te verhogen
+              {t('admin.sEODashboard.de_belangrijkste_verbeterpunten_om_je_seo')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -346,8 +350,8 @@ export default function SEODashboard() {
         <div className="space-y-4">
           {/* Content Optimalisatie */}
           <SectionCard
-            title="Content Optimalisatie"
-            description="Optimaliseer meta tags, beschrijvingen en afbeeldingen"
+            title={t('admin.sEODashboard.content_optimalisatie')}
+            description={t('admin.sEODashboard.optimaliseer_meta_tags_beschrijvingen_en_afbeeldingen')}
             icon={Package}
             defaultOpen={true}
             badge={`${productsWithMeta}/${totalProducts} compleet`}
@@ -364,7 +368,7 @@ export default function SEODashboard() {
               <div className="border-t pt-6">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Product SEO
+                  {t('admin.sEODashboard.product_seo')}
                 </h4>
                 <SEOProductTable
                   products={productsWithSEO}
@@ -377,7 +381,7 @@ export default function SEODashboard() {
               <div className="border-t pt-6">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <FolderOpen className="h-4 w-4" />
-                  Categorie SEO
+                  {t('admin.sEODashboard.categorie_seo')}
                 </h4>
                 <SEOCategoryTable
                   categories={categoriesWithSEO}
@@ -390,7 +394,7 @@ export default function SEODashboard() {
               <div className="border-t pt-6">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Afbeelding Alt-teksten
+                  {t('admin.sEODashboard.afbeelding_alt_teksten')}
                 </h4>
                 <ImageAltTextPanel
                   products={products || []}
@@ -404,8 +408,8 @@ export default function SEODashboard() {
 
           {/* Technische SEO */}
           <SectionCard
-            title="Technische SEO"
-            description="Web Vitals, Structured Data, Robots.txt en Sitemap"
+            title={t('admin.sEODashboard.technische_seo')}
+            description={t('admin.sEODashboard.web_vitals_structured_data_robots_txt')}
             icon={FileCode}
             badge={`Score: ${tenantScore?.technical_score ?? '--'}`}
           >
@@ -435,8 +439,8 @@ export default function SEODashboard() {
 
           {/* AI & Zoekprestaties */}
           <SectionCard
-            title="AI & Zoekprestaties"
-            description="AI Search optimalisatie en Google Search Console"
+            title={t('admin.sEODashboard.ai_zoekprestaties')}
+            description={t('admin.sEODashboard.ai_search_optimalisatie_en_google_search')}
             icon={Bot}
             badge={`AI Score: ${tenantScore?.ai_search_score ?? '--'}`}
           >
@@ -462,15 +466,15 @@ export default function SEODashboard() {
 
           {/* Geavanceerde Tools */}
           <SectionCard
-            title="Geavanceerde Tools"
-            description="Keyword research, concurrent analyse en automatische audits"
+            title={t('admin.marketing.advancedToolsGrid.geavanceerde_tools')}
+            description={t('admin.sEODashboard.keyword_research_concurrent_analyse_en_automatische')}
             icon={Settings2}
           >
             <div className="space-y-6">
               <div>
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Keywords
+                  {t('admin.adsBolcomKeywords.keywords')}
                 </h4>
                 <KeywordResearchPanel
                   keywords={keywords || []}
@@ -483,7 +487,7 @@ export default function SEODashboard() {
               <div className="border-t pt-6">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Concurrent Analyse
+                  {t('admin.seo.competitorAnalysisPanel.concurrent_analyse')}
                 </h4>
                 <CompetitorAnalysisPanel />
               </div>
@@ -491,7 +495,7 @@ export default function SEODashboard() {
               <div className="border-t pt-6">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Automatische Audits
+                  {t('admin.sEODashboard.automatische_audits')}
                 </h4>
                 <ScheduledAuditsPanel />
               </div>
@@ -500,8 +504,8 @@ export default function SEODashboard() {
 
           {/* Score Geschiedenis */}
           <SectionCard
-            title="Score Geschiedenis"
-            description="Bekijk de ontwikkeling van je SEO score over tijd"
+            title={t('admin.sEODashboard.score_geschiedenis')}
+            description={t('admin.sEODashboard.bekijk_de_ontwikkeling_van_je_seo')}
             icon={BarChart3}
           >
             <SEOScoreHistoryChart

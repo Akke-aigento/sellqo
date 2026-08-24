@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface HistoryEntry {
   id: string;
@@ -22,6 +23,8 @@ interface SEOScoreHistoryChartProps {
 }
 
 export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChartProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   if (isLoading) {
     return (
       <Card>
@@ -40,8 +43,8 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
     .filter((h) => h.overall_score !== null)
     .sort((a, b) => new Date(a.analyzed_at).getTime() - new Date(b.analyzed_at).getTime())
     .map((entry) => ({
-      date: format(parseISO(entry.analyzed_at), 'd MMM', { locale: nl }),
-      fullDate: format(parseISO(entry.analyzed_at), 'PPP', { locale: nl }),
+      date: format(parseISO(entry.analyzed_at), 'd MMM', { locale: dateLocale }),
+      fullDate: format(parseISO(entry.analyzed_at), 'PPP', { locale: dateLocale }),
       score: entry.overall_score,
     }));
 
@@ -52,7 +55,7 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
 
   const chartConfig = {
     score: {
-      label: 'SEO Score',
+      label: t('admin.seo.sEOScoreCard.seo_score'),
       color: 'hsl(var(--primary))',
     },
   };
@@ -63,7 +66,7 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Score Trend
+            {t('admin.seo.sEOScoreHistoryChart.score_trend')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -72,10 +75,10 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
               <TrendingUp className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground">
-              Nog geen analyse geschiedenis beschikbaar.
+              {t('admin.seo.sEOScoreHistoryChart.nog_geen_analyse_geschiedenis_beschikbaar')}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Start een SEO analyse om je voortgang te volgen.
+              {t('admin.seo.sEOScoreHistoryChart.start_een_seo_analyse_om_je')}
             </p>
           </div>
         </CardContent>
@@ -89,7 +92,7 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Score Trend
+            {t('admin.seo.sEOScoreHistoryChart.score_trend')}
           </CardTitle>
           {chartData.length > 1 && (
             <div className="flex items-center gap-2">
@@ -106,7 +109,7 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
               ) : (
                 <>
                   <Minus className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Geen verandering</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t('admin.seo.sEOScoreHistoryChart.geen_verandering')}</span>
                 </>
               )}
             </div>
@@ -156,15 +159,15 @@ export function SEOScoreHistoryChart({ history, isLoading }: SEOScoreHistoryChar
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{firstScore}</p>
-                <p className="text-xs text-muted-foreground">Eerste meting</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.sEOScoreHistoryChart.eerste_meting')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold">{lastScore}</p>
-                <p className="text-xs text-muted-foreground">Huidige score</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.sEOScoreHistoryChart.huidige_score')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold">{chartData.length}</p>
-                <p className="text-xs text-muted-foreground">Analyses</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.sEOScoreHistoryChart.analyses')}</p>
               </div>
             </div>
           </div>

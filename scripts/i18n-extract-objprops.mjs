@@ -29,7 +29,10 @@ if (targets.length === 0) {
 }
 
 const PROPS = ['label', 'name', 'text', 'placeholder', 'tooltip', 'heading', 'subtitle', 'hint', 'emptyText', 'buttonText'];
-const propRe = new RegExp(`\\b(${PROPS.join('|')})(\\s*:\\s*)(?:"([^"\\n]*)"|'([^'\\n]*)')`, 'g');
+// Let op de escapes: 'Productpagina\'s' is één string, geen twee. Zonder de
+// tak `(?:[^'\\\n]|\\.)*` knipt de match midden in de waarde en breekt het bestand.
+const propRe = new RegExp(`\\b(${PROPS.join('|')})(\\s*:\\s*)(?:"((?:[^"\\\\\\n]|\\\\.)*)"|'((?:[^'\\\\\\n]|\\\\.)*)')`, 'g');
+const unescape = (v) => v.replace(/\\(['"\\])/g, '$1');
 
 const nl = readLocale('nl');
 const valueToKeys = new Map();
@@ -135,7 +138,7 @@ for (const target of targets) {
     const edits = [];
     let outside = 0;
     for (const m of src.matchAll(propRe)) {
-      const value = m[3] ?? m[4];
+      const value = unescape(m[3] ?? m[4]);
       if (!isUiText(value)) continue;
       if (mask[m.index]) continue;
       if (!inComponent(m.index)) { outside++; continue; }

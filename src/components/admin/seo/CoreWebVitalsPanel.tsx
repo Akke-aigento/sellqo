@@ -25,6 +25,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface WebVital {
   name: string;
@@ -35,6 +36,8 @@ interface WebVital {
   description: string;
 }
 
+// De metriekamen (LCP, FID, CLS, TTFB, INP) zijn internationale Web Vitals-
+// vaktermen en blijven in alle talen letterlijk staan.
 const VITAL_THRESHOLDS = {
   lcp: { good: 2500, poor: 4000, unit: 'ms', name: 'Largest Contentful Paint' },
   fid: { good: 100, poor: 300, unit: 'ms', name: 'First Input Delay' },
@@ -120,6 +123,7 @@ function VitalCard({
 }
 
 export function CoreWebVitalsPanel() {
+  const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [testUrl, setTestUrl] = useState('');
@@ -207,7 +211,7 @@ export function CoreWebVitalsPanel() {
 
   // Prepare chart data
   const chartData = vitalsHistory?.slice(0, 14).reverse().map(v => ({
-    date: new Date(v.measured_at).toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' }),
+    date: new Date(v.measured_at).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short' }),
     LCP: v.lcp_value ? Math.round(v.lcp_value) : null,
     CLS: v.cls_value ? v.cls_value * 1000 : null, // Scale for visibility
     INP: v.inp_value ? Math.round(v.inp_value) : null,
@@ -220,9 +224,9 @@ export function CoreWebVitalsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Core Web Vitals</h2>
+          <h2 className="text-lg font-semibold">{t('admin.seo.coreWebVitalsPanel.core_web_vitals')}</h2>
           <p className="text-sm text-muted-foreground">
-            Monitor de prestaties van je webwinkel
+            {t('admin.seo.coreWebVitalsPanel.monitor_de_prestaties_van_je_webwinkel')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -230,11 +234,11 @@ export function CoreWebVitalsPanel() {
             <TabsList>
               <TabsTrigger value="desktop" className="gap-1">
                 <Monitor className="h-4 w-4" />
-                Desktop
+                {t('admin.seo.coreWebVitalsPanel.desktop')}
               </TabsTrigger>
               <TabsTrigger value="mobile" className="gap-1">
                 <Smartphone className="h-4 w-4" />
-                Mobiel
+                {t('admin.seo.coreWebVitalsPanel.mobiel')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -272,12 +276,12 @@ export function CoreWebVitalsPanel() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center flex-col">
                 <span className="text-3xl font-bold">{performanceScore ?? '--'}</span>
-                <span className="text-xs text-muted-foreground">Score</span>
+                <span className="text-xs text-muted-foreground">{t('admin.seo.coreWebVitalsPanel.score')}</span>
               </div>
             </div>
             
             <div className="flex-1">
-              <h3 className="text-lg font-medium mb-2">Performance Score</h3>
+              <h3 className="text-lg font-medium mb-2">{t('admin.seo.coreWebVitalsPanel.performance_score')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {performanceScore && performanceScore >= 90 
                   ? 'Uitstekend! Je site laadt snel en biedt een goede gebruikerservaring.'
@@ -288,7 +292,7 @@ export function CoreWebVitalsPanel() {
               
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="URL om te testen (optioneel)"
+                  placeholder={t('admin.seo.coreWebVitalsPanel.url_om_te_testen_optioneel')}
                   value={testUrl}
                   onChange={(e) => setTestUrl(e.target.value)}
                   className="max-w-xs"
@@ -318,7 +322,7 @@ export function CoreWebVitalsPanel() {
           unit="ms"
           rating={getVitalRating(latestVitals?.lcp_value || 0, VITAL_THRESHOLDS.lcp)}
           icon={Activity}
-          description="Laadtijd van grootste element"
+          description={t('admin.seo.coreWebVitalsPanel.laadtijd_van_grootste_element')}
           trend="stable"
         />
         <VitalCard
@@ -327,7 +331,7 @@ export function CoreWebVitalsPanel() {
           unit="ms"
           rating={getVitalRating(latestVitals?.fid_value || 0, VITAL_THRESHOLDS.fid)}
           icon={Zap}
-          description="Eerste inputvertraging"
+          description={t('admin.seo.coreWebVitalsPanel.eerste_inputvertraging')}
           trend="down"
         />
         <VitalCard
@@ -336,7 +340,7 @@ export function CoreWebVitalsPanel() {
           unit=""
           rating={getVitalRating(latestVitals?.cls_value || 0, VITAL_THRESHOLDS.cls)}
           icon={Activity}
-          description="Visuele stabiliteit"
+          description={t('admin.seo.coreWebVitalsPanel.visuele_stabiliteit')}
           trend="stable"
         />
         <VitalCard
@@ -345,7 +349,7 @@ export function CoreWebVitalsPanel() {
           unit="ms"
           rating={getVitalRating(latestVitals?.ttfb_value || 0, VITAL_THRESHOLDS.ttfb)}
           icon={Clock}
-          description="Server responstijd"
+          description={t('admin.seo.coreWebVitalsPanel.server_responstijd')}
           trend="down"
         />
         <VitalCard
@@ -354,7 +358,7 @@ export function CoreWebVitalsPanel() {
           unit="ms"
           rating={getVitalRating(latestVitals?.inp_value || 0, VITAL_THRESHOLDS.inp)}
           icon={Zap}
-          description="Interactie responsiviteit"
+          description={t('admin.seo.coreWebVitalsPanel.interactie_responsiviteit')}
           trend="stable"
         />
       </div>
@@ -363,8 +367,8 @@ export function CoreWebVitalsPanel() {
       {chartData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Prestatie Trend</CardTitle>
-            <CardDescription>Ontwikkeling van Core Web Vitals over tijd</CardDescription>
+            <CardTitle className="text-base">{t('admin.seo.coreWebVitalsPanel.prestatie_trend')}</CardTitle>
+            <CardDescription>{t('admin.seo.coreWebVitalsPanel.ontwikkeling_van_core_web_vitals_over')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -409,7 +413,7 @@ export function CoreWebVitalsPanel() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Info className="h-4 w-4" />
-            Aanbevelingen
+            {t('admin.adsAiRules.aanbevelingen')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -418,9 +422,9 @@ export function CoreWebVitalsPanel() {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/10">
                 <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Optimaliseer LCP</p>
+                  <p className="text-sm font-medium">{t('admin.seo.coreWebVitalsPanel.optimaliseer_lcp')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Comprimeer afbeeldingen, gebruik lazy loading, en optimaliseer de server response.
+                    {t('admin.seo.coreWebVitalsPanel.comprimeer_afbeeldingen_gebruik_lazy_loading_en')}
                   </p>
                 </div>
               </div>
@@ -429,9 +433,9 @@ export function CoreWebVitalsPanel() {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/10">
                 <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Verminder CLS</p>
+                  <p className="text-sm font-medium">{t('admin.seo.coreWebVitalsPanel.verminder_cls')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Stel afmetingen in voor afbeeldingen en iframes, vermijd dynamische content inserts.
+                    {t('admin.seo.coreWebVitalsPanel.stel_afmetingen_in_voor_afbeeldingen_en')}
                   </p>
                 </div>
               </div>
@@ -440,9 +444,9 @@ export function CoreWebVitalsPanel() {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/10">
                 <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Verbeter TTFB</p>
+                  <p className="text-sm font-medium">{t('admin.seo.coreWebVitalsPanel.verbeter_ttfb')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Gebruik een CDN, optimaliseer database queries, en schakel caching in.
+                    {t('admin.seo.coreWebVitalsPanel.gebruik_een_cdn_optimaliseer_database_queries')}
                   </p>
                 </div>
               </div>
@@ -455,9 +459,9 @@ export function CoreWebVitalsPanel() {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-green-500/10">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Uitstekende prestaties!</p>
+                  <p className="text-sm font-medium">{t('admin.seo.coreWebVitalsPanel.uitstekende_prestaties')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Je Core Web Vitals scoren goed. Blijf de prestaties monitoren.
+                    {t('admin.seo.coreWebVitalsPanel.je_core_web_vitals_scoren_goed')}
                   </p>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import {
 import { Globe, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
+import { useTranslation } from 'react-i18next';
 
 interface SEOTranslationStatusProps {
   entityId: string;
@@ -32,6 +33,7 @@ export function SEOTranslationStatus({
   isTranslating,
   compact = false,
 }: SEOTranslationStatusProps) {
+  const { t } = useTranslation();
   const targetLanguages = TRANSLATION_LANGUAGES.filter((l) => l.code !== 'nl');
 
   // Calculate coverage per language
@@ -75,7 +77,7 @@ export function SEOTranslationStatus({
           </TooltipTrigger>
           <TooltipContent side="top" className="p-3">
             <div className="space-y-2">
-              <p className="font-medium text-sm">SEO Vertalingen</p>
+              <p className="font-medium text-sm">{t('admin.seo.sEOTranslationStatus.seo_vertalingen')}</p>
               <div className="space-y-1">
                 {languageStatus.map((lang) => (
                   <div key={lang.code} className="flex items-center gap-2 text-xs">
@@ -84,15 +86,15 @@ export function SEOTranslationStatus({
                     {lang.complete ? (
                       <Badge variant="default" className="bg-green-500 text-xs h-5">
                         <Check className="h-3 w-3 mr-1" />
-                        Compleet
+                        {t('admin.seo.sEOTranslationStatus.compleet')}
                       </Badge>
                     ) : lang.partial ? (
                       <Badge variant="secondary" className="text-xs h-5">
-                        Deels
+                        {t('admin.seo.sEOTranslationStatus.deels')}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-xs h-5">
-                        Ontbreekt
+                        {t('admin.seo.sEOTranslationStatus.ontbreekt')}
                       </Badge>
                     )}
                   </div>

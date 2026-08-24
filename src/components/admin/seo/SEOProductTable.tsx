@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { SEOScoreBadge, getRowHighlight } from './SEOScoreBadge';
 import type { SEOScore } from '@/types/seo';
+import { useTranslation } from 'react-i18next';
 
 interface ProductWithSEO {
   id: string;
@@ -41,6 +42,7 @@ type SortDir = 'asc' | 'desc';
 export function SEOProductTable({
   products, isLoading, onGenerateContent, isGenerating,
 }: SEOProductTableProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -106,7 +108,7 @@ export function SEOProductTable({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Product SEO Status
+            {t('admin.seo.sEOProductTable.product_seo_status')}
           </CardTitle>
           <div className="flex items-center gap-2">
             {poorItems.length > 0 && (
@@ -124,10 +126,10 @@ export function SEOProductTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleBulkGenerate('meta_title')}>Meta Titles genereren</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkGenerate('meta_description')}>Meta Descriptions genereren</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkGenerate('alt_text')}>Alt Teksten genereren</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkGenerate('product_description')}>Beschrijvingen optimaliseren</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkGenerate('meta_title')}>{t('admin.seo.sEOCategoryTable.meta_titles_genereren')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkGenerate('meta_description')}>{t('admin.seo.sEOCategoryTable.meta_descriptions_genereren')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkGenerate('alt_text')}>{t('admin.seo.sEOProductTable.alt_teksten_genereren')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkGenerate('product_description')}>{t('admin.seo.sEOCategoryTable.beschrijvingen_optimaliseren')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -137,7 +139,7 @@ export function SEOProductTable({
       <CardContent>
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Zoek producten..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={t('admin.ads.campaignWizard.zoek_producten')} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
         <div className="border rounded-lg overflow-hidden">
@@ -151,23 +153,23 @@ export function SEOProductTable({
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Product</TableHead>
+                  <TableHead>{t('admin.stockReport.colName')}</TableHead>
                   <TableHead className="w-28">
                     <Button variant="ghost" size="sm" onClick={toggleSort} className="h-auto p-0 font-medium hover:bg-transparent">
                       Score
                       {sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />}
                     </Button>
                   </TableHead>
-                  <TableHead className="w-32">Meta Title</TableHead>
-                  <TableHead className="w-32">Meta Desc</TableHead>
-                  <TableHead className="w-24">Issues</TableHead>
+                  <TableHead className="w-32">{t('admin.seo.sEOCategoryTable.meta_title')}</TableHead>
+                  <TableHead className="w-32">{t('admin.seo.sEOCategoryTable.meta_desc')}</TableHead>
+                  <TableHead className="w-24">{t('admin.seo.sEOCategoryTable.issues')}</TableHead>
                   <TableHead className="w-36"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Geen producten gevonden</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('admin.marketing.productSelectDialog.geen_producten_gevonden')}</TableCell>
                   </TableRow>
                 ) : (
                   filteredProducts.map((product) => {
@@ -218,13 +220,13 @@ export function SEOProductTable({
                                     disabled={isGenerating}
                                   >
                                     <Wand2 className="h-3 w-3 mr-1" />
-                                    Optimaliseer
+                                    {t('admin.seo.sEOCategoryTable.optimaliseer')}
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>Meta Title genereren</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>Meta Description genereren</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onGenerateContent('product_description', [product.id])}>Beschrijving optimaliseren</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>{t('admin.seo.sEOCategoryTable.meta_title_genereren')}</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>{t('admin.seo.sEOCategoryTable.meta_description_genereren')}</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onGenerateContent('product_description', [product.id])}>{t('admin.seo.sEOCategoryTable.beschrijving_optimaliseren')}</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
@@ -236,13 +238,13 @@ export function SEOProductTable({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => onGenerateContent('meta_title', [product.id])}>
-                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Title
+                                  <Wand2 className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.genereer_meta_title')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>
-                                  <Wand2 className="h-4 w-4 mr-2" />Genereer Meta Description
+                                  <Wand2 className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.genereer_meta_description')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
-                                  <ExternalLink className="h-4 w-4 mr-2" />Bekijk product
+                                  <ExternalLink className="h-4 w-4 mr-2" />{t('admin.seo.seOQuickWins.actions.view_product')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

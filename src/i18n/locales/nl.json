@@ -2834,6 +2834,387 @@
       "door": "Door",
       "bijv_auto_negatief_hoge_spend": "Bijv. Auto negatief hoge spend",
       "merchant": "Merchant"
+    },
+    "seo": {
+      "aISearchOptimizer": {
+        "ai_search_readiness": "AI Search Readiness",
+        "optimalisatie_checklist": "Optimalisatie Checklist",
+        "ai_content_genereren": "AI Content Genereren",
+        "ai_search_tips": "AI Search Tips",
+        "e_e_a_t_signalen": "E-E-A-T Signalen",
+        "toon_expertise_en_autoriteit_in_je": "Toon expertise en autoriteit in je productbeschrijvingen",
+        "conversational_content": "Conversational Content",
+        "beantwoord_natuurlijke_vragen_in_je_content": "Beantwoord natuurlijke vragen in je content",
+        "faq_secties": "FAQ Secties",
+        "citeerbare_content": "Citeerbare Content",
+        "schrijf_content_die_ai": "Schrijf content die AI\\",
+        "ai_search_optimalisatie": "AI Search Optimalisatie",
+        "optimaliseer_je_content_voor_ai_zoekmachines": "Optimaliseer je content voor AI-zoekmachines zoals ChatGPT, Perplexity en Google AI Overview",
+        "gebruik_natuurlijke_taal": "Gebruik natuurlijke taal",
+        "schrijf_productbeschrijvingen_alsof_je_een_vraag": "Schrijf productbeschrijvingen alsof je een vraag beantwoordt. \"Dit product is ideaal voor...\" in plaats van korte opsommingen.",
+        "beantwoord_veelgestelde_vragen": "Beantwoord veelgestelde vragen",
+        "voeg_een_faq_sectie_toe_aan": "Voeg een FAQ sectie toe aan je productpagina's. AI's gebruiken deze informatie om directe antwoorden te geven.",
+        "wees_citeerbaar": "Wees citeerbaar",
+        "geef_specifieke_feiten_cijfers_en_unieke": "Geef specifieke feiten, cijfers en unieke informatie. AI's citeren bronnen met concrete, verifieerbare informatie.",
+        "voeg_veelgestelde_vragen_toe_aan_productpagina": "Voeg veelgestelde vragen toe aan productpagina's",
+        "schrijf_content_die_ai_s_graag": "Schrijf content die AI's graag citeren als bron"
+      },
+      "competitorAnalysisPanel": {
+        "concurrent_analyse": "Concurrent Analyse",
+        "nieuwe_concurrent": "Nieuwe concurrent",
+        "domein": "Domein",
+        "selecteer_een_concurrent_om_keywords_te": "Selecteer een concurrent om keywords te vergelijken",
+        "voeg_keywords_toe_om_te_vergelijken": "Voeg keywords toe om te vergelijken",
+        "jouw_positie": "Jouw positie",
+        "concurrent": "Concurrent",
+        "verschil": "Verschil",
+        "volume": "Volume",
+        "moeilijkheid": "Moeilijkheid",
+        "concurrent_naam": "Concurrent naam",
+        "nieuw_keyword_toevoegen": "Nieuw keyword toevoegen...",
+        "gelijk": "Gelijk",
+        "vergelijk_je_seo_prestaties_met_concurrenten": "Vergelijk je SEO prestaties met concurrenten",
+        "concurrent_toevoegen": "Concurrent toevoegen",
+        "concurrenten": "Concurrenten",
+        "nog_geen_concurrenten_toegevoegd": "Nog geen concurrenten toegevoegd",
+        "keyword_vergelijking": "Keyword Vergelijking",
+        "track": "Track"
+      },
+      "coreWebVitalsPanel": {
+        "core_web_vitals": "Core Web Vitals",
+        "score": "Score",
+        "performance_score": "Performance Score",
+        "prestatie_trend": "Prestatie Trend",
+        "ontwikkeling_van_core_web_vitals_over": "Ontwikkeling van Core Web Vitals over tijd",
+        "optimaliseer_lcp": "Optimaliseer LCP",
+        "verminder_cls": "Verminder CLS",
+        "verbeter_ttfb": "Verbeter TTFB",
+        "uitstekende_prestaties": "Uitstekende prestaties!",
+        "url_om_te_testen_optioneel": "URL om te testen (optioneel)",
+        "laadtijd_van_grootste_element": "Laadtijd van grootste element",
+        "eerste_inputvertraging": "Eerste inputvertraging",
+        "visuele_stabiliteit": "Visuele stabiliteit",
+        "server_responstijd": "Server responstijd",
+        "interactie_responsiviteit": "Interactie responsiviteit",
+        "monitor_de_prestaties_van_je_webwinkel": "Monitor de prestaties van je webwinkel",
+        "desktop": "Desktop",
+        "mobiel": "Mobiel",
+        "comprimeer_afbeeldingen_gebruik_lazy_loading_en": "Comprimeer afbeeldingen, gebruik lazy loading, en optimaliseer de server response.",
+        "stel_afmetingen_in_voor_afbeeldingen_en": "Stel afmetingen in voor afbeeldingen en iframes, vermijd dynamische content inserts.",
+        "gebruik_een_cdn_optimaliseer_database_queries": "Gebruik een CDN, optimaliseer database queries, en schakel caching in.",
+        "je_core_web_vitals_scoren_goed": "Je Core Web Vitals scoren goed. Blijf de prestaties monitoren."
+      },
+      "imageAltTextPanel": {
+        "geen_afbeeldingen_gevonden": "Geen afbeeldingen gevonden",
+        "afbeelding_seo_checklist": "Afbeelding SEO Checklist",
+        "alt_teksten_aanwezig": "Alt-teksten aanwezig",
+        "alle_afbeeldingen_hebben_alt_tekst": "Alle afbeeldingen hebben alt-tekst",
+        "bestandsgroottes": "Bestandsgroottes",
+        "optimaliseer_afbeeldingen_lt_200kb": "Optimaliseer afbeeldingen &lt; 200KB",
+        "afmetingen": "Afmetingen",
+        "gebruik_consistente_afmetingen": "Gebruik consistente afmetingen",
+        "modern_formaat": "Modern formaat",
+        "webp_avif_voor_betere_performance": "WebP/AVIF voor betere performance",
+        "zoek_op_productnaam": "Zoek op productnaam...",
+        "afbeelding_alt_teksten": "Afbeelding Alt-Teksten",
+        "optimaliseer_alt_teksten_voor_betere_seo": "Optimaliseer alt-teksten voor betere SEO en toegankelijkheid"
+      },
+      "keywordResearchPanel": {
+        "nieuw_keyword_toevoegen": "Nieuw Keyword Toevoegen",
+        "primair": "Primair",
+        "secundair": "Secundair",
+        "zoekvolume": "Zoekvolume",
+        "hoog": "Hoog",
+        "medium": "Medium",
+        "laag": "Laag",
+        "makkelijk": "Makkelijk",
+        "medium_2": "Medium",
+        "moeilijk": "Moeilijk",
+        "zoekintentie": "Zoekintentie",
+        "informatief_wil_iets_leren": "Informatief - Wil iets leren",
+        "commercieel_vergelijkt_opties": "Commercieel - Vergelijkt opties",
+        "transactioneel_wil_kopen": "Transactioneel - Wil kopen",
+        "navigatie_zoekt_specifieke_site": "Navigatie - Zoekt specifieke site",
+        "voeg_keywords_toe_of_gebruik_ai": "Voeg keywords toe of gebruik AI suggesties",
+        "intentie": "Intentie",
+        "intentie_2": "Intentie",
+        "bijv_handgemaakte_sieraden": "bijv. handgemaakte sieraden",
+        "keyword_research": "Keyword Research",
+        "beheer_je_seo_keywords_per_taal": "Beheer je SEO keywords per taal voor betere vindbaarheid",
+        "keyword_toevoegen": "Keyword Toevoegen",
+        "voeg_een_nieuw_keyword_toe_aan": "Voeg een nieuw keyword toe aan je SEO strategie."
+      },
+      "sEOCategoryTable": {
+        "meta_titles_genereren": "Meta Titles genereren",
+        "meta_descriptions_genereren": "Meta Descriptions genereren",
+        "beschrijvingen_optimaliseren": "Beschrijvingen optimaliseren",
+        "meta_title": "Meta Title",
+        "meta_desc": "Meta Desc",
+        "afbeelding": "Afbeelding",
+        "issues": "Issues",
+        "geen_categorieen_gevonden": "Geen categorieën gevonden",
+        "meta_title_genereren": "Meta Title genereren",
+        "meta_description_genereren": "Meta Description genereren",
+        "beschrijving_optimaliseren": "Beschrijving optimaliseren",
+        "zoek_categorieen": "Zoek categorieën...",
+        "categorie_seo_status": "Categorie SEO Status",
+        "optimaliseer": "Optimaliseer",
+        "genereer_meta_title": "Genereer Meta Title",
+        "genereer_meta_description": "Genereer Meta Description",
+        "optimaliseer_beschrijving": "Optimaliseer Beschrijving",
+        "bekijk_categorie": "Bekijk categorie"
+      },
+      "sEOProductTable": {
+        "alt_teksten_genereren": "Alt Teksten genereren",
+        "product_seo_status": "Product SEO Status"
+      },
+      "sEOQuickWins": {
+        "geen_verbeterpunten_gevonden": "Geen verbeterpunten gevonden",
+        "voer_een_analyse_uit_om_suggesties": "Voer een analyse uit om suggesties te krijgen"
+      },
+      "sEOScoreHistoryChart": {
+        "geen_verandering": "Geen verandering",
+        "eerste_meting": "Eerste meting",
+        "huidige_score": "Huidige score",
+        "analyses": "Analyses",
+        "score_trend": "Score Trend",
+        "nog_geen_analyse_geschiedenis_beschikbaar": "Nog geen analyse geschiedenis beschikbaar.",
+        "start_een_seo_analyse_om_je": "Start een SEO analyse om je voortgang te volgen."
+      },
+      "sEOTranslationStatus": {
+        "seo_vertalingen": "SEO Vertalingen",
+        "compleet": "Compleet",
+        "deels": "Deels",
+        "ontbreekt": "Ontbreekt"
+      },
+      "searchConsolePanel": {
+        "search_console": "Search Console",
+        "laatste_7_dagen": "Laatste 7 dagen",
+        "laatste_28_dagen": "Laatste 28 dagen",
+        "laatste_3_maanden": "Laatste 3 maanden",
+        "google_search_console_koppelen": "Google Search Console koppelen",
+        "binnenkort_beschikbaar": "(Binnenkort beschikbaar)",
+        "klikken": "Klikken",
+        "gem_ctr": "Gem. CTR",
+        "gem_positie": "Gem. Positie",
+        "top_zoekopdrachten": "Top Zoekopdrachten",
+        "query": "Query",
+        "klikken_2": "Klikken",
+        "positie": "Positie",
+        "apparaat_verdeling": "Apparaat Verdeling",
+        "zoek_query": "Zoek query...",
+        "bekijk_hoe_je_site_presteert_in": "Bekijk hoe je site presteert in Google zoekresultaten",
+        "koppel_je_google_search_console_account": "Koppel je Google Search Console account om echte zoekdata te bekijken. Of laad demo data om de functionaliteit te verkennen.",
+        "koppel_search_console": "Koppel Search Console"
+      },
+      "slugManager": {
+        "huidige_url": "Huidige URL",
+        "suggestie": "Suggestie",
+        "conflict": "Conflict",
+        "te_optimaliseren": "Te optimaliseren",
+        "url_slug_manager": "URL/Slug Manager",
+        "optimaliseer_je_url_structuur_voor_betere": "Optimaliseer je URL-structuur voor betere SEO",
+        "bijwerken": "Bijwerken...",
+        "alles_geoptimaliseerd": "Alles geoptimaliseerd",
+        "ontbrekend": "Ontbrekend",
+        "suboptimaal": "Suboptimaal",
+        "geen_items_gevonden": "Geen items gevonden"
+      },
+      "socialMediaPreview": {
+        "tips_voor_social_media": "Tips voor social media:",
+        "houd_de_titel_onder_60_tekens": "• Houd de titel onder 60 tekens voor optimale weergave",
+        "gebruik_een_afbeelding_van_minimaal_1200x630": "• Gebruik een afbeelding van minimaal 1200x630 pixels",
+        "voeg_een_duidelijke_call_to_action": "• Voeg een duidelijke call-to-action toe in de beschrijving",
+        "social_media_preview": "Social Media Preview",
+        "twitter": "Twitter"
+      },
+      "structuredDataPreview": {
+        "geen_producten": "Geen producten",
+        "fouten_gevonden": "Fouten gevonden",
+        "geen_bedrijfsgegevens": "Geen bedrijfsgegevens",
+        "geen_breadcrumbs": "Geen breadcrumbs",
+        "structured_data_json_ld": "Structured Data (JSON-LD)",
+        "gestructureerde_data_helpt_zoekmachines_je_content": "Gestructureerde data helpt zoekmachines je content beter te begrijpen",
+        "organisatie": "Organisatie",
+        "breadcrumb": "Breadcrumb",
+        "voeg_producten_toe_om_structured_data": "Voeg producten toe om structured data te genereren.",
+        "test_in_google_rich_results": "Test in Google Rich Results",
+        "configureer_je_bedrijfsgegevens_in_instellingen_om": "Configureer je bedrijfsgegevens in Instellingen om organisatie structured data te genereren.",
+        "breadcrumb_structured_data_wordt_automatisch_gegenereerd": "Breadcrumb structured data wordt automatisch gegenereerd op basis van je categorie structuur."
+      },
+      "robotsTxtEditor": {
+        "robots_txt_configuratie": "Robots.txt Configuratie",
+        "bepaal_welke_pagina_s_zoekmachines_mogen": "Bepaal welke pagina's zoekmachines mogen indexeren",
+        "presets": "Presets",
+        "blokkeert_alles": "Blokkeert alles",
+        "je_kunt_dit_ook_configureren_via": "Je kunt dit ook configureren via je hosting provider of CDN.",
+        "presetLabels": {
+          "default": {
+            "label": "Standaard",
+            "description": "Basis configuratie voor webshops"
+          },
+          "allowAll": {
+            "label": "Alles Toestaan",
+            "description": "Volledige crawl toegang"
+          },
+          "blockAll": {
+            "label": "Alles Blokkeren",
+            "description": "Geen crawl toegang"
+          },
+          "ecommerce": {
+            "label": "E-commerce",
+            "description": "Geoptimaliseerd voor webshops"
+          },
+          "aiOptimized": {
+            "label": "AI-Geoptimaliseerd",
+            "description": "Zichtbaar in AI zoekmachines"
+          }
+        },
+        "preset_geladen": "Preset \"{{preset}}\" geladen",
+        "waar_te_plaatsen": "Waar te plaatsen?",
+        "user_agent_10_allow": "User-agent: *&#10;Allow: /",
+        "upload_naar_root": "Upload dit bestand naar de root van je domein:"
+      },
+      "sEOHealthChecklist": {
+        "technische_seo_checklist": "Technische SEO Checklist",
+        "genereer": "Genereer",
+        "genereer_een_xml_sitemap_voor_zoekmachines": "Genereer een XML sitemap voor zoekmachines met al je producten en categorieën.",
+        "download": "Download",
+        "sitemap_genereren": "Sitemap Genereren",
+        "website_url": "Website URL",
+        "urls": "URLs",
+        "met_afbeeldingen": "Met afbeeldingen"
+      },
+      "sEOScoreCard": {
+        "seo_score": "SEO Score",
+        "ai_zoeken": "AI Zoeken",
+        "technisch": "Technisch",
+        "meta_tags": "Meta Tags"
+      },
+      "scheduledAuditsPanel": {
+        "plan_automatische_seo_analyses_en_ontvang": "Plan automatische SEO analyses en ontvang meldingen",
+        "nieuwe_audit_plannen": "Nieuwe audit plannen",
+        "audit_inplannen": "Audit inplannen",
+        "geplande_audits": "Geplande Audits",
+        "nu_uitvoeren": "Nu uitvoeren",
+        "audit_geschiedenis": "Audit Geschiedenis",
+        "auditTypes": {
+          "full": {
+            "label": "Volledige audit",
+            "description": "Alle SEO aspecten"
+          },
+          "content": {
+            "label": "Content audit",
+            "description": "Meta tags, beschrijvingen"
+          },
+          "technical": {
+            "label": "Technische audit",
+            "description": "URLs, redirects, sitemap"
+          },
+          "performance": {
+            "label": "Performance audit",
+            "description": "Snelheid, Core Web Vitals"
+          }
+        },
+        "frequencies": {
+          "daily": "Dagelijks",
+          "weekly": "Wekelijks",
+          "biweekly": "Tweewekelijks",
+          "monthly": "Maandelijks"
+        },
+        "automatische_seo_audits": "Automatische SEO Audits",
+        "type_audit": "Type audit",
+        "frequentie": "Frequentie",
+        "melden_bij_problemen": "Melden bij problemen",
+        "ontvang_email_bij_gevonden_issues": "Ontvang email bij gevonden issues",
+        "nog_geen_audits_gepland": "Nog geen audits gepland",
+        "nog_geen_audits_uitgevoerd": "Nog geen audits uitgevoerd",
+        "email_voorbeeld_nl": "email@voorbeeld.nl",
+        "bezig": "Bezig",
+        "activeren": "Activeren"
+      },
+      "seOHealthChecklist": {
+        "checks": {
+          "sitemap": {
+            "label": "Sitemap.xml",
+            "description": "Dynamische sitemap met alle producten"
+          },
+          "robots": {
+            "label": "Robots.txt",
+            "description": "Geconfigureerd voor zoekmachines"
+          },
+          "meta_titles": {
+            "label": "Meta Titles",
+            "description": "Alle producten hebben een meta title"
+          },
+          "meta_descriptions": {
+            "label": "Meta Descriptions",
+            "description": "Alle producten hebben een meta description"
+          },
+          "alt_texts": {
+            "label": "Alt Teksten",
+            "description": "Alle afbeeldingen hebben alt tekst"
+          },
+          "structured_data": {
+            "label": "Structured Data",
+            "description": "JSON-LD Product schema aanwezig"
+          },
+          "og_tags": {
+            "label": "Open Graph Tags",
+            "description": "Social media sharing geoptimaliseerd"
+          },
+          "canonical_urls": {
+            "label": "Canonical URLs",
+            "description": "Duplicate content voorkomen"
+          }
+        }
+      },
+      "seOQuickWins": {
+        "actions": {
+          "generate_meta_title": "Genereer meta title",
+          "generate_meta_description": "Genereer meta description",
+          "generate_description": "Genereer beschrijving",
+          "view_product": "Bekijk product",
+          "generate_meta": "Genereer meta tags",
+          "improve_content": "Verbeter content",
+          "optimize_categories": "Optimaliseer categorieën",
+          "generate_faq": "Genereer FAQ",
+          "uitvoeren": "Uitvoeren"
+        }
+      }
+    },
+    "sEODashboard": {
+      "start_hier_quick_wins": "Start hier: Quick Wins",
+      "content_optimalisatie": "Content Optimalisatie",
+      "optimaliseer_meta_tags_beschrijvingen_en_afbeeldingen": "Optimaliseer meta tags, beschrijvingen en afbeeldingen",
+      "technische_seo": "Technische SEO",
+      "web_vitals_structured_data_robots_txt": "Web Vitals, Structured Data, Robots.txt en Sitemap",
+      "ai_zoekprestaties": "AI & Zoekprestaties",
+      "ai_search_optimalisatie_en_google_search": "AI Search optimalisatie en Google Search Console",
+      "keyword_research_concurrent_analyse_en_automatische": "Keyword research, concurrent analyse en automatische audits",
+      "score_geschiedenis": "Score Geschiedenis",
+      "bekijk_de_ontwikkeling_van_je_seo": "Bekijk de ontwikkeling van je SEO score over tijd",
+      "alle_producten_hebben_een_meta_title": "Alle producten hebben een meta title",
+      "alle_producten_hebben_een_meta_description": "Alle producten hebben een meta description",
+      "alle_producten_hebben_afbeeldingen": "Alle producten hebben afbeeldingen",
+      "json_ld_product_schema_aanwezig": "JSON-LD Product schema aanwezig",
+      "dynamische_sitemap_met_alle_producten": "Dynamische sitemap met alle producten",
+      "geconfigureerd_voor_zoekmachines": "Geconfigureerd voor zoekmachines",
+      "seo_dashboard": "SEO Dashboard",
+      "ai_analyse_starten": "AI Analyse starten",
+      "de_belangrijkste_verbeterpunten_om_je_seo": "De belangrijkste verbeterpunten om je SEO score snel te verhogen",
+      "product_seo": "Product SEO",
+      "categorie_seo": "Categorie SEO",
+      "afbeelding_alt_teksten": "Afbeelding Alt-teksten",
+      "automatische_audits": "Automatische Audits",
+      "ai_search": "AI Search",
+      "meta_score": "Meta Score",
+      "robots_txt": "Robots.txt",
+      "sitemap_xml": "Sitemap.xml",
+      "structured_data": "Structured Data",
+      "product_afbeeldingen": "Product Afbeeldingen",
+      "meta_descriptions": "Meta Descriptions",
+      "meta_titles": "Meta Titles"
     }
   },
   "product_form": {
