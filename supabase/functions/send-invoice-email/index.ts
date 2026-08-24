@@ -56,7 +56,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { invoice_id, reminder_level, checkout_url } = await req.json();
+    const { invoice_id, reminder_level, checkout_url, mandate_url } = await req.json();
     if (!invoice_id) {
       throw new Error("invoice_id is required");
     }
@@ -64,6 +64,13 @@ serve(async (req) => {
       reminder_level === 1 || reminder_level === 2 || reminder_level === 3
         ? reminder_level
         : null;
+
+    // BILL-1: a mandate-mode subscription without an active mandate does not
+    // need a payment link — it needs an authorisation. The dunning runner sends
+    // mandate_url instead of checkout_url; the two are mutually exclusive and a
+    // caller that sends neither gets exactly the mail it got before.
+    const mandateUrl: string | null =
+      reminderLevel && typeof mandate_url === "string" && mandate_url ? mandate_url : null;
 
     logStep("Fetching invoice", { invoice_id });
 
@@ -188,7 +195,7 @@ serve(async (req) => {
       !isSubscriptionInvoice && !reminderLevel && invoice.status === 'paid';
 
     const emailSubject = reminderLevel
-      ? t(locale, `invoice.reminderSubject${reminderLevel}`, { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
+      ? t(locale, `invoice.${mandateUrl ? 'mandate' : 'reminder'}Subject${reminderLevel}`, { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
       : (isAutoCollected
           ? t(locale, 'invoice.autoCollectSubject', { invoiceNumber: invoice.invoice_number, tenantName: brand.tenantName })
           : (isPaidCustomerInvoice
@@ -201,7 +208,7 @@ serve(async (req) => {
     // ("betaal binnen X dagen") which would mislead the customer into
     // paying while the charge is already running.
     const customBody = reminderLevel
-      ? t(locale, `invoice.reminderIntro${reminderLevel}`, { customerName, invoiceNumber: invoice.invoice_number })
+      ? t(locale, `invoice.${mandateUrl ? 'mandate' : 'reminder'}Intro${reminderLevel}`, { customerName, invoiceNumber: invoice.invoice_number })
       : (isAutoCollected
           ? t(locale, 'invoice.autoCollectIntro', { customerName })
           : (isPaidCustomerInvoice
@@ -221,13 +228,19 @@ serve(async (req) => {
               ? (hasAnyAttachment ? t(locale, 'invoice.paidNote') : '')
               : (hasAnyAttachment ? t(locale, 'invoice.attached') : '')));
 
-    const payNowBlock = reminderLevel && checkout_url
-      ? `<div style="text-align:center;margin:24px 0;">
-          <a href="${checkout_url}" style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">
-            ${t(locale, 'invoice.reminderPayNow')}
+    const ctaButton = (href: string, label: string) =>
+      `<div style="text-align:center;margin:24px 0;">
+          <a href="${href}" style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;">
+            ${label}
           </a>
-        </div>`
-      : '';
+        </div>`;
+
+    const payNowBlock = mandateUrl
+      ? `${ctaButton(mandateUrl, t(locale, 'invoice.mandateActivate'))}
+        <p style="color:#4b5563;text-align:center;">${t(locale, 'invoice.mandateNote')}</p>`
+      : (reminderLevel && checkout_url
+          ? ctaButton(checkout_url, t(locale, 'invoice.reminderPayNow'))
+          : '');
 
     const summary = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9fafb;border-radius:8px;margin:20px 0;"><tr><td style="padding:20px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">

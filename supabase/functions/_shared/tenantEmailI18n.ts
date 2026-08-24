@@ -34,6 +34,33 @@ type Strings = {
     cta: string;
     attached: string;
     poweredBy: string;
+    // Auto-incasso (actief mandaat): de factuur is een mededeling, geen verzoek.
+    autoCollectSubject: string;
+    autoCollectIntro: string;
+    autoCollectProcessingNote: string;
+    autoCollectPaidNote: string;
+    // Reeds voldane klantfactuur.
+    paidSubject: string;
+    paidIntro: string;
+    paidNote: string;
+    // Dunning met betaallink (manual-mode).
+    reminderSubject1: string;
+    reminderSubject2: string;
+    reminderSubject3: string;
+    reminderIntro1: string;
+    reminderIntro2: string;
+    reminderIntro3: string;
+    reminderPayNow: string;
+    // BILL-1 — dunning zonder betaallink: er is niets te laat betaald, er
+    // ontbreekt een machtiging. Vandaar uitnodigende toon, ook op niveau 3.
+    mandateSubject1: string;
+    mandateSubject2: string;
+    mandateSubject3: string;
+    mandateIntro1: string;
+    mandateIntro2: string;
+    mandateIntro3: string;
+    mandateActivate: string;
+    mandateNote: string;
   };
   creditNote: {
     subject: string;
@@ -165,6 +192,14 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       reminderIntro2: "Beste {customerName}, factuur {invoiceNumber} staat nog steeds open. We verzoeken je vriendelijk om deze op korte termijn te betalen om verdere kosten te voorkomen.",
       reminderIntro3: "Beste {customerName}, dit is de laatste herinnering voor factuur {invoiceNumber}. Zonder betaling binnen 7 dagen dragen we het dossier over aan onze incassopartner.",
       reminderPayNow: "Betaal factuur online",
+      mandateSubject1: "Machtiging nodig — factuur {invoiceNumber}",
+      mandateSubject2: "Herinnering: je machtiging is nog niet actief — factuur {invoiceNumber}",
+      mandateSubject3: "Laatste oproep: machtiging nog niet actief — factuur {invoiceNumber}",
+      mandateIntro1: "Beste {customerName}, je abonnement loopt via automatische incasso, maar er staat nog geen machtiging klaar. Daardoor kon factuur {invoiceNumber} niet worden geïncasseerd. Je regelt het in een halve minuut via de knop hieronder.",
+      mandateIntro2: "Beste {customerName}, factuur {invoiceNumber} staat nog open omdat de machtiging voor automatische incasso nog niet actief is. Zodra je die regelt, wordt deze factuur direct geïncasseerd.",
+      mandateIntro3: "Beste {customerName}, dit is de laatste herinnering: de machtiging voor je abonnement is nog steeds niet actief, waardoor factuur {invoiceNumber} openstaat. Regel je machtiging via de knop hieronder, of neem contact met ons op.",
+      mandateActivate: "Machtiging regelen",
+      mandateNote: "Zodra je machtiging actief is, wordt deze factuur automatisch geïncasseerd. Je hoeft verder niets te doen.",
     },
     creditNote: {
       subject: "Creditnota {creditNoteNumber} - {tenantName}",
@@ -276,6 +311,14 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       reminderIntro2: "Dear {customerName}, invoice {invoiceNumber} remains unpaid. Please arrange payment shortly to avoid additional charges.",
       reminderIntro3: "Dear {customerName}, this is the final reminder for invoice {invoiceNumber}. Without payment within 7 days we will hand over the case to our collections partner.",
       reminderPayNow: "Pay invoice online",
+      mandateSubject1: "Authorisation needed — invoice {invoiceNumber}",
+      mandateSubject2: "Reminder: your authorisation is not active yet — invoice {invoiceNumber}",
+      mandateSubject3: "Final call: authorisation still not active — invoice {invoiceNumber}",
+      mandateIntro1: "Dear {customerName}, your subscription runs on automatic collection, but there is no authorisation in place yet. That is why invoice {invoiceNumber} could not be collected. Setting it up takes less than a minute — use the button below.",
+      mandateIntro2: "Dear {customerName}, invoice {invoiceNumber} is still open because the authorisation for automatic collection is not active yet. As soon as you set it up, this invoice is collected straight away.",
+      mandateIntro3: "Dear {customerName}, this is the final reminder: the authorisation for your subscription is still not active, which leaves invoice {invoiceNumber} open. Please set it up using the button below, or get in touch with us.",
+      mandateActivate: "Set up authorisation",
+      mandateNote: "Once your authorisation is active, this invoice is collected automatically. Nothing further is needed from you.",
     },
     creditNote: {
       subject: "Credit note {creditNoteNumber} - {tenantName}",
@@ -387,6 +430,14 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       reminderIntro2: "Cher/Chère {customerName}, la facture {invoiceNumber} reste impayée. Merci de procéder au paiement rapidement afin d'éviter des frais supplémentaires.",
       reminderIntro3: "Cher/Chère {customerName}, ceci est le dernier rappel pour la facture {invoiceNumber}. Sans paiement dans les 7 jours, nous transmettrons le dossier à notre partenaire de recouvrement.",
       reminderPayNow: "Payer la facture en ligne",
+      mandateSubject1: "Mandat requis — facture {invoiceNumber}",
+      mandateSubject2: "Rappel : votre mandat n'est pas encore actif — facture {invoiceNumber}",
+      mandateSubject3: "Dernier rappel : mandat toujours pas actif — facture {invoiceNumber}",
+      mandateIntro1: "Cher/Chère {customerName}, votre abonnement fonctionne par prélèvement automatique, mais aucun mandat n'est encore en place. La facture {invoiceNumber} n'a donc pas pu être prélevée. Sa mise en place prend moins d'une minute via le bouton ci-dessous.",
+      mandateIntro2: "Cher/Chère {customerName}, la facture {invoiceNumber} reste ouverte car le mandat de prélèvement automatique n'est pas encore actif. Dès que vous l'aurez mis en place, cette facture sera prélevée immédiatement.",
+      mandateIntro3: "Cher/Chère {customerName}, ceci est le dernier rappel : le mandat de votre abonnement n'est toujours pas actif, ce qui laisse la facture {invoiceNumber} ouverte. Mettez-le en place via le bouton ci-dessous, ou contactez-nous.",
+      mandateActivate: "Mettre en place le mandat",
+      mandateNote: "Dès que votre mandat est actif, cette facture est prélevée automatiquement. Vous n'avez rien d'autre à faire.",
     },
     creditNote: {
       subject: "Note de crédit {creditNoteNumber} - {tenantName}",
@@ -498,6 +549,14 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       reminderIntro2: "Sehr geehrte/r {customerName}, die Rechnung {invoiceNumber} ist weiterhin offen. Bitte begleichen Sie diese kurzfristig, um zusätzliche Kosten zu vermeiden.",
       reminderIntro3: "Sehr geehrte/r {customerName}, dies ist die letzte Erinnerung zur Rechnung {invoiceNumber}. Ohne Zahlung innerhalb von 7 Tagen übergeben wir den Vorgang an unseren Inkassopartner.",
       reminderPayNow: "Rechnung online bezahlen",
+      mandateSubject1: "Mandat erforderlich — Rechnung {invoiceNumber}",
+      mandateSubject2: "Erinnerung: Ihr Mandat ist noch nicht aktiv — Rechnung {invoiceNumber}",
+      mandateSubject3: "Letzte Erinnerung: Mandat weiterhin nicht aktiv — Rechnung {invoiceNumber}",
+      mandateIntro1: "Sehr geehrte/r {customerName}, Ihr Abonnement läuft über automatischen Einzug, es liegt jedoch noch kein Mandat vor. Deshalb konnte die Rechnung {invoiceNumber} nicht eingezogen werden. Die Einrichtung dauert keine Minute — nutzen Sie die Schaltfläche unten.",
+      mandateIntro2: "Sehr geehrte/r {customerName}, die Rechnung {invoiceNumber} ist noch offen, weil das Mandat für den automatischen Einzug noch nicht aktiv ist. Sobald Sie es einrichten, wird diese Rechnung sofort eingezogen.",
+      mandateIntro3: "Sehr geehrte/r {customerName}, dies ist die letzte Erinnerung: Das Mandat für Ihr Abonnement ist weiterhin nicht aktiv, wodurch die Rechnung {invoiceNumber} offen bleibt. Richten Sie es über die Schaltfläche unten ein oder nehmen Sie Kontakt mit uns auf.",
+      mandateActivate: "Mandat einrichten",
+      mandateNote: "Sobald Ihr Mandat aktiv ist, wird diese Rechnung automatisch eingezogen. Weiter ist nichts zu tun.",
     },
     creditNote: {
       subject: "Gutschrift {creditNoteNumber} - {tenantName}",

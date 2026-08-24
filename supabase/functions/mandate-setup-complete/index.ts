@@ -99,8 +99,93 @@ Deno.serve(async (req) => {
       method: methodType,
     });
 
+    // BILL-1: collect what is already open, right now.
+    //
+    // The customer just authorized a mandate because an invoice was waiting for
+    // it; making them wait for the next dunning run would be silly. Wrapped so
+    // it can NEVER fail the activation itself — the mandate is valid from here
+    // on regardless of whether this charge goes through.
+    const collect = { collected: 0, collecting: 0, failed: 0 };
+    try {
+      // Only mandate-mode subscription invoices. A one-off order invoice must
+      // never be charged off-session: it was not on the authorization page.
+      const { data: openInvoices } = await supabase
+        .from("invoices")
+        .select("id, total, status, charge_attempts, subscription_id, subscriptions!inner(payment_mode)")
+        .eq("tenant_id", tok.tenant_id)
+        .eq("customer_id", tok.customer_id)
+        .in("status", ["unpaid", "sent"])
+        .eq("subscriptions.payment_mode", "mandate")
+        .order("issue_date", { ascending: true })
+        .limit(5);
+
+      for (const inv of openInvoices ?? []) {
+        try {
+          const intent = await ctx.stripe.paymentIntents.create(
+            {
+              amount: Math.round(Number(inv.total) * 100),
+              currency: "eur",
+              customer: tok.stripe_customer_id!,
+              payment_method: paymentMethodId,
+              payment_method_types: [methodType],
+              confirm: true,
+              off_session: true,
+              metadata: {
+                invoice_id: inv.id,
+                tenant_id: tok.tenant_id,
+                subscription_id: inv.subscription_id ?? "",
+              },
+            },
+            // Guards against a double charge if this endpoint is called twice
+            // for the same activation.
+            { ...ctx.requestOptions, idempotencyKey: `mandate-activate:${inv.id}` },
+          );
+
+          if (intent.status === "succeeded") {
+            await supabase.from("invoices").update({
+              status: "paid",
+              paid_at: new Date().toISOString(),
+              next_action_at: null,
+            }).eq("id", inv.id);
+            collect.collected++;
+          } else if (intent.status === "processing") {
+            await supabase.from("invoices").update({
+              status: "processing",
+              next_action_at: null,
+            }).eq("id", inv.id);
+            collect.collecting++;
+          } else {
+            // Hand it to the dunning retry ladder (branch A) instead of leaving
+            // it stranded: one attempt recorded, next look in 3 days.
+            await supabase.from("invoices").update({
+              charge_attempts: Math.max(1, Number(inv.charge_attempts ?? 0) + 1),
+              last_charge_attempt_at: new Date().toISOString(),
+              next_action_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            }).eq("id", inv.id);
+            collect.failed++;
+          }
+          log("Post-activation charge", { invoice_id: inv.id, status: intent.status });
+        } catch (chargeErr) {
+          collect.failed++;
+          log("Post-activation charge failed", {
+            invoice_id: inv.id,
+            error: chargeErr instanceof Error ? chargeErr.message : String(chargeErr),
+          });
+          await supabase.from("invoices").update({
+            charge_attempts: Math.max(1, Number(inv.charge_attempts ?? 0) + 1),
+            last_charge_attempt_at: new Date().toISOString(),
+            next_action_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          }).eq("id", inv.id);
+        }
+      }
+    } catch (collectErr) {
+      log("Post-activation collection skipped", {
+        error: collectErr instanceof Error ? collectErr.message : String(collectErr),
+      });
+    }
+
     return new Response(
-      JSON.stringify({ success: true, method_type: methodType }),
+      JSON.stringify({ success: true, method_type: methodType, ...collect }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {

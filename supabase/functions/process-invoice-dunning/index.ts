@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { mintMandateSetupLink } from "../_shared/mandateToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +42,33 @@ function addDays(d: Date, n: number): Date {
   return x;
 }
 
+// Reminder level and scheduling are shared by the manual branch (B) and the
+// mandate branch (M): same cadence from the tenant's settings, different action.
+// Extracted rather than duplicated so the two can never drift apart.
+function resolveReminderLevel(
+  currentLevel: number, daysPastDue: number, l1: number, l2: number, l3: number,
+): 1 | 2 | 3 | null {
+  if (currentLevel < 1 && daysPastDue >= l1) return 1;
+  if (currentLevel < 2 && daysPastDue >= l2) return 2;
+  if (currentLevel < 3 && daysPastDue >= l3) return 3;
+  return null;
+}
+
+function nextThresholdDays(currentLevel: number, l1: number, l2: number, l3: number): number | null {
+  if (currentLevel < 1) return l1;
+  if (currentLevel < 2) return l2;
+  if (currentLevel < 3) return l3;
+  return null;
+}
+
+function displayName(c: { company_name?: string | null; first_name?: string | null; last_name?: string | null; email?: string | null } | null): string {
+  if (!c) return 'Klant';
+  return c.company_name
+    || [c.first_name, c.last_name].filter(Boolean).join(' ').trim()
+    || c.email
+    || 'Klant';
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -56,6 +84,8 @@ Deno.serve(async (req) => {
     charge_processing: 0,
     charge_failed: 0,
     reminder_sent: 0,
+    mandate_invite_sent: 0,
+    mandate_stalled: 0,
     payment_request_sent: 0,
     admin_notified: 0,
     skipped: 0,
@@ -105,21 +135,27 @@ Deno.serve(async (req) => {
         if (tErr) throw tErr;
         if (!tenant) { summary.skipped++; continue; }
 
+        // One subscription read, used by both the due-date fallback and the
+        // mandate branch. payment_mode was never read here before, which is
+        // exactly why a mandate subscription without a mandate was treated as
+        // a manual customer and got a one-off checkout link.
+        let subscription: { payment_term_days: number | null; payment_mode: string | null } | null = null;
+        if (invoice.subscription_id) {
+          const { data: subRow } = await supabase
+            .from('subscriptions')
+            .select('payment_term_days, payment_mode')
+            .eq('id', invoice.subscription_id)
+            .maybeSingle();
+          subscription = subRow ?? null;
+        }
+
         // Compute due date
         let dueDate: Date | null = null;
         if (invoice.due_date) {
           dueDate = new Date(invoice.due_date + 'T00:00:00Z');
         } else if (invoice.issue_date) {
           // fallback: issue + 14d (or subscription payment_term_days if we have it)
-          let paymentTermDays = 14;
-          if (invoice.subscription_id) {
-            const { data: sub } = await supabase
-              .from('subscriptions')
-              .select('payment_term_days')
-              .eq('id', invoice.subscription_id)
-              .maybeSingle();
-            paymentTermDays = Number(sub?.payment_term_days ?? 14);
-          }
+          const paymentTermDays = Number(subscription?.payment_term_days ?? 14);
           dueDate = addDays(new Date(invoice.issue_date + 'T00:00:00Z'), paymentTermDays);
         }
         if (!dueDate) { summary.skipped++; continue; }
@@ -238,7 +274,7 @@ Deno.serve(async (req) => {
           await safe('notifications insert (charge exhausted)', () =>
             supabase.from('notifications').insert({
             tenant_id: invoice.tenant_id,
-            category: 'billing',
+            category: 'invoices',
             type: 'invoice_charge_exhausted',
             title: `Automatische incasso mislukt: ${invoice.invoice_number}`,
             message: `Na ${MAX_CHARGE_ATTEMPTS} pogingen kon factuur ${invoice.invoice_number} niet automatisch worden geïncasseerd. De klant heeft een betaal-link ontvangen.`,
@@ -257,9 +293,8 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // -------------------------------------------------------------------
-        // BRANCH B: manual/no-mandate — payment reminders per tenant config
-        // -------------------------------------------------------------------
+        // The tenant's "stop mailing my customers" switch gates both remaining
+        // branches. Unchanged for branch B: same check, same place in the order.
         if (!tenant.reminders_enabled) {
           await supabase.from('invoices').update({ next_action_at: null }).eq('id', invoice.id);
           summary.skipped++;
@@ -270,14 +305,120 @@ Deno.serve(async (req) => {
         const l2 = Number(tenant.reminder_level2_days ?? 21);
         const l3 = Number(tenant.reminder_level3_days ?? 35);
 
-        let targetLevel: 1 | 2 | 3 | null = null;
-        if (currentDunningLevel < 1 && daysPastDue >= l1) targetLevel = 1;
-        else if (currentDunningLevel < 2 && daysPastDue >= l2) targetLevel = 2;
-        else if (currentDunningLevel < 3 && daysPastDue >= l3) targetLevel = 3;
+        // -------------------------------------------------------------------
+        // BRANCH M: mandate-mode subscription WITHOUT an active mandate.
+        //
+        // The whole point: this customer cannot pay by direct debit because
+        // nobody ever authorized one. A checkout link would settle this single
+        // invoice at best and leave the next interval to fail all over again.
+        // So the reminder invites them to authorize instead, and
+        // mandate-setup-complete collects this invoice the moment they do.
+        //
+        // Deliberately AFTER branch C: a subscription whose retries are
+        // exhausted had a working mandate, so there the mandate is not the
+        // problem and the payment link stays the right answer.
+        // -------------------------------------------------------------------
+        if (invoice.subscription_id && subscription?.payment_mode === 'mandate' && !mandateActive) {
+          const mLevel = resolveReminderLevel(currentDunningLevel, daysPastDue, l1, l2, l3);
+          if (!mLevel) {
+            const nextThreshold = nextThresholdDays(currentDunningLevel, l1, l2, l3);
+            const nextAt = nextThreshold != null ? addDays(dueDate, nextThreshold).toISOString() : null;
+            await supabase.from('invoices').update({ next_action_at: nextAt }).eq('id', invoice.id);
+            summary.skipped++;
+            continue;
+          }
+
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('id, tenant_id, email, first_name, last_name, company_name')
+            .eq('id', invoice.customer_id)
+            .maybeSingle();
+          if (!customer) {
+            log('Mandate invite skipped — no customer', { invoice_id: invoice.id });
+            summary.skipped++;
+            continue;
+          }
+
+          // A reminder without a working link is worse than no reminder, so a
+          // failed mint aborts the whole step: no mail, no level bump, and
+          // next_action_at untouched so the next run tries again.
+          let mandateUrl: string;
+          try {
+            const ctx = getStripeContext(tenant);
+            const minted = await mintMandateSetupLink(supabase, ctx, {
+              tenant,
+              customer,
+              subscriptionId: invoice.subscription_id,
+            });
+            mandateUrl = minted.url;
+          } catch (mintErr) {
+            const msg = errMsg(mintErr);
+            log('Mandate link mint failed — no email sent', { invoice_id: invoice.id, error: msg });
+            summary.failed.push({ invoice_id: invoice.id, error: `mandate mint: ${msg}` });
+            continue;
+          }
+
+          await safe('Mandate invite email', () =>
+            supabase.functions.invoke('send-invoice-email', {
+              body: { invoice_id: invoice.id, reminder_level: mLevel, mandate_url: mandateUrl },
+            }),
+          );
+
+          // No late fee: nothing was paid late, a signature is missing.
+          await safe('payment_reminders insert (mandate)', () =>
+            supabase.from('payment_reminders').insert({
+              invoice_id: invoice.id, level: mLevel, late_fee_amount: 0, total_due_amount: invoice.total,
+            }),
+          );
+
+          const mUpdates: Record<string, unknown> = {
+            dunning_level: mLevel, reminder_level: mLevel, last_reminder_at: nowISO,
+          };
+          if (mLevel < 3) {
+            mUpdates.next_action_at = addDays(dueDate, mLevel === 1 ? l2 : l3).toISOString();
+          } else {
+            mUpdates.next_action_at = null;
+          }
+          await supabase.from('invoices').update(mUpdates).eq('id', invoice.id);
+
+          summary.mandate_invite_sent++;
+          log('Mandate invite sent', { invoice_id: invoice.id, level: mLevel });
+
+          if (mLevel === 3) {
+            // Three invitations, still no mandate. Stop auto-mailing and hand it
+            // to a human — no payment link, that stays a deliberate fallback.
+            await safe('notifications insert (mandate stalled)', () =>
+              supabase.from('notifications').insert({
+                tenant_id: invoice.tenant_id,
+                category: 'invoices',
+                type: 'mandate_setup_stalled',
+                title: `Machtiging niet afgerond: ${invoice.invoice_number}`,
+                message: `${displayName(customer)} heeft na 3 uitnodigingen nog geen machtiging geactiveerd. Factuur ${invoice.invoice_number} (${Number(invoice.total).toFixed(2)}) staat open. Automatisch mailen is gestopt.`,
+                priority: 'high',
+                action_url: `/admin/invoices/${invoice.id}`,
+                data: {
+                  invoice_id: invoice.id,
+                  invoice_number: invoice.invoice_number,
+                  customer_id: customer.id,
+                  subscription_id: invoice.subscription_id,
+                  mandate_url: mandateUrl,
+                },
+              }),
+            );
+            summary.mandate_stalled++;
+            summary.admin_notified++;
+          }
+          continue;
+        }
+
+        // -------------------------------------------------------------------
+        // BRANCH B: manual/no-mandate — payment reminders per tenant config
+        // -------------------------------------------------------------------
+        const targetLevel = resolveReminderLevel(currentDunningLevel, daysPastDue, l1, l2, l3);
 
         if (!targetLevel) {
           // Schedule next boundary
-          const nextThreshold = currentDunningLevel < 1 ? l1 : currentDunningLevel < 2 ? l2 : currentDunningLevel < 3 ? l3 : null;
+          const nextThreshold = nextThresholdDays(currentDunningLevel, l1, l2, l3);
           const nextAt = nextThreshold != null ? addDays(dueDate, nextThreshold).toISOString() : null;
           await supabase.from('invoices').update({ next_action_at: nextAt }).eq('id', invoice.id);
           summary.skipped++;
@@ -323,7 +464,7 @@ Deno.serve(async (req) => {
           await safe('notifications insert (final reminder)', () =>
             supabase.from('notifications').insert({
             tenant_id: invoice.tenant_id,
-            category: 'billing',
+            category: 'invoices',
             type: 'invoice_final_reminder',
             title: `Laatste herinnering verstuurd: ${invoice.invoice_number}`,
             message: `Factuur ${invoice.invoice_number} is ${daysPastDue} dagen te laat. Overweeg incasso.`,

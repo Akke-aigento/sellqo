@@ -2,10 +2,16 @@
 // Deploy marker: 2026-07-08 re-deploy trigger.
 // Admin/staff triggers this; returns a URL the customer visits once to
 // authorize SEPA Direct Debit or card off-session charging.
+//
+// BILL-1: the minting itself moved to _shared/mandateToken.ts so the dunning
+// runner can mint the same link server-side. This function is now the
+// authenticated wrapper around it: it resolves customer + tenant, checks the
+// role, and passes the request origin through as the preferred base URL.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { mintMandateSetupLink } from "../_shared/mandateToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,12 +22,6 @@ const log = (step: string, details?: unknown) => {
   const suffix = details !== undefined ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[CREATE-MANDATE-SETUP] ${step}${suffix}`);
 };
-
-function randomToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -67,97 +67,20 @@ Deno.serve(async (req) => {
     if (tenantErr) throw tenantErr;
     if (!tenant) throw new Error("Tenant not found");
 
-    // MANDATE-CTX-1: build the customer-facing context (amount, reason,
-    // interval) server-side from the subscription so the authorization page
-    // never shows a blank "carte blanche" form. Amount math is copied from
-    // generate-subscription-invoices (pay_first path) so the shown total is
-    // exactly what will be collected.
-    let context: Record<string, unknown> | null = null;
-    if (subscriptionId) {
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select(
-          "id, tenant_id, customer_id, name, interval, interval_count, subscription_lines(description, quantity, unit_price, vat_rate, sort_order)",
-        )
-        .eq("id", subscriptionId)
-        .maybeSingle();
-
-      if (sub && sub.tenant_id === tenant.id && sub.customer_id === customer.id) {
-        const lines = [...((sub as any).subscription_lines ?? [])].sort(
-          (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0),
-        );
-        let subtotal = 0;
-        let vatAmount = 0;
-        for (const ln of lines) {
-          const net = Number(ln.quantity ?? 1) * Number(ln.unit_price ?? 0);
-          subtotal += net;
-          vatAmount += +(net * Number(ln.vat_rate ?? 0) / 100).toFixed(2);
-        }
-        subtotal = +subtotal.toFixed(2);
-        vatAmount = +vatAmount.toFixed(2);
-        const total = +(subtotal + vatAmount).toFixed(2);
-
-        context = {
-          source: "subscription",
-          creditor: tenant.name,
-          reason: lines[0]?.description || sub.name,
-          price: total,
-          interval: sub.interval,
-          interval_count: sub.interval_count,
-        };
-        log("Context built from subscription", { subscriptionId, total });
-      } else {
-        log("Subscription context skipped (not found or mismatch)", { subscriptionId });
-      }
-    }
-
     const ctx = getStripeContext(tenant);
 
-    // Reuse an existing Stripe customer if we already stored one for a
-    // previous (revoked/failed) mandate; otherwise create a fresh one.
-    let stripeCustomerId: string | null = null;
-    const { data: existingMandate } = await supabase
-      .from("customer_payment_mandates")
-      .select("stripe_customer_id")
-      .eq("tenant_id", tenant.id)
-      .eq("customer_id", customer.id)
-      .maybeSingle();
-    if (existingMandate?.stripe_customer_id) {
-      stripeCustomerId = existingMandate.stripe_customer_id;
-    }
+    // Origin stays the first choice: an admin on a preview or custom domain
+    // keeps getting exactly the link they got before this change. Only when it
+    // is absent does PUBLIC_APP_URL step in — and there the old result was a
+    // relative, unusable path.
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/+$/, "") || null;
 
-    if (!stripeCustomerId) {
-      const displayName =
-        customer.company_name ||
-        [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim() ||
-        customer.email ||
-        undefined;
-      const stripeCustomer = await ctx.stripe.customers.create(
-        {
-          email: customer.email ?? undefined,
-          name: displayName,
-          metadata: { tenant_id: tenant.id, customer_id: customer.id },
-        },
-        ctx.requestOptions,
-      );
-      stripeCustomerId = stripeCustomer.id;
-      log("Created Stripe customer", { stripeCustomerId, onPlatform: ctx.onPlatformAccount });
-    }
-
-    // Mint a fresh single-use token
-    const token = randomToken();
-    const { error: tokErr } = await supabase.from("mandate_setup_tokens").insert({
-      tenant_id: tenant.id,
-      customer_id: customer.id,
-      token,
-      stripe_customer_id: stripeCustomerId,
-      ...(context ? { context } : {}),
+    const { token, url } = await mintMandateSetupLink(supabase, ctx, {
+      tenant,
+      customer,
+      subscriptionId,
+      baseUrl: origin,
     });
-    if (tokErr) throw tokErr;
-
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/+$/, "") || "";
-    const url = `${origin}/betaling/machtiging/${token}`;
-    log("Mandate token created", { customerId: customer.id, tenant: tenant.id });
 
     return new Response(
       JSON.stringify({ success: true, token, url }),

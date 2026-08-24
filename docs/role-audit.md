@@ -1,4 +1,220 @@
 
+## BILL-1 — mandaat-first dunning — 24 augustus 2026
+
+**Status: code klaar, NIET gedeployed en niet live getest.** De deploy en de ketentest staan bij
+Akke; volgorde en commando's onderaan deze entry.
+
+### Root cause
+
+`process-invoice-dunning` las `subscriptions.payment_mode` **nergens**. De functie kende maar
+twee toestanden: er is een actief mandaat (branch A/C) of er is er geen (branch B). Een
+subscription met `payment_mode = 'mandate'` waarvoor nooit een machtiging is afgegeven, viel
+daarmee in branch B en kreeg een eenmalige Stripe-checkoutlink. Die lost hooguit één factuur op;
+het mandaat komt er niet, dus het volgende interval faalt opnieuw. Dat is precies wat er bij
+klant Ozay Group Belgium BV gebeurde.
+
+Live vastgesteld vóór de wijziging (factuur `SQ-2026-0001`, klant `9ab1a565-…`):
+
+| Feit | Waarde |
+|---|---|
+| Status / bedrag / vervaldag | `sent`, € 60,50, 17-08 |
+| `charge_attempts` | **0** — er is nooit een incassopoging geweest |
+| `dunning_level` | **1**, mét `checkout_session_url` — branch B had al gevuurd |
+| Subscription | `payment_mode = 'mandate'`, `status = active`, jaarlijks |
+| Mandaten | **0 rijen**, niet eens een `failed` |
+| Mandaat-tokens | 4, allemaal verlopen, geen enkele gebruikt, **allemaal `context = NULL`** |
+
+Dat `charge_attempts = 0` is, betekent dat branch A (`>= 1`) en branch C (`>= 3`) hier per
+constructie nooit vuren. De factuur kón alleen in branch B belanden.
+
+**Twee bijkomende oorzaken, allebei bevestigd in de code:**
+
+1. **`create-mandate-setup` bouwde de URL uit `req.headers.get("origin")`** (r.158 vóór deze
+   batch). Server-to-server is die header leeg, waardoor de link
+   `/betaling/machtiging/<token>` wordt — een relatief pad, onklikbaar in een mail. Dit is de
+   waarschijnlijke reden dat alle vier de tokens ongebruikt verliepen.
+2. **`context = NULL` op alle vier de tokens** betekent dat ze zonder `subscription_id` zijn
+   aangemaakt: de machtigingspagina toonde dus een blanco formulier zonder bedrag of reden.
+
+### Uitgevoerd
+
+**Nieuw: `supabase/functions/_shared/mandateToken.ts`** (183 regels). De mint-logica uit
+`create-mandate-setup`, losgekoppeld van `req`: de MANDATE-CTX-1 contextberekening, het
+hergebruik van een bestaande `stripe_customer_id`, het aanmaken van de Stripe-customer en de
+insert in `mandate_setup_tokens` — allemaal ongewijzigd overgenomen. Nieuw is alleen
+`resolveMandateBaseUrl()`: caller-origin eerst, dan `PUBLIC_APP_URL`, dan `https://sellqo.app`.
+Dezelfde ketting die `create-invoice-payment-link:79` en `create-cycle-payment-link:78` al
+gebruiken.
+
+**`create-mandate-setup/index.ts`** — 18 insertions, 95 deletions. Wordt een dunne wrapper: auth,
+klant- en tenant-load, dan de helper. **Origin blijft eerste keus**, dus een admin in de browser
+krijgt exact dezelfde URL als voorheen. Alleen het geval waarin origin ontbrak verandert, en daar
+was het resultaat kapot. Response ongewijzigd.
+
+**`process-invoice-dunning/index.ts`** — nieuwe **BRANCH M**, tussen C en B:
+
+- Eén `subscriptions`-fetch omhoog getrokken (`payment_term_days, payment_mode`), die de
+  due-date-fallback en de nieuwe branch allebei bedient. De fallback leest nu
+  `subscription?.payment_term_days ?? 14` — functioneel identiek aan de oude inline-query.
+- De `reminders_enabled`-gate en `l1/l2/l3` staan nu vóór de branch-splitsing in plaats van in
+  de kop van B. Zelfde check, zelfde plaats in de volgorde; voor B verandert niets.
+- Nieuwe helpers `resolveReminderLevel()` en `nextThresholdDays()` — de niveau-logica van B
+  letterlijk overgenomen (`else if`-ketting → early returns, zelfde volgorde, zelfde uitkomst) en
+  door B én M gebruikt, zodat de twee niet uit elkaar kunnen lopen.
+- BRANCH M vuurt op `subscription_id && payment_mode === 'mandate' && !mandateActive`: mint een
+  vers token mét `subscription_id`, mailt de machtigings-uitnodiging (géén betaallink), schrijft
+  een `payment_reminders`-rij met `late_fee_amount = 0`, en zet `next_action_at` op de volgende
+  grens — of op `null` bij niveau 3.
+- **Faalt de mint, dan gaat er geen mail uit.** Geen niveauverhoging, `next_action_at`
+  ongemoeid, het geval in `summary.failed`. Een herinnering met een kapotte link is erger dan
+  geen herinnering — precies de fout die deze batch repareert.
+- Nieuwe tellers `mandate_invite_sent` en `mandate_stalled`.
+
+**Billing enum-bug meegefixt — drie regels in dezelfde functie.** De admin-notificaties gingen
+in met `category: 'billing'`, en die waarde bestaat **niet** in de `notification_category`-enum.
+Geldig zijn: `orders, invoices, payments, customers, products, quotes, subscriptions, marketing,
+team, system, ai_coach, messages, integrations` (nagetrokken op `pg_enum`). De insert faalde
+daardoor op een enum-violation, die vervolgens stil werd opgegeten door de `safe()`-wrapper.
+
+Dat is geen nieuw probleem van deze batch: het gold al voor `invoice_charge_exhausted` (branch C,
+r.277) en `invoice_final_reminder` (branch B, r.467). Bevestigd in productie — de tabel bevat
+**nul** rijen met `type in ('invoice_charge_exhausted','invoice_final_reminder')`. Die twee
+meldingen zijn dus nog nooit bij een admin aangekomen.
+
+Alle drie de plekken staan nu op `category: 'invoices'`, de waarde die de wél werkende
+invoice-notificaties gebruiken. Gedragsneutraal in de zin dat er niets verandert aan wanneer of
+waarover gemeld wordt — alleen komt de melding voortaan daadwerkelijk aan. Zonder deze fix zou
+`mandate_setup_stalled` precies hetzelfde lot ondergaan als zijn twee buren, en dat is nu juist
+de melding die nodig is om te wéten dat een mandaat blijft hangen.
+
+**Branch A en C zijn niet aangeraakt.** De diff springt van r.135 naar r.293; daartussen ligt de
+volledige incasso- en retry-logica, ongewijzigd.
+
+**`send-invoice-email/index.ts`** — optionele body-parameter `mandate_url`. Is die gezet naast
+`reminder_level`, dan komen subject en intro uit `invoice.mandate*` en wijst de knop naar de
+machtigingspagina, met een uitlegregel eronder. Zonder `mandate_url` verandert er niets:
+`checkout_url` houdt zijn eigen tak en beide sluiten elkaar uit. De knop-markup is naar één
+`ctaButton()`-helper getrokken zodat de twee varianten er identiek uitzien.
+
+**`mandate-setup-complete/index.ts`** — incasseert de openstaande facturen meteen na activatie,
+in een `try/catch` die de activatie **nooit** kan laten falen. Scope bewust smal: alleen
+`status in ('unpaid','sent')` mét `subscription_id` waarvan de subscription op
+`payment_mode = 'mandate'` staat, via `subscriptions!inner(payment_mode)`. Een losse order- of
+klantfactuur wordt dus nooit stil afgeschreven — die stond niet op de machtigingspagina.
+`idempotencyKey: mandate-activate:<invoice_id>` voorkomt een dubbele afschrijving als het
+endpoint twee keer wordt aangeroepen. Bij een mislukte poging gaat de factuur naar
+`charge_attempts + 1` met `next_action_at = +3d`, zodat branch A de retryladder overneemt.
+Response krijgt er additief `collected`, `collecting` en `failed` bij.
+
+**`_shared/tenantEmailI18n.ts`** — 8 nieuwe keys × 4 talen (`mandateSubject1-3`,
+`mandateIntro1-3`, `mandateActivate`, `mandateNote`). Toon: uitnodigend, geen incassotaal. Er is
+niets te laat betaald, er ontbreekt een handtekening — ook op niveau 3 wordt er dus niet met een
+incassopartner gedreigd, want dat zou hier feitelijk onjuist zijn. Aanspreekvorm gevolgd per taal
+(`je` nl, `Cher/Chère` + `vous` fr, `Sehr geehrte/r` + `Sie` de).
+
+### Security-keuzes
+
+- **Geen RLS, policies of grants geraakt.** Geen migratie, geen schemawijziging.
+- **De mandaatlink is een single-use token van 7 dagen** (bestaande tabeldefault), geen
+  raadbare identifier. Elke herinnering mint een vers token; oudere blijven geldig tot ze
+  verlopen, zodat wie een eerdere mail opendiept alsnog binnenkomt.
+- **`resolveMandateBaseUrl` accepteert de caller-origin ongefilterd** — net als vóór deze batch.
+  Dat is verdedigbaar omdat `create-mandate-setup` achter `authenticateRequest` +
+  `requireRole(tenant_admin|staff)` zit: de origin komt van een ingelogde beheerder, niet van
+  het publiek. De dunning geeft géén origin mee en valt dus altijd op `PUBLIC_APP_URL` terug.
+  Let op het verschil met `storefront-customer-api`, waar `url_base` wél tegen een allowlist
+  moet omdat die functie `verify_jwt = false` draait.
+- **Off-session incasso is echt geld.** De scope-beperking tot mandate-subscriptions plus de
+  idempotency-key zijn de rem; beide zijn op leesniveau geverifieerd, niet live.
+
+### Gedeelde-paden-waarschuwing
+
+`process-invoice-dunning` draait over de facturen van **alle** tenants, niet alleen SellQo. De
+twee ingrepen buiten branch M zijn gedragsneutraal:
+
+- de `subscriptions`-fetch levert dezelfde `payment_term_days` als de oude inline-query;
+- de `reminders_enabled`-gate staat op dezelfde plek in de volgorde als voorheen.
+
+Branch M kan ook een klant van een gewone tenant raken zodra die tenant een mandate-subscription
+zonder mandaat heeft. Dat is bedoeld, maar het is dus geen platform-only fix.
+
+`storefront-resolve`, `storefront-api` en `checkout-engine` zijn niet aangeraakt; geen gedeelde
+tabel gewijzigd. De vijf custom-frontend tenants zijn per constructie ongemoeid.
+
+### Verificatie
+
+- `npx tsc --noEmit -p tsconfig.app.json` — exit 0. **Let op de reikwijdte:** `tsconfig.app.json`
+  include't alleen `src`, dus dit dekt géén enkele edge function. Het bewijst dat de frontend
+  niet regresseert, meer niet.
+- `npm run build` — exit 0, gebouwd in 2m09.
+- **esbuild-parse van alle zes aangeraakte Deno-bestanden** — alle zes OK. Er is lokaal geen
+  Deno (`which deno` → niets), dus dit is de enige echte zeef op die bestanden.
+- **Key-set-pariteit op `tenantEmailI18n.ts`** — 100 keys per taal over alle stringblokken,
+  0 ontbrekend, 0 extra, en geen placeholder-drift op de acht nieuwe keys.
+
+**Gat dat blijft bestaan:** niets in CI bewaakt `tenantEmailI18n.ts`. `tsconfig.app.json` ziet
+`supabase/functions` niet en `i18n-parity.mjs` leest alleen `src/i18n/locales`. Het
+`Strings.invoice`-type declareerde 6 keys terwijl elk locale-blok er 20 had — die drift stond er
+al en niemand zag hem, want `t()` geeft bij een ontbrekende key stilzwijgend het *key-pad* terug
+als e-mailtekst. Het type is in deze batch gelijkgetrokken (28 keys), maar zolang niets het
+compileert is dat een dood vangnet. De pariteitscheck draaide hier als wegwerpscript.
+
+### Nog te doen — Akke
+
+**Vóór de deploy:** parkeer `SQ-2026-0001` (`next_action_at` naar ná 1 september). Branch M geldt
+voor élke mandate-tenant, dus zonder die stap stuurt de cron op 31 augustus alsnog een L2-mail
+naar Ozay — en die wordt handmatig opgevolgd.
+
+**Deployen (vier functies, `_shared` bundelt mee):** `process-invoice-dunning`,
+`create-mandate-setup`, `mandate-setup-complete`, `send-invoice-email`. Controleer of
+`PUBLIC_APP_URL` als function-secret bestaat; ontbreekt hij, dan vallen de links terug op
+`https://sellqo.app`.
+
+**Ketentest: op Demo Bakkerij, NIET op Ozay.** SellQo Speeltuin valt af — die heeft geen
+`stripe_account_id` en is niet intern, dus `getStripeContext` (`_shared/stripe.ts:137`) gooit
+"cannot charge" en branch M zou al bij de mint stuklopen. Demo Bakkerij heeft wél een connected
+account en `is_demo = true`. Twee dingen: `reminders_enabled` staat daar op `false` en moet
+tijdelijk aan, en de drempels zijn 7/21/35. Seed-, natrek- en opruimscripts staan in het
+plan-bestand van deze batch.
+
+**Ozay wordt niet aangeschreven.** Geen dunning-run op `SQ-2026-0001`, ook niet handmatig — die
+run omzeilt `next_action_at` en zou wél mailen. Alleen read-only observatie.
+
+### Bewust ongemoeid
+
+- **Branch A en C.** Het randgeval "mandaat gehad, 3 mislukte incasso's, daarna ingetrokken"
+  matcht C én M; omdat M ná C staat wint C. Dat is bedoeld: daar was de machtiging niet het
+  probleem, dus daar blijft de betaallink het juiste antwoord.
+- **Geen betaallink als vangnet in branch M**, ook niet op niveau 3. Dat blijft iets wat je
+  bewust inzet, niet iets wat automatisch gebeurt.
+- **Geen boete in branch M.** Er is niets te laat betaald.
+- **De vijfde taal.** `uk` toevoegen aan de e-mail-i18n raakt `TenantLocale`,
+  `SUPPORTED_LOCALES` en alle stringblokken (order, invoice, creditNote, return, giftCard,
+  quote, paymentRequest) — dat is een eigen batch, geen bijvangst van deze.
+- **`MandateActivation.tsx`** is niet gewijzigd; de nieuwe `collected`/`collecting`-velden liggen
+  klaar voor als je "je openstaande factuur wordt nu geïncasseerd" wil tonen.
+
+### Vervolg
+
+1. **CI-vangnet voor `tenantEmailI18n.ts`** — `scripts/tenant-email-i18n-parity.mjs` plus een
+   regel in `ci.yml`, zodat de keyset-check permanent draait in plaats van eenmalig. Voorstel,
+   niet gebouwd: het valt buiten de scope van deze batch.
+2. **Twee `category: 'billing'`-plekken buiten deze functie staan nog open** —
+   `check-expired-trials/index.ts:90` (`trial_expired`) en
+   `send-trial-expiry-warning/index.ts:107`. Zelfde enum-bug, dus ook die notificaties zijn nooit
+   aangekomen: `trial_expired` heeft eveneens nul rijen. Bewust niet meegenomen — het is een
+   andere functie én een andere keuze (`subscriptions` of `system` ligt daar meer voor de hand
+   dan `invoices`), dus dat verdient een eigen go in plaats van een gok in de marge van deze
+   batch.
+3. **`SellQo_Masterplan_Billing_Fix.md` bestaat niet** op deze machine — niet in de repo, niet
+   onder `~`, niet vindbaar op inhoud. De briefing verwees ernaar; deze batch staat volledig op
+   de code en de live DB. Als dat document ergens leeft, hoort het in `docs/`.
+4. **Slottaken 4.2/4.3/4.4 bewust uitgesteld.** Mandaat-mode is vandaag SellQo-intern, dus een
+   publieke changelog-entry is discutabel. Voorstel: geen changelog, wel een `doc_articles`-item
+   over "machtiging regelen" zodra dit breder wordt uitgerold. Beslissing bij Akke.
+
+---
+
 ## CUSTAUTH-1 — e-mailverificatie voor storefront-klanten — 24 augustus 2026
 
 **Status: sinds 24 augustus 20:50 UTC live en end-to-end bewezen.** Twee nalever-rondes waren
