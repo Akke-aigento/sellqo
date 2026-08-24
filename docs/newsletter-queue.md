@@ -4,6 +4,37 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10t — Je klanten bevestigen hun e-mailadres (security, 24-08-2026)
+
+**Voor wie:** elke tenant met klantaccounts in de webshop.
+
+**Afweging vooraf:** een security-hardening hoort meestal níet in de nieuwsbrief.
+Deze wél, want hij voegt een zichtbare stap toe voor jóuw klanten — er komt een
+extra mail, en wie hem negeert ziet zijn bestelgeschiedenis niet. Daar krijg je
+supportvragen over. Het item gaat dus over de nieuwe stap, niet over wat we
+hebben dichtgezet.
+
+Klanten die een account aanmaken in je webshop krijgen voortaan een
+bevestigingsmail. Pas na die klik kunnen ze hun bestelgeschiedenis inzien.
+
+Winkelen, bestellen en afrekenen veranderen niet. Alleen het overzicht "Mijn
+bestellingen" blijft afgeschermd tot het adres bevestigd is. De link is 48 uur
+geldig; komt de mail niet aan, dan kan de klant hem opnieuw laten sturen vanuit
+zijn account.
+
+**Klanten die al een account hadden hoeven niets te doen.** Die zijn eenmalig als
+bevestigd gemarkeerd en houden gewoon toegang.
+
+Wat betekent dit voor jou? Vrijwel niets in de dagelijkse praktijk. Krijg je een
+klant aan de lijn die zijn bestellingen niet meer ziet: laat hem in zijn spammap
+kijken en de bevestigingsmail opnieuw versturen.
+
+**i18n-keys.** `public.changelog.changes.storefront_customer_email_verification` —
+NL/EN/FR/DE/UK aanwezig, KLAARZETTEN, nog niet verstuurd.
+
+**In-app documentatie:** doc-artikel "Klanten bevestigen hun e-mailadres"
+(slug `klant-e-mailverificatie`, context `/admin/customers`).
+
 ### 2026.10s — De marketingwerkplek in vijf talen (improvement, 24-08-2026)
 
 **Voor wie:** elke tenant die met een marketingcollega werkt, en zeker wie

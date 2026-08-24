@@ -1492,6 +1492,10 @@
         "admin_dates_follow_language": {
           "title": "Datums en tijden volgen je admintaal",
           "description": "Datums in de admin stonden altijd in het Nederlands — ook als je de admin in het Frans of Duits gebruikte. Je zag dan 'maandag 4 maart' of '3 dagen geleden' midden in een Franse pagina. Dat is rechtgezet: dag- en maandnamen en relatieve tijdsaanduidingen volgen nu de taal die je zelf hebt ingesteld. Bedragen blijven wel in het Nederlandse formaat staan, met een komma als decimaalteken — dat is een boekhoudkundige keuze en geen taalinstelling."
+        },
+        "storefront_customer_email_verification": {
+          "title": "Klanten bevestigen hun e-mailadres",
+          "description": "Klanten die een account aanmaken in je webshop bevestigen voortaan hun e-mailadres voordat ze hun bestelgeschiedenis kunnen inzien. Winkelen, bestellen en afrekenen werken zoals altijd. Klanten die al een account hadden, houden gewoon toegang en hoeven niets te doen."
         }
       },
       "copyLink": "Kopieer link",

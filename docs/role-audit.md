@@ -1,4 +1,203 @@
 
+## CUSTAUTH-1 — e-mailverificatie voor storefront-klanten — 24 augustus 2026
+
+**Status: code klaar, NIET gedraaid en NIET gedeployed.** De migratie en de deploy wachten op
+de pre-flight (zie Verificatie). De volgorde is niet vrij.
+
+### Root cause
+
+`supabase/functions/storefront-customer-api/index.ts` is het klant-account-pad van alle
+modern-stack storefronts: VanXcel, Mancini Milano en nu BennyRich. Vier gaten:
+
+**1. Het orderlek.** `get_orders` (r.136-145 vóór deze batch) en `get_order` (r.147-158)
+koppelen orders uitsluitend via `orders.customer_email = storefront_customers.email`. Er is
+geen `customer_id`-FK en er was geen verificatie-eis. `register` (r.74-92) maakte het account
+aan, logde direct in en gaf een token terug zónder ooit een verificatiemail te sturen of
+`email_verified` aan te raken. Gecombineerd: registreer met andermans e-mailadres en je leest
+onmiddellijk diens eerdere *gast*bestellingen — naam, adres, artikelen, totalen. Voor elke
+tenant op dit pad.
+
+**2. `email_verified` was onbereikbaar voor de frontend.** De kolom bestond (samen met
+`email_verification_token` en `email_verification_expires_at`), maar geen enkele action gaf
+hem terug, dus een storefront kon er niets op gaten.
+
+**3. De resetlink was hardcoded** op `https://sellqo.lovable.app/shop/{slug}/reset-password`
+(r.244) — fout voor elke tenant met een eigen domein.
+
+**4. Vier bevindingen uit de recon die de opdracht niet noemde:**
+
+- **`tenants.store_name` bestaat niet.** `select('store_name, name, slug')` op r.240 liet de
+  hele PostgREST-query falen; de error werd niet uitgelezen, dus `tenant` werd `null`,
+  `storeName` viel terug op `'Shop'` én `tenant?.slug` was `undefined`. De resetlink was
+  daardoor vermoedelijk al `https://sellqo.lovable.app/shop//reset-password` met lege slug —
+  de bestaande resetmail was waarschijnlijk al kapot. Te bevestigen met pre-flight query 1.
+- **`generateToken` overschreef elke meegegeven `exp`.** De spread stond vóór de default
+  (`{ ...payload, iat, exp: +7 dagen }`), dus de `exp: +3600` van de resettoken op r.227 was
+  dood: het JWT was 7 dagen geldig en alleen `password_reset_expires_at` hield het op een uur.
+- **`getCustomer` controleerde `purpose` niet.** Een reset-token bevat `customer_id` +
+  `tenant_id` en werkte daardoor als volwaardig sessietoken in `x-storefront-token`.
+- **`email_verified` heeft geen migratie in de repo.** De kolom staat wel in `types.ts`
+  (r.15188-15190) maar in geen enkele migratie — schema-drift, direct op de DB aangemaakt.
+  De DEFAULT is daarmee niet uit de repo af te leiden.
+
+### Uitgevoerd
+
+**`supabase/functions/storefront-customer-api/index.ts`** — tien wijzigingen, strikt additief
+op het contract:
+
+1. `generateToken`: defaults eerst, payload daarna, zodat een meegegeven `exp` wint.
+   Sessietokens geven er geen mee en houden 7 dagen; resettokens worden echt 1 uur — wat de
+   DB-kolom al afdwong, dus geen waarneembare gedragsverandering.
+2. `getCustomer`: weigert een token met een `purpose` die niet `'session'` is. Achterwaarts
+   compatibel, want bestaande sessietokens hebben geen `purpose`.
+3. Nieuwe helper `resolveStorefrontBase()` — zie URL-resolutie hieronder.
+4. Nieuwe helper `sendVerificationEmail()` — Resend via `EMAIL_SENDERS.customerService`,
+   best-effort.
+5. `register`: 48-uurs verificatietoken, `email_verified` **expliciet** op `false` in de
+   insert (niet op de DB-default vertrouwen — zie root cause 4), verificatiemail, en het
+   response blijft `{ customer, token }` met de klant nog steeds direct ingelogd.
+6. Nieuwe action `verify_email` — niet geauthenticeerd, want de klik komt vaak uit een andere
+   browser. Controleert handtekening, `purpose`, `tenant_id`, het e-mailadres in het token, de
+   opgeslagen tokenwaarde én de vervaldatum. Wist token en expiry, dus een link werkt één keer.
+7. Nieuwe action `resend_verification`. Niet optioneel: zonder deze weg zit een klant wiens
+   mail in spam belandde of wiens token na 48 uur verliep permanent vast — opnieuw registreren
+   kan niet, want het e-mailadres bestaat al.
+8. `login`, `register` en `get_profile` geven `email_verified` terug.
+9. `get_orders` en `get_order`: bij `email_verified = false` een echte **HTTP 403** met
+   `{ success: false, error: 'EMAIL_NOT_VERIFIED' }` en géén order-query.
+10. `request_password_reset`: URL via de resolver, route `/account/reset`, plus de drie
+    bugfixes (`store_name` eruit, `support_email` er echt in, `console.error` bij ontbrekende
+    `RESEND_API_KEY` in plaats van stil doorgaan).
+
+**Migraties (geschreven, niet gedraaid):**
+- `20260824155706_custauth1_grandfather_email_verified.sql`
+- `20260824155800_custauth1_doc_articles.sql`
+
+**Waarom een vaste timestamp en geen `now()`.** De opdracht stelde `created_at < now()` voor.
+Dat is onveilig: `now()` wordt bij élke uitvoering opnieuw geëvalueerd, dus een tweede run zou
+óók accounts vrijstellen die ná de invoering onverified zijn aangemaakt — precies de accounts
+die de enforcement moet tegenhouden. De grens staat daarom hard op `2026-08-24 15:57:06+00`.
+
+### Security-keuzes
+
+**De enforcement zelf** sluit het lek in de core, voor elke tenant tegelijk, in plaats van per
+storefront. Bestaande accounts worden gegrandfatherd zodat niemand toegang verliest;
+verificatie geldt alleen voor wat er ná de grens bij komt.
+
+**HTTP 403 in plaats van de generieke 500.** Deze functie geeft élke fout als 500 terug via de
+catch-all. Voor deze nieuwe conditie is dat onbruikbaar — een storefront moet "bevestig je
+e-mailadres" kunnen onderscheiden van een storing. Veilig omdat geen enkele bestaande client
+deze conditie ooit gezien heeft: op het moment van deploy is iedereen gegrandfatherd.
+
+**De `url_base`-allowlist is geen formaliteit.** De functie draait met `verify_jwt = false`
+(`supabase/config.toml` r.324-325), dus iedereen kan haar aanroepen met een willekeurig
+e-mailadres. Zou `url_base` ongefilterd in de mail belanden, dan kan een aanvaller SellQo een
+mail met onze afzender, onze huisstijl én zijn eigen link laten versturen — phishing op onze
+naam. `resolveStorefrontBase()` accepteert `url_base` daarom alleen als de host bij déze tenant
+hoort: `dns_verified` én `is_active` in `tenant_domains`, of gelijk aan `tenants.custom_domain`,
+of een `.lovable.app`-preview. Alleen `https`. Een geweigerde waarde wordt gelogd en genegeerd,
+waarna de mail met de terugvallende URL vertrekt — nooit een harde fout.
+
+*Gevolg dat je moet weten:* `localhost` staat **niet** in de allowlist. Lokaal ontwikkelen aan
+de verificatieflow werkt dus alleen met een `.lovable.app`-preview of een geverifieerd domein.
+
+**Twee bestaande zwakheden meegenomen:** de `purpose`-check (een resetlink was een inlogtoken)
+en de `exp`-fix. Beide achterwaarts compatibel.
+
+**Bewust niet aangeraakt:** RLS op `storefront_customers` staat op `USING (true)` voor `public`
+(migratie `20260212091955_...sql` r.62-66) en de anon-frontend leest die tabel via
+`src/hooks/useStorefrontCustomers.ts:30`. Verscherpen breekt dat hook — aparte batch.
+
+### Gedeelde-paden-waarschuwing
+
+`storefront-customer-api` wordt **niet** genoemd in de eerste wet (CLAUDE.md §1 en
+`docs/webshop-masterplan.md` §0 noemen `storefront-resolve`, `storefront-api`,
+`checkout-engine`). De paper trail markeert hem wél twee keer als ⛔ niet aanraken
+(`docs/role-audit.md` r.6193, `docs/fase2-batch-2b2-recon.md` r.95) en
+`docs/fase2-batch-2a1-recon.md` r.101 noemt hem het write-pad van de custom frontends. Hij is
+in deze batch als **vierde beschermde edge function** behandeld.
+
+**Waarom dit veilig is voor VanXcel, Mancini en BennyRich:**
+
+- Geen enkel bestaand responseveld is verwijderd of hernoemd. Machinaal geverifieerd tegen de
+  versie op `main`: `login`, `get_profile` en `update_profile` hebben exact dezelfde velden,
+  met alleen `email_verified` erbij. `register` idem.
+- Geen bestaande action verandert van gedrag, behalve `get_orders`/`get_order` — en die
+  weigeren alleen voor accounts die ná de grens zijn aangemaakt. De vijf bestaande accounts
+  zijn gegrandfatherd.
+- `url_base` is optioneel; een storefront die hem niet meestuurt valt terug op `custom_domain`
+  en werkt zoals voorheen. Voor VanXcel (custom_domain `vanxcel.com`) betekent dat een
+  verbetering zonder codewijziging aan hun kant.
+- Geen gedeelde tabel gewijzigd. De enige DB-schrijfactie is een `UPDATE` op een bestaande
+  kolom van `storefront_customers`, plus twee `INSERT`s in `doc_articles`.
+- `storefront-resolve`, `storefront-api` en `checkout-engine` zijn niet aangeraakt.
+
+**Voorstel:** `storefront-customer-api` expliciet opnemen in de eerste wet — "de drie
+edge-functies" wordt "de vier". Nu berust de bescherming op paper-trail-notities in plaats van
+op de regel zelf.
+
+### Verificatie
+
+**Gedaan in deze repo:**
+
+| Check | Uitkomst |
+|---|---|
+| esbuild-parse van `index.ts` | ✓ syntactisch OK (geen Deno lokaal; `deno check` hoort bij de deploy) |
+| Contract-regressie vs. `main` | ✓ geen veld verdwenen of hernoemd; alleen `email_verified` toegevoegd |
+| Quote-balans grandfather-migratie | ✓ 2 quotes, 1 statement |
+| Quote-balans doc-migratie | ✓ 28 quotes = 7 literals × 2 × 2 rijen, 1 INSERT |
+| `i18n-parity.mjs` | ✓ exit 0, vijf talen gelijk |
+
+**Nog te doen door Akke — pre-flight, in deze volgorde:**
+
+```sql
+-- 1. Bestaat store_name écht niet, en wat is de DEFAULT van email_verified?
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema='public' AND table_name IN ('tenants','storefront_customers')
+  AND column_name IN ('store_name','custom_domain','slug','name','support_email',
+                      'email_verified','email_verification_token','email_verification_expires_at');
+
+-- 2. POORT: hoeveel rijen raakt de migratie? Verwacht ~5 (VanXcel 3, Mancini 2).
+--    Wijkt het af: STOPPEN en overleggen.
+SELECT t.slug, count(*) FROM storefront_customers sc
+JOIN tenants t ON t.id = sc.tenant_id WHERE sc.email_verified = false GROUP BY 1 ORDER BY 1;
+
+-- 3. Welke doc_categories bestaan er echt? (…009 en …00c zijn nergens geseed)
+SELECT id, doc_level, title, slug FROM doc_categories ORDER BY doc_level, sort_order;
+```
+
+**Daarna, en niet eerder:** migratie draaien → natrek (0 rijen onverified vóór de grens) →
+**pas dan** de edge function deployen. Andersom verliezen de vijf bestaande klanten hun
+orderhistorie tot de migratie draait.
+
+**Na de deploy:** een nieuwe testregistratie moet `email_verified = false` hebben met een
+geldig token; `verify_email` zet hem op true en wist token + expiry; `get_orders` geeft 403
+vóór en data ná verificatie. En handmatig: VanXcel- en Mancini-login met orderhistorie.
+
+**Deploy-risico:** `index.ts` r.2 importeert `https://esm.sh/@supabase/supabase-js@2`
+**ongepind**. `docs/role-audit.md` r.8469 beschrijft precies dit patroon: een redeploy loste
+die import naar een nieuwere v2.x op en brak `auth.getUser()` met 401's. Overweeg pinnen vóór
+of tijdens de deploy.
+
+### Bewust ongemoeid / Vervolg
+
+1. **`storefront-api.getOrderConfirmation`** (r.3918-3937) matcht op `order_id` zonder
+   eigendomsbewijs. Lagere ernst — een UUID is niet te raden en de kolomset is beperkt (geen
+   adres, geen klantnaam) — maar het is wel een bearer-URL. Aparte afweging.
+2. **`get_order` gebruikt `select('*')`** en stuurt dus élke orderkolom naar de storefront,
+   inclusief interne velden. Whitelist zou beter zijn; buiten scope gehouden omdat het het
+   contract zou versmallen.
+3. **RLS op `storefront_customers`** — zie Security-keuzes.
+4. **`register` en `login` trimmen de e-mail niet**, `request_password_reset` wel. Registreren
+   met een spatie erin geeft een account waarop je niet kunt inloggen.
+5. **`localhost` niet in de url_base-allowlist** — bewuste keuze, zie Security-keuzes.
+6. **Het admin-klantenoverzicht toont `email_verified` niet.** Support kan nu niet zien of een
+   klant bevestigd is. Kleine UI-toevoeging, aparte batch.
+7. **`storefront-customer-api` toevoegen aan de eerste wet** in CLAUDE.md §1 en het masterplan.
+
+---
+
 ## I18N-4 — Marketeer-zone volledig meertalig (nl/en/fr/de/uk) — 24 augustus 2026
 
 ### Root cause

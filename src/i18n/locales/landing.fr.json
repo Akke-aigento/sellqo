@@ -1492,6 +1492,10 @@
         "admin_dates_follow_language": {
           "title": "Les dates et heures suivent la langue de votre admin",
           "description": "Les dates dans l'admin étaient toujours en néerlandais — même lorsque vous utilisiez l'admin en français ou en allemand. Vous voyiez « maandag 4 maart » ou « 3 dagen geleden » au milieu d'une page en français. C'est corrigé : les noms de jours et de mois ainsi que les expressions de temps relatives suivent désormais la langue que vous avez définie. Les montants restent au format néerlandais, avec une virgule comme séparateur décimal — il s'agit d'un choix comptable et non d'un paramètre linguistique."
+        },
+        "storefront_customer_email_verification": {
+          "title": "Les clients confirment leur adresse e-mail",
+          "description": "Les clients qui créent un compte dans votre boutique en ligne confirment désormais leur adresse e-mail avant de pouvoir consulter leur historique de commandes. La navigation, la commande et le paiement fonctionnent comme avant. Les clients qui avaient déjà un compte conservent leur accès et n'ont rien à faire."
         }
       },
       "copyLink": "Copier le lien",

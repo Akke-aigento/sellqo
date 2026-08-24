@@ -1492,6 +1492,10 @@
         "admin_dates_follow_language": {
           "title": "Dates and times follow your admin language",
           "description": "Dates in the admin were always in Dutch — even when you used the admin in French or German. You would see 'maandag 4 maart' or '3 dagen geleden' in the middle of a French page. That is fixed: day and month names and relative time expressions now follow the language you set yourself. Amounts stay in the Dutch format, with a comma as the decimal separator — that is an accounting choice, not a language setting."
+        },
+        "storefront_customer_email_verification": {
+          "title": "Customers confirm their email address",
+          "description": "Customers who create an account in your webshop now confirm their email address before they can view their order history. Browsing, ordering and checkout work as before. Customers who already had an account keep their access and need to do nothing."
         }
       },
       "copyLink": "Copy link",

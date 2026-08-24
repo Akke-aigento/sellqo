@@ -1492,6 +1492,10 @@
         "admin_dates_follow_language": {
           "title": "Datum und Uhrzeit folgen Ihrer Admin-Sprache",
           "description": "Datumsangaben in der Admin standen immer auf Niederländisch — auch wenn Sie die Admin auf Französisch oder Deutsch nutzten. Dann stand „maandag 4 maart“ oder „3 dagen geleden“ mitten auf einer deutschen Seite. Das ist behoben: Tages- und Monatsnamen sowie relative Zeitangaben folgen jetzt der Sprache, die Sie selbst eingestellt haben. Beträge bleiben im niederländischen Format mit Komma als Dezimaltrennzeichen — das ist eine buchhalterische Entscheidung und keine Spracheinstellung."
+        },
+        "storefront_customer_email_verification": {
+          "title": "Kunden bestätigen ihre E-Mail-Adresse",
+          "description": "Kunden, die in Ihrem Webshop ein Konto anlegen, bestätigen künftig ihre E-Mail-Adresse, bevor sie ihre Bestellhistorie einsehen können. Stöbern, Bestellen und Bezahlen funktionieren wie gewohnt. Kunden mit einem bestehenden Konto behalten ihren Zugang und müssen nichts tun."
         }
       },
       "copyLink": "Link kopieren",
