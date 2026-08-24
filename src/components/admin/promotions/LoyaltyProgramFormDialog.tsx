@@ -114,7 +114,7 @@ export function LoyaltyProgramFormDialog({
         ],
       });
     }
-  }, [program, form]);
+  }, [program, form, t]);
 
   const onSubmit = async (values: FormValues) => {
     const formData: LoyaltyProgramFormData = {

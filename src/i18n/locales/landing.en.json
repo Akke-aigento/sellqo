@@ -1484,6 +1484,14 @@
         "ai_image_tenant_check": {
           "title": "Tighter access control on AI image generation and marketing insights",
           "description": "Two AI functions checked whether you were logged in, but not which shop you belong to. In theory that allowed someone to spend another shop's AI credits or pull up their revenue and stock figures. That has been closed: both functions now verify your access to the shop and your role, just like the other AI tools. Nothing changes in how you use them. If you work with team members: image generation is available to admins, staff and the marketing role; insights remain readable for the viewer role as well."
+        },
+        "marketing_role_multilingual": {
+          "title": "The marketing workspace now speaks five languages",
+          "description": "Working with a marketing colleague who does not speak Dutch? Every screen the marketing role can open is now fully available in Dutch, English, French, German and Ukrainian: the dashboard, inbox, orders, products, customers, campaigns, SEO, ads, promotions, the translation hub and analytics. That covers more than 200 screens and around 2,500 pieces of text — buttons, labels, tabs, error messages and the notifications that appear after an action. Text in dropdowns, status badges and form validation is included too. You set the language per user in your profile, so everyone sees the admin in their own language, regardless of the webshop's language."
+        },
+        "admin_dates_follow_language": {
+          "title": "Dates and times follow your admin language",
+          "description": "Dates in the admin were always in Dutch — even when you used the admin in French or German. You would see 'maandag 4 maart' or '3 dagen geleden' in the middle of a French page. That is fixed: day and month names and relative time expressions now follow the language you set yourself. Amounts stay in the Dutch format, with a comma as the decimal separator — that is an accounting choice, not a language setting."
         }
       },
       "copyLink": "Copy link",

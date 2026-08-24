@@ -1,3 +1,227 @@
+
+## I18N-4 — Marketeer-zone volledig meertalig (nl/en/fr/de/uk) — 24 augustus 2026
+
+### Root cause
+
+Een tenant-medewerker met rol `marketing` klikte door een admin die grotendeels
+Nederlands was. Dat is geen cosmetisch probleem: `src/i18n/index.ts` zet
+`fallbackLng: 'nl'`, dus een ontbrekende key rendert niet leeg maar als een
+zichtbare Nederlandse brok midden in een Franse of Oekraïense pagina.
+
+Gemeten met `node scripts/i18n-scan.mjs`: de marketeer-zichtbare zone telde
+**~213 .tsx-bestanden met ~3.229 hardcoded strings**, ca. 38% van de repo-brede
+schuld (8.413).
+
+Twee bevindingen die de scope bijstuurden:
+
+1. **`MARKETING_ALLOWED_ITEMS` in `src/components/admin/sidebar/sidebarConfig.ts:89`
+   is dode code** — nergens geïmporteerd; alleen `WAREHOUSE_ALLOWED_ITEMS` wordt
+   gebruikt (`AdminSidebar.tsx:14`). De echte zichtbaarheid komt uit `requireRead`
+   → `PERMISSION_MATRIX` in `src/hooks/useCan.ts`. Daardoor vielen
+   `ai-content`/`ai-actions` áf (die vereisen `ai_assistant`/`ai_coach` read, waar
+   `marketing` niet in staat) en viel de hele Promotions-groep er juist ín.
+   *Niet opgeruimd in deze batch — zie Vervolg.*
+
+2. **De drie dialogen die in de opdracht als "batch 0, al deels vertaald" stonden
+   waren nooit vertaald.** `CampaignDialog.tsx` (867 regels), `TemplateDialog.tsx`
+   en `LanguageSelector.tsx` hadden nul `t()`-aanroepen; de eerdere treffers waren
+   substring-ruis (`.split(':')`, `z.enum([...])`).
+
+### Uitgevoerd
+
+Tien commits op `i18n-batch4-marketeer`, zeven zones plus een sweep en de
+vertaalstap. **199 bestanden, 2.501 nieuwe NL-keys, 12.500 vertalingen.**
+
+| Zone | Bestanden | Wat |
+|---|---|---|
+| 1 | `src/components/admin/marketing` (41/49) | campagnes, e-mailbouwer, AI-tools, segmenten |
+| 2 | `src/components/admin/ads` + 7 Ads-pagina's | Bol.com-campagnes, keywords, zoektermen, AI-regels |
+| 3 | `src/components/admin/seo` (19) + SEODashboard | audits, keywords, robots.txt, Core Web Vitals |
+| 4 | `src/components/admin/products` (40) + Products + ProductForm | inclusief bulk/, specs/, grid/ |
+| 5 | `src/components/admin/promotions` (11) + 9 promo-pagina's | codes, bundels, BOGO, staffels, cadeaukaarten, loyaliteit |
+| 6 | `src/components/admin/inbox` (18) + `customers` + 4 pagina's | gesprekken, klantprofiel, klantfiches |
+| 7 | rest | Dashboard, Orders, Analytics, TranslationHub, Help, widgets/, docs/, ProductMarketplaceTab, OrderStatusBadge |
+
+**Nieuw in `src/`:**
+- `src/hooks/useDateFnsLocale.ts` — date-fns-locale per app-taal. Het type
+  `Record<LangCode, Locale>` zorgt dat een nieuwe taal in `SUPPORTED_LANGUAGES`
+  de typecheck hier laat falen tot de datumopmaak meegroeit. Dat is opzet.
+
+**Gewijzigd in gedeelde UI:**
+- `src/components/ui/form.tsx` — `FormMessage` vertaalt een message die op een
+  i18n-key lijkt (`^[a-z]\w*(\.[\w-]+)+$`). Nodig omdat zod-schema's op
+  moduleniveau staan waar `t()` niet bestaat; de key komt nu in de message en
+  wordt bij het renderen vertaald. Gewone tekst gaat onveranderd door, dus
+  bestaande meldingen elders in de app veranderen niet.
+
+**Vijf codemods (`scripts/`)** — vier nieuw, één bestaande uitgebreid:
+
+| Script | Gat dat het dicht |
+|---|---|
+| `i18n-extract-multiline.mjs` | JSX-tekst op een eigen regel, en tekst direct achter een self-closing tag (`<Icon />Tekst`) |
+| `i18n-extract-objprops.mjs` | `label: 'X'` in object-literals; de motor dekte alleen `title\|description\|message:` en `label=` als JSX-prop |
+| `i18n-extract-ternary.mjs` | `{x ? 'Actief' : 'Inactief'}`, inclusief geketende ternary's |
+| `i18n-extract-validation.mjs` | zod-meldingen als `z.string().min(1, 'Naam is verplicht')` |
+| `i18n-datefns-locale.mjs` | `import { nl } from 'date-fns/locale'` → de gedeelde hook |
+| `i18n-translate-memory.mjs` | vult vertalingen uit identieke NL-waarden die elders al vertaald zijn |
+
+**Vier bugs in de bestaande motor, alle vier gevonden doordat de code brak of de
+typecheck faalde — niet door ze te vermoeden:**
+
+1. **`jsxTextRe` sloot `>` na een operator uit, maar niet na whitespace.** In
+   `k.acos > 0 && k.acos < 10` werd de middelste term als UI-tekst geëxtraheerd:
+   `k.acos > {t('...0_k_acos')} < 10`. Dat parseert niet. Trof zone 1 (3×) en
+   zone 2 (2×). Regex aangescherpt met `\s` in de lookbehind.
+
+2. **`buildMask` volgde geen string-literals.** `'image/*': []` in een
+   dropzone-config opende een blok-comment dat nooit sloot; 106 van de 150 regels
+   van `ProductPhotoLibraryCard.tsx` golden daardoor als commentaar en werden stil
+   overgeslagen — mét een nette "N strings in template literal of comment"-melding,
+   dus onzichtbaar als bug. Opgelost met één gedeelde `buildSourceMask()` in
+   `i18n-lib.mjs`. Zone 1 t/m 3 zijn daarna opnieuw gedraaid (6 keys extra).
+
+3. **`propRe` en `toastRe` knipten midden in een string met een escaped apostrof.**
+   `'…productpagina\'s'` werd `t('...')s',`. Beide regexes nemen nu escapes mee en
+   de captured waarde wordt ontescapet vóór hij in `nl.json` komt.
+
+4. **`propRe` sloeg ook toe binnen een gewone string.**
+   `document.querySelector('[title="SellQo Assistent"]')` werd
+   `'[title={t('...')}]'`. Nieuwe `buildStringMask()` markeert offsets binnen
+   string-literals; prop- en toast-matches die daarin beginnen worden overgeslagen.
+
+Daarnaast: `ensureHooks` en `--repair` testten op `t('` en misten daardoor
+`t(item.labelKey)` — precies het patroon dat het key-in-de-array-werk oplevert.
+`OrderStatusBadge` kreeg zo geen hook. De test is nu `\bt\(`.
+
+**Het key-in-de-array-patroon.** Module-level const-arrays met `label`/`name`/
+`description` kunnen `t()` niet aanroepen. Aanpak: de labelwaarde wordt een
+i18n-key (`labelKey`, `descriptionKey`, `nameKey`), `t()` staat op de rendersite,
+en de `id`/`value` blijft de enum- of API-waarde. Toegepast op ~25 arrays, van
+`STATUS_CONFIG` in OrderStatusBadge tot de zes marketplace-conditielijsten in
+ProductMarketplaceTab. Helpers buiten een component (`statusLabel`, `fmtDate`,
+`getTypeBadge`) krijgen `t` of `Locale` als argument mee.
+
+**Datumopmaak.** 61 bestanden in de zone importeerden `nl` uit `date-fns/locale`,
+zodat "3 dagen geleden" en "maandag 4 maart" Nederlands bleven in elke taal. Nu
+allemaal via `useDateFnsLocale()`. Ook `toLocaleDateString('nl-NL')` volgt de
+UI-taal. Bedragen niet — zie hieronder.
+
+### Vertalingen
+
+De AI-gateway was niet bereikbaar: `LOVABLE_API_KEY` bestaat niet in deze
+omgeving en staat niet in `.env`. `scripts/i18n-translate.mjs` stopt dan met
+exit 1. De vertalingen zijn daarom met de hand geschreven, glossary-consistent
+met de 14 termen uit dat script, formeel (Sie/vous), Oekraïens in Cyrillisch
+met de ви-vorm.
+
+2.501 keys, maar 2.324 unieke NL-waarden. Daarvan kwamen er 321 per taal uit het
+nieuwe vertaalgeheugen (identieke NL-tekst die elders al vertaald was, alleen bij
+een 1-op-1-match). De rest is in twaalf blokken vertaald en per unieke waarde
+toegepast op alle keys die hem delen.
+
+### Security-keuzes
+
+**Geen.** Deze batch raakt uitsluitend UI-tekst en datumopmaak in de frontend.
+Geen RLS-policy, grant, rol of `PERMISSION_MATRIX`-regel gewijzigd. De rol
+`marketing` ziet exact dezelfde schermen als vóór de batch, in dezelfde taal
+als haar profielinstelling.
+
+Eén aandachtspunt bewust vermeden: `CampaignRichEditor.wrapInEmailTemplate()`
+zet de uitschrijflink in de mail die naar de **klant** gaat. `t()` zou daar de
+taal van de marketeer in de klantmail zetten. Die tekst blijft dus Nederlands;
+de klantmail hoort de taal van de klant te volgen, wat een aparte kwestie is.
+
+### Gedeelde-paden-waarschuwing
+
+**`storefront-resolve`, `storefront-api` en `checkout-engine` zijn niet
+aangeraakt.** Geen enkele gedeelde tabel (`tenant_theme_settings`, `themes`,
+`homepage_sections`, `storefront_pages`) is gewijzigd; er is geen kolom bij, weg
+of anders. De vijf custom frontends renderen hun eigen UI en delen geen enkel
+React-component met de core, dus zij zien van deze batch niets.
+
+Eén gedeeld React-bestand is wél geraakt: `src/components/ui/form.tsx`. Dat wordt
+gedeeld met de SellQo-storefront, maar **niet** met de custom frontends. De
+wijziging is bovendien gedragsbehoudend: alleen strings die op een i18n-key lijken
+gaan door `t()`; elke bestaande melding valt buiten dat patroon en rendert
+onveranderd.
+
+De enige databasewijziging is één `INSERT` op `doc_articles`
+(`20260824100000_i18n4_doc_article.sql`), idempotent via
+`ON CONFLICT (doc_level, slug) DO UPDATE`, met de DELETE om terug te draaien in
+het commentaar.
+
+### Bewust ongemoeid
+
+- **`Intl.NumberFormat('nl-NL')` voor bedragen en aantallen.** Valuta-opmaak is een
+  boekhoudkundige keuze — facturen, exports en de Odoo-koppeling gebruiken hetzelfde
+  formaat, en dat mag niet per gebruiker verschillen. De skill zegt bovendien dat
+  Intl-getallen hardcoded blijven.
+- **Merknamen** (Bol.com, Amazon, WhatsApp, Instagram, X / Twitter, SellQo Connect)
+  en **internationale vaktermen** (Sitemap.xml, Robots.txt, ACoS, Slug, Peppol-ID,
+  Core Web Vitals, Universal Product Code, de Web Vitals-metrieken in
+  `CoreWebVitalsPanel`).
+- **Taal-endoniemen** in `ProductPromoWizard.languageOptions` — "Français" hoort
+  Français te blijven, ook in een Duitse UI.
+- **Engelse AI-prompts** in `ImageEditorDialog.BACKGROUND_PRESETS` en
+  `AISearchOptimizer` — dat zijn instructies aan het model, geen UI-tekst.
+- **De uitschrijflink in `wrapInEmailTemplate`** — zie Security-keuzes.
+- **`GiftCardDetail.tsx`** — er is geen route naar toe (alleen
+  `promotions/gift-cards` bestaat in `App.tsx`), dus de pagina is onbereikbaar.
+- **34 bestanden buiten de marketeer-zone** die nog `date-fns/locale` hardcoden
+  (Billing, Quotes, Invoices, Returns, Subscriptions, de rest van `marketplace/`).
+- **`landing.*.json`** — alleen de twee changelog-ids uit slottaak 4.2 zijn daar
+  handmatig toegevoegd; de codemods kunnen die bestanden niet bereiken
+  (`readLocale()` raakt alleen `{code}.json`).
+
+### Verificatie
+
+| Check | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | **exit 0** |
+| `npm run build` | **exit 0**, 3m32s (chunk-size-waarschuwing is bestaand) |
+| `node scripts/i18n-parity.mjs` | **exit 0** — 5 talen, 5.146 keys, volledige pariteit (was 2.641) |
+| ESLint tegen baseline | **654 errors / 80 warnings**, exact gelijk aan `main` |
+| esbuild-parse van elk aangeraakt bestand | OK — dit ving alle vier de codemod-bugs |
+| `nl.json` strikt additief | 2.501 nieuw, **0 verwijderd** |
+| Cross-namespace | alles wat deze batch toevoegt zit onder `admin.*` (2.824 + 315) of `common.*` (276). Nul treffers buiten die twee. |
+| Wees-keys | 0 — elke nieuwe key wordt ergens aangeroepen |
+| Vertaalkwaliteit per taal | 0 ontbrekend, 0 leeg, 0 placeholder-drift; en/fr/de/uk elk gecontroleerd |
+
+De lint-vergelijking is gemeten door `main` tijdelijk in de working tree te zetten
+en opnieuw te linten, niet uit het geheugen. Er waren aanvankelijk 4 warnings méér
+(`react-hooks/exhaustive-deps`, `t` ontbrak in drie dependency-arrays); die zijn
+opgelost, waarna het aantal weer op de baseline stond.
+
+**Nog niet gedaan, hoort bij Akke:**
+- De `doc_articles`-migratie is geschreven en gevalideerd (quote-balans, idempotent),
+  maar niet gedraaid — Claude Code heeft geen DB-toegang.
+- De UI-steekproef met `npm run dev` in fr en uk.
+
+### Vervolg
+
+1. **`MARKETING_ALLOWED_ITEMS` is dode code** (`sidebarConfig.ts:89`). Volgens
+   CLAUDE.md §2 een dode affordance: gemeld, niet opgeruimd — dat is een aparte
+   beslissing, want de constante suggereert een rechtenmodel dat niet bestaat.
+2. **Deep-link-gaten.** `/admin/settings` en `/admin/notifications` gebruiken
+   `RouteGuard requireRead="profile"` (= alle rollen) terwijl de sidebar ze via
+   `excludeRoles` verbergt. Rol `marketing` kan er dus per URL bij. Idem voor
+   ongeguarde routes als `/admin/categories`, `/admin/shipping`, `/admin/badges`.
+   Los van i18n, maar gevonden tijdens deze recon.
+3. **34 bestanden buiten de zone** hardcoden nog de Nederlandse date-fns-locale.
+   De codemod ligt er; een aparte batch draait hem over de rest.
+4. **De npm-scripts bestaan niet.** `i18n-extract.mjs` print "Volgende stap:
+   `npm run i18n:translate`" en `i18n-translate.mjs` print "`npm run i18n:check`" —
+   geen van beide staat in `package.json`. Kost vier regels om recht te zetten.
+5. **Geen vangnet tegen nieuwe hardcoded strings.** CI draait alleen
+   `i18n-parity.mjs` (key-pariteit), niet `i18n-scan.mjs`. Een nieuwe PR mag
+   ongestraft vijftig NL-strings toevoegen.
+6. **`sellqo-i18n-verplicht` klopt niet meer.** De skill beschrijft de handmatige
+   werkwijze, niet de motor en niet de vijf codemods met hun twee TODO-categorieën.
+   Voorstel volgt apart; de skill leeft op beide plekken (workspace + repo) en moet
+   dus twee keer bij.
+
+---
+
 ## MENU-2 — de generator, plus twee fixes uit de smoke-test — 21 augustus 2026
 
 > ⚠️ **DE MIGRATIES ZIJN NOG STEEDS NIET GEDRAAID.** MENU-1 liet er twee

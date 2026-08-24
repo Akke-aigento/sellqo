@@ -1484,6 +1484,14 @@
         "ai_image_tenant_check": {
           "title": "Strengere Zugriffskontrolle für KI-Bilder und Marketing-Einblicke",
           "description": "Zwei KI-Funktionen prüften zwar, ob du angemeldet bist, aber nicht, zu welchem Shop du gehörst. Theoretisch konnte damit jemand die KI-Credits eines anderen Shops verbrauchen oder dessen Umsatz- und Bestandszahlen abrufen. Das ist geschlossen: Beide Funktionen prüfen jetzt deinen Zugang zum Shop und deine Rolle, genau wie die übrigen KI-Werkzeuge. An der Nutzung ändert sich für dich nichts. Wenn du mit Teammitgliedern arbeitest: Die Bilderzeugung steht Administratoren, Mitarbeitenden und der Marketing-Rolle offen; die Einblicke bleiben zusätzlich für die Betrachter-Rolle lesbar."
+        },
+        "marketing_role_multilingual": {
+          "title": "Der Marketing-Arbeitsbereich spricht jetzt fünf Sprachen",
+          "description": "Arbeiten Sie mit einer Marketing-Kollegin oder einem Kollegen, die kein Niederländisch sprechen? Jeder Bildschirm, den die Marketingrolle öffnen kann, ist jetzt vollständig auf Niederländisch, Englisch, Französisch, Deutsch und Ukrainisch verfügbar: Dashboard, Posteingang, Bestellungen, Produkte, Kunden, Kampagnen, SEO, Anzeigen, Aktionen, der Übersetzungs-Hub und Analytics. Das sind über 200 Bildschirme und rund 2.500 Texte — Schaltflächen, Beschriftungen, Tabs, Fehlermeldungen und die Hinweise, die nach einer Aktion erscheinen. Auch Texte in Auswahllisten, Status-Badges und der Formularvalidierung sind dabei. Die Sprache stellen Sie pro Benutzer im Profil ein; jede Person sieht die Admin also in ihrer eigenen Sprache, unabhängig von der Sprache des Webshops."
+        },
+        "admin_dates_follow_language": {
+          "title": "Datum und Uhrzeit folgen Ihrer Admin-Sprache",
+          "description": "Datumsangaben in der Admin standen immer auf Niederländisch — auch wenn Sie die Admin auf Französisch oder Deutsch nutzten. Dann stand „maandag 4 maart“ oder „3 dagen geleden“ mitten auf einer deutschen Seite. Das ist behoben: Tages- und Monatsnamen sowie relative Zeitangaben folgen jetzt der Sprache, die Sie selbst eingestellt haben. Beträge bleiben im niederländischen Format mit Komma als Dezimaltrennzeichen — das ist eine buchhalterische Entscheidung und keine Spracheinstellung."
         }
       },
       "copyLink": "Link kopieren",

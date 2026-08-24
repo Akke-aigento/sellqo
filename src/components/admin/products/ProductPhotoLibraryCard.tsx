@@ -52,7 +52,7 @@ export function ProductPhotoLibraryCard() {
       uploaded++;
     }
     if (uploaded > 0) toast.success(t('admin.products.productPhotoLibraryCard.fotos_toegevoegd', { count: uploaded }));
-  }, [currentTenant?.id, uploadImage, createAsset]);
+  }, [currentTenant?.id, uploadImage, createAsset, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

@@ -1484,6 +1484,14 @@
         "ai_image_tenant_check": {
           "title": "Contrôle d'accès renforcé sur les images IA et les analyses marketing",
           "description": "Deux fonctions IA vérifiaient si vous étiez connecté, mais pas à quelle boutique vous appartenez. En théorie, quelqu'un pouvait ainsi consommer les crédits IA d'une autre boutique ou consulter son chiffre d'affaires et ses stocks. C'est corrigé : les deux fonctions vérifient désormais votre accès à la boutique et votre rôle, comme les autres outils IA. Rien ne change pour votre utilisation. Si vous travaillez avec des membres d'équipe : la génération d'images est ouverte aux administrateurs, au personnel et au rôle marketing ; les analyses restent en outre consultables par le rôle observateur."
+        },
+        "marketing_role_multilingual": {
+          "title": "L'espace de travail marketing parle désormais cinq langues",
+          "description": "Vous travaillez avec un collègue marketing qui ne parle pas néerlandais ? Chaque écran accessible au rôle marketing est désormais entièrement disponible en néerlandais, anglais, français, allemand et ukrainien : le tableau de bord, la boîte de réception, les commandes, les produits, les clients, les campagnes, le SEO, les annonces, les promotions, le hub de traduction et l'analytique. Cela représente plus de 200 écrans et environ 2 500 textes — boutons, libellés, onglets, messages d'erreur et notifications affichées après une action. Les textes des listes déroulantes, des badges de statut et de la validation des formulaires sont également inclus. Vous définissez la langue par utilisateur dans votre profil : chacun voit donc l'admin dans sa propre langue, quelle que soit la langue de la boutique en ligne."
+        },
+        "admin_dates_follow_language": {
+          "title": "Les dates et heures suivent la langue de votre admin",
+          "description": "Les dates dans l'admin étaient toujours en néerlandais — même lorsque vous utilisiez l'admin en français ou en allemand. Vous voyiez « maandag 4 maart » ou « 3 dagen geleden » au milieu d'une page en français. C'est corrigé : les noms de jours et de mois ainsi que les expressions de temps relatives suivent désormais la langue que vous avez définie. Les montants restent au format néerlandais, avec une virgule comme séparateur décimal — il s'agit d'un choix comptable et non d'un paramètre linguistique."
         }
       },
       "copyLink": "Copier le lien",

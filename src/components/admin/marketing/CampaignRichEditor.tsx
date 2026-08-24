@@ -79,7 +79,7 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }
-  }, [editor]);
+  }, [editor, t]);
 
   if (!editor) return null;
 

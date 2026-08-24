@@ -1484,6 +1484,14 @@
         "ai_image_tenant_check": {
           "title": "AI-beeldgeneratie en marketinginzichten strenger afgeschermd",
           "description": "Twee AI-functies controleerden wel of je ingelogd was, maar niet bij wélke winkel je hoort. In theorie kon iemand daarmee de AI-credits van een andere winkel opmaken of hun omzet- en voorraadcijfers opvragen. Dat is dichtgezet: beide functies controleren nu je toegang tot de winkel én je rol, net als de andere AI-tools. Voor jou verandert er niets aan het gebruik. Werk je met teamleden: beeldgeneratie is er voor beheerders, medewerkers en de marketingrol; de inzichten blijven daarnaast leesbaar voor de kijker-rol."
+        },
+        "marketing_role_multilingual": {
+          "title": "De marketingwerkplek spreekt nu vijf talen",
+          "description": "Werk je met een marketingcollega die geen Nederlands spreekt? Elk scherm dat de marketingrol kan openen staat nu volledig in het Nederlands, Engels, Frans, Duits en Oekraïens: het dashboard, de inbox, bestellingen, producten, klanten, campagnes, SEO, advertenties, promoties, de vertaalhub en analytics. Dat gaat om ruim 200 schermen en zo'n 2.500 teksten — knoppen, labels, tabbladen, foutmeldingen en de meldingen die na een actie verschijnen. Ook de teksten in keuzelijsten, statusbadges en formuliervalidatie zijn meegenomen. Je stelt de taal per gebruiker in bij je profiel; iedereen ziet de admin dus in zijn eigen taal, ongeacht de taal van de webshop."
+        },
+        "admin_dates_follow_language": {
+          "title": "Datums en tijden volgen je admintaal",
+          "description": "Datums in de admin stonden altijd in het Nederlands — ook als je de admin in het Frans of Duits gebruikte. Je zag dan 'maandag 4 maart' of '3 dagen geleden' midden in een Franse pagina. Dat is rechtgezet: dag- en maandnamen en relatieve tijdsaanduidingen volgen nu de taal die je zelf hebt ingesteld. Bedragen blijven wel in het Nederlandse formaat staan, met een komma als decimaalteken — dat is een boekhoudkundige keuze en geen taalinstelling."
         }
       },
       "copyLink": "Kopieer link",
