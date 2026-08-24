@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface AIInsight {
   icon: any;
@@ -21,6 +22,7 @@ interface AIInsightsCardProps {
 }
 
 export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
+  const { t } = useTranslation();
   const { context, contextLoading, refetchContext } = useAIMarketing();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -42,7 +44,7 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
-            AI Inzichten
+            {t('admin.marketing.aIInsightsCard.ai_inzichten')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -58,7 +60,7 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-8">
           <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">Geen data beschikbaar</p>
+          <p className="text-muted-foreground">{t('admin.marketing.aIInsightsCard.geen_data_beschikbaar')}</p>
         </CardContent>
       </Card>
     );
@@ -71,8 +73,8 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
     insights.push({
       icon: AlertTriangle,
       color: 'text-amber-500 bg-amber-500/10',
-      title: 'Lage voorraad alert',
-      description: `${context.products.lowStock.length} producten zijn bijna uitverkocht. Overweeg een "Laatste Kans" campagne!`,
+      title: t('admin.marketing.aIInsightsCard.lage_voorraad_alert'),
+      description: t('admin.marketing.aiInsightsCard.bijna_uitverkocht', { count: context.products.lowStock.length }),
       action: 'Campagne starten',
       type: 'low_stock',
     });
@@ -83,8 +85,8 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
     insights.push({
       icon: Users,
       color: 'text-blue-500 bg-blue-500/10',
-      title: 'Win-back mogelijkheid',
-      description: `${context.insights.winBackOpportunity} klanten zijn niet geabonneerd. Een win-back campagne kan hen terughalen.`,
+      title: t('admin.marketing.aIInsightsCard.win_back_mogelijkheid'),
+      description: t('admin.marketing.aiInsightsCard.win_back', { count: context.insights.winBackOpportunity }),
       action: 'Win-back starten',
       type: 'win_back',
     });
@@ -97,7 +99,7 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
       icon: TrendingUp,
       color: 'text-green-500 bg-green-500/10',
       title: `${holiday.name} nadert`,
-      description: `Nog ${holiday.daysUntil} dagen tot ${holiday.name}. Perfect moment voor een seizoenscampagne!`,
+      description: t('admin.marketing.aiInsightsCard.feestdag_nadert', { days: holiday.daysUntil, holiday: holiday.name }),
       action: 'Campagne plannen',
       type: 'seasonal',
     });
@@ -108,8 +110,8 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
     insights.push({
       icon: Package,
       color: 'text-purple-500 bg-purple-500/10',
-      title: 'Nieuwe producten',
-      description: `${context.products.newArrivals.length} nieuwe producten wachten om gepromoot te worden.`,
+      title: t('admin.marketing.aIInsightsCard.nieuwe_producten'),
+      description: t('admin.marketing.aiInsightsCard.nieuwe_producten', { count: context.products.newArrivals.length }),
       action: 'Aankondigen',
       type: 'new_product',
     });
@@ -120,8 +122,8 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
     insights.push({
       icon: Lightbulb,
       color: 'text-yellow-500 bg-yellow-500/10',
-      title: 'Actief segment',
-      description: `Je "${context.insights.highEngagementSegment}" segment is zeer actief. Perfect voor een exclusieve aanbieding!`,
+      title: t('admin.marketing.aIInsightsCard.actief_segment'),
+      description: t('admin.marketing.aiInsightsCard.actief_segment', { segment: context.insights.highEngagementSegment }),
       action: 'Exclusieve deal',
       type: 'promotion',
     });
@@ -134,7 +136,7 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
           <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
             <Lightbulb className="h-4 w-4 text-white" />
           </div>
-          AI Inzichten van Vandaag
+          {t('admin.marketing.aIInsightsCard.ai_inzichten_van_vandaag')}
         </CardTitle>
         <Button
           variant="ghost"
@@ -149,8 +151,8 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
         {insights.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Geen specifieke inzichten op dit moment.</p>
-            <p className="text-xs">Voeg meer data toe voor betere suggesties.</p>
+            <p>{t('admin.marketing.aIInsightsCard.geen_specifieke_inzichten_op_dit_moment')}</p>
+            <p className="text-xs">{t('admin.marketing.aIInsightsCard.voeg_meer_data_toe_voor_betere')}</p>
           </div>
         ) : (
           insights.slice(0, 3).map((insight, i) => (
@@ -184,15 +186,15 @@ export function AIInsightsCard({ onInsightClick }: AIInsightsCardProps) {
         <div className="grid grid-cols-3 gap-2 pt-2 border-t">
           <div className="text-center">
             <p className="text-lg font-bold">{context.customers.subscribers}</p>
-            <p className="text-xs text-muted-foreground">Abonnees</p>
+            <p className="text-xs text-muted-foreground">{t('admin.marketing.aIInsightsCard.abonnees')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold">{context.campaigns.avgOpenRate}%</p>
-            <p className="text-xs text-muted-foreground">Gem. open rate</p>
+            <p className="text-xs text-muted-foreground">{t('admin.marketing.aIInsightsCard.gem_open_rate')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold">€{context.orders.avgOrderValue}</p>
-            <p className="text-xs text-muted-foreground">Gem. order</p>
+            <p className="text-xs text-muted-foreground">{t('admin.marketing.aIInsightsCard.gem_order')}</p>
           </div>
         </div>
       </CardContent>

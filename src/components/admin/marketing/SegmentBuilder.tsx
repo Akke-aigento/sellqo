@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useCustomerTags } from '@/hooks/useCustomerTags';
 import type { SegmentFilterRules } from '@/types/marketing';
+import { useTranslation } from 'react-i18next';
 
 interface SegmentBuilderProps {
   filterRules: SegmentFilterRules;
@@ -14,15 +15,17 @@ interface SegmentBuilderProps {
   memberCount?: number;
 }
 
+// Landnamen staan als i18n-key; `code` is de ISO-code en blijft letterlijk.
 const COUNTRIES = [
-  { code: 'NL', name: 'Nederland' },
-  { code: 'BE', name: 'België' },
-  { code: 'DE', name: 'Duitsland' },
-  { code: 'FR', name: 'Frankrijk' },
-  { code: 'LU', name: 'Luxemburg' },
+  { code: 'NL', nameKey: 'admin.marketing.segmentBuilder.countries.NL' },
+  { code: 'BE', nameKey: 'admin.marketing.segmentBuilder.countries.BE' },
+  { code: 'DE', nameKey: 'admin.marketing.segmentBuilder.countries.DE' },
+  { code: 'FR', nameKey: 'admin.marketing.segmentBuilder.countries.FR' },
+  { code: 'LU', nameKey: 'admin.marketing.segmentBuilder.countries.LU' },
 ];
 
 export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBuilderProps) {
+  const { t } = useTranslation();
   const { data: availableTags = [] } = useCustomerTags();
 
   const updateRule = <K extends keyof SegmentFilterRules>(key: K, value: SegmentFilterRules[K]) => {
@@ -58,14 +61,14 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
       {memberCount !== undefined && (
         <div className="rounded-lg border bg-muted/50 p-4">
           <div className="text-2xl font-bold">{memberCount.toLocaleString('nl-NL')}</div>
-          <p className="text-sm text-muted-foreground">klanten in dit segment</p>
+          <p className="text-sm text-muted-foreground">{t('admin.marketing.segmentBuilder.klanten_in_dit_segment')}</p>
         </div>
       )}
 
       <div className="space-y-4">
         {/* Customer Type */}
         <div className="space-y-2">
-          <Label>Klanttype</Label>
+          <Label>{t('admin.marketing.segmentBuilder.klanttype')}</Label>
           <Select
             value={filterRules.customer_type || 'all'}
             onValueChange={(value) => updateRule('customer_type', value as 'b2c' | 'b2b' | 'all')}
@@ -74,16 +77,16 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle klanten</SelectItem>
-              <SelectItem value="b2c">Particulier (B2C)</SelectItem>
-              <SelectItem value="b2b">Zakelijk (B2B)</SelectItem>
+              <SelectItem value="all">{t('admin.marketing.segmentBuilder.alle_klanten')}</SelectItem>
+              <SelectItem value="b2c">{t('admin.marketing.segmentBuilder.particulier_b2c')}</SelectItem>
+              <SelectItem value="b2b">{t('admin.marketing.segmentBuilder.zakelijk_b2b')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Tags */}
         <div className="space-y-2">
-          <Label>Tags</Label>
+          <Label>{t('admin.marketing.segmentBuilder.tags')}</Label>
           <div className="flex flex-wrap gap-2 mb-2">
             {(filterRules.tags || []).map((tag) => (
               <Badge key={tag} variant="secondary" className="gap-1">
@@ -97,7 +100,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
           {availableTags.length > 0 ? (
             <Select onValueChange={addTag}>
               <SelectTrigger>
-                <SelectValue placeholder="Tag toevoegen..." />
+                <SelectValue placeholder={t('admin.marketing.segmentBuilder.tag_toevoegen')} />
               </SelectTrigger>
               <SelectContent>
                 {availableTags.filter(t => !(filterRules.tags || []).includes(t)).map((tag) => (
@@ -106,11 +109,11 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               </SelectContent>
             </Select>
           ) : (
-            <p className="text-xs text-muted-foreground">Geen tags beschikbaar bij klanten</p>
+            <p className="text-xs text-muted-foreground">{t('admin.marketing.segmentBuilder.geen_tags_beschikbaar_bij_klanten')}</p>
           )}
           {(filterRules.tags || []).length > 1 && (
             <div className="flex items-center gap-3 mt-2">
-              <Label className="text-xs">Match logica:</Label>
+              <Label className="text-xs">{t('admin.marketing.segmentBuilder.match_logica')}</Label>
               <Select
                 value={filterRules.tags_match || 'any'}
                 onValueChange={(value) => updateRule('tags_match', value as 'any' | 'all')}
@@ -119,8 +122,8 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Minstens één tag (OF)</SelectItem>
-                  <SelectItem value="all">Alle tags (EN)</SelectItem>
+                  <SelectItem value="any">{t('admin.marketing.segmentBuilder.minstens_een_tag_of')}</SelectItem>
+                  <SelectItem value="all">{t('admin.marketing.segmentBuilder.alle_tags_en')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -129,7 +132,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
 
         {/* Email Subscribed */}
         <div className="space-y-2">
-          <Label>Nieuwsbrief status</Label>
+          <Label>{t('admin.marketing.segmentBuilder.nieuwsbrief_status')}</Label>
           <Select
             value={filterRules.email_subscribed === undefined ? 'all' : filterRules.email_subscribed ? 'yes' : 'no'}
             onValueChange={(value) => {
@@ -146,22 +149,22 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle klanten</SelectItem>
-              <SelectItem value="yes">Geabonneerd</SelectItem>
-              <SelectItem value="no">Niet geabonneerd</SelectItem>
+              <SelectItem value="all">{t('admin.marketing.segmentBuilder.alle_klanten_2')}</SelectItem>
+              <SelectItem value="yes">{t('admin.marketing.segmentBuilder.geabonneerd')}</SelectItem>
+              <SelectItem value="no">{t('admin.marketing.segmentBuilder.niet_geabonneerd')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Countries */}
         <div className="space-y-2">
-          <Label>Landen</Label>
+          <Label>{t('admin.marketing.segmentBuilder.landen')}</Label>
           <div className="flex flex-wrap gap-2 mb-2">
             {(filterRules.countries || []).map((code) => {
               const country = COUNTRIES.find(c => c.code === code);
               return (
                 <Badge key={code} variant="secondary" className="gap-1">
-                  {country?.name || code}
+                  {country ? t(country.nameKey) : code}
                   <button onClick={() => removeCountry(code)}>
                     <X className="h-3 w-3" />
                   </button>
@@ -171,12 +174,12 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
           </div>
           <Select onValueChange={addCountry}>
             <SelectTrigger>
-              <SelectValue placeholder="Land toevoegen..." />
+              <SelectValue placeholder={t('admin.marketing.segmentBuilder.land_toevoegen')} />
             </SelectTrigger>
             <SelectContent>
               {COUNTRIES.filter(c => !(filterRules.countries || []).includes(c.code)).map((country) => (
                 <SelectItem key={country.code} value={country.code}>
-                  {country.name}
+                  {t(country.nameKey)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -186,7 +189,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
         {/* Order Count */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Min. bestellingen</Label>
+            <Label>{t('admin.marketing.segmentBuilder.min_bestellingen')}</Label>
             <Input
               type="number"
               min={0}
@@ -196,7 +199,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
             />
           </div>
           <div className="space-y-2">
-            <Label>Max. bestellingen</Label>
+            <Label>{t('admin.marketing.segmentBuilder.max_bestellingen')}</Label>
             <Input
               type="number"
               min={0}
@@ -210,7 +213,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
         {/* Total Spent */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Min. besteed (€)</Label>
+            <Label>{t('admin.marketing.segmentBuilder.min_besteed')}</Label>
             <Input
               type="number"
               min={0}
@@ -221,7 +224,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
             />
           </div>
           <div className="space-y-2">
-            <Label>Max. besteed (€)</Label>
+            <Label>{t('admin.marketing.segmentBuilder.max_besteed')}</Label>
             <Input
               type="number"
               min={0}
@@ -236,7 +239,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
         {/* Created date range */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Klant aangemaakt na</Label>
+            <Label>{t('admin.marketing.segmentBuilder.klant_aangemaakt_na')}</Label>
             <Input
               type="date"
               value={filterRules.created_after ?? ''}
@@ -244,7 +247,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
             />
           </div>
           <div className="space-y-2">
-            <Label>Klant aangemaakt voor</Label>
+            <Label>{t('admin.marketing.segmentBuilder.klant_aangemaakt_voor')}</Label>
             <Input
               type="date"
               value={filterRules.created_before ?? ''}
@@ -256,30 +259,30 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
         {/* Activity */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Laatste bestelling (dagen geleden)</Label>
+            <Label>{t('admin.marketing.segmentBuilder.laatste_bestelling_dagen_geleden')}</Label>
             <Input
               type="number"
               min={0}
               value={filterRules.last_order_days_ago ?? ''}
               onChange={(e) => updateRule('last_order_days_ago', e.target.value ? parseInt(e.target.value) : undefined)}
-              placeholder="bijv. 30"
+              placeholder={t('admin.marketing.segmentBuilder.bijv_30')}
             />
           </div>
           <div className="space-y-2">
-            <Label>Inactief sinds (dagen)</Label>
+            <Label>{t('admin.marketing.segmentBuilder.inactief_sinds_dagen')}</Label>
             <Input
               type="number"
               min={0}
               value={filterRules.no_order_since_days ?? ''}
               onChange={(e) => updateRule('no_order_since_days', e.target.value ? parseInt(e.target.value) : undefined)}
-              placeholder="bijv. 90"
+              placeholder={t('admin.marketing.segmentBuilder.bijv_90')}
             />
           </div>
         </div>
 
         {/* Engagement Score */}
         <div className="space-y-2">
-          <Label>Min. engagement score (0-100)</Label>
+          <Label>{t('admin.marketing.segmentBuilder.min_engagement_score_0_100')}</Label>
           <Input
             type="number"
             min={0}
@@ -292,7 +295,7 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
 
         {/* Preferred language */}
         <div className="space-y-2">
-          <Label>Voorkeurstaal klant</Label>
+          <Label>{t('admin.marketing.segmentBuilder.voorkeurstaal_klant')}</Label>
           <Select
             value={filterRules.preferred_language || 'any'}
             onValueChange={(value) => {
@@ -309,11 +312,11 @@ export function SegmentBuilder({ filterRules, onChange, memberCount }: SegmentBu
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">Alle talen</SelectItem>
-              <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
-              <SelectItem value="en">🇬🇧 English</SelectItem>
-              <SelectItem value="fr">🇫🇷 Français</SelectItem>
-              <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+              <SelectItem value="any">{t('admin.marketing.segmentBuilder.alle_talen')}</SelectItem>
+              <SelectItem value="nl">{t('admin.marketing.segmentBuilder.nederlands')}</SelectItem>
+              <SelectItem value="en">{t('admin.marketing.segmentBuilder.english')}</SelectItem>
+              <SelectItem value="fr">{t('admin.marketing.segmentBuilder.francais')}</SelectItem>
+              <SelectItem value="de">{t('admin.marketing.segmentBuilder.deutsch')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -23,6 +23,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Competitor {
   id: string;
@@ -42,6 +43,7 @@ interface KeywordComparison {
 }
 
 export function CompetitorAnalysisPanel() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -189,7 +191,7 @@ export function CompetitorAnalysisPanel() {
     return (
       <Badge variant="outline" className="bg-muted">
         <Minus className="h-3 w-3 mr-1" />
-        Gelijk
+        {t('admin.seo.competitorAnalysisPanel.gelijk')}
       </Badge>
     );
   };
@@ -215,9 +217,9 @@ export function CompetitorAnalysisPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Concurrent Analyse</h2>
+          <h2 className="text-lg font-semibold">{t('admin.seo.competitorAnalysisPanel.concurrent_analyse')}</h2>
           <p className="text-sm text-muted-foreground">
-            Vergelijk je SEO prestaties met concurrenten
+            {t('admin.seo.competitorAnalysisPanel.vergelijk_je_seo_prestaties_met_concurrenten')}
           </p>
         </div>
         
@@ -225,24 +227,24 @@ export function CompetitorAnalysisPanel() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Concurrent toevoegen
+              {t('admin.seo.competitorAnalysisPanel.concurrent_toevoegen')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nieuwe concurrent</DialogTitle>
+              <DialogTitle>{t('admin.seo.competitorAnalysisPanel.nieuwe_concurrent')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Naam</Label>
+                <Label>{t('common.name')}</Label>
                 <Input
-                  placeholder="Concurrent naam"
+                  placeholder={t('admin.seo.competitorAnalysisPanel.concurrent_naam')}
                   value={newCompetitor.name}
                   onChange={(e) => setNewCompetitor(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Domein</Label>
+                <Label>{t('admin.seo.competitorAnalysisPanel.domein')}</Label>
                 <Input
                   placeholder="example.com"
                   value={newCompetitor.domain}
@@ -254,7 +256,7 @@ export function CompetitorAnalysisPanel() {
                 onClick={() => addCompetitorMutation.mutate(newCompetitor)}
                 disabled={!newCompetitor.name || !newCompetitor.domain}
               >
-                Toevoegen
+                {t('common.add')}
               </Button>
             </div>
           </DialogContent>
@@ -267,13 +269,13 @@ export function CompetitorAnalysisPanel() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Concurrenten
+              {t('admin.seo.competitorAnalysisPanel.concurrenten')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {competitors.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Nog geen concurrenten toegevoegd
+                {t('admin.seo.competitorAnalysisPanel.nog_geen_concurrenten_toegevoegd')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -321,7 +323,7 @@ export function CompetitorAnalysisPanel() {
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Keyword Vergelijking
+                  {t('admin.seo.competitorAnalysisPanel.keyword_vergelijking')}
                 </CardTitle>
                 <CardDescription>
                   {selectedCompetitor 
@@ -349,14 +351,14 @@ export function CompetitorAnalysisPanel() {
             {!selectedCompetitor ? (
               <div className="text-center py-12 text-muted-foreground">
                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Selecteer een concurrent om keywords te vergelijken</p>
+                <p>{t('admin.seo.competitorAnalysisPanel.selecteer_een_concurrent_om_keywords_te')}</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Add keyword */}
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nieuw keyword toevoegen..."
+                    placeholder={t('admin.seo.competitorAnalysisPanel.nieuw_keyword_toevoegen')}
                     value={newKeyword}
                     onChange={(e) => setNewKeyword(e.target.value)}
                     onKeyDown={(e) => {
@@ -380,14 +382,14 @@ export function CompetitorAnalysisPanel() {
                     disabled={!newKeyword}
                   >
                     <Search className="h-4 w-4 mr-2" />
-                    Track
+                    {t('admin.seo.competitorAnalysisPanel.track')}
                   </Button>
                 </div>
 
                 {/* Keywords table */}
                 {keywordComparisons.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>Voeg keywords toe om te vergelijken</p>
+                    <p>{t('admin.seo.competitorAnalysisPanel.voeg_keywords_toe_om_te_vergelijken')}</p>
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden">
@@ -395,12 +397,12 @@ export function CompetitorAnalysisPanel() {
                       <Table className="min-w-[720px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Keyword</TableHead>
-                            <TableHead className="text-center">Jouw positie</TableHead>
-                            <TableHead className="text-center">Concurrent</TableHead>
-                            <TableHead className="text-center">Verschil</TableHead>
-                            <TableHead className="text-right">Volume</TableHead>
-                            <TableHead className="text-right">Moeilijkheid</TableHead>
+                            <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                            <TableHead className="text-center">{t('admin.seo.competitorAnalysisPanel.jouw_positie')}</TableHead>
+                            <TableHead className="text-center">{t('admin.seo.competitorAnalysisPanel.concurrent')}</TableHead>
+                            <TableHead className="text-center">{t('admin.seo.competitorAnalysisPanel.verschil')}</TableHead>
+                            <TableHead className="text-right">{t('admin.seo.competitorAnalysisPanel.volume')}</TableHead>
+                            <TableHead className="text-right">{t('admin.seo.competitorAnalysisPanel.moeilijkheid')}</TableHead>
                             <TableHead className="w-10"></TableHead>
                           </TableRow>
                         </TableHeader>

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { MessageCircleQuestion, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIHelpChatWindow } from './AIHelpChatWindow';
+import { useTranslation } from 'react-i18next';
 
 export function AIHelpWidget() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(() =>
     localStorage.getItem('ai-help-minimized') === 'true'
@@ -34,7 +36,7 @@ export function AIHelpWidget() {
             size="icon"
             variant="outline"
             className="h-8 w-8 rounded-full shadow-md bg-background"
-            title="Minimaliseer"
+            title={t('admin.help.aIHelpWidget.minimaliseer')}
           >
             <Minimize2 className="h-4 w-4" />
           </Button>
@@ -42,7 +44,7 @@ export function AIHelpWidget() {
             onClick={handleOpen}
             size="icon"
             className="h-12 w-12 rounded-full shadow-lg"
-            title="SellQo Assistent"
+            title={t('admin.help.aIHelpChatWindow.sellqo_assistent')}
           >
             <MessageCircleQuestion className="h-6 w-6" />
           </Button>
@@ -54,7 +56,7 @@ export function AIHelpWidget() {
           size="icon"
           variant="outline"
           className="fixed bottom-20 md:bottom-4 right-4 z-50 h-9 w-9 rounded-full shadow-md bg-background/80 backdrop-blur-sm"
-          title="SellQo Assistent"
+          title={t('admin.help.aIHelpChatWindow.sellqo_assistent')}
         >
           <MessageCircleQuestion className="h-4 w-4" />
         </Button>

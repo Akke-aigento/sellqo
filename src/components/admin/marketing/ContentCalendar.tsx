@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format, addWeeks, subWeeks, addMonths, subMonths, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Mail, Instagram, Facebook, Linkedin, Twitter, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContentCalendar, CalendarContentItem } from '@/hooks/useContentCalendar';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 const platformIcons: Record<string, React.ReactNode> = {
   instagram: <Instagram className="h-3 w-3" />,
@@ -45,6 +46,8 @@ function ContentItemCard({ item }: { item: CalendarContentItem }) {
 }
 
 function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const dayItems = items.filter(item => isSameDay(new Date(item.scheduled_at), date));
   const isCurrentDay = isToday(date);
   
@@ -58,7 +61,7 @@ function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }
         isCurrentDay && 'font-bold'
       )}>
         <div className="text-xs text-muted-foreground uppercase">
-          {format(date, 'EEE', { locale: nl })}
+          {format(date, 'EEE', { locale: dateLocale })}
         </div>
         <div className={cn(
           'text-lg',
@@ -73,7 +76,7 @@ function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }
         ))}
         {dayItems.length === 0 && (
           <div className="h-16 flex items-center justify-center text-xs text-muted-foreground">
-            Geen content
+            {t('admin.marketing.contentCalendar.geen_content')}
           </div>
         )}
       </div>
@@ -82,6 +85,8 @@ function DayColumn({ date, items }: { date: Date; items: CalendarContentItem[] }
 }
 
 export function ContentCalendar() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [view, setView] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -108,18 +113,18 @@ export function ContentCalendar() {
           <div className="flex items-center gap-4">
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Content Agenda
+              {t('admin.marketing.contentCalendar.content_agenda')}
             </CardTitle>
             <Tabs value={view} onValueChange={(v) => setView(v as 'week' | 'month')}>
               <TabsList className="h-8">
-                <TabsTrigger value="week" className="text-xs px-3">Week</TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-3">Maand</TabsTrigger>
+                <TabsTrigger value="week" className="text-xs px-3">{t('admin.marketing.contentCalendar.week')}</TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-3">{t('admin.marketing.contentCalendar.maand')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={goToToday}>
-              Vandaag
+              {t('admin.marketing.contentCalendar.vandaag')}
             </Button>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navigatePrevious}>
@@ -127,8 +132,8 @@ export function ContentCalendar() {
               </Button>
               <span className="text-sm font-medium min-w-[140px] text-center">
                 {view === 'week' 
-                  ? `Week ${format(currentDate, 'w')} - ${format(currentDate, 'MMMM yyyy', { locale: nl })}`
-                  : format(currentDate, 'MMMM yyyy', { locale: nl })
+                  ? t('admin.marketing.contentCalendar.week_van', { week: format(currentDate, 'w'), month: format(currentDate, 'MMMM yyyy', { locale: dateLocale }) })
+                  : format(currentDate, 'MMMM yyyy', { locale: dateLocale })
                 }
               </span>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navigateNext}>
@@ -153,8 +158,8 @@ export function ContentCalendar() {
         {!isLoading && calendarItems.length === 0 && (
           <div className="py-12 text-center text-muted-foreground">
             <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>Geen geplande content voor deze periode</p>
-            <p className="text-sm mt-1">Plan content in om je kalender te vullen</p>
+            <p>{t('admin.marketing.contentCalendar.geen_geplande_content_voor_deze_periode')}</p>
+            <p className="text-sm mt-1">{t('admin.marketing.contentCalendar.plan_content_in_om_je_kalender')}</p>
           </div>
         )}
       </CardContent>

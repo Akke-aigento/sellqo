@@ -6,7 +6,6 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Package, Trash2, Edit, MoreHorizontal } from 'lucide-react';
 import { useBundles, useDeleteBundle, useUpdateBundle } from '@/hooks/useBundles';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +24,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BundleFormDialog } from '@/components/admin/promotions/BundleFormDialog';
 import type { ProductBundle } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export default function Bundles() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { data: bundles = [], isLoading } = useBundles();
   const deleteBundle = useDeleteBundle();
   const updateBundle = useUpdateBundle();
@@ -52,14 +55,14 @@ export default function Bundles() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Product Bundels</h1>
+          <h1 className="text-2xl font-bold">{t('admin.bundles.product_bundels')}</h1>
           <p className="text-muted-foreground">
-            Maak bundels van producten met speciale prijzen
+            {t('admin.bundles.maak_bundels_van_producten_met_speciale')}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Bundel
+          {t('admin.bundles.nieuwe_bundel')}
         </Button>
       </div>
 
@@ -76,13 +79,13 @@ export default function Bundles() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Geen bundels</h3>
+            <h3 className="text-lg font-medium">{t('admin.bundles.geen_bundels')}</h3>
             <p className="text-muted-foreground mb-4">
-              Maak je eerste product bundel aan
+              {t('admin.bundles.maak_je_eerste_product_bundel_aan')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Bundel Aanmaken
+              {t('admin.bundles.bundel_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -95,10 +98,10 @@ export default function Bundles() {
                   <CardTitle className="text-base">{bundle.name}</CardTitle>
                   <div className="flex gap-2">
                     <Badge variant={bundle.is_active ? 'default' : 'secondary'}>
-                      {bundle.is_active ? 'Actief' : 'Inactief'}
+                      {bundle.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                     </Badge>
                     <Badge variant="outline">
-                      {bundle.bundle_type === 'fixed' ? 'Vaste bundel' : 'Mix & Match'}
+                      {bundle.bundle_type === 'fixed' ? t('admin.promotions.bundleFormDialog.vaste_bundel') : t('admin.promotions.bundleFormDialog.mix_match')}
                     </Badge>
                   </div>
                 </div>
@@ -111,14 +114,14 @@ export default function Bundles() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditBundle(bundle)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Bewerken
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeleteId(bundle.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Verwijderen
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -129,7 +132,7 @@ export default function Bundles() {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Korting:</span>
+                    <span className="text-muted-foreground">{t('admin.bundles.korting')}</span>
                     <span className="font-medium">
                       {bundle.discount_type === 'percentage'
                         ? `${bundle.discount_value}%`
@@ -139,22 +142,22 @@ export default function Bundles() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Producten:</span>
+                    <span className="text-muted-foreground">{t('admin.bundles.producten')}</span>
                     <span>{bundle.products?.length || 0} items</span>
                   </div>
                   {bundle.valid_until && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Geldig tot:</span>
+                      <span className="text-muted-foreground">{t('admin.bundles.geldig_tot')}</span>
                       <span>
                         {format(new Date(bundle.valid_until), 'd MMM yyyy', {
-                          locale: nl,
+                          locale: dateLocale,
                         })}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</span>
                   <Switch
                     checked={bundle.is_active}
                     onCheckedChange={() => handleToggleActive(bundle)}
@@ -180,14 +183,14 @@ export default function Bundles() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bundel verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.bundles.bundel_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze actie kan niet ongedaan worden gemaakt.
+              {t('admin.bundles.deze_actie_kan_niet_ongedaan_worden')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

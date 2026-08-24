@@ -9,8 +9,10 @@ import { AD_PLATFORMS, type AdPlatform, type AdCampaign } from '@/types/ads';
 import { CampaignCard } from './CampaignCard';
 import { CampaignWizard } from './CampaignWizard';
 import { Plus, Search, Filter, Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function CampaignsList() {
+  const { t } = useTranslation();
   const { campaigns, isLoading } = useAdCampaigns();
   const { connectedPlatforms } = useAdPlatforms();
   const [search, setSearch] = useState('');
@@ -47,7 +49,7 @@ export function CampaignsList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek campagnes..."
+            placeholder={t('admin.ads.campaignsList.zoek_campagnes')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -56,10 +58,10 @@ export function CampaignsList() {
         <Select value={platformFilter} onValueChange={setPlatformFilter}>
           <SelectTrigger className="w-[180px]">
             <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Platform" />
+            <SelectValue placeholder={t('admin.marketing.contentHistoryList.platform')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle platforms</SelectItem>
+            <SelectItem value="all">{t('admin.ads.campaignsList.alle_platforms')}</SelectItem>
             {(Object.keys(AD_PLATFORMS) as AdPlatform[]).map(platform => (
               <SelectItem key={platform} value={platform}>
                 {AD_PLATFORMS[platform].icon} {AD_PLATFORMS[platform].name}
@@ -69,19 +71,19 @@ export function CampaignsList() {
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('common.status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle statussen</SelectItem>
-            <SelectItem value="active">Actief</SelectItem>
-            <SelectItem value="paused">Gepauzeerd</SelectItem>
-            <SelectItem value="draft">Concept</SelectItem>
-            <SelectItem value="ended">Beëindigd</SelectItem>
+            <SelectItem value="all">{t('admin.marketing.contentHistoryList.alle_statussen')}</SelectItem>
+            <SelectItem value="active">{t('admin.marketing.aBTestingPanel.actief')}</SelectItem>
+            <SelectItem value="paused">{t('admin.marketing.campaignCard.status.gepauzeerd')}</SelectItem>
+            <SelectItem value="draft">{t('admin.marketing.campaignCard.status.concept')}</SelectItem>
+            <SelectItem value="ended">{t('admin.ads.campaignsList.beeindigd')}</SelectItem>
           </SelectContent>
         </Select>
         <Button onClick={() => setShowWizard(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Nieuwe Campagne
+          {t('admin.ads.campaignsList.nieuwe_campagne')}
         </Button>
       </div>
 
@@ -102,15 +104,14 @@ export function CampaignsList() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Target className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-1">Geen campagnes</h3>
+            <h3 className="text-lg font-medium mb-1">{t('admin.ads.campaignsList.geen_campagnes')}</h3>
             <p className="text-muted-foreground text-center max-w-md mb-4">
               {connectedPlatforms.length === 0 
-                ? 'Koppel eerst een advertentieplatform om campagnes te kunnen maken.'
-                : 'Maak je eerste advertentiecampagne om meer klanten te bereiken.'}
+                ? t('admin.ads.campaignsList.koppel_eerst_een_advertentieplatform_om_campagnes') : t('admin.ads.campaignsList.maak_je_eerste_advertentiecampagne_om_meer')}
             </p>
             <Button onClick={() => setShowWizard(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Eerste Campagne Maken
+              {t('admin.ads.campaignsList.eerste_campagne_maken')}
             </Button>
           </CardContent>
         </Card>
@@ -118,9 +119,9 @@ export function CampaignsList() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-1">Geen resultaten</h3>
+            <h3 className="text-lg font-medium mb-1">{t('common.noResults')}</h3>
             <p className="text-muted-foreground">
-              Geen campagnes gevonden met de huidige filters.
+              {t('admin.ads.campaignsList.geen_campagnes_gevonden_met_de_huidige')}
             </p>
           </CardContent>
         </Card>

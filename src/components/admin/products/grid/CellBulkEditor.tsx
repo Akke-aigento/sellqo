@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSocialChannels } from '@/hooks/useSocialChannels';
 import { SOCIAL_CHANNEL_INFO, type SocialChannelType } from '@/types/socialChannels';
 import type { ColumnDefinition } from './gridTypes';
+import { useTranslation } from 'react-i18next';
 
 interface CellBulkEditorProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function CellBulkEditor({
   onApply,
   onApplyChannels,
 }: CellBulkEditorProps) {
+  const { t } = useTranslation();
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'subtract' | 'percentage_up' | 'percentage_down' | 'exact'>('exact');
   const [value, setValue] = useState('');
   
@@ -78,15 +80,15 @@ export function CellBulkEditor({
   const getValueLabel = () => {
     switch (adjustmentType) {
       case 'add':
-        return isCurrency ? 'Bedrag toevoegen (€)' : 'Waarde toevoegen';
+        return isCurrency ? t('admin.products.grid.cellBulkEditor.bedrag_toevoegen_2') : t('admin.products.grid.cellBulkEditor.waarde_toevoegen');
       case 'subtract':
-        return isCurrency ? 'Bedrag aftrekken (€)' : 'Waarde aftrekken';
+        return isCurrency ? t('admin.products.grid.cellBulkEditor.bedrag_aftrekken_2') : t('admin.products.grid.cellBulkEditor.waarde_aftrekken');
       case 'percentage_up':
         return 'Percentage verhogen (%)';
       case 'percentage_down':
         return 'Percentage verlagen (%)';
       case 'exact':
-        return isCurrency ? 'Exacte waarde (€)' : 'Exacte waarde';
+        return isCurrency ? t('admin.products.grid.cellBulkEditor.exacte_waarde') : t('admin.products.grid.cellBulkEditor.exacte_waarde_2');
     }
   };
 
@@ -142,17 +144,17 @@ export function CellBulkEditor({
           <div className="space-y-4 py-4">
             {availableChannels.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Geen kanalen gekoppeld. Ga naar Instellingen → Kanalen om kanalen te koppelen.
+                {t('admin.products.grid.cellBulkEditor.geen_kanalen_gekoppeld_ga_naar_instellingen')}
               </p>
             ) : (
               <Tabs defaultValue="enable" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="enable">Inschakelen</TabsTrigger>
-                  <TabsTrigger value="disable">Uitschakelen</TabsTrigger>
+                  <TabsTrigger value="enable">{t('admin.products.bulk.bulkStockTab.inschakelen')}</TabsTrigger>
+                  <TabsTrigger value="disable">{t('admin.products.bulk.bulkStockTab.uitschakelen')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="enable" className="space-y-2 mt-4">
                   <p className="text-sm text-muted-foreground mb-2">
-                    Selecteer kanalen om in te schakelen voor alle geselecteerde producten:
+                    {t('admin.products.grid.cellBulkEditor.selecteer_kanalen_om_in_te_schakelen')}
                   </p>
                   {availableChannels.map(type => {
                     const info = SOCIAL_CHANNEL_INFO[type];
@@ -172,7 +174,7 @@ export function CellBulkEditor({
                 </TabsContent>
                 <TabsContent value="disable" className="space-y-2 mt-4">
                   <p className="text-sm text-muted-foreground mb-2">
-                    Selecteer kanalen om uit te schakelen voor alle geselecteerde producten:
+                    {t('admin.products.grid.cellBulkEditor.selecteer_kanalen_om_uit_te_schakelen')}
                   </p>
                   {availableChannels.map(type => {
                     const info = SOCIAL_CHANNEL_INFO[type];
@@ -203,29 +205,29 @@ export function CellBulkEditor({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="exact" id="exact" />
-                  <Label htmlFor="exact">Exacte waarde instellen</Label>
+                  <Label htmlFor="exact">{t('admin.products.grid.cellBulkEditor.exacte_waarde_instellen')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="add" id="add" />
                   <Label htmlFor="add">
-                    {isCurrency ? 'Bedrag toevoegen' : 'Waarde toevoegen'}
+                    {isCurrency ? t('admin.products.grid.cellBulkEditor.bedrag_toevoegen') : t('admin.products.grid.cellBulkEditor.waarde_toevoegen')}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="subtract" id="subtract" />
                   <Label htmlFor="subtract">
-                    {isCurrency ? 'Bedrag aftrekken' : 'Waarde aftrekken'}
+                    {isCurrency ? t('admin.products.grid.cellBulkEditor.bedrag_aftrekken') : t('admin.products.grid.cellBulkEditor.waarde_aftrekken')}
                   </Label>
                 </div>
                 {isCurrency && (
                   <>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="percentage_up" id="percentage_up" />
-                      <Label htmlFor="percentage_up">Percentage verhogen</Label>
+                      <Label htmlFor="percentage_up">{t('admin.products.bulk.bulkPricingTab.percentage_verhogen')}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="percentage_down" id="percentage_down" />
-                      <Label htmlFor="percentage_down">Percentage verlagen</Label>
+                      <Label htmlFor="percentage_down">{t('admin.products.bulk.bulkPricingTab.percentage_verlagen')}</Label>
                     </div>
                   </>
                 )}
@@ -248,13 +250,13 @@ export function CellBulkEditor({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleApply} 
             disabled={isChannels ? !hasChannelChanges : !value.trim()}
           >
-            Toepassen
+            {t('admin.ads.toepassen')}
           </Button>
         </DialogFooter>
       </DialogContent>

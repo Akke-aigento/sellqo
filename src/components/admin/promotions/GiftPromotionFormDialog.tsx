@@ -31,13 +31,14 @@ import { Switch } from '@/components/ui/switch';
 import { useCreateGiftPromotion, useUpdateGiftPromotion } from '@/hooks/useGiftPromotions';
 import { useProducts } from '@/hooks/useProducts';
 import type { GiftPromotion, GiftPromotionFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
-  gift_product_id: z.string().min(1, 'Cadeau product is verplicht'),
+  gift_product_id: z.string().min(1, 'admin.promotions.giftPromotionFormDialog.validation.cadeau_product_is_verplicht'),
   gift_quantity: z.coerce.number().min(1).default(1),
   max_per_order: z.coerce.number().min(1).optional(),
   stock_limit: z.coerce.number().optional(),
@@ -60,6 +61,7 @@ export function GiftPromotionFormDialog({
   onOpenChange,
   promotion,
 }: GiftPromotionFormDialogProps) {
+  const { t } = useTranslation();
   const createPromotion = useCreateGiftPromotion();
   const updatePromotion = useUpdateGiftPromotion();
   const { products = [] } = useProducts();
@@ -152,7 +154,7 @@ export function GiftPromotionFormDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Gift Actie Bewerken' : 'Nieuwe Gift Actie'}
+            {isEditing ? t('admin.promotions.giftPromotionFormDialog.gift_actie_bewerken') : t('admin.giftPromotions.nieuwe_gift_actie')}
           </DialogTitle>
         </DialogHeader>
 
@@ -163,9 +165,9 @@ export function GiftPromotionFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Gratis sample bij €75+ bestelling" {...field} />
+                    <Input placeholder={t('admin.promotions.giftPromotionFormDialog.gratis_sample_bij_75_bestelling')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -177,9 +179,9 @@ export function GiftPromotionFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Interne beschrijving..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.autoDiscountFormDialog.interne_beschrijving')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -192,7 +194,7 @@ export function GiftPromotionFormDialog({
                 name="trigger_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trigger</FormLabel>
+                    <FormLabel>{t('admin.marketing.campaignDialog.trigger')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -200,9 +202,9 @@ export function GiftPromotionFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="cart_total">Bestelwaarde</SelectItem>
-                        <SelectItem value="quantity">Aantal producten</SelectItem>
-                        <SelectItem value="specific_products">Specifieke producten</SelectItem>
+                        <SelectItem value="cart_total">{t('admin.promotions.giftPromotionFormDialog.bestelwaarde')}</SelectItem>
+                        <SelectItem value="quantity">{t('admin.promotions.autoDiscountFormDialog.aantal_producten')}</SelectItem>
+                        <SelectItem value="specific_products">{t('admin.promotions.autoDiscountFormDialog.specifieke_producten')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -216,7 +218,7 @@ export function GiftPromotionFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {watchTriggerType === 'cart_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
+                      {watchTriggerType === 'cart_total' ? t('admin.promotions.autoDiscountFormDialog.min_bedrag') : t('admin.promotions.autoDiscountFormDialog.min_aantal')}
                     </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
@@ -232,11 +234,11 @@ export function GiftPromotionFormDialog({
               name="gift_product_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cadeau Product</FormLabel>
+                  <FormLabel>{t('admin.promotions.giftPromotionFormDialog.cadeau_product')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecteer een product" />
+                        <SelectValue placeholder={t('admin.promotions.giftPromotionFormDialog.selecteer_een_product')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -258,7 +260,7 @@ export function GiftPromotionFormDialog({
                 name="gift_quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aantal</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftPromotionFormDialog.aantal')}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
@@ -272,7 +274,7 @@ export function GiftPromotionFormDialog({
                 name="max_per_order"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max/bestelling</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftPromotionFormDialog.max_bestelling')}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
@@ -286,9 +288,9 @@ export function GiftPromotionFormDialog({
                 name="stock_limit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Voorraad limiet</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftPromotionFormDialog.voorraad_limiet')}</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Onbeperkt" {...field} />
+                      <Input type="number" placeholder={t('admin.productForm.onbeperkt')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -302,7 +304,7 @@ export function GiftPromotionFormDialog({
                 name="valid_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig vanaf</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_vanaf')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -315,7 +317,7 @@ export function GiftPromotionFormDialog({
                 name="valid_until"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig tot</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -331,8 +333,8 @@ export function GiftPromotionFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel className="cursor-pointer">Stapelbaar</FormLabel>
-                    <FormDescription>Meerdere keren toepassen per bestelling</FormDescription>
+                    <FormLabel className="cursor-pointer">{t('admin.promotions.giftPromotionFormDialog.stapelbaar')}</FormLabel>
+                    <FormDescription>{t('admin.promotions.giftPromotionFormDialog.meerdere_keren_toepassen_per_bestelling')}</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -346,7 +348,7 @@ export function GiftPromotionFormDialog({
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel className="cursor-pointer">Actief</FormLabel>
+                  <FormLabel className="cursor-pointer">{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
@@ -356,10 +358,10 @@ export function GiftPromotionFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createPromotion.isPending || updatePromotion.isPending}>
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

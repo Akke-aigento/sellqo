@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   id: string;
@@ -48,10 +49,11 @@ interface BulkAIGenerateDialogProps {
 
 type FieldType = 'meta_title' | 'meta_description' | 'short_description';
 
-const FIELD_OPTIONS: { value: FieldType; label: string; credits: number }[] = [
-  { value: 'meta_description', label: 'Meta beschrijving', credits: 1 },
-  { value: 'meta_title', label: 'Meta titel', credits: 1 },
-  { value: 'short_description', label: 'Korte beschrijving', credits: 1 },
+// Labels staan als i18n-key; `value` blijft de FieldType-enumwaarde.
+const FIELD_OPTIONS: { value: FieldType; labelKey: string; credits: number }[] = [
+  { value: 'meta_description', labelKey: 'admin.products.bulkAIGenerateDialog.fields.meta_description', credits: 1 },
+  { value: 'meta_title', labelKey: 'admin.products.bulkAIGenerateDialog.fields.meta_title', credits: 1 },
+  { value: 'short_description', labelKey: 'admin.products.bulkAIGenerateDialog.fields.short_description', credits: 1 },
 ];
 
 interface GeneratedResult {
@@ -68,6 +70,7 @@ export function BulkAIGenerateDialog({
   categories = [],
   onComplete,
 }: BulkAIGenerateDialogProps) {
+  const { t } = useTranslation();
   const { hasCredits, refetch: refetchCredits } = useAICredits();
   const { checkFeature } = useUsageLimits();
   const [fieldType, setFieldType] = useState<FieldType>('meta_description');
@@ -83,7 +86,7 @@ export function BulkAIGenerateDialog({
 
   const handleGenerate = async () => {
     if (!hasCredits(totalCredits)) {
-      toast.error(`Niet genoeg credits. Je hebt ${totalCredits} credits nodig.`);
+      toast.error(t('admin.products.bulkAIGenerateDialog.niet_genoeg_credits', { count: totalCredits }));
       return;
     }
 
@@ -166,7 +169,7 @@ export function BulkAIGenerateDialog({
           .eq('id', item.productId);
       }
 
-      toast.success(`${accepted.length} producten bijgewerkt!`);
+      toast.success(t('admin.products.bulkAIGenerateDialog.producten_bijgewerkt', { count: accepted.length }));
       onComplete();
       handleClose();
     } catch (err) {
@@ -195,7 +198,7 @@ export function BulkAIGenerateDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Bulk AI generatie
+            {t('admin.products.bulkAIGenerateDialog.bulk_ai_generatie')}
           </DialogTitle>
           <DialogDescription>
             Genereer AI-teksten voor {products.length} producten
@@ -205,7 +208,7 @@ export function BulkAIGenerateDialog({
         {step === 'config' ? (
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Welk veld wil je genereren?</label>
+              <label className="text-sm font-medium">{t('admin.products.bulkAIGenerateDialog.welk_veld_wil_je_genereren')}</label>
               <Select value={fieldType} onValueChange={(v) => setFieldType(v as FieldType)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -213,7 +216,7 @@ export function BulkAIGenerateDialog({
                 <SelectContent>
                   {FIELD_OPTIONS.map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -221,11 +224,11 @@ export function BulkAIGenerateDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Extra instructie (optioneel)</label>
+              <label className="text-sm font-medium">{t('admin.products.bulkAIGenerateDialog.extra_instructie_optioneel')}</label>
               <Textarea
                 value={briefing}
                 onChange={(e) => setBriefing(e.target.value)}
-                placeholder="Bijv. 'focus op duurzaamheid' of 'noem altijd de prijs'"
+                placeholder={t('admin.products.bulkAIGenerateDialog.bijv_focus_op_duurzaamheid_of_noem')}
                 rows={3}
                 className="resize-none"
               />
@@ -262,12 +265,12 @@ export function BulkAIGenerateDialog({
                     onClick={() => toggleAccept(currentIndex)}
                   >
                     {results[currentIndex].accepted ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
-                    {results[currentIndex].accepted ? 'Geaccepteerd' : 'Overgeslagen'}
+                    {results[currentIndex].accepted ? t('admin.adsAiRules.geaccepteerd') : t('admin.products.productEventDatesTab.statuses.skipped')}
                   </Button>
                 </div>
                 <ScrollArea className="max-h-40">
                   <p className="text-sm">
-                    {results[currentIndex].text || <span className="text-muted-foreground italic">Geen resultaat</span>}
+                    {results[currentIndex].text || <span className="text-muted-foreground italic">{t('admin.products.bulkAIGenerateDialog.geen_resultaat')}</span>}
                   </p>
                 </ScrollArea>
               </div>
@@ -281,7 +284,7 @@ export function BulkAIGenerateDialog({
                 disabled={currentIndex === 0}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Vorige
+                {t('admin.products.bulkAIGenerateDialog.vorige')}
               </Button>
               <Button
                 variant="outline"
@@ -289,7 +292,7 @@ export function BulkAIGenerateDialog({
                 onClick={() => setCurrentIndex(i => Math.min(results.length - 1, i + 1))}
                 disabled={currentIndex >= results.length - 1}
               >
-                Volgende
+                {t('common.next')}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -298,7 +301,7 @@ export function BulkAIGenerateDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isGenerating || isSaving}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           {step === 'config' ? (
             <Button onClick={handleGenerate} disabled={isGenerating}>

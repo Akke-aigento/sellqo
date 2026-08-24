@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import type { ColumnDefinition } from './gridTypes';
+import { useTranslation } from 'react-i18next';
 
 interface ColumnConfigProps {
   columns: ColumnDefinition[];
@@ -20,17 +21,18 @@ export function ColumnConfig({
   visibleColumns,
   onToggleColumn,
 }: ColumnConfigProps) {
+  const { t } = useTranslation();
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm">
           <Settings2 className="h-4 w-4 mr-2" />
-          Kolommen
+          {t('admin.products.grid.columnConfig.kolommen')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 z-50 bg-popover" align="end">
         <div className="space-y-2">
-          <h4 className="font-medium text-sm">Zichtbare kolommen</h4>
+          <h4 className="font-medium text-sm">{t('admin.products.grid.columnConfig.zichtbare_kolommen')}</h4>
           <div className="space-y-2">
             {columns.map((col) => (
               <div key={col.field} className="flex items-center gap-2">

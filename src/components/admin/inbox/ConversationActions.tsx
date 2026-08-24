@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
+import { useTranslation } from 'react-i18next';
 
 interface ConversationActionsProps {
   conversationStatus: 'active' | 'archived' | 'deleted';
@@ -29,6 +30,7 @@ export function ConversationActions({
   onMoveToFolder,
   disabled,
 }: ConversationActionsProps) {
+  const { t } = useTranslation();
   const { customFolders, archiveFolder, trashFolder } = useInboxFolders();
 
   const isArchived = conversationStatus === 'archived';
@@ -47,7 +49,7 @@ export function ConversationActions({
           <>
             <DropdownMenuItem onClick={onRestore}>
               <RotateCcw className="h-4 w-4 mr-2" />
-              Terugzetten naar inbox
+              {t('admin.inbox.conversationActions.terugzetten_naar_inbox')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -59,11 +61,11 @@ export function ConversationActions({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <FolderInput className="h-4 w-4 mr-2" />
-                Verplaatsen naar map
+                {t('admin.inbox.conversationActions.verplaatsen_naar_map')}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuItem onClick={() => onMoveToFolder(null)}>
-                  Inbox
+                  {t('admin.inbox.bulkActionsToolbar.inbox')}
                 </DropdownMenuItem>
                 {customFolders.map((folder) => (
                   <DropdownMenuItem key={folder.id} onClick={() => onMoveToFolder(folder.id)}>
@@ -80,7 +82,7 @@ export function ConversationActions({
         {!isArchived && !isDeleted && (
           <DropdownMenuItem onClick={onArchive}>
             <Archive className="h-4 w-4 mr-2" />
-            Archiveren
+            {t('admin.inbox.bulkActionsToolbar.archiveren')}
           </DropdownMenuItem>
         )}
 
@@ -88,7 +90,7 @@ export function ConversationActions({
         {!isDeleted && (
           <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
             <Trash2 className="h-4 w-4 mr-2" />
-            Naar prullenbak
+            {t('admin.inbox.conversationActions.naar_prullenbak')}
           </DropdownMenuItem>
         )}
 
@@ -96,7 +98,7 @@ export function ConversationActions({
         {isDeleted && (
           <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
             <Trash2 className="h-4 w-4 mr-2" />
-            Permanent verwijderen
+            {t('admin.inbox.conversationActions.permanent_verwijderen')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

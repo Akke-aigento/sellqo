@@ -45,6 +45,7 @@ import { PDFDocument } from 'pdf-lib';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import type { Order, OrderStatus, PaymentStatus } from '@/types/order';
 import { useCan } from '@/hooks/useCan';
+import { useTranslation } from 'react-i18next';
 
 interface OrderBulkActionsProps {
   selectedOrderIds: string[];
@@ -59,6 +60,7 @@ export function OrderBulkActions({
   onClearSelection,
   onComplete,
 }: OrderBulkActionsProps) {
+  const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,14 +93,14 @@ export function OrderBulkActions({
         }
       }
       if (failures.length > 0) {
-        throw new Error(`${failures.length} order(s) niet bijgewerkt: ${failures[0]}`);
+        throw new Error(t('admin.orderBulkActions.orders_niet_bijgewerkt', { count: failures.length, reason: failures[0] }));
       }
 
-      toast({ title: `${selectedOrderIds.length} order(s) bijgewerkt naar ${status}` });
+      toast({ title: t('admin.orderBulkActions.orders_bijgewerkt', { count: selectedOrderIds.length, status }) });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       onComplete();
     } catch (err: any) {
-      toast({ title: 'Fout bij statuswijziging', description: err.message, variant: 'destructive' });
+      toast({ title: t('admin.orderBulkActions.fout_bij_statuswijziging'), description: err.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
     }
@@ -118,7 +120,7 @@ export function OrderBulkActions({
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       onComplete();
     } catch (err: any) {
-      toast({ title: 'Fout bij betaalstatus', description: err.message, variant: 'destructive' });
+      toast({ title: t('admin.orderBulkActions.fout_bij_betaalstatus'), description: err.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
     }
@@ -187,7 +189,7 @@ export function OrderBulkActions({
 
       toast({ title: `${fullOrders?.length || 0} pakbon(nen) gedownload` });
     } catch (err: any) {
-      toast({ title: 'Fout bij pakbonnen', description: err.message, variant: 'destructive' });
+      toast({ title: t('admin.orderBulkActions.fout_bij_pakbonnen'), description: err.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
     }
@@ -202,7 +204,7 @@ export function OrderBulkActions({
       o.status,
       o.payment_status,
       String(o.total),
-      new Date(o.created_at).toLocaleDateString('nl-NL'),
+      new Date(o.created_at).toLocaleDateString(i18n.language),
       o.tracking_number || '',
       o.carrier || '',
     ]);
@@ -235,7 +237,7 @@ export function OrderBulkActions({
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       onClearSelection();
     } catch (err: any) {
-      toast({ title: 'Fout bij verwijderen', description: err.message, variant: 'destructive' });
+      toast({ title: t('admin.orderBulkActions.fout_bij_verwijderen'), description: err.message, variant: 'destructive' });
     } finally {
       setLoadingAction(null);
       setDeleteDialogOpen(false);
@@ -272,24 +274,24 @@ export function OrderBulkActions({
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Clock className="h-4 w-4 mr-2" />
-                  Status wijzigen
+                  {t('admin.orderBulkActions.status_wijzigen')}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('pending')}>
-                    <Clock className="h-4 w-4 mr-2" /> In afwachting
+                    <Clock className="h-4 w-4 mr-2" /> {t('admin.marketing.aBTestingPanel.in_afwachting')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('processing')}>
-                    <Clock className="h-4 w-4 mr-2" /> In behandeling
+                    <Clock className="h-4 w-4 mr-2" /> {t('admin.orderFilters.in_behandeling')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('shipped')}>
-                    <Truck className="h-4 w-4 mr-2" /> Verzonden
+                    <Truck className="h-4 w-4 mr-2" /> {t('admin.marketing.campaignCard.status.verzonden')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('delivered')}>
-                    <CheckCircle className="h-4 w-4 mr-2" /> Afgeleverd
+                    <CheckCircle className="h-4 w-4 mr-2" /> {t('admin.marketing.campaignFunnel.afgeleverd')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cancelled')} className="text-destructive">
-                    <Ban className="h-4 w-4 mr-2" /> Geannuleerd
+                    <Ban className="h-4 w-4 mr-2" /> {t('admin.marketing.aBTestingPanel.geannuleerd')}
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -298,17 +300,17 @@ export function OrderBulkActions({
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Betaalstatus wijzigen
+                  {t('admin.orderBulkActions.betaalstatus_wijzigen')}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('paid')}>
-                    <CheckCircle className="h-4 w-4 mr-2" /> Betaald
+                    <CheckCircle className="h-4 w-4 mr-2" /> {t('admin.orderFilters.betaald')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('pending')}>
-                    <Clock className="h-4 w-4 mr-2" /> In afwachting
+                    <Clock className="h-4 w-4 mr-2" /> {t('admin.marketing.aBTestingPanel.in_afwachting')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkPaymentUpdate('refunded')}>
-                    <CreditCard className="h-4 w-4 mr-2" /> Terugbetaald
+                    <CreditCard className="h-4 w-4 mr-2" /> {t('admin.orderFilters.terugbetaald')}
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -316,16 +318,16 @@ export function OrderBulkActions({
               <DropdownMenuSeparator />
 
               <DropdownMenuItem onClick={handleDownloadPackingSlips}>
-                <FileText className="h-4 w-4 mr-2" /> Pakbonnen downloaden
+                <FileText className="h-4 w-4 mr-2" /> {t('admin.orderBulkActions.pakbonnen_downloaden')}
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => setBatchPrintOpen(true)}>
-                <Printer className="h-4 w-4 mr-2" /> Labels printen
+                <Printer className="h-4 w-4 mr-2" /> {t('admin.orderBulkActions.labels_printen')}
               </DropdownMenuItem>
 
               {canReadReports && (
                 <DropdownMenuItem onClick={handleExportCsv}>
-                  <Download className="h-4 w-4 mr-2" /> Exporteren naar CSV
+                  <Download className="h-4 w-4 mr-2" /> {t('admin.orderBulkActions.exporteren_naar_csv')}
                 </DropdownMenuItem>
               )}
 
@@ -336,7 +338,7 @@ export function OrderBulkActions({
                     onClick={() => setDeleteDialogOpen(true)}
                     className="text-destructive focus:text-destructive"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" /> Verwijderen
+                    <Trash2 className="h-4 w-4 mr-2" /> {t('common.delete')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -358,14 +360,14 @@ export function OrderBulkActions({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Orders verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.orderBulkActions.orders_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je {selectedOrderIds.length} order(s) wilt verwijderen? 
               Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

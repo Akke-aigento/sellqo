@@ -2,12 +2,14 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 interface BulkSpecificationsTabProps extends BulkEditTabProps {
   // Uses the existing enabledFields/onToggleField pattern
 }
 
 export function BulkSpecificationsTab({ state, onChange, enabledFields, onToggleField }: BulkSpecificationsTabProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Brand */}
@@ -18,13 +20,13 @@ export function BulkSpecificationsTab({ state, onChange, enabledFields, onToggle
             checked={enabledFields.has('spec_brand')}
             onCheckedChange={() => onToggleField('spec_brand')}
           />
-          <Label htmlFor="enable-brand" className="font-medium cursor-pointer">Merk instellen</Label>
+          <Label htmlFor="enable-brand" className="font-medium cursor-pointer">{t('admin.products.bulk.bulkSpecificationsTab.merk_instellen')}</Label>
         </div>
         {enabledFields.has('spec_brand') && (
           <Input
             value={(state as any).spec_brand || ''}
             onChange={(e) => onChange({ spec_brand: e.target.value } as any)}
-            placeholder="Merknaam"
+            placeholder={t('admin.products.bulk.bulkSpecificationsTab.merknaam')}
           />
         )}
       </div>
@@ -37,13 +39,13 @@ export function BulkSpecificationsTab({ state, onChange, enabledFields, onToggle
             checked={enabledFields.has('spec_country_of_origin')}
             onCheckedChange={() => onToggleField('spec_country_of_origin')}
           />
-          <Label htmlFor="enable-country" className="font-medium cursor-pointer">Herkomstland instellen</Label>
+          <Label htmlFor="enable-country" className="font-medium cursor-pointer">{t('admin.products.bulk.bulkSpecificationsTab.herkomstland_instellen')}</Label>
         </div>
         {enabledFields.has('spec_country_of_origin') && (
           <Input
             value={(state as any).spec_country_of_origin || ''}
             onChange={(e) => onChange({ spec_country_of_origin: e.target.value } as any)}
-            placeholder="NL, DE, CN..."
+            placeholder={t('admin.products.bulk.bulkSpecificationsTab.nl_de_cn')}
           />
         )}
       </div>
@@ -56,13 +58,13 @@ export function BulkSpecificationsTab({ state, onChange, enabledFields, onToggle
             checked={enabledFields.has('spec_hs_tariff_code')}
             onCheckedChange={() => onToggleField('spec_hs_tariff_code')}
           />
-          <Label htmlFor="enable-hs" className="font-medium cursor-pointer">HS/Taric code instellen</Label>
+          <Label htmlFor="enable-hs" className="font-medium cursor-pointer">{t('admin.products.bulk.bulkSpecificationsTab.hs_taric_code_instellen')}</Label>
         </div>
         {enabledFields.has('spec_hs_tariff_code') && (
           <Input
             value={(state as any).spec_hs_tariff_code || ''}
             onChange={(e) => onChange({ spec_hs_tariff_code: e.target.value } as any)}
-            placeholder="Douanecode"
+            placeholder={t('admin.products.bulk.bulkSpecificationsTab.douanecode')}
           />
         )}
       </div>
@@ -75,13 +77,13 @@ export function BulkSpecificationsTab({ state, onChange, enabledFields, onToggle
             checked={enabledFields.has('spec_manufacturer')}
             onCheckedChange={() => onToggleField('spec_manufacturer')}
           />
-          <Label htmlFor="enable-manufacturer" className="font-medium cursor-pointer">Fabrikant instellen</Label>
+          <Label htmlFor="enable-manufacturer" className="font-medium cursor-pointer">{t('admin.products.bulk.bulkSpecificationsTab.fabrikant_instellen')}</Label>
         </div>
         {enabledFields.has('spec_manufacturer') && (
           <Input
             value={(state as any).spec_manufacturer || ''}
             onChange={(e) => onChange({ spec_manufacturer: e.target.value } as any)}
-            placeholder="Naam fabrikant"
+            placeholder={t('admin.products.bulk.bulkSpecificationsTab.naam_fabrikant')}
           />
         )}
       </div>

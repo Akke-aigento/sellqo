@@ -27,10 +27,13 @@ import {
 import { useABTests, type ABTestConfig } from '@/hooks/useABTests';
 import { useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export function ABTestingPanel() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [campaignAId, setCampaignAId] = useState('');
   const [campaignBId, setCampaignBId] = useState('');
@@ -72,10 +75,10 @@ export function ABTestingPanel() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
-      pending: { variant: 'outline', label: 'In afwachting' },
-      running: { variant: 'default', label: 'Actief' },
-      completed: { variant: 'secondary', label: 'Voltooid' },
-      cancelled: { variant: 'destructive', label: 'Geannuleerd' },
+      pending: { variant: 'outline', label: t('admin.marketing.aBTestingPanel.in_afwachting') },
+      running: { variant: 'default', label: t('admin.marketing.aBTestingPanel.actief') },
+      completed: { variant: 'secondary', label: t('admin.marketing.aBTestingPanel.voltooid') },
+      cancelled: { variant: 'destructive', label: t('admin.marketing.aBTestingPanel.geannuleerd') },
     };
     const config = variants[status] || variants.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -101,15 +104,15 @@ export function ABTestingPanel() {
                 <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
                   <FlaskConical className="h-4 w-4 text-white" />
                 </div>
-                A/B Testing
+                {t('admin.marketing.aBTestingPanel.a_b_testing')}
               </CardTitle>
               <CardDescription>
-                Test verschillende versies van je campagnes
+                {t('admin.marketing.aBTestingPanel.test_verschillende_versies_van_je_campagnes')}
               </CardDescription>
             </div>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Nieuwe Test
+              {t('admin.marketing.aBTestingPanel.nieuwe_test')}
             </Button>
           </div>
         </CardHeader>
@@ -121,8 +124,8 @@ export function ABTestingPanel() {
           ) : tests.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Nog geen A/B tests</p>
-              <p className="text-sm">Maak een test om campagne varianten te vergelijken</p>
+              <p>{t('admin.marketing.aBTestingPanel.nog_geen_a_b_tests')}</p>
+              <p className="text-sm">{t('admin.marketing.aBTestingPanel.maak_een_test_om_campagne_varianten')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -138,9 +141,9 @@ export function ABTestingPanel() {
                       <div className="flex items-center gap-3">
                         <FlaskConical className="h-5 w-5" />
                         <div>
-                          <p className="font-medium">A/B Test</p>
+                          <p className="font-medium">{t('admin.marketing.aBTestingPanel.a_b_test')}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(test.created_at), 'PPp', { locale: nl })}
+                            {format(new Date(test.created_at), 'PPp', { locale: dateLocale })}
                           </p>
                         </div>
                       </div>
@@ -154,14 +157,14 @@ export function ABTestingPanel() {
                         test.winner_id === test.campaign_a_id && 'border-green-500 bg-green-500/10'
                       )}>
                         <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline">Versie A</Badge>
+                          <Badge variant="outline">{t('admin.marketing.aBTestingPanel.versie_a')}</Badge>
                           {test.winner_id === test.campaign_a_id && (
                             <Trophy className="h-4 w-4 text-green-500" />
                           )}
                         </div>
                         <p className="text-2xl font-bold">{stats.aRate}%</p>
                         <p className="text-xs text-muted-foreground">
-                          {test.test_metric === 'open_rate' ? 'Open rate' : 'Click rate'}
+                          {test.test_metric === 'open_rate' ? t('admin.marketing.aBTestingPanel.open_rate') : t('admin.marketing.aBTestingPanel.click_rate')}
                         </p>
                       </div>
 
@@ -170,14 +173,14 @@ export function ABTestingPanel() {
                         test.winner_id === test.campaign_b_id && 'border-green-500 bg-green-500/10'
                       )}>
                         <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline">Versie B</Badge>
+                          <Badge variant="outline">{t('admin.marketing.aBTestingPanel.versie_b')}</Badge>
                           {test.winner_id === test.campaign_b_id && (
                             <Trophy className="h-4 w-4 text-green-500" />
                           )}
                         </div>
                         <p className="text-2xl font-bold">{stats.bRate}%</p>
                         <p className="text-xs text-muted-foreground">
-                          {test.test_metric === 'open_rate' ? 'Open rate' : 'Click rate'}
+                          {test.test_metric === 'open_rate' ? t('admin.marketing.aBTestingPanel.open_rate') : t('admin.marketing.aBTestingPanel.click_rate')}
                         </p>
                       </div>
                     </div>
@@ -185,7 +188,7 @@ export function ABTestingPanel() {
                     {/* Progress */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Test verdeling</span>
+                        <span>{t('admin.marketing.aBTestingPanel.test_verdeling')}</span>
                         <span>{test.test_percentage}% / {100 - test.test_percentage}%</span>
                       </div>
                       <Progress value={test.test_percentage} />
@@ -201,7 +204,7 @@ export function ABTestingPanel() {
                           disabled={selectWinner.isPending}
                         >
                           <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Kies A als winnaar
+                          {t('admin.marketing.aBTestingPanel.kies_a_als_winnaar')}
                         </Button>
                         <Button
                           size="sm"
@@ -210,7 +213,7 @@ export function ABTestingPanel() {
                           disabled={selectWinner.isPending}
                         >
                           <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Kies B als winnaar
+                          {t('admin.marketing.aBTestingPanel.kies_b_als_winnaar')}
                         </Button>
                       </div>
                     )}
@@ -235,15 +238,15 @@ export function ABTestingPanel() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nieuwe A/B Test</DialogTitle>
+            <DialogTitle>{t('admin.marketing.aBTestingPanel.nieuwe_a_b_test')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Campaign A */}
             <div className="space-y-2">
-              <Label>Campagne A (Controle)</Label>
+              <Label>{t('admin.marketing.aBTestingPanel.campagne_a_controle')}</Label>
               <Select value={campaignAId} onValueChange={setCampaignAId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer campagne A" />
+                  <SelectValue placeholder={t('admin.marketing.aBTestingPanel.selecteer_campagne_a')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableCampaigns
@@ -259,10 +262,10 @@ export function ABTestingPanel() {
 
             {/* Campaign B */}
             <div className="space-y-2">
-              <Label>Campagne B (Variant)</Label>
+              <Label>{t('admin.marketing.aBTestingPanel.campagne_b_variant')}</Label>
               <Select value={campaignBId} onValueChange={setCampaignBId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer campagne B" />
+                  <SelectValue placeholder={t('admin.marketing.aBTestingPanel.selecteer_campagne_b')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableCampaigns
@@ -278,21 +281,21 @@ export function ABTestingPanel() {
 
             {/* Test Metric */}
             <div className="space-y-2">
-              <Label>Test metriek</Label>
+              <Label>{t('admin.marketing.aBTestingPanel.test_metriek')}</Label>
               <Select value={testMetric} onValueChange={(v) => setTestMetric(v as 'open_rate' | 'click_rate')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="open_rate">Open rate</SelectItem>
-                  <SelectItem value="click_rate">Click rate</SelectItem>
+                  <SelectItem value="open_rate">{t('admin.marketing.aBTestingPanel.open_rate')}</SelectItem>
+                  <SelectItem value="click_rate">{t('admin.marketing.aBTestingPanel.click_rate')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Test Percentage */}
             <div className="space-y-2">
-              <Label>Verdeling (% naar variant B)</Label>
+              <Label>{t('admin.marketing.aBTestingPanel.verdeling_naar_variant_b')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -311,9 +314,9 @@ export function ABTestingPanel() {
             {/* Auto Select Winner */}
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div>
-                <Label>Automatisch winnaar kiezen</Label>
+                <Label>{t('admin.marketing.aBTestingPanel.automatisch_winnaar_kiezen')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Na voldoende data automatisch de beste selecteren
+                  {t('admin.marketing.aBTestingPanel.na_voldoende_data_automatisch_de_beste')}
                 </p>
               </div>
               <Switch
@@ -324,7 +327,7 @@ export function ABTestingPanel() {
 
             {autoSelectWinner && (
               <div className="space-y-2">
-                <Label>Minimum verschil (%)</Label>
+                <Label>{t('admin.marketing.aBTestingPanel.minimum_verschil')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -341,7 +344,7 @@ export function ABTestingPanel() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleCreateTest}

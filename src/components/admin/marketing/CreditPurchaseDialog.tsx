@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PlatformPaymentMethodSelector, type PlatformPaymentMethod } from '@/components/platform/PlatformPaymentMethodSelector';
 import { PlatformBankPaymentDialog } from '@/components/platform/PlatformBankPaymentDialog';
+import { useTranslation } from 'react-i18next';
 
 interface CreditPackage {
   id: string;
@@ -39,6 +40,7 @@ interface CreditPurchaseDialogProps {
 }
 
 export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [selectedPackage, setSelectedPackage] = useState<string>('pack_100');
   const [paymentMethod, setPaymentMethod] = useState<PlatformPaymentMethod>('bank_transfer');
@@ -85,7 +87,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
       } catch (error) {
         console.error('Checkout error:', error);
         toast.error('Kon checkout niet starten', {
-          description: error instanceof Error ? error.message : 'Probeer het opnieuw',
+          description: error instanceof Error ? error.message : t('admin.marketing.creditPurchaseDialog.probeer_het_opnieuw'),
         });
       } finally {
         setIsLoading(false);
@@ -116,7 +118,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
     setBankDialogOpen(false);
     setBankPaymentData(null);
     toast.success('Betaalinstructies ontvangen', {
-      description: 'Je credits worden geactiveerd zodra we je betaling ontvangen.',
+      description: t('admin.marketing.creditPurchaseDialog.je_credits_worden_geactiveerd_zodra_we'),
     });
   };
 
@@ -131,11 +133,10 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
               <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              AI Credits Bijkopen
+              {t('admin.marketing.creditPurchaseDialog.ai_credits_bijkopen')}
             </DialogTitle>
             <DialogDescription>
-              Koop extra AI credits om meer content te genereren. Credits verlopen niet en worden
-              bovenop je maandelijkse credits toegevoegd.
+              {t('admin.marketing.creditPurchaseDialog.koop_extra_ai_credits_om_meer')}
             </DialogDescription>
           </DialogHeader>
 
@@ -152,7 +153,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
               >
                 {pkg.popular && (
                   <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-3 py-1 rounded-bl-lg font-medium">
-                    Populair
+                    {t('admin.marketing.creditPurchaseDialog.populair')}
                   </div>
                 )}
                 <CardContent className="p-4 flex items-center justify-between">
@@ -202,11 +203,11 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
             <div className="flex items-start gap-2">
               <Zap className="h-4 w-4 text-amber-500 mt-0.5" />
               <div>
-                <p className="font-medium">Credit kosten per actie</p>
+                <p className="font-medium">{t('admin.marketing.creditPurchaseDialog.credit_kosten_per_actie')}</p>
                 <ul className="text-muted-foreground mt-1 space-y-0.5">
-                  <li>• Social media post: 1 credit</li>
-                  <li>• Email content: 2 credits</li>
-                  <li>• Campagne suggesties: 3 credits</li>
+                  <li>{t('admin.marketing.creditPurchaseDialog.social_media_post_1_credit')}</li>
+                  <li>{t('admin.marketing.creditPurchaseDialog.email_content_2_credits')}</li>
+                  <li>{t('admin.marketing.creditPurchaseDialog.campagne_suggesties_3_credits')}</li>
                 </ul>
               </div>
             </div>
@@ -214,7 +215,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
 
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handlePurchase}
@@ -228,17 +229,17 @@ export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialo
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bezig...
+                  {t('admin.marketing.creditPurchaseDialog.bezig')}
                 </>
               ) : paymentMethod === 'bank_transfer' ? (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Naar betaling
+                  {t('admin.marketing.creditPurchaseDialog.naar_betaling')}
                 </>
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Afrekenen
+                  {t('admin.marketing.creditPurchaseDialog.afrekenen')}
                 </>
               )}
             </Button>

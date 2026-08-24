@@ -11,6 +11,7 @@ import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
 import type { CampaignSuggestion } from '@/types/aiMarketing';
+import { useTranslation } from 'react-i18next';
 
 const typeIcons: Record<string, any> = {
   newsletter: Mail,
@@ -42,6 +43,7 @@ interface AICampaignSuggestionsProps {
 }
 
 export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestionsProps) {
+  const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState<CampaignSuggestion[]>([]);
   const { getCampaignSuggestions, context } = useAIMarketing();
   const { hasCredits, getCreditCost } = useAICredits();
@@ -68,10 +70,10 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
             <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
               <Lightbulb className="h-4 w-4 text-white" />
             </div>
-            AI Campagne Suggesties
+            {t('admin.marketing.aICampaignSuggestions.ai_campagne_suggesties')}
           </CardTitle>
           <CardDescription>
-            Slimme campagne-ideeën gebaseerd op je data
+            {t('admin.marketing.aICampaignSuggestions.slimme_campagne_ideeen_gebaseerd_op_je')}
           </CardDescription>
         </div>
         <Button
@@ -92,7 +94,7 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
           <div className="text-center py-8">
             <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground mb-4">
-              Laat AI analyseren welke campagnes het meest impactvol zijn
+              {t('admin.marketing.aICampaignSuggestions.laat_ai_analyseren_welke_campagnes_het')}
             </p>
             <Button
               onClick={handleGetSuggestions}
@@ -102,7 +104,7 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
               {getCampaignSuggestions.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyseren...
+                  {t('admin.marketing.aICampaignSuggestions.analyseren')}
                 </>
               ) : (
                 <>
@@ -134,8 +136,7 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
                           urgencyColors[suggestion.urgency]
                         )} />
                         <Badge variant="secondary" className="text-xs">
-                          {suggestion.urgency === 'high' ? 'Urgent' : 
-                           suggestion.urgency === 'medium' ? 'Aanbevolen' : 'Optioneel'}
+                          {suggestion.urgency === 'high' ? t('admin.marketing.inlinePromoWizard.toneOptions.urgent') : suggestion.urgency === 'medium' ? t('admin.marketing.aICampaignSuggestions.aanbevolen') : t('admin.ads.bolCampaignEditForm.optioneel')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
@@ -156,7 +157,7 @@ export function AICampaignSuggestions({ onSuggestionClick }: AICampaignSuggestio
                       
                       {/* Confidence Score */}
                       <div className="mt-3 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">AI Zekerheid:</span>
+                        <span className="text-xs text-muted-foreground">{t('admin.marketing.aICampaignSuggestions.ai_zekerheid')}</span>
                         <Progress value={suggestion.confidenceScore} className="h-1.5 flex-1 max-w-[100px]" />
                         <span className="text-xs font-medium">{suggestion.confidenceScore}%</span>
                       </div>

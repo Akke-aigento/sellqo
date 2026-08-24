@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import type { SearchOptions, FilterChannel } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
 
 interface AdvancedSearchFiltersProps {
   isOpen: boolean;
@@ -20,8 +21,10 @@ interface AdvancedSearchFiltersProps {
   hasActiveFolder: boolean;
 }
 
-const channelConfig: { id: FilterChannel; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: 'email', label: 'Email', icon: <Mail className="h-3.5 w-3.5" />, color: 'text-foreground' },
+// Alleen 'Email' is een gewoon woord; de andere drie zijn merknamen en
+// blijven letterlijk. Daarom is `label` optioneel naast `labelKey`.
+const channelConfig: { id: FilterChannel; label?: string; labelKey?: string; icon: React.ReactNode; color: string }[] = [
+  { id: 'email', labelKey: 'admin.inbox.advancedSearchFilters.channels.email', icon: <Mail className="h-3.5 w-3.5" />, color: 'text-foreground' },
   { id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare className="h-3.5 w-3.5" />, color: 'text-green-600' },
   { id: 'facebook', label: 'Facebook', icon: <Facebook className="h-3.5 w-3.5" />, color: 'text-blue-600' },
   { id: 'instagram', label: 'Instagram', icon: <Instagram className="h-3.5 w-3.5" />, color: 'text-pink-600' },
@@ -34,6 +37,7 @@ export function AdvancedSearchFilters({
   onClearSearch,
   hasActiveFolder,
 }: AdvancedSearchFiltersProps) {
+  const { t } = useTranslation();
   const toggleChannel = (channelId: FilterChannel) => {
     const currentChannels = searchOptions.channels;
     const newChannels = currentChannels.includes(channelId)
@@ -65,7 +69,7 @@ export function AdvancedSearchFilters({
         <div className="grid grid-cols-2 gap-2">
           {/* Zoekbereik */}
           <div className="space-y-0.5">
-            <Label className="text-xs text-muted-foreground">Zoek in</Label>
+            <Label className="text-xs text-muted-foreground">{t('admin.inbox.advancedSearchFilters.zoek_in')}</Label>
             <Select
               value={searchOptions.scope}
               onValueChange={(value: SearchOptions['scope']) =>
@@ -76,16 +80,16 @@ export function AdvancedSearchFilters({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="current" className="text-xs">Huidige map</SelectItem>
-                <SelectItem value="all" className="text-xs">Alle mappen</SelectItem>
-                <SelectItem value="everywhere" className="text-xs">Overal</SelectItem>
+                <SelectItem value="current" className="text-xs">{t('admin.inbox.advancedSearchFilters.huidige_map')}</SelectItem>
+                <SelectItem value="all" className="text-xs">{t('admin.inbox.advancedSearchFilters.alle_mappen')}</SelectItem>
+                <SelectItem value="everywhere" className="text-xs">{t('admin.inbox.advancedSearchFilters.overal')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Periode */}
           <div className="space-y-0.5">
-            <Label className="text-xs text-muted-foreground">Periode</Label>
+            <Label className="text-xs text-muted-foreground">{t('admin.inbox.advancedSearchFilters.periode')}</Label>
             <Select
               value={searchOptions.period}
               onValueChange={(value: SearchOptions['period']) =>
@@ -96,10 +100,10 @@ export function AdvancedSearchFilters({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week" className="text-xs">Week</SelectItem>
-                <SelectItem value="month" className="text-xs">Maand</SelectItem>
-                <SelectItem value="3months" className="text-xs">3 maanden</SelectItem>
-                <SelectItem value="all" className="text-xs">Alles</SelectItem>
+                <SelectItem value="week" className="text-xs">{t('admin.marketing.contentCalendar.week')}</SelectItem>
+                <SelectItem value="month" className="text-xs">{t('admin.marketing.contentCalendar.maand')}</SelectItem>
+                <SelectItem value="3months" className="text-xs">{t('admin.inbox.advancedSearchFilters.3_maanden')}</SelectItem>
+                <SelectItem value="all" className="text-xs">{t('admin.marketing.mediaAssetsLibrary.folders.alles')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -120,7 +124,7 @@ export function AdvancedSearchFilters({
                 className={`text-xs flex items-center gap-0.5 cursor-pointer ${ch.color}`}
               >
                 {ch.icon}
-                {ch.label}
+                {ch.labelKey ? t(ch.labelKey) : ch.label}
               </Label>
             </div>
           ))}
@@ -135,7 +139,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('subject')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-subject" className="text-xs cursor-pointer text-muted-foreground">Onderwerp</Label>
+            <Label htmlFor="search-subject" className="text-xs cursor-pointer text-muted-foreground">{t('admin.marketing.templateDialog.onderwerp')}</Label>
           </div>
           <div className="flex items-center gap-1">
             <Checkbox
@@ -144,7 +148,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('content')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-content" className="text-xs cursor-pointer text-muted-foreground">Inhoud</Label>
+            <Label htmlFor="search-content" className="text-xs cursor-pointer text-muted-foreground">{t('admin.marketing.emailBlockPalette.inhoud')}</Label>
           </div>
           <div className="flex items-center gap-1">
             <Checkbox
@@ -153,7 +157,7 @@ export function AdvancedSearchFilters({
               onCheckedChange={() => toggleSearchIn('sender')}
               className="h-3.5 w-3.5"
             />
-            <Label htmlFor="search-sender" className="text-xs cursor-pointer text-muted-foreground">Afzender</Label>
+            <Label htmlFor="search-sender" className="text-xs cursor-pointer text-muted-foreground">{t('admin.inbox.advancedSearchFilters.afzender')}</Label>
           </div>
         </div>
 
@@ -166,7 +170,7 @@ export function AdvancedSearchFilters({
             onClick={onClearSearch}
           >
             <X className="h-3 w-3 mr-1" />
-            Wissen
+            {t('admin.inbox.advancedSearchFilters.wissen')}
           </Button>
         </div>
       </CollapsibleContent>

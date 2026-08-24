@@ -89,18 +89,19 @@ import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/transla
 import { EntityTranslationTabs } from '@/components/admin/translations/EntityTranslationTabs';
 import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
+import { useTranslation } from 'react-i18next';
 
 const productSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht').max(200, 'Naam mag maximaal 200 tekens zijn'),
-  slug: z.string().min(1, 'Slug is verplicht').regex(/^[a-z0-9-]+$/, 'Slug mag alleen kleine letters, cijfers en streepjes bevatten'),
-  description: z.string().max(20000, 'Beschrijving is te lang').optional().default(''),
-  short_description: z.string().max(500, 'Korte beschrijving mag maximaal 500 tekens zijn').optional().default(''),
-  price: z.coerce.number().min(0, 'Prijs moet 0 of hoger zijn'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht').max(200, 'admin.productForm.validation.naam_mag_maximaal_200_tekens_zijn'),
+  slug: z.string().min(1, 'admin.productForm.validation.slug_is_verplicht').regex(/^[a-z0-9-]+$/, 'admin.productForm.validation.slug_mag_alleen_kleine_letters_cijfers'),
+  description: z.string().max(20000, 'admin.productForm.validation.beschrijving_is_te_lang').optional().default(''),
+  short_description: z.string().max(500, 'admin.productForm.validation.korte_beschrijving_mag_maximaal_500_tekens').optional().default(''),
+  price: z.coerce.number().min(0, 'admin.productForm.validation.prijs_moet_0_of_hoger_zijn'),
   compare_at_price: z.coerce.number().min(0).nullable().optional(),
   cost_price: z.coerce.number().min(0).nullable().optional(),
   sku: z.string().max(100).optional().default(''),
   barcode: z.string().max(100).optional().default(''),
-  stock: z.coerce.number().int().min(0, 'Voorraad moet 0 of hoger zijn').default(0),
+  stock: z.coerce.number().int().min(0, 'admin.productForm.validation.voorraad_moet_0_of_hoger_zijn').default(0),
   track_inventory: z.boolean().default(true),
   allow_backorder: z.boolean().default(false),
   low_stock_threshold: z.coerce.number().int().min(0).default(5),
@@ -108,8 +109,8 @@ const productSchema = z.object({
   featured_image: z.string().optional().default(''),
   category_id: z.string().optional().default(''),
   tags: z.array(z.string()).default([]),
-  meta_title: z.string().max(60, 'Meta titel mag maximaal 60 tekens zijn').optional().default(''),
-  meta_description: z.string().max(160, 'Meta beschrijving mag maximaal 160 tekens zijn').optional().default(''),
+  meta_title: z.string().max(60, 'admin.productForm.validation.meta_titel_mag_maximaal_60_tekens').optional().default(''),
+  meta_description: z.string().max(160, 'admin.productForm.validation.meta_beschrijving_mag_maximaal_160_tekens').optional().default(''),
   is_active: z.boolean().default(true),
   hide_from_storefront: z.boolean().default(false),
   is_featured: z.boolean().default(false),
@@ -145,6 +146,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 };
 
 export default function ProductForm() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -438,7 +440,7 @@ export default function ProductForm() {
     // (Android pickers can silently drop files past the per-file toasts).
     if (attempted > 0 && currentImages.length === beforeCount) {
       toast.error('Geen van de geselecteerde foto\'s kon worden geüpload', {
-        description: 'Controleer bestandstype en grootte (max 20 MB per foto).',
+        description: t('admin.productForm.controleer_bestandstype_en_grootte_max_20'),
         duration: 8000,
       });
     }
@@ -615,7 +617,7 @@ export default function ProductForm() {
   if (!currentTenant) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Selecteer eerst een winkel</p>
+        <p className="text-muted-foreground">{t('admin.products.selecteer_eerst_een_winkel')}</p>
       </div>
     );
   }
@@ -638,7 +640,7 @@ export default function ProductForm() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? 'Product bewerken' : 'Nieuw product'}
+            {isEditing ? t('admin.productForm.product_bewerken') : t('admin.products.nieuw_product')}
           </h1>
           <p className="text-muted-foreground">
             {isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
@@ -646,18 +648,18 @@ export default function ProductForm() {
         </div>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => navigate('/admin/products')}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button className="flex-1 sm:flex-none" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Opslaan...
+                {t('common.saving')}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Opslaan
+                {t('common.save')}
               </>
             )}
           </Button>
@@ -668,10 +670,10 @@ export default function ProductForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
             <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4">
-              <TabsTrigger value="product" className="shrink-0">Product</TabsTrigger>
-              <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>Vertalingen</TabsTrigger>
-              <TabsTrigger value="marketplaces" className="shrink-0">Marketplaces</TabsTrigger>
-              <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>Advertenties</TabsTrigger>
+              <TabsTrigger value="product" className="shrink-0">{t('admin.stockReport.colName')}</TabsTrigger>
+              <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>{t('admin.productForm.vertalingen')}</TabsTrigger>
+              <TabsTrigger value="marketplaces" className="shrink-0">{t('admin.productForm.marketplaces')}</TabsTrigger>
+              <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>{t('admin.products.productAdsSection.advertenties')}</TabsTrigger>
             </TabsList>
 
             {/* Product Tab - One-page 2-column layout */}
@@ -682,8 +684,8 @@ export default function ProductForm() {
                   {/* Product Type */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Product type</CardTitle>
-                      <CardDescription>Kies het type product dat je wilt verkopen</CardDescription>
+                      <CardTitle>{t('admin.productForm.product_type')}</CardTitle>
+                      <CardDescription>{t('admin.productForm.kies_het_type_product_dat_je')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4 md:grid-cols-3">
@@ -721,8 +723,8 @@ export default function ProductForm() {
                   {isDigital && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Leveringsmethode</CardTitle>
-                        <CardDescription>Hoe wordt het digitale product aan de klant geleverd?</CardDescription>
+                        <CardTitle>{t('admin.productForm.leveringsmethode')}</CardTitle>
+                        <CardDescription>{t('admin.productForm.hoe_wordt_het_digitale_product_aan')}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-6">
                         <FormField
@@ -730,10 +732,10 @@ export default function ProductForm() {
                           name="digital_delivery_type"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Leveringsmethode</FormLabel>
+                              <FormLabel>{t('admin.productForm.leveringsmethode_2')}</FormLabel>
                               <Select value={field.value || 'download'} onValueChange={(value) => field.onChange(value as DigitalDeliveryType)}>
                                 <FormControl>
-                                  <SelectTrigger><SelectValue placeholder="Selecteer methode" /></SelectTrigger>
+                                  <SelectTrigger><SelectValue placeholder={t('admin.productForm.selecteer_methode')} /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   {(Object.keys(digitalDeliveryTypeInfo) as DigitalDeliveryType[]).map((type) => {
@@ -758,17 +760,17 @@ export default function ProductForm() {
                             <>
                               <FormField control={form.control} name="download_limit" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Download limiet</FormLabel>
-                                  <FormControl><Input {...field} value={field.value ?? ''} type="number" min="0" placeholder="Onbeperkt" /></FormControl>
-                                  <FormDescription>Max. aantal downloads per aankoop (leeg = onbeperkt)</FormDescription>
+                                  <FormLabel>{t('admin.productForm.download_limiet')}</FormLabel>
+                                  <FormControl><Input {...field} value={field.value ?? ''} type="number" min="0" placeholder={t('admin.productForm.onbeperkt')} /></FormControl>
+                                  <FormDescription>{t('admin.productForm.max_aantal_downloads_per_aankoop_leeg')}</FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )} />
                               <FormField control={form.control} name="download_expiry_hours" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Geldigheid (uren)</FormLabel>
+                                  <FormLabel>{t('admin.productForm.geldigheid_uren')}</FormLabel>
                                   <FormControl><Input {...field} value={field.value ?? 72} type="number" min="1" /></FormControl>
-                                  <FormDescription>Hoelang de download link geldig is</FormDescription>
+                                  <FormDescription>{t('admin.productForm.hoelang_de_download_link_geldig_is')}</FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )} />
@@ -777,12 +779,12 @@ export default function ProductForm() {
                           {digitalDeliveryType === 'license_key' && (
                             <FormField control={form.control} name="license_generator" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Licentiebeheer</FormLabel>
+                                <FormLabel>{t('admin.productForm.licentiebeheer')}</FormLabel>
                                 <Select value={field.value || 'manual'} onValueChange={(value) => field.onChange(value as 'manual' | 'auto')}>
                                   <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                   <SelectContent>
-                                    <SelectItem value="manual">Handmatig (voer codes in)</SelectItem>
-                                    <SelectItem value="auto">Automatisch genereren</SelectItem>
+                                    <SelectItem value="manual">{t('admin.productForm.handmatig_voer_codes_in')}</SelectItem>
+                                    <SelectItem value="auto">{t('admin.productForm.automatisch_genereren')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -792,9 +794,9 @@ export default function ProductForm() {
                           {(digitalDeliveryType === 'access_url' || digitalDeliveryType === 'external_service') && (
                             <FormField control={form.control} name="access_duration_days" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Toegangsduur (dagen)</FormLabel>
-                                <FormControl><Input {...field} value={field.value ?? ''} type="number" min="1" placeholder="Permanent" /></FormControl>
-                                <FormDescription>Hoelang klant toegang heeft (leeg = permanent)</FormDescription>
+                                <FormLabel>{t('admin.productForm.toegangsduur_dagen')}</FormLabel>
+                                <FormControl><Input {...field} value={field.value ?? ''} type="number" min="1" placeholder={t('admin.productForm.permanent')} /></FormControl>
+                                <FormDescription>{t('admin.productForm.hoelang_klant_toegang_heeft_leeg_permanent')}</FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )} />
@@ -807,14 +809,14 @@ export default function ProductForm() {
                   {/* Basic Info */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Product informatie</CardTitle>
-                      <CardDescription>Basis gegevens van het product</CardDescription>
+                      <CardTitle>{t('admin.productForm.product_informatie')}</CardTitle>
+                      <CardDescription>{t('admin.productForm.basis_gegevens_van_het_product')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <FormField control={form.control} name="name" render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center gap-1">
-                            <FormLabel>Naam *</FormLabel>
+                            <FormLabel>{t('admin.productForm.naam')}</FormLabel>
                             <AIFieldAssistant
                               fieldType="product_title"
                               currentValue={field.value}
@@ -823,22 +825,22 @@ export default function ProductForm() {
                               seoKeywords={seoKeywords}
                             />
                           </div>
-                          <FormControl><Input {...field} onChange={(e) => handleNameChange(e.target.value)} placeholder="Product naam" /></FormControl>
+                          <FormControl><Input {...field} onChange={(e) => handleNameChange(e.target.value)} placeholder={t('admin.marketing.emailBlockProperties.product_naam')} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
                       <FormField control={form.control} name="slug" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Slug *</FormLabel>
+                          <FormLabel>{t('admin.productForm.slug')}</FormLabel>
                           <FormControl><Input {...field} placeholder="product-naam" /></FormControl>
-                          <FormDescription>URL-vriendelijke naam voor het product</FormDescription>
+                          <FormDescription>{t('admin.productForm.url_vriendelijke_naam_voor_het_product')}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )} />
                       <FormField control={form.control} name="short_description" render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center gap-1">
-                            <FormLabel>Korte beschrijving</FormLabel>
+                            <FormLabel>{t('admin.productForm.korte_beschrijving')}</FormLabel>
                             <AIFieldAssistant
                               fieldType="short_description"
                               currentValue={field.value}
@@ -847,7 +849,7 @@ export default function ProductForm() {
                               seoKeywords={seoKeywords}
                             />
                           </div>
-                          <FormControl><Textarea {...field} placeholder="Korte beschrijving voor productlijsten" rows={2} /></FormControl>
+                          <FormControl><Textarea {...field} placeholder={t('admin.productForm.korte_beschrijving_voor_productlijsten')} rows={2} /></FormControl>
                           <AIUpsellHint className="mt-1" />
                           <FormMessage />
                         </FormItem>
@@ -857,7 +859,7 @@ export default function ProductForm() {
                           <Collapsible open={descOpen} onOpenChange={setDescOpen}>
                             <CollapsibleTrigger className="flex items-center gap-2 w-full group cursor-pointer">
                               <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                              <FormLabel className="cursor-pointer">Volledige beschrijving</FormLabel>
+                              <FormLabel className="cursor-pointer">{t('admin.productForm.volledige_beschrijving')}</FormLabel>
                             </CollapsibleTrigger>
                             {!descOpen && field.value && field.value !== '<p></p>' && (
                               <div
@@ -887,14 +889,14 @@ export default function ProductForm() {
                   {!isBundle && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Prijzen</CardTitle>
-                      <CardDescription>Stel de prijzen in voor dit product</CardDescription>
+                      <CardTitle>{t('admin.products.productBulkEditDialog.prijzen')}</CardTitle>
+                      <CardDescription>{t('admin.productForm.stel_de_prijzen_in_voor_dit')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-6 md:grid-cols-3">
                         {id && product?.product_variants && product.product_variants.filter(v => v.is_active).length > 0 ? (
                           <div className="md:col-span-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                            <p className="font-medium text-foreground mb-1">Verkoopprijs wordt per variant beheerd</p>
+                            <p className="font-medium text-foreground mb-1">{t('admin.productForm.verkoopprijs_wordt_per_variant_beheerd')}</p>
                             <p>
                               {product.product_variants.filter(v => v.is_active).length} actieve varianten — pas de verkoopprijs aan in het tabblad "Varianten".
                             </p>
@@ -902,7 +904,7 @@ export default function ProductForm() {
                         ) : (
                           <FormField control={form.control} name="price" render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Verkoopprijs *</FormLabel>
+                              <FormLabel>{t('admin.productForm.verkoopprijs')}</FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
@@ -916,7 +918,7 @@ export default function ProductForm() {
                         )}
                         <FormField control={form.control} name="compare_at_price" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Vergelijkingsprijs</FormLabel>
+                            <FormLabel>{t('admin.productForm.vergelijkingsprijs')}</FormLabel>
                             <FormControl>
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
@@ -932,7 +934,7 @@ export default function ProductForm() {
                         <PermissionGate action="read" resource="product_costs">
                           <FormField control={form.control} name="cost_price" render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Inkoopprijs</FormLabel>
+                              <FormLabel>{t('admin.productForm.inkoopprijs')}</FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
@@ -952,7 +954,7 @@ export default function ProductForm() {
                   {/* Inventory & Identification */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Voorraad & Identificatie</CardTitle>
+                      <CardTitle>{t('admin.productForm.voorraad_identificatie')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -966,7 +968,7 @@ export default function ProductForm() {
                         )} />
                         <FormField control={form.control} name="barcode" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Barcode</FormLabel>
+                            <FormLabel>{t('admin.productForm.barcode')}</FormLabel>
                             <FormControl><Input {...field} placeholder="8712345678901" disabled={!canEditCommercial} /></FormControl>
                             <FormDescription>{canEditCommercial ? 'EAN, UPC of GTIN' : adminManagedHint}</FormDescription>
                             <FormMessage />
@@ -977,8 +979,8 @@ export default function ProductForm() {
                       <FormField control={form.control} name="track_inventory" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <FormLabel>Voorraad bijhouden</FormLabel>
-                            <FormDescription>{isDigital ? 'Niet van toepassing voor digitale producten' : 'Houd de voorraad automatisch bij'}</FormDescription>
+                            <FormLabel>{t('admin.productForm.voorraad_bijhouden')}</FormLabel>
+                            <FormDescription>{isDigital ? t('admin.productForm.niet_van_toepassing_voor_digitale_producten') : t('admin.productForm.houd_de_voorraad_automatisch_bij')}</FormDescription>
                           </div>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isDigital && digitalDeliveryType !== 'license_key'} />
@@ -990,7 +992,7 @@ export default function ProductForm() {
                         <div className="grid gap-4 md:grid-cols-2">
                           {id && product?.product_variants && product.product_variants.filter(v => v.is_active).length > 0 ? (
                             <div className="md:col-span-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                              <p className="font-medium text-foreground mb-1">Voorraad wordt per variant beheerd</p>
+                              <p className="font-medium text-foreground mb-1">{t('admin.productForm.voorraad_wordt_per_variant_beheerd')}</p>
                               <p>
                                 Totaal: {product.product_variants.filter(v => v.is_active).reduce((sum, v) => sum + (v.stock || 0), 0)} stuks 
                                 over {product.product_variants.filter(v => v.is_active).length} actieve varianten. 
@@ -1000,7 +1002,7 @@ export default function ProductForm() {
                           ) : (
                             <FormField control={form.control} name="stock" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Huidige voorraad</FormLabel>
+                                <FormLabel>{t('admin.productForm.huidige_voorraad')}</FormLabel>
                                 <FormControl><Input {...field} type="number" min="0" disabled={!canEditStock} /></FormControl>
                                 {!canEditStock && <FormDescription>{adminManagedHint}</FormDescription>}
                                 <FormMessage />
@@ -1009,7 +1011,7 @@ export default function ProductForm() {
                           )}
                           <FormField control={form.control} name="low_stock_threshold" render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Lage voorraad drempel</FormLabel>
+                              <FormLabel>{t('admin.productForm.lage_voorraad_drempel')}</FormLabel>
                               <FormControl><Input {...field} type="number" min="0" disabled={!canEditStock} /></FormControl>
                               <FormDescription>{canEditStock ? 'Ontvang een waarschuwing bij deze voorraad' : adminManagedHint}</FormDescription>
                               <FormMessage />
@@ -1018,8 +1020,8 @@ export default function ProductForm() {
                           <FormField control={form.control} name="allow_backorder" render={({ field }) => (
                             <FormItem className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
                               <div>
-                                <FormLabel>Backorders toestaan</FormLabel>
-                                <FormDescription>Klanten kunnen bestellen als uitverkocht</FormDescription>
+                                <FormLabel>{t('admin.productForm.backorders_toestaan')}</FormLabel>
+                                <FormDescription>{t('admin.productForm.klanten_kunnen_bestellen_als_uitverkocht')}</FormDescription>
                               </div>
                               <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
@@ -1030,8 +1032,8 @@ export default function ProductForm() {
                       <FormField control={form.control} name="requires_shipping" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <FormLabel>Verzending vereist</FormLabel>
-                            <FormDescription>{isDigital ? 'Digitale producten vereisen geen verzending' : 'Dit is een fysiek product'}</FormDescription>
+                            <FormLabel>{t('admin.productForm.verzending_vereist')}</FormLabel>
+                            <FormDescription>{isDigital ? t('admin.productForm.digitale_producten_vereisen_geen_verzending') : t('admin.productForm.dit_is_een_fysiek_product')}</FormDescription>
                           </div>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isDigital || productType === 'service'} />
@@ -1042,7 +1044,7 @@ export default function ProductForm() {
                       {form.watch('requires_shipping') && (
                         <FormField control={form.control} name="weight" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Gewicht (kg)</FormLabel>
+                            <FormLabel>{t('admin.products.specs.dimensionsFields.gewicht_kg')}</FormLabel>
                             <FormControl><Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1058,8 +1060,8 @@ export default function ProductForm() {
                         <Card>
                           <CardContent className="py-12 text-center">
                             <Download className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium">Sla eerst het product op</h3>
-                            <p className="text-muted-foreground mt-2">Je kunt digitale bestanden en licentiecodes toevoegen nadat het product is opgeslagen.</p>
+                            <h3 className="text-lg font-medium">{t('admin.productForm.sla_eerst_het_product_op')}</h3>
+                            <p className="text-muted-foreground mt-2">{t('admin.productForm.je_kunt_digitale_bestanden_en_licentiecodes')}</p>
                           </CardContent>
                         </Card>
                       ) : (
@@ -1067,8 +1069,8 @@ export default function ProductForm() {
                           {(digitalDeliveryType === 'download' || digitalDeliveryType === 'email_attachment') && (
                             <Card>
                               <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Digitale bestanden</CardTitle>
-                                <CardDescription>Upload de bestanden die klanten kunnen downloaden na aankoop</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />{t('admin.productForm.digitale_bestanden')}</CardTitle>
+                                <CardDescription>{t('admin.productForm.upload_de_bestanden_die_klanten_kunnen')}</CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
                                 <div className="flex items-center justify-center w-full">
@@ -1079,8 +1081,8 @@ export default function ProductForm() {
                                       ) : (
                                         <>
                                           <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                                          <p className="text-sm text-muted-foreground"><span className="font-semibold">Klik om te uploaden</span> of sleep bestanden hierheen</p>
-                                          <p className="text-xs text-muted-foreground">PDF, ZIP, MP3, MP4, EPUB, etc. (max. 100MB)</p>
+                                          <p className="text-sm text-muted-foreground"><span className="font-semibold">{t('admin.productForm.klik_om_te_uploaden')}</span> {t('admin.productForm.of_sleep_bestanden_hierheen')}</p>
+                                          <p className="text-xs text-muted-foreground">{t('admin.productForm.pdf_zip_mp3_mp4_epub_etc')}</p>
                                         </>
                                       )}
                                     </div>
@@ -1097,14 +1099,14 @@ export default function ProductForm() {
                                           <p className="text-sm text-muted-foreground">{formatFileSize(file.file_size)} • Versie {file.version}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          {file.is_preview && <Badge variant="secondary"><Eye className="h-3 w-3 mr-1" />Preview</Badge>}
+                                          {file.is_preview && <Badge variant="secondary"><Eye className="h-3 w-3 mr-1" />{t('admin.marketing.emailPreview.preview')}</Badge>}
                                           <Button type="button" variant="ghost" size="icon" onClick={() => deleteFile.mutate(file.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </div>
                                       </div>
                                     ))}
                                   </div>
                                 )}
-                                {files.length === 0 && !filesLoading && <p className="text-center text-muted-foreground py-8">Nog geen bestanden geüpload</p>}
+                                {files.length === 0 && !filesLoading && <p className="text-center text-muted-foreground py-8">{t('admin.productForm.nog_geen_bestanden_geupload')}</p>}
                               </CardContent>
                             </Card>
                           )}
@@ -1112,29 +1114,29 @@ export default function ProductForm() {
                           {digitalDeliveryType === 'license_key' && (
                             <Card>
                               <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" />Licentiecodes</CardTitle>
-                                <CardDescription>Beheer de licentiecodes die worden toegewezen bij aankoop</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" />{t('admin.productForm.licentiecodes')}</CardTitle>
+                                <CardDescription>{t('admin.productForm.beheer_de_licentiecodes_die_worden_toegewezen')}</CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                   <div className="bg-muted/50 rounded-lg p-4 text-center">
                                     <p className="text-2xl font-bold text-green-600">{availableCount}</p>
-                                    <p className="text-sm text-muted-foreground">Beschikbaar</p>
+                                    <p className="text-sm text-muted-foreground">{t('admin.productForm.beschikbaar')}</p>
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-4 text-center">
                                     <p className="text-2xl font-bold">{assignedCount}</p>
-                                    <p className="text-sm text-muted-foreground">Toegewezen</p>
+                                    <p className="text-sm text-muted-foreground">{t('admin.productForm.toegewezen')}</p>
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-4 text-center">
                                     <p className="text-2xl font-bold">{keys.length}</p>
-                                    <p className="text-sm text-muted-foreground">Totaal</p>
+                                    <p className="text-sm text-muted-foreground">{t('common.total')}</p>
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>Licentiecodes toevoegen</Label>
-                                  <Textarea value={licenseInput} onChange={(e) => setLicenseInput(e.target.value)} placeholder="Voer licentiecodes in, één per regel..." rows={4} />
+                                  <Label>{t('admin.productForm.licentiecodes_toevoegen')}</Label>
+                                  <Textarea value={licenseInput} onChange={(e) => setLicenseInput(e.target.value)} placeholder={t('admin.productForm.voer_licentiecodes_in_een_per_regel')} rows={4} />
                                   <Button type="button" onClick={handleAddLicenseKeys} disabled={!licenseInput.trim() || addKeys.isPending}>
-                                    <Plus className="h-4 w-4 mr-2" />Toevoegen
+                                    <Plus className="h-4 w-4 mr-2" />{t('common.add')}
                                   </Button>
                                 </div>
                                 {keys.length > 0 && (
@@ -1143,7 +1145,7 @@ export default function ProductForm() {
                                       <div key={key.id} className="flex items-center gap-4 p-3">
                                         <code className="flex-1 text-sm font-mono truncate">{key.license_key}</code>
                                         <Badge variant={key.status === 'available' ? 'default' : key.status === 'assigned' ? 'secondary' : 'destructive'}>
-                                          {key.status === 'available' ? 'Beschikbaar' : key.status === 'assigned' ? 'Toegewezen' : 'Ingetrokken'}
+                                          {key.status === 'available' ? t('admin.productForm.beschikbaar') : key.status === 'assigned' ? t('admin.productForm.toegewezen') : t('admin.productForm.ingetrokken')}
                                         </Badge>
                                         {key.status === 'available' && (
                                           <Button type="button" variant="ghost" size="icon" onClick={() => deleteKey.mutate(key.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -1152,7 +1154,7 @@ export default function ProductForm() {
                                     ))}
                                   </div>
                                 )}
-                                {keys.length === 0 && !keysLoading && <p className="text-center text-muted-foreground py-8">Nog geen licentiecodes toegevoegd</p>}
+                                {keys.length === 0 && !keysLoading && <p className="text-center text-muted-foreground py-8">{t('admin.productForm.nog_geen_licentiecodes_toegevoegd')}</p>}
                               </CardContent>
                             </Card>
                           )}
@@ -1165,12 +1167,12 @@ export default function ProductForm() {
                   {isGiftCard && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" />Cadeaukaart configuratie</CardTitle>
-                        <CardDescription>Stel de beschikbare bedragen en opties in voor deze cadeaukaart</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" />{t('admin.productForm.cadeaukaart_configuratie')}</CardTitle>
+                        <CardDescription>{t('admin.productForm.stel_de_beschikbare_bedragen_en_opties')}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-6">
                         <div className="space-y-3">
-                          <Label>Vaste bedragen</Label>
+                          <Label>{t('admin.productForm.vaste_bedragen')}</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
                             {(form.watch('gift_card_denominations') || []).map((amount: number, index: number) => (
                               <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
@@ -1183,7 +1185,7 @@ export default function ProductForm() {
                             ))}
                           </div>
                           <div className="flex gap-2">
-                            <Input type="number" min="1" step="0.01" placeholder="Nieuw bedrag (bijv. 25)" value={denominationInput} onChange={(e) => setDenominationInput(e.target.value)} className="max-w-[200px]" />
+                            <Input type="number" min="1" step="0.01" placeholder={t('admin.productForm.nieuw_bedrag_bijv_25')} value={denominationInput} onChange={(e) => setDenominationInput(e.target.value)} className="max-w-[200px]" />
                             <Button type="button" variant="outline" onClick={() => {
                               const amount = parseFloat(denominationInput);
                               if (amount > 0) {
@@ -1193,16 +1195,16 @@ export default function ProductForm() {
                                 }
                                 setDenominationInput('');
                               }
-                            }}><Plus className="h-4 w-4 mr-1" />Toevoegen</Button>
+                            }}><Plus className="h-4 w-4 mr-1" />{t('common.add')}</Button>
                           </div>
-                          <p className="text-sm text-muted-foreground">Voeg de vaste bedragen toe die klanten kunnen kiezen</p>
+                          <p className="text-sm text-muted-foreground">{t('admin.productForm.voeg_de_vaste_bedragen_toe_die')}</p>
                         </div>
 
                         <FormField control={form.control} name="gift_card_allow_custom" render={({ field }) => (
                           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-base">Vrij bedrag toestaan</FormLabel>
-                              <FormDescription>Laat klanten een eigen bedrag kiezen binnen de grenzen</FormDescription>
+                              <FormLabel className="text-base">{t('admin.productForm.vrij_bedrag_toestaan')}</FormLabel>
+                              <FormDescription>{t('admin.productForm.laat_klanten_een_eigen_bedrag_kiezen')}</FormDescription>
                             </div>
                             <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                           </FormItem>
@@ -1212,14 +1214,14 @@ export default function ProductForm() {
                           <div className="grid gap-4 md:grid-cols-2">
                             <FormField control={form.control} name="gift_card_min_amount" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Minimum bedrag</FormLabel>
+                                <FormLabel>{t('admin.productForm.minimum_bedrag')}</FormLabel>
                                 <FormControl><Input {...field} type="number" min="1" step="0.01" value={field.value ?? 10} /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )} />
                             <FormField control={form.control} name="gift_card_max_amount" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Maximum bedrag</FormLabel>
+                                <FormLabel>{t('admin.productForm.maximum_bedrag')}</FormLabel>
                                 <FormControl><Input {...field} type="number" min="1" step="0.01" value={field.value ?? 500} /></FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1229,26 +1231,26 @@ export default function ProductForm() {
 
                         <FormField control={form.control} name="gift_card_design_id" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Standaard ontwerp</FormLabel>
+                            <FormLabel>{t('admin.productForm.standaard_ontwerp')}</FormLabel>
                             <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Selecteer een ontwerp" /></SelectTrigger></FormControl>
+                              <FormControl><SelectTrigger><SelectValue placeholder={t('admin.productForm.selecteer_een_ontwerp')} /></SelectTrigger></FormControl>
                               <SelectContent>
-                                <SelectItem value="none">Geen standaard ontwerp</SelectItem>
+                                <SelectItem value="none">{t('admin.productForm.geen_standaard_ontwerp')}</SelectItem>
                                 {giftCardDesigns.filter(d => d.is_active).map((design) => (
                                   <SelectItem key={design.id} value={design.id}>{design.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                            <FormDescription>Klanten kunnen bij aankoop ook een ander ontwerp kiezen</FormDescription>
+                            <FormDescription>{t('admin.productForm.klanten_kunnen_bij_aankoop_ook_een')}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )} />
 
                         <FormField control={form.control} name="gift_card_expiry_months" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Geldigheid (maanden)</FormLabel>
-                            <FormControl><Input {...field} type="number" min="1" placeholder="Onbeperkt geldig" value={field.value ?? ''} /></FormControl>
-                            <FormDescription>Laat leeg voor onbeperkte geldigheid</FormDescription>
+                            <FormLabel>{t('admin.productForm.geldigheid_maanden')}</FormLabel>
+                            <FormControl><Input {...field} type="number" min="1" placeholder={t('admin.productForm.onbeperkt_geldig')} value={field.value ?? ''} /></FormControl>
+                            <FormDescription>{t('admin.productForm.laat_leeg_voor_onbeperkte_geldigheid')}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -1260,13 +1262,13 @@ export default function ProductForm() {
                   {isBundle && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Bundel configuratie</CardTitle>
-                        <CardDescription>Stel de producten en het prijsmodel voor deze bundel in</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />{t('admin.productForm.bundel_configuratie')}</CardTitle>
+                        <CardDescription>{t('admin.productForm.stel_de_producten_en_het_prijsmodel')}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-6">
                         {/* Pricing model */}
                         <div className="space-y-3">
-                          <Label className="text-base font-medium">Prijsmodel</Label>
+                          <Label className="text-base font-medium">{t('admin.productForm.prijsmodel')}</Label>
                           <div className="grid grid-cols-2 gap-3">
                             <button
                               type="button"
@@ -1280,8 +1282,8 @@ export default function ProductForm() {
                                 bundlePricingModel === 'fixed' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/25'
                               )}
                             >
-                              <div className="font-medium">Vaste bundelprijs</div>
-                              <div className="text-sm text-muted-foreground mt-1">Je stelt zelf een totaalprijs in</div>
+                              <div className="font-medium">{t('admin.productForm.vaste_bundelprijs')}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{t('admin.productForm.je_stelt_zelf_een_totaalprijs_in')}</div>
                             </button>
                             <button
                               type="button"
@@ -1291,8 +1293,8 @@ export default function ProductForm() {
                                 bundlePricingModel === 'dynamic' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/25'
                               )}
                             >
-                              <div className="font-medium">Dynamische prijs</div>
-                              <div className="text-sm text-muted-foreground mt-1">Som van individuele productprijzen</div>
+                              <div className="font-medium">{t('admin.productForm.dynamische_prijs')}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{t('admin.productForm.som_van_individuele_productprijzen')}</div>
                             </button>
                           </div>
                         </div>
@@ -1302,14 +1304,14 @@ export default function ProductForm() {
                           <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
                             <FormField control={form.control} name="price" render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Vaste bundelprijs *</FormLabel>
+                                <FormLabel>{t('admin.productForm.vaste_bundelprijs_2')}</FormLabel>
                                 <FormControl>
                                   <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
                                     <Input {...field} type="number" step="0.01" min="0" className="pl-7" />
                                   </div>
                                 </FormControl>
-                                <FormDescription>De totaalprijs waarvoor de bundel wordt verkocht</FormDescription>
+                                <FormDescription>{t('admin.productForm.de_totaalprijs_waarvoor_de_bundel_wordt')}</FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )} />
@@ -1319,26 +1321,26 @@ export default function ProductForm() {
                         {/* Dynamic pricing discount */}
                         {bundlePricingModel === 'dynamic' && (
                           <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
-                            <Label className="text-sm font-medium">Bundelkorting (optioneel)</Label>
+                            <Label className="text-sm font-medium">{t('admin.productForm.bundelkorting_optioneel')}</Label>
                             <div className="grid gap-4 md:grid-cols-2">
                               <div>
-                                <Label className="text-sm">Type korting</Label>
+                                <Label className="text-sm">{t('admin.productForm.type_korting')}</Label>
                                 <Select
                                   value={form.watch('bundle_discount_type') || 'none'}
                                   onValueChange={(value) => form.setValue('bundle_discount_type', value === 'none' ? null : value as 'percentage' | 'fixed_amount', { shouldDirty: true })}
                                 >
-                                  <SelectTrigger><SelectValue placeholder="Geen korting" /></SelectTrigger>
+                                  <SelectTrigger><SelectValue placeholder={t('admin.productForm.geen_korting_2')} /></SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="none">Geen korting</SelectItem>
-                                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                                    <SelectItem value="fixed_amount">Vast bedrag (&euro;)</SelectItem>
+                                    <SelectItem value="none">{t('admin.productForm.geen_korting')}</SelectItem>
+                                    <SelectItem value="percentage">{t('admin.productForm.percentage')}</SelectItem>
+                                    <SelectItem value="fixed_amount">{t('admin.productForm.vast_bedrag_euro')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
                               {form.watch('bundle_discount_type') && (
                                 <FormField control={form.control} name="bundle_discount_value" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{form.watch('bundle_discount_type') === 'percentage' ? 'Korting (%)' : 'Korting (\u20AC)'}</FormLabel>
+                                    <FormLabel>{form.watch('bundle_discount_type') === 'percentage' ? t('admin.productForm.korting') : t('admin.productForm.korting_u20ac')}</FormLabel>
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -1359,21 +1361,21 @@ export default function ProductForm() {
 
                         {/* Bundle items */}
                         <div className="space-y-3">
-                          <Label className="text-base font-medium">Bundel inhoud</Label>
+                          <Label className="text-base font-medium">{t('admin.productForm.bundel_inhoud')}</Label>
 
                           {/* Product search */}
                           <Popover open={bundlePopoverOpen} onOpenChange={setBundlePopoverOpen}>
                             <PopoverTrigger asChild>
                               <Button type="button" variant="outline" role="combobox" className="w-full justify-start text-muted-foreground font-normal">
                                 <Plus className="mr-2 h-4 w-4" />
-                                Zoek product om toe te voegen...
+                                {t('admin.productForm.zoek_product_om_toe_te_voegen')}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                               <Command>
-                                <CommandInput placeholder="Zoek op productnaam..." />
+                                <CommandInput placeholder={t('admin.seo.imageAltTextPanel.zoek_op_productnaam')} />
                                 <CommandList>
-                                  <CommandEmpty>Geen producten gevonden</CommandEmpty>
+                                  <CommandEmpty>{t('admin.marketing.productSelectDialog.geen_producten_gevonden')}</CommandEmpty>
                                   <CommandGroup>
                                     {allProducts
                                       .filter(p =>
@@ -1432,7 +1434,7 @@ export default function ProductForm() {
                           {bundleItemsState.length === 0 ? (
                             <div className="text-center py-8 border-2 border-dashed rounded-lg">
                               <Layers className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                              <p className="text-sm text-muted-foreground">Nog geen producten toegevoegd aan de bundel</p>
+                              <p className="text-sm text-muted-foreground">{t('admin.productForm.nog_geen_producten_toegevoegd_aan_de')}</p>
                             </div>
                           ) : (
                             <div className="space-y-3">
@@ -1449,7 +1451,7 @@ export default function ProductForm() {
                                       <div className="text-sm text-muted-foreground">&euro;{(item.child_product?.price || 0).toFixed(2)} per stuk</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <Label className="text-sm whitespace-nowrap">Aantal:</Label>
+                                      <Label className="text-sm whitespace-nowrap">{t('admin.productForm.aantal')}</Label>
                                       <Input
                                         type="number"
                                       min="0"
@@ -1471,8 +1473,8 @@ export default function ProductForm() {
                                   {/* Customer can adjust toggle */}
                                   <div className="flex items-center justify-between rounded-lg border p-3">
                                     <div>
-                                      <div className="text-sm font-medium">Klant kan hoeveelheid aanpassen</div>
-                                      <div className="text-xs text-muted-foreground">De klant kan de hoeveelheid in de winkel wijzigen</div>
+                                      <div className="text-sm font-medium">{t('admin.productForm.klant_kan_hoeveelheid_aanpassen')}</div>
+                                      <div className="text-xs text-muted-foreground">{t('admin.productForm.de_klant_kan_de_hoeveelheid_in')}</div>
                                     </div>
                                     <Switch
                                       checked={item.customer_can_adjust}
@@ -1488,11 +1490,11 @@ export default function ProductForm() {
                                   {item.customer_can_adjust && (
                                     <div className="grid grid-cols-2 gap-3 pl-4">
                                       <div>
-                                        <Label className="text-sm">Minimum</Label>
+                                        <Label className="text-sm">{t('admin.productForm.minimum')}</Label>
                                         <Input
                                           type="number"
                                           min="0"
-                                          placeholder="Geen limiet"
+                                          placeholder={t('admin.productForm.geen_limiet')}
                                           value={item.min_quantity ?? ''}
                                           onChange={(e) => {
                                             const val = e.target.value ? Math.max(0, parseInt(e.target.value)) : null;
@@ -1501,11 +1503,11 @@ export default function ProductForm() {
                                         />
                                       </div>
                                       <div>
-                                        <Label className="text-sm">Maximum</Label>
+                                        <Label className="text-sm">{t('admin.productForm.maximum')}</Label>
                                         <Input
                                           type="number"
                                           min="1"
-                                          placeholder="Geen limiet"
+                                          placeholder={t('admin.productForm.geen_limiet_2')}
                                           value={item.max_quantity ?? ''}
                                           onChange={(e) => {
                                             const val = e.target.value ? Math.max(1, parseInt(e.target.value)) : null;
@@ -1522,14 +1524,14 @@ export default function ProductForm() {
                               {bundlePricingModel === 'dynamic' && (
                                 <div className="rounded-lg bg-muted/50 p-3 text-sm">
                                   <div className="flex justify-between">
-                                    <span>Som individuele prijzen:</span>
+                                    <span>{t('admin.productForm.som_individuele_prijzen')}</span>
                                     <span className="font-medium">
                                       &euro;{bundleItemsState.reduce((sum, item) => sum + (item.child_product?.price || 0) * item.quantity, 0).toFixed(2)}
                                     </span>
                                   </div>
                                   {form.watch('bundle_discount_type') && form.watch('bundle_discount_value') && (
                                     <div className="flex justify-between text-green-600 mt-1">
-                                      <span>Bundelkorting:</span>
+                                      <span>{t('admin.productForm.bundelkorting')}</span>
                                       <span>
                                         -{form.watch('bundle_discount_type') === 'percentage'
                                           ? `${form.watch('bundle_discount_value')}%`
@@ -1550,8 +1552,8 @@ export default function ProductForm() {
                   {isEditing && id ? (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Varianten</CardTitle>
-                        <CardDescription>Beheer productvarianten zoals maat, kleur, etc.</CardDescription>
+                        <CardTitle>{t('admin.productForm.varianten')}</CardTitle>
+                        <CardDescription>{t('admin.productForm.beheer_productvarianten_zoals_maat_kleur_etc')}</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} defaultPrice={form.watch('price')} />
@@ -1560,7 +1562,7 @@ export default function ProductForm() {
                   ) : (
                     <Card>
                       <CardContent className="py-8 text-center">
-                        <p className="text-muted-foreground">Sla het product eerst op om varianten te beheren</p>
+                        <p className="text-muted-foreground">{t('admin.productForm.sla_het_product_eerst_op_om')}</p>
                       </CardContent>
                     </Card>
                   )}
@@ -1569,8 +1571,8 @@ export default function ProductForm() {
                   {isTicket && (isEditing && id ? (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Events & Datums</CardTitle>
-                        <CardDescription>Beheer de datums, tijden en capaciteit van dit evenement.</CardDescription>
+                        <CardTitle>{t('admin.productForm.events_datums')}</CardTitle>
+                        <CardDescription>{t('admin.productForm.beheer_de_datums_tijden_en_capaciteit')}</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <ProductEventDatesTab productId={id} regularPrice={Number(form.watch('price')) || 0} />
@@ -1579,10 +1581,10 @@ export default function ProductForm() {
                   ) : (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Events & Datums</CardTitle>
+                        <CardTitle>{t('admin.productForm.events_datums_2')}</CardTitle>
                       </CardHeader>
                       <CardContent className="py-8 text-center">
-                        <p className="text-muted-foreground">Sla het product eerst op om datums te beheren</p>
+                        <p className="text-muted-foreground">{t('admin.productForm.sla_het_product_eerst_op_om_2')}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -1598,8 +1600,8 @@ export default function ProductForm() {
                   {/* Images */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Afbeeldingen</CardTitle>
-                      <CardDescription>Upload afbeeldingen of kies uit je mediabibliotheek</CardDescription>
+                      <CardTitle>{t('admin.marketing.promoKitResult.afbeeldingen')}</CardTitle>
+                      <CardDescription>{t('admin.productForm.upload_afbeeldingen_of_kies_uit_je')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -1611,8 +1613,8 @@ export default function ProductForm() {
                               ) : (
                                 <>
                                   <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                                  <p className="text-sm text-muted-foreground text-center"><span className="font-semibold">Klik om te uploaden</span></p>
-                                  <p className="text-xs text-muted-foreground">PNG, JPG, WebP of GIF</p>
+                                  <p className="text-sm text-muted-foreground text-center"><span className="font-semibold">{t('admin.productForm.klik_om_te_uploaden_2')}</span></p>
+                                  <p className="text-xs text-muted-foreground">{t('admin.productForm.png_jpg_webp_of_gif')}</p>
                                 </>
                               )}
                             </div>
@@ -1626,7 +1628,7 @@ export default function ProductForm() {
                           onClick={() => setLibraryPickerOpen(true)}
                         >
                           <Library className="mr-2 h-4 w-4" />
-                          Kies uit bibliotheek
+                          {t('admin.products.variantExtraImagesDialog.kies_uit_bibliotheek')}
                         </Button>
                         {form.watch('images').length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1635,24 +1637,24 @@ export default function ProductForm() {
                                 "relative group aspect-square rounded-lg overflow-hidden border-2",
                                 form.watch('featured_image') === url ? "border-primary" : "border-transparent"
                               )}>
-                                <img src={url} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
+                                <img src={url} alt={t('admin.productForm.product_nummer', { number: index + 1 })} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title="Maak hoofdafbeelding">
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title={t('admin.productForm.maak_hoofdafbeelding')}>
                                     <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
                                   </Button>
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => { setImageEditorUrl(url); setImageEditorOpen(true); }} title="AI bewerken">
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => { setImageEditorUrl(url); setImageEditorOpen(true); }} title={t('admin.productForm.ai_bewerken')}>
                                     <Wand2 className="h-4 w-4" />
                                   </Button>
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title="Downloaden">
+                                  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title={t('admin.marketing.mediaAssetsLibrary.downloaden')}>
                                     <Download className="h-4 w-4" />
                                   </Button>
-                                  <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title="Verwijderen">
+                                  <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title={t('common.delete')}>
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </div>
                                 {form.watch('featured_image') === url && (
                                   <div className="absolute top-2 left-2">
-                                    <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">Hoofd</span>
+                                    <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">{t('admin.products.productPhotosManager.hoofd')}</span>
                                   </div>
                                 )}
                               </div>
@@ -1666,11 +1668,11 @@ export default function ProductForm() {
                   {/* Organisation */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Organisatie</CardTitle>
+                      <CardTitle>{t('admin.seo.structuredDataPreview.organisatie')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Categorieën</Label>
+                        <Label>{t('admin.marketing.mediaAssetsLibrary.folders.categorie_n')}</Label>
                         <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
                           <PopoverTrigger asChild>
                             <Button type="button" variant="outline" className="w-full justify-start font-normal">
@@ -1681,9 +1683,9 @@ export default function ProductForm() {
                           </PopoverTrigger>
                           <PopoverContent className="w-[320px] p-0" align="start">
                             <Command shouldFilter={true}>
-                              <CommandInput placeholder="Zoek categorie..." value={categorySearchQuery} onValueChange={setCategorySearchQuery} />
+                              <CommandInput placeholder={t('admin.productForm.zoek_categorie')} value={categorySearchQuery} onValueChange={setCategorySearchQuery} />
                               <CommandList>
-                                <CommandEmpty>Geen categorieën gevonden</CommandEmpty>
+                                <CommandEmpty>{t('admin.seo.sEOCategoryTable.geen_categorieen_gevonden')}</CommandEmpty>
                                 <CommandGroup>
                                   {flatCategoryTree.map(({ category: cat, level, path }) => {
                                     const isSelected = selectedCategoryIds.includes(cat.id);
@@ -1704,7 +1706,7 @@ export default function ProductForm() {
                                           <span className={level === 0 ? 'font-medium' : ''}>{cat.name}</span>
                                         </span>
                                         {isSelected && selectedCategoryIds[0] === cat.id && (
-                                          <Badge variant="secondary" className="ml-auto text-xs shrink-0">Primair</Badge>
+                                          <Badge variant="secondary" className="ml-auto text-xs shrink-0">{t('admin.seo.keywordResearchPanel.primair')}</Badge>
                                         )}
                                       </CommandItem>
                                     );
@@ -1722,7 +1724,7 @@ export default function ProductForm() {
                               return (
                                 <Badge key={catId} variant={index === 0 ? 'default' : 'secondary'} className="gap-1">
                                   {categoryPath}
-                                  {index === 0 && <span className="text-xs opacity-70">(primair)</span>}
+                                  {index === 0 && <span className="text-xs opacity-70">{t('admin.productForm.primair')}</span>}
                                   <button type="button" onClick={() => setSelectedCategoryIds(prev => prev.filter(id => id !== catId))} className="hover:text-destructive">
                                     <X className="h-3 w-3" />
                                   </button>
@@ -1733,10 +1735,10 @@ export default function ProductForm() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label>Tags</Label>
+                        <Label>{t('admin.marketing.segmentBuilder.tags')}</Label>
                         <div className="flex gap-2">
-                          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Voeg tag toe" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-                          <Button type="button" variant="secondary" onClick={addTag}>Toevoegen</Button>
+                          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder={t('admin.productForm.voeg_tag_toe')} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+                          <Button type="button" variant="secondary" onClick={addTag}>{t('common.add')}</Button>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {form.watch('tags').map((tag) => (
@@ -1753,14 +1755,14 @@ export default function ProductForm() {
                   {/* Status */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Status</CardTitle>
+                      <CardTitle>{t('common.status')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <FormField control={form.control} name="is_active" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <FormLabel>Actief</FormLabel>
-                            <FormDescription>Product is zichtbaar in de winkel</FormDescription>
+                            <FormLabel>{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
+                            <FormDescription>{t('admin.productForm.product_is_zichtbaar_in_de_winkel')}</FormDescription>
                           </div>
                           <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
@@ -1768,8 +1770,8 @@ export default function ProductForm() {
                       <FormField control={form.control} name="hide_from_storefront" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <FormLabel>Verbergen op webshop</FormLabel>
-                            <FormDescription>Niet zichtbaar online, wel via POS</FormDescription>
+                            <FormLabel>{t('admin.productForm.verbergen_op_webshop')}</FormLabel>
+                            <FormDescription>{t('admin.productForm.niet_zichtbaar_online_wel_via_pos')}</FormDescription>
                           </div>
                           <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
@@ -1777,8 +1779,8 @@ export default function ProductForm() {
                       <FormField control={form.control} name="is_featured" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <FormLabel>Uitgelicht</FormLabel>
-                            <FormDescription>Toon op homepage en in speciale secties</FormDescription>
+                            <FormLabel>{t('admin.productForm.uitgelicht')}</FormLabel>
+                            <FormDescription>{t('admin.productForm.toon_op_homepage_en_in_speciale')}</FormDescription>
                           </div>
                           <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
@@ -1790,7 +1792,7 @@ export default function ProductForm() {
                   <Card>
                     <CardHeader>
                       <CardTitle>SEO</CardTitle>
-                      <CardDescription>Zoekmachine optimalisatie</CardDescription>
+                      <CardDescription>{t('admin.productForm.zoekmachine_optimalisatie')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border">
@@ -1802,7 +1804,7 @@ export default function ProductForm() {
                       <FormField control={form.control} name="meta_title" render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center gap-1">
-                            <FormLabel>Meta titel</FormLabel>
+                            <FormLabel>{t('admin.productForm.meta_titel')}</FormLabel>
                             <AIFieldAssistant
                               fieldType="meta_title"
                               currentValue={field.value}
@@ -1819,7 +1821,7 @@ export default function ProductForm() {
                       <FormField control={form.control} name="meta_description" render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center gap-1">
-                            <FormLabel>Meta beschrijving</FormLabel>
+                            <FormLabel>{t('admin.productForm.meta_beschrijving')}</FormLabel>
                             <AIFieldAssistant
                               fieldType="meta_description"
                               currentValue={field.value}
@@ -1834,7 +1836,7 @@ export default function ProductForm() {
                         </FormItem>
                       )} />
                       <div className="rounded-lg border p-4 bg-muted/30">
-                        <p className="text-sm font-medium text-muted-foreground mb-2">Voorbeeld</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">{t('admin.marketing.templateDialog.voorbeeld')}</p>
                         <div className="space-y-1">
                           <p className="text-blue-600 text-sm hover:underline cursor-pointer truncate">{form.watch('meta_title') || form.watch('name') || 'Product titel'}</p>
                           <p className="text-xs text-green-700 truncate">jouwwinkel.nl/producten/{form.watch('slug') || 'product-slug'}</p>
@@ -1844,10 +1846,10 @@ export default function ProductForm() {
                       <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
                         <div className="flex items-center gap-2">
                           <Languages className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Vertalingen</span>
+                      <span className="text-sm font-medium">{t('admin.productForm.vertalingen_2')}</span>
                     </div>
                     <Link to="/admin/marketing/translations">
-                      <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />Vertaal Hub</Button>
+                      <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />{t('admin.productForm.vertaal_hub')}</Button>
                     </Link>
                   </div>
                 </CardContent>
@@ -1864,7 +1866,7 @@ export default function ProductForm() {
               ) : (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">Sla het product eerst op om vertalingen te beheren</p>
+                    <p className="text-muted-foreground">{t('admin.productForm.sla_het_product_eerst_op_om_3')}</p>
                   </CardContent>
                 </Card>
               )}
@@ -1880,7 +1882,7 @@ export default function ProductForm() {
               ) : (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">Sla het product eerst op om marketplace instellingen te configureren</p>
+                    <p className="text-muted-foreground">{t('admin.productForm.sla_het_product_eerst_op_om_4')}</p>
                   </CardContent>
                 </Card>
               )}
@@ -1897,7 +1899,7 @@ export default function ProductForm() {
               ) : (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">Sla het product eerst op om advertentie-instellingen te configureren</p>
+                    <p className="text-muted-foreground">{t('admin.productForm.sla_het_product_eerst_op_om_5')}</p>
                   </CardContent>
                 </Card>
               )}

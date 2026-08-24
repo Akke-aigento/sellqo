@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface SocialMetaData {
   og_title?: string | null;
@@ -46,6 +47,7 @@ export function SocialMediaPreview({
   isGenerating,
   isLoading,
 }: SocialMediaPreviewProps) {
+  const { t } = useTranslation();
   const [activePreview, setActivePreview] = useState('facebook');
 
   const displayTitle = socialMeta?.og_title || title;
@@ -77,7 +79,7 @@ export function SocialMediaPreview({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <ExternalLink className="h-5 w-5" />
-            Social Media Preview
+            {t('admin.seo.socialMediaPreview.social_media_preview')}
           </CardTitle>
           {onGenerateSocialMeta && (
             <Button 
@@ -87,7 +89,7 @@ export function SocialMediaPreview({
               disabled={isGenerating}
             >
               <Wand2 className="h-4 w-4 mr-2" />
-              {isGenerating ? 'Genereren...' : 'AI Genereren'}
+              {isGenerating ? t('admin.marketing.aIImageGenerator.genereren') : t('admin.seo.socialMediaPreview.ai_genereren')}
             </Button>
           )}
         </div>
@@ -142,7 +144,7 @@ export function SocialMediaPreview({
             </TabsTrigger>
             <TabsTrigger value="twitter" className="gap-2">
               <Twitter className="h-4 w-4" />
-              Twitter
+              {t('admin.seo.socialMediaPreview.twitter')}
             </TabsTrigger>
             <TabsTrigger value="linkedin" className="gap-2">
               <Linkedin className="h-4 w-4" />
@@ -241,11 +243,11 @@ export function SocialMediaPreview({
 
         {/* Tips */}
         <div className="p-3 rounded-lg bg-muted/50 text-sm">
-          <p className="font-medium mb-1">Tips voor social media:</p>
+          <p className="font-medium mb-1">{t('admin.seo.socialMediaPreview.tips_voor_social_media')}</p>
           <ul className="text-muted-foreground space-y-1">
-            <li>• Houd de titel onder 60 tekens voor optimale weergave</li>
-            <li>• Gebruik een afbeelding van minimaal 1200x630 pixels</li>
-            <li>• Voeg een duidelijke call-to-action toe in de beschrijving</li>
+            <li>{t('admin.seo.socialMediaPreview.houd_de_titel_onder_60_tekens')}</li>
+            <li>{t('admin.seo.socialMediaPreview.gebruik_een_afbeelding_van_minimaal_1200x630')}</li>
+            <li>{t('admin.seo.socialMediaPreview.voeg_een_duidelijke_call_to_action')}</li>
           </ul>
         </div>
       </CardContent>

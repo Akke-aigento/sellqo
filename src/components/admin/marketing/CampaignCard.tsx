@@ -1,5 +1,4 @@
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { MoreHorizontal, Send, Eye, Trash2, Edit, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { EmailCampaign, CampaignStatus } from '@/types/marketing';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface CampaignCardProps {
   campaign: EmailCampaign;
@@ -20,16 +21,18 @@ interface CampaignCardProps {
   onSend: (id: string) => void;
 }
 
-const statusConfig: Record<CampaignStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  draft: { label: 'Concept', variant: 'secondary' },
-  scheduled: { label: 'Gepland', variant: 'outline' },
-  sending: { label: 'Verzenden...', variant: 'default' },
-  sent: { label: 'Verzonden', variant: 'default' },
-  paused: { label: 'Gepauzeerd', variant: 'outline' },
-  cancelled: { label: 'Geannuleerd', variant: 'destructive' },
+const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+  draft: { labelKey: 'admin.marketing.campaignCard.status.concept', variant: 'secondary' },
+  scheduled: { labelKey: 'admin.marketing.campaignCard.status.gepland', variant: 'outline' },
+  sending: { labelKey: 'admin.marketing.campaignCard.status.verzenden', variant: 'default' },
+  sent: { labelKey: 'admin.marketing.campaignCard.status.verzonden', variant: 'default' },
+  paused: { labelKey: 'admin.marketing.campaignCard.status.gepauzeerd', variant: 'outline' },
+  cancelled: { labelKey: 'admin.marketing.campaignCard.status.geannuleerd', variant: 'destructive' },
 };
 
 export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
 
@@ -56,7 +59,7 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
           </CardDescription>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <Badge variant={status.variant}>{t(status.labelKey)}</Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -66,17 +69,17 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}`)}>
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Bekijk analytics
+                {t('admin.marketing.campaignCard.bekijk_analytics')}
               </DropdownMenuItem>
               {campaign.status === 'draft' && (
                 <>
                   <DropdownMenuItem onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}/edit`)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Bewerken
+                    {t('common.edit')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onSend(campaign.id)}>
                     <Send className="mr-2 h-4 w-4" />
-                    Nu verzenden
+                    {t('admin.marketing.campaignCard.nu_verzenden')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -86,7 +89,7 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
                 onClick={() => onDelete(campaign.id)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Verwijderen
+                {t('common.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -97,17 +100,17 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
           <div className="flex items-center gap-4">
             {campaign.segment && (
               <span className="text-muted-foreground">
-                Segment: <span className="font-medium text-foreground">{campaign.segment.name}</span>
+                {t('admin.marketing.campaignCard.segment')} <span className="font-medium text-foreground">{campaign.segment.name}</span>
               </span>
             )}
             {campaign.sent_at && (
               <span className="text-muted-foreground">
-                Verzonden: {format(new Date(campaign.sent_at), 'PPp', { locale: nl })}
+                Verzonden: {format(new Date(campaign.sent_at), 'PPp', { locale: dateLocale })}
               </span>
             )}
             {campaign.scheduled_at && campaign.status === 'scheduled' && (
               <span className="text-muted-foreground">
-                Gepland: {format(new Date(campaign.scheduled_at), 'PPp', { locale: nl })}
+                Gepland: {format(new Date(campaign.scheduled_at), 'PPp', { locale: dateLocale })}
               </span>
             )}
           </div>
@@ -120,11 +123,11 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-purple-600">{openRate}%</div>
-                <div className="text-xs text-muted-foreground">open rate</div>
+                <div className="text-xs text-muted-foreground">{t('admin.marketing.campaignCard.open_rate')}</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-orange-600">{clickRate}%</div>
-                <div className="text-xs text-muted-foreground">click rate</div>
+                <div className="text-xs text-muted-foreground">{t('admin.marketing.campaignCard.click_rate')}</div>
               </div>
             </div>
           )}

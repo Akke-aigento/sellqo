@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Wallet, Trash2, Pencil, Check, X, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,10 +22,14 @@ import {
 import { useTenant } from '@/hooks/useTenant';
 import { formatCurrency } from '@/lib/utils';
 import { useCustomerLedger, type LedgerEntry } from '@/hooks/useCustomerLedger';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const currency = currentTenant?.currency || 'EUR';
   const {
@@ -153,8 +156,8 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
       {/* Balance card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Openstaand saldo</CardTitle>
-          <CardDescription>Privé kladblok — enkel zichtbaar voor platform-admins</CardDescription>
+          <CardTitle className="text-base">{t('admin.giftCards.openstaand_saldo')}</CardTitle>
+          <CardDescription>{t('admin.customers.customerLedgerTab.prive_kladblok_enkel_zichtbaar_voor_platform')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div
@@ -170,12 +173,12 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
       {/* Add entry */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Mutatie toevoegen</CardTitle>
+          <CardTitle className="text-base">{t('admin.customers.customerLedgerTab.mutatie_toevoegen')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
             <div className="sm:col-span-3">
-              <Label htmlFor="ledger-date" className="sr-only">Datum</Label>
+              <Label htmlFor="ledger-date" className="sr-only">{t('common.date')}</Label>
               <Input
                 id="ledger-date"
                 type="date"
@@ -184,7 +187,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
               />
             </div>
             <div className="sm:col-span-3">
-              <Label htmlFor="ledger-amount" className="sr-only">Bedrag</Label>
+              <Label htmlFor="ledger-amount" className="sr-only">{t('admin.promotions.giftCardBalanceDialog.bedrag')}</Label>
               <Input
                 id="ledger-amount"
                 type="number"
@@ -194,17 +197,17 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 placeholder="-150.00"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Negatief = kost, positief = betaling
+                {t('admin.customers.customerLedgerTab.negatief_positief')}
               </p>
             </div>
             <div className="sm:col-span-4">
-              <Label htmlFor="ledger-note" className="sr-only">Notitie</Label>
+              <Label htmlFor="ledger-note" className="sr-only">{t('admin.stockLedger.colNote')}</Label>
               <Input
                 id="ledger-note"
                 type="text"
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Betaling ontvangen"
+                placeholder={t('admin.customers.customerLedgerTab.betaling_ontvangen')}
               />
             </div>
             <div className="sm:col-span-2">
@@ -214,7 +217,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 disabled={createEntry.isPending || !newAmount}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Toevoegen
+                {t('common.add')}
               </Button>
             </div>
           </div>
@@ -224,7 +227,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
       {/* Entries table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Mutaties</CardTitle>
+          <CardTitle className="text-base">{t('admin.customers.customerLedgerTab.mutaties')}</CardTitle>
           <CardDescription>{entries.length} mutatie(s)</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 sm:px-6">
@@ -237,15 +240,15 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nog geen mutaties</p>
+              <p>{t('admin.customers.customerLedgerTab.nog_geen_mutaties')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">Datum</TableHead>
-                  <TableHead>Notitie</TableHead>
-                  <TableHead className="text-right w-[140px]">Bedrag</TableHead>
+                  <TableHead className="w-[140px]">{t('common.date')}</TableHead>
+                  <TableHead>{t('admin.stockLedger.colNote')}</TableHead>
+                  <TableHead className="text-right w-[140px]">{t('admin.promotions.giftCardBalanceDialog.bedrag')}</TableHead>
                   <TableHead className="w-[110px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -263,7 +266,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                             onChange={(ev) => setEditDate(ev.target.value)}
                           />
                         ) : (
-                          format(parseISO(e.entry_date), 'd MMM yyyy', { locale: nl })
+                          format(parseISO(e.entry_date), 'd MMM yyyy', { locale: dateLocale })
                         )}
                       </TableCell>
                       <TableCell>
@@ -321,17 +324,17 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Mutatie verwijderen?</AlertDialogTitle>
+                                    <AlertDialogTitle>{t('admin.customers.customerLedgerTab.mutatie_verwijderen')}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Deze actie kan niet ongedaan gemaakt worden.
+                                      {t('admin.customers.customerLedgerTab.deze_actie_kan_niet_ongedaan_gemaakt')}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => deleteEntry.mutate({ id: e.id })}
                                     >
-                                      Verwijderen
+                                      {t('common.delete')}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -352,21 +355,21 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
       {/* Recurring block */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Vaste kost</CardTitle>
-          <CardDescription>Herhalend maandbedrag (of ander interval)</CardDescription>
+          <CardTitle className="text-base">{t('admin.customers.customerLedgerTab.vaste_kost')}</CardTitle>
+          <CardDescription>{t('admin.customers.customerLedgerTab.herhalend_maandbedrag_of_ander_interval')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!rec && !showRecurringForm && (
             <Button variant="outline" onClick={() => setShowRecurringForm(true)}>
               <Plus className="h-4 w-4 mr-1" />
-              Vaste kost instellen
+              {t('admin.customers.customerLedgerTab.vaste_kost_instellen')}
             </Button>
           )}
 
           {!rec && showRecurringForm && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Bedrag</Label>
+                <Label>{t('admin.promotions.giftCardBalanceDialog.bedrag')}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -376,16 +379,16 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 />
               </div>
               <div>
-                <Label>Notitie</Label>
+                <Label>{t('admin.stockLedger.colNote')}</Label>
                 <Input
                   type="text"
                   value={rcNote}
                   onChange={(e) => setRcNote(e.target.value)}
-                  placeholder="Maandelijkse fee"
+                  placeholder={t('admin.customers.customerLedgerTab.maandelijkse_fee')}
                 />
               </div>
               <div>
-                <Label>Interval (maanden)</Label>
+                <Label>{t('admin.customers.customerLedgerTab.interval_maanden')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -395,7 +398,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 />
               </div>
               <div>
-                <Label>Startdatum</Label>
+                <Label>{t('admin.ads.bolCampaignEditForm.startdatum')}</Label>
                 <Input
                   type="date"
                   value={rcStart}
@@ -404,10 +407,10 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
               </div>
               <div className="sm:col-span-2 flex gap-2">
                 <Button onClick={handleCreateRecurring} disabled={createRecurring.isPending}>
-                  Opslaan
+                  {t('common.save')}
                 </Button>
                 <Button variant="ghost" onClick={() => setShowRecurringForm(false)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -422,7 +425,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {rec.note || '—'} · elke {rec.interval_months} maand(en) · volgende:{' '}
-                    {format(parseISO(rec.next_date), 'd MMM yyyy', { locale: nl })}
+                    {format(parseISO(rec.next_date), 'd MMM yyyy', { locale: dateLocale })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -434,7 +437,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                       }
                     />
                     <span className="text-sm text-muted-foreground">
-                      {rec.active ? 'Actief' : 'Gepauzeerd'}
+                      {rec.active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.marketing.campaignCard.status.gepauzeerd')}
                     </span>
                   </div>
                   <Button variant="ghost" size="icon" onClick={startEditRecurring}>
@@ -448,15 +451,15 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Vaste kost verwijderen?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('admin.customers.customerLedgerTab.vaste_kost_verwijderen')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Bestaande mutaties blijven staan. Enkel de terugkerende instelling wordt verwijderd.
+                          {t('admin.customers.customerLedgerTab.bestaande_mutaties_blijven_staan_enkel_de')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteRecurring.mutate({ id: rec.id })}>
-                          Verwijderen
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -469,7 +472,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 disabled={!rec.active || applyRecurring.isPending}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Voeg maandbedrag toe
+                {t('admin.customers.customerLedgerTab.voeg_maandbedrag_toe')}
               </Button>
             </div>
           )}
@@ -477,7 +480,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
           {rec && editingRecurringId === rec.id && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Bedrag</Label>
+                <Label>{t('admin.promotions.giftCardBalanceDialog.bedrag')}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -486,7 +489,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 />
               </div>
               <div>
-                <Label>Notitie</Label>
+                <Label>{t('admin.stockLedger.colNote')}</Label>
                 <Input
                   type="text"
                   value={rcNote}
@@ -494,7 +497,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 />
               </div>
               <div>
-                <Label>Interval (maanden)</Label>
+                <Label>{t('admin.customers.customerLedgerTab.interval_maanden_2')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -504,7 +507,7 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
                 />
               </div>
               <div>
-                <Label>Volgende datum</Label>
+                <Label>{t('admin.customers.customerLedgerTab.volgende_datum')}</Label>
                 <Input
                   type="date"
                   value={rcStart}
@@ -513,10 +516,10 @@ export function CustomerLedgerTab({ customerId }: { customerId?: string }) {
               </div>
               <div className="sm:col-span-2 flex gap-2">
                 <Button onClick={saveEditRecurring} disabled={updateRecurring.isPending}>
-                  Opslaan
+                  {t('common.save')}
                 </Button>
                 <Button variant="ghost" onClick={() => setEditingRecurringId(null)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>

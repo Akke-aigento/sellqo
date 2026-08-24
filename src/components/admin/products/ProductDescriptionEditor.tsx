@@ -27,6 +27,7 @@ import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ProductDescriptionEditorProps {
   value: string;
@@ -43,6 +44,7 @@ export function ProductDescriptionEditor({
   aiContext,
   onSeoGenerated,
 }: ProductDescriptionEditorProps) {
+  const { t } = useTranslation();
   const [charCount, setCharCount] = useState(0);
 
   const editor = useEditor({
@@ -56,7 +58,7 @@ export function ProductDescriptionEditor({
         HTMLAttributes: { class: 'max-w-full rounded-lg' },
       }),
       Placeholder.configure({
-        placeholder: 'Schrijf een uitgebreide productbeschrijving...',
+        placeholder: t('admin.products.productDescriptionEditor.schrijf_een_uitgebreide_productbeschrijving'),
       }),
     ],
     content: value || '',
@@ -112,58 +114,58 @@ export function ProductDescriptionEditor({
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-muted/30">
         {/* Text styles */}
-        <Toggle size="sm" pressed={editor.isActive('bold')} onPressedChange={() => editor.chain().focus().toggleBold().run()} aria-label="Vet">
+        <Toggle size="sm" pressed={editor.isActive('bold')} onPressedChange={() => editor.chain().focus().toggleBold().run()} aria-label={t('admin.products.productDescriptionEditor.vet')}>
           <Bold className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('italic')} onPressedChange={() => editor.chain().focus().toggleItalic().run()} aria-label="Cursief">
+        <Toggle size="sm" pressed={editor.isActive('italic')} onPressedChange={() => editor.chain().focus().toggleItalic().run()} aria-label={t('admin.products.productDescriptionEditor.cursief')}>
           <Italic className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('underline')} onPressedChange={() => editor.chain().focus().toggleUnderline().run()} aria-label="Onderstrepen">
+        <Toggle size="sm" pressed={editor.isActive('underline')} onPressedChange={() => editor.chain().focus().toggleUnderline().run()} aria-label={t('admin.products.productDescriptionEditor.onderstrepen')}>
           <UnderlineIcon className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('strike')} onPressedChange={() => editor.chain().focus().toggleStrike().run()} aria-label="Doorhalen">
+        <Toggle size="sm" pressed={editor.isActive('strike')} onPressedChange={() => editor.chain().focus().toggleStrike().run()} aria-label={t('admin.products.productDescriptionEditor.doorhalen')}>
           <Strikethrough className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('code')} onPressedChange={() => editor.chain().focus().toggleCode().run()} aria-label="Code">
+        <Toggle size="sm" pressed={editor.isActive('code')} onPressedChange={() => editor.chain().focus().toggleCode().run()} aria-label={t('admin.products.productDescriptionEditor.code')}>
           <Code className="h-4 w-4" />
         </Toggle>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Headings */}
-        <Toggle size="sm" pressed={editor.isActive('heading', { level: 2 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} aria-label="Kop 2">
+        <Toggle size="sm" pressed={editor.isActive('heading', { level: 2 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} aria-label={t('admin.products.productDescriptionEditor.kop_2')}>
           <Heading2 className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('heading', { level: 3 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} aria-label="Kop 3">
+        <Toggle size="sm" pressed={editor.isActive('heading', { level: 3 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} aria-label={t('admin.products.productDescriptionEditor.kop_3')}>
           <Heading3 className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('heading', { level: 4 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} aria-label="Kop 4">
+        <Toggle size="sm" pressed={editor.isActive('heading', { level: 4 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} aria-label={t('admin.products.productDescriptionEditor.kop_4')}>
           <Heading4 className="h-4 w-4" />
         </Toggle>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Lists & blocks */}
-        <Toggle size="sm" pressed={editor.isActive('bulletList')} onPressedChange={() => editor.chain().focus().toggleBulletList().run()} aria-label="Opsommingslijst">
+        <Toggle size="sm" pressed={editor.isActive('bulletList')} onPressedChange={() => editor.chain().focus().toggleBulletList().run()} aria-label={t('admin.products.productDescriptionEditor.opsommingslijst')}>
           <List className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('orderedList')} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()} aria-label="Genummerde lijst">
+        <Toggle size="sm" pressed={editor.isActive('orderedList')} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()} aria-label={t('admin.products.productDescriptionEditor.genummerde_lijst')}>
           <ListOrdered className="h-4 w-4" />
         </Toggle>
-        <Toggle size="sm" pressed={editor.isActive('blockquote')} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()} aria-label="Citaat">
+        <Toggle size="sm" pressed={editor.isActive('blockquote')} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()} aria-label={t('admin.products.productDescriptionEditor.citaat')}>
           <Quote className="h-4 w-4" />
         </Toggle>
-        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().setHorizontalRule().run()} className="h-8 w-8 p-0" aria-label="Horizontale lijn">
+        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().setHorizontalRule().run()} className="h-8 w-8 p-0" aria-label={t('admin.products.productDescriptionEditor.horizontale_lijn')}>
           <Minus className="h-4 w-4" />
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Link & Image */}
-        <Button type="button" variant="ghost" size="sm" onClick={addLink} className="h-8 w-8 p-0" aria-label="Link">
+        <Button type="button" variant="ghost" size="sm" onClick={addLink} className="h-8 w-8 p-0" aria-label={t('admin.products.productDescriptionEditor.link')}>
           <LinkIcon className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={addImage} className="h-8 w-8 p-0" aria-label="Afbeelding">
+        <Button type="button" variant="ghost" size="sm" onClick={addImage} className="h-8 w-8 p-0" aria-label={t('admin.seo.sEOCategoryTable.afbeelding')}>
           <ImageIcon className="h-4 w-4" />
         </Button>
 
@@ -187,10 +189,10 @@ export function ProductDescriptionEditor({
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Undo/Redo */}
-        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="h-8 w-8 p-0" aria-label="Ongedaan maken">
+        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="h-8 w-8 p-0" aria-label={t('admin.products.productDescriptionEditor.ongedaan_maken')}>
           <Undo className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="h-8 w-8 p-0" aria-label="Opnieuw">
+        <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="h-8 w-8 p-0" aria-label={t('admin.products.productDescriptionEditor.opnieuw')}>
           <Redo className="h-4 w-4" />
         </Button>
       </div>

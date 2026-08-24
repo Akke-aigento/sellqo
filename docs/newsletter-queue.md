@@ -4,6 +4,70 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10s — De marketingwerkplek in vijf talen (improvement, 24-08-2026)
+
+**Voor wie:** elke tenant die met een marketingcollega werkt, en zeker wie
+teamleden heeft die geen Nederlands spreken.
+
+Werk je met een marketingcollega die geen Nederlands spreekt? Elk scherm dat de
+marketingrol kan openen staat nu volledig in het Nederlands, Engels, Frans,
+Duits en Oekraïens: het dashboard, de inbox, bestellingen, producten, klanten,
+campagnes, SEO, advertenties, promoties, de vertaalhub en analytics. Dat gaat om
+ruim 200 schermen en zo'n 2.500 teksten — knoppen, labels, tabbladen,
+foutmeldingen en de meldingen die na een actie verschijnen. Ook de teksten in
+keuzelijsten, statusbadges en formuliervalidatie zijn meegenomen.
+
+Je stelt de taal per gebruiker in bij je profiel. Iedereen ziet de admin dus in
+zijn eigen taal, ongeacht de taal van je webshop.
+
+En passant is een oud ongemak weg: datums in de admin stonden altijd in het
+Nederlands, ook als je de admin in het Frans of Duits gebruikte. Je zag dan
+"maandag 4 maart" of "3 dagen geleden" midden in een Franse pagina. Dag- en
+maandnamen en relatieve tijdsaanduidingen volgen nu de taal die je zelf hebt
+ingesteld.
+
+Bedragen blijven wél in het Nederlandse formaat staan, met een komma als
+decimaalteken. Dat is bewust: je facturen, exports en boekhoudkoppeling
+gebruiken hetzelfde formaat, en dat mag niet per gebruiker verschillen.
+
+**i18n-keys:** `public.changelog.changes.marketing_role_multilingual` en
+`public.changelog.changes.admin_dates_follow_language` in
+`src/i18n/locales/landing.{nl,en,fr,de,uk}.json`.
+
+**In-app documentatie:** het doc-artikel "De taal van je admin instellen"
+(slug `admin-taal-instellen`, context `/admin/settings`).
+
+### 2026.10r — De menukaart maakt nu je posts (feature + security, 21-08-2026)
+
+**Eén klik en je ochtendmenu ligt uitgewerkt op tafel** (oktober 2026)
+Boven in het tabblad Menukaart staat nu "Menu van vandaag". Sellqo AI werkt je ochtendmenu in één
+keer uit tot kant-en-klare kaarten: per categorie een tekst met hashtags, in het formaat dat er het
+beste bij past — post, reel, verhaal of carrousel. Elke kaart zie je als preview zoals hij op het
+kanaal zou landen, dus een te lange tekst voor een verhaal valt meteen op. De categorie "verras me"
+kiest zelf een invalshoek op basis van je merk-DNA en wat er in je winkel speelt, en vertelt erbij
+waarom. Per kaart kies je: klaarzetten als concept, bijstellen of weggooien.
+Wat betekent dit voor jou? Een heel menu kost 5 credits, ongeacht het aantal kaarten. Beeld wordt
+niet automatisch gemaakt — dat vraag je per kaart aan voor 5 credits, zodat je alleen betaalt voor
+wat je gebruikt.
+
+**Twee AI-functies strenger afgeschermd** (oktober 2026)
+Beeldgeneratie en de marketinginzichten controleerden wel of je ingelogd was, maar niet bij welke
+winkel je hoort. Dat is dichtgezet: beide controleren nu je toegang tot de winkel én je rol. Aan het
+gebruik verandert niets.
+
+**i18n-keys.** `public.changelog.changes.ai_daily_menu_generator` en
+`public.changelog.changes.ai_image_tenant_check` — KLAARZETTEN, nog niet verstuurd.
+
+**LET OP bij verzending.** Niet schrijven dat het menu zichzelf elke ochtend klaarzet: er is nog
+géén planning of automatische ronde, het blijft voorlopig een knop. De tekst hierboven vermijdt die
+claim bewust. Ook niet beloven dat posts automatisch gepubliceerd worden — kiezen levert een
+concept, publiceren doet de tenant zelf via het gekoppelde kanaal.
+
+**Beschikbaarheid.** Alleen Pro en Enterprise (`social_commerce`).
+
+**Bundel:** hoort bij 2026.10q. Die twee samen versturen als één verhaal over de menukaart — het
+q-item is het fundament, dit item maakt het bruikbaar.
+
 ### 2026.10q — Merk-DNA en ochtendmenu in Sellqo AI (feature, 20-08-2026)
 
 **Je merk-DNA en ochtendmenu leg je nu zelf vast** (oktober 2026)

@@ -27,57 +27,65 @@ import { ProductSocialChannels } from './ProductSocialChannels';
 import { ListingProtectionBadge } from './ListingProtectionBadge';
 import { ListingUpdateConfirmDialog } from './ListingUpdateConfirmDialog';
 import type { Product } from '@/types/product';
+import { useTranslation } from 'react-i18next';
 
 interface ProductMarketplaceTabProps {
   product: Product;
   onRefresh?: () => void;
 }
 
+// Labels staan als i18n-key; `value` is de marketplace-API-waarde.
 const BOL_DELIVERY_CODES = [
-  { value: '24uurs-21', label: '24 uur (besteld voor 21:00)' },
-  { value: '24uurs-23', label: '24 uur (besteld voor 23:00)' },
-  { value: '1-2d', label: '1-2 werkdagen' },
-  { value: '2-3d', label: '2-3 werkdagen' },
-  { value: '3-5d', label: '3-5 werkdagen' },
-  { value: '4-8d', label: '4-8 werkdagen' },
-  { value: '1-8d', label: '1-8 werkdagen' },
+  { value: '24uurs-21', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.24uurs_21' },
+  { value: '24uurs-23', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.24uurs_23' },
+  { value: '1-2d', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.1_2d' },
+  { value: '2-3d', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.2_3d' },
+  { value: '3-5d', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.3_5d' },
+  { value: '4-8d', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.4_8d' },
+  { value: '1-8d', labelKey: 'admin.marketplace.productMarketplaceTab.bol_delivery_codes.1_8d' },
 ];
 
+// Labels staan als i18n-key; `value` is de marketplace-API-waarde.
 const BOL_CONDITIONS = [
-  { value: 'NEW', label: 'Nieuw' },
-  { value: 'AS_NEW', label: 'Als nieuw' },
-  { value: 'GOOD', label: 'Goed' },
-  { value: 'REASONABLE', label: 'Redelijk' },
-  { value: 'MODERATE', label: 'Matig' },
+  { value: 'NEW', labelKey: 'admin.marketplace.productMarketplaceTab.bol_conditions.new' },
+  { value: 'AS_NEW', labelKey: 'admin.marketplace.productMarketplaceTab.bol_conditions.as_new' },
+  { value: 'GOOD', labelKey: 'admin.marketplace.productMarketplaceTab.bol_conditions.good' },
+  { value: 'REASONABLE', labelKey: 'admin.marketplace.productMarketplaceTab.bol_conditions.reasonable' },
+  { value: 'MODERATE', labelKey: 'admin.marketplace.productMarketplaceTab.bol_conditions.moderate' },
 ];
 
+// Labels staan als i18n-key; `value` is de marketplace-API-waarde.
 const BOL_FULFILLMENT = [
-  { value: 'FBR', label: 'Zelf verzenden (FBR)' },
-  { value: 'FBB', label: 'Logistiek via Bol (LVB)' },
+  { value: 'FBR', labelKey: 'admin.marketplace.productMarketplaceTab.bol_fulfillment.fbr' },
+  { value: 'FBB', labelKey: 'admin.marketplace.productMarketplaceTab.bol_fulfillment.fbb' },
 ];
 
+// Labels staan als i18n-key; `value` is de marketplace-API-waarde.
 const AMAZON_CONDITIONS = [
-  { value: 'new', label: 'Nieuw' },
-  { value: 'used_like_new', label: 'Gebruikt - Als nieuw' },
-  { value: 'used_very_good', label: 'Gebruikt - Zeer goed' },
-  { value: 'used_good', label: 'Gebruikt - Goed' },
-  { value: 'used_acceptable', label: 'Gebruikt - Acceptabel' },
+  { value: 'new', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_conditions.new' },
+  { value: 'used_like_new', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_conditions.used_like_new' },
+  { value: 'used_very_good', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_conditions.used_very_good' },
+  { value: 'used_good', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_conditions.used_good' },
+  { value: 'used_acceptable', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_conditions.used_acceptable' },
 ];
 
+// Labels staan als i18n-key; `value` is de marketplace-API-waarde.
 const AMAZON_FULFILLMENT = [
-  { value: 'MFN', label: 'Zelf verzenden (FBM)' },
-  { value: 'AFN', label: 'Door Amazon (FBA)' },
+  { value: 'MFN', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_fulfillment.mfn' },
+  { value: 'AFN', labelKey: 'admin.marketplace.productMarketplaceTab.amazon_fulfillment.afn' },
 ];
 
+// Labels staan als i18n-key; `value` is de eBay-API-waarde.
 const EBAY_CONDITIONS = [
-  { value: 'NEW', label: 'Nieuw' },
-  { value: 'USED_EXCELLENT', label: 'Gebruikt - Uitstekend' },
-  { value: 'USED_VERY_GOOD', label: 'Gebruikt - Zeer goed' },
-  { value: 'USED_GOOD', label: 'Gebruikt - Goed' },
-  { value: 'USED_ACCEPTABLE', label: 'Gebruikt - Acceptabel' },
+  { value: 'NEW', labelKey: 'admin.marketplace.productMarketplaceTab.ebay_conditions.new' },
+  { value: 'USED_EXCELLENT', labelKey: 'admin.marketplace.productMarketplaceTab.ebay_conditions.used_excellent' },
+  { value: 'USED_VERY_GOOD', labelKey: 'admin.marketplace.productMarketplaceTab.ebay_conditions.used_very_good' },
+  { value: 'USED_GOOD', labelKey: 'admin.marketplace.productMarketplaceTab.ebay_conditions.used_good' },
+  { value: 'USED_ACCEPTABLE', labelKey: 'admin.marketplace.productMarketplaceTab.ebay_conditions.used_acceptable' },
 ];
 
 export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplaceTabProps) {
+  const { t, i18n } = useTranslation();
   const { getConnectionByType } = useMarketplaceConnections();
   const { 
     optimizeContent, 
@@ -391,7 +399,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     // Validate EAN
     if (!eanValidation.isValid) {
       toast({
-        title: 'Ongeldige EAN',
+        title: t('admin.marketplace.productMarketplaceTab.ongeldige_ean'),
         description: eanValidation.message,
         variant: 'destructive',
       });
@@ -401,8 +409,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     // Warn about zero stock
     if ((product.stock ?? 0) === 0) {
       toast({
-        title: 'Waarschuwing',
-        description: 'Je publiceert met 0 voorraad. Het product wordt direct als uitverkocht getoond.',
+        title: t('admin.marketplace.productMarketplaceTab.waarschuwing'),
+        description: t('admin.marketplace.productMarketplaceTab.je_publiceert_met_0_voorraad_het'),
         variant: 'default',
       });
     }
@@ -451,13 +459,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       
       if (data.success && data.offerId) {
         toast({
-          title: 'Offer ID gevonden',
-          description: `Offer ID ${data.offerId.slice(0, 8)}... is automatisch opgeslagen`,
+          title: t('admin.marketplace.productMarketplaceTab.offer_id_gevonden'),
+          description: t('admin.marketplace.productMarketplaceTab.offer_id_opgeslagen', { id: data.offerId.slice(0, 8) }),
         });
         onRefresh?.();
       } else {
         toast({
-          title: 'Geen Offer ID gevonden',
+          title: t('admin.marketplace.productMarketplaceTab.geen_offer_id_gevonden'),
           description: data.error || 'Zorg dat het product al op Bol.com staat met deze EAN.',
           variant: 'destructive',
         });
@@ -465,8 +473,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     } catch (error) {
       console.error('Lookup error:', error);
       toast({
-        title: 'Fout bij opzoeken',
-        description: 'Kon Offer ID niet ophalen. Probeer het later opnieuw.',
+        title: t('admin.marketplace.productMarketplaceTab.fout_bij_opzoeken'),
+        description: t('admin.marketplace.productMarketplaceTab.kon_offer_id_niet_ophalen_probeer'),
         variant: 'destructive',
       });
     } finally {
@@ -496,23 +504,23 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       case 'listed':
         return (
           <Badge className="bg-green-500 hover:bg-green-600">
-            <CheckCircle2 className="h-3 w-3 mr-1" /> Actief
+            <CheckCircle2 className="h-3 w-3 mr-1" /> {t('admin.marketing.aBTestingPanel.actief')}
           </Badge>
         );
       case 'pending':
         return (
           <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200">
-            <Clock className="h-3 w-3 mr-1" /> Wordt verwerkt
+            <Clock className="h-3 w-3 mr-1" /> {t('admin.marketplace.productMarketplaceTab.wordt_verwerkt')}
           </Badge>
         );
       case 'error':
         return (
           <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" /> Fout
+            <XCircle className="h-3 w-3 mr-1" /> {t('admin.adsProductMap.fout')}
           </Badge>
         );
       default:
-        return <Badge variant="outline">Niet gepubliceerd</Badge>;
+        return <Badge variant="outline">{t('admin.marketplace.productMarketplaceTab.niet_gepubliceerd')}</Badge>;
     }
   };
 
@@ -538,8 +546,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
     // Warn about zero stock
     if ((product.stock ?? 0) === 0) {
       toast({
-        title: 'Waarschuwing',
-        description: 'Je publiceert met 0 voorraad. Het product wordt direct als uitverkocht getoond.',
+        title: t('admin.marketplace.productMarketplaceTab.waarschuwing_2'),
+        description: t('admin.marketplace.productMarketplaceTab.je_publiceert_met_0_voorraad_het_2'),
         variant: 'default',
       });
     }
@@ -624,14 +632,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'Shopify API fout');
 
       toast({
-        title: 'Product gepubliceerd!',
-        description: 'Je product is succesvol gepubliceerd naar Shopify',
+        title: t('admin.marketplace.productMarketplaceTab.product_gepubliceerd'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_succesvol_gepubliceerd_naar'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Publicatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        title: t('admin.marketplace.productMarketplaceTab.publicatie_mislukt'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_publiceren'),
         variant: 'destructive',
       });
     } finally {
@@ -657,14 +665,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'Shopify sync fout');
 
       toast({
-        title: 'Gesynchroniseerd!',
-        description: 'Je product is bijgewerkt in Shopify',
+        title: t('admin.marketplace.productMarketplaceTab.gesynchroniseerd'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_bijgewerkt_in_shopify'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Synchronisatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        title: t('admin.marketplace.productMarketplaceTab.synchronisatie_mislukt'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_synchroniseren'),
         variant: 'destructive',
       });
     } finally {
@@ -706,14 +714,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'WooCommerce API fout');
 
       toast({
-        title: 'Product gepubliceerd!',
-        description: 'Je product is succesvol gepubliceerd naar WooCommerce',
+        title: t('admin.marketplace.productMarketplaceTab.product_gepubliceerd_2'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_succesvol_gepubliceerd_naar_2'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Publicatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        title: t('admin.marketplace.productMarketplaceTab.publicatie_mislukt_2'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_publiceren_2'),
         variant: 'destructive',
       });
     } finally {
@@ -739,14 +747,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'WooCommerce sync fout');
 
       toast({
-        title: 'Gesynchroniseerd!',
-        description: 'Je product is bijgewerkt in WooCommerce',
+        title: t('admin.marketplace.productMarketplaceTab.gesynchroniseerd_2'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_bijgewerkt_in_woocommerce'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Synchronisatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        title: t('admin.marketplace.productMarketplaceTab.synchronisatie_mislukt_2'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_synchroniseren_2'),
         variant: 'destructive',
       });
     } finally {
@@ -788,14 +796,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'Odoo API fout');
 
       toast({
-        title: 'Product gepubliceerd!',
-        description: 'Je product is succesvol gepubliceerd naar Odoo',
+        title: t('admin.marketplace.productMarketplaceTab.product_gepubliceerd_3'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_succesvol_gepubliceerd_naar_3'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Publicatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet publiceren',
+        title: t('admin.marketplace.productMarketplaceTab.publicatie_mislukt_3'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_publiceren_3'),
         variant: 'destructive',
       });
     } finally {
@@ -820,14 +828,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
       if (!data.success) throw new Error(data.error || 'Odoo sync fout');
 
       toast({
-        title: 'Gesynchroniseerd!',
-        description: 'Je product is bijgewerkt in Odoo',
+        title: t('admin.marketplace.productMarketplaceTab.gesynchroniseerd_3'),
+        description: t('admin.marketplace.productMarketplaceTab.je_product_is_bijgewerkt_in_odoo'),
       });
       onRefresh?.();
     } catch (error) {
       toast({
-        title: 'Synchronisatie mislukt',
-        description: error instanceof Error ? error.message : 'Kon product niet synchroniseren',
+        title: t('admin.marketplace.productMarketplaceTab.synchronisatie_mislukt_3'),
+        description: error instanceof Error ? error.message : t('admin.marketplace.productMarketplaceTab.kon_product_niet_synchroniseren_3'),
         variant: 'destructive',
       });
     } finally {
@@ -981,7 +989,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">Bol.com</CardTitle>
                 <CardDescription>
-                  {hasBolConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasBolConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -1010,7 +1018,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen')}</span>
                   <Button 
                     size="sm" 
                     onClick={handleSaveSettings}
@@ -1040,7 +1048,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je aanbieding wordt verwerkt door Bol.com</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_aanbieding_wordt_verwerkt_door_bol')}</span>
                   <Button 
                     size="sm" 
                     variant="outline"
@@ -1064,9 +1072,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <Link2 className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="font-medium text-amber-800 dark:text-amber-200">EAN ingevuld maar Offer ID ontbreekt</span>
+                    <span className="font-medium text-amber-800 dark:text-amber-200">{t('admin.marketplace.productMarketplaceTab.ean_ingevuld_maar_offer_id_ontbreekt')}</span>
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Voorraadsync werkt pas na koppeling met je bestaande Bol.com aanbieding
+                      {t('admin.marketplace.productMarketplaceTab.voorraadsync_werkt_pas_na_koppeling_met')}
                     </p>
                   </div>
                   <Button 
@@ -1079,12 +1087,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {isLookingUpOfferId ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Zoeken...
+                        {t('common.search')}
                       </>
                     ) : (
                       <>
                         <Search className="h-4 w-4 mr-1" />
-                        Offer ID ophalen
+                        {t('admin.marketplace.productMarketplaceTab.offer_id_ophalen')}
                       </>
                     )}
                   </Button>
@@ -1107,7 +1115,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             {/* EAN & Settings */}
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="bol-ean">EAN Code *</Label>
+                <Label htmlFor="bol-ean">{t('admin.marketplace.productMarketplaceTab.ean_code')}</Label>
                 <div className="relative">
                   <Input
                     id="bol-ean"
@@ -1134,11 +1142,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   )}
                 </div>
                 <p className={`text-xs ${bolEan && !eanValidation.isValid ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {bolEan ? eanValidation.message : 'Verplicht voor Bol.com (EAN-13)'}
+                  {bolEan ? eanValidation.message : t('admin.marketplace.productMarketplaceTab.verplicht_voor_bol_com_ean_13')}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Levertijd</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.levertijd')}</Label>
                 <Select 
                   value={bolDeliveryCode} 
                   onValueChange={(value) => handleFieldChange(setBolDeliveryCode, value)}
@@ -1150,14 +1158,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <SelectContent>
                     {BOL_DELIVERY_CODES.map((code) => (
                       <SelectItem key={code.value} value={code.value}>
-                        {code.label}
+                        {t(code.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Conditie</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.conditie')}</Label>
                 <Select 
                   value={bolCondition} 
                   onValueChange={(value) => handleFieldChange(setBolCondition, value)}
@@ -1169,14 +1177,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <SelectContent>
                     {BOL_CONDITIONS.map((cond) => (
                       <SelectItem key={cond.value} value={cond.value}>
-                        {cond.label}
+                        {t(cond.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Verzendmethode</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.verzendmethode')}</Label>
                 <Select 
                   value={bolFulfillment} 
                   onValueChange={(value) => handleFieldChange(setBolFulfillment, value as 'FBR' | 'FBB')}
@@ -1188,7 +1196,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <SelectContent>
                     {BOL_FULFILLMENT.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1205,9 +1213,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Laat AI je productcontent optimaliseren voor Bol.com
+                    {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_2')}
                   </p>
                 </div>
                 <Button
@@ -1226,11 +1234,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Geoptimaliseerde titel</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_titel')}</Label>
                   <Input
                     value={bolOptimizedTitle}
                     onChange={(e) => handleFieldChange(setBolOptimizedTitle, e.target.value)}
-                    placeholder="AI-geoptimaliseerde titel voor Bol.com"
+                    placeholder={t('admin.marketplace.productMarketplaceTab.ai_geoptimaliseerde_titel_voor_bol_com')}
                     maxLength={150}
                   />
                   <p className="text-xs text-muted-foreground text-right">
@@ -1239,7 +1247,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Bullet points (max 5)</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.bullet_points_max_5')}</Label>
                   {[0, 1, 2, 3, 4].map((index) => (
                     <Input
                       key={index}
@@ -1265,7 +1273,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 {product.bol_last_synced_at && (
                   <span>
                     Laatst gesynchroniseerd:{' '}
-                    {new Date(product.bol_last_synced_at).toLocaleString('nl-NL')}
+                    {new Date(product.bol_last_synced_at).toLocaleString(i18n.language)}
                   </span>
                 )}
               </div>
@@ -1341,10 +1349,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="text-center py-6">
               <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
-                Verbind eerst je Bol.com Retailer account om producten te kunnen publiceren
+                {t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_bol_com_retailer')}
               </p>
               <Button variant="outline" asChild>
-                <a href="/admin/connect">Naar Connect</a>
+                <a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect')}</a>
               </Button>
             </div>
           </CardContent>
@@ -1362,7 +1370,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">Amazon</CardTitle>
                 <CardDescription>
-                  {hasAmazonConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasAmazonConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -1391,7 +1399,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_2')}</span>
                   <Button 
                     size="sm" 
                     onClick={handleSaveAmazonSettings}
@@ -1421,7 +1429,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je aanbieding wordt verwerkt door Amazon</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_aanbieding_wordt_verwerkt_door_amazon')}</span>
                   <Button 
                     size="sm" 
                     variant="outline"
@@ -1442,7 +1450,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             {/* ASIN & Settings */}
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="amazon-asin">ASIN (optioneel)</Label>
+                <Label htmlFor="amazon-asin">{t('admin.marketplace.productMarketplaceTab.asin_optioneel')}</Label>
                 <div className="relative">
                   <Input
                     id="amazon-asin"
@@ -1470,11 +1478,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   )}
                 </div>
                 <p className={`text-xs ${amazonAsin && !asinValidation.isValid ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {amazonAsin ? asinValidation.message : 'Laat leeg voor nieuw product'}
+                  {amazonAsin ? asinValidation.message : t('admin.marketplace.productMarketplaceTab.laat_leeg_voor_nieuw_product')}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Conditie</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.conditie_2')}</Label>
                 <Select 
                   value={amazonCondition} 
                   onValueChange={(value) => handleAmazonFieldChange(setAmazonCondition, value)}
@@ -1486,14 +1494,14 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <SelectContent>
                     {AMAZON_CONDITIONS.map((cond) => (
                       <SelectItem key={cond.value} value={cond.value}>
-                        {cond.label}
+                        {t(cond.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Verzendmethode</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.verzendmethode_2')}</Label>
                 <Select 
                   value={amazonFulfillment} 
                   onValueChange={(value) => handleAmazonFieldChange(setAmazonFulfillment, value as 'MFN' | 'AFN')}
@@ -1505,7 +1513,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <SelectContent>
                     {AMAZON_FULFILLMENT.map((ful) => (
                       <SelectItem key={ful.value} value={ful.value}>
-                        {ful.label}
+                        {t(ful.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1519,9 +1527,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_2')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Laat AI je productcontent optimaliseren voor Amazon
+                    {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_3')}
                   </p>
                 </div>
                 <Button
@@ -1540,11 +1548,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Geoptimaliseerde titel</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_titel_2')}</Label>
                   <Input
                     value={amazonOptimizedTitle}
                     onChange={(e) => handleAmazonFieldChange(setAmazonOptimizedTitle, e.target.value)}
-                    placeholder="AI-geoptimaliseerde titel voor Amazon"
+                    placeholder={t('admin.marketplace.productMarketplaceTab.ai_geoptimaliseerde_titel_voor_amazon')}
                     maxLength={200}
                   />
                   <p className="text-xs text-muted-foreground text-right">
@@ -1553,7 +1561,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Bullet points (max 5)</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.bullet_points_max_5_2')}</Label>
                   {[0, 1, 2, 3, 4].map((index) => (
                     <Input
                       key={index}
@@ -1570,11 +1578,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Productomschrijving</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.productomschrijving')}</Label>
                   <Textarea
                     value={amazonOptimizedDescription}
                     onChange={(e) => handleAmazonFieldChange(setAmazonOptimizedDescription, e.target.value)}
-                    placeholder="Uitgebreide productomschrijving voor Amazon..."
+                    placeholder={t('admin.marketplace.productMarketplaceTab.uitgebreide_productomschrijving_voor_amazon')}
                     rows={4}
                     maxLength={2000}
                   />
@@ -1593,7 +1601,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 {product.amazon_last_synced_at && (
                   <span>
                     Laatst gesynchroniseerd:{' '}
-                    {new Date(product.amazon_last_synced_at).toLocaleString('nl-NL')}
+                    {new Date(product.amazon_last_synced_at).toLocaleString(i18n.language)}
                   </span>
                 )}
                 {product.amazon_asin && (
@@ -1674,10 +1682,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="text-center py-6">
               <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
-                Verbind eerst je Amazon Seller Central account om producten te kunnen publiceren
+                {t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_amazon_seller_central')}
               </p>
               <Button variant="outline" asChild>
-                <a href="/admin/connect">Naar Connect</a>
+                <a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect_2')}</a>
               </Button>
             </div>
           </CardContent>
@@ -1695,7 +1703,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">Shopify</CardTitle>
                 <CardDescription>
-                  {hasShopifyConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasShopifyConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -1724,7 +1732,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_3')}</span>
                   <Button 
                     size="sm" 
                     onClick={handleSaveShopifySettings}
@@ -1754,7 +1762,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription>
-                  Je product wordt verwerkt door Shopify...
+                  {t('admin.marketplace.productMarketplaceTab.je_product_wordt_verwerkt_door_shopify')}
                 </AlertDescription>
               </Alert>
             )}
@@ -1763,9 +1771,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_3')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Laat AI je productcontent optimaliseren voor Shopify SEO
+                    {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_4')}
                   </p>
                 </div>
                 <Button
@@ -1784,11 +1792,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>SEO-geoptimaliseerde titel</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.seo_geoptimaliseerde_titel')}</Label>
                   <Input
                     value={shopifyOptimizedTitle}
                     onChange={(e) => handleShopifyFieldChange(setShopifyOptimizedTitle, e.target.value)}
-                    placeholder="AI-geoptimaliseerde titel voor Shopify"
+                    placeholder={t('admin.marketplace.productMarketplaceTab.ai_geoptimaliseerde_titel_voor_shopify')}
                     maxLength={255}
                   />
                   <p className="text-xs text-muted-foreground text-right">
@@ -1797,11 +1805,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>SEO-geoptimaliseerde beschrijving</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.seo_geoptimaliseerde_beschrijving')}</Label>
                   <Textarea
                     value={shopifyOptimizedDescription}
                     onChange={(e) => handleShopifyFieldChange(setShopifyOptimizedDescription, e.target.value)}
-                    placeholder="Uitgebreide productomschrijving voor Shopify..."
+                    placeholder={t('admin.marketplace.productMarketplaceTab.uitgebreide_productomschrijving_voor_shopify')}
                     rows={4}
                     maxLength={5000}
                   />
@@ -1820,7 +1828,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 {product.shopify_last_synced_at && (
                   <span>
                     Laatst gesynchroniseerd:{' '}
-                    {new Date(product.shopify_last_synced_at).toLocaleString('nl-NL')}
+                    {new Date(product.shopify_last_synced_at).toLocaleString(i18n.language)}
                   </span>
                 )}
                 {product.shopify_product_id && (
@@ -1886,10 +1894,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="text-center py-6">
               <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
-                Verbind eerst je Shopify winkel om producten te kunnen publiceren
+                {t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_shopify_winkel_om')}
               </p>
               <Button variant="outline" asChild>
-                <a href="/admin/connect">Naar Connect</a>
+                <a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect_3')}</a>
               </Button>
             </div>
           </CardContent>
@@ -1907,7 +1915,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">WooCommerce</CardTitle>
                 <CardDescription>
-                  {hasWooCommerceConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasWooCommerceConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -1936,7 +1944,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_4')}</span>
                   <Button 
                     size="sm" 
                     onClick={handleSaveWooCommerceSettings}
@@ -1966,7 +1974,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription>
-                  Je product wordt verwerkt door WooCommerce...
+                  {t('admin.marketplace.productMarketplaceTab.je_product_wordt_verwerkt_door_woocommerce')}
                 </AlertDescription>
               </Alert>
             )}
@@ -1975,9 +1983,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_4')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Laat AI je productcontent optimaliseren voor WooCommerce SEO
+                    {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_5')}
                   </p>
                 </div>
                 <Button
@@ -1996,11 +2004,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>SEO-geoptimaliseerde titel</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.seo_geoptimaliseerde_titel_2')}</Label>
                   <Input
                     value={woocommerceOptimizedTitle}
                     onChange={(e) => handleWooCommerceFieldChange(setWoocommerceOptimizedTitle, e.target.value)}
-                    placeholder="AI-geoptimaliseerde titel voor WooCommerce"
+                    placeholder={t('admin.marketplace.productMarketplaceTab.ai_geoptimaliseerde_titel_voor_woocommerce')}
                     maxLength={70}
                   />
                   <p className="text-xs text-muted-foreground text-right">
@@ -2009,11 +2017,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>SEO-geoptimaliseerde beschrijving (HTML)</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.seo_geoptimaliseerde_beschrijving_html')}</Label>
                   <Textarea
                     value={woocommerceOptimizedDescription}
                     onChange={(e) => handleWooCommerceFieldChange(setWoocommerceOptimizedDescription, e.target.value)}
-                    placeholder="Uitgebreide productomschrijving voor WooCommerce..."
+                    placeholder={t('admin.marketplace.productMarketplaceTab.uitgebreide_productomschrijving_voor_woocommerce')}
                     rows={6}
                     maxLength={5000}
                   />
@@ -2032,7 +2040,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 {product.woocommerce_last_synced_at && (
                   <span>
                     Laatst gesynchroniseerd:{' '}
-                    {new Date(product.woocommerce_last_synced_at).toLocaleString('nl-NL')}
+                    {new Date(product.woocommerce_last_synced_at).toLocaleString(i18n.language)}
                   </span>
                 )}
                 {product.woocommerce_product_id && (
@@ -2098,10 +2106,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="text-center py-6">
               <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
-                Verbind eerst je WooCommerce webshop om producten te kunnen publiceren
+                {t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_woocommerce_webshop_om')}
               </p>
               <Button variant="outline" asChild>
-                <a href="/admin/connect">Naar Connect</a>
+                <a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect_4')}</a>
               </Button>
             </div>
           </CardContent>
@@ -2119,7 +2127,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div>
                 <CardTitle className="text-lg">Odoo</CardTitle>
                 <CardDescription>
-                  {hasOdooConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasOdooConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -2141,7 +2149,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_5')}</span>
                   <Button 
                     size="sm" 
                     onClick={handleSaveOdooSettings}
@@ -2171,7 +2179,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription>
-                  Je product wordt verwerkt door Odoo...
+                  {t('admin.marketplace.productMarketplaceTab.je_product_wordt_verwerkt_door_odoo')}
                 </AlertDescription>
               </Alert>
             )}
@@ -2180,9 +2188,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_5')}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Laat AI je productcontent optimaliseren voor Odoo
+                    {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_6')}
                   </p>
                 </div>
                 <Button
@@ -2201,11 +2209,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Geoptimaliseerde titel</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_titel_3')}</Label>
                   <Input
                     value={odooOptimizedTitle}
                     onChange={(e) => handleOdooFieldChange(setOdooOptimizedTitle, e.target.value)}
-                    placeholder="AI-geoptimaliseerde titel voor Odoo"
+                    placeholder={t('admin.marketplace.productMarketplaceTab.ai_geoptimaliseerde_titel_voor_odoo')}
                     maxLength={200}
                   />
                   <p className="text-xs text-muted-foreground text-right">
@@ -2214,11 +2222,11 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Geoptimaliseerde beschrijving</Label>
+                  <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_beschrijving')}</Label>
                   <Textarea
                     value={odooOptimizedDescription}
                     onChange={(e) => handleOdooFieldChange(setOdooOptimizedDescription, e.target.value)}
-                    placeholder="Uitgebreide productomschrijving voor Odoo..."
+                    placeholder={t('admin.marketplace.productMarketplaceTab.uitgebreide_productomschrijving_voor_odoo')}
                     rows={6}
                     maxLength={5000}
                   />
@@ -2237,7 +2245,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 {product.odoo_last_synced_at && (
                   <span>
                     Laatst gesynchroniseerd:{' '}
-                    {new Date(product.odoo_last_synced_at).toLocaleString('nl-NL')}
+                    {new Date(product.odoo_last_synced_at).toLocaleString(i18n.language)}
                   </span>
                 )}
                 {product.odoo_product_id && (
@@ -2303,10 +2311,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="text-center py-6">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground mb-4">
-                Verbind eerst je Odoo ERP om producten te kunnen publiceren
+                {t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_odoo_erp_om')}
               </p>
               <Button variant="outline" asChild>
-                <a href="/admin/connect">Naar Connect</a>
+                <a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect_5')}</a>
               </Button>
             </div>
           </CardContent>
@@ -2322,9 +2330,9 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <ShoppingBag className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div>
-                <CardTitle className="text-lg">eBay</CardTitle>
+                <CardTitle className="text-lg">{t('admin.odooChannels.channels.ebay')}</CardTitle>
                 <CardDescription>
-                  {hasEbayConnection ? 'Verbonden' : 'Niet verbonden - Ga naar Connect om te koppelen'}
+                  {hasEbayConnection ? t('admin.marketplace.productMarketplaceTab.verbonden') : t('admin.marketplace.productMarketplaceTab.niet_verbonden_ga_naar_connect_om')}
                 </CardDescription>
               </div>
             </div>
@@ -2352,7 +2360,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je hebt onopgeslagen wijzigingen</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_6')}</span>
                   <Button size="sm" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
                     {saveMarketplaceSettings.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
                     Opslaan
@@ -2372,7 +2380,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Je product wordt verwerkt door eBay...</span>
+                  <span>{t('admin.marketplace.productMarketplaceTab.je_product_wordt_verwerkt_door_ebay')}</span>
                   <Button size="sm" variant="outline" onClick={handleCheckEbayStatus} disabled={isCheckingEbayStatus}>
                     {isCheckingEbayStatus ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                     Status controleren
@@ -2383,12 +2391,12 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
             {/* Condition */}
             <div className="space-y-2">
-              <Label>Conditie</Label>
+              <Label>{t('admin.marketplace.productMarketplaceTab.conditie_3')}</Label>
               <Select value={ebayCondition} onValueChange={(v) => handleEbayFieldChange(setEbayCondition, v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {EBAY_CONDITIONS.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    <SelectItem key={c.value} value={c.value}>{t(c.labelKey)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2398,8 +2406,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">AI Content Optimalisatie</h4>
-                  <p className="text-sm text-muted-foreground">Laat AI je productcontent optimaliseren voor eBay</p>
+                  <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_6')}</h4>
+                  <p className="text-sm text-muted-foreground">{t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor')}</p>
                 </div>
                 <Button variant="outline" onClick={handleOptimizeEbay} disabled={isOptimizing}>
                   {isOptimizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
@@ -2408,13 +2416,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
 
               <div className="space-y-2">
-                <Label>Geoptimaliseerde titel (max 80 tekens)</Label>
+                <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_titel_max_80_tekens')}</Label>
                 <Input value={ebayOptimizedTitle} onChange={(e) => handleEbayFieldChange(setEbayOptimizedTitle, e.target.value)} maxLength={80} placeholder={product.name} />
               </div>
 
               <div className="space-y-2">
-                <Label>Geoptimaliseerde beschrijving</Label>
-                <Textarea value={ebayOptimizedDescription} onChange={(e) => handleEbayFieldChange(setEbayOptimizedDescription, e.target.value)} rows={4} placeholder="HTML-geformatteerde beschrijving..." />
+                <Label>{t('admin.marketplace.productMarketplaceTab.geoptimaliseerde_beschrijving_2')}</Label>
+                <Textarea value={ebayOptimizedDescription} onChange={(e) => handleEbayFieldChange(setEbayOptimizedDescription, e.target.value)} rows={4} placeholder={t('admin.marketplace.productMarketplaceTab.html_geformatteerde_beschrijving')} />
               </div>
             </div>
 
@@ -2447,8 +2455,8 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
           <CardContent>
             <div className="text-center py-6">
               <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground mb-4">Verbind eerst je eBay account om producten te kunnen publiceren</p>
-              <Button variant="outline" asChild><a href="/admin/connect">Naar Connect</a></Button>
+              <p className="text-muted-foreground mb-4">{t('admin.marketplace.productMarketplaceTab.verbind_eerst_je_ebay_account_om')}</p>
+              <Button variant="outline" asChild><a href="/admin/connect">{t('admin.marketplace.productMarketplaceTab.naar_connect_6')}</a></Button>
             </div>
           </CardContent>
         )}

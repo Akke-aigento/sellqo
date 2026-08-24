@@ -10,8 +10,9 @@ import {
 } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, addDays, setHours, setMinutes } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface SchedulePublishButtonProps {
   onSchedule: (scheduledAt: Date) => Promise<void>;
@@ -24,6 +25,8 @@ export function SchedulePublishButton({
   disabled,
   className 
 }: SchedulePublishButtonProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(addDays(new Date(), 1));
   const [time, setTime] = useState('09:00');
@@ -49,10 +52,10 @@ export function SchedulePublishButton({
   };
 
   const quickOptions = [
-    { label: 'Morgen 9:00', date: setHours(setMinutes(addDays(new Date(), 1), 0), 9) },
-    { label: 'Morgen 12:00', date: setHours(setMinutes(addDays(new Date(), 1), 0), 12) },
-    { label: 'Over 3 dagen', date: setHours(setMinutes(addDays(new Date(), 3), 0), 10) },
-    { label: 'Volgende week', date: setHours(setMinutes(addDays(new Date(), 7), 0), 10) },
+    { label: t('admin.marketing.schedulePublishButton.morgen_9_00'), date: setHours(setMinutes(addDays(new Date(), 1), 0), 9) },
+    { label: t('admin.marketing.schedulePublishButton.morgen_12_00'), date: setHours(setMinutes(addDays(new Date(), 1), 0), 12) },
+    { label: t('admin.marketing.schedulePublishButton.over_3_dagen'), date: setHours(setMinutes(addDays(new Date(), 3), 0), 10) },
+    { label: t('admin.marketing.schedulePublishButton.volgende_week'), date: setHours(setMinutes(addDays(new Date(), 7), 0), 10) },
   ];
 
   return (
@@ -60,13 +63,13 @@ export function SchedulePublishButton({
       <PopoverTrigger asChild>
         <Button variant="outline" className={className} disabled={disabled}>
           <CalendarClock className="h-4 w-4 mr-2" />
-          Inplannen
+          {t('admin.marketing.schedulePublishButton.inplannen')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Snel inplannen</Label>
+            <Label className="text-sm font-medium">{t('admin.marketing.schedulePublishButton.snel_inplannen')}</Label>
             <div className="flex flex-wrap gap-2">
               {quickOptions.map((option) => (
                 <Button
@@ -85,12 +88,12 @@ export function SchedulePublishButton({
           </div>
 
           <div className="border-t pt-4">
-            <Label className="text-sm font-medium mb-2 block">Of kies datum en tijd</Label>
+            <Label className="text-sm font-medium mb-2 block">{t('admin.marketing.schedulePublishButton.of_kies_datum_en_tijd')}</Label>
             <CalendarComponent
               mode="single"
               selected={date}
               onSelect={setDate}
-              locale={nl}
+              locale={dateLocale}
               disabled={(d) => d < new Date()}
               className="rounded-md border"
             />
@@ -108,7 +111,7 @@ export function SchedulePublishButton({
 
           {date && (
             <div className="p-2 rounded bg-muted text-sm">
-              Gepland voor: <strong>{format(date, 'EEEE d MMMM yyyy', { locale: nl })}</strong> om <strong>{time}</strong>
+              {t('admin.marketing.schedulePublishButton.gepland_voor')} <strong>{format(date, 'EEEE d MMMM yyyy', { locale: dateLocale })}</strong> {t('admin.marketing.schedulePublishButton.om')} <strong>{time}</strong>
             </div>
           )}
 

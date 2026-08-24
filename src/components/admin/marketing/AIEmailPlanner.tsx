@@ -26,15 +26,17 @@ import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
 import { ProductSelectDialog } from './ProductSelectDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 type CampaignType = 'newsletter' | 'promotion' | 'win_back' | 'new_product' | 'low_stock' | 'custom';
 
+// Labels staan als i18n-key; `id` blijft de CampaignType-enumwaarde.
 const campaignTypes = [
-  { id: 'newsletter' as CampaignType, name: 'Nieuwsbrief', icon: Mail, description: 'Maandelijkse update', color: 'bg-blue-500', needsProducts: false },
-  { id: 'promotion' as CampaignType, name: 'Promotie', icon: Gift, description: 'Korting of aanbieding', color: 'bg-green-500', needsProducts: true },
-  { id: 'win_back' as CampaignType, name: 'Win-back', icon: Users, description: 'Inactieve klanten', color: 'bg-purple-500', needsProducts: false },
-  { id: 'new_product' as CampaignType, name: 'Nieuw Product', icon: Package, description: 'Productlancering', color: 'bg-pink-500', needsProducts: true },
-  { id: 'low_stock' as CampaignType, name: 'Laatste Kans', icon: AlertTriangle, description: 'Urgentie campagne', color: 'bg-amber-500', needsProducts: false },
+  { id: 'newsletter' as CampaignType, nameKey: 'admin.marketing.aiEmailPlanner.campaignTypes.newsletter.name', icon: Mail, descriptionKey: 'admin.marketing.aiEmailPlanner.campaignTypes.newsletter.description', color: 'bg-blue-500', needsProducts: false },
+  { id: 'promotion' as CampaignType, nameKey: 'admin.marketing.aiEmailPlanner.campaignTypes.promotion.name', icon: Gift, descriptionKey: 'admin.marketing.aiEmailPlanner.campaignTypes.promotion.description', color: 'bg-green-500', needsProducts: true },
+  { id: 'win_back' as CampaignType, nameKey: 'admin.marketing.aiEmailPlanner.campaignTypes.win_back.name', icon: Users, descriptionKey: 'admin.marketing.aiEmailPlanner.campaignTypes.win_back.description', color: 'bg-purple-500', needsProducts: false },
+  { id: 'new_product' as CampaignType, nameKey: 'admin.marketing.aiEmailPlanner.campaignTypes.new_product.name', icon: Package, descriptionKey: 'admin.marketing.aiEmailPlanner.campaignTypes.new_product.description', color: 'bg-pink-500', needsProducts: true },
+  { id: 'low_stock' as CampaignType, nameKey: 'admin.marketing.aiEmailPlanner.campaignTypes.low_stock.name', icon: AlertTriangle, descriptionKey: 'admin.marketing.aiEmailPlanner.campaignTypes.low_stock.description', color: 'bg-amber-500', needsProducts: false },
 ];
 
 interface EmailContentResult {
@@ -53,6 +55,7 @@ interface AIEmailPlannerProps {
 }
 
 export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEmailPlannerProps) {
+  const { t, i18n } = useTranslation();
   const [campaignType, setCampaignType] = useState<CampaignType>(initialCampaignType || 'newsletter');
   const [segmentId, setSegmentId] = useState<string>('');
   const [customPrompt, setCustomPrompt] = useState('');
@@ -72,7 +75,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
 
   const creditCost = getCreditCost('email_content');
   const canGenerate = hasCredits(creditCost);
-  const selectedType = campaignTypes.find(t => t.id === campaignType);
+  const selectedType = campaignTypes.find((type) => type.id === campaignType);
   const needsProducts = selectedType?.needsProducts;
 
   const handleGenerate = async () => {
@@ -124,16 +127,16 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">
               <Mail className="h-4 w-4 text-white" />
             </div>
-            AI Email Planner
+            {t('admin.marketing.aIEmailPlanner.ai_email_planner')}
           </CardTitle>
           <CardDescription>
-            Laat AI je email campagne content schrijven
+            {t('admin.marketing.aIEmailPlanner.laat_ai_je_email_campagne_content')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Campaign Type Selection */}
           <div className="space-y-3">
-            <Label>Type Campagne</Label>
+            <Label>{t('admin.marketing.aIEmailPlanner.type_campagne')}</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {campaignTypes.map((type) => (
                 <button
@@ -154,9 +157,9 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                   <div className={cn('p-2 rounded-lg', type.color)}>
                     <type.icon className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium">{type.name}</span>
+                  <span className="text-sm font-medium">{t(type.nameKey)}</span>
                   <span className="text-xs text-muted-foreground text-center">
-                    {type.description}
+                    {t(type.descriptionKey)}
                   </span>
                 </button>
               ))}
@@ -165,13 +168,13 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
 
           {/* Segment Selection */}
           <div className="space-y-2">
-            <Label>Doelgroep Segment (optioneel)</Label>
+            <Label>{t('admin.marketing.aIEmailPlanner.doelgroep_segment_optioneel')}</Label>
             <Select value={segmentId || "all"} onValueChange={(val) => setSegmentId(val === "all" ? "" : val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Alle abonnees" />
+                <SelectValue placeholder={t('admin.marketing.aIEmailPlanner.alle_abonnees_2')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle abonnees</SelectItem>
+                <SelectItem value="all">{t('admin.marketing.aIEmailPlanner.alle_abonnees')}</SelectItem>
                 {segments.map((seg) => (
                   <SelectItem key={seg.id} value={seg.id}>
                     {seg.name} ({seg.member_count} klanten)
@@ -184,7 +187,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
           {/* Product Selection */}
           {needsProducts && (
             <div className="space-y-2">
-              <Label>Producten (optioneel)</Label>
+              <Label>{t('admin.marketing.aIEmailPlanner.producten_optioneel')}</Label>
               <Button
                 variant="outline"
                 className="w-full justify-start"
@@ -192,7 +195,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
               >
                 <Package className="h-4 w-4 mr-2" />
                 {selectedProductIds.length > 0 
-                  ? `${selectedProductIds.length} product${selectedProductIds.length > 1 ? 'en' : ''} geselecteerd`
+                  ? t('admin.marketing.aiEmailPlanner.producten_geselecteerd', { count: selectedProductIds.length })
                   : 'Kies producten om te promoten'
                 }
               </Button>
@@ -203,7 +206,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                   onClick={() => setSelectedProductIds([])}
                   className="text-muted-foreground"
                 >
-                  Selectie wissen
+                  {t('admin.marketing.aIEmailPlanner.selectie_wissen')}
                 </Button>
               )}
             </div>
@@ -213,9 +216,9 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
           {(campaignType === 'promotion' || campaignType === 'win_back') && (
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div className="space-y-0.5">
-                <Label>Korting toevoegen</Label>
+                <Label>{t('admin.marketing.inlinePromoWizard.korting_toevoegen')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Voeg een kortingspercentage toe aan de email
+                  {t('admin.marketing.aIEmailPlanner.voeg_een_kortingspercentage_toe_aan_de')}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -243,9 +246,9 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
           {/* Custom prompt for custom type */}
           {campaignType === 'custom' && (
             <div className="space-y-2">
-              <Label>Beschrijf je campagne</Label>
+              <Label>{t('admin.marketing.aIEmailPlanner.beschrijf_je_campagne')}</Label>
               <Textarea
-                placeholder="Wat wil je communiceren? Welke producten of boodschap?"
+                placeholder={t('admin.marketing.aIEmailPlanner.wat_wil_je_communiceren_welke_producten')}
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 rows={3}
@@ -262,7 +265,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
             {generateEmailContent.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Email genereren...
+                {t('admin.marketing.aIEmailPlanner.email_genereren')}
               </>
             ) : (
               <>
@@ -277,25 +280,25 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
             <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
               <div className="flex items-center gap-2">
                 {selectedType?.icon && <selectedType.icon className="h-5 w-5" />}
-                <span className="font-medium">{selectedType?.name} Email</span>
+                <span className="font-medium">{selectedType ? t(selectedType.nameKey) : ''} Email</span>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
-                  AI Gegenereerd
+                  {t('admin.marketing.aIEmailPlanner.ai_gegenereerd')}
                 </Badge>
               </div>
 
               <Tabs defaultValue="content" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                  <TabsTrigger value="subjects">Onderwerpen</TabsTrigger>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
+                  <TabsTrigger value="content">{t('admin.marketing.aIEmailPlanner.content')}</TabsTrigger>
+                  <TabsTrigger value="subjects">{t('admin.marketing.aIEmailPlanner.onderwerpen')}</TabsTrigger>
+                  <TabsTrigger value="preview">{t('admin.marketing.emailPreview.preview')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="content" className="space-y-4 mt-4">
                   {/* Subject Lines */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Onderwerpregel</Label>
+                      <Label>{t('admin.marketing.aIEmailPlanner.onderwerpregel')}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -321,7 +324,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                   {/* Preview Text */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Preview tekst</Label>
+                      <Label>{t('admin.marketing.aIEmailPlanner.preview_tekst')}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -338,7 +341,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                   {/* Body */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Email inhoud</Label>
+                      <Label>{t('admin.marketing.aIEmailPlanner.email_inhoud')}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -355,7 +358,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
 
                   {/* CTA */}
                   <div className="space-y-2">
-                    <Label>Call-to-Action</Label>
+                    <Label>{t('admin.marketing.aIEmailPlanner.call_to_action')}</Label>
                     <div className="flex items-center gap-2">
                       <Button className="pointer-events-none">
                         {generatedContent.cta.text}
@@ -367,7 +370,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
 
                 <TabsContent value="subjects" className="space-y-3 mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Kies de beste onderwerpregel voor je campagne:
+                    {t('admin.marketing.aIEmailPlanner.kies_de_beste_onderwerpregel_voor_je')}
                   </p>
                   {generatedContent.subjectLines.map((subject, i) => (
                     <div
@@ -392,12 +395,12 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                 <TabsContent value="preview" className="mt-4">
                   <div className="border rounded-lg overflow-hidden">
                     <div className="bg-muted p-2 text-xs text-muted-foreground">
-                      Email Preview
+                      {t('admin.marketing.aIEmailPlanner.email_preview')}
                     </div>
                     <iframe
                       srcDoc={generatedContent.htmlContent}
                       className="w-full h-[400px] bg-white"
-                      title="Email Preview"
+                      title={t('admin.marketing.aIEmailPlanner.email_preview')}
                     />
                   </div>
                 </TabsContent>
@@ -410,7 +413,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                 onClick={handleUseCampaign}
               >
                 <Mail className="mr-2 h-4 w-4" />
-                Gebruik in nieuwe campagne
+                {t('admin.marketing.aIEmailPlanner.gebruik_in_nieuwe_campagne')}
               </Button>
             </div>
           )}
@@ -431,7 +434,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
         onSave={handleSaveCampaign}
         isLoading={createCampaign.isPending}
         defaultValues={generatedContent ? {
-          name: `AI ${selectedType?.name || 'Campagne'} - ${new Date().toLocaleDateString('nl-NL')}`,
+          name: `AI ${selectedType ? t(selectedType.nameKey) : t('admin.marketing.aiEmailPlanner.campagne')} - ${new Date().toLocaleDateString(i18n.language)}`,
           subject: generatedContent.subjectLines[selectedSubject],
           preview_text: generatedContent.previewText,
           html_content: generatedContent.htmlContent,

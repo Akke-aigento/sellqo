@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getScoreColor, getScoreLabel } from '@/types/seo';
 import { TrendingUp, TrendingDown, Minus, Search, FileText, Cog, Bot } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SEOScoreCardProps {
   overallScore: number | null;
@@ -24,6 +25,7 @@ export function SEOScoreCard({
   previousScore,
   isLoading,
 }: SEOScoreCardProps) {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <Card>
@@ -48,10 +50,10 @@ export function SEOScoreCard({
     : null;
 
   const scores = [
-    { label: 'Meta Tags', score: metaScore, icon: FileText },
-    { label: 'Content', score: contentScore, icon: Search },
-    { label: 'Technisch', score: technicalScore, icon: Cog },
-    { label: 'AI Zoeken', score: aiSearchScore, icon: Bot },
+    { label: t('admin.seo.sEOScoreCard.meta_tags'), score: metaScore, icon: FileText },
+    { label: t('admin.marketing.aIEmailPlanner.content'), score: contentScore, icon: Search },
+    { label: t('admin.seo.sEOScoreCard.technisch'), score: technicalScore, icon: Cog },
+    { label: t('admin.seo.sEOScoreCard.ai_zoeken'), score: aiSearchScore, icon: Bot },
   ];
 
   return (
@@ -59,7 +61,7 @@ export function SEOScoreCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Search className="h-5 w-5" />
-          SEO Score
+          {t('admin.seo.sEOScoreCard.seo_score')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

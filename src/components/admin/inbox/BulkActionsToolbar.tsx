@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useInboxFolders } from '@/hooks/useInboxFolders';
+import { useTranslation } from 'react-i18next';
 
 interface BulkActionsToolbarProps {
   selectedCount: number;
@@ -33,6 +34,7 @@ export function BulkActionsToolbar({
   totalCount,
   isLoading,
 }: BulkActionsToolbarProps) {
+  const { t } = useTranslation();
   const { customFolders } = useInboxFolders();
 
   const isArchiveView = currentFolder === 'archived';
@@ -82,7 +84,7 @@ export function BulkActionsToolbar({
             disabled={isLoading}
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Herstellen
+            {t('admin.inbox.bulkActionsToolbar.herstellen')}
           </Button>
         )}
 
@@ -97,12 +99,12 @@ export function BulkActionsToolbar({
                 disabled={isLoading}
               >
                 <FolderInput className="h-3.5 w-3.5 mr-1" />
-                Verplaatsen
+                {t('admin.products.productEventDatesTab.verplaatsen')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onMoveToFolder(null)}>
-                Inbox
+                {t('admin.inbox.bulkActionsToolbar.inbox')}
               </DropdownMenuItem>
               {customFolders.map((folder) => (
                 <DropdownMenuItem
@@ -126,7 +128,7 @@ export function BulkActionsToolbar({
             disabled={isLoading}
           >
             <Archive className="h-3.5 w-3.5 mr-1" />
-            Archiveren
+            {t('admin.inbox.bulkActionsToolbar.archiveren')}
           </Button>
         )}
 
@@ -139,7 +141,7 @@ export function BulkActionsToolbar({
           disabled={isLoading}
         >
           <Trash2 className="h-3.5 w-3.5 mr-1" />
-          {isTrashView ? 'Permanent' : 'Verwijderen'}
+          {isTrashView ? t('admin.productForm.permanent') : t('common.delete')}
         </Button>
       </div>
     </div>

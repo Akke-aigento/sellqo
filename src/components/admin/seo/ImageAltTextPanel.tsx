@@ -15,6 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ProductImage {
   id: string;
@@ -42,6 +43,7 @@ export function ImageAltTextPanel({
   onGenerateAltText,
   isGenerating,
 }: ImageAltTextPanelProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<'all' | 'missing' | 'complete'>('all');
@@ -123,10 +125,10 @@ export function ImageAltTextPanel({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
-              Afbeelding Alt-Teksten
+              {t('admin.seo.imageAltTextPanel.afbeelding_alt_teksten')}
             </CardTitle>
             <CardDescription>
-              Optimaliseer alt-teksten voor betere SEO en toegankelijkheid
+              {t('admin.seo.imageAltTextPanel.optimaliseer_alt_teksten_voor_betere_seo')}
             </CardDescription>
           </div>
           {selectedIds.size > 0 && (
@@ -134,7 +136,7 @@ export function ImageAltTextPanel({
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Genereren...
+                  {t('admin.marketing.aIImageGenerator.genereren')}
                 </>
               ) : (
                 <>
@@ -169,7 +171,7 @@ export function ImageAltTextPanel({
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Zoek op productnaam..."
+              placeholder={t('admin.seo.imageAltTextPanel.zoek_op_productnaam')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -218,7 +220,7 @@ export function ImageAltTextPanel({
           {filteredImages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <ImageIcon className="h-12 w-12 mb-4 opacity-50" />
-              <p>Geen afbeeldingen gevonden</p>
+              <p>{t('admin.seo.imageAltTextPanel.geen_afbeeldingen_gevonden')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -282,7 +284,7 @@ export function ImageAltTextPanel({
 
         {/* Health Checklist */}
         <div className="pt-4 border-t">
-          <h4 className="font-medium mb-3">Afbeelding SEO Checklist</h4>
+          <h4 className="font-medium mb-3">{t('admin.seo.imageAltTextPanel.afbeelding_seo_checklist')}</h4>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className={cn(
               'p-3 rounded-lg border flex items-center gap-3',
@@ -294,29 +296,29 @@ export function ImageAltTextPanel({
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
               )}
               <div>
-                <p className="text-sm font-medium">Alt-teksten aanwezig</p>
-                <p className="text-xs text-muted-foreground">Alle afbeeldingen hebben alt-tekst</p>
+                <p className="text-sm font-medium">{t('admin.seo.imageAltTextPanel.alt_teksten_aanwezig')}</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.imageAltTextPanel.alle_afbeeldingen_hebben_alt_tekst')}</p>
               </div>
             </div>
             <div className="p-3 rounded-lg border bg-muted/50 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Bestandsgroottes</p>
-                <p className="text-xs text-muted-foreground">Optimaliseer afbeeldingen &lt; 200KB</p>
+                <p className="text-sm font-medium">{t('admin.seo.imageAltTextPanel.bestandsgroottes')}</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.imageAltTextPanel.optimaliseer_afbeeldingen_lt_200kb')}</p>
               </div>
             </div>
             <div className="p-3 rounded-lg border bg-muted/50 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Afmetingen</p>
-                <p className="text-xs text-muted-foreground">Gebruik consistente afmetingen</p>
+                <p className="text-sm font-medium">{t('admin.seo.imageAltTextPanel.afmetingen')}</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.imageAltTextPanel.gebruik_consistente_afmetingen')}</p>
               </div>
             </div>
             <div className="p-3 rounded-lg border bg-muted/50 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Modern formaat</p>
-                <p className="text-xs text-muted-foreground">WebP/AVIF voor betere performance</p>
+                <p className="text-sm font-medium">{t('admin.seo.imageAltTextPanel.modern_formaat')}</p>
+                <p className="text-xs text-muted-foreground">{t('admin.seo.imageAltTextPanel.webp_avif_voor_betere_performance')}</p>
               </div>
             </div>
           </div>

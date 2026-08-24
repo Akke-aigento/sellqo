@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { usePromptFavorites } from '@/hooks/usePromptFavorites';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PromptFavoriteButtonProps {
   promptType: 'social' | 'email' | 'image';
@@ -27,6 +28,7 @@ export function PromptFavoriteButton({
   settings,
   className 
 }: PromptFavoriteButtonProps) {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState('');
   const { createFavorite, favorites } = usePromptFavorites(promptType);
@@ -60,7 +62,7 @@ export function PromptFavoriteButton({
         size="icon"
         className={cn('text-yellow-500', className)}
         disabled
-        title="Al opgeslagen als favoriet"
+        title={t('admin.marketing.promptFavoriteButton.al_opgeslagen_als_favoriet')}
       >
         <Star className="h-4 w-4 fill-current" />
       </Button>
@@ -74,7 +76,7 @@ export function PromptFavoriteButton({
         size="icon"
         className={className}
         onClick={() => setDialogOpen(true)}
-        title="Opslaan als favoriet"
+        title={t('admin.marketing.promptFavoriteButton.opslaan_als_favoriet')}
       >
         <Star className="h-4 w-4" />
       </Button>
@@ -82,26 +84,26 @@ export function PromptFavoriteButton({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Prompt opslaan als favoriet</DialogTitle>
+            <DialogTitle>{t('admin.marketing.promptFavoriteButton.prompt_opslaan_als_favoriet')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Naam</Label>
+              <Label>{t('common.name')}</Label>
               <Input
-                placeholder="Geef deze prompt een naam..."
+                placeholder={t('admin.marketing.promptFavoriteButton.geef_deze_prompt_een_naam')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
             </div>
             <div className="p-3 rounded-lg bg-muted text-sm">
-              <p className="font-medium mb-1">Prompt preview:</p>
+              <p className="font-medium mb-1">{t('admin.marketing.promptFavoriteButton.prompt_preview')}</p>
               <p className="text-muted-foreground line-clamp-3">{promptText}</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={createFavorite.isPending}>
               {createFavorite.isPending ? (

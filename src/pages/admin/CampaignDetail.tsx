@@ -14,9 +14,12 @@ import { CampaignPerformanceChart } from '@/components/admin/marketing/CampaignP
 import { CampaignFunnel } from '@/components/admin/marketing/CampaignFunnel';
 import { AnimatedCounter } from '@/components/admin/marketing/AnimatedCounter';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export default function CampaignDetailPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { campaign, isLoading: campaignLoading } = useEmailCampaign(id);
@@ -46,21 +49,21 @@ export default function CampaignDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-lg font-semibold">Campagne niet gevonden</h2>
+        <h2 className="text-lg font-semibold">{t('admin.adsBolcomCampaignDetail.campagne_niet_gevonden')}</h2>
         <Button variant="link" onClick={() => navigate('/admin/marketing')}>
-          Terug naar Marketing
+          {t('admin.campaignDetail.terug_naar_marketing')}
         </Button>
       </div>
     );
   }
 
   const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-    draft: { label: 'Concept', variant: 'secondary' },
-    scheduled: { label: 'Gepland', variant: 'outline' },
-    sending: { label: 'Versturen...', variant: 'default' },
-    sent: { label: 'Verzonden', variant: 'default' },
-    paused: { label: 'Gepauzeerd', variant: 'secondary' },
-    cancelled: { label: 'Geannuleerd', variant: 'destructive' },
+    draft: { label: t('admin.marketing.campaignCard.status.concept'), variant: 'secondary' },
+    scheduled: { label: t('admin.marketing.campaignCard.status.gepland'), variant: 'outline' },
+    sending: { label: t('admin.campaignDetail.versturen'), variant: 'default' },
+    sent: { label: t('admin.marketing.campaignCard.status.verzonden'), variant: 'default' },
+    paused: { label: t('admin.marketing.campaignCard.status.gepauzeerd'), variant: 'secondary' },
+    cancelled: { label: t('admin.marketing.aBTestingPanel.geannuleerd'), variant: 'destructive' },
   };
 
   const openRate = campaign.total_sent > 0 ? (campaign.total_opened / campaign.total_sent) * 100 : 0;
@@ -87,7 +90,7 @@ export default function CampaignDetailPage() {
               {campaign.subject}
               {campaign.sent_at && (
                 <span className="ml-2">
-                  • Verzonden op {format(new Date(campaign.sent_at), 'd MMMM yyyy HH:mm', { locale: nl })}
+                  • Verzonden op {format(new Date(campaign.sent_at), 'd MMMM yyyy HH:mm', { locale: dateLocale })}
                 </span>
               )}
             </p>
@@ -96,12 +99,12 @@ export default function CampaignDetailPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <RefreshCw className="mr-2 h-4 w-4" />
-            Vernieuwen
+            {t('admin.campaignDetail.vernieuwen')}
           </Button>
           {campaign.status === 'draft' && (
             <Button size="sm">
               <Send className="mr-2 h-4 w-4" />
-              Verzenden
+              {t('admin.inbox.composeDialog.verzenden')}
             </Button>
           )}
         </div>
@@ -111,7 +114,7 @@ export default function CampaignDetailPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Verzonden</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.campaignCard.status.verzonden')}</CardTitle>
             <Send className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -122,7 +125,7 @@ export default function CampaignDetailPage() {
 
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Afgeleverd</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.campaignFunnel.afgeleverd')}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -136,7 +139,7 @@ export default function CampaignDetailPage() {
 
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Geopend</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.campaignFunnel.geopend')}</CardTitle>
             <Mail className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
@@ -150,7 +153,7 @@ export default function CampaignDetailPage() {
 
         <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-200/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Geklikt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.marketing.campaignFunnel.geklikt')}</CardTitle>
             <MousePointerClick className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
@@ -164,7 +167,7 @@ export default function CampaignDetailPage() {
 
         <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bounced</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.campaignDetail.bounced')}</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -180,9 +183,9 @@ export default function CampaignDetailPage() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overzicht</TabsTrigger>
+          <TabsTrigger value="overview">{t('admin.giftCards.overzicht')}</TabsTrigger>
           <TabsTrigger value="recipients">Ontvangers ({sends.length})</TabsTrigger>
-          <TabsTrigger value="links">Link Clicks</TabsTrigger>
+          <TabsTrigger value="links">{t('admin.campaignDetail.link_clicks')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -190,8 +193,8 @@ export default function CampaignDetailPage() {
             {/* Delivery Funnel */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Delivery Funnel</CardTitle>
-                <CardDescription>Van verzending tot conversie</CardDescription>
+                <CardTitle className="text-base">{t('admin.campaignDetail.delivery_funnel')}</CardTitle>
+                <CardDescription>{t('admin.campaignDetail.van_verzending_tot_conversie')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <CampaignFunnel campaign={campaign} />
@@ -201,8 +204,8 @@ export default function CampaignDetailPage() {
             {/* Performance Over Time */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Activiteit over tijd</CardTitle>
-                <CardDescription>Opens en clicks per uur</CardDescription>
+                <CardTitle className="text-base">{t('admin.campaignDetail.activiteit_over_tijd')}</CardTitle>
+                <CardDescription>{t('admin.campaignDetail.opens_en_clicks_per_uur')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <CampaignPerformanceChart data={hourlyStats} isLoading={analyticsLoading} />
@@ -213,23 +216,23 @@ export default function CampaignDetailPage() {
           {/* Top Clicked Links */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Top Geklikte Links</CardTitle>
-              <CardDescription>Welke links presteren het best</CardDescription>
+              <CardTitle className="text-base">{t('admin.campaignDetail.top_geklikte_links')}</CardTitle>
+              <CardDescription>{t('admin.campaignDetail.welke_links_presteren_het_best')}</CardDescription>
             </CardHeader>
             <CardContent>
               {linkClicks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MousePointerClick className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Nog geen link clicks geregistreerd</p>
+                  <p>{t('admin.campaignDetail.nog_geen_link_clicks_geregistreerd')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Link URL</TableHead>
-                      <TableHead className="text-right">Clicks</TableHead>
-                      <TableHead className="text-right">% van totaal</TableHead>
+                      <TableHead>{t('admin.marketing.emailBlockProperties.link_url')}</TableHead>
+                      <TableHead className="text-right">{t('admin.ads.campaignCard.clicks')}</TableHead>
+                      <TableHead className="text-right">{t('admin.campaignDetail.van_totaal')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -260,8 +263,8 @@ export default function CampaignDetailPage() {
         <TabsContent value="recipients" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Ontvangers</CardTitle>
-              <CardDescription>Alle ontvangers en hun status</CardDescription>
+              <CardTitle className="text-base">{t('admin.campaignDetail.ontvangers')}</CardTitle>
+              <CardDescription>{t('admin.campaignDetail.alle_ontvangers_en_hun_status')}</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
               {sendsLoading ? (
@@ -273,19 +276,19 @@ export default function CampaignDetailPage() {
               ) : sends.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Nog geen ontvangers</p>
+                  <p>{t('admin.campaignDetail.nog_geen_ontvangers')}</p>
                 </div>
               ) : (
                 <div className="min-w-[650px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="hidden sm:table-cell">Naam</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="hidden md:table-cell">Geopend</TableHead>
-                      <TableHead className="hidden md:table-cell">Geklikt</TableHead>
-                      <TableHead className="hidden sm:table-cell">Verzonden</TableHead>
+                      <TableHead>{t('admin.marketing.aIContentLibrary.email')}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{t('common.name')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t('admin.marketing.campaignFunnel.geopend')}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t('admin.marketing.campaignFunnel.geklikt')}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{t('admin.marketing.campaignCard.status.verzonden')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -332,8 +335,8 @@ export default function CampaignDetailPage() {
         <TabsContent value="links" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Alle Link Clicks</CardTitle>
-              <CardDescription>Gedetailleerd overzicht van alle clicks</CardDescription>
+              <CardTitle className="text-base">{t('admin.campaignDetail.alle_link_clicks')}</CardTitle>
+              <CardDescription>{t('admin.campaignDetail.gedetailleerd_overzicht_van_alle_clicks')}</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
               {analyticsLoading ? (
@@ -345,15 +348,15 @@ export default function CampaignDetailPage() {
               ) : linkClicks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MousePointerClick className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Nog geen link clicks geregistreerd</p>
+                  <p>{t('admin.campaignDetail.nog_geen_link_clicks_geregistreerd_2')}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Link URL</TableHead>
-                      <TableHead className="text-right">Unieke Clicks</TableHead>
-                      <TableHead className="text-right">Totaal Clicks</TableHead>
+                      <TableHead>{t('admin.marketing.emailBlockProperties.link_url')}</TableHead>
+                      <TableHead className="text-right">{t('admin.campaignDetail.unieke_clicks')}</TableHead>
+                      <TableHead className="text-right">{t('admin.campaignDetail.totaal_clicks')}</TableHead>
                       <TableHead className="text-right">CTR</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -392,14 +395,15 @@ export default function CampaignDetailPage() {
 }
 
 function RecipientStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Clock }> = {
-    pending: { label: 'Wachten', variant: 'secondary', icon: Clock },
-    sent: { label: 'Verzonden', variant: 'outline', icon: Send },
-    delivered: { label: 'Afgeleverd', variant: 'default', icon: CheckCircle2 },
-    opened: { label: 'Geopend', variant: 'default', icon: Mail },
-    clicked: { label: 'Geklikt', variant: 'default', icon: MousePointerClick },
-    bounced: { label: 'Bounced', variant: 'destructive', icon: XCircle },
-    unsubscribed: { label: 'Uitgeschreven', variant: 'secondary', icon: XCircle },
+    pending: { label: t('admin.campaignDetail.wachten'), variant: 'secondary', icon: Clock },
+    sent: { label: t('admin.marketing.campaignCard.status.verzonden'), variant: 'outline', icon: Send },
+    delivered: { label: t('admin.marketing.campaignFunnel.afgeleverd'), variant: 'default', icon: CheckCircle2 },
+    opened: { label: t('admin.marketing.campaignFunnel.geopend'), variant: 'default', icon: Mail },
+    clicked: { label: t('admin.marketing.campaignFunnel.geklikt'), variant: 'default', icon: MousePointerClick },
+    bounced: { label: t('admin.campaignDetail.bounced'), variant: 'destructive', icon: XCircle },
+    unsubscribed: { label: t('admin.campaignDetail.uitgeschreven'), variant: 'secondary', icon: XCircle },
   };
 
   const statusConfig = config[status] || config.pending;

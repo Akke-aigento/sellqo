@@ -7,8 +7,10 @@ import { BadgeCard } from '@/components/gamification/BadgeCard';
 import { MilestoneProgress } from '@/components/gamification/MilestoneProgress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronRight, Trophy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function BadgesWidget() {
+  const { t } = useTranslation();
   const { earnedBadges, allBadges, isLoading } = useBadges();
   const { tenantStats } = useMilestones();
 
@@ -41,11 +43,11 @@ export function BadgesWidget() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
-            Jouw Badges
+            {t('admin.widgets.badgesWidget.jouw_badges')}
           </CardTitle>
           <Button variant="ghost" size="sm" className="h-7 gap-1" asChild>
             <Link to="/admin/badges">
-              Alle
+              {t('common.all')}
               <ChevronRight className="h-3 w-3" />
             </Link>
           </Button>

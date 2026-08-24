@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface GridTagsCellProps {
   value: string[];
@@ -25,6 +26,7 @@ export function GridTagsCell({
   onChange,
   onStopEdit,
 }: GridTagsCellProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [newTag, setNewTag] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -120,13 +122,13 @@ export function GridTagsCell({
               </Badge>
             ))}
             {tags.length === 0 && (
-              <span className="text-sm text-muted-foreground">Geen tags</span>
+              <span className="text-sm text-muted-foreground">{t('admin.products.grid.gridTagsCell.geen_tags')}</span>
             )}
           </div>
           <div className="flex gap-2">
             <Input
               ref={inputRef}
-              placeholder="Nieuwe tag..."
+              placeholder={t('admin.products.bulk.bulkTagsTab.nieuwe_tag')}
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
               onKeyDown={handleKeyDown}

@@ -4,6 +4,7 @@ import { GripVertical, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { EmailBlock, EmailBlockType } from '@/types/emailBuilder';
 import { BLOCK_TEMPLATES } from '@/types/emailBuilder';
+import { useTranslation } from 'react-i18next';
 
 interface EmailBlockItemProps {
   block: EmailBlock;
@@ -12,6 +13,7 @@ interface EmailBlockItemProps {
 }
 
 export function EmailBlockItem({ block, onEdit, onDelete }: EmailBlockItemProps) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -35,7 +37,7 @@ export function EmailBlockItem({ block, onEdit, onDelete }: EmailBlockItemProps)
         return (
           <div className="text-center">
             {block.content.logoUrl && (
-              <img src={block.content.logoUrl} alt="Logo" className="h-8 mx-auto mb-2" />
+              <img src={block.content.logoUrl} alt={t('admin.marketing.emailBlockItem.logo')} className="h-8 mx-auto mb-2" />
             )}
             <h3 className="text-lg font-bold">{block.content.headerText || 'Header'}</h3>
           </div>
@@ -51,7 +53,7 @@ export function EmailBlockItem({ block, onEdit, onDelete }: EmailBlockItemProps)
           <img src={block.content.imageUrl} alt={block.content.altText} className="h-16 object-cover mx-auto" />
         ) : (
           <div className="h-16 bg-muted rounded flex items-center justify-center text-muted-foreground">
-            🖼️ Afbeelding
+            {t('admin.marketing.emailBlockItem.afbeelding')}
           </div>
         );
       case 'button':
@@ -89,7 +91,7 @@ export function EmailBlockItem({ block, onEdit, onDelete }: EmailBlockItemProps)
             {block.content.twitter && <span>🐦</span>}
             {block.content.linkedin && <span>💼</span>}
             {!block.content.facebook && !block.content.instagram && !block.content.twitter && !block.content.linkedin && (
-              <span className="text-xs">Social media links</span>
+              <span className="text-xs">{t('admin.marketing.emailBlockItem.social_media_links')}</span>
             )}
           </div>
         );

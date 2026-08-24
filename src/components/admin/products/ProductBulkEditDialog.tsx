@@ -18,6 +18,7 @@ import { BulkChannelsTab } from './bulk/BulkChannelsTab';
 import { BulkTagsTab } from './bulk/BulkTagsTab';
 import { BulkSpecificationsTab } from './bulk/BulkSpecificationsTab';
 import type { BulkEditState } from './bulk/BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 interface ProductBulkEditDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function ProductBulkEditDialog({
   selectedIds,
   onApply,
 }: ProductBulkEditDialogProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<BulkEditState>({});
   const [enabledFields, setEnabledFields] = useState<Set<string>>(new Set());
   const [isApplying, setIsApplying] = useState(false);
@@ -89,7 +91,7 @@ export function ProductBulkEditDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Bulk bewerking</DialogTitle>
+          <DialogTitle>{t('admin.products.productBulkEditDialog.bulk_bewerking')}</DialogTitle>
           <DialogDescription>
             Wijzigingen toepassen op {selectedCount} geselecteerde producten
           </DialogDescription>
@@ -97,13 +99,13 @@ export function ProductBulkEditDialog({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="basis">Basis</TabsTrigger>
-            <TabsTrigger value="prijzen">Prijzen</TabsTrigger>
-            <TabsTrigger value="voorraad">Voorraad</TabsTrigger>
-            <TabsTrigger value="zichtbaarheid">Zichtbaar</TabsTrigger>
-            <TabsTrigger value="kanalen">Kanalen</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="specs">Specs</TabsTrigger>
+            <TabsTrigger value="basis">{t('admin.products.productBulkEditDialog.basis')}</TabsTrigger>
+            <TabsTrigger value="prijzen">{t('admin.products.productBulkEditDialog.prijzen')}</TabsTrigger>
+            <TabsTrigger value="voorraad">{t('admin.stockReport.colStock')}</TabsTrigger>
+            <TabsTrigger value="zichtbaarheid">{t('admin.products.productBulkEditDialog.zichtbaar')}</TabsTrigger>
+            <TabsTrigger value="kanalen">{t('admin.products.productBulkEditDialog.kanalen')}</TabsTrigger>
+            <TabsTrigger value="tags">{t('admin.marketing.segmentBuilder.tags')}</TabsTrigger>
+            <TabsTrigger value="specs">{t('admin.products.productBulkEditDialog.specs')}</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4 pr-2">
@@ -141,7 +143,7 @@ export function ProductBulkEditDialog({
           
           <DialogFooter>
             <Button variant="outline" onClick={handleClose} disabled={isApplying}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button 
               onClick={handleApply} 
@@ -150,7 +152,7 @@ export function ProductBulkEditDialog({
               {isApplying ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bezig...
+                  {t('admin.marketing.creditPurchaseDialog.bezig')}
                 </>
               ) : (
                 `Wijzigingen toepassen (${enabledFields.size})`

@@ -11,6 +11,7 @@ import { ComplianceFields } from './specs/ComplianceFields';
 import { LogisticsFields } from './specs/LogisticsFields';
 import { CustomSpecsEditor } from './specs/CustomSpecsEditor';
 import type { ProductSpecification } from '@/types/specifications';
+import { useTranslation } from 'react-i18next';
 
 interface ProductSpecificationsSectionProps {
   productId: string;
@@ -38,6 +39,7 @@ function countFilled(spec: any, keys: string[]): number {
 }
 
 export function ProductSpecificationsSection({ productId }: ProductSpecificationsSectionProps) {
+  const { t } = useTranslation();
   const {
     specification,
     customSpecs,
@@ -68,11 +70,11 @@ export function ProductSpecificationsSection({ productId }: ProductSpecification
   const totalFields = DIMENSION_KEYS.length + IDENTIFICATION_KEYS.length + MATERIAL_KEYS.length + COMPLIANCE_KEYS.length + LOGISTICS_KEYS.length;
 
   const sections = [
-    { key: 'dimensions', label: 'Afmetingen & Gewicht', icon: Ruler, count: counts.dimensions, total: DIMENSION_KEYS.length, Component: DimensionsFields },
-    { key: 'identification', label: 'Identificatie', icon: Tag, count: counts.identification, total: IDENTIFICATION_KEYS.length, Component: IdentificationFields },
-    { key: 'material', label: 'Materiaal & Samenstelling', icon: Palette, count: counts.material, total: MATERIAL_KEYS.length, Component: MaterialFields },
-    { key: 'compliance', label: 'Garantie & Compliance', icon: ShieldCheck, count: counts.compliance, total: COMPLIANCE_KEYS.length, Component: ComplianceFields },
-    { key: 'logistics', label: 'Logistiek', icon: Truck, count: counts.logistics, total: LOGISTICS_KEYS.length, Component: LogisticsFields },
+    { key: 'dimensions', label: t('admin.products.productSpecificationsSection.afmetingen_gewicht'), icon: Ruler, count: counts.dimensions, total: DIMENSION_KEYS.length, Component: DimensionsFields },
+    { key: 'identification', label: t('admin.products.productSpecificationsSection.identificatie'), icon: Tag, count: counts.identification, total: IDENTIFICATION_KEYS.length, Component: IdentificationFields },
+    { key: 'material', label: t('admin.products.productSpecificationsSection.materiaal_samenstelling'), icon: Palette, count: counts.material, total: MATERIAL_KEYS.length, Component: MaterialFields },
+    { key: 'compliance', label: t('admin.products.productSpecificationsSection.garantie_compliance'), icon: ShieldCheck, count: counts.compliance, total: COMPLIANCE_KEYS.length, Component: ComplianceFields },
+    { key: 'logistics', label: t('admin.products.productSpecificationsSection.logistiek'), icon: Truck, count: counts.logistics, total: LOGISTICS_KEYS.length, Component: LogisticsFields },
   ];
 
   if (isLoading) return null;
@@ -82,8 +84,8 @@ export function ProductSpecificationsSection({ productId }: ProductSpecification
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Technische Specificaties</CardTitle>
-            <CardDescription>Gedetailleerde productinformatie voor marketplaces en kanalen</CardDescription>
+            <CardTitle>{t('admin.products.productSpecificationsSection.technische_specificaties')}</CardTitle>
+            <CardDescription>{t('admin.products.productSpecificationsSection.gedetailleerde_productinformatie_voor_marketplaces_en_kanalen')}</CardDescription>
           </div>
           <Badge variant="secondary" className="text-xs">
             {totalFilled} van {totalFields} ingevuld
@@ -112,7 +114,7 @@ export function ProductSpecificationsSection({ productId }: ProductSpecification
           <CollapsibleTrigger className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-muted/50 transition-colors group cursor-pointer">
             <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
             <List className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium flex-1 text-left">Vrije specificaties</span>
+            <span className="text-sm font-medium flex-1 text-left">{t('admin.products.productSpecificationsSection.vrije_specificaties')}</span>
             <span className="text-xs text-muted-foreground">{typedCustomSpecs.length > 0 ? `${typedCustomSpecs.length} items` : 'Leeg'}</span>
           </CollapsibleTrigger>
           <CollapsibleContent>

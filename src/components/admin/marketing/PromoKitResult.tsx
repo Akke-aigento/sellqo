@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 // PromoKit type - shared between components
 export interface PromoKit {
@@ -51,6 +52,7 @@ interface PromoKitResultProps {
 }
 
 export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) {
+  const { t } = useTranslation();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('social');
 
@@ -149,7 +151,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10">
           <Check className="h-6 w-6 text-green-500" />
         </div>
-        <h3 className="text-lg font-medium">Je Marketing Kit is klaar!</h3>
+        <h3 className="text-lg font-medium">{t('admin.marketing.promoKitResult.je_marketing_kit_is_klaar')}</h3>
         <p className="text-sm text-muted-foreground">
           {kit.productName} • {kit.creditsUsed} credits gebruikt
         </p>
@@ -159,19 +161,19 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="social" className="gap-2">
             <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Social</span>
+            <span className="hidden sm:inline">{t('admin.marketing.promoKitResult.social')}</span>
           </TabsTrigger>
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
-            <span className="hidden sm:inline">Email</span>
+            <span className="hidden sm:inline">{t('admin.marketing.aIContentLibrary.email')}</span>
           </TabsTrigger>
           <TabsTrigger value="images" className="gap-2">
             <ImageIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Afbeeldingen</span>
+            <span className="hidden sm:inline">{t('admin.marketing.promoKitResult.afbeeldingen')}</span>
           </TabsTrigger>
           <TabsTrigger value="extra" className="gap-2">
             <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">Extra</span>
+            <span className="hidden sm:inline">{t('admin.marketing.promoKitResult.extra')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -209,7 +211,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
           <TabsContent value="email" className="space-y-4 m-0">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Onderwerp Regels (A/B Test)</CardTitle>
+                <CardTitle className="text-sm">{t('admin.marketing.promoKitResult.onderwerp_regels_a_b_test')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {kit.email.subjectLines.map((subject, i) => (
@@ -226,7 +228,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Preview Tekst</CardTitle>
+                <CardTitle className="text-sm">{t('admin.marketing.promoKitResult.preview_tekst')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -238,7 +240,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Body Tekst</CardTitle>
+                <CardTitle className="text-sm">{t('admin.marketing.promoKitResult.body_tekst')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-start gap-2">
@@ -256,7 +258,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
-                      Originele Foto
+                      {t('admin.marketing.promoKitResult.originele_foto')}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -269,7 +271,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                   <CardContent>
                     <img 
                       src={kit.images.original} 
-                      alt="Original"
+                      alt={t('admin.marketing.promoKitResult.original')}
                       className="w-full h-48 object-cover rounded-lg"
                     />
                   </CardContent>
@@ -282,7 +284,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-purple-500" />
-                        Enhanced Lifestyle
+                        {t('admin.marketing.promoKitResult.enhanced_lifestyle')}
                       </span>
                       <Button
                         variant="ghost"
@@ -296,7 +298,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                   <CardContent>
                     <img 
                       src={kit.images.enhanced} 
-                      alt="Enhanced"
+                      alt={t('admin.marketing.promoKitResult.enhanced')}
                       className="w-full h-48 object-cover rounded-lg"
                     />
                   </CardContent>
@@ -309,7 +311,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-pink-500" />
-                        AI Gegenereerd
+                        {t('admin.marketing.aIEmailPlanner.ai_gegenereerd')}
                       </span>
                       <Button
                         variant="ghost"
@@ -323,7 +325,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                   <CardContent>
                     <img 
                       src={kit.images.generated} 
-                      alt="AI Generated"
+                      alt={t('admin.marketing.promoKitResult.ai_generated')}
                       className="w-full h-48 object-cover rounded-lg"
                     />
                   </CardContent>
@@ -334,8 +336,8 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
                 <Card className="border-dashed">
                   <CardContent className="p-8 text-center text-muted-foreground">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Geen afbeeldingen gegenereerd</p>
-                    <p className="text-xs">Zet "Afbeeldingen genereren" aan voor marketing visuals</p>
+                    <p className="text-sm">{t('admin.marketing.promoKitResult.geen_afbeeldingen_gegenereerd')}</p>
+                    <p className="text-xs">{t('admin.marketing.promoKitResult.zet_afbeeldingen_genereren_aan_voor_marketing')}</p>
                   </CardContent>
                 </Card>
               )}
@@ -348,7 +350,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Marketing Slogans
+                  {t('admin.marketing.promoKitResult.marketing_slogans')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -365,7 +367,7 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Beste Posting Moment
+                  {t('admin.marketing.promoKitResult.beste_posting_moment')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -391,10 +393,10 @@ export function PromoKitResult({ kit, onNewKit, onClose }: PromoKitResultProps) 
       <div className="flex justify-between pt-4 border-t">
         <Button variant="outline" onClick={onNewKit}>
           <RefreshCw className="h-4 w-4 mr-2" />
-          Nieuwe Kit
+          {t('admin.marketing.promoKitResult.nieuwe_kit')}
         </Button>
         <Button onClick={onClose}>
-          Sluiten
+          {t('common.close')}
         </Button>
       </div>
     </div>

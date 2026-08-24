@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAdsOverview, type AdsPeriod } from '@/hooks/useAdsOverview';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   Megaphone, TrendingUp, TrendingDown, ArrowRight, AlertTriangle,
@@ -19,7 +18,10 @@ import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
+// `name` is telkens een merknaam en blijft letterlijk.
 const CHANNELS = [
   { id: 'bolcom', name: 'Bol.com', emoji: '🛒', color: 'bg-blue-500', enabled: true, link: '/admin/ads/bolcom' },
   { id: 'amazon', name: 'Amazon', emoji: '📦', color: 'bg-orange-500', enabled: false },
@@ -51,6 +53,8 @@ function ChangeIndicator({ value, inverse = false }: { value: number; inverse?: 
 }
 
 export default function AdsPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [period, setPeriod] = useState<AdsPeriod>(30);
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -67,7 +71,7 @@ export default function AdsPage() {
     if (error) {
       toast.error('Actie mislukt');
     } else {
-      toast.success(status === 'accepted' ? 'Aanbeveling toegepast' : 'Aanbeveling genegeerd');
+      toast.success(status === 'accepted' ? t('admin.ads.aanbeveling_toegepast') : t('admin.ads.aanbeveling_genegeerd'));
       queryClient.invalidateQueries({ queryKey: ['ads-ai-recommendations'] });
     }
   };
@@ -76,18 +80,18 @@ export default function AdsPage() {
   if (!isLoading && !hasData && !bolConnection) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Ads Overzicht</h1>
+        <h1 className="text-2xl font-bold">{t('admin.ads.ads_overzicht')}</h1>
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Geen advertentiekanalen verbonden</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('admin.ads.geen_advertentiekanalen_verbonden')}</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Start met adverteren — verbind je marketplace account om campagnes te beheren, performance te volgen en AI-aanbevelingen te ontvangen.
+              {t('admin.ads.start_met_adverteren_verbind_je_marketplace')}
             </p>
             <Button asChild>
               <Link to="/admin/connect">
                 <Cable className="h-4 w-4 mr-2" />
-                Verbind je marketplace account
+                {t('admin.ads.verbind_je_marketplace_account')}
               </Link>
             </Button>
           </CardContent>
@@ -102,10 +106,10 @@ export default function AdsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 flex-wrap">
-            Ads Overzicht
+            {t('admin.ads.ads_overzicht')}
             <ReadOnlyBadge resource="ads" />
           </h1>
-          <p className="text-muted-foreground">Cross-channel advertentie performance</p>
+          <p className="text-muted-foreground">{t('admin.ads.cross_channel_advertentie_performance')}</p>
         </div>
         <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1">
           {PERIODS.map(p => (
@@ -123,9 +127,9 @@ export default function AdsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Totale Spend" value={formatCurrency(kpis.spend)} change={kpis.spendChange} loading={isLoading} />
-        <KPICard title="Totale Omzet" value={formatCurrency(kpis.revenue)} change={kpis.revenueChange} loading={isLoading} />
-        <KPICard title="Blended ACoS" value={`${kpis.acos.toFixed(1)}%`} change={kpis.acosChange} inverse loading={isLoading} />
+        <KPICard title={t('admin.ads.totale_spend')} value={formatCurrency(kpis.spend)} change={kpis.spendChange} loading={isLoading} />
+        <KPICard title={t('admin.ads.totale_omzet')} value={formatCurrency(kpis.revenue)} change={kpis.revenueChange} loading={isLoading} />
+        <KPICard title={t('admin.ads.blended_acos')} value={`${kpis.acos.toFixed(1)}%`} change={kpis.acosChange} inverse loading={isLoading} />
         <KPICard title="ROAS" value={`${kpis.roas.toFixed(2)}x`} change={kpis.roasChange * 10} loading={isLoading} />
       </div>
 
@@ -135,7 +139,7 @@ export default function AdsPage() {
           <Card key={ch.id} className={`relative ${!ch.enabled ? 'opacity-50' : ''}`}>
             {!ch.enabled && (
               <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] rounded-lg flex items-center justify-center z-10">
-                <Badge variant="secondary" className="text-xs">Binnenkort beschikbaar</Badge>
+                <Badge variant="secondary" className="text-xs">{t('admin.ads.platformConnections.binnenkort_beschikbaar')}</Badge>
               </div>
             )}
             <CardContent className="pt-4 pb-4">
@@ -144,23 +148,23 @@ export default function AdsPage() {
                 <span className="font-medium text-sm">{ch.name}</span>
                 {ch.enabled && bolConnection && (
                   <Badge variant={bolConnection.is_active ? 'default' : 'secondary'} className="ml-auto text-[10px]">
-                    {bolConnection.is_active ? 'Actief' : 'Inactief'}
+                    {bolConnection.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                   </Badge>
                 )}
               </div>
               {ch.enabled && (
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Spend</span>
+                    <span className="text-muted-foreground">{t('admin.ads.spend')}</span>
                     <span className="font-medium">{formatCurrency(kpis.spend)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">ACoS</span>
+                    <span className="text-muted-foreground">{t('admin.ads.acos')}</span>
                     <span className="font-medium">{kpis.acos.toFixed(1)}%</span>
                   </div>
                   <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
                     <Link to={ch.link!}>
-                      Bekijk details <ArrowRight className="h-3 w-3 ml-1" />
+                      {t('admin.ads.bekijk_details')} <ArrowRight className="h-3 w-3 ml-1" />
                     </Link>
                   </Button>
                 </div>
@@ -180,7 +184,7 @@ export default function AdsPage() {
       ) : chartData.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Performance over tijd</CardTitle>
+            <CardTitle className="text-base">{t('admin.ads.performance_over_tijd')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -189,16 +193,16 @@ export default function AdsPage() {
                 <XAxis
                   dataKey="date"
                   tick={{ fontSize: 12 }}
-                  tickFormatter={(v) => format(new Date(v), 'd MMM', { locale: nl })}
+                  tickFormatter={(v) => format(new Date(v), 'd MMM', { locale: dateLocale })}
                   className="text-muted-foreground"
                 />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `€${v}`} className="text-muted-foreground" />
                 <Tooltip
-                  formatter={(value: number, name: string) => [formatCurrency(value), name === 'spend' ? 'Spend' : 'Omzet']}
-                  labelFormatter={(label) => format(new Date(label), 'd MMMM yyyy', { locale: nl })}
+                  formatter={(value: number, name: string) => [formatCurrency(value), name === 'spend' ? t('admin.ads.spend') : t('admin.adsBolcom.omzet')]}
+                  labelFormatter={(label) => format(new Date(label), 'd MMMM yyyy', { locale: dateLocale })}
                   contentStyle={{ borderRadius: 8, fontSize: 13 }}
                 />
-                <Legend formatter={(value) => (value === 'spend' ? 'Spend' : 'Omzet')} />
+                <Legend formatter={(value) => (value === 'spend' ? t('admin.ads.spend') : t('admin.adsBolcom.omzet'))} />
                 <Line type="monotone" dataKey="spend" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
@@ -213,20 +217,20 @@ export default function AdsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">AI Aanbevelingen</CardTitle>
+              <CardTitle className="text-base">{t('admin.ads.ai_aanbevelingen')}</CardTitle>
               {recommendationsCount > 0 && (
                 <Badge variant="default" className="text-xs">{recommendationsCount}</Badge>
               )}
             </div>
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/admin/ads/ai">Alle regels <ArrowRight className="h-3 w-3 ml-1" /></Link>
+              <Link to="/admin/ads/ai">{t('admin.ads.alle_regels')} <ArrowRight className="h-3 w-3 ml-1" /></Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {recommendations.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Geen openstaande aanbevelingen. AI analyseert continu je campagnes.
+              {t('admin.ads.geen_openstaande_aanbevelingen_ai_analyseert_continu')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -239,10 +243,10 @@ export default function AdsPage() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button size="sm" variant="default" onClick={() => handleRecommendationAction(rec.id, 'accepted')}>
-                      Toepassen
+                      {t('admin.ads.toepassen')}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => handleRecommendationAction(rec.id, 'rejected')}>
-                      Negeren
+                      {t('admin.ads.negeren')}
                     </Button>
                   </div>
                 </div>
@@ -257,18 +261,18 @@ export default function AdsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            <CardTitle className="text-base">Voorraad Alerts</CardTitle>
+            <CardTitle className="text-base">{t('admin.ads.voorraad_alerts')}</CardTitle>
             {inventoryAlerts.length > 0 && (
               <Badge variant="secondary" className="text-xs">{inventoryAlerts.length}</Badge>
             )}
           </div>
-          <CardDescription>Producten met voorraad onder de minimumdrempel voor advertenties</CardDescription>
+          <CardDescription>{t('admin.ads.producten_met_voorraad_onder_de_minimumdrempel')}</CardDescription>
         </CardHeader>
         <CardContent>
           {inventoryAlerts.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">✓</Badge>
-              Alle geadverteerde producten zijn boven de voorraaddrempel
+              {t('admin.ads.alle_geadverteerde_producten_zijn_boven_de')}
             </div>
           ) : (
             <div className="space-y-2">
@@ -277,7 +281,7 @@ export default function AdsPage() {
                   <div className="flex items-center gap-3">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">{item.products?.name || 'Onbekend product'}</p>
+                      <p className="text-sm font-medium">{item.products?.name || t('admin.ads.onbekend_product')}</p>
                       <p className="text-xs text-muted-foreground">
                         Voorraad: {item.products?.stock ?? 0} (min: {item.min_stock_for_ads})
                       </p>
@@ -285,11 +289,11 @@ export default function AdsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="destructive" className="text-xs">
-                      {item.is_advertised ? 'Ads actief' : 'Gepauzeerd'}
+                      {item.is_advertised ? t('admin.ads.ads_actief') : t('admin.marketing.campaignCard.status.gepauzeerd')}
                     </Badge>
                     <Button variant="outline" size="sm" asChild>
                       <Link to={`/admin/products/${item.product_id}`}>
-                        Voorraad bijwerken
+                        {t('admin.ads.voorraad_bijwerken')}
                       </Link>
                     </Button>
                   </div>

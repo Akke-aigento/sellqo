@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CampaignWizard } from '@/components/admin/ads/CampaignWizard';
+import { useTranslation } from 'react-i18next';
 
 const formatCurrency = (val: number) => `€${val.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatPct = (val: number) => `${val.toFixed(2)}%`;
@@ -45,6 +46,7 @@ function AbsChangeIndicator({ value, suffix = 'pp', invert = false }: { value: n
 type SortKey = 'name' | 'status' | 'perf_spend' | 'perf_acos' | 'perf_impressions' | 'perf_clicks' | 'perf_orders';
 
 export default function AdsBolcomPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
@@ -63,10 +65,15 @@ export default function AdsBolcomPage() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Sync voltooid: ${data.campaigns_synced} campagnes, ${data.adgroups_synced} ad groups, ${data.keywords_synced} keywords, ${data.products_synced} producten`);
+      toast.success(t('admin.adsBolcom.sync_voltooid', {
+        campaigns: data.campaigns_synced,
+        adgroups: data.adgroups_synced,
+        keywords: data.keywords_synced,
+        products: data.products_synced,
+      }));
       queryClient.invalidateQueries({ queryKey: ['bolcom-ads'] });
     } catch (e: any) {
-      toast.error('Sync mislukt: ' + (e.message || 'Onbekende fout'));
+      toast.error(t('admin.adsBolcom.sync_mislukt', { reason: e.message || t('admin.adsBolcom.onbekende_fout') }));
     } finally {
       setSyncing(false);
     }
@@ -90,16 +97,16 @@ export default function AdsBolcomPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="cursor-pointer hover:underline" onClick={() => navigate('/admin/ads')}>Ads</span>
+          <span className="cursor-pointer hover:underline" onClick={() => navigate('/admin/ads')}>{t('admin.adsBolcom.ads')}</span>
           <ChevronRight className="h-3 w-3" /> <span>Bol.com</span>
         </div>
         <Card className="p-12 text-center">
           <Megaphone className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Nog geen Bol.com campagnes</h2>
-          <p className="text-muted-foreground mb-4">Synchroniseer je Bol.com advertenties om te beginnen.</p>
+          <h2 className="text-xl font-semibold mb-2">{t('admin.adsBolcom.nog_geen_bol_com_campagnes')}</h2>
+          <p className="text-muted-foreground mb-4">{t('admin.adsBolcom.synchroniseer_je_bol_com_advertenties_om')}</p>
           <Button onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            {syncing ? 'Synchroniseren...' : 'Synchroniseer'}
+            {syncing ? t('admin.adsBolcom.synchroniseren') : t('admin.adsBolcomCampaignDetail.synchroniseer')}
           </Button>
         </Card>
       </div>
@@ -118,7 +125,7 @@ export default function AdsBolcomPage() {
       {reportsSyncing && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>Performance data ophalen van Bol.com...</span>
+          <span>{t('admin.adsBolcom.performance_data_ophalen_van_bol_com')}</span>
         </div>
       )}
 
@@ -126,10 +133,10 @@ export default function AdsBolcomPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <span className="cursor-pointer hover:underline" onClick={() => navigate('/admin/ads')}>Ads</span>
+            <span className="cursor-pointer hover:underline" onClick={() => navigate('/admin/ads')}>{t('admin.adsBolcom.ads_2')}</span>
             <ChevronRight className="h-3 w-3" /> <span>Bol.com</span>
           </div>
-          <h1 className="text-2xl font-bold">Bol.com Ads</h1>
+          <h1 className="text-2xl font-bold">{t('admin.adsBolcom.bol_com_ads')}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-muted rounded-lg p-0.5">
@@ -142,10 +149,10 @@ export default function AdsBolcomPage() {
           </div>
           <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="hidden sm:inline ml-2">{syncing ? 'Synchroniseren...' : 'Synchroniseer'}</span>
+            <span className="hidden sm:inline ml-2">{syncing ? t('admin.adsBolcom.synchroniseren') : t('admin.adsBolcomCampaignDetail.synchroniseer')}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowWizard(true)}>
-            <Plus className="h-4 w-4" /><span className="hidden sm:inline ml-2">Nieuwe campagne</span>
+            <Plus className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('admin.adsBolcom.nieuwe_campagne')}</span>
           </Button>
         </div>
       </div>
@@ -163,17 +170,17 @@ export default function AdsBolcomPage() {
       ) : (
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card><CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground">Spend</p>
+          <p className="text-sm text-muted-foreground">{t('admin.ads.spend')}</p>
           <p className="text-2xl font-bold">{formatCurrency(kpis.spend)}</p>
           <ChangeIndicator value={kpis.spendChange} />
         </CardContent></Card>
         <Card><CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground">Omzet</p>
+          <p className="text-sm text-muted-foreground">{t('admin.adsBolcom.omzet')}</p>
           <p className="text-2xl font-bold">{formatCurrency(kpis.revenue)}</p>
           <ChangeIndicator value={kpis.revenueChange} />
         </CardContent></Card>
         <Card><CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground">ACoS</p>
+          <p className="text-sm text-muted-foreground">{t('admin.ads.acos')}</p>
           <p className="text-2xl font-bold">{formatPct(kpis.acos)}</p>
           <AbsChangeIndicator value={kpis.acosChange} invert />
         </CardContent></Card>
@@ -183,7 +190,7 @@ export default function AdsBolcomPage() {
           <AbsChangeIndicator value={kpis.ctrChange} />
         </CardContent></Card>
         <Card><CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground">Conversieratio</p>
+          <p className="text-sm text-muted-foreground">{t('admin.adsBolcom.conversieratio')}</p>
           <p className="text-2xl font-bold">{formatPct(kpis.convRate)}</p>
           <AbsChangeIndicator value={kpis.convRateChange} />
         </CardContent></Card>
@@ -195,7 +202,7 @@ export default function AdsBolcomPage() {
         <Card><CardContent className="pt-6"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
       ) : chartData.length > 0 ? (
         <Card>
-          <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('admin.adsBolcom.performance')}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
@@ -216,7 +223,7 @@ export default function AdsBolcomPage() {
 
       {/* Campaigns table */}
       <Card>
-        <CardHeader><CardTitle>Campagnes</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('admin.marketing.mediaAssetsLibrary.folders.campagnes')}</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
           <Table className="min-w-[900px]">
@@ -234,7 +241,7 @@ export default function AdsBolcomPage() {
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/admin/ads/bolcom/campaigns/${c.id}`)}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell><Badge className={statusColor(c.status)}>{c.status}</Badge></TableCell>
-                  <TableCell>{c.daily_budget ? `€${c.daily_budget}/dag` : c.total_budget ? `€${c.total_budget} totaal` : '-'}</TableCell>
+                  <TableCell>{c.daily_budget ? t('admin.adsBolcom.budget_per_dag', { amount: c.daily_budget }) : c.total_budget ? t('admin.adsBolcom.budget_totaal', { amount: c.total_budget }) : '-'}</TableCell>
                   <TableCell><Badge variant="outline">{c.targeting_type}</Badge></TableCell>
                   <TableCell>{formatCurrency(c.perf_spend)}</TableCell>
                   <TableCell>{formatPct(c.perf_acos)}</TableCell>
@@ -244,7 +251,7 @@ export default function AdsBolcomPage() {
                 </TableRow>
               ))}
               {sortedCampaigns.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Geen campagnes gevonden</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">{t('admin.adsBolcom.geen_campagnes_gevonden')}</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -256,18 +263,18 @@ export default function AdsBolcomPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Top Keywords</CardTitle>
-            <Button variant="link" size="sm" onClick={() => navigate('/admin/ads/bolcom/keywords')}>Alle keywords →</Button>
+            <CardTitle className="text-base">{t('admin.adsBolcom.top_keywords')}</CardTitle>
+            <Button variant="link" size="sm" onClick={() => navigate('/admin/ads/bolcom/keywords')}>{t('admin.adsBolcom.alle_keywords')}</Button>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Keyword</TableHead>
-                  <TableHead>Match</TableHead>
-                  <TableHead>Bod</TableHead>
-                  <TableHead>Clicks</TableHead>
-                  <TableHead>ACoS</TableHead>
+                  <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                  <TableHead>{t('admin.adsBolcom.match')}</TableHead>
+                  <TableHead>{t('admin.adsBolcom.bod')}</TableHead>
+                  <TableHead>{t('admin.ads.campaignCard.clicks')}</TableHead>
+                  <TableHead>{t('admin.ads.acos')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,7 +288,7 @@ export default function AdsBolcomPage() {
                   </TableRow>
                 ))}
                 {topKeywords.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Geen keyword data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">{t('admin.adsBolcom.geen_keyword_data')}</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -290,18 +297,18 @@ export default function AdsBolcomPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Top Zoektermen</CardTitle>
-            <Button variant="link" size="sm" onClick={() => navigate('/admin/ads/bolcom/search-terms')}>Alle zoektermen →</Button>
+            <CardTitle className="text-base">{t('admin.adsBolcom.top_zoektermen')}</CardTitle>
+            <Button variant="link" size="sm" onClick={() => navigate('/admin/ads/bolcom/search-terms')}>{t('admin.adsBolcom.alle_zoektermen')}</Button>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Zoekterm</TableHead>
-                  <TableHead>Clicks</TableHead>
-                  <TableHead>Spend</TableHead>
-                  <TableHead>Orders</TableHead>
-                  <TableHead>ACoS</TableHead>
+                  <TableHead>{t('admin.adsBolcom.zoekterm')}</TableHead>
+                  <TableHead>{t('admin.ads.campaignCard.clicks')}</TableHead>
+                  <TableHead>{t('admin.ads.spend')}</TableHead>
+                  <TableHead>{t('admin.adsBolcom.orders')}</TableHead>
+                  <TableHead>{t('admin.ads.acos')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -315,7 +322,7 @@ export default function AdsBolcomPage() {
                   </TableRow>
                 ))}
                 {topSearchTerms.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Geen zoekterm data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">{t('admin.adsBolcom.geen_zoekterm_data')}</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

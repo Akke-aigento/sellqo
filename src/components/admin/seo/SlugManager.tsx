@@ -23,6 +23,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface SlugItem {
   id: string;
@@ -72,6 +73,7 @@ export function SlugManager({
   onUpdateSlugs,
   isUpdating,
 }: SlugManagerProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<'all' | 'missing' | 'suboptimal'>('all');
@@ -167,10 +169,10 @@ export function SlugManager({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" />
-              URL/Slug Manager
+              {t('admin.seo.slugManager.url_slug_manager')}
             </CardTitle>
             <CardDescription>
-              Optimaliseer je URL-structuur voor betere SEO
+              {t('admin.seo.slugManager.optimaliseer_je_url_structuur_voor_betere')}
             </CardDescription>
           </div>
           {selectedIds.size > 0 && (
@@ -178,7 +180,7 @@ export function SlugManager({
               {isUpdating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Bijwerken...
+                  {t('admin.seo.slugManager.bijwerken')}
                 </>
               ) : (
                 <>
@@ -212,7 +214,7 @@ export function SlugManager({
           {missingCount === 0 && suboptimalCount === 0 && conflictCount === 0 && (
             <Badge variant="default" className="bg-green-500">
               <Check className="mr-1 h-3 w-3" />
-              Alles geoptimaliseerd
+              {t('admin.seo.slugManager.alles_geoptimaliseerd')}
             </Badge>
           )}
         </div>
@@ -222,7 +224,7 @@ export function SlugManager({
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Zoeken..."
+              placeholder={t('common.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -234,21 +236,21 @@ export function SlugManager({
               size="sm"
               onClick={() => setFilter('all')}
             >
-              Alle
+              {t('common.all')}
             </Button>
             <Button
               variant={filter === 'missing' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('missing')}
             >
-              Ontbrekend
+              {t('admin.seo.slugManager.ontbrekend')}
             </Button>
             <Button
               variant={filter === 'suboptimal' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('suboptimal')}
             >
-              Suboptimaal
+              {t('admin.seo.slugManager.suboptimaal')}
             </Button>
           </div>
         </div>
@@ -265,19 +267,19 @@ export function SlugManager({
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Naam</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Huidige URL</TableHead>
+                  <TableHead>{t('common.name')}</TableHead>
+                  <TableHead>{t('admin.marketing.contentHistoryList.type')}</TableHead>
+                  <TableHead>{t('admin.seo.slugManager.huidige_url')}</TableHead>
                   <TableHead></TableHead>
-                  <TableHead>Suggestie</TableHead>
-                  <TableHead className="w-24">Status</TableHead>
+                  <TableHead>{t('admin.seo.slugManager.suggestie')}</TableHead>
+                  <TableHead className="w-24">{t('common.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Geen items gevonden
+                      {t('admin.seo.slugManager.geen_items_gevonden')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -297,7 +299,7 @@ export function SlugManager({
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {item.entityType === 'product' ? 'Product' : 'Categorie'}
+                            {item.entityType === 'product' ? t('admin.stockReport.colName') : t('admin.marketing.templateDialog.categorie')}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
@@ -321,11 +323,11 @@ export function SlugManager({
                         </TableCell>
                         <TableCell>
                           {item.hasConflict ? (
-                            <Badge variant="destructive">Conflict</Badge>
+                            <Badge variant="destructive">{t('admin.seo.slugManager.conflict')}</Badge>
                           ) : isOptimal ? (
                             <Check className="h-4 w-4 text-green-500" />
                           ) : (
-                            <Badge variant="secondary">Te optimaliseren</Badge>
+                            <Badge variant="secondary">{t('admin.seo.slugManager.te_optimaliseren')}</Badge>
                           )}
                         </TableCell>
                       </TableRow>

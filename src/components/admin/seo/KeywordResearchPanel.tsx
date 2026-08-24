@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SEO_LANGUAGES, type SEOKeyword, type SEOLanguage } from '@/types/seo';
+import { useTranslation } from 'react-i18next';
 
 interface KeywordResearchPanelProps {
   keywords: SEOKeyword[];
@@ -91,6 +92,7 @@ export function KeywordResearchPanel({
   isLoading,
   isGenerating,
 }: KeywordResearchPanelProps) {
+  const { t } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState<SEOLanguage>('nl');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newKeyword, setNewKeyword] = useState({
@@ -148,38 +150,38 @@ export function KeywordResearchPanel({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Keyword Research
+              {t('admin.seo.keywordResearchPanel.keyword_research')}
             </CardTitle>
             <CardDescription>
-              Beheer je SEO keywords per taal voor betere vindbaarheid
+              {t('admin.seo.keywordResearchPanel.beheer_je_seo_keywords_per_taal')}
             </CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                Keyword Toevoegen
+                {t('admin.seo.keywordResearchPanel.keyword_toevoegen')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nieuw Keyword Toevoegen</DialogTitle>
+                <DialogTitle>{t('admin.seo.keywordResearchPanel.nieuw_keyword_toevoegen')}</DialogTitle>
                 <DialogDescription>
-                  Voeg een nieuw keyword toe aan je SEO strategie.
+                  {t('admin.seo.keywordResearchPanel.voeg_een_nieuw_keyword_toe_aan')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Keyword</Label>
+                  <Label>{t('admin.adsBolcom.keyword')}</Label>
                   <Input
-                    placeholder="bijv. handgemaakte sieraden"
+                    placeholder={t('admin.seo.keywordResearchPanel.bijv_handgemaakte_sieraden')}
                     value={newKeyword.keyword}
                     onChange={(e) => setNewKeyword({ ...newKeyword, keyword: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Taal</Label>
+                    <Label>{t('admin.marketing.templateDialog.taal')}</Label>
                     <Select
                       value={newKeyword.language}
                       onValueChange={(v) => setNewKeyword({ ...newKeyword, language: v as SEOLanguage })}
@@ -197,7 +199,7 @@ export function KeywordResearchPanel({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Type</Label>
+                    <Label>{t('admin.marketing.contentHistoryList.type')}</Label>
                     <Select
                       value={newKeyword.is_primary ? 'primary' : 'secondary'}
                       onValueChange={(v) => setNewKeyword({ ...newKeyword, is_primary: v === 'primary' })}
@@ -206,15 +208,15 @@ export function KeywordResearchPanel({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="primary">Primair</SelectItem>
-                        <SelectItem value="secondary">Secundair</SelectItem>
+                        <SelectItem value="primary">{t('admin.seo.keywordResearchPanel.primair')}</SelectItem>
+                        <SelectItem value="secondary">{t('admin.seo.keywordResearchPanel.secundair')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Zoekvolume</Label>
+                    <Label>{t('admin.seo.keywordResearchPanel.zoekvolume')}</Label>
                     <Select
                       value={newKeyword.search_volume_estimate}
                       onValueChange={(v) => setNewKeyword({ ...newKeyword, search_volume_estimate: v as any })}
@@ -223,14 +225,14 @@ export function KeywordResearchPanel({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="high">Hoog</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Laag</SelectItem>
+                        <SelectItem value="high">{t('admin.seo.keywordResearchPanel.hoog')}</SelectItem>
+                        <SelectItem value="medium">{t('admin.seo.keywordResearchPanel.medium')}</SelectItem>
+                        <SelectItem value="low">{t('admin.seo.keywordResearchPanel.laag')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Moeilijkheid</Label>
+                    <Label>{t('admin.seo.competitorAnalysisPanel.moeilijkheid')}</Label>
                     <Select
                       value={newKeyword.difficulty_estimate}
                       onValueChange={(v) => setNewKeyword({ ...newKeyword, difficulty_estimate: v as any })}
@@ -239,15 +241,15 @@ export function KeywordResearchPanel({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="easy">Makkelijk</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="hard">Moeilijk</SelectItem>
+                        <SelectItem value="easy">{t('admin.seo.keywordResearchPanel.makkelijk')}</SelectItem>
+                        <SelectItem value="medium">{t('admin.seo.keywordResearchPanel.medium_2')}</SelectItem>
+                        <SelectItem value="hard">{t('admin.seo.keywordResearchPanel.moeilijk')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Zoekintentie</Label>
+                  <Label>{t('admin.seo.keywordResearchPanel.zoekintentie')}</Label>
                   <Select
                     value={newKeyword.intent}
                     onValueChange={(v) => setNewKeyword({ ...newKeyword, intent: v as any })}
@@ -256,19 +258,19 @@ export function KeywordResearchPanel({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="informational">Informatief - Wil iets leren</SelectItem>
-                      <SelectItem value="commercial">Commercieel - Vergelijkt opties</SelectItem>
-                      <SelectItem value="transactional">Transactioneel - Wil kopen</SelectItem>
-                      <SelectItem value="navigational">Navigatie - Zoekt specifieke site</SelectItem>
+                      <SelectItem value="informational">{t('admin.seo.keywordResearchPanel.informatief_wil_iets_leren')}</SelectItem>
+                      <SelectItem value="commercial">{t('admin.seo.keywordResearchPanel.commercieel_vergelijkt_opties')}</SelectItem>
+                      <SelectItem value="transactional">{t('admin.seo.keywordResearchPanel.transactioneel_wil_kopen')}</SelectItem>
+                      <SelectItem value="navigational">{t('admin.seo.keywordResearchPanel.navigatie_zoekt_specifieke_site')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Annuleren
+                  {t('common.cancel')}
                 </Button>
-                <Button onClick={handleAddKeyword}>Toevoegen</Button>
+                <Button onClick={handleAddKeyword}>{t('common.add')}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -307,7 +309,7 @@ export function KeywordResearchPanel({
                 <div className="text-center py-8 text-muted-foreground">
                   <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Nog geen keywords voor {lang.label}</p>
-                  <p className="text-sm">Voeg keywords toe of gebruik AI suggesties</p>
+                  <p className="text-sm">{t('admin.seo.keywordResearchPanel.voeg_keywords_toe_of_gebruik_ai')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -322,10 +324,10 @@ export function KeywordResearchPanel({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Keyword</TableHead>
-                              <TableHead>Volume</TableHead>
-                              <TableHead>Moeilijkheid</TableHead>
-                              <TableHead>Intentie</TableHead>
+                              <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                              <TableHead>{t('admin.seo.competitorAnalysisPanel.volume')}</TableHead>
+                              <TableHead>{t('admin.seo.competitorAnalysisPanel.moeilijkheid')}</TableHead>
+                              <TableHead>{t('admin.seo.keywordResearchPanel.intentie')}</TableHead>
                               <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
                           </TableHeader>
@@ -346,8 +348,7 @@ export function KeywordResearchPanel({
                                   <TableCell>
                                     {kw.difficulty_estimate && (
                                       <Badge variant="outline" className={difficultyColors[kw.difficulty_estimate]}>
-                                        {kw.difficulty_estimate === 'easy' ? 'Makkelijk' : 
-                                         kw.difficulty_estimate === 'medium' ? 'Medium' : 'Moeilijk'}
+                                        {kw.difficulty_estimate === 'easy' ? t('admin.seo.keywordResearchPanel.makkelijk') : kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
                                       </Badge>
                                     )}
                                   </TableCell>
@@ -388,10 +389,10 @@ export function KeywordResearchPanel({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Keyword</TableHead>
-                              <TableHead>Volume</TableHead>
-                              <TableHead>Moeilijkheid</TableHead>
-                              <TableHead>Intentie</TableHead>
+                              <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                              <TableHead>{t('admin.seo.competitorAnalysisPanel.volume')}</TableHead>
+                              <TableHead>{t('admin.seo.competitorAnalysisPanel.moeilijkheid')}</TableHead>
+                              <TableHead>{t('admin.seo.keywordResearchPanel.intentie_2')}</TableHead>
                               <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
                           </TableHeader>
@@ -412,8 +413,7 @@ export function KeywordResearchPanel({
                                   <TableCell>
                                     {kw.difficulty_estimate && (
                                       <Badge variant="outline" className={difficultyColors[kw.difficulty_estimate]}>
-                                        {kw.difficulty_estimate === 'easy' ? 'Makkelijk' : 
-                                         kw.difficulty_estimate === 'medium' ? 'Medium' : 'Moeilijk'}
+                                        {kw.difficulty_estimate === 'easy' ? t('admin.seo.keywordResearchPanel.makkelijk') : kw.difficulty_estimate === 'medium' ? t('admin.seo.keywordResearchPanel.medium') : t('admin.seo.keywordResearchPanel.moeilijk')}
                                       </Badge>
                                     )}
                                   </TableCell>

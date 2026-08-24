@@ -25,7 +25,8 @@ import { useProducts } from '@/hooks/useProducts';
 import { ProductSelectDialog } from './ProductSelectDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 type ImageStyle = 'product_photo' | 'lifestyle' | 'flat_lay' | 'minimalist' | 'vibrant' | 'custom';
 type ImageSize = '1024x1024' | '1792x1024' | '1024x1792';
@@ -33,46 +34,50 @@ type EnhancementType = 'generate' | 'enhance' | 'background_remove' | 'overlay';
 type PlatformPreset = 'instagram_post' | 'instagram_story' | 'facebook_banner' | 'email_header' | 'linkedin_post' | 'custom';
 type SettingPreset = 'lifestyle' | 'summer' | 'winter' | 'spring' | 'kitchen' | 'living_room' | 'office' | 'outdoor' | 'studio' | 'gradient' | 'geometric' | 'custom';
 
-const styles: { id: ImageStyle; name: string; description: string }[] = [
-  { id: 'product_photo', name: 'Product Foto', description: 'Professionele productfoto' },
-  { id: 'lifestyle', name: 'Lifestyle', description: 'Product in context' },
-  { id: 'flat_lay', name: 'Flat Lay', description: 'Bovenaanzicht styling' },
-  { id: 'minimalist', name: 'Minimalistisch', description: 'Clean en strak' },
-  { id: 'vibrant', name: 'Levendig', description: 'Kleurrijk en opvallend' },
-  { id: 'custom', name: 'Eigen stijl', description: 'Beschrijf zelf' },
+// Labels staan als i18n-key; `id` blijft de ImageStyle-enumwaarde.
+const styles: { id: ImageStyle; nameKey: string; descriptionKey: string }[] = [
+  { id: 'product_photo', nameKey: 'admin.marketing.aiImageGenerator.styles.product_photo.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.product_photo.description' },
+  { id: 'lifestyle', nameKey: 'admin.marketing.aiImageGenerator.styles.lifestyle.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.lifestyle.description' },
+  { id: 'flat_lay', nameKey: 'admin.marketing.aiImageGenerator.styles.flat_lay.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.flat_lay.description' },
+  { id: 'minimalist', nameKey: 'admin.marketing.aiImageGenerator.styles.minimalist.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.minimalist.description' },
+  { id: 'vibrant', nameKey: 'admin.marketing.aiImageGenerator.styles.vibrant.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.vibrant.description' },
+  { id: 'custom', nameKey: 'admin.marketing.aiImageGenerator.styles.custom.name', descriptionKey: 'admin.marketing.aiImageGenerator.styles.custom.description' },
 ];
 
-const sizes: { id: ImageSize; name: string; ratio: string }[] = [
-  { id: '1024x1024', name: 'Vierkant', ratio: '1:1' },
-  { id: '1792x1024', name: 'Liggend', ratio: '16:9' },
-  { id: '1024x1792', name: 'Staand', ratio: '9:16' },
+const sizes: { id: ImageSize; nameKey: string; ratio: string }[] = [
+  { id: '1024x1024', nameKey: 'admin.marketing.aiImageGenerator.sizes.1024_1024.name', ratio: '1:1' },
+  { id: '1792x1024', nameKey: 'admin.marketing.aiImageGenerator.sizes.1792_1024.name', ratio: '16:9' },
+  { id: '1024x1792', nameKey: 'admin.marketing.aiImageGenerator.sizes.1024_1792.name', ratio: '9:16' },
 ];
 
-const settingPresets: { id: SettingPreset; name: string; description: string }[] = [
-  { id: 'lifestyle', name: 'Lifestyle', description: 'Product in gebruik door persoon' },
-  { id: 'summer', name: 'Zomer/Strand', description: 'Zonnig strandtafereel' },
-  { id: 'winter', name: 'Winter/Kerst', description: 'Gezellige wintersfeer' },
-  { id: 'spring', name: 'Lente', description: 'Fris en bloeiend' },
-  { id: 'kitchen', name: 'Keuken', description: 'Moderne keukenomgeving' },
-  { id: 'living_room', name: 'Woonkamer', description: 'Stijlvolle woonkamer' },
-  { id: 'office', name: 'Kantoor', description: 'Professionele werkplek' },
-  { id: 'outdoor', name: 'Buiten', description: 'Natuurlijke buitenomgeving' },
-  { id: 'studio', name: 'Studio', description: 'Witte achtergrond, professioneel' },
-  { id: 'gradient', name: 'Gradient', description: 'Vloeiende kleurovergang' },
-  { id: 'geometric', name: 'Geometrisch', description: 'Abstracte vormen' },
-  { id: 'custom', name: 'Eigen setting', description: 'Beschrijf je eigen setting' },
+const settingPresets: { id: SettingPreset; nameKey: string; descriptionKey: string }[] = [
+  { id: 'lifestyle', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.lifestyle.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.lifestyle.description' },
+  { id: 'summer', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.summer.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.summer.description' },
+  { id: 'winter', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.winter.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.winter.description' },
+  { id: 'spring', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.spring.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.spring.description' },
+  { id: 'kitchen', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.kitchen.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.kitchen.description' },
+  { id: 'living_room', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.living_room.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.living_room.description' },
+  { id: 'office', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.office.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.office.description' },
+  { id: 'outdoor', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.outdoor.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.outdoor.description' },
+  { id: 'studio', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.studio.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.studio.description' },
+  { id: 'gradient', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.gradient.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.gradient.description' },
+  { id: 'geometric', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.geometric.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.geometric.description' },
+  { id: 'custom', nameKey: 'admin.marketing.aiImageGenerator.settingPresets.custom.name', descriptionKey: 'admin.marketing.aiImageGenerator.settingPresets.custom.description' },
 ];
 
-const platformPresets: { id: PlatformPreset; name: string; dimensions: string }[] = [
-  { id: 'instagram_post', name: 'Instagram Post', dimensions: '1080×1080' },
-  { id: 'instagram_story', name: 'Instagram Story', dimensions: '1080×1920' },
-  { id: 'facebook_banner', name: 'Facebook Banner', dimensions: '1200×628' },
-  { id: 'email_header', name: 'Email Header', dimensions: '600×200' },
-  { id: 'linkedin_post', name: 'LinkedIn Post', dimensions: '1200×627' },
-  { id: 'custom', name: 'Aangepast', dimensions: 'Kies zelf' },
+// `dimensions` is een pixelmaat en blijft letterlijk; alleen 'custom' toont tekst.
+const platformPresets: { id: PlatformPreset; nameKey: string; dimensions?: string; dimensionsKey?: string }[] = [
+  { id: 'instagram_post', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.instagram_post.name', dimensions: '1080×1080' },
+  { id: 'instagram_story', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.instagram_story.name', dimensions: '1080×1920' },
+  { id: 'facebook_banner', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.facebook_banner.name', dimensions: '1200×628' },
+  { id: 'email_header', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.email_header.name', dimensions: '600×200' },
+  { id: 'linkedin_post', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.linkedin_post.name', dimensions: '1200×627' },
+  { id: 'custom', nameKey: 'admin.marketing.aiImageGenerator.platformPresets.custom.name', dimensionsKey: 'admin.marketing.aiImageGenerator.platformPresets.custom.dimensions' },
 ];
 
 export function AIImageGenerator() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [activeTab, setActiveTab] = useState<'generate' | 'enhance'>('generate');
   
   // Generate tab state
@@ -139,7 +144,7 @@ export function AIImageGenerator() {
     const finalSetting = settingPreset === 'custom' ? customSetting : settingPreset;
     
     await generateImage.mutateAsync({
-      prompt: enhancePrompt || `Marketingafbeelding voor ${selectedProduct?.name}`,
+      prompt: enhancePrompt || t('admin.marketing.aiImageGenerator.marketingafbeelding_voor', { product: selectedProduct?.name ?? '' }),
       sourceImageUrl: productImageUrl,
       sourceProductId: selectedProductIds[0],
       settingPreset: finalSetting,
@@ -174,10 +179,10 @@ export function AIImageGenerator() {
             <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
               <Wand2 className="h-4 w-4 text-white" />
             </div>
-            AI Afbeelding Generator
+            {t('admin.marketing.aIImageGenerator.ai_afbeelding_generator')}
           </CardTitle>
           <CardDescription>
-            Genereer of bewerk afbeeldingen voor je marketing
+            {t('admin.marketing.aIImageGenerator.genereer_of_bewerk_afbeeldingen_voor_je')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,32 +190,32 @@ export function AIImageGenerator() {
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="generate" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                Genereer Nieuw
+                {t('admin.marketing.aIImageGenerator.genereer_nieuw')}
               </TabsTrigger>
               <TabsTrigger value="enhance" className="flex items-center gap-2">
                 <ImagePlus className="h-4 w-4" />
-                Bewerk Productfoto
+                {t('admin.marketing.aIImageGenerator.bewerk_productfoto')}
               </TabsTrigger>
             </TabsList>
 
             {/* Generate New Tab */}
             <TabsContent value="generate" className="space-y-4 mt-0">
               <div className="space-y-2">
-                <Label>Beschrijving</Label>
+                <Label>{t('admin.marketing.emailBlockProperties.beschrijving')}</Label>
                 <Textarea
-                  placeholder="Beschrijf de afbeelding die je wilt genereren..."
+                  placeholder={t('admin.marketing.aIImageGenerator.beschrijf_de_afbeelding_die_je_wilt')}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={3}
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Tip: Wees specifiek over kleuren, stijl en compositie
+                  {t('admin.marketing.aIImageGenerator.tip_wees_specifiek_over_kleuren_stijl')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Stijl</Label>
+                <Label>{t('admin.marketing.emailBlockProperties.stijl')}</Label>
                 <Select value={style} onValueChange={(v) => setStyle(v as ImageStyle)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -219,8 +224,8 @@ export function AIImageGenerator() {
                     {styles.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         <div className="flex flex-col">
-                          <span>{s.name}</span>
-                          <span className="text-xs text-muted-foreground">{s.description}</span>
+                          <span>{t(s.nameKey)}</span>
+                          <span className="text-xs text-muted-foreground">{t(s.descriptionKey)}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -229,7 +234,7 @@ export function AIImageGenerator() {
               </div>
 
               <div className="space-y-2">
-                <Label>Formaat</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.formaat')}</Label>
                 <div className="flex gap-2">
                   {sizes.map((s) => (
                     <Button
@@ -239,7 +244,7 @@ export function AIImageGenerator() {
                       onClick={() => setSize(s.id)}
                       className="flex-1"
                     >
-                      <span className="font-medium">{s.name}</span>
+                      <span className="font-medium">{t(s.nameKey)}</span>
                       <Badge variant="secondary" className="ml-2 text-xs">
                         {s.ratio}
                       </Badge>
@@ -256,7 +261,7 @@ export function AIImageGenerator() {
                 {generateImage.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Genereren...
+                    {t('admin.marketing.aIImageGenerator.genereren')}
                   </>
                 ) : (
                   <>
@@ -271,7 +276,7 @@ export function AIImageGenerator() {
             <TabsContent value="enhance" className="space-y-4 mt-0">
               {/* Product Selection */}
               <div className="space-y-2">
-                <Label>Selecteer Product</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.selecteer_product')}</Label>
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -291,20 +296,20 @@ export function AIImageGenerator() {
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Package className="h-4 w-4" />
-                      Kies een product...
+                      {t('admin.marketing.aIImageGenerator.kies_een_product')}
                     </div>
                   )}
                 </Button>
                 {selectedProduct && !productImageUrl && (
                   <p className="text-xs text-destructive">
-                    Dit product heeft geen afbeelding
+                    {t('admin.marketing.aIImageGenerator.dit_product_heeft_geen_afbeelding')}
                   </p>
                 )}
               </div>
 
               {/* Setting Preset */}
               <div className="space-y-2">
-                <Label>Setting / Omgeving</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.setting_omgeving')}</Label>
                 <Select value={settingPreset} onValueChange={(v) => setSettingPreset(v as SettingPreset)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -313,8 +318,8 @@ export function AIImageGenerator() {
                     {settingPresets.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         <div className="flex flex-col">
-                          <span>{s.name}</span>
-                          <span className="text-xs text-muted-foreground">{s.description}</span>
+                          <span>{t(s.nameKey)}</span>
+                          <span className="text-xs text-muted-foreground">{t(s.descriptionKey)}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -322,7 +327,7 @@ export function AIImageGenerator() {
                 </Select>
                 {settingPreset === 'custom' && (
                   <Input
-                    placeholder="Beschrijf je eigen setting..."
+                    placeholder={t('admin.marketing.aIImageGenerator.beschrijf_je_eigen_setting')}
                     value={customSetting}
                     onChange={(e) => setCustomSetting(e.target.value)}
                     className="mt-2"
@@ -332,20 +337,20 @@ export function AIImageGenerator() {
 
               {/* Marketing Text */}
               <div className="space-y-2">
-                <Label>Marketing Tekst (optioneel)</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.marketing_tekst_optioneel')}</Label>
                 <Input
-                  placeholder="bv. '30% KORTING' of 'Nieuw!'"
+                  placeholder={t('admin.marketing.aIImageGenerator.bv_30_korting_of_nieuw')}
                   value={marketingText}
                   onChange={(e) => setMarketingText(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Tekst die op de afbeelding wordt geplaatst
+                  {t('admin.marketing.aIImageGenerator.tekst_die_op_de_afbeelding_wordt')}
                 </p>
               </div>
 
               {/* Platform Preset */}
               <div className="space-y-2">
-                <Label>Doelformaat</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.doelformaat')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {platformPresets.map((p) => (
                     <Button
@@ -356,8 +361,8 @@ export function AIImageGenerator() {
                       className="justify-start h-auto py-2"
                     >
                       <div className="flex flex-col items-start">
-                        <span className="font-medium text-xs">{p.name}</span>
-                        <span className="text-[10px] opacity-70">{p.dimensions}</span>
+                        <span className="font-medium text-xs">{t(p.nameKey)}</span>
+                        <span className="text-[10px] opacity-70">{p.dimensionsKey ? t(p.dimensionsKey) : p.dimensions}</span>
                       </div>
                     </Button>
                   ))}
@@ -366,9 +371,9 @@ export function AIImageGenerator() {
 
               {/* Additional Instructions */}
               <div className="space-y-2">
-                <Label>Extra instructies (optioneel)</Label>
+                <Label>{t('admin.marketing.aIImageGenerator.extra_instructies_optioneel')}</Label>
                 <Textarea
-                  placeholder="Aanvullende instructies voor de AI..."
+                  placeholder={t('admin.marketing.aIImageGenerator.aanvullende_instructies_voor_de_ai')}
                   value={enhancePrompt}
                   onChange={(e) => setEnhancePrompt(e.target.value)}
                   rows={2}
@@ -384,7 +389,7 @@ export function AIImageGenerator() {
                 {generateImage.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Transformeren...
+                    {t('admin.marketing.aIImageGenerator.transformeren')}
                   </>
                 ) : (
                   <>
@@ -404,7 +409,7 @@ export function AIImageGenerator() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
-              Gegenereerde Afbeeldingen
+              {t('admin.marketing.aIImageGenerator.gegenereerde_afbeeldingen')}
             </CardTitle>
             <Badge variant="secondary">{images.length}</Badge>
           </div>
@@ -419,8 +424,8 @@ export function AIImageGenerator() {
           ) : images.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Nog geen afbeeldingen gegenereerd</p>
-              <p className="text-sm">Gebruik de generator hierboven</p>
+              <p>{t('admin.marketing.aIImageGenerator.nog_geen_afbeeldingen_gegenereerd')}</p>
+              <p className="text-sm">{t('admin.marketing.aIImageGenerator.gebruik_de_generator_hierboven')}</p>
             </div>
           ) : (
             <ScrollArea className="h-[500px]">
@@ -441,7 +446,7 @@ export function AIImageGenerator() {
                       <Badge 
                         className="absolute top-2 left-2 text-[10px] bg-orange-500/90"
                       >
-                        Bewerkt
+                        {t('admin.marketing.aIImageGenerator.bewerkt')}
                       </Badge>
                     )}
                     
@@ -481,7 +486,7 @@ export function AIImageGenerator() {
                       <div className="text-white text-xs">
                         <p className="line-clamp-2">{image.prompt}</p>
                         <p className="opacity-70 mt-1">
-                          {format(new Date(image.created_at), 'PPp', { locale: nl })}
+                          {format(new Date(image.created_at), 'PPp', { locale: dateLocale })}
                         </p>
                       </div>
                     </div>

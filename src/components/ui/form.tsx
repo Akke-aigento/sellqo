@@ -5,6 +5,7 @@ import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider, useF
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from 'react-i18next';
 
 const Form = FormProvider;
 
@@ -108,10 +109,19 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
 );
 FormDescription.displayName = "FormDescription";
 
+// Ziet eruit als een i18n-key (`admin.foo.bar`) en niet als een zin?
+// Zod-schema's staan meestal op moduleniveau, waar t() niet bestaat; daarom
+// zetten ze de KEY als message en vertaalt FormMessage hem hier alsnog.
+// Gewone tekst valt buiten dit patroon en gaat onveranderd door — bestaande
+// meldingen wijzigen dus niet.
+const I18N_KEY = /^[a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_-]+)+$/;
+
 const FormMessage = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
   ({ className, children, ...props }, ref) => {
+    const { t } = useTranslation();
     const { error, formMessageId } = useFormField();
-    const body = error ? String(error?.message) : children;
+    const raw = error ? String(error?.message) : children;
+    const body = typeof raw === 'string' && I18N_KEY.test(raw) ? t(raw) : raw;
 
     if (!body) {
       return null;

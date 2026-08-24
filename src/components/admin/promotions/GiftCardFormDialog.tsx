@@ -30,11 +30,12 @@ import {
 import { useCreateGiftCard } from '@/hooks/useGiftCards';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
 import { CreditCard, Gift } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  initial_balance: z.coerce.number().min(1, 'Minimaal €1'),
+  initial_balance: z.coerce.number().min(1, 'admin.promotions.giftCardFormDialog.validation.minimaal_1'),
   currency: z.string().default('EUR'),
-  recipient_email: z.string().email('Ongeldig emailadres').optional().or(z.literal('')),
+  recipient_email: z.string().email('admin.promotions.giftCardFormDialog.validation.ongeldig_emailadres').optional().or(z.literal('')),
   recipient_name: z.string().optional(),
   personal_message: z.string().optional(),
   design_id: z.string().optional(),
@@ -49,6 +50,7 @@ interface GiftCardFormDialogProps {
 }
 
 export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogProps) {
+  const { t } = useTranslation();
   const createGiftCard = useCreateGiftCard();
   const { data: designs = [] } = useGiftCardDesigns();
 
@@ -92,7 +94,7 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Nieuwe Cadeaukaart
+            {t('admin.promotions.giftCardFormDialog.nieuwe_cadeaukaart')}
           </DialogTitle>
         </DialogHeader>
 
@@ -103,7 +105,7 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
               name="initial_balance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Waarde</FormLabel>
+                  <FormLabel>{t('admin.products.specs.customSpecsEditor.waarde')}</FormLabel>
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-2">
                       {quickAmounts.map((amount) => (
@@ -144,9 +146,9 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
                 name="recipient_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Naam ontvanger</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftCardFormDialog.naam_ontvanger')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jan Jansen" {...field} />
+                      <Input placeholder={t('admin.marketing.emailPreview.jan_jansen')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -158,11 +160,11 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
                 name="recipient_email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email ontvanger</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftCardFormDialog.email_ontvanger')}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="jan@voorbeeld.nl"
+                        placeholder={t('admin.promotions.giftCardFormDialog.jan_voorbeeld_nl')}
                         {...field}
                       />
                     </FormControl>
@@ -177,16 +179,16 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
               name="personal_message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Persoonlijk bericht</FormLabel>
+                  <FormLabel>{t('admin.promotions.giftCardFormDialog.persoonlijk_bericht')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Veel plezier met je cadeau!"
+                      placeholder={t('admin.promotions.giftCardFormDialog.veel_plezier_met_je_cadeau')}
                       rows={3}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Dit bericht wordt getoond aan de ontvanger
+                    {t('admin.promotions.giftCardFormDialog.dit_bericht_wordt_getoond_aan_de')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -199,11 +201,11 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
                 name="design_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ontwerp</FormLabel>
+                    <FormLabel>{t('admin.promotions.giftCardFormDialog.ontwerp')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Kies een ontwerp" />
+                          <SelectValue placeholder={t('admin.promotions.giftCardFormDialog.kies_een_ontwerp')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -230,12 +232,12 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
               name="expires_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Vervaldatum (optioneel)</FormLabel>
+                  <FormLabel>{t('admin.promotions.giftCardFormDialog.vervaldatum_optioneel')}</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Laat leeg voor geen vervaldatum
+                    {t('admin.promotions.giftCardFormDialog.laat_leeg_voor_geen_vervaldatum')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -248,10 +250,10 @@ export function GiftCardFormDialog({ open, onOpenChange }: GiftCardFormDialogPro
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createGiftCard.isPending}>
-                {createGiftCard.isPending ? 'Aanmaken...' : 'Cadeaukaart aanmaken'}
+                {createGiftCard.isPending ? t('admin.promotions.giftCardFormDialog.aanmaken') : t('admin.promotions.giftCardFormDialog.cadeaukaart_aanmaken')}
               </Button>
             </div>
           </form>

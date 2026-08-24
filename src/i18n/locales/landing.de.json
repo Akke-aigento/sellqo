@@ -1476,6 +1476,22 @@
         "ai_content_menu_brand_dna": {
           "title": "Halte deine Marken-DNA und dein Morgenmenü in Sellqo AI fest",
           "description": "Sellqo AI hat einen neuen Tab Menükarte. Dort beschreibst du einmal, wofür deine Marke steht: Mission, Zielgruppe, Tonalität, Stärken, feste Themen, was du sagen willst und was nicht, sowie Hashtag-Sets, die du je Thema wiederverwendest. Dazu gibt es ein freies Feld für alles, was in keine Schublade passt. Darunter stellst du dein Morgenmenü zusammen: Pro Kategorie wählst du, wie viele Beiträge du möchtest, vom Produktbeitrag über die Kundengeschichte bis zu „Überrasch mich“, und du legst fest, ob der Schwerpunkt auf kurzen, ausführlichen, bildgetriebenen oder Karussell-Beiträgen liegt. Fehlt eine Kategorie, legst du selbst eine mit eigener Anweisung an. Diese Anweisung ist Pflicht, damit keine Kategorie entsteht, mit der der Generator nichts anfangen kann. Was du hier einträgst, ist die Grundlage für die tägliche Content-Erzeugung, die darauf folgt. Der Tab gehört zu Pro und Enterprise."
+        },
+        "ai_daily_menu_generator": {
+          "title": "Sellqo AI stellt deine tägliche Menükarte zusammen",
+          "description": "Unter Sellqo AI steht im Tab Menükarte jetzt ganz oben „Menü von heute“. Ein Klick, und die KI arbeitet dein Morgenmenü zu fertigen Karten aus: pro Kategorie ein Text mit Hashtags, im Format, das am besten passt — Beitrag, Reel, Story oder Karussell. Jede Karte siehst du als Vorschau so, wie sie im Kanal landen würde; ein für eine Story zu langer Text fällt damit sofort auf. Die Kategorie „Überrasch mich“ wählt selbst einen Blickwinkel auf Basis deiner Marken-DNA und dessen, was gerade in deinem Shop los ist, und erklärt dazu warum. Pro Karte entscheidest du: als Entwurf bereitstellen, anpassen oder verwerfen. Ein ganzes Menü kostet 5 Credits, unabhängig von der Anzahl der Karten. Bilder entstehen nicht automatisch — die forderst du pro Karte für 5 Credits an, sodass du nur für das zahlst, was du nutzt. Die Funktion gehört zu Pro und Enterprise."
+        },
+        "ai_image_tenant_check": {
+          "title": "Strengere Zugriffskontrolle für KI-Bilder und Marketing-Einblicke",
+          "description": "Zwei KI-Funktionen prüften zwar, ob du angemeldet bist, aber nicht, zu welchem Shop du gehörst. Theoretisch konnte damit jemand die KI-Credits eines anderen Shops verbrauchen oder dessen Umsatz- und Bestandszahlen abrufen. Das ist geschlossen: Beide Funktionen prüfen jetzt deinen Zugang zum Shop und deine Rolle, genau wie die übrigen KI-Werkzeuge. An der Nutzung ändert sich für dich nichts. Wenn du mit Teammitgliedern arbeitest: Die Bilderzeugung steht Administratoren, Mitarbeitenden und der Marketing-Rolle offen; die Einblicke bleiben zusätzlich für die Betrachter-Rolle lesbar."
+        },
+        "marketing_role_multilingual": {
+          "title": "Der Marketing-Arbeitsbereich spricht jetzt fünf Sprachen",
+          "description": "Arbeiten Sie mit einer Marketing-Kollegin oder einem Kollegen, die kein Niederländisch sprechen? Jeder Bildschirm, den die Marketingrolle öffnen kann, ist jetzt vollständig auf Niederländisch, Englisch, Französisch, Deutsch und Ukrainisch verfügbar: Dashboard, Posteingang, Bestellungen, Produkte, Kunden, Kampagnen, SEO, Anzeigen, Aktionen, der Übersetzungs-Hub und Analytics. Das sind über 200 Bildschirme und rund 2.500 Texte — Schaltflächen, Beschriftungen, Tabs, Fehlermeldungen und die Hinweise, die nach einer Aktion erscheinen. Auch Texte in Auswahllisten, Status-Badges und der Formularvalidierung sind dabei. Die Sprache stellen Sie pro Benutzer im Profil ein; jede Person sieht die Admin also in ihrer eigenen Sprache, unabhängig von der Sprache des Webshops."
+        },
+        "admin_dates_follow_language": {
+          "title": "Datum und Uhrzeit folgen Ihrer Admin-Sprache",
+          "description": "Datumsangaben in der Admin standen immer auf Niederländisch — auch wenn Sie die Admin auf Französisch oder Deutsch nutzten. Dann stand „maandag 4 maart“ oder „3 dagen geleden“ mitten auf einer deutschen Seite. Das ist behoben: Tages- und Monatsnamen sowie relative Zeitangaben folgen jetzt der Sprache, die Sie selbst eingestellt haben. Beträge bleiben im niederländischen Format mit Komma als Dezimaltrennzeichen — das ist eine buchhalterische Entscheidung und keine Spracheinstellung."
         }
       },
       "copyLink": "Link kopieren",

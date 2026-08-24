@@ -10,6 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import type { EmailBlock, EmailBlockStyle, EmailBlockContent } from '@/types/emailBuilder';
 import { BLOCK_TEMPLATES } from '@/types/emailBuilder';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import { useTranslation } from 'react-i18next';
 
 interface EmailBlockPropertiesProps {
   block: EmailBlock | null;
@@ -18,6 +19,7 @@ interface EmailBlockPropertiesProps {
 }
 
 export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPropertiesProps) {
+  const { t } = useTranslation();
   const [localBlock, setLocalBlock] = useState<EmailBlock | null>(null);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
     return (
       <Card className="h-full">
         <CardContent className="flex items-center justify-center h-full text-muted-foreground">
-          Selecteer een blok om te bewerken
+          {t('admin.marketing.emailBlockProperties.selecteer_een_blok_om_te_bewerken')}
         </CardContent>
       </Card>
     );
@@ -61,7 +63,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
           <>
             <div>
               <div className="flex items-center gap-1">
-                <Label>Header tekst</Label>
+                <Label>{t('admin.marketing.emailBlockProperties.header_tekst')}</Label>
                 <AIFieldAssistant
                   fieldType="newsletter"
                   currentValue={localBlock.content.headerText || ''}
@@ -72,11 +74,11 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               <Input
                 value={localBlock.content.headerText || ''}
                 onChange={(e) => updateContent('headerText', e.target.value)}
-                placeholder="Welkom!"
+                placeholder={t('admin.marketing.emailBlockProperties.welkom')}
               />
             </div>
             <div>
-              <Label>Logo URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.logo_url')}</Label>
               <Input
                 value={localBlock.content.logoUrl || ''}
                 onChange={(e) => updateContent('logoUrl', e.target.value)}
@@ -90,7 +92,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <div>
             <div className="flex items-center gap-1">
-              <Label>Tekst</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.tekst')}</Label>
               <AIFieldAssistant
                 fieldType="newsletter"
                 currentValue={localBlock.content.text || ''}
@@ -102,7 +104,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               value={localBlock.content.text || ''}
               onChange={(e) => updateContent('text', e.target.value)}
               rows={4}
-              placeholder="Voeg hier je tekst toe..."
+              placeholder={t('admin.marketing.emailBlockProperties.voeg_hier_je_tekst_toe')}
             />
           </div>
         );
@@ -111,7 +113,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Afbeelding URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.afbeelding_url')}</Label>
               <Input
                 value={localBlock.content.imageUrl || ''}
                 onChange={(e) => updateContent('imageUrl', e.target.value)}
@@ -119,15 +121,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               />
             </div>
             <div>
-              <Label>Alt tekst</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.alt_tekst')}</Label>
               <Input
                 value={localBlock.content.altText || ''}
                 onChange={(e) => updateContent('altText', e.target.value)}
-                placeholder="Beschrijving van de afbeelding"
+                placeholder={t('admin.marketing.emailBlockProperties.beschrijving_van_de_afbeelding')}
               />
             </div>
             <div>
-              <Label>Link URL (optioneel)</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.link_url_optioneel')}</Label>
               <Input
                 value={localBlock.content.linkUrl || ''}
                 onChange={(e) => updateContent('linkUrl', e.target.value)}
@@ -141,15 +143,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Knop tekst</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.knop_tekst')}</Label>
               <Input
                 value={localBlock.content.buttonText || ''}
                 onChange={(e) => updateContent('buttonText', e.target.value)}
-                placeholder="Klik hier"
+                placeholder={t('admin.marketing.emailBlockProperties.klik_hier')}
               />
             </div>
             <div>
-              <Label>Link URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.link_url')}</Label>
               <Input
                 value={localBlock.content.buttonUrl || ''}
                 onChange={(e) => updateContent('buttonUrl', e.target.value)}
@@ -162,7 +164,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
       case 'divider':
         return (
           <div>
-            <Label>Lijn stijl</Label>
+            <Label>{t('admin.marketing.emailBlockProperties.lijn_stijl')}</Label>
             <Select
               value={localBlock.content.dividerStyle || 'solid'}
               onValueChange={(v) => updateContent('dividerStyle', v)}
@@ -171,9 +173,9 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="solid">Doorgetrokken</SelectItem>
-                <SelectItem value="dashed">Gestreept</SelectItem>
-                <SelectItem value="dotted">Gestippeld</SelectItem>
+                <SelectItem value="solid">{t('admin.marketing.emailBlockProperties.doorgetrokken')}</SelectItem>
+                <SelectItem value="dashed">{t('admin.marketing.emailBlockProperties.gestreept')}</SelectItem>
+                <SelectItem value="dotted">{t('admin.marketing.emailBlockProperties.gestippeld')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -197,14 +199,14 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Product naam</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.product_naam')}</Label>
               <Input
                 value={localBlock.content.productName || ''}
                 onChange={(e) => updateContent('productName', e.target.value)}
               />
             </div>
             <div>
-              <Label>Prijs</Label>
+              <Label>{t('common.price')}</Label>
               <Input
                 value={localBlock.content.productPrice || ''}
                 onChange={(e) => updateContent('productPrice', e.target.value)}
@@ -212,14 +214,14 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               />
             </div>
             <div>
-              <Label>Afbeelding URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.afbeelding_url_2')}</Label>
               <Input
                 value={localBlock.content.productImage || ''}
                 onChange={(e) => updateContent('productImage', e.target.value)}
               />
             </div>
             <div>
-              <Label>Beschrijving</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.beschrijving')}</Label>
               <Textarea
                 value={localBlock.content.productDescription || ''}
                 onChange={(e) => updateContent('productDescription', e.target.value)}
@@ -233,28 +235,28 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Facebook URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.facebook_url')}</Label>
               <Input
                 value={localBlock.content.facebook || ''}
                 onChange={(e) => updateContent('facebook', e.target.value)}
               />
             </div>
             <div>
-              <Label>Instagram URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.instagram_url')}</Label>
               <Input
                 value={localBlock.content.instagram || ''}
                 onChange={(e) => updateContent('instagram', e.target.value)}
               />
             </div>
             <div>
-              <Label>Twitter/X URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.twitter_x_url')}</Label>
               <Input
                 value={localBlock.content.twitter || ''}
                 onChange={(e) => updateContent('twitter', e.target.value)}
               />
             </div>
             <div>
-              <Label>LinkedIn URL</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.linkedin_url')}</Label>
               <Input
                 value={localBlock.content.linkedin || ''}
                 onChange={(e) => updateContent('linkedin', e.target.value)}
@@ -267,7 +269,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
         return (
           <>
             <div>
-              <Label>Bedrijfsnaam</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.bedrijfsnaam')}</Label>
               <Input
                 value={localBlock.content.companyName || ''}
                 onChange={(e) => updateContent('companyName', e.target.value)}
@@ -275,7 +277,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               />
             </div>
             <div>
-              <Label>Adres</Label>
+              <Label>{t('common.address')}</Label>
               <Input
                 value={localBlock.content.companyAddress || ''}
                 onChange={(e) => updateContent('companyAddress', e.target.value)}
@@ -283,15 +285,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
               />
             </div>
             <div>
-              <Label>Uitschrijf tekst</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.uitschrijf_tekst')}</Label>
               <Input
                 value={localBlock.content.unsubscribeText || ''}
                 onChange={(e) => updateContent('unsubscribeText', e.target.value)}
-                placeholder="Uitschrijven"
+                placeholder={t('admin.marketing.emailBlockProperties.uitschrijven')}
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label>Toon voorkeuren link</Label>
+              <Label>{t('admin.marketing.emailBlockProperties.toon_voorkeuren_link')}</Label>
               <Switch
                 checked={localBlock.content.includePreferences ?? true}
                 onCheckedChange={(v) => updateContent('includePreferences', v)}
@@ -320,15 +322,15 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="border-b pb-4 space-y-4">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase">Inhoud</h4>
+          <h4 className="text-xs font-medium text-muted-foreground uppercase">{t('admin.marketing.emailBlockPalette.inhoud')}</h4>
           {renderContentFields()}
         </div>
 
         <div className="space-y-4">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase">Stijl</h4>
+          <h4 className="text-xs font-medium text-muted-foreground uppercase">{t('admin.marketing.emailBlockProperties.stijl')}</h4>
           
           <div>
-            <Label>Achtergrondkleur</Label>
+            <Label>{t('admin.marketing.emailBlockProperties.achtergrondkleur')}</Label>
             <div className="flex gap-2">
               <Input
                 type="color"
@@ -345,7 +347,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
           </div>
 
           <div>
-            <Label>Tekstkleur</Label>
+            <Label>{t('admin.marketing.emailBlockProperties.tekstkleur')}</Label>
             <div className="flex gap-2">
               <Input
                 type="color"
@@ -362,7 +364,7 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
           </div>
 
           <div>
-            <Label>Tekstgrootte</Label>
+            <Label>{t('admin.marketing.emailBlockProperties.tekstgrootte')}</Label>
             <Select
               value={String(localBlock.style.fontSize || 16)}
               onValueChange={(v) => updateStyle('fontSize', parseInt(v))}
@@ -371,17 +373,17 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="12">Klein (12px)</SelectItem>
-                <SelectItem value="14">Normaal (14px)</SelectItem>
-                <SelectItem value="16">Medium (16px)</SelectItem>
-                <SelectItem value="18">Groot (18px)</SelectItem>
-                <SelectItem value="24">Extra groot (24px)</SelectItem>
+                <SelectItem value="12">{t('admin.marketing.emailBlockProperties.klein_12px')}</SelectItem>
+                <SelectItem value="14">{t('admin.marketing.emailBlockProperties.normaal_14px')}</SelectItem>
+                <SelectItem value="16">{t('admin.marketing.emailBlockProperties.medium_16px')}</SelectItem>
+                <SelectItem value="18">{t('admin.marketing.emailBlockProperties.groot_18px')}</SelectItem>
+                <SelectItem value="24">{t('admin.marketing.emailBlockProperties.extra_groot_24px')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label>Uitlijning</Label>
+            <Label>{t('admin.marketing.emailBlockProperties.uitlijning')}</Label>
             <Select
               value={localBlock.style.textAlign || 'left'}
               onValueChange={(v) => updateStyle('textAlign', v)}
@@ -390,9 +392,9 @@ export function EmailBlockProperties({ block, onUpdate, onClose }: EmailBlockPro
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="left">Links</SelectItem>
-                <SelectItem value="center">Midden</SelectItem>
-                <SelectItem value="right">Rechts</SelectItem>
+                <SelectItem value="left">{t('admin.marketing.emailBlockProperties.links')}</SelectItem>
+                <SelectItem value="center">{t('admin.marketing.emailBlockProperties.midden')}</SelectItem>
+                <SelectItem value="right">{t('admin.marketing.emailBlockProperties.rechts')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

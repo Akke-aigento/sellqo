@@ -39,7 +39,15 @@ export interface ContentMenuCategory {
   labelKey: string;
   /** i18n-key voor de uitleg onder het label. */
   descriptionKey: string;
-  /** Waarde waarmee de teller start als de tenant nog niets heeft opgeslagen. */
+  /**
+   * Waarde waarmee de teller start als de tenant nog niets heeft opgeslagen.
+   *
+   * Staat bewust overal op 0. Een verse tenant hoort met een leeg menu te
+   * beginnen en zelf te kiezen; stond hier iets anders, dan zag hij een totaal
+   * klaarstaan dat hij nooit heeft samengesteld en dacht hij dat het al
+   * ingesteld was. Het veld blijft bestaan als haakje voor een later
+   * startvoorstel per branche — het is niet dood.
+   */
   defaultCount: number;
   icon: LucideIcon;
   /**
@@ -54,42 +62,42 @@ export const CONTENT_MENU_CATEGORIES: readonly ContentMenuCategory[] = [
     key: 'product_post',
     labelKey: 'content_menu.categories.product_post.label',
     descriptionKey: 'content_menu.categories.product_post.description',
-    defaultCount: 2,
+    defaultCount: 0,
     icon: Package,
   },
   {
     key: 'educational',
     labelKey: 'content_menu.categories.educational.label',
     descriptionKey: 'content_menu.categories.educational.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: GraduationCap,
   },
   {
     key: 'lifestyle',
     labelKey: 'content_menu.categories.lifestyle.label',
     descriptionKey: 'content_menu.categories.lifestyle.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: Sun,
   },
   {
     key: 'behind_the_scenes',
     labelKey: 'content_menu.categories.behind_the_scenes.label',
     descriptionKey: 'content_menu.categories.behind_the_scenes.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: Camera,
   },
   {
     key: 'customer_story',
     labelKey: 'content_menu.categories.customer_story.label',
     descriptionKey: 'content_menu.categories.customer_story.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: MessageSquareQuote,
   },
   {
     key: 'tip_howto',
     labelKey: 'content_menu.categories.tip_howto.label',
     descriptionKey: 'content_menu.categories.tip_howto.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: Lightbulb,
   },
   {
@@ -103,7 +111,7 @@ export const CONTENT_MENU_CATEGORIES: readonly ContentMenuCategory[] = [
     key: 'surprise_me',
     labelKey: 'content_menu.categories.surprise_me.label',
     descriptionKey: 'content_menu.categories.surprise_me.description',
-    defaultCount: 1,
+    defaultCount: 0,
     icon: Sparkles,
     isFreeform: true,
   },

@@ -30,10 +30,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateCustomerGroup, useUpdateCustomerGroup } from '@/hooks/useCustomerGroups';
 import type { CustomerGroup, CustomerGroupFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
-  code: z.string().min(1, 'Code is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
+  code: z.string().min(1, 'admin.promotions.customerGroupFormDialog.validation.code_is_verplicht'),
   description: z.string().optional(),
   discount_type: z.enum(['percentage', 'fixed_amount']).optional(),
   discount_value: z.coerce.number().optional(),
@@ -56,6 +57,7 @@ export function CustomerGroupFormDialog({
   onOpenChange,
   group,
 }: CustomerGroupFormDialogProps) {
+  const { t } = useTranslation();
   const createGroup = useCreateCustomerGroup();
   const updateGroup = useUpdateCustomerGroup();
   const isEditing = !!group;
@@ -133,7 +135,7 @@ export function CustomerGroupFormDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Klantengroep Bewerken' : 'Nieuwe Klantengroep'}
+            {isEditing ? t('admin.promotions.customerGroupFormDialog.klantengroep_bewerken') : t('admin.promotions.customerGroupFormDialog.nieuwe_klantengroep')}
           </DialogTitle>
         </DialogHeader>
 
@@ -145,9 +147,9 @@ export function CustomerGroupFormDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Naam</FormLabel>
+                    <FormLabel>{t('common.name')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Groothandel" {...field} />
+                      <Input placeholder={t('admin.promotions.customerGroupFormDialog.groothandel')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -159,7 +161,7 @@ export function CustomerGroupFormDialog({
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Code</FormLabel>
+                    <FormLabel>{t('admin.products.productDescriptionEditor.code')}</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="WHOLESALE" 
@@ -178,9 +180,9 @@ export function CustomerGroupFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Beschrijving van de groep..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.customerGroupFormDialog.beschrijving_van_de_groep')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -193,16 +195,16 @@ export function CustomerGroupFormDialog({
                 name="discount_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Korting type</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.korting_type')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Geen standaard korting" />
+                          <SelectValue placeholder={t('admin.promotions.customerGroupFormDialog.geen_standaard_korting')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed_amount">Vast bedrag</SelectItem>
+                        <SelectItem value="percentage">{t('admin.promotions.autoDiscountFormDialog.percentage')}</SelectItem>
+                        <SelectItem value="fixed_amount">{t('admin.promotions.autoDiscountFormDialog.vast_bedrag')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -216,7 +218,7 @@ export function CustomerGroupFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {form.watch('discount_type') === 'percentage' ? 'Korting (%)' : 'Korting (€)'}
+                      {form.watch('discount_type') === 'percentage' ? t('admin.productForm.korting') : t('admin.promotions.customerGroupFormDialog.korting')}
                     </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0" {...field} />
@@ -233,9 +235,9 @@ export function CustomerGroupFormDialog({
                 name="min_order_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Min. bestelbedrag (€)</FormLabel>
+                    <FormLabel>{t('admin.promotions.customerGroupFormDialog.min_bestelbedrag')}</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Geen minimum" {...field} />
+                      <Input type="number" step="0.01" placeholder={t('admin.promotions.customerGroupFormDialog.geen_minimum')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,11 +249,11 @@ export function CustomerGroupFormDialog({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prioriteit</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.prioriteit')}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
-                    <FormDescription>Lager = hogere prioriteit</FormDescription>
+                    <FormDescription>{t('admin.promotions.customerGroupFormDialog.lager_hogere_prioriteit')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -264,8 +266,8 @@ export function CustomerGroupFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel className="cursor-pointer">BTW vrijgesteld</FormLabel>
-                    <FormDescription>Geen BTW berekenen voor deze groep</FormDescription>
+                    <FormLabel className="cursor-pointer">{t('admin.promotions.customerGroupFormDialog.btw_vrijgesteld')}</FormLabel>
+                    <FormDescription>{t('admin.promotions.customerGroupFormDialog.geen_btw_berekenen_voor_deze_groep')}</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -279,7 +281,7 @@ export function CustomerGroupFormDialog({
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel className="cursor-pointer">Actief</FormLabel>
+                  <FormLabel className="cursor-pointer">{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
@@ -289,10 +291,10 @@ export function CustomerGroupFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createGroup.isPending || updateGroup.isPending}>
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

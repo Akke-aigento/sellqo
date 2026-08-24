@@ -14,11 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTranslation } from 'react-i18next';
 
 interface ChecklistItem {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   status: 'complete' | 'incomplete' | 'partial';
   count?: { done: number; total: number };
 }
@@ -35,53 +36,54 @@ interface SEOHealthChecklistProps {
   isGeneratingSitemap?: boolean;
 }
 
+// Labels staan als i18n-key; `id` blijft de checklist-sleutel.
 const defaultChecklist: ChecklistItem[] = [
   {
     id: 'sitemap',
-    label: 'Sitemap.xml',
-    description: 'Dynamische sitemap met alle producten',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.sitemap.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.sitemap.description',
     status: 'incomplete',
   },
   {
     id: 'robots',
-    label: 'Robots.txt',
-    description: 'Geconfigureerd voor zoekmachines',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.robots.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.robots.description',
     status: 'incomplete',
   },
   {
     id: 'meta_titles',
-    label: 'Meta Titles',
-    description: 'Alle producten hebben een meta title',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.meta_titles.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.meta_titles.description',
     status: 'incomplete',
   },
   {
     id: 'meta_descriptions',
-    label: 'Meta Descriptions',
-    description: 'Alle producten hebben een meta description',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.meta_descriptions.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.meta_descriptions.description',
     status: 'incomplete',
   },
   {
     id: 'alt_texts',
-    label: 'Alt Teksten',
-    description: 'Alle afbeeldingen hebben alt tekst',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.alt_texts.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.alt_texts.description',
     status: 'incomplete',
   },
   {
     id: 'structured_data',
-    label: 'Structured Data',
-    description: 'JSON-LD Product schema aanwezig',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.structured_data.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.structured_data.description',
     status: 'incomplete',
   },
   {
     id: 'og_tags',
-    label: 'Open Graph Tags',
-    description: 'Social media sharing geoptimaliseerd',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.og_tags.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.og_tags.description',
     status: 'incomplete',
   },
   {
     id: 'canonical_urls',
-    label: 'Canonical URLs',
-    description: 'Duplicate content voorkomen',
+    labelKey: 'admin.seo.seOHealthChecklist.checks.canonical_urls.label',
+    descriptionKey: 'admin.seo.seOHealthChecklist.checks.canonical_urls.description',
     status: 'incomplete',
   },
 ];
@@ -92,6 +94,7 @@ export function SEOHealthChecklist({
   onGenerateSitemap,
   isGeneratingSitemap 
 }: SEOHealthChecklistProps) {
+  const { t } = useTranslation();
   const [sitemapDialog, setSitemapDialog] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
   const [sitemapResult, setSitemapResult] = useState<{
@@ -141,7 +144,7 @@ export function SEOHealthChecklist({
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Technische SEO Checklist
+              {t('admin.seo.sEOHealthChecklist.technische_seo_checklist')}
             </div>
             <span className="text-sm font-normal text-muted-foreground">
               {completedCount}/{items.length} voltooid
@@ -173,7 +176,7 @@ export function SEOHealthChecklist({
                       'font-medium text-sm',
                       item.status === 'complete' && 'text-green-700 dark:text-green-400'
                     )}>
-                      {item.label}
+                      {t(item.labelKey)}
                     </span>
                     {item.count && (
                       <span className="text-xs text-muted-foreground">
@@ -182,7 +185,7 @@ export function SEOHealthChecklist({
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {item.description}
+                    {t(item.descriptionKey)}
                   </p>
                 </div>
                 {item.id === 'sitemap' && onGenerateSitemap && (
@@ -192,7 +195,7 @@ export function SEOHealthChecklist({
                     onClick={() => setSitemapDialog(true)}
                   >
                     <FileCode className="h-4 w-4 mr-1" />
-                    Genereer
+                    {t('admin.seo.sEOHealthChecklist.genereer')}
                   </Button>
                 )}
               </div>
@@ -204,15 +207,15 @@ export function SEOHealthChecklist({
       <Dialog open={sitemapDialog} onOpenChange={setSitemapDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Sitemap Genereren</DialogTitle>
+            <DialogTitle>{t('admin.seo.sEOHealthChecklist.sitemap_genereren')}</DialogTitle>
             <DialogDescription>
-              Genereer een XML sitemap voor zoekmachines met al je producten en categorieën.
+              {t('admin.seo.sEOHealthChecklist.genereer_een_xml_sitemap_voor_zoekmachines')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Website URL</label>
+              <label className="text-sm font-medium">{t('admin.seo.sEOHealthChecklist.website_url')}</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="https://jouw-webshop.nl"
@@ -237,19 +240,19 @@ export function SEOHealthChecklist({
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div className="p-2 bg-muted rounded">
                     <div className="text-lg font-bold">{sitemapResult.stats.totalUrls}</div>
-                    <div className="text-xs text-muted-foreground">URLs</div>
+                    <div className="text-xs text-muted-foreground">{t('admin.seo.sEOHealthChecklist.urls')}</div>
                   </div>
                   <div className="p-2 bg-muted rounded">
                     <div className="text-lg font-bold">{sitemapResult.stats.products}</div>
-                    <div className="text-xs text-muted-foreground">Producten</div>
+                    <div className="text-xs text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.folders.producten')}</div>
                   </div>
                   <div className="p-2 bg-muted rounded">
                     <div className="text-lg font-bold">{sitemapResult.stats.categories}</div>
-                    <div className="text-xs text-muted-foreground">Categorieën</div>
+                    <div className="text-xs text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.folders.categorie_n')}</div>
                   </div>
                   <div className="p-2 bg-muted rounded">
                     <div className="text-lg font-bold">{sitemapResult.stats.productsWithImages}</div>
-                    <div className="text-xs text-muted-foreground">Met afbeeldingen</div>
+                    <div className="text-xs text-muted-foreground">{t('admin.seo.sEOHealthChecklist.met_afbeeldingen')}</div>
                   </div>
                 </div>
 
@@ -270,7 +273,7 @@ export function SEOHealthChecklist({
                       onClick={() => downloadFile(sitemapResult.sitemap, 'sitemap.xml')}
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      Download
+                      {t('admin.seo.sEOHealthChecklist.download')}
                     </Button>
                   </TabsContent>
                   <TabsContent value="images">
@@ -285,7 +288,7 @@ export function SEOHealthChecklist({
                         onClick={() => downloadFile(sitemapResult.imageSitemap, 'sitemap-images.xml')}
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        Download
+                        {t('admin.seo.sEOHealthChecklist.download')}
                       </Button>
                     )}
                   </TabsContent>
@@ -300,7 +303,7 @@ export function SEOHealthChecklist({
                       onClick={() => downloadFile(sitemapResult.sitemapIndex, 'sitemap-index.xml')}
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      Download
+                      {t('admin.seo.sEOHealthChecklist.download')}
                     </Button>
                   </TabsContent>
                 </Tabs>

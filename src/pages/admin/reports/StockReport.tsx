@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { nl as nlLocale } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { AlertTriangle, Calendar as CalendarIcon, Download, FileSpreadsheet, History, Loader2, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const slug = (s: string) =>
 
 const StockReport = () => {
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const { categories } = useCategories();
 
@@ -193,7 +194,7 @@ const StockReport = () => {
             <PopoverTrigger asChild>
               <Button variant="outline" className={cn('justify-start text-left font-normal')}>
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(date, 'd MMMM yyyy', { locale: nlLocale })}
+                {format(date, 'd MMMM yyyy', { locale: dateLocale })}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -206,7 +207,7 @@ const StockReport = () => {
                   setCalendarOpen(false);
                 }}
                 disabled={(d) => d > new Date()}
-                locale={nlLocale}
+                locale={dateLocale}
                 className={cn('p-3 pointer-events-auto')}
               />
             </PopoverContent>

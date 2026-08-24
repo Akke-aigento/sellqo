@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BLOCK_TEMPLATES, generateBlockId } from '@/types/emailBuilder';
 import type { EmailBlock, EmailBlockType } from '@/types/emailBuilder';
+import { useTranslation } from 'react-i18next';
 
 interface EmailBlockPaletteProps {
   onAddBlock: (block: EmailBlock) => void;
 }
 
 export function EmailBlockPalette({ onAddBlock }: EmailBlockPaletteProps) {
+  const { t } = useTranslation();
   const handleAddBlock = (type: EmailBlockType) => {
     const template = BLOCK_TEMPLATES[type];
     const newBlock: EmailBlock = {
@@ -22,19 +24,19 @@ export function EmailBlockPalette({ onAddBlock }: EmailBlockPaletteProps) {
 
   const blockCategories = [
     {
-      title: 'Inhoud',
+      title: t('admin.marketing.emailBlockPalette.inhoud'),
       blocks: ['header', 'text', 'image', 'button'] as EmailBlockType[],
     },
     {
-      title: 'Layout',
+      title: t('admin.marketing.emailBlockPalette.layout'),
       blocks: ['divider', 'spacer'] as EmailBlockType[],
     },
     {
-      title: 'Commerce',
+      title: t('admin.marketing.emailBlockPalette.commerce'),
       blocks: ['product'] as EmailBlockType[],
     },
     {
-      title: 'Footer',
+      title: t('admin.marketing.emailBlockPalette.footer'),
       blocks: ['social', 'footer'] as EmailBlockType[],
     },
   ];
@@ -42,7 +44,7 @@ export function EmailBlockPalette({ onAddBlock }: EmailBlockPaletteProps) {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Blokken</CardTitle>
+        <CardTitle className="text-sm">{t('admin.marketing.emailBlockPalette.blokken')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {blockCategories.map((category) => (

@@ -32,3 +32,6 @@ dist-ssr
 *.jks
 *.keystore
 keystore.properties
+
+# Supabase CLI-cache (lokaal, per machine)
+supabase/.temp/

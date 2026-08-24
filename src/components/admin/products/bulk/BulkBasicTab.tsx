@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { productTypeInfo, type ProductType } from '@/types/product';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   const { categories } = useCategories();
   const { vatRates } = useVatRates();
 
@@ -23,7 +25,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('category_id')}
           />
           <Label htmlFor="enable-category" className="font-medium cursor-pointer">
-            Categorie wijzigen
+            {t('admin.products.bulk.bulkBasicTab.categorie_wijzigen')}
           </Label>
         </div>
         {enabledFields.has('category_id') && (
@@ -32,10 +34,10 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onValueChange={(value) => onChange({ category_id: value || null })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecteer categorie" />
+              <SelectValue placeholder={t('admin.products.bulk.bulkBasicTab.selecteer_categorie')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Geen categorie</SelectItem>
+              <SelectItem value="">{t('admin.products.bulk.bulkBasicTab.geen_categorie')}</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.name}
@@ -55,7 +57,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('vat_rate_id')}
           />
           <Label htmlFor="enable-vat" className="font-medium cursor-pointer">
-            BTW-tarief wijzigen
+            {t('admin.products.bulk.bulkBasicTab.btw_tarief_wijzigen')}
           </Label>
         </div>
         {enabledFields.has('vat_rate_id') && (
@@ -64,10 +66,10 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onValueChange={(value) => onChange({ vat_rate_id: value || null })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecteer BTW-tarief" />
+              <SelectValue placeholder={t('admin.products.bulk.bulkBasicTab.selecteer_btw_tarief')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Geen BTW-tarief</SelectItem>
+              <SelectItem value="">{t('admin.products.bulk.bulkBasicTab.geen_btw_tarief')}</SelectItem>
               {vatRates.map((vat) => (
                 <SelectItem key={vat.id} value={vat.id}>
                   {vat.name_nl} ({vat.rate}%)
@@ -87,7 +89,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('product_type')}
           />
           <Label htmlFor="enable-type" className="font-medium cursor-pointer">
-            Product type wijzigen
+            {t('admin.products.bulk.bulkBasicTab.product_type_wijzigen')}
           </Label>
         </div>
         {enabledFields.has('product_type') && (
@@ -96,7 +98,7 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
             onValueChange={(value) => onChange({ product_type: value as ProductType })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecteer type" />
+              <SelectValue placeholder={t('admin.products.bulk.bulkBasicTab.selecteer_type')} />
             </SelectTrigger>
             <SelectContent>
               {productTypes.map(([type, info]) => (

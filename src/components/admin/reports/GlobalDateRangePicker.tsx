@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -17,6 +16,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 export interface DateRange {
   from: Date;
@@ -31,10 +32,10 @@ interface GlobalDateRangePickerProps {
 
 type PresetKey = 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_year' | 'last_year' | 'custom';
 
-const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = [
+const presets: { key: PresetKey; labelKey: string; getRange: () => DateRange }[] = [
   {
     key: 'this_month',
-    label: 'Deze maand',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.this_month',
     getRange: () => ({
       from: startOfMonth(new Date()),
       to: endOfMonth(new Date()),
@@ -43,7 +44,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
   },
   {
     key: 'last_month',
-    label: 'Vorige maand',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.last_month',
     getRange: () => ({
       from: startOfMonth(subMonths(new Date(), 1)),
       to: endOfMonth(subMonths(new Date(), 1)),
@@ -52,7 +53,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
   },
   {
     key: 'this_quarter',
-    label: 'Dit kwartaal',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.this_quarter',
     getRange: () => ({
       from: startOfQuarter(new Date()),
       to: endOfQuarter(new Date()),
@@ -61,7 +62,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
   },
   {
     key: 'last_quarter',
-    label: 'Vorig kwartaal',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.last_quarter',
     getRange: () => ({
       from: startOfQuarter(subQuarters(new Date(), 1)),
       to: endOfQuarter(subQuarters(new Date(), 1)),
@@ -70,7 +71,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
   },
   {
     key: 'this_year',
-    label: 'Dit jaar',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.this_year',
     getRange: () => ({
       from: startOfYear(new Date()),
       to: endOfYear(new Date()),
@@ -79,7 +80,7 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
   },
   {
     key: 'last_year',
-    label: 'Vorig jaar',
+    labelKey: 'admin.reports.globalDateRangePicker.presets.last_year',
     getRange: () => ({
       from: startOfYear(subYears(new Date(), 1)),
       to: endOfYear(subYears(new Date(), 1)),
@@ -89,6 +90,8 @@ const presets: { key: PresetKey; label: string; getRange: () => DateRange }[] = 
 ];
 
 export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDateRangePickerProps) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [selectedPreset, setSelectedPreset] = useState<PresetKey>('this_month');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
@@ -107,7 +110,7 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
 
   const currentPresetLabel = selectedPreset === 'custom' 
     ? 'Aangepaste periode'
-    : presets.find(p => p.key === selectedPreset)?.label || 'Selecteer periode';
+    : (() => { const pr = presets.find((x) => x.key === selectedPreset); return pr ? t(pr.labelKey) : t('admin.reports.globalDateRangePicker.selecteer_periode'); })();
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -126,7 +129,7 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
               onClick={() => handlePresetSelect(preset)}
               className={cn(selectedPreset === preset.key && 'bg-accent')}
             >
-              {preset.label}
+              {t(preset.labelKey)}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
@@ -134,7 +137,7 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
             onClick={() => setIsCalendarOpen(true)}
             className={cn(selectedPreset === 'custom' && 'bg-accent')}
           >
-            Aangepaste periode...
+            {t('admin.reports.globalDateRangePicker.aangepaste_periode')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -153,14 +156,14 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
             {dateRange?.from ? (
               dateRange.to ? (
                 <>
-                  {format(dateRange.from, 'd MMM yyyy', { locale: nl })} -{' '}
-                  {format(dateRange.to, 'd MMM yyyy', { locale: nl })}
+                  {format(dateRange.from, 'd MMM yyyy', { locale: dateLocale })} -{' '}
+                  {format(dateRange.to, 'd MMM yyyy', { locale: dateLocale })}
                 </>
               ) : (
-                format(dateRange.from, 'd MMM yyyy', { locale: nl })
+                format(dateRange.from, 'd MMM yyyy', { locale: dateLocale })
               )
             ) : (
-              <span>Selecteer periode</span>
+              <span>{t('admin.reports.globalDateRangePicker.selecteer_periode')}</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -172,7 +175,7 @@ export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDa
             selected={{ from: dateRange?.from, to: dateRange?.to }}
             onSelect={handleCustomDateChange}
             numberOfMonths={2}
-            locale={nl}
+            locale={dateLocale}
           />
         </PopoverContent>
       </Popover>

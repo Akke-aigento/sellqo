@@ -1,7 +1,7 @@
 import type { DocArticle, DocCategory } from '@/hooks/useDocumentation';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface DocArticleViewerProps {
   article: DocArticle;
@@ -9,6 +9,7 @@ interface DocArticleViewerProps {
 }
 
 export function DocArticleViewer({ article, category }: DocArticleViewerProps) {
+  const dateLocale = useDateFnsLocale();
   return (
     <article className="max-w-3xl">
       {category && (
@@ -30,7 +31,7 @@ export function DocArticleViewer({ article, category }: DocArticleViewerProps) {
         dangerouslySetInnerHTML={{ __html: article.content }}
       />
       <p className="text-xs text-muted-foreground mt-8 border-t pt-4">
-        Laatst bijgewerkt: {format(new Date(article.updated_at), 'd MMMM yyyy', { locale: nl })}
+        Laatst bijgewerkt: {format(new Date(article.updated_at), 'd MMMM yyyy', { locale: dateLocale })}
       </p>
     </article>
   );

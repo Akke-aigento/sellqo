@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { PendingChange } from './gridTypes';
+import { useTranslation } from 'react-i18next';
 
 interface ChangesPanelProps {
   changes: PendingChange[];
@@ -19,6 +20,7 @@ export function ChangesPanel({
   onSaveAll,
   isSaving,
 }: ChangesPanelProps) {
+  const { t } = useTranslation();
   if (changes.length === 0) return null;
 
   // Group changes by product
@@ -59,7 +61,7 @@ export function ChangesPanel({
           className="text-muted-foreground hover:text-foreground"
         >
           <Undo2 className="h-4 w-4 mr-1" />
-          Alles wissen
+          {t('admin.products.grid.changesPanel.alles_wissen')}
         </Button>
       </div>
 
@@ -101,10 +103,10 @@ export function ChangesPanel({
 
       <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
         <Button variant="outline" onClick={onClearAll} disabled={isSaving}>
-          Annuleren
+          {t('common.cancel')}
         </Button>
         <Button onClick={onSaveAll} disabled={isSaving}>
-          {isSaving ? 'Opslaan...' : `Alle wijzigingen opslaan (${changes.length})`}
+          {isSaving ? 'Opslaan...' : t('admin.products.grid.changesPanel.alle_wijzigingen_opslaan', { count: changes.length })}
         </Button>
       </div>
     </div>

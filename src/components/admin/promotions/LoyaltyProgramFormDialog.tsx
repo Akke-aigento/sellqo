@@ -24,16 +24,17 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCreateLoyaltyProgram, useUpdateLoyaltyProgram, useCreateLoyaltyTier } from '@/hooks/useLoyalty';
 import type { LoyaltyProgram, LoyaltyProgramFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const tierSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   min_points: z.coerce.number().min(0),
   points_multiplier: z.coerce.number().min(1),
   discount_percentage: z.coerce.number().min(0).max(100).optional(),
 });
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   points_per_euro: z.coerce.number().min(1),
   points_value: z.coerce.number().min(0.01),
@@ -55,6 +56,7 @@ export function LoyaltyProgramFormDialog({
   onOpenChange,
   program,
 }: LoyaltyProgramFormDialogProps) {
+  const { t } = useTranslation();
   const createProgram = useCreateLoyaltyProgram();
   const updateProgram = useUpdateLoyaltyProgram();
   const createTier = useCreateLoyaltyTier();
@@ -69,9 +71,9 @@ export function LoyaltyProgramFormDialog({
       min_points_redeem: 100,
       is_active: true,
       tiers: [
-        { name: 'Bronze', min_points: 0, points_multiplier: 1, discount_percentage: 0 },
-        { name: 'Silver', min_points: 500, points_multiplier: 1.5, discount_percentage: 5 },
-        { name: 'Gold', min_points: 2000, points_multiplier: 2, discount_percentage: 10 },
+        { name: t('admin.promotions.loyaltyProgramFormDialog.bronze'), min_points: 0, points_multiplier: 1, discount_percentage: 0 },
+        { name: t('admin.promotions.loyaltyProgramFormDialog.silver'), min_points: 500, points_multiplier: 1.5, discount_percentage: 5 },
+        { name: t('admin.promotions.loyaltyProgramFormDialog.gold'), min_points: 2000, points_multiplier: 2, discount_percentage: 10 },
       ],
     },
   });
@@ -106,13 +108,13 @@ export function LoyaltyProgramFormDialog({
         min_points_redeem: 100,
         is_active: true,
         tiers: [
-          { name: 'Bronze', min_points: 0, points_multiplier: 1, discount_percentage: 0 },
-          { name: 'Silver', min_points: 500, points_multiplier: 1.5, discount_percentage: 5 },
-          { name: 'Gold', min_points: 2000, points_multiplier: 2, discount_percentage: 10 },
+          { name: t('admin.promotions.loyaltyProgramFormDialog.bronze'), min_points: 0, points_multiplier: 1, discount_percentage: 0 },
+          { name: t('admin.promotions.loyaltyProgramFormDialog.silver'), min_points: 500, points_multiplier: 1.5, discount_percentage: 5 },
+          { name: t('admin.promotions.loyaltyProgramFormDialog.gold'), min_points: 2000, points_multiplier: 2, discount_percentage: 10 },
         ],
       });
     }
-  }, [program, form]);
+  }, [program, form, t]);
 
   const onSubmit = async (values: FormValues) => {
     const formData: LoyaltyProgramFormData = {
@@ -150,7 +152,7 @@ export function LoyaltyProgramFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {program ? 'Programma Bewerken' : 'Nieuw Loyaliteitsprogramma'}
+            {program ? t('admin.promotions.loyaltyProgramFormDialog.programma_bewerken') : t('admin.promotions.loyaltyProgramFormDialog.nieuw_loyaliteitsprogramma')}
           </DialogTitle>
         </DialogHeader>
 
@@ -161,9 +163,9 @@ export function LoyaltyProgramFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="VIP Spaarprogramma" {...field} />
+                    <Input placeholder={t('admin.promotions.loyaltyProgramFormDialog.vip_spaarprogramma')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,9 +177,9 @@ export function LoyaltyProgramFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Spaar punten bij elke aankoop..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.loyaltyProgramFormDialog.spaar_punten_bij_elke_aankoop')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,11 +192,11 @@ export function LoyaltyProgramFormDialog({
                 name="points_per_euro"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Punten per €1</FormLabel>
+                    <FormLabel>{t('admin.promotions.loyaltyProgramFormDialog.punten_per_1')}</FormLabel>
                     <FormControl>
                       <Input type="number" min={1} {...field} />
                     </FormControl>
-                    <FormDescription>Hoeveel punten per euro</FormDescription>
+                    <FormDescription>{t('admin.promotions.loyaltyProgramFormDialog.hoeveel_punten_per_euro')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -205,11 +207,11 @@ export function LoyaltyProgramFormDialog({
                 name="points_value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Waarde per punt (€)</FormLabel>
+                    <FormLabel>{t('admin.promotions.loyaltyProgramFormDialog.waarde_per_punt')}</FormLabel>
                     <FormControl>
                       <Input type="number" step={0.01} min={0.01} {...field} />
                     </FormControl>
-                    <FormDescription>Euro waarde bij inwisselen</FormDescription>
+                    <FormDescription>{t('admin.promotions.loyaltyProgramFormDialog.euro_waarde_bij_inwisselen')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -220,11 +222,11 @@ export function LoyaltyProgramFormDialog({
                 name="min_points_redeem"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Min. inwisselen</FormLabel>
+                    <FormLabel>{t('admin.promotions.loyaltyProgramFormDialog.min_inwisselen')}</FormLabel>
                     <FormControl>
                       <Input type="number" min={0} {...field} />
                     </FormControl>
-                    <FormDescription>Minimum punten</FormDescription>
+                    <FormDescription>{t('admin.promotions.loyaltyProgramFormDialog.minimum_punten')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -234,7 +236,7 @@ export function LoyaltyProgramFormDialog({
             {/* Tiers */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <FormLabel>Tiers</FormLabel>
+                <FormLabel>{t('admin.promotions.loyaltyProgramFormDialog.tiers')}</FormLabel>
                 <Button
                   type="button"
                   variant="outline"
@@ -242,7 +244,7 @@ export function LoyaltyProgramFormDialog({
                   onClick={() => append({ name: '', min_points: 0, points_multiplier: 1, discount_percentage: 0 })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Tier toevoegen
+                  {t('admin.promotions.loyaltyProgramFormDialog.tier_toevoegen')}
                 </Button>
               </div>
 
@@ -253,7 +255,7 @@ export function LoyaltyProgramFormDialog({
                     name={`tiers.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Naam</FormLabel>
+                        <FormLabel className="text-xs">{t('common.name')}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -265,7 +267,7 @@ export function LoyaltyProgramFormDialog({
                     name={`tiers.${index}.min_points`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Min. punten</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.loyaltyProgramFormDialog.min_punten')}</FormLabel>
                         <FormControl>
                           <Input type="number" min={0} {...field} />
                         </FormControl>
@@ -277,7 +279,7 @@ export function LoyaltyProgramFormDialog({
                     name={`tiers.${index}.points_multiplier`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Multiplier</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.loyaltyProgramFormDialog.multiplier')}</FormLabel>
                         <FormControl>
                           <Input type="number" step={0.1} min={1} {...field} />
                         </FormControl>
@@ -289,7 +291,7 @@ export function LoyaltyProgramFormDialog({
                     name={`tiers.${index}.discount_percentage`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Korting %</FormLabel>
+                        <FormLabel className="text-xs">{t('admin.promotions.loyaltyProgramFormDialog.korting')}</FormLabel>
                         <FormControl>
                           <Input type="number" min={0} max={100} {...field} />
                         </FormControl>
@@ -315,9 +317,9 @@ export function LoyaltyProgramFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel>Actief</FormLabel>
+                    <FormLabel>{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                     <FormDescription>
-                      Klanten kunnen punten sparen en inwisselen
+                      {t('admin.promotions.loyaltyProgramFormDialog.klanten_kunnen_punten_sparen_en_inwisselen')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -329,10 +331,10 @@ export function LoyaltyProgramFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createProgram.isPending || updateProgram.isPending}>
-                {program ? 'Opslaan' : 'Aanmaken'}
+                {program ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

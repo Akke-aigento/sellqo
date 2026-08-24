@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface EmailPreviewProps {
   htmlContent: string;
@@ -26,6 +27,7 @@ const deviceWidths: Record<DeviceType, number> = {
 };
 
 export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialogChange }: EmailPreviewProps) {
+  const { t } = useTranslation();
   const [device, setDevice] = useState<DeviceType>('desktop');
   const [testEmail, setTestEmail] = useState('');
   const [testName, setTestName] = useState('Test Klant');
@@ -70,7 +72,7 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
 
       if (error) throw error;
       
-      toast.success(`Test email verzonden naar ${testEmail}`);
+      toast.success(t('admin.marketing.emailPreview.test_verzonden_naar', { email: testEmail }));
       setDialogOpen(false);
     } catch (error) {
       console.error('Test email error:', error);
@@ -83,22 +85,22 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
   // Simple spam score checker
   const spamChecks = [
     { 
-      label: 'Onderwerp lengte', 
+      label: t('admin.marketing.emailPreview.onderwerp_lengte'), 
       passed: subject.length > 0 && subject.length <= 60,
       message: subject.length > 60 ? 'Onderwerp te lang (max 60 tekens)' : subject.length === 0 ? 'Onderwerp ontbreekt' : 'OK'
     },
     { 
-      label: 'Geen CAPS LOCK', 
+      label: t('admin.marketing.emailPreview.geen_caps_lock'), 
       passed: !/[A-Z]{5,}/.test(subject),
       message: /[A-Z]{5,}/.test(subject) ? 'Vermijd hoofdletters' : 'OK'
     },
     { 
-      label: 'Unsubscribe link', 
+      label: t('admin.marketing.emailPreview.unsubscribe_link'), 
       passed: htmlContent.includes('unsubscribe') || htmlContent.includes('uitschrijven'),
       message: htmlContent.includes('unsubscribe') || htmlContent.includes('uitschrijven') ? 'OK' : 'Voeg uitschrijflink toe'
     },
     { 
-      label: 'Alt tekst afbeeldingen', 
+      label: t('admin.marketing.emailPreview.alt_tekst_afbeeldingen'), 
       passed: !htmlContent.includes('alt=""') && !htmlContent.includes("alt=''"),
       message: htmlContent.includes('alt=""') ? 'Sommige afbeeldingen missen alt tekst' : 'OK'
     },
@@ -112,8 +114,8 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
       <Tabs defaultValue="preview" className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-4 py-2 border-b">
           <TabsList>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="quality">Kwaliteit</TabsTrigger>
+            <TabsTrigger value="preview">{t('admin.marketing.emailPreview.preview')}</TabsTrigger>
+            <TabsTrigger value="quality">{t('admin.marketing.emailPreview.kwaliteit')}</TabsTrigger>
           </TabsList>
           
           <div className="flex items-center gap-2">
@@ -146,7 +148,7 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
             
             <Button size="sm" onClick={() => setDialogOpen(true)}>
               <Send className="h-4 w-4 mr-2" />
-              Test verzenden
+              {t('admin.marketing.emailPreview.test_verzenden')}
             </Button>
           </div>
         </div>
@@ -160,7 +162,7 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
               srcDoc={previewHtml}
               className="w-full border-0"
               style={{ height: '600px' }}
-              title="Email preview"
+              title={t('admin.marketing.emailPreview.email_preview')}
             />
           </div>
         </TabsContent>
@@ -176,7 +178,7 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
               >
                 {spamScore}
               </div>
-              <p className="text-muted-foreground mt-1">Email Kwaliteit Score</p>
+              <p className="text-muted-foreground mt-1">{t('admin.marketing.emailPreview.email_kwaliteit_score')}</p>
             </div>
 
             <div className="space-y-3">
@@ -203,12 +205,12 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
             </div>
 
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">💡 Tips voor betere deliverability</h4>
+              <h4 className="font-medium mb-2">{t('admin.marketing.emailPreview.tips_voor_betere_deliverability')}</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Gebruik een herkenbare afzendernaam</li>
-                <li>• Houd de afbeelding/tekst verhouding in balans</li>
-                <li>• Vermijd spam-trigger woorden in het onderwerp</li>
-                <li>• Voeg altijd een duidelijke uitschrijflink toe</li>
+                <li>{t('admin.marketing.emailPreview.gebruik_een_herkenbare_afzendernaam')}</li>
+                <li>{t('admin.marketing.emailPreview.houd_de_afbeelding_tekst_verhouding_in')}</li>
+                <li>{t('admin.marketing.emailPreview.vermijd_spam_trigger_woorden_in_het')}</li>
+                <li>{t('admin.marketing.emailPreview.voeg_altijd_een_duidelijke_uitschrijflink_toe')}</li>
               </ul>
             </div>
           </div>
@@ -218,55 +220,55 @@ export function EmailPreview({ htmlContent, subject, showTestDialog, onTestDialo
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Test Email Verzenden</DialogTitle>
+            <DialogTitle>{t('admin.marketing.emailPreview.test_email_verzenden')}</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="testEmail">Email adres</Label>
+              <Label htmlFor="testEmail">{t('admin.marketing.emailPreview.email_adres')}</Label>
               <Input
                 id="testEmail"
                 type="email"
-                placeholder="jouw@email.nl"
+                placeholder={t('admin.marketing.emailPreview.jouw_email_nl')}
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
               />
             </div>
             
             <div>
-              <Label htmlFor="testName">Test klantnaam (voor variabelen)</Label>
+              <Label htmlFor="testName">{t('admin.marketing.emailPreview.test_klantnaam_voor_variabelen')}</Label>
               <Input
                 id="testName"
-                placeholder="Jan Jansen"
+                placeholder={t('admin.marketing.emailPreview.jan_jansen')}
                 value={testName}
                 onChange={(e) => setTestName(e.target.value)}
               />
             </div>
             
             <div className="bg-muted p-3 rounded-lg text-sm">
-              <p className="font-medium mb-1">ℹ️ Test emails bevatten:</p>
+              <p className="font-medium mb-1">{t('admin.marketing.emailPreview.test_emails_bevatten')}</p>
               <ul className="text-muted-foreground space-y-0.5">
-                <li>• [TEST] prefix in onderwerp</li>
-                <li>• Banner bovenaan dat het een test is</li>
-                <li>• Ingevulde variabelen met test data</li>
+                <li>{t('admin.marketing.emailPreview.test_prefix_in_onderwerp')}</li>
+                <li>{t('admin.marketing.emailPreview.banner_bovenaan_dat_het_een_test')}</li>
+                <li>{t('admin.marketing.emailPreview.ingevulde_variabelen_met_test_data')}</li>
               </ul>
             </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSendTest} disabled={sending || !testEmail}>
               {sending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Verzenden...
+                  {t('admin.marketing.emailPreview.verzenden')}
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Verstuur Test
+                  {t('admin.marketing.emailPreview.verstuur_test')}
                 </>
               )}
             </Button>

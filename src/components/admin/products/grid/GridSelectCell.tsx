@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface SelectOption {
   value: string;
@@ -36,6 +37,7 @@ export function GridSelectCell({
   onChange,
   onStopEdit,
 }: GridSelectCellProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -73,7 +75,7 @@ export function GridSelectCell({
         </SelectTrigger>
         <SelectContent className="z-50 bg-popover">
           <SelectItem value="__none__">
-            <span className="text-muted-foreground">Geen</span>
+            <span className="text-muted-foreground">{t('admin.products.grid.gridSelectCell.geen')}</span>
           </SelectItem>
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>

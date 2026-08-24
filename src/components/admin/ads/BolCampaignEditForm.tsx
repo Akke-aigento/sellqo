@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/useCan';
 import { TOOLTIP_NO_ACCESS_SHORT } from '@/lib/permissions/constants';
+import { useTranslation } from 'react-i18next';
 
 interface BolCampaign {
   id: string;
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   // H4-7: budget-velden = disable+tooltip voor non-tenant_admin (transparantie).
@@ -113,16 +115,16 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <Settings2 className="h-4 w-4" />
-          Algemeen
+          {t('admin.ads.bolCampaignEditForm.algemeen')}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="campaign-name">Campagnenaam</Label>
+          <Label htmlFor="campaign-name">{t('admin.ads.bolCampaignEditForm.campagnenaam')}</Label>
           <Input id="campaign-name" value={name} onChange={e => setName(e.target.value)} />
         </div>
 
         <div className="space-y-2">
-          <Label>Status</Label>
+          <Label>{t('common.status')}</Label>
           <div>
             <Badge variant="outline" className={
               campaign.status === 'active' || campaign.status === 'ENABLED'
@@ -132,26 +134,26 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
               {campaign.status}
             </Badge>
             <span className="text-xs text-muted-foreground ml-2">
-              (Gebruik de Pauzeren/Hervatten knop om de status te wijzigen)
+              {t('admin.ads.bolCampaignEditForm.gebruik_de_pauzeren_hervatten_knop_om')}
             </span>
           </div>
         </div>
 
         <div className="space-y-3">
-          <Label>Campagne modus</Label>
+          <Label>{t('admin.ads.bolCampaignEditForm.campagne_modus')}</Label>
           <RadioGroup value={targetingType} onValueChange={setTargetingType} className="flex gap-4">
             <div className="flex items-center gap-2 rounded-lg border border-border p-3 flex-1 cursor-pointer hover:bg-muted/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
               <RadioGroupItem value="AUTO" id="mode-auto" />
               <div>
                 <Label htmlFor="mode-auto" className="cursor-pointer font-medium">AUTO</Label>
-                <p className="text-xs text-muted-foreground">Bol.com kiest automatisch zoekwoorden</p>
+                <p className="text-xs text-muted-foreground">{t('admin.ads.bolCampaignEditForm.bol_com_kiest_automatisch_zoekwoorden')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border p-3 flex-1 cursor-pointer hover:bg-muted/50 transition-colors has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
               <RadioGroupItem value="MANUAL" id="mode-manual" />
               <div>
                 <Label htmlFor="mode-manual" className="cursor-pointer font-medium">MANUAL</Label>
-                <p className="text-xs text-muted-foreground">Je kiest zelf de zoekwoorden en biedingen</p>
+                <p className="text-xs text-muted-foreground">{t('admin.ads.bolCampaignEditForm.je_kiest_zelf_de_zoekwoorden_en')}</p>
               </div>
             </div>
           </RadioGroup>
@@ -164,18 +166,18 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <Wallet className="h-4 w-4" />
-          Budget
+          {t('admin.ads.campaignWizard.budget')}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="daily-budget">Dagbudget (€)</Label>
+            <Label htmlFor="daily-budget">{t('admin.ads.bolCampaignEditForm.dagbudget')}</Label>
             <Input
               id="daily-budget"
               type="number"
               step="0.01"
               min="0"
-              placeholder="Bijv. 10.00"
+              placeholder={t('admin.ads.bolCampaignEditForm.bijv_10_00')}
               value={dailyBudget}
               onChange={e => setDailyBudget(e.target.value)}
               disabled={!canWriteBudget}
@@ -183,19 +185,19 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="total-budget">Totaalbudget (€)</Label>
+            <Label htmlFor="total-budget">{t('admin.ads.bolCampaignEditForm.totaalbudget')}</Label>
             <Input
               id="total-budget"
               type="number"
               step="0.01"
               min="0"
-              placeholder="Optioneel"
+              placeholder={t('admin.ads.bolCampaignEditForm.optioneel')}
               value={totalBudget}
               onChange={e => setTotalBudget(e.target.value)}
               disabled={!canWriteBudget}
               title={!canWriteBudget ? TOOLTIP_NO_ACCESS_SHORT : undefined}
             />
-            <p className="text-xs text-muted-foreground">Laat leeg voor onbeperkt</p>
+            <p className="text-xs text-muted-foreground">{t('admin.ads.bolCampaignEditForm.laat_leeg_voor_onbeperkt')}</p>
           </div>
         </div>
       </div>
@@ -206,12 +208,12 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <CalendarDays className="h-4 w-4" />
-          Planning
+          {t('admin.ads.bolCampaignEditForm.planning')}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="start-date">Startdatum</Label>
+            <Label htmlFor="start-date">{t('admin.ads.bolCampaignEditForm.startdatum')}</Label>
             <Input
               id="start-date"
               type="date"
@@ -220,14 +222,14 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="end-date">Einddatum</Label>
+            <Label htmlFor="end-date">{t('admin.ads.bolCampaignEditForm.einddatum')}</Label>
             <Input
               id="end-date"
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Laat leeg voor doorlopend</p>
+            <p className="text-xs text-muted-foreground">{t('admin.ads.bolCampaignEditForm.laat_leeg_voor_doorlopend')}</p>
           </div>
         </div>
       </div>
@@ -238,12 +240,12 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <Ban className="h-4 w-4" />
-          Negatieve Keywords
+          {t('admin.adsBolcomCampaignDetail.negatieve_keywords')}
         </div>
 
         {!adGroupId && (
           <p className="text-sm text-muted-foreground">
-            Voeg eerst producten toe aan de campagne om negatieve keywords te kunnen toevoegen.
+            {t('admin.ads.bolCampaignEditForm.voeg_eerst_producten_toe_aan_de')}
           </p>
         )}
 
@@ -265,7 +267,7 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
 
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Negatief keyword"
+                placeholder={t('admin.ads.bolCampaignEditForm.negatief_keyword')}
                 value={newNegKw}
                 onChange={e => setNewNegKw(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNegKeyword())}
@@ -276,16 +278,16 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="broad">Broad</SelectItem>
-                  <SelectItem value="phrase">Phrase</SelectItem>
-                  <SelectItem value="exact">Exact</SelectItem>
+                  <SelectItem value="broad">{t('admin.ads.bolCampaignEditForm.broad')}</SelectItem>
+                  <SelectItem value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</SelectItem>
+                  <SelectItem value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button size="sm" variant="outline" onClick={addNegKeyword} disabled={!newNegKw.trim()}>
-                <Plus className="h-4 w-4 mr-1" /> Toevoegen
+                <Plus className="h-4 w-4 mr-1" /> {t('admin.ads.bolCampaignEditForm.toevoegen')}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Negatieve keywords worden bij het opslaan naar Bol.com gestuurd.</p>
+            <p className="text-xs text-muted-foreground">{t('admin.ads.bolCampaignEditForm.negatieve_keywords_worden_bij_het_opslaan')}</p>
           </>
         )}
       </div>
@@ -294,7 +296,7 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
 
       {/* Actions */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose} disabled={saving}>Annuleren</Button>
+        <Button variant="outline" onClick={onClose} disabled={saving}>{t('common.cancel')}</Button>
         <Button onClick={handleSave} disabled={saving || !name.trim()}>
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Opslaan

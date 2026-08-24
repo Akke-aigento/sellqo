@@ -1,7 +1,8 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface HourlyStats {
   hour: string;
@@ -15,6 +16,8 @@ interface CampaignPerformanceChartProps {
 }
 
 export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanceChartProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   if (isLoading) {
     return <Skeleton className="h-[250px] w-full" />;
   }
@@ -22,7 +25,7 @@ export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanc
   if (data.length === 0) {
     return (
       <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-        <p>Nog geen activiteit geregistreerd</p>
+        <p>{t('admin.marketing.campaignPerformanceChart.nog_geen_activiteit_geregistreerd')}</p>
       </div>
     );
   }
@@ -30,8 +33,8 @@ export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanc
   // Format data for chart
   const chartData = data.map(item => ({
     ...item,
-    time: format(new Date(item.hour), 'HH:mm', { locale: nl }),
-    date: format(new Date(item.hour), 'd MMM', { locale: nl }),
+    time: format(new Date(item.hour), 'HH:mm', { locale: dateLocale }),
+    date: format(new Date(item.hour), 'd MMM', { locale: dateLocale }),
   }));
 
   return (
@@ -83,7 +86,7 @@ export function CampaignPerformanceChart({ data, isLoading }: CampaignPerformanc
             verticalAlign="top"
             height={36}
             formatter={(value) => (
-              <span className="text-sm text-muted-foreground">{value === 'opens' ? 'Opens' : 'Clicks'}</span>
+              <span className="text-sm text-muted-foreground">{value === 'opens' ? t('admin.marketing.campaignPerformanceChart.opens') : t('admin.ads.campaignCard.clicks')}</span>
             )}
           />
           <Area

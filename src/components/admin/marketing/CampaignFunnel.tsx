@@ -1,15 +1,17 @@
 import { cn } from '@/lib/utils';
 import { Send, CheckCircle2, Mail, MousePointerClick } from 'lucide-react';
 import type { EmailCampaign } from '@/types/marketing';
+import { useTranslation } from 'react-i18next';
 
 interface CampaignFunnelProps {
   campaign: EmailCampaign;
 }
 
 export function CampaignFunnel({ campaign }: CampaignFunnelProps) {
+  const { t } = useTranslation();
   const steps = [
     {
-      label: 'Verzonden',
+      label: t('admin.marketing.contentHistoryList.verzonden'),
       value: campaign.total_sent,
       percentage: 100,
       icon: Send,
@@ -17,7 +19,7 @@ export function CampaignFunnel({ campaign }: CampaignFunnelProps) {
       lightColor: 'bg-blue-100',
     },
     {
-      label: 'Afgeleverd',
+      label: t('admin.marketing.campaignFunnel.afgeleverd'),
       value: campaign.total_delivered,
       percentage: campaign.total_sent > 0 
         ? (campaign.total_delivered / campaign.total_sent) * 100 
@@ -27,7 +29,7 @@ export function CampaignFunnel({ campaign }: CampaignFunnelProps) {
       lightColor: 'bg-green-100',
     },
     {
-      label: 'Geopend',
+      label: t('admin.marketing.campaignFunnel.geopend'),
       value: campaign.total_opened,
       percentage: campaign.total_sent > 0 
         ? (campaign.total_opened / campaign.total_sent) * 100 
@@ -37,7 +39,7 @@ export function CampaignFunnel({ campaign }: CampaignFunnelProps) {
       lightColor: 'bg-purple-100',
     },
     {
-      label: 'Geklikt',
+      label: t('admin.marketing.campaignFunnel.geklikt'),
       value: campaign.total_clicked,
       percentage: campaign.total_sent > 0 
         ? (campaign.total_clicked / campaign.total_sent) * 100 

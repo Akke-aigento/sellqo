@@ -8,6 +8,7 @@ import { useBrandDna, EMPTY_BRAND_DNA } from '@/hooks/useBrandDna';
 import type { TenantBrandDna, TenantBrandDnaInput } from '@/types/content-menu';
 
 import { BrandDnaCard } from './BrandDnaCard';
+import { TodayMenuSection } from './today/TodayMenuSection';
 import { MorningMenuCard } from './MorningMenuCard';
 
 /**
@@ -79,6 +80,8 @@ function ContentMenuBody() {
           </p>
         </div>
       </div>
+
+      <TodayMenuSection />
 
       <BrandDnaCard
         saved={saved}

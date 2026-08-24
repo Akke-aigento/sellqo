@@ -9,6 +9,7 @@ import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface MediaLibraryPickerDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ export function MediaLibraryPickerDialog({
   onSelect,
   uploadFolder = 'products',
 }: MediaLibraryPickerDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { assets, isLoading, createAsset } = useMediaAssets('all');
   const { uploadImage, uploading } = useImageUpload();
@@ -85,16 +87,16 @@ export function MediaLibraryPickerDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) setSelected([]); onOpenChange(o); }}>
       <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Kies uit bibliotheek</DialogTitle>
+          <DialogTitle>{t('admin.products.variantExtraImagesDialog.kies_uit_bibliotheek')}</DialogTitle>
           <DialogDescription>
-            Selecteer bestaande afbeeldingen of upload nieuwe naar je mediabibliotheek.
+            {t('admin.products.mediaLibraryPickerDialog.selecteer_bestaande_afbeeldingen_of_upload_nieuwe')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoeken..."
+            placeholder={t('common.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -115,7 +117,7 @@ export function MediaLibraryPickerDialog({
           ) : (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Upload className="h-4 w-4" />
-              Sleep foto's hierheen of klik om te uploaden
+              {t('admin.products.productPhotoLibraryCard.sleep_foto_s_hierheen_of_klik')}
             </div>
           )}
         </div>
@@ -128,7 +130,7 @@ export function MediaLibraryPickerDialog({
           ) : images.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <ImageIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Nog geen afbeeldingen in je bibliotheek</p>
+              <p className="text-sm">{t('admin.products.mediaLibraryPickerDialog.nog_geen_afbeeldingen_in_je_bibliotheek')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 py-1">
@@ -160,7 +162,7 @@ export function MediaLibraryPickerDialog({
         </ScrollArea>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuleren</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button type="button" onClick={handleConfirm} disabled={selected.length === 0}>
             {selected.length > 0 ? `${selected.length} toevoegen` : 'Toevoegen'}
           </Button>

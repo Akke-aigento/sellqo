@@ -16,9 +16,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ArrowLeft, Pause, Play, Pencil, Plus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { BolCampaignEditForm } from '@/components/admin/ads/BolCampaignEditForm';
 import { CampaignAIAnalysis } from '@/components/admin/ads/CampaignAIAnalysis';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 const formatCurrency = (v: number | null) => v != null ? `€${v.toFixed(2)}` : '—';
 const formatPct = (v: number | null) => v != null ? `${v.toFixed(1)}%` : '—';
@@ -32,6 +33,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdsBolcomCampaignDetail() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const {
@@ -95,9 +98,9 @@ export default function AdsBolcomCampaignDetail() {
   if (!campaign) {
     return (
       <div className="p-6 text-center">
-        <p className="text-muted-foreground">Campagne niet gevonden</p>
+        <p className="text-muted-foreground">{t('admin.adsBolcomCampaignDetail.campagne_niet_gevonden')}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/ads/bolcom')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Terug
+          <ArrowLeft className="h-4 w-4 mr-2" /> {t('common.back')}
         </Button>
       </div>
     );
@@ -149,7 +152,7 @@ export default function AdsBolcomCampaignDetail() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <button onClick={() => navigate('/admin/ads')} className="hover:underline">Ads</button>
+            <button onClick={() => navigate('/admin/ads')} className="hover:underline">{t('admin.adsBolcom.ads')}</button>
             <span>/</span>
             <button onClick={() => navigate('/admin/ads/bolcom')} className="hover:underline">Bol.com</button>
             <span>/</span>
@@ -163,29 +166,29 @@ export default function AdsBolcomCampaignDetail() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleSyncToBol} disabled={isSyncing}>
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="hidden sm:inline ml-2">Synchroniseer</span>
+            <span className="hidden sm:inline ml-2">{t('admin.adsBolcomCampaignDetail.synchroniseer')}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleToggleStatus} disabled={updateCampaignStatus.isPending}>
-            {isActive ? <><Pause className="h-4 w-4" /><span className="hidden sm:inline ml-2">Pauzeren</span></> : <><Play className="h-4 w-4" /><span className="hidden sm:inline ml-2">Hervatten</span></>}
+            {isActive ? <><Pause className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('admin.adsBolcomCampaignDetail.pauzeren')}</span></> : <><Play className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('admin.adsBolcomCampaignDetail.hervatten')}</span></>}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
-            <Pencil className="h-4 w-4" /><span className="hidden sm:inline ml-2">Bewerken</span>
+            <Pencil className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('common.edit')}</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
-                <Trash2 className="h-4 w-4" /><span className="hidden sm:inline ml-2">Verwijderen</span>
+                <Trash2 className="h-4 w-4" /><span className="hidden sm:inline ml-2">{t('common.delete')}</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Campagne verwijderen?</AlertDialogTitle>
+                <AlertDialogTitle>{t('admin.adsBolcomCampaignDetail.campagne_verwijderen')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  De campagne wordt gepauzeerd op Bol.com en lokaal verwijderd. Dit kan niet ongedaan worden gemaakt.
+                  {t('admin.adsBolcomCampaignDetail.de_campagne_wordt_gepauzeerd_op_bol')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={() => deleteCampaign.mutate(undefined, { onSuccess: () => navigate('/admin/ads/bolcom') })}
@@ -202,17 +205,17 @@ export default function AdsBolcomCampaignDetail() {
 
       {/* Info cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Type</p><p className="text-lg font-semibold">{campaign.targeting_type || campaign.campaign_type}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Dagbudget</p><p className="text-lg font-semibold">{formatCurrency(campaign.daily_budget)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Totaalbudget</p><p className="text-lg font-semibold">{campaign.total_budget ? formatCurrency(campaign.total_budget) : 'Onbeperkt'}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Start / Eind</p><p className="text-sm font-semibold">{campaign.start_date ? format(new Date(campaign.start_date), 'dd-MM-yyyy') : '—'} / {campaign.end_date ? format(new Date(campaign.end_date), 'dd-MM-yyyy') : '—'}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Laatste sync</p><p className="text-sm font-semibold">{campaign.synced_at ? format(new Date(campaign.synced_at), 'dd MMM HH:mm', { locale: nl }) : '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{t('admin.marketing.contentHistoryList.type')}</p><p className="text-lg font-semibold">{campaign.targeting_type || campaign.campaign_type}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{t('admin.ads.campaignWizard.dagbudget')}</p><p className="text-lg font-semibold">{formatCurrency(campaign.daily_budget)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{t('admin.ads.campaignWizard.totaalbudget')}</p><p className="text-lg font-semibold">{campaign.total_budget ? formatCurrency(campaign.total_budget) : 'Onbeperkt'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{t('admin.adsBolcomCampaignDetail.start_eind')}</p><p className="text-sm font-semibold">{campaign.start_date ? format(new Date(campaign.start_date), 'dd-MM-yyyy') : '—'} / {campaign.end_date ? format(new Date(campaign.end_date), 'dd-MM-yyyy') : '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{t('admin.ads.platformConnections.laatste_sync')}</p><p className="text-sm font-semibold">{campaign.synced_at ? format(new Date(campaign.synced_at), 'dd MMM HH:mm', { locale: dateLocale }) : '—'}</p></CardContent></Card>
       </div>
 
       {/* Period selector + Chart */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Performance</CardTitle>
+          <CardTitle>{t('admin.adsBolcom.performance')}</CardTitle>
           <div className="flex gap-1">
             {periods.map(p => (
               <Button key={p} size="sm" variant={period === p ? 'default' : 'outline'} onClick={() => setPeriod(p)}>{p}</Button>
@@ -221,7 +224,7 @@ export default function AdsBolcomCampaignDetail() {
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12">Geen performance data voor deze periode</p>
+            <p className="text-center text-muted-foreground py-12">{t('admin.adsBolcomCampaignDetail.geen_performance_data_voor_deze_periode')}</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
@@ -247,11 +250,11 @@ export default function AdsBolcomCampaignDetail() {
       {/* Ad Groups accordion */}
       <Card>
         <CardHeader>
-          <CardTitle>Ad Groups & Keywords</CardTitle>
+          <CardTitle>{t('admin.adsBolcomCampaignDetail.ad_groups_keywords')}</CardTitle>
         </CardHeader>
         <CardContent>
           {adGroups.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Geen ad groups gevonden</p>
+            <p className="text-muted-foreground text-center py-8">{t('admin.adsBolcomCampaignDetail.geen_ad_groups_gevonden')}</p>
           ) : (
             <Accordion type="multiple" className="w-full">
               {adGroups.map(ag => {
@@ -276,15 +279,15 @@ export default function AdsBolcomCampaignDetail() {
                       <Table className="min-w-[800px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Keyword</TableHead>
-                            <TableHead>Match</TableHead>
-                            <TableHead>Bod</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Impressies</TableHead>
-                            <TableHead>Clicks</TableHead>
-                            <TableHead>Spend</TableHead>
-                            <TableHead>Orders</TableHead>
-                            <TableHead>ACoS</TableHead>
+                            <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                            <TableHead>{t('admin.adsBolcom.match')}</TableHead>
+                            <TableHead>{t('admin.adsBolcom.bod')}</TableHead>
+                            <TableHead>{t('common.status')}</TableHead>
+                            <TableHead>{t('admin.adsBolcomCampaignDetail.impressies')}</TableHead>
+                            <TableHead>{t('admin.ads.campaignCard.clicks')}</TableHead>
+                            <TableHead>{t('admin.ads.spend')}</TableHead>
+                            <TableHead>{t('admin.adsBolcom.orders')}</TableHead>
+                            <TableHead>{t('admin.ads.acos')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -341,19 +344,19 @@ export default function AdsBolcomCampaignDetail() {
                       {/* Add keyword inline */}
                       {addKwGroup === ag.id ? (
                         <div className="flex items-center gap-2 mt-3 px-4">
-                          <Input placeholder="Keyword" value={newKw} onChange={e => setNewKw(e.target.value)} className="w-48" />
+                          <Input placeholder={t('admin.adsBolcom.keyword')} value={newKw} onChange={e => setNewKw(e.target.value)} className="w-48" />
                           <select value={newKwMatch} onChange={e => setNewKwMatch(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                            <option value="broad">Broad</option>
-                            <option value="phrase">Phrase</option>
-                            <option value="exact">Exact</option>
+                            <option value="broad">{t('admin.ads.bolCampaignEditForm.broad')}</option>
+                            <option value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</option>
+                            <option value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</option>
                           </select>
-                          <Input type="number" step="0.01" placeholder="Bod" value={newKwBid} onChange={e => setNewKwBid(e.target.value)} className="w-20" />
-                          <Button size="sm" onClick={handleAddKeyword} disabled={addKeyword.isPending}>Toevoegen</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setAddKwGroup(null)}>Annuleren</Button>
+                          <Input type="number" step="0.01" placeholder={t('admin.adsBolcom.bod')} value={newKwBid} onChange={e => setNewKwBid(e.target.value)} className="w-20" />
+                          <Button size="sm" onClick={handleAddKeyword} disabled={addKeyword.isPending}>{t('common.add')}</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setAddKwGroup(null)}>{t('common.cancel')}</Button>
                         </div>
                       ) : (
                         <Button variant="ghost" size="sm" className="mt-2 ml-4" onClick={() => setAddKwGroup(ag.id)}>
-                          <Plus className="h-4 w-4 mr-1" /> Keyword toevoegen
+                          <Plus className="h-4 w-4 mr-1" /> {t('admin.adsBolcomCampaignDetail.keyword_toevoegen')}
                         </Button>
                       )}
                     </AccordionContent>
@@ -368,26 +371,26 @@ export default function AdsBolcomCampaignDetail() {
       {/* Negative Keywords */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Negatieve Keywords</CardTitle>
+          <CardTitle>{t('admin.adsBolcomCampaignDetail.negatieve_keywords')}</CardTitle>
           {firstAdGroupId ? (
             <Button size="sm" onClick={() => setNegModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Toevoegen
+              <Plus className="h-4 w-4 mr-1" /> {t('common.add')}
             </Button>
           ) : (
-            <span className="text-xs text-muted-foreground">Voeg eerst producten toe aan de campagne</span>
+            <span className="text-xs text-muted-foreground">{t('admin.adsBolcomCampaignDetail.voeg_eerst_producten_toe_aan_de')}</span>
           )}
         </CardHeader>
         <CardContent>
           {negativeKeywords.length === 0 ? (
-            <p className="text-muted-foreground text-center py-6">Geen negatieve keywords</p>
+            <p className="text-muted-foreground text-center py-6">{t('admin.adsBolcomCampaignDetail.geen_negatieve_keywords')}</p>
           ) : (
             <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Keyword</TableHead>
-                  <TableHead>Match Type</TableHead>
-                  <TableHead>Toegevoegd op</TableHead>
+                  <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
+                  <TableHead>{t('admin.adsBolcomCampaignDetail.match_type')}</TableHead>
+                  <TableHead>{t('admin.adsBolcomCampaignDetail.toegevoegd_op')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -395,7 +398,7 @@ export default function AdsBolcomCampaignDetail() {
                   <TableRow key={kw.id}>
                     <TableCell className="font-medium">{kw.keyword}</TableCell>
                     <TableCell><Badge variant="outline">{kw.match_type}</Badge></TableCell>
-                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd-MM-yyyy', { locale: nl }) : '—'}</TableCell>
+                    <TableCell>{kw.created_at ? format(new Date(kw.created_at), 'dd-MM-yyyy', { locale: dateLocale }) : '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -409,19 +412,19 @@ export default function AdsBolcomCampaignDetail() {
       <Dialog open={negModalOpen} onOpenChange={setNegModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Negatief keyword toevoegen</DialogTitle>
+            <DialogTitle>{t('admin.adsBolcomCampaignDetail.negatief_keyword_toevoegen')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input placeholder="Keyword" value={negKeyword} onChange={e => setNegKeyword(e.target.value)} />
+            <Input placeholder={t('admin.adsBolcom.keyword')} value={negKeyword} onChange={e => setNegKeyword(e.target.value)} />
             <select value={negMatchType} onChange={e => setNegMatchType(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="broad">Broad</option>
-              <option value="phrase">Phrase</option>
-              <option value="exact">Exact</option>
+              <option value="broad">{t('admin.ads.bolCampaignEditForm.broad')}</option>
+              <option value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</option>
+              <option value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</option>
             </select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNegModalOpen(false)}>Annuleren</Button>
-            <Button onClick={handleAddNegative} disabled={addNegativeKeyword.isPending}>Toevoegen</Button>
+            <Button variant="outline" onClick={() => setNegModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleAddNegative} disabled={addNegativeKeyword.isPending}>{t('common.add')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -430,7 +433,7 @@ export default function AdsBolcomCampaignDetail() {
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Campagne bewerken</DialogTitle>
+            <DialogTitle>{t('admin.adsBolcomCampaignDetail.campagne_bewerken')}</DialogTitle>
           </DialogHeader>
           {campaign && (
             <BolCampaignEditForm campaign={campaign} onClose={() => setShowEdit(false)} adGroupId={firstAdGroupId} />

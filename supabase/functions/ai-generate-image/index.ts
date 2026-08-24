@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,17 +61,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization header");
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) throw new Error("Unauthorized");
-
     const body: GenerateImageRequest = await req.json();
-    const { 
-      tenantId, 
+    const {
+      tenantId,
       prompt, 
       style = 'realistic', 
       sourceImageUrl,
@@ -80,6 +73,14 @@ serve(async (req) => {
       platformPreset,
       enhancementType = sourceImageUrl ? 'enhance' : 'generate',
     } = body;
+
+    // Tenant-lidmaatschap én rol controleren vóór er ook maar één credit
+    // afgeboekt wordt. Hiervoor stond hier alleen een `auth.getUser()`: elke
+    // ingelogde gebruiker kon een vreemde tenantId meesturen en daarmee de
+    // credits van een andere tenant opmaken. Zelfde patroon als
+    // ai-generate-social.
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
 
     // Determine dimensions based on platform preset or manual input
     let width = body.width || 1024;
@@ -272,6 +273,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Error in ai-generate-image:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

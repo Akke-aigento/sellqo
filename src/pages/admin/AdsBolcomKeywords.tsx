@@ -10,11 +10,13 @@ import { ChevronLeft, ArrowUpDown, Search, Hash, Target, DollarSign, Trophy } fr
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const fmt = (v: number) => `€${v.toFixed(2)}`;
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 export default function AdsBolcomKeywords() {
+  const { t } = useTranslation();
   const {
     keywords, campaigns, summary, isLoading,
     period, setPeriod,
@@ -59,13 +61,13 @@ export default function AdsBolcomKeywords() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Link to="/admin/ads" className="hover:text-foreground">Ads</Link>
+            <Link to="/admin/ads" className="hover:text-foreground">{t('admin.adsBolcom.ads')}</Link>
             <span>/</span>
             <Link to="/admin/ads/bolcom" className="hover:text-foreground">Bol.com</Link>
             <span>/</span>
-            <span className="text-foreground">Keywords</span>
+            <span className="text-foreground">{t('admin.adsBolcomKeywords.keywords')}</span>
           </div>
-          <h1 className="text-2xl font-bold">Bol.com Keywords</h1>
+          <h1 className="text-2xl font-bold">{t('admin.adsBolcomKeywords.bol_com_keywords')}</h1>
         </div>
         <div className="flex flex-wrap gap-1">
           {(['7d', '30d', '90d'] as const).map(p => (
@@ -91,7 +93,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Hash className="h-4 w-4" /> Actieve Keywords
+              <Hash className="h-4 w-4" /> {t('admin.adsBolcomKeywords.actieve_keywords')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{summary.totalActive}</div></CardContent>
@@ -99,7 +101,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Target className="h-4 w-4" /> Gemiddeld Bod
+              <Target className="h-4 w-4" /> {t('admin.adsBolcomKeywords.gemiddeld_bod')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{fmt(summary.avgBid)}</div></CardContent>
@@ -107,7 +109,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> Totale Spend
+              <DollarSign className="h-4 w-4" /> {t('admin.ads.totale_spend')}
             </CardTitle>
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{fmt(summary.totalSpend)}</div></CardContent>
@@ -115,7 +117,7 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Trophy className="h-4 w-4" /> Beste Keyword
+              <Trophy className="h-4 w-4" /> {t('admin.adsBolcomKeywords.beste_keyword')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -130,30 +132,30 @@ export default function AdsBolcomKeywords() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Zoek keyword..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={t('admin.adsBolcomKeywords.zoek_keyword')} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={campaignFilter ?? 'all'} onValueChange={v => setCampaignFilter(v === 'all' ? null : v)}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Campagne" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder={t('admin.marketing.aiEmailPlanner.campagne')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle campagnes</SelectItem>
+            <SelectItem value="all">{t('admin.adsBolcomKeywords.alle_campagnes')}</SelectItem>
             {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={matchTypeFilter ?? 'all'} onValueChange={v => setMatchTypeFilter(v === 'all' ? null : v)}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Match Type" /></SelectTrigger>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder={t('admin.adsBolcomCampaignDetail.match_type')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle types</SelectItem>
-            <SelectItem value="exact">Exact</SelectItem>
-            <SelectItem value="phrase">Phrase</SelectItem>
-            <SelectItem value="broad">Broad</SelectItem>
+            <SelectItem value="all">{t('admin.marketing.aIContentLibrary.alle_types')}</SelectItem>
+            <SelectItem value="exact">{t('admin.ads.bolCampaignEditForm.exact')}</SelectItem>
+            <SelectItem value="phrase">{t('admin.ads.bolCampaignEditForm.phrase')}</SelectItem>
+            <SelectItem value="broad">{t('admin.ads.bolCampaignEditForm.broad')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter ?? 'all'} onValueChange={v => setStatusFilter(v === 'all' ? null : v)}>
-          <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[130px]"><SelectValue placeholder={t('common.status')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle statussen</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="all">{t('admin.marketing.contentHistoryList.alle_statussen')}</SelectItem>
+            <SelectItem value="active">{t('admin.adsBolcomKeywords.active')}</SelectItem>
+            <SelectItem value="paused">{t('admin.adsBolcomKeywords.paused')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -162,9 +164,9 @@ export default function AdsBolcomKeywords() {
       {selected.length > 0 && (
         <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
           <span className="text-sm font-medium">{selected.length} geselecteerd</span>
-          <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus.mutate({ ids: selected, status: 'paused' })}>Pauzeren</Button>
-          <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus.mutate({ ids: selected, status: 'active' })}>Hervatten</Button>
-          <Button size="sm" variant="destructive" onClick={() => bulkDelete.mutate(selected)}>Verwijderen</Button>
+          <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus.mutate({ ids: selected, status: 'paused' })}>{t('admin.adsBolcomCampaignDetail.pauzeren')}</Button>
+          <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus.mutate({ ids: selected, status: 'active' })}>{t('admin.adsBolcomCampaignDetail.hervatten')}</Button>
+          <Button size="sm" variant="destructive" onClick={() => bulkDelete.mutate(selected)}>{t('common.delete')}</Button>
         </div>
       )}
 
@@ -177,8 +179,8 @@ export default function AdsBolcomKeywords() {
         <Card>
           <CardContent className="py-12 text-center">
             <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-1">Geen keywords gevonden</h3>
-            <p className="text-muted-foreground">Maak eerst een campagne aan of synchroniseer bestaande campagnes.</p>
+            <h3 className="text-lg font-semibold mb-1">{t('admin.adsBolcomKeywords.geen_keywords_gevonden')}</h3>
+            <p className="text-muted-foreground">{t('admin.adsBolcomKeywords.maak_eerst_een_campagne_aan_of')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -194,18 +196,18 @@ export default function AdsBolcomKeywords() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
-                    <SortHeader label="Keyword" field="keyword" />
-                    <TableHead>Campagne</TableHead>
-                    <TableHead>Ad Group</TableHead>
-                    <TableHead>Match Type</TableHead>
-                    <SortHeader label="Bod" field="bid" />
-                    <TableHead>Status</TableHead>
-                    <SortHeader label="Impressies" field="impressions" />
-                    <SortHeader label="Clicks" field="clicks" />
-                    <SortHeader label="Spend" field="spend" />
-                    <SortHeader label="Orders" field="orders" />
-                    <SortHeader label="Revenue" field="revenue" />
-                    <SortHeader label="ACoS" field="acos" />
+                    <SortHeader label={t('admin.adsBolcom.keyword')} field="keyword" />
+                    <TableHead>{t('admin.marketing.aiEmailPlanner.campagne')}</TableHead>
+                    <TableHead>{t('admin.adsBolcomKeywords.ad_group')}</TableHead>
+                    <TableHead>{t('admin.adsBolcomCampaignDetail.match_type')}</TableHead>
+                    <SortHeader label={t('admin.adsBolcom.bod')} field="bid" />
+                    <TableHead>{t('common.status')}</TableHead>
+                    <SortHeader label={t('admin.adsBolcomCampaignDetail.impressies')} field="impressions" />
+                    <SortHeader label={t('admin.ads.campaignCard.clicks')} field="clicks" />
+                    <SortHeader label={t('admin.ads.spend')} field="spend" />
+                    <SortHeader label={t('admin.adsBolcom.orders')} field="orders" />
+                    <SortHeader label={t('admin.adsBolcomKeywords.revenue')} field="revenue" />
+                    <SortHeader label={t('admin.ads.acos')} field="acos" />
                     <SortHeader label="CTR" field="ctr" />
                   </TableRow>
                 </TableHeader>

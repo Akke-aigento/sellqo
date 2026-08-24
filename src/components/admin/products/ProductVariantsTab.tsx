@@ -19,6 +19,7 @@ import { useSetStockManual } from '@/hooks/useStockLedger';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val: number) => void }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -83,6 +84,7 @@ interface ProductVariantsTabProps {
 }
 
 export function ProductVariantsTab({ productId, productImages = [], trackInventory = true, defaultPrice = null }: ProductVariantsTabProps) {
+  const { t } = useTranslation();
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -241,7 +243,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">Laden...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -252,9 +254,9 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
       {/* Options Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Variant opties</CardTitle>
+          <CardTitle>{t('admin.products.productVariantsTab.variant_opties')}</CardTitle>
           <CardDescription>
-            Definieer opties zoals Kleur, Maat, etc. en hun mogelijke waarden.
+            {t('admin.products.productVariantsTab.definieer_opties_zoals_kleur_maat_etc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -269,14 +271,14 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                       ref={editTagInputRef}
                       values={editOptionValues}
                       onChange={setEditOptionValues}
-                      placeholder="Typ waarde..."
+                      placeholder={t('admin.products.productVariantsTab.typ_waarde')}
                     />
                     <div className="flex items-center gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => handleUpdateOptionValues(option.id)}>
-                        <Check className="h-4 w-4 mr-1" /> Opslaan
+                        <Check className="h-4 w-4 mr-1" /> {t('common.save')}
                       </Button>
                       <Button type="button" size="sm" variant="ghost" onClick={() => setEditingOptionId(null)}>
-                        <X className="h-4 w-4 mr-1" /> Annuleren
+                        <X className="h-4 w-4 mr-1" /> {t('common.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -308,15 +310,15 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Optie verwijderen?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('admin.products.productVariantsTab.optie_verwijderen')}</AlertDialogTitle>
                     <AlertDialogDescription>
                       Dit verwijdert de optie "{option.name}". Bestaande varianten blijven bestaan maar verliezen hun koppeling met deze optie.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => deleteOption.mutate(option.id)}>
-                      Verwijderen
+                      {t('common.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -327,25 +329,25 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
           {/* Add new option */}
           <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_auto] gap-2 lg:items-end">
             <div>
-              <Label className="text-xs">Optienaam</Label>
+              <Label className="text-xs">{t('admin.products.productVariantsTab.optienaam')}</Label>
               <Input
                 value={newOptionName}
                 onChange={e => setNewOptionName(e.target.value)}
-                placeholder="bijv. Kleur"
+                placeholder={t('admin.products.productVariantsTab.bijv_kleur')}
               />
             </div>
             <div>
-              <Label className="text-xs">Waarden</Label>
+              <Label className="text-xs">{t('admin.products.productVariantsTab.waarden')}</Label>
               <DynamicValueInputs
                 ref={newTagInputRef}
                 values={newOptionValues}
                 onChange={setNewOptionValues}
-                placeholder="Typ waarde..."
+                placeholder={t('admin.products.productVariantsTab.typ_waarde_2')}
               />
             </div>
             <Button type="button" onClick={handleAddOption} disabled={createOption.isPending} className="w-full lg:w-auto">
               <Plus className="h-4 w-4 mr-1" />
-              Toevoegen
+              {t('common.add')}
             </Button>
           </div>
 
@@ -359,7 +361,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
               className="w-full"
             >
               <Wand2 className="h-4 w-4 mr-2" />
-              Varianten genereren uit opties
+              {t('admin.products.productVariantsTab.varianten_genereren_uit_opties')}
             </Button>
           )}
         </CardContent>
@@ -370,13 +372,13 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
         <CardHeader>
           <CardTitle>Varianten ({variants.length})</CardTitle>
           <CardDescription>
-            Beheer individuele varianten, prijzen, voorraad en productkoppelingen.
+            {t('admin.products.productVariantsTab.beheer_individuele_varianten_prijzen_voorraad_en')}
           </CardDescription>
         </CardHeader>
         <CardContent ref={variantsContainerRef}>
           {variants.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Geen varianten. Voeg opties toe en genereer varianten, of voeg ze handmatig toe.</p>
+              <p>{t('admin.products.productVariantsTab.geen_varianten_voeg_opties_toe_en')}</p>
             </div>
           ) : (
             <>
@@ -404,9 +406,9 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-3" align="start">
-                          <p className="text-sm font-medium mb-2">Kies afbeelding</p>
+                          <p className="text-sm font-medium mb-2">{t('admin.products.productVariantsTab.kies_afbeelding')}</p>
                           {productImages.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar.</p>
+                            <p className="text-xs text-muted-foreground">{t('admin.products.productVariantsTab.geen_productafbeeldingen_beschikbaar')}</p>
                           ) : (
                             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                               {productImages.map((img, idx) => (
@@ -426,7 +428,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           )}
                           {variant.image_url && (
                             <Button type="button" variant="ghost" size="sm" className="w-full mt-2 text-destructive" onClick={() => handleSelectVariantImage(variant.id, null)}>
-                              <X className="h-3 w-3 mr-1" /> Verwijderen
+                              <X className="h-3 w-3 mr-1" /> {t('common.delete')}
                             </Button>
                           )}
                         </PopoverContent>
@@ -467,12 +469,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Variant verwijderen?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t('admin.products.productVariantsTab.variant_verwijderen')}</AlertDialogTitle>
                                   <AlertDialogDescription>Variant "{variant.title}" wordt permanent verwijderd.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>Verwijderen</AlertDialogAction>
+                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>{t('common.delete')}</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -488,7 +490,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           <Input value={editVariantData.sku ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, sku: e.target.value }))} className="h-8 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Prijs</Label>
+                          <Label className="text-xs text-muted-foreground">{t('common.price')}</Label>
                           <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         <div>
@@ -496,17 +498,17 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           <Input type="number" step="0.01" value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Kostprijs</Label>
+                          <Label className="text-xs text-muted-foreground">{t('admin.stockReport.colCostPrice')}</Label>
                           <Input type="number" step="0.01" value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         {trackInventory && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">Voorraad</Label>
+                          <Label className="text-xs text-muted-foreground">{t('admin.stockReport.colStock')}</Label>
                           <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="h-8 text-sm" />
                         </div>
                         )}
                         <div className="flex items-end gap-2 pb-1">
-                          <Label className="text-xs text-muted-foreground">Actief</Label>
+                          <Label className="text-xs text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</Label>
                           <Switch checked={editVariantData.is_active ?? true} onCheckedChange={v => setEditVariantData(prev => ({ ...prev, is_active: v }))} />
                         </div>
                       </div>
@@ -517,7 +519,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           <span className="break-all">{variant.sku || '—'}</span>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block">Prijs</span>
+                          <span className="text-xs text-muted-foreground block">{t('common.price')}</span>
                           <span>
                             {variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}
                             {variant.compare_at_price != null && (
@@ -526,19 +528,19 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           </span>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block">Kostprijs</span>
+                          <span className="text-xs text-muted-foreground block">{t('admin.stockReport.colCostPrice')}</span>
                           <span className="text-muted-foreground">{variant.cost_price != null ? `€${variant.cost_price.toFixed(2)}` : '—'}</span>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block">Voorraad</span>
+                          <span className="text-xs text-muted-foreground block">{t('admin.stockReport.colStock')}</span>
                           {trackInventory ? (
-                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title="Voorraadhistoriek" onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">Niet bijgehouden</span>
+                            <span className="text-xs text-muted-foreground italic">{t('admin.products.productVariantsTab.niet_bijgehouden')}</span>
                           )}
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block">Actief</span>
+                          <span className="text-xs text-muted-foreground block">{t('admin.marketing.aBTestingPanel.actief')}</span>
                           <Badge variant={variant.is_active ? 'default' : 'secondary'} className="text-xs">{variant.is_active ? 'Ja' : 'Nee'}</Badge>
                         </div>
                       </div>
@@ -557,7 +559,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         </>
                       ) : (
                         <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openLinkDialog(variant.id)}>
-                          <Link2 className="h-3 w-3 mr-1" /> Koppelen
+                          <Link2 className="h-3 w-3 mr-1" /> {t('admin.products.productVariantsTab.koppelen')}
                         </Button>
                       )}
                     </div>
@@ -572,16 +574,16 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">Foto</TableHead>
-                      <TableHead className="min-w-0">Variant</TableHead>
+                      <TableHead className="w-[50px]">{t('admin.products.productVariantsTab.foto')}</TableHead>
+                      <TableHead className="min-w-0">{t('admin.stockReport.colVariant')}</TableHead>
                       <TableHead>SKU</TableHead>
-                      <TableHead>Prijs</TableHead>
+                      <TableHead>{t('common.price')}</TableHead>
                       <TableHead>Van-prijs</TableHead>
-                      <TableHead>Kostprijs</TableHead>
-                      <TableHead>Voorraad</TableHead>
-                      <TableHead>Actief</TableHead>
-                      <TableHead className="min-w-0">Gekoppeld</TableHead>
-                      <TableHead className="w-[80px] whitespace-nowrap">Acties</TableHead>
+                      <TableHead>{t('admin.stockReport.colCostPrice')}</TableHead>
+                      <TableHead>{t('admin.stockReport.colStock')}</TableHead>
+                      <TableHead>{t('admin.marketing.aBTestingPanel.actief')}</TableHead>
+                      <TableHead className="min-w-0">{t('admin.ads.platformConnections.gekoppeld')}</TableHead>
+                      <TableHead className="w-[80px] whitespace-nowrap">{t('common.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -605,9 +607,9 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-64 p-3" align="start">
-                              <p className="text-sm font-medium mb-2">Kies afbeelding</p>
+                              <p className="text-sm font-medium mb-2">{t('admin.products.productVariantsTab.kies_afbeelding_2')}</p>
                               {productImages.length === 0 ? (
-                                <p className="text-xs text-muted-foreground">Geen productafbeeldingen beschikbaar.</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.products.productVariantsTab.geen_productafbeeldingen_beschikbaar_2')}</p>
                               ) : (
                                 <div className="grid grid-cols-3 gap-2">
                                   {productImages.map((img, idx) => (
@@ -627,7 +629,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               )}
                               {variant.image_url && (
                                 <Button type="button" variant="ghost" size="sm" className="w-full mt-2 text-destructive" onClick={() => handleSelectVariantImage(variant.id, null)}>
-                                  <X className="h-3 w-3 mr-1" /> Verwijderen
+                                  <X className="h-3 w-3 mr-1" /> {t('common.delete')}
                                 </Button>
                               )}
                             </PopoverContent>
@@ -676,7 +678,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             editingVariantId === variant.id ? (
                               <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
-                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title="Voorraadhistoriek" onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                             )
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>
@@ -702,7 +704,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             </div>
                           ) : (
                             <Button type="button" size="sm" variant="ghost" onClick={() => openLinkDialog(variant.id)}>
-                              <Link2 className="h-3 w-3 mr-1" /> Koppelen
+                              <Link2 className="h-3 w-3 mr-1" /> {t('admin.products.productVariantsTab.koppelen')}
                             </Button>
                           )}
                         </TableCell>
@@ -735,12 +737,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Variant verwijderen?</AlertDialogTitle>
+                                      <AlertDialogTitle>{t('admin.products.productVariantsTab.variant_verwijderen_2')}</AlertDialogTitle>
                                       <AlertDialogDescription>Variant "{variant.title}" wordt permanent verwijderd.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>Verwijderen</AlertDialogAction>
+                                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => deleteVariant.mutate(variant.id)}>{t('common.delete')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
@@ -763,17 +765,17 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Variant koppelen aan product</DialogTitle>
+            <DialogTitle>{t('admin.products.productVariantsTab.variant_koppelen_aan_product')}</DialogTitle>
             <DialogDescription>
-              Kies een bestaand product om aan deze variant te koppelen. Het gekoppelde product verschijnt als zelfstandig product in de catalogus, maar klanten kunnen via de variant selector navigeren.
+              {t('admin.products.productVariantsTab.kies_een_bestaand_product_om_aan')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label>Product selecteren</Label>
+              <Label>{t('admin.products.productVariantsTab.product_selecteren')}</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Kies een product..." />
+                  <SelectValue placeholder={t('admin.marketing.aIImageGenerator.kies_een_product')} />
                 </SelectTrigger>
                 <SelectContent>
                   {linkableProducts.map(p => (
@@ -786,10 +788,10 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setLinkDialogOpen(false)}>Annuleren</Button>
+            <Button type="button" variant="outline" onClick={() => setLinkDialogOpen(false)}>{t('common.cancel')}</Button>
             <Button type="button" onClick={handleLinkProduct} disabled={!selectedProductId}>
               <Link2 className="h-4 w-4 mr-2" />
-              Koppelen
+              {t('admin.products.productVariantsTab.koppelen')}
             </Button>
           </DialogFooter>
         </DialogContent>

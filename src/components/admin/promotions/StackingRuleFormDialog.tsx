@@ -31,23 +31,25 @@ import {
 } from '@/components/ui/select';
 import { useCreateStackingRule, useUpdateStackingRule } from '@/hooks/useStackingRules';
 import type { DiscountStackingRule, StackingRuleFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
+// Labels staan als i18n-key; `id` blijft de opgeslagen kortingstype-waarde.
 const discountTypes = [
-  { id: 'discount_code', label: 'Kortingscodes' },
-  { id: 'volume_discount', label: 'Staffelkortingen' },
-  { id: 'automatic_discount', label: 'Automatische kortingen' },
-  { id: 'bundle_discount', label: 'Bundelkortingen' },
-  { id: 'bogo', label: 'BOGO acties' },
-  { id: 'customer_group', label: 'Klantengroep kortingen' },
-  { id: 'loyalty', label: 'Loyaliteitspunten' },
-  { id: 'gift_promotion', label: 'Cadeauacties' },
+  { id: 'discount_code', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.discount_code' },
+  { id: 'volume_discount', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.volume_discount' },
+  { id: 'automatic_discount', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.automatic_discount' },
+  { id: 'bundle_discount', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.bundle_discount' },
+  { id: 'bogo', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.bogo' },
+  { id: 'customer_group', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.customer_group' },
+  { id: 'loyalty', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.loyalty' },
+  { id: 'gift_promotion', labelKey: 'admin.promotions.stackingRuleFormDialog.discountTypes.gift_promotion' },
 ];
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   rule_type: z.enum(['exclusive', 'stackable', 'priority']),
-  discount_types: z.array(z.string()).min(1, 'Selecteer minimaal 1 type'),
+  discount_types: z.array(z.string()).min(1, 'admin.promotions.stackingRuleFormDialog.validation.selecteer_minimaal_1_type'),
   max_stack_count: z.coerce.number().optional(),
   max_total_discount_percent: z.coerce.number().min(0).max(100).optional(),
   is_active: z.boolean(),
@@ -66,6 +68,7 @@ export function StackingRuleFormDialog({
   onOpenChange,
   rule,
 }: StackingRuleFormDialogProps) {
+  const { t } = useTranslation();
   const createRule = useCreateStackingRule();
   const updateRule = useUpdateStackingRule();
 
@@ -132,7 +135,7 @@ export function StackingRuleFormDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {rule ? 'Stapelregel Bewerken' : 'Nieuwe Stapelregel'}
+            {rule ? t('admin.promotions.stackingRuleFormDialog.stapelregel_bewerken') : t('admin.promotions.stackingRuleFormDialog.nieuwe_stapelregel')}
           </DialogTitle>
         </DialogHeader>
 
@@ -143,9 +146,9 @@ export function StackingRuleFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Exclusieve kortingscode regel" {...field} />
+                    <Input placeholder={t('admin.promotions.stackingRuleFormDialog.exclusieve_kortingscode_regel')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,9 +160,9 @@ export function StackingRuleFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Optionele beschrijving..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.bogoPromotionFormDialog.optionele_beschrijving')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,7 +174,7 @@ export function StackingRuleFormDialog({
               name="rule_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Regeltype</FormLabel>
+                  <FormLabel>{t('admin.promotions.stackingRuleFormDialog.regeltype')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -180,13 +183,13 @@ export function StackingRuleFormDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="exclusive">
-                        Exclusief - Kan niet met andere kortingen
+                        {t('admin.promotions.stackingRuleFormDialog.exclusief_kan_niet_met_andere_kortingen')}
                       </SelectItem>
                       <SelectItem value="stackable">
-                        Stapelbaar - Mag combineren met andere kortingen
+                        {t('admin.promotions.stackingRuleFormDialog.stapelbaar_mag_combineren_met_andere_kortingen')}
                       </SelectItem>
                       <SelectItem value="priority">
-                        Prioriteit - Bepaal volgorde van toepassing
+                        {t('admin.promotions.stackingRuleFormDialog.prioriteit_bepaal_volgorde_van_toepassing')}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -200,9 +203,9 @@ export function StackingRuleFormDialog({
               name="discount_types"
               render={() => (
                 <FormItem>
-                  <FormLabel>Van toepassing op</FormLabel>
+                  <FormLabel>{t('admin.promotions.stackingRuleFormDialog.van_toepassing_op')}</FormLabel>
                   <FormDescription>
-                    Selecteer welke kortingstypes deze regel beïnvloedt
+                    {t('admin.promotions.stackingRuleFormDialog.selecteer_welke_kortingstypes_deze_regel_beinvloedt')}
                   </FormDescription>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     {discountTypes.map((type) => (
@@ -224,7 +227,7 @@ export function StackingRuleFormDialog({
                               />
                             </FormControl>
                             <FormLabel className="text-sm font-normal cursor-pointer">
-                              {type.label}
+                              {t(type.labelKey)}
                             </FormLabel>
                           </FormItem>
                         )}
@@ -243,17 +246,17 @@ export function StackingRuleFormDialog({
                   name="max_stack_count"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Max. aantal stapelbare kortingen</FormLabel>
+                      <FormLabel>{t('admin.promotions.stackingRuleFormDialog.max_aantal_stapelbare_kortingen')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min={1}
-                          placeholder="Onbeperkt"
+                          placeholder={t('admin.productForm.onbeperkt')}
                           {...field}
                           value={field.value ?? ''}
                         />
                       </FormControl>
-                      <FormDescription>Leeg laten voor onbeperkt</FormDescription>
+                      <FormDescription>{t('admin.promotions.bogoPromotionFormDialog.leeg_laten_voor_onbeperkt')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -264,19 +267,19 @@ export function StackingRuleFormDialog({
                   name="max_total_discount_percent"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Max. totale korting (%)</FormLabel>
+                      <FormLabel>{t('admin.promotions.stackingRuleFormDialog.max_totale_korting')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min={0}
                           max={100}
-                          placeholder="Geen limiet"
+                          placeholder={t('admin.productForm.geen_limiet')}
                           {...field}
                           value={field.value ?? ''}
                         />
                       </FormControl>
                       <FormDescription>
-                        Voorkom extreem hoge kortingen door combinatie
+                        {t('admin.promotions.stackingRuleFormDialog.voorkom_extreem_hoge_kortingen_door_combinatie')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -291,9 +294,9 @@ export function StackingRuleFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <FormLabel>Actief</FormLabel>
+                    <FormLabel>{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                     <FormDescription>
-                      Regel wordt toegepast bij berekening
+                      {t('admin.promotions.stackingRuleFormDialog.regel_wordt_toegepast_bij_berekening')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -305,10 +308,10 @@ export function StackingRuleFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createRule.isPending || updateRule.isPending}>
-                {rule ? 'Opslaan' : 'Aanmaken'}
+                {rule ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

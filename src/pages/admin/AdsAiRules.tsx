@@ -13,7 +13,9 @@ import { Sparkles, ArrowRight, Check, X, Plus, Pencil, Trash2, Bot, User, Clock 
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdsAI } from '@/hooks/useAdsAI';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useTranslation } from 'react-i18next';
 
 const CHANNEL_COLORS: Record<string, string> = {
   bolcom: 'bg-blue-100 text-blue-800',
@@ -46,12 +48,16 @@ const RULE_TYPE_LABELS: Record<string, string> = {
 // Disabled until ads-ai-engine implements them:
 // bid_adjustment, budget_pacing, inventory_pause
 
-function fmt(d: string | null) {
+// Helper buiten een component: de locale komt als argument binnen, want een
+// hook mag hier niet staan.
+function fmt(d: string | null, locale: Locale) {
   if (!d) return '—';
-  try { return format(new Date(d), 'd MMM yyyy HH:mm', { locale: nl }); } catch { return '—'; }
+  try { return format(new Date(d), 'd MMM yyyy HH:mm', { locale }); } catch { return '—'; }
 }
 
 export default function AdsAiRulesPage() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const {
     recommendations, rules, history,
     loadingRecs, loadingRules, loadingHistory,
@@ -114,19 +120,19 @@ export default function AdsAiRulesPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-          <span>Ads</span><span>/</span><span>AI</span>
+          <span>{t('admin.adsBolcom.ads')}</span><span>/</span><span>AI</span>
         </div>
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">AI Aanbevelingen</h1>
+          <h1 className="text-2xl font-bold">{t('admin.ads.ai_aanbevelingen')}</h1>
         </div>
       </div>
 
       <Tabs defaultValue="recommendations">
         <TabsList>
-          <TabsTrigger value="recommendations">Aanbevelingen</TabsTrigger>
-          <TabsTrigger value="rules">Automation Regels</TabsTrigger>
-          <TabsTrigger value="history">Geschiedenis</TabsTrigger>
+          <TabsTrigger value="recommendations">{t('admin.adsAiRules.aanbevelingen')}</TabsTrigger>
+          <TabsTrigger value="rules">{t('admin.adsAiRules.automation_regels')}</TabsTrigger>
+          <TabsTrigger value="history">{t('admin.adsAiRules.geschiedenis')}</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Aanbevelingen */}
@@ -134,9 +140,9 @@ export default function AdsAiRulesPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <Select value={channel || 'all'} onValueChange={(v) => setChannel(v === 'all' ? null : v)}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Kanaal" /></SelectTrigger>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder={t('admin.odooChannels.columnChannel')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle kanalen</SelectItem>
+                <SelectItem value="all">{t('admin.adsAiRules.alle_kanalen')}</SelectItem>
                 <SelectItem value="bolcom">Bol.com</SelectItem>
                 <SelectItem value="amazon">Amazon</SelectItem>
                 <SelectItem value="google">Google</SelectItem>
@@ -144,21 +150,21 @@ export default function AdsAiRulesPage() {
               </SelectContent>
             </Select>
             <Select value={type || 'all'} onValueChange={(v) => setType(v === 'all' ? null : v)}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder={t('admin.marketing.contentHistoryList.type')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle types</SelectItem>
+                <SelectItem value="all">{t('admin.marketing.aIContentLibrary.alle_types')}</SelectItem>
                 {Object.entries(TYPE_LABELS).map(([k, l]) => (
                   <SelectItem key={k} value={k}>{l}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={status || 'all'} onValueChange={(v) => setStatus(v === 'all' ? null : v)}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder={t('common.status')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="accepted">Geaccepteerd</SelectItem>
-                <SelectItem value="rejected">Afgewezen</SelectItem>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
+                <SelectItem value="pending">{t('admin.adsAiRules.pending')}</SelectItem>
+                <SelectItem value="accepted">{t('admin.adsAiRules.geaccepteerd')}</SelectItem>
+                <SelectItem value="rejected">{t('admin.adsAiRules.afgewezen')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -172,8 +178,8 @@ export default function AdsAiRulesPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Check className="h-10 w-10 mx-auto mb-3 text-green-500" />
-                <p className="font-medium">Geen aanbevelingen op dit moment</p>
-                <p className="text-sm text-muted-foreground mt-1">AI analyseert je campagne data continu en meldt zich als er verbeteringen mogelijk zijn.</p>
+                <p className="font-medium">{t('admin.adsAiRules.geen_aanbevelingen_op_dit_moment')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('admin.adsAiRules.ai_analyseert_je_campagne_data_continu')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -215,24 +221,24 @@ export default function AdsAiRulesPage() {
                           {/* Confidence */}
                           {rec.confidence != null && (
                             <div className="flex items-center gap-2 max-w-xs">
-                              <span className="text-xs text-muted-foreground">Confidence</span>
+                              <span className="text-xs text-muted-foreground">{t('admin.adsAiRules.confidence')}</span>
                               <Progress value={rec.confidence * 100} className="h-2 flex-1" />
                               <span className="text-xs font-medium">{Math.round(rec.confidence * 100)}%</span>
                             </div>
                           )}
 
-                          <p className="text-xs text-muted-foreground">{fmt(rec.created_at)}</p>
+                          <p className="text-xs text-muted-foreground">{fmt(rec.created_at, dateLocale)}</p>
                         </div>
 
                         {rec.status === 'pending' && (
                           <div className="flex gap-2 shrink-0">
                             <Button size="sm" variant="default" onClick={() => applyRecommendation.mutate(rec.id)}
                               disabled={applyRecommendation.isPending}>
-                              <Check className="h-4 w-4 mr-1" /> Toepassen
+                              <Check className="h-4 w-4 mr-1" /> {t('admin.ads.toepassen')}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => rejectRecommendation.mutate(rec.id)}
                               disabled={rejectRecommendation.isPending}>
-                              <X className="h-4 w-4 mr-1" /> Negeren
+                              <X className="h-4 w-4 mr-1" /> {t('admin.ads.negeren')}
                             </Button>
                           </div>
                         )}
@@ -254,7 +260,7 @@ export default function AdsAiRulesPage() {
         <TabsContent value="rules" className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={() => setRuleDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nieuwe regel
+              <Plus className="h-4 w-4 mr-1" /> {t('admin.adsAiRules.nieuwe_regel')}
             </Button>
           </div>
 
@@ -266,8 +272,8 @@ export default function AdsAiRulesPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">Nog geen automation regels</p>
-                <p className="text-sm text-muted-foreground mt-1">Maak regels aan om AI automatisch optimalisaties te laten uitvoeren.</p>
+                <p className="text-muted-foreground">{t('admin.adsAiRules.nog_geen_automation_regels')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('admin.adsAiRules.maak_regels_aan_om_ai_automatisch')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -296,7 +302,7 @@ export default function AdsAiRulesPage() {
                       <div className="flex items-center gap-3 shrink-0">
                         {rule.last_triggered_at && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {fmt(rule.last_triggered_at)}
+                            <Clock className="h-3 w-3" /> {fmt(rule.last_triggered_at, dateLocale)}
                           </span>
                         )}
                         <Button size="sm" variant="ghost" onClick={() => deleteRule.mutate(rule.id)}>
@@ -314,16 +320,16 @@ export default function AdsAiRulesPage() {
           <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Nieuwe Automation Regel</DialogTitle>
+                <DialogTitle>{t('admin.adsAiRules.nieuwe_automation_regel')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>Naam</Label>
-                  <Input value={newRule.name} onChange={(e) => setNewRule(p => ({ ...p, name: e.target.value }))} placeholder="Bijv. Auto negatief hoge spend" />
+                  <Label>{t('common.name')}</Label>
+                  <Input value={newRule.name} onChange={(e) => setNewRule(p => ({ ...p, name: e.target.value }))} placeholder={t('admin.adsAiRules.bijv_auto_negatief_hoge_spend')} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Kanaal</Label>
+                    <Label>{t('admin.odooChannels.columnChannel')}</Label>
                     <Select value={newRule.channel} onValueChange={(v) => setNewRule(p => ({ ...p, channel: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -335,7 +341,7 @@ export default function AdsAiRulesPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Type</Label>
+                    <Label>{t('admin.marketing.contentHistoryList.type')}</Label>
                     <Select value={newRule.rule_type} onValueChange={(v) => setNewRule(p => ({ ...p, rule_type: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -350,21 +356,21 @@ export default function AdsAiRulesPage() {
                 {/* Dynamic condition fields */}
                 {newRule.rule_type === 'auto_negative' && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Min Clicks</Label><Input type="number" value={newRule.min_clicks} onChange={(e) => setNewRule(p => ({ ...p, min_clicks: +e.target.value }))} /></div>
-                    <div><Label>Max Conversies</Label><Input type="number" value={newRule.max_conversions} onChange={(e) => setNewRule(p => ({ ...p, max_conversions: +e.target.value }))} /></div>
-                    <div><Label>Min Spend (€)</Label><Input type="number" value={newRule.min_spend} onChange={(e) => setNewRule(p => ({ ...p, min_spend: +e.target.value }))} /></div>
-                    <div><Label>Lookback (dagen)</Label><Input type="number" value={newRule.lookback_days} onChange={(e) => setNewRule(p => ({ ...p, lookback_days: +e.target.value }))} /></div>
+                    <div><Label>{t('admin.adsAiRules.min_clicks')}</Label><Input type="number" value={newRule.min_clicks} onChange={(e) => setNewRule(p => ({ ...p, min_clicks: +e.target.value }))} /></div>
+                    <div><Label>{t('admin.adsAiRules.max_conversies')}</Label><Input type="number" value={newRule.max_conversions} onChange={(e) => setNewRule(p => ({ ...p, max_conversions: +e.target.value }))} /></div>
+                    <div><Label>{t('admin.adsAiRules.min_spend')}</Label><Input type="number" value={newRule.min_spend} onChange={(e) => setNewRule(p => ({ ...p, min_spend: +e.target.value }))} /></div>
+                    <div><Label>{t('admin.adsAiRules.lookback_dagen')}</Label><Input type="number" value={newRule.lookback_days} onChange={(e) => setNewRule(p => ({ ...p, lookback_days: +e.target.value }))} /></div>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2">
                   <Switch checked={newRule.is_active} onCheckedChange={(v) => setNewRule(p => ({ ...p, is_active: v }))} />
-                  <Label>Direct activeren</Label>
+                  <Label>{t('admin.adsAiRules.direct_activeren')}</Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>Annuleren</Button>
-                <Button onClick={handleCreateRule} disabled={!newRule.name || createRule.isPending}>Aanmaken</Button>
+                <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>{t('common.cancel')}</Button>
+                <Button onClick={handleCreateRule} disabled={!newRule.name || createRule.isPending}>{t('admin.adsAiRules.aanmaken')}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -380,8 +386,8 @@ export default function AdsAiRulesPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-medium">Nog geen AI acties uitgevoerd</p>
-                <p className="text-sm text-muted-foreground mt-1">Uitgevoerde aanbevelingen verschijnen hier.</p>
+                <p className="font-medium">{t('admin.adsAiRules.nog_geen_ai_acties_uitgevoerd')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('admin.adsAiRules.uitgevoerde_aanbevelingen_verschijnen_hier')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -391,18 +397,18 @@ export default function AdsAiRulesPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Datum</th>
-                        <th className="text-left p-3 font-medium">Kanaal</th>
-                        <th className="text-left p-3 font-medium">Type</th>
-                        <th className="text-left p-3 font-medium">Beschrijving</th>
-                        <th className="text-left p-3 font-medium">Status</th>
-                        <th className="text-left p-3 font-medium">Door</th>
+                        <th className="text-left p-3 font-medium">{t('common.date')}</th>
+                        <th className="text-left p-3 font-medium">{t('admin.odooChannels.columnChannel')}</th>
+                        <th className="text-left p-3 font-medium">{t('admin.marketing.contentHistoryList.type')}</th>
+                        <th className="text-left p-3 font-medium">{t('admin.marketing.emailBlockProperties.beschrijving')}</th>
+                        <th className="text-left p-3 font-medium">{t('common.status')}</th>
+                        <th className="text-left p-3 font-medium">{t('admin.adsAiRules.door')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {history.map((h) => (
                         <tr key={h.id} className="border-b last:border-0 hover:bg-muted/50">
-                          <td className="p-3 whitespace-nowrap">{fmt(h.applied_at)}</td>
+                          <td className="p-3 whitespace-nowrap">{fmt(h.applied_at, dateLocale)}</td>
                           <td className="p-3">
                             <Badge className={CHANNEL_COLORS[h.channel] || ''}>
                               {CHANNEL_LABELS[h.channel] || h.channel}
@@ -412,14 +418,14 @@ export default function AdsAiRulesPage() {
                           <td className="p-3 max-w-xs truncate">{h.reason}</td>
                           <td className="p-3">
                             <Badge variant={h.status === 'auto_applied' ? 'secondary' : 'default'}>
-                              {h.status === 'auto_applied' ? 'Auto' : 'Handmatig'}
+                              {h.status === 'auto_applied' ? t('admin.adsAiRules.auto') : t('admin.odooChannels.channels.manual')}
                             </Badge>
                           </td>
                           <td className="p-3">
                             {h.auto_apply ? (
                               <span className="flex items-center gap-1 text-muted-foreground"><Bot className="h-3 w-3" /> AI</span>
                             ) : (
-                              <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> Merchant</span>
+                              <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {t('admin.adsAiRules.merchant')}</span>
                             )}
                           </td>
                         </tr>

@@ -30,7 +30,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, subDays } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface SearchConsoleData {
   id: string;
@@ -46,6 +47,8 @@ interface SearchConsoleData {
 }
 
 export function SearchConsolePanel() {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState('7');
@@ -172,7 +175,7 @@ export function SearchConsolePanel() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(d => ({
       ...d,
-      date: format(new Date(d.date), 'd MMM', { locale: nl }),
+      date: format(new Date(d.date), 'd MMM', { locale: dateLocale }),
     }));
 
   // Device breakdown
@@ -201,9 +204,9 @@ export function SearchConsolePanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Search Console</h2>
+          <h2 className="text-lg font-semibold">{t('admin.seo.searchConsolePanel.search_console')}</h2>
           <p className="text-sm text-muted-foreground">
-            Bekijk hoe je site presteert in Google zoekresultaten
+            {t('admin.seo.searchConsolePanel.bekijk_hoe_je_site_presteert_in')}
           </p>
         </div>
         
@@ -214,9 +217,9 @@ export function SearchConsolePanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Laatste 7 dagen</SelectItem>
-              <SelectItem value="28">Laatste 28 dagen</SelectItem>
-              <SelectItem value="90">Laatste 3 maanden</SelectItem>
+              <SelectItem value="7">{t('admin.seo.searchConsolePanel.laatste_7_dagen')}</SelectItem>
+              <SelectItem value="28">{t('admin.seo.searchConsolePanel.laatste_28_dagen')}</SelectItem>
+              <SelectItem value="90">{t('admin.seo.searchConsolePanel.laatste_3_maanden')}</SelectItem>
             </SelectContent>
           </Select>
           
@@ -242,17 +245,16 @@ export function SearchConsolePanel() {
         <Card className="border-dashed">
           <CardContent className="py-8 text-center">
             <Globe className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-medium mb-2">Google Search Console koppelen</h3>
+            <h3 className="font-medium mb-2">{t('admin.seo.searchConsolePanel.google_search_console_koppelen')}</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-              Koppel je Google Search Console account om echte zoekdata te bekijken.
-              Of laad demo data om de functionaliteit te verkennen.
+              {t('admin.seo.searchConsolePanel.koppel_je_google_search_console_account')}
             </p>
             <div className="flex items-center justify-center gap-2">
               <Button variant="outline" disabled>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Koppel Search Console
+                {t('admin.seo.searchConsolePanel.koppel_search_console')}
               </Button>
-              <span className="text-xs text-muted-foreground">(Binnenkort beschikbaar)</span>
+              <span className="text-xs text-muted-foreground">{t('admin.seo.searchConsolePanel.binnenkort_beschikbaar')}</span>
             </div>
           </CardContent>
         </Card>
@@ -264,7 +266,7 @@ export function SearchConsolePanel() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <MousePointerClick className="h-4 w-4" />
-              <span className="text-xs">Klikken</span>
+              <span className="text-xs">{t('admin.seo.searchConsolePanel.klikken')}</span>
             </div>
             <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
           </CardContent>
@@ -274,7 +276,7 @@ export function SearchConsolePanel() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Eye className="h-4 w-4" />
-              <span className="text-xs">Impressies</span>
+              <span className="text-xs">{t('admin.adsBolcomCampaignDetail.impressies')}</span>
             </div>
             <p className="text-2xl font-bold">{totalImpressions.toLocaleString()}</p>
           </CardContent>
@@ -284,7 +286,7 @@ export function SearchConsolePanel() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <TrendingUp className="h-4 w-4" />
-              <span className="text-xs">Gem. CTR</span>
+              <span className="text-xs">{t('admin.seo.searchConsolePanel.gem_ctr')}</span>
             </div>
             <p className="text-2xl font-bold">{avgCtr.toFixed(1)}%</p>
           </CardContent>
@@ -294,7 +296,7 @@ export function SearchConsolePanel() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <BarChart3 className="h-4 w-4" />
-              <span className="text-xs">Gem. Positie</span>
+              <span className="text-xs">{t('admin.seo.searchConsolePanel.gem_positie')}</span>
             </div>
             <p className="text-2xl font-bold">{avgPosition.toFixed(1)}</p>
           </CardContent>
@@ -306,7 +308,7 @@ export function SearchConsolePanel() {
           {/* Performance Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Prestatie Trend</CardTitle>
+              <CardTitle className="text-base">{t('admin.seo.coreWebVitalsPanel.prestatie_trend')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-64">
@@ -352,9 +354,9 @@ export function SearchConsolePanel() {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Top Zoekopdrachten</CardTitle>
+                  <CardTitle className="text-base">{t('admin.seo.searchConsolePanel.top_zoekopdrachten')}</CardTitle>
                   <Input
-                    placeholder="Zoek query..."
+                    placeholder={t('admin.seo.searchConsolePanel.zoek_query')}
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     className="w-48"
@@ -367,11 +369,11 @@ export function SearchConsolePanel() {
                     <Table className="min-w-[720px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Query</TableHead>
-                          <TableHead className="text-right">Klikken</TableHead>
-                          <TableHead className="text-right">Impressies</TableHead>
+                          <TableHead>{t('admin.seo.searchConsolePanel.query')}</TableHead>
+                          <TableHead className="text-right">{t('admin.seo.searchConsolePanel.klikken_2')}</TableHead>
+                          <TableHead className="text-right">{t('admin.adsBolcomCampaignDetail.impressies')}</TableHead>
                           <TableHead className="text-right">CTR</TableHead>
-                          <TableHead className="text-right">Positie</TableHead>
+                          <TableHead className="text-right">{t('admin.seo.searchConsolePanel.positie')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -409,7 +411,7 @@ export function SearchConsolePanel() {
             {/* Device Breakdown */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Apparaat Verdeling</CardTitle>
+                <CardTitle className="text-base">{t('admin.seo.searchConsolePanel.apparaat_verdeling')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

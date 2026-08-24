@@ -23,8 +23,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CustomerGroupFormDialog } from '@/components/admin/promotions/CustomerGroupFormDialog';
 import type { CustomerGroup } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 export default function CustomerGroups() {
+  const { t } = useTranslation();
   const { data: groups = [], isLoading } = useCustomerGroups();
   const deleteGroup = useDeleteCustomerGroup();
   const updateGroup = useUpdateCustomerGroup();
@@ -50,14 +52,14 @@ export default function CustomerGroups() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Klantengroepen</h1>
+          <h1 className="text-2xl font-bold">{t('admin.customerGroups.klantengroepen')}</h1>
           <p className="text-muted-foreground">
-            Speciale prijzen en kortingen voor klantgroepen
+            {t('admin.customerGroups.speciale_prijzen_en_kortingen_voor_klantgroepen')}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Groep
+          {t('admin.customerGroups.nieuwe_groep')}
         </Button>
       </div>
 
@@ -74,13 +76,13 @@ export default function CustomerGroups() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Geen klantengroepen</h3>
+            <h3 className="text-lg font-medium">{t('admin.customerGroups.geen_klantengroepen')}</h3>
             <p className="text-muted-foreground mb-4">
-              Maak je eerste klantengroep aan
+              {t('admin.customerGroups.maak_je_eerste_klantengroep_aan')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Groep Aanmaken
+              {t('admin.customerGroups.groep_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -93,7 +95,7 @@ export default function CustomerGroups() {
                   <CardTitle className="text-base">{group.name}</CardTitle>
                   <div className="flex gap-2">
                     <Badge variant={group.is_active ? 'default' : 'secondary'}>
-                      {group.is_active ? 'Actief' : 'Inactief'}
+                      {group.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                     </Badge>
                     <Badge variant="outline">{group.code}</Badge>
                   </div>
@@ -107,14 +109,14 @@ export default function CustomerGroups() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditGroup(group)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Bewerken
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeleteId(group.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Verwijderen
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -126,7 +128,7 @@ export default function CustomerGroups() {
                 <div className="space-y-2 text-sm">
                   {group.discount_value && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Standaard korting:</span>
+                      <span className="text-muted-foreground">{t('admin.customerGroups.standaard_korting')}</span>
                       <span className="font-medium">
                         {group.discount_type === 'percentage'
                           ? `${group.discount_value}%`
@@ -136,21 +138,21 @@ export default function CustomerGroups() {
                   )}
                   {group.min_order_amount && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Min. bestelling:</span>
+                      <span className="text-muted-foreground">{t('admin.customerGroups.min_bestelling')}</span>
                       <span>€{group.min_order_amount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">BTW vrijgesteld:</span>
+                    <span className="text-muted-foreground">{t('admin.customerGroups.btw_vrijgesteld')}</span>
                     <span>{group.tax_exempt ? 'Ja' : 'Nee'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Prioriteit:</span>
+                    <span className="text-muted-foreground">{t('admin.customerGroups.prioriteit')}</span>
                     <span>{group.priority}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</span>
                   <Switch
                     checked={group.is_active}
                     onCheckedChange={() => handleToggleActive(group)}
@@ -176,14 +178,14 @@ export default function CustomerGroups() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Klantengroep verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.customerGroups.klantengroep_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze actie kan niet ongedaan worden gemaakt. Alle leden worden losgekoppeld.
+              {t('admin.customerGroups.deze_actie_kan_niet_ongedaan_worden')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

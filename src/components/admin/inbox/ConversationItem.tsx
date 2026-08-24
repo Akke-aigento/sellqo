@@ -1,9 +1,10 @@
 import { formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Mail, MessageSquare, Check, ShoppingBag, Store, Facebook, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Conversation, ConversationChannel } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -12,6 +13,8 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({ conversation, isSelected, onClick }: ConversationItemProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { customer, lastMessage, unreadCount, channel } = conversation;
   const isUnread = unreadCount > 0;
   const isReplied = lastMessage.direction === 'inbound' && lastMessage.replied_at;
@@ -92,7 +95,7 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
                 <TooltipTrigger asChild>
                   <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                 </TooltipTrigger>
-                <TooltipContent>Bol.com bericht</TooltipContent>
+                <TooltipContent>{t('admin.inbox.conversationItem.bol_com_bericht')}</TooltipContent>
               </Tooltip>
             )}
             {marketplace === 'amazon' && (
@@ -100,7 +103,7 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
                 <TooltipTrigger asChild>
                   <Store className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                 </TooltipTrigger>
-                <TooltipContent>Amazon bericht</TooltipContent>
+                <TooltipContent>{t('admin.inbox.conversationItem.amazon_bericht')}</TooltipContent>
               </Tooltip>
             )}
           </div>
@@ -108,7 +111,7 @@ export function ConversationItem({ conversation, isSelected, onClick }: Conversa
             <span>
               {formatDistanceToNow(new Date(lastMessage.created_at), {
                 addSuffix: false,
-                locale: nl,
+                locale: dateLocale,
               })}
             </span>
             {isReplied && <Check className="h-3.5 w-3.5 text-green-500" />}

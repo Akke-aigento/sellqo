@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AdvancedSearchFilters } from './AdvancedSearchFilters';
 import type { InboxFilters as FiltersType, FilterChannel, SearchOptions } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
 
 interface InboxFiltersProps {
   filters: FiltersType;
@@ -32,6 +33,7 @@ export function InboxFilters({
   instagramCount,
   unreadCount,
 }: InboxFiltersProps) {
+  const { t } = useTranslation();
   const socialCount = whatsappCount + facebookCount + instagramCount;
   const totalCount = emailCount + socialCount;
 
@@ -88,7 +90,7 @@ export function InboxFilters({
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Zoek in gesprekken..."
+          placeholder={t('admin.inbox.inboxFilters.zoek_in_gesprekken')}
           className="pl-8 pr-8 h-9 text-sm"
           value={filters.search}
           onChange={(e) => handleSearchChange(e.target.value)}
@@ -123,7 +125,7 @@ export function InboxFilters({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Alle
+            {t('common.all')}
             <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1">
               {totalCount}
             </Badge>
@@ -137,7 +139,7 @@ export function InboxFilters({
             }`}
           >
             <Mail className="h-3 w-3 mr-0.5" />
-            Email
+            {t('admin.marketing.aIContentLibrary.email')}
             <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1">
               {emailCount}
             </Badge>
@@ -162,7 +164,7 @@ export function InboxFilters({
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => onFiltersChange({ ...filters, channel: 'social' })}>
                 <Users className="h-4 w-4 mr-2" />
-                Alle Social
+                {t('admin.inbox.inboxFilters.alle_social')}
                 <Badge variant="secondary" className="ml-auto h-5 min-w-5 text-xs">
                   {socialCount}
                 </Badge>
@@ -202,7 +204,7 @@ export function InboxFilters({
       >
         <TabsList className="w-full h-8">
           <TabsTrigger value="all" className="flex-1 text-xs px-2">
-            Alle
+            {t('common.all')}
           </TabsTrigger>
           <TabsTrigger value="unread" className="flex-1 text-xs px-2">
             Ongelezen
@@ -213,7 +215,7 @@ export function InboxFilters({
             )}
           </TabsTrigger>
           <TabsTrigger value="unanswered" className="flex-1 text-xs px-1">
-            Te beantw.
+            {t('admin.inbox.inboxFilters.te_beantw')}
           </TabsTrigger>
         </TabsList>
       </Tabs>

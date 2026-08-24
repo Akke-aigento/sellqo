@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AutoDiscountFormDialog } from '@/components/admin/promotions/AutoDiscountFormDialog';
 import type { AutomaticDiscount } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const triggerLabels: Record<string, string> = {
   cart_total: 'Winkelwagen totaal',
@@ -40,6 +41,7 @@ const discountLabels: Record<string, string> = {
 };
 
 export default function AutoDiscounts() {
+  const { t } = useTranslation();
   const { data: discounts = [], isLoading } = useAutoDiscounts();
   const deleteDiscount = useDeleteAutoDiscount();
   const updateDiscount = useUpdateAutoDiscount();
@@ -65,14 +67,14 @@ export default function AutoDiscounts() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Automatische Kortingen</h1>
+          <h1 className="text-2xl font-bold">{t('admin.autoDiscounts.automatische_kortingen')}</h1>
           <p className="text-muted-foreground">
-            Kortingen die automatisch toegepast worden bij checkout
+            {t('admin.autoDiscounts.kortingen_die_automatisch_toegepast_worden_bij')}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Korting
+          {t('admin.autoDiscounts.nieuwe_korting')}
         </Button>
       </div>
 
@@ -89,13 +91,13 @@ export default function AutoDiscounts() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Zap className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Geen automatische kortingen</h3>
+            <h3 className="text-lg font-medium">{t('admin.autoDiscounts.geen_automatische_kortingen')}</h3>
             <p className="text-muted-foreground mb-4">
-              Maak je eerste automatische korting aan
+              {t('admin.autoDiscounts.maak_je_eerste_automatische_korting_aan')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Korting Aanmaken
+              {t('admin.autoDiscounts.korting_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -108,7 +110,7 @@ export default function AutoDiscounts() {
                   <CardTitle className="text-base">{discount.name}</CardTitle>
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant={discount.is_active ? 'default' : 'secondary'}>
-                      {discount.is_active ? 'Actief' : 'Inactief'}
+                      {discount.is_active ? t('admin.marketing.aBTestingPanel.actief') : t('admin.products.inactief')}
                     </Badge>
                     <Badge variant="outline">
                       Prioriteit: {discount.priority}
@@ -124,14 +126,14 @@ export default function AutoDiscounts() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditDiscount(discount)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Bewerken
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => setDeleteId(discount.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Verwijderen
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -142,12 +144,12 @@ export default function AutoDiscounts() {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Trigger:</span>
+                    <span className="text-muted-foreground">{t('admin.autoDiscounts.trigger')}</span>
                     <span>{triggerLabels[discount.trigger_type] || discount.trigger_type}</span>
                   </div>
                   {discount.trigger_value && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Waarde:</span>
+                      <span className="text-muted-foreground">{t('admin.autoDiscounts.waarde')}</span>
                       <span>
                         {discount.trigger_type === 'cart_total'
                           ? `€${discount.trigger_value}`
@@ -156,7 +158,7 @@ export default function AutoDiscounts() {
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Korting:</span>
+                    <span className="text-muted-foreground">{t('admin.bundles.korting')}</span>
                     <span className="font-medium">
                       {discount.discount_type === 'percentage'
                         ? `${discount.discount_value}%`
@@ -166,12 +168,12 @@ export default function AutoDiscounts() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Gebruik:</span>
+                    <span className="text-muted-foreground">{t('admin.autoDiscounts.gebruik')}</span>
                     <span>{discount.usage_count}x</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">Actief</span>
+                  <span className="text-sm text-muted-foreground">{t('admin.marketing.aBTestingPanel.actief')}</span>
                   <Switch
                     checked={discount.is_active}
                     onCheckedChange={() => handleToggleActive(discount)}
@@ -197,14 +199,14 @@ export default function AutoDiscounts() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Automatische korting verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.autoDiscounts.automatische_korting_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze actie kan niet ongedaan worden gemaakt.
+              {t('admin.bundles.deze_actie_kan_niet_ongedaan_worden')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

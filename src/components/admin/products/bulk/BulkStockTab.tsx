@@ -3,8 +3,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { BulkEditTabProps } from './BulkEditTypes';
+import { useTranslation } from 'react-i18next';
 
 export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: BulkEditTabProps) {
+  const { t } = useTranslation();
   const stockAdjustmentType = state.stock_adjustment?.type || 'add';
   const stockAdjustmentValue = state.stock_adjustment?.value || 0;
 
@@ -37,7 +39,7 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('stock_adjustment')}
           />
           <Label htmlFor="enable-stock" className="font-medium cursor-pointer">
-            Voorraad aanpassen
+            {t('admin.products.bulk.bulkStockTab.voorraad_aanpassen')}
           </Label>
         </div>
         {enabledFields.has('stock_adjustment') && (
@@ -45,15 +47,15 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             <RadioGroup value={stockAdjustmentType} onValueChange={handleStockTypeChange}>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="add" id="stock-add" />
-                <Label htmlFor="stock-add" className="cursor-pointer">Toevoegen</Label>
+                <Label htmlFor="stock-add" className="cursor-pointer">{t('common.add')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="subtract" id="stock-subtract" />
-                <Label htmlFor="stock-subtract" className="cursor-pointer">Aftrekken</Label>
+                <Label htmlFor="stock-subtract" className="cursor-pointer">{t('admin.products.bulk.bulkStockTab.aftrekken')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="exact" id="stock-exact" />
-                <Label htmlFor="stock-exact" className="cursor-pointer">Exact instellen</Label>
+                <Label htmlFor="stock-exact" className="cursor-pointer">{t('admin.products.bulk.bulkStockTab.exact_instellen')}</Label>
               </div>
             </RadioGroup>
             <div className="flex items-center gap-2">
@@ -80,7 +82,7 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('track_inventory')}
           />
           <Label htmlFor="enable-track-inventory" className="font-medium cursor-pointer">
-            Voorraad tracking
+            {t('admin.products.bulk.bulkStockTab.voorraad_tracking')}
           </Label>
         </div>
         {enabledFields.has('track_inventory') && (
@@ -91,11 +93,11 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             >
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="yes" id="track-yes" />
-                <Label htmlFor="track-yes" className="cursor-pointer">Inschakelen</Label>
+                <Label htmlFor="track-yes" className="cursor-pointer">{t('admin.products.bulk.bulkStockTab.inschakelen')}</Label>
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="no" id="track-no" />
-                <Label htmlFor="track-no" className="cursor-pointer">Uitschakelen</Label>
+                <Label htmlFor="track-no" className="cursor-pointer">{t('admin.products.bulk.bulkStockTab.uitschakelen')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -111,7 +113,7 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('allow_backorder')}
           />
           <Label htmlFor="enable-backorder" className="font-medium cursor-pointer">
-            Backorder toestaan
+            {t('admin.products.bulk.bulkStockTab.backorder_toestaan')}
           </Label>
         </div>
         {enabledFields.has('allow_backorder') && (
@@ -126,7 +128,7 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
               </div>
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="no" id="backorder-no" />
-                <Label htmlFor="backorder-no" className="cursor-pointer">Nee</Label>
+                <Label htmlFor="backorder-no" className="cursor-pointer">{t('common.no')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -142,7 +144,7 @@ export function BulkStockTab({ state, onChange, enabledFields, onToggleField }: 
             onCheckedChange={() => onToggleField('low_stock_threshold')}
           />
           <Label htmlFor="enable-threshold" className="font-medium cursor-pointer">
-            Lage voorraad drempel
+            {t('admin.productForm.lage_voorraad_drempel')}
           </Label>
         </div>
         {enabledFields.has('low_stock_threshold') && (

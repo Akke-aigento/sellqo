@@ -19,6 +19,7 @@ import {
   FileCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface RobotsTxtEditorProps {
   baseUrl: string;
@@ -95,15 +96,17 @@ Allow: /
 Sitemap: {{BASE_URL}}/sitemap.xml`,
 };
 
-const PRESET_LABELS: Record<string, { label: string; description: string }> = {
-  default: { label: 'Standaard', description: 'Basis configuratie voor webshops' },
-  allowAll: { label: 'Alles Toestaan', description: 'Volledige crawl toegang' },
-  blockAll: { label: 'Alles Blokkeren', description: 'Geen crawl toegang' },
-  ecommerce: { label: 'E-commerce', description: 'Geoptimaliseerd voor webshops' },
-  aiOptimized: { label: 'AI-Geoptimaliseerd', description: 'Zichtbaar in AI zoekmachines' },
+// Labels staan als i18n-key; de sleutel blijft de preset-naam.
+const PRESET_LABELS: Record<string, { labelKey: string; descriptionKey: string }> = {
+  default: { labelKey: 'admin.seo.robotsTxtEditor.presetLabels.default.label', descriptionKey: 'admin.seo.robotsTxtEditor.presetLabels.default.description' },
+  allowAll: { labelKey: 'admin.seo.robotsTxtEditor.presetLabels.allowAll.label', descriptionKey: 'admin.seo.robotsTxtEditor.presetLabels.allowAll.description' },
+  blockAll: { labelKey: 'admin.seo.robotsTxtEditor.presetLabels.blockAll.label', descriptionKey: 'admin.seo.robotsTxtEditor.presetLabels.blockAll.description' },
+  ecommerce: { labelKey: 'admin.seo.robotsTxtEditor.presetLabels.ecommerce.label', descriptionKey: 'admin.seo.robotsTxtEditor.presetLabels.ecommerce.description' },
+  aiOptimized: { labelKey: 'admin.seo.robotsTxtEditor.presetLabels.aiOptimized.label', descriptionKey: 'admin.seo.robotsTxtEditor.presetLabels.aiOptimized.description' },
 };
 
 export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
+  const { t } = useTranslation();
   const [content, setContent] = useState(
     PRESETS.ecommerce.replace(/{{BASE_URL}}/g, baseUrl)
   );
@@ -112,7 +115,7 @@ export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
   const handlePresetSelect = (presetKey: string) => {
     const preset = PRESETS[presetKey as keyof typeof PRESETS];
     setContent(preset.replace(/{{BASE_URL}}/g, baseUrl));
-    toast.success(`Preset "${PRESET_LABELS[presetKey].label}" geladen`);
+    toast.success(t('admin.seo.robotsTxtEditor.preset_geladen', { preset: t(PRESET_LABELS[presetKey].labelKey) }));
   };
 
   const handleCopy = async () => {
@@ -151,26 +154,26 @@ export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileCode className="h-5 w-5" />
-              Robots.txt Configuratie
+              {t('admin.seo.robotsTxtEditor.robots_txt_configuratie')}
             </CardTitle>
             <CardDescription>
-              Bepaal welke pagina's zoekmachines mogen indexeren
+              {t('admin.seo.robotsTxtEditor.bepaal_welke_pagina_s_zoekmachines_mogen')}
             </CardDescription>
           </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
-                  Presets
+                  {t('admin.seo.robotsTxtEditor.presets')}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {Object.entries(PRESET_LABELS).map(([key, { label, description }]) => (
+                {Object.entries(PRESET_LABELS).map(([key, { labelKey, descriptionKey }]) => (
                   <DropdownMenuItem key={key} onClick={() => handlePresetSelect(key)}>
                     <div>
-                      <p className="font-medium">{label}</p>
-                      <p className="text-xs text-muted-foreground">{description}</p>
+                      <p className="font-medium">{t(labelKey)}</p>
+                      <p className="text-xs text-muted-foreground">{t(descriptionKey)}</p>
                     </div>
                   </DropdownMenuItem>
                 ))}
@@ -193,7 +196,7 @@ export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
           {blocksAll && (
             <Badge variant="destructive">
               <AlertCircle className="mr-1 h-3 w-3" />
-              Blokkeert alles
+              {t('admin.seo.robotsTxtEditor.blokkeert_alles')}
             </Badge>
           )}
           {allowsAI && (
@@ -209,29 +212,29 @@ export function RobotsTxtEditor({ baseUrl }: RobotsTxtEditorProps) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="font-mono text-sm min-h-[300px]"
-          placeholder="User-agent: *&#10;Allow: /"
+          placeholder={t('admin.seo.robotsTxtEditor.user_agent_10_allow')}
         />
 
         {/* Actions */}
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCopy}>
             {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-            {copied ? 'Gekopieerd!' : 'Kopiëren'}
+            {copied ? t('admin.seo.robotsTxtEditor.gekopieerd') : t('admin.marketing.aIContentLibrary.kopieren')}
           </Button>
           <Button variant="outline" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
-            Downloaden
+            {t('admin.marketing.mediaAssetsLibrary.downloaden')}
           </Button>
         </div>
 
         {/* Info */}
         <div className="p-4 rounded-lg bg-muted/50 text-sm space-y-2">
-          <p className="font-medium">Waar te plaatsen?</p>
+          <p className="font-medium">{t('admin.seo.robotsTxtEditor.waar_te_plaatsen')}</p>
           <p className="text-muted-foreground">
-            Upload dit bestand naar de root van je domein: <code className="px-1 py-0.5 rounded bg-background">{baseUrl}/robots.txt</code>
+            {t('admin.seo.robotsTxtEditor.upload_naar_root')} <code className="px-1 py-0.5 rounded bg-background">{baseUrl}/robots.txt</code>
           </p>
           <p className="text-muted-foreground">
-            Je kunt dit ook configureren via je hosting provider of CDN.
+            {t('admin.seo.robotsTxtEditor.je_kunt_dit_ook_configureren_via')}
           </p>
         </div>
       </CardContent>

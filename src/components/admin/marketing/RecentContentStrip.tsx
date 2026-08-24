@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface AIContent {
   id: string;
@@ -44,6 +45,8 @@ interface RecentContentStripProps {
 }
 
 export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -79,7 +82,7 @@ export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Library className="h-5 w-5 text-muted-foreground" />
-            Recente Content
+            {t('admin.marketing.recentContentStrip.recente_content')}
           </h3>
         </div>
         <div className="grid gap-2">
@@ -97,13 +100,13 @@ export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Library className="h-5 w-5 text-muted-foreground" />
-            Recente Content
+            {t('admin.marketing.recentContentStrip.recente_content')}
           </h3>
         </div>
         <div className="flex flex-col items-center justify-center p-8 rounded-lg border border-dashed text-center">
           <Library className="h-8 w-8 text-muted-foreground/50 mb-2" />
-          <p className="text-sm text-muted-foreground">Nog geen AI content gegenereerd</p>
-          <p className="text-xs text-muted-foreground">Start met de Product Promo Wizard hierboven</p>
+          <p className="text-sm text-muted-foreground">{t('admin.marketing.aIContentLibrary.nog_geen_ai_content_gegenereerd')}</p>
+          <p className="text-xs text-muted-foreground">{t('admin.marketing.recentContentStrip.start_met_de_product_promo_wizard')}</p>
         </div>
       </div>
     );
@@ -114,11 +117,11 @@ export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Library className="h-5 w-5 text-muted-foreground" />
-          Recente Content
+          {t('admin.marketing.recentContentStrip.recente_content')}
         </h3>
         <Link to="/admin/marketing/ai?tab=library">
           <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Bekijk alles
+            {t('admin.marketing.recentContentStrip.bekijk_alles')}
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </Link>
@@ -154,7 +157,7 @@ export function RecentContentStrip({ onViewLibrary }: RecentContentStripProps) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs text-muted-foreground hidden sm:block">
-                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: nl })}
+                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: dateLocale })}
                 </span>
                 <Button
                   variant="ghost"

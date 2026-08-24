@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SelectableConversationItem } from './SelectableConversationItem';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import type { Conversation } from '@/hooks/useInbox';
+import { useTranslation } from 'react-i18next';
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -39,6 +40,7 @@ export function ConversationList({
   currentFolder,
   isBulkLoading,
 }: ConversationListProps) {
+  const { t } = useTranslation();
   const showCheckboxes = selectedIds.size > 0;
 
   if (isLoading) {
@@ -63,9 +65,9 @@ export function ConversationList({
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
           <MessageSquare className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="font-medium">Geen gesprekken</h3>
+        <h3 className="font-medium">{t('admin.inbox.conversationList.geen_gesprekken')}</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Wanneer klanten contact opnemen, verschijnen hun berichten hier.
+          {t('admin.inbox.conversationList.wanneer_klanten_contact_opnemen_verschijnen_hun')}
         </p>
       </div>
     );

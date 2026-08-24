@@ -77,8 +77,10 @@ import { cn } from '@/lib/utils';
 import type { Product, ProductStatus, StockStatus, VisibilityStatus } from '@/types/product';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductPhotosManager } from '@/components/admin/products/ProductPhotosManager';
+import { useTranslation } from 'react-i18next';
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
@@ -280,8 +282,8 @@ export default function ProductsPage() {
       
       if (skippedCount > 0) {
         toast({
-          title: 'Let op',
-          description: `${skippedCount} product(en) overgeslagen — voorraad wordt per variant beheerd.`,
+          title: t('admin.products.let_op'),
+          description: t('admin.products.overgeslagen_variantvoorraad', { count: skippedCount }),
         });
       }
     }
@@ -356,11 +358,11 @@ export default function ProductsPage() {
       ? activeVariants.some(v => v.track_inventory !== false)
       : product.track_inventory !== false;
     if (!isTracked) {
-      return <Badge variant="outline" className="text-muted-foreground">Niet bijgehouden</Badge>;
+      return <Badge variant="outline" className="text-muted-foreground">{t('admin.products.productVariantsTab.niet_bijgehouden')}</Badge>;
     }
 
     if (effectiveStock === 0) {
-      return <Badge variant="destructive">Uitverkocht</Badge>;
+      return <Badge variant="destructive">{t('admin.products.uitverkocht')}</Badge>;
     }
     if (effectiveStock <= product.low_stock_threshold) {
       return (
@@ -380,12 +382,12 @@ export default function ProductsPage() {
   const getVisibilityBadge = (product: Product) => {
     const hideFromStorefront = (product as any).hide_from_storefront || false;
     if (!product.is_active) {
-      return <Badge variant="secondary">Inactief</Badge>;
+      return <Badge variant="secondary">{t('admin.products.inactief')}</Badge>;
     }
     if (hideFromStorefront) {
-      return <Badge className="bg-amber-500 hover:bg-amber-600">Alleen winkel</Badge>;
+      return <Badge className="bg-amber-500 hover:bg-amber-600">{t('admin.products.alleen_winkel')}</Badge>;
     }
-    return <Badge variant="default">Online</Badge>;
+    return <Badge variant="default">{t('admin.products.online')}</Badge>;
   };
 
   // Format price
@@ -413,7 +415,7 @@ export default function ProductsPage() {
   if (!currentTenant) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Selecteer eerst een winkel</p>
+        <p className="text-muted-foreground">{t('admin.products.selecteer_eerst_een_winkel')}</p>
       </div>
     );
   }
@@ -424,11 +426,11 @@ export default function ProductsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            Producten
+            {t('admin.marketing.mediaAssetsLibrary.folders.producten')}
             <ReadOnlyBadge resource="products" />
           </h1>
           <p className="text-muted-foreground">
-            Beheer je productcatalogus
+            {t('admin.products.beheer_je_productcatalogus')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -438,10 +440,10 @@ export default function ProductsPage() {
             onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}
             className="border rounded-md"
           >
-            <ToggleGroupItem value="list" aria-label="Lijstweergave" className="px-3">
+            <ToggleGroupItem value="list" aria-label={t('admin.products.lijstweergave')} className="px-3">
               <List className="h-4 w-4" />
             </ToggleGroupItem>
-            <ToggleGroupItem value="grid" aria-label="Rasterweergave" className="px-3">
+            <ToggleGroupItem value="grid" aria-label={t('admin.products.rasterweergave')} className="px-3">
               <Grid3X3 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
@@ -451,7 +453,7 @@ export default function ProductsPage() {
             fallback={
               <GatedButton action="write" resource="products">
                 <Plus className="mr-2 h-4 w-4" />
-                Nieuw product
+                {t('admin.products.nieuw_product')}
               </GatedButton>
             }
           >
@@ -461,17 +463,17 @@ export default function ProductsPage() {
                 <span>
                   <Button disabled>
                     <Plus className="mr-2 h-4 w-4" />
-                    Nieuw product
+                    {t('admin.products.nieuw_product')}
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Limiet bereikt — upgrade je plan</TooltipContent>
+              <TooltipContent>{t('admin.products.limiet_bereikt_upgrade_je_plan')}</TooltipContent>
             </Tooltip>
           ) : (
             <Button asChild>
               <Link to="/admin/products/new">
                 <Plus className="mr-2 h-4 w-4" />
-                Nieuw product
+                {t('admin.products.nieuw_product')}
               </Link>
             </Button>
           )}
@@ -483,11 +485,11 @@ export default function ProductsPage() {
         <TabsList>
           <TabsTrigger value="catalog">
             <Package className="mr-1.5 h-4 w-4" />
-            Catalogus
+            {t('admin.products.catalogus')}
           </TabsTrigger>
           <TabsTrigger value="photos">
             <ImageIcon className="mr-1.5 h-4 w-4" />
-            Foto's
+            {t('admin.products.foto_s')}
           </TabsTrigger>
         </TabsList>
 
@@ -497,7 +499,7 @@ export default function ProductsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Zoek op naam, SKU of barcode..."
+            placeholder={t('admin.products.zoek_op_naam_sku_of_barcode')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -506,42 +508,42 @@ export default function ProductsPage() {
         <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProductStatus)}>
             <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('common.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle statussen</SelectItem>
-              <SelectItem value="active">Actief</SelectItem>
-              <SelectItem value="inactive">Inactief</SelectItem>
+              <SelectItem value="all">{t('admin.marketing.contentHistoryList.alle_statussen')}</SelectItem>
+              <SelectItem value="active">{t('admin.marketing.aBTestingPanel.actief')}</SelectItem>
+              <SelectItem value="inactive">{t('admin.products.inactief_2')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as VisibilityStatus)}>
             <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="Zichtbaarheid" />
+              <SelectValue placeholder={t('admin.products.zichtbaarheid_2')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle zichtbaarheid</SelectItem>
-              <SelectItem value="online">Online zichtbaar</SelectItem>
-              <SelectItem value="store_only">Alleen winkel</SelectItem>
-              <SelectItem value="hidden">Verborgen</SelectItem>
+              <SelectItem value="all">{t('admin.products.alle_zichtbaarheid')}</SelectItem>
+              <SelectItem value="online">{t('admin.products.online_zichtbaar')}</SelectItem>
+              <SelectItem value="store_only">{t('admin.products.alleen_winkel_2')}</SelectItem>
+              <SelectItem value="hidden">{t('admin.products.verborgen')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockStatus)}>
             <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Voorraad" />
+              <SelectValue placeholder={t('admin.stockReport.colStock')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle voorraad</SelectItem>
-              <SelectItem value="in_stock">Op voorraad</SelectItem>
-              <SelectItem value="low_stock">Laag</SelectItem>
-              <SelectItem value="out_of_stock">Uitverkocht</SelectItem>
+              <SelectItem value="all">{t('admin.products.alle_voorraad')}</SelectItem>
+              <SelectItem value="in_stock">{t('admin.products.op_voorraad')}</SelectItem>
+              <SelectItem value="low_stock">{t('admin.seo.keywordResearchPanel.laag')}</SelectItem>
+              <SelectItem value="out_of_stock">{t('admin.products.uitverkocht_2')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="Categorie" />
+              <SelectValue placeholder={t('admin.marketing.templateDialog.categorie')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle categorieën</SelectItem>
+              <SelectItem value="all">{t('admin.stockReport.allCategories')}</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
               ))}
@@ -569,23 +571,23 @@ export default function ProductsPage() {
               <PermissionGate action="write" resource="products">
                 <Button size="sm" variant="outline" onClick={() => setBulkEditDialogOpen(true)}>
                   <Settings2 className="mr-2 h-4 w-4" />
-                  Bewerken
+                  {t('common.edit')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={handleBulkActivate}>
                   <Eye className="mr-2 h-4 w-4" />
-                  Activeren
+                  {t('admin.seo.scheduledAuditsPanel.activeren')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={handleBulkDeactivate}>
                   <EyeOff className="mr-2 h-4 w-4" />
-                  Deactiveren
+                  {t('admin.products.bulk.bulkVisibilityTab.deactiveren')}
                 </Button>
                 <Button size="sm" variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Verwijderen
+                  {t('common.delete')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setBulkAIDialogOpen(true)}>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  AI Genereer
+                  {t('admin.products.ai_genereer')}
                 </Button>
               </PermissionGate>
             </div>
@@ -606,7 +608,7 @@ export default function ProductsPage() {
             <div className="flex flex-col items-center gap-2 py-12">
               <Package className="h-8 w-8 text-muted-foreground" />
               <p className="text-muted-foreground text-sm">
-                {products.length === 0 ? 'Nog geen producten.' : 'Geen producten gevonden met deze filters'}
+                {products.length === 0 ? t('admin.products.nog_geen_producten') : t('admin.products.geen_producten_gevonden_met_deze_filters')}
               </p>
             </div>
           ) : (
@@ -656,7 +658,7 @@ export default function ProductsPage() {
                       <DropdownMenuItem asChild>
                         <Link to={`/admin/products/${product.id}/edit`}>
                           <Pencil className="mr-2 h-4 w-4" />
-                          Bewerken
+                          {t('common.edit')}
                         </Link>
                       </DropdownMenuItem>
                       <PermissionGate action="write" resource="products">
@@ -665,12 +667,12 @@ export default function ProductsPage() {
                           disabled={duplicateProduct.isPending}
                         >
                           <Copy className="mr-2 h-4 w-4" />
-                          Dupliceren
+                          {t('admin.products.dupliceren')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </PermissionGate>
                     </DropdownMenuContent>
@@ -692,13 +694,13 @@ export default function ProductsPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-16">Afbeelding</TableHead>
-                <TableHead>Product</TableHead>
+                <TableHead className="w-16">{t('admin.seo.sEOCategoryTable.afbeelding')}</TableHead>
+                <TableHead>{t('admin.stockReport.colName')}</TableHead>
                 <TableHead className="hidden md:table-cell">SKU</TableHead>
-                <TableHead className="hidden lg:table-cell">Categorie</TableHead>
-                <TableHead className="text-right">Prijs</TableHead>
-                <TableHead>Voorraad</TableHead>
-                <TableHead className="hidden sm:table-cell">Zichtbaarheid</TableHead>
+                <TableHead className="hidden lg:table-cell">{t('admin.marketing.templateDialog.categorie')}</TableHead>
+                <TableHead className="text-right">{t('common.price')}</TableHead>
+                <TableHead>{t('admin.stockReport.colStock')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('admin.products.zichtbaarheid')}</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -724,14 +726,13 @@ export default function ProductsPage() {
                       <Package className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
                         {products.length === 0 
-                          ? 'Nog geen producten. Voeg je eerste product toe!'
-                          : 'Geen producten gevonden met deze filters'}
+                          ? t('admin.products.nog_geen_producten_voeg_je_eerste') : t('admin.products.geen_producten_gevonden_met_deze_filters')}
                       </p>
                       {products.length === 0 && (
                         <Button asChild size="sm">
                           <Link to="/admin/products/new">
                             <Plus className="mr-2 h-4 w-4" />
-                            Product toevoegen
+                            {t('admin.products.product_toevoegen')}
                           </Link>
                         </Button>
                       )}
@@ -803,7 +804,7 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {product.product_type === 'bundle' && product.bundle_pricing_model === 'dynamic' ? (
-                        <span className="text-muted-foreground text-xs italic">Dynamisch</span>
+                        <span className="text-muted-foreground text-xs italic">{t('admin.products.dynamisch')}</span>
                       ) : (
                         <>
                        {(() => {
@@ -831,7 +832,7 @@ export default function ProductsPage() {
                           <DropdownMenuItem asChild>
                             <Link to={`/admin/products/${product.id}/edit`}>
                               <Pencil className="mr-2 h-4 w-4" />
-                              Bewerken
+                              {t('common.edit')}
                             </Link>
                           </DropdownMenuItem>
                         <PermissionGate action="write" resource="products">
@@ -840,7 +841,7 @@ export default function ProductsPage() {
                             disabled={duplicateProduct.isPending}
                           >
                             <Copy className="mr-2 h-4 w-4" />
-                            Dupliceren
+                            {t('admin.products.dupliceren')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -848,7 +849,7 @@ export default function ProductsPage() {
                             onClick={() => setProductToDelete(product)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Verwijderen
+                            {t('common.delete')}
                           </DropdownMenuItem>
                         </PermissionGate>
                         </DropdownMenuContent>
@@ -874,16 +875,16 @@ export default function ProductsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Producten verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.products.producten_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je {selectedIds.size} product(en) wilt verwijderen? 
               Dit kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -910,16 +911,16 @@ export default function ProductsPage() {
       <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Product verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.products.product_verwijderen')}</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je "{productToDelete?.name}" wilt verwijderen? 
               Dit kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground">
-              Verwijderen
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

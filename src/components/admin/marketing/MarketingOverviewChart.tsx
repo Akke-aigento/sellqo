@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { subDays, format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface OverviewChartProps {
   period?: '7d' | '30d' | '90d';
 }
 
 export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
+  const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
 
   const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
@@ -49,7 +50,7 @@ export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
         const data = dailyData.get(date) || { sent: 0, opened: 0, clicked: 0 };
         result.push({
           date,
-          label: format(new Date(date), 'd MMM', { locale: nl }),
+          label: format(new Date(date), 'd MMM', { locale: dateLocale }),
           ...data,
         });
       }

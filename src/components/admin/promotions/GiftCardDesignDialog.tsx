@@ -36,10 +36,11 @@ import {
 } from '@/hooks/useGiftCardDesigns';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { giftCardThemes, type GiftCardDesign } from '@/types/giftCard';
+import { useTranslation } from 'react-i18next';
 
 const designSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
-  theme: z.string().min(1, 'Thema is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
+  theme: z.string().min(1, 'admin.promotions.giftCardDesignDialog.validation.thema_is_verplicht'),
   image_url: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
   sort_order: z.coerce.number().int().min(0).default(0),
@@ -58,6 +59,7 @@ export function GiftCardDesignDialog({
   onOpenChange,
   design,
 }: GiftCardDesignDialogProps) {
+  const { t } = useTranslation();
   const isEditing = !!design;
   const createDesign = useCreateGiftCardDesign();
   const updateDesign = useUpdateGiftCardDesign();
@@ -140,12 +142,11 @@ export function GiftCardDesignDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Ontwerp bewerken' : 'Nieuw ontwerp'}
+            {isEditing ? t('admin.promotions.giftCardDesignDialog.ontwerp_bewerken') : t('admin.promotions.giftCardDesignDialog.nieuw_ontwerp')}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Pas de instellingen van dit ontwerp aan'
-              : 'Maak een nieuw cadeaukaart ontwerp'}
+              ? t('admin.promotions.giftCardDesignDialog.pas_de_instellingen_van_dit_ontwerp') : t('admin.promotions.giftCardDesignDialog.maak_een_nieuw_cadeaukaart_ontwerp')}
           </DialogDescription>
         </DialogHeader>
 
@@ -153,12 +154,12 @@ export function GiftCardDesignDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Image Upload */}
             <div className="space-y-2">
-              <FormLabel>Afbeelding</FormLabel>
+              <FormLabel>{t('admin.seo.sEOCategoryTable.afbeelding')}</FormLabel>
               {previewUrl ? (
                 <div className="relative aspect-video rounded-lg overflow-hidden border">
                   <img
                     src={previewUrl}
-                    alt="Preview"
+                    alt={t('admin.marketing.emailPreview.preview')}
                     className="w-full h-full object-cover"
                   />
                   <Button
@@ -186,10 +187,10 @@ export function GiftCardDesignDialog({
                     <>
                       <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
-                        Klik om afbeelding te uploaden
+                        {t('admin.promotions.giftCardDesignDialog.klik_om_afbeelding_te_uploaden')}
                       </span>
                       <span className="text-xs text-muted-foreground mt-1">
-                        Aanbevolen: 1200x630 pixels (16:9)
+                        {t('admin.promotions.giftCardDesignDialog.aanbevolen_1200x630_pixels_16_9')}
                       </span>
                     </>
                   )}
@@ -202,9 +203,9 @@ export function GiftCardDesignDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Bijv. Verjaardag Feestelijk" />
+                    <Input {...field} placeholder={t('admin.promotions.giftCardDesignDialog.bijv_verjaardag_feestelijk')} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -216,11 +217,11 @@ export function GiftCardDesignDialog({
               name="theme"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Thema</FormLabel>
+                  <FormLabel>{t('admin.promotions.giftCardDesignDialog.thema')}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecteer thema" />
+                        <SelectValue placeholder={t('admin.promotions.giftCardDesignDialog.selecteer_thema')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -241,12 +242,12 @@ export function GiftCardDesignDialog({
               name="sort_order"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Volgorde</FormLabel>
+                  <FormLabel>{t('admin.promotions.giftCardDesignDialog.volgorde')}</FormLabel>
                   <FormControl>
                     <Input {...field} type="number" min="0" />
                   </FormControl>
                   <FormDescription>
-                    Lagere nummers worden eerst getoond
+                    {t('admin.promotions.giftCardDesignDialog.lagere_nummers_worden_eerst_getoond')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -259,9 +260,9 @@ export function GiftCardDesignDialog({
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Actief</FormLabel>
+                    <FormLabel>{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                     <FormDescription>
-                      Toon dit ontwerp aan klanten
+                      {t('admin.promotions.giftCardDesignDialog.toon_dit_ontwerp_aan_klanten')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -280,13 +281,13 @@ export function GiftCardDesignDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import type { ProductCustomSpec } from '@/types/specifications';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
+import { useTranslation } from 'react-i18next';
 
 interface CustomSpecsEditorProps {
   specs: ProductCustomSpec[];
@@ -16,6 +17,7 @@ interface CustomSpecsEditorProps {
 }
 
 export function CustomSpecsEditor({ specs, productId, onAdd, onUpdate, onDelete }: CustomSpecsEditorProps) {
+  const { t } = useTranslation();
   const [newGroup, setNewGroup] = useState('');
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -67,13 +69,13 @@ export function CustomSpecsEditor({ specs, productId, onAdd, onUpdate, onDelete 
                   value={spec.spec_key}
                   onChange={(e) => onUpdate({ id: spec.id, spec_key: e.target.value })}
                   className="h-8 text-sm flex-1"
-                  placeholder="Naam"
+                  placeholder={t('common.name')}
                 />
                 <Input
                   value={spec.spec_value}
                   onChange={(e) => onUpdate({ id: spec.id, spec_value: e.target.value })}
                   className="h-8 text-sm flex-1"
-                  placeholder="Waarde"
+                  placeholder={t('admin.products.specs.customSpecsEditor.waarde')}
                   type={spec.value_type === 'number' ? 'number' : 'text'}
                 />
                 {spec.value_type === 'text' && (
@@ -96,12 +98,12 @@ export function CustomSpecsEditor({ specs, productId, onAdd, onUpdate, onDelete 
 
       {/* Add new spec */}
       <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
-        <Label className="text-sm font-medium">Specificatie toevoegen</Label>
+        <Label className="text-sm font-medium">{t('admin.products.specs.customSpecsEditor.specificatie_toevoegen')}</Label>
         <div className="grid grid-cols-2 gap-2">
           {existingGroups.length > 0 ? (
             <Select value={selectedGroup} onValueChange={(v) => { setSelectedGroup(v); setNewGroup(''); }}>
               <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="Bestaande groep..." />
+                <SelectValue placeholder={t('admin.products.specs.customSpecsEditor.bestaande_groep')} />
               </SelectTrigger>
               <SelectContent>
                 {existingGroups.map(g => (
@@ -113,25 +115,25 @@ export function CustomSpecsEditor({ specs, productId, onAdd, onUpdate, onDelete 
           <Input
             value={newGroup}
             onChange={(e) => { setNewGroup(e.target.value); setSelectedGroup(''); }}
-            placeholder="Nieuwe groepsnaam"
+            placeholder={t('admin.products.specs.customSpecsEditor.nieuwe_groepsnaam')}
             className="h-8 text-sm"
           />
         </div>
         <div className="flex gap-2">
-          <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="Naam" className="h-8 text-sm flex-1" />
-          <Input value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder="Waarde" className="h-8 text-sm flex-1" />
+          <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder={t('common.name')} className="h-8 text-sm flex-1" />
+          <Input value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder={t('admin.products.specs.customSpecsEditor.waarde_2')} className="h-8 text-sm flex-1" />
           <Select value={newType} onValueChange={(v) => setNewType(v as any)}>
             <SelectTrigger className="h-8 text-sm w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="text">Tekst</SelectItem>
-              <SelectItem value="number">Nummer</SelectItem>
-              <SelectItem value="boolean">Ja/Nee</SelectItem>
+              <SelectItem value="text">{t('admin.marketing.emailBlockProperties.tekst')}</SelectItem>
+              <SelectItem value="number">{t('admin.products.specs.customSpecsEditor.nummer')}</SelectItem>
+              <SelectItem value="boolean">{t('admin.products.specs.customSpecsEditor.ja_nee')}</SelectItem>
             </SelectContent>
           </Select>
           <Button type="button" variant="outline" size="sm" className="h-8" onClick={handleAdd} disabled={!newKey.trim() || !activeGroup.trim()}>
-            <Plus className="h-3.5 w-3.5 mr-1" />Toevoegen
+            <Plus className="h-3.5 w-3.5 mr-1" />{t('common.add')}
           </Button>
         </div>
       </div>

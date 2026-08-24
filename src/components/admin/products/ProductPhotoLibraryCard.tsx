@@ -9,6 +9,7 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Upload-and-browse card for the product photo library. Photos uploaded here
@@ -16,6 +17,7 @@ import { toast } from 'sonner';
  * product from the product form ("Kies uit bibliotheek").
  */
 export function ProductPhotoLibraryCard() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { assets, isLoading, createAsset, deleteAsset } = useMediaAssets('products');
   const { uploadImage, uploading } = useImageUpload();
@@ -49,8 +51,8 @@ export function ProductPhotoLibraryCard() {
       });
       uploaded++;
     }
-    if (uploaded > 0) toast.success(`${uploaded} foto('s) toegevoegd aan de bibliotheek`);
-  }, [currentTenant?.id, uploadImage, createAsset]);
+    if (uploaded > 0) toast.success(t('admin.products.productPhotoLibraryCard.fotos_toegevoegd', { count: uploaded }));
+  }, [currentTenant?.id, uploadImage, createAsset, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -63,11 +65,10 @@ export function ProductPhotoLibraryCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Fotobibliotheek
+          {t('admin.products.productPhotoLibraryCard.fotobibliotheek')}
         </CardTitle>
         <CardDescription>
-          Upload foto's zonder ze meteen aan een product te koppelen. Bij het aanmaken of
-          aanpassen van een product kies je ze via "Kies uit bibliotheek".
+          {t('admin.products.productPhotoLibraryCard.upload_foto_s_zonder_ze_meteen')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -85,8 +86,8 @@ export function ProductPhotoLibraryCard() {
           ) : (
             <>
               <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm font-medium">Sleep foto's hierheen of klik om te uploaden</p>
-              <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP, GIF of HEIC tot 20 MB</p>
+              <p className="text-sm font-medium">{t('admin.products.productPhotoLibraryCard.sleep_foto_s_hierheen_of_klik')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('admin.products.productPhotoLibraryCard.jpg_png_webp_gif_of_heic')}</p>
             </>
           )}
         </div>
@@ -95,7 +96,7 @@ export function ProductPhotoLibraryCard() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Zoek in bibliotheek..."
+              placeholder={t('admin.products.productPhotoLibraryCard.zoek_in_bibliotheek')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -110,7 +111,7 @@ export function ProductPhotoLibraryCard() {
         ) : images.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nog geen losse foto's in de bibliotheek</p>
+            <p className="text-sm">{t('admin.products.productPhotoLibraryCard.nog_geen_losse_foto_s_in')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -127,7 +128,7 @@ export function ProductPhotoLibraryCard() {
                     size="icon"
                     variant="secondary"
                     className="h-8 w-8"
-                    title="URL kopiëren"
+                    title={t('admin.products.productPhotoLibraryCard.url_kopieren')}
                     onClick={() => { navigator.clipboard.writeText(asset.file_url); toast.success('URL gekopieerd'); }}
                   >
                     <Copy className="h-4 w-4" />
@@ -137,7 +138,7 @@ export function ProductPhotoLibraryCard() {
                     size="icon"
                     variant="destructive"
                     className="h-8 w-8"
-                    title="Verwijderen"
+                    title={t('common.delete')}
                     onClick={() => deleteAsset.mutate(asset.id)}
                   >
                     <Trash2 className="h-4 w-4" />

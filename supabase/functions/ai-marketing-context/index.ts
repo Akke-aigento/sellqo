@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,18 +108,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) throw new Error("Unauthorized");
-
     const { tenantId } = await req.json();
     if (!tenantId) throw new Error("Missing tenantId");
+
+    // Tenant-lidmaatschap én rol controleren. Hiervoor stond hier alleen een
+    // `auth.getUser()`, waardoor elke ingelogde gebruiker een vreemde tenantId
+    // kon meesturen en zo de omzet-, klant- en voorraadcijfers van een andere
+    // tenant kon uitlezen.
+    //
+    // Ruimere rollenset dan ai-generate-image met opzet: dit is een LEES-actie
+    // die geen credits kost. `viewer` staat in useCan.ts:205 bij de leesrollen
+    // van `ai_assistant` en kan de pagina dus openen; die uitsluiten zou de
+    // inzichtenkaart voor een bestaande rol breken. `marketing` staat daar niet
+    // bij maar wél bij de andere AI-edge-functies — die scheefstand is bestaand
+    // en wordt hier niet rechtgetrokken.
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing", "viewer"]);
 
     // Fetch all data in parallel
     const [
@@ -333,6 +338,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Error in ai-marketing-context:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

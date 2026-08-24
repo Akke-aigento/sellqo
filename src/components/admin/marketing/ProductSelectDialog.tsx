@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useProducts } from '@/hooks/useProducts';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/product';
+import { useTranslation } from 'react-i18next';
 
 interface ProductSelectDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function ProductSelectDialog({
   onSelect,
   maxSelect = 5,
 }: ProductSelectDialogProps) {
+  const { t } = useTranslation();
   const { products, isLoading } = useProducts();
   const [search, setSearch] = useState('');
   const [localSelected, setLocalSelected] = useState<string[]>(selectedIds);
@@ -87,7 +89,7 @@ export function ProductSelectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Producten Selecteren
+            {t('admin.marketing.productSelectDialog.producten_selecteren')}
           </DialogTitle>
           <DialogDescription>
             Kies tot {maxSelect} producten om te gebruiken in je AI content
@@ -98,7 +100,7 @@ export function ProductSelectDialog({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek op naam of SKU..."
+            placeholder={t('admin.stockReport.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -130,7 +132,7 @@ export function ProductSelectDialog({
               onClick={handleClear}
               className="h-6 px-2 text-xs"
             >
-              Wis alles
+              {t('admin.marketing.productSelectDialog.wis_alles')}
             </Button>
           </div>
         )}
@@ -146,7 +148,7 @@ export function ProductSelectDialog({
           ) : filteredProducts.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Geen producten gevonden</p>
+              <p>{t('admin.marketing.productSelectDialog.geen_producten_gevonden')}</p>
             </div>
           ) : (
             <div className="p-2 space-y-1">
@@ -197,7 +199,7 @@ export function ProductSelectDialog({
                         )}
                         {product.stock !== null && product.stock <= 5 && (
                           <Badge variant="destructive" className="text-xs">
-                            Lage voorraad
+                            {t('admin.marketing.productSelectDialog.lage_voorraad')}
                           </Badge>
                         )}
                       </div>
@@ -220,11 +222,11 @@ export function ProductSelectDialog({
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleConfirm}>
               <Check className="mr-2 h-4 w-4" />
-              Bevestigen
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

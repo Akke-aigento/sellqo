@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAdjustGiftCardBalance } from '@/hooks/useGiftCards';
 import { Minus, Plus } from 'lucide-react';
 import type { GiftCard } from '@/types/giftCard';
+import { useTranslation } from 'react-i18next';
 
 interface GiftCardBalanceDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ export function GiftCardBalanceDialog({
   onOpenChange,
   giftCard,
 }: GiftCardBalanceDialogProps) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [isAddition, setIsAddition] = useState(true);
   const [description, setDescription] = useState('');
@@ -39,7 +41,7 @@ export function GiftCardBalanceDialog({
     await adjustBalance.mutateAsync({
       id: giftCard.id,
       amount: isAddition ? numericAmount : -numericAmount,
-      description: description || (isAddition ? 'Saldo verhoogd' : 'Saldo verlaagd'),
+      description: description || (isAddition ? t('admin.promotions.giftCardBalanceDialog.saldo_verhoogd') : t('admin.promotions.giftCardBalanceDialog.saldo_verlaagd')),
     });
 
     setAmount('');
@@ -53,12 +55,12 @@ export function GiftCardBalanceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Saldo aanpassen</DialogTitle>
+          <DialogTitle>{t('admin.promotions.giftCardBalanceDialog.saldo_aanpassen')}</DialogTitle>
         </DialogHeader>
 
         <div className="mb-4 rounded-lg bg-muted p-4">
           <p className="text-sm text-muted-foreground">
-            Code: <span className="font-mono font-medium">{giftCard.code}</span>
+            {t('admin.promotions.giftCardBalanceDialog.code')} <span className="font-mono font-medium">{giftCard.code}</span>
           </p>
           <p className="text-lg font-semibold">
             Huidig saldo: €{Number(giftCard.current_balance).toFixed(2)}
@@ -74,7 +76,7 @@ export function GiftCardBalanceDialog({
               className="flex-1"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Ophogen
+              {t('admin.promotions.giftCardBalanceDialog.ophogen')}
             </Button>
             <Button
               type="button"
@@ -83,12 +85,12 @@ export function GiftCardBalanceDialog({
               className="flex-1"
             >
               <Minus className="mr-2 h-4 w-4" />
-              Verlagen
+              {t('admin.promotions.giftCardBalanceDialog.verlagen')}
             </Button>
           </div>
 
           <div className="space-y-2">
-            <Label>Bedrag</Label>
+            <Label>{t('admin.promotions.giftCardBalanceDialog.bedrag')}</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 €
@@ -107,18 +109,18 @@ export function GiftCardBalanceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Reden (optioneel)</Label>
+            <Label>{t('admin.promotions.giftCardBalanceDialog.reden_optioneel')}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Bijv: Correctie, Compensatie, ..."
+              placeholder={t('admin.promotions.giftCardBalanceDialog.bijv_correctie_compensatie')}
               rows={2}
             />
           </div>
 
           {amount && (
             <div className="rounded-lg border p-3">
-              <p className="text-sm text-muted-foreground">Nieuw saldo na aanpassing:</p>
+              <p className="text-sm text-muted-foreground">{t('admin.promotions.giftCardBalanceDialog.nieuw_saldo_na_aanpassing')}</p>
               <p className="text-xl font-bold">
                 €
                 {(
@@ -135,10 +137,10 @@ export function GiftCardBalanceDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={adjustBalance.isPending}>
-              {adjustBalance.isPending ? 'Bezig...' : 'Saldo aanpassen'}
+              {adjustBalance.isPending ? t('admin.marketing.creditPurchaseDialog.bezig') : t('admin.promotions.giftCardBalanceDialog.saldo_aanpassen')}
             </Button>
           </div>
         </form>

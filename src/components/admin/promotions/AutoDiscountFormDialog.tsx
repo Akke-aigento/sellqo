@@ -30,9 +30,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useCreateAutoDiscount, useUpdateAutoDiscount } from '@/hooks/useAutoDiscounts';
 import type { AutomaticDiscount, AutomaticDiscountFormData } from '@/types/promotions';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Naam is verplicht'),
+  name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   description: z.string().optional(),
   trigger_type: z.string(),
   trigger_value: z.coerce.number().optional(),
@@ -59,6 +60,7 @@ export function AutoDiscountFormDialog({
   onOpenChange,
   discount,
 }: AutoDiscountFormDialogProps) {
+  const { t } = useTranslation();
   const createDiscount = useCreateAutoDiscount();
   const updateDiscount = useUpdateAutoDiscount();
   const isEditing = !!discount;
@@ -151,7 +153,7 @@ export function AutoDiscountFormDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Automatische Korting Bewerken' : 'Nieuwe Automatische Korting'}
+            {isEditing ? t('admin.promotions.autoDiscountFormDialog.automatische_korting_bewerken') : t('admin.promotions.autoDiscountFormDialog.nieuwe_automatische_korting')}
           </DialogTitle>
         </DialogHeader>
 
@@ -162,9 +164,9 @@ export function AutoDiscountFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t('common.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Gratis verzending vanaf €50" {...field} />
+                    <Input placeholder={t('admin.promotions.autoDiscountFormDialog.gratis_verzending_vanaf_50')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,9 +178,9 @@ export function AutoDiscountFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t('admin.marketing.emailBlockProperties.beschrijving')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Interne beschrijving..." {...field} />
+                    <Textarea placeholder={t('admin.promotions.autoDiscountFormDialog.interne_beschrijving')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -191,7 +193,7 @@ export function AutoDiscountFormDialog({
                 name="trigger_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trigger</FormLabel>
+                    <FormLabel>{t('admin.marketing.campaignDialog.trigger')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -199,10 +201,10 @@ export function AutoDiscountFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="cart_total">Winkelwagen totaal</SelectItem>
-                        <SelectItem value="item_count">Aantal producten</SelectItem>
-                        <SelectItem value="specific_products">Specifieke producten</SelectItem>
-                        <SelectItem value="first_order">Eerste bestelling</SelectItem>
+                        <SelectItem value="cart_total">{t('admin.promotions.autoDiscountFormDialog.winkelwagen_totaal')}</SelectItem>
+                        <SelectItem value="item_count">{t('admin.promotions.autoDiscountFormDialog.aantal_producten')}</SelectItem>
+                        <SelectItem value="specific_products">{t('admin.promotions.autoDiscountFormDialog.specifieke_producten')}</SelectItem>
+                        <SelectItem value="first_order">{t('admin.promotions.autoDiscountFormDialog.eerste_bestelling')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -217,7 +219,7 @@ export function AutoDiscountFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {watchTriggerType === 'cart_total' ? 'Min. bedrag (€)' : 'Min. aantal'}
+                        {watchTriggerType === 'cart_total' ? t('admin.promotions.autoDiscountFormDialog.min_bedrag') : t('admin.promotions.autoDiscountFormDialog.min_aantal')}
                       </FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
@@ -235,7 +237,7 @@ export function AutoDiscountFormDialog({
                 name="discount_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Korting type</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.korting_type')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -243,10 +245,10 @@ export function AutoDiscountFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed_amount">Vast bedrag</SelectItem>
-                        <SelectItem value="free_shipping">Gratis verzending</SelectItem>
-                        <SelectItem value="free_product">Gratis product</SelectItem>
+                        <SelectItem value="percentage">{t('admin.promotions.autoDiscountFormDialog.percentage')}</SelectItem>
+                        <SelectItem value="fixed_amount">{t('admin.promotions.autoDiscountFormDialog.vast_bedrag')}</SelectItem>
+                        <SelectItem value="free_shipping">{t('admin.promotions.autoDiscountFormDialog.gratis_verzending')}</SelectItem>
+                        <SelectItem value="free_product">{t('admin.promotions.autoDiscountFormDialog.gratis_product')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -261,7 +263,7 @@ export function AutoDiscountFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {watchDiscountType === 'percentage' ? 'Percentage (%)' : 'Bedrag (€)'}
+                        {watchDiscountType === 'percentage' ? t('admin.productForm.percentage') : t('admin.promotions.autoDiscountFormDialog.bedrag')}
                       </FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
@@ -278,7 +280,7 @@ export function AutoDiscountFormDialog({
               name="applies_to"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Toepassen op</FormLabel>
+                  <FormLabel>{t('admin.promotions.autoDiscountFormDialog.toepassen_op')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -286,9 +288,9 @@ export function AutoDiscountFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="all">Hele bestelling</SelectItem>
-                      <SelectItem value="specific_products">Specifieke producten</SelectItem>
-                      <SelectItem value="specific_categories">Specifieke categorieën</SelectItem>
+                      <SelectItem value="all">{t('admin.promotions.autoDiscountFormDialog.hele_bestelling')}</SelectItem>
+                      <SelectItem value="specific_products">{t('admin.promotions.autoDiscountFormDialog.specifieke_producten_2')}</SelectItem>
+                      <SelectItem value="specific_categories">{t('admin.promotions.autoDiscountFormDialog.specifieke_categorieen')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -302,11 +304,11 @@ export function AutoDiscountFormDialog({
                 name="max_discount_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max. korting (€)</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.max_korting')}</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Geen limiet" {...field} />
+                      <Input type="number" step="0.01" placeholder={t('admin.productForm.geen_limiet')} {...field} />
                     </FormControl>
-                    <FormDescription>Optioneel maximum</FormDescription>
+                    <FormDescription>{t('admin.promotions.autoDiscountFormDialog.optioneel_maximum')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -317,11 +319,11 @@ export function AutoDiscountFormDialog({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prioriteit</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.prioriteit')}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
-                    <FormDescription>Lager = eerder toegepast</FormDescription>
+                    <FormDescription>{t('admin.promotions.autoDiscountFormDialog.lager_eerder_toegepast')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -334,7 +336,7 @@ export function AutoDiscountFormDialog({
                 name="valid_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig vanaf</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_vanaf')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -347,7 +349,7 @@ export function AutoDiscountFormDialog({
                 name="valid_until"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Geldig tot</FormLabel>
+                    <FormLabel>{t('admin.promotions.autoDiscountFormDialog.geldig_tot')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -362,7 +364,7 @@ export function AutoDiscountFormDialog({
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel className="cursor-pointer">Actief</FormLabel>
+                  <FormLabel className="cursor-pointer">{t('admin.marketing.aBTestingPanel.actief')}</FormLabel>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
@@ -372,10 +374,10 @@ export function AutoDiscountFormDialog({
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={createDiscount.isPending || updateDiscount.isPending}>
-                {isEditing ? 'Opslaan' : 'Aanmaken'}
+                {isEditing ? t('common.save') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </div>
           </form>

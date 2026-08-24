@@ -27,6 +27,7 @@ import {
   type BusinessStructuredData,
   type BreadcrumbItem,
 } from '@/lib/structuredData';
+import { useTranslation } from 'react-i18next';
 
 interface StructuredDataPreviewProps {
   products?: ProductStructuredData[];
@@ -41,6 +42,7 @@ export function StructuredDataPreview({
   breadcrumbs = [],
   baseUrl,
 }: StructuredDataPreviewProps) {
+  const { t } = useTranslation();
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(
     products[0]?.id || null
@@ -77,10 +79,10 @@ export function StructuredDataPreview({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Code className="h-5 w-5" />
-          Structured Data (JSON-LD)
+          {t('admin.seo.structuredDataPreview.structured_data_json_ld')}
         </CardTitle>
         <CardDescription>
-          Gestructureerde data helpt zoekmachines je content beter te begrijpen
+          {t('admin.seo.structuredDataPreview.gestructureerde_data_helpt_zoekmachines_je_content')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -88,15 +90,15 @@ export function StructuredDataPreview({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="product" className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
-              Product
+              {t('admin.stockReport.colName')}
             </TabsTrigger>
             <TabsTrigger value="organization" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Organisatie
+              {t('admin.seo.structuredDataPreview.organisatie')}
             </TabsTrigger>
             <TabsTrigger value="breadcrumb" className="flex items-center gap-2">
               <List className="h-4 w-4" />
-              Breadcrumb
+              {t('admin.seo.structuredDataPreview.breadcrumb')}
             </TabsTrigger>
           </TabsList>
 
@@ -104,9 +106,9 @@ export function StructuredDataPreview({
             {products.length === 0 ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Geen producten</AlertTitle>
+                <AlertTitle>{t('admin.seo.structuredDataPreview.geen_producten')}</AlertTitle>
                 <AlertDescription>
-                  Voeg producten toe om structured data te genereren.
+                  {t('admin.seo.structuredDataPreview.voeg_producten_toe_om_structured_data')}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -135,7 +137,7 @@ export function StructuredDataPreview({
                     {validation.errors.length > 0 && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Fouten gevonden</AlertTitle>
+                        <AlertTitle>{t('admin.seo.structuredDataPreview.fouten_gevonden')}</AlertTitle>
                         <AlertDescription>
                           <ul className="list-disc list-inside mt-1">
                             {validation.errors.map((error, i) => (
@@ -148,7 +150,7 @@ export function StructuredDataPreview({
                     {validation.warnings.length > 0 && (
                       <Alert>
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Aanbevelingen</AlertTitle>
+                        <AlertTitle>{t('admin.adsAiRules.aanbevelingen')}</AlertTitle>
                         <AlertDescription>
                           <ul className="list-disc list-inside mt-1">
                             {validation.warnings.map((warning, i) => (
@@ -192,7 +194,7 @@ export function StructuredDataPreview({
                   onClick={() => window.open('https://search.google.com/test/rich-results', '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Test in Google Rich Results
+                  {t('admin.seo.structuredDataPreview.test_in_google_rich_results')}
                 </Button>
               </>
             )}
@@ -202,9 +204,9 @@ export function StructuredDataPreview({
             {!organizationJsonLd ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Geen bedrijfsgegevens</AlertTitle>
+                <AlertTitle>{t('admin.seo.structuredDataPreview.geen_bedrijfsgegevens')}</AlertTitle>
                 <AlertDescription>
-                  Configureer je bedrijfsgegevens in Instellingen om organisatie structured data te genereren.
+                  {t('admin.seo.structuredDataPreview.configureer_je_bedrijfsgegevens_in_instellingen_om')}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -235,9 +237,9 @@ export function StructuredDataPreview({
             {!breadcrumbJsonLd ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Geen breadcrumbs</AlertTitle>
+                <AlertTitle>{t('admin.seo.structuredDataPreview.geen_breadcrumbs')}</AlertTitle>
                 <AlertDescription>
-                  Breadcrumb structured data wordt automatisch gegenereerd op basis van je categorie structuur.
+                  {t('admin.seo.structuredDataPreview.breadcrumb_structured_data_wordt_automatisch_gegenereerd')}
                 </AlertDescription>
               </Alert>
             ) : (
