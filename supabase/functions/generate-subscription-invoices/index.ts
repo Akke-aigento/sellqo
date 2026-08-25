@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
+import {
+  resolveInvoiceFiscalFields,
+  isDomesticFamilyRegime,
+} from "../_shared/invoiceFiscalFields.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -250,6 +254,7 @@ Deno.serve(async (req) => {
     cycles_awaiting_payment: 0,
     cycles_processing: 0,
     cycles_swept: 0,
+    fiscal_degraded: 0,
     failed: [] as Array<{ subscription_id: string; error: string }>,
   };
 
@@ -654,15 +659,65 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // ---- BILL-2: fiscale resolutie, vóór de nummer-RPC ----
+        // Volgorde is load-bearing: generate_invoice_number is MAX(...)+1, geen
+        // consumerende sequence. Elke seconde tussen die lezing en de insert is een
+        // collision-window bij gelijktijdige facturatie voor dezelfde tenant, en de
+        // resolver kan tot 5s VIES-latency toevoegen. Die hoort er dus vóór.
+        const issueDate = todayISO;
+        // .sort() muteert in place — hoist één gesorteerde array en map beide arrays
+        // daaruit, anders volgt per_line[idx] een andere volgorde dan invoiceLines[idx]
+        // zodra sort_order afwijkt van de volgorde waarin de DB de regels teruggaf.
+        const sortedLines = [...lines].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+        );
+        const fiscal = await resolveInvoiceFiscalFields(supabase, {
+          tenant_id: sub.tenant_id,
+          customer_id: sub.customer_id,
+          invoice_lines: sortedLines.map((ln) => ({
+            line_type: "product" as const,
+            amount: Number(ln.quantity ?? 1) * Number(ln.unit_price ?? 0),
+          })),
+          order_date: issueDate,
+          sales_channel: "b2b_direct",
+        });
+        if (fiscal.degraded) {
+          summary.fiscal_degraded++;
+          log("Fiscale resolutie gedegradeerd", {
+            subscription_id: sub.id,
+            error: fiscal.error,
+            warnings: fiscal.warnings,
+          });
+        }
+
+        // PAD 1 (invoice-first): het REGIME bepaalt het BEDRAG.
+        // Er is nog niets geïncasseerd, dus het resolver-tarief mag de opgeslagen
+        // regel overrulen. In _shared/subscriptionCharge.ts geldt het SPIEGELBEELD:
+        // daar is het geld al binnen en bepaalt het BEDRAG het REGIME.
+        // TREK DIE TWEE NIET GELIJK — het verschil is fiscaal noodzakelijk.
+        //
+        // Clausule: alleen overrulen bij een niet-domestic regime. Abonnementsregels
+        // dragen geen product_category, dus domesticRegimeForCategory(undefined) geeft
+        // altijd 'domestic_standard' → 21% (regimeResolver.ts:89-92 + :101). Zonder
+        // clausule zou een 6%- of 12%-abonnement stil naar 21% getild worden — en de
+        // off-session incasso verderop debiteert dat bedrag ook echt. De door de tenant
+        // ingestelde subscription_lines.vat_rate is daar de betere informatie.
+        const regimeLeads = !isDomesticFamilyRegime(fiscal.fields.vat_regime);
+
         // Compute totals
         let subtotal = 0;
         let taxAmount = 0;
-        const invoiceLines = lines
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        const invoiceLines = sortedLines
           .map((ln, idx) => {
             const qty = Number(ln.quantity ?? 1);
             const unit = Number(ln.unit_price ?? 0);
-            const rate = Number(ln.vat_rate ?? 0);
+            const storedRate = Number(ln.vat_rate ?? 0);
+            const pl = fiscal.per_line[idx];
+            // per_line[idx], niet per_line[0]: de resolver levert één entry per
+            // input-regel (regimeResolver.ts:289). generate-invoice:1537 gebruikt [0]
+            // en produceert bij gemengde tarieven een header die niet de som van de
+            // regels is — dat kopiëren we bewust niet.
+            const rate = regimeLeads ? Number(pl?.vat_rate ?? storedRate) : storedRate;
             const net = qty * unit;
             const vat = +(net * rate / 100).toFixed(2);
             const lineTotal = +(net + vat).toFixed(2);
@@ -679,6 +734,10 @@ Deno.serve(async (req) => {
               net_amount: +net.toFixed(2),
               gross_amount: lineTotal,
               sort_order: idx,
+              // Zonder deze twee classificeert een verlegde regel op regelniveau nog
+              // steeds als binnenlands. Conform generate-invoice:1624-1625.
+              ...(pl?.vat_box_code ? { vat_box_code: pl.vat_box_code } : {}),
+              ...(pl?.gl_account_code ? { gl_account_code: pl.gl_account_code } : {}),
             };
           });
         subtotal = +subtotal.toFixed(2);
@@ -693,7 +752,6 @@ Deno.serve(async (req) => {
         if (invNumErr) throw invNumErr;
         const invoiceNumber = invNumData as string;
 
-        const issueDate = todayISO;
         const paymentTermDays = Number(sub.payment_term_days ?? 14);
         const dueDate = advanceDate(issueDate, "weekly", 0); // placeholder
         // compute due date properly
@@ -715,6 +773,17 @@ Deno.serve(async (req) => {
             subscription_id: sub.id,
             issue_date: issueDate,
             due_date: dueDateISO,
+            ...fiscal.fields,
+            ...(fiscal.degraded
+              ? {
+                metadata: {
+                  fiscal_resolution_degraded: {
+                    reason: fiscal.error ?? fiscal.warnings[0] ?? "unknown",
+                    at: new Date().toISOString(),
+                  },
+                },
+              }
+              : {}),
           })
           .select()
           .single();

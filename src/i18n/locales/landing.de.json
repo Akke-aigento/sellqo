@@ -1496,6 +1496,10 @@
         "storefront_customer_email_verification": {
           "title": "Kunden bestätigen ihre E-Mail-Adresse",
           "description": "Kunden, die in Ihrem Webshop ein Konto anlegen, bestätigen künftig ihre E-Mail-Adresse, bevor sie ihre Bestellhistorie einsehen können. Stöbern, Bestellen und Bezahlen funktionieren wie gewohnt. Kunden mit einem bestehenden Konto behalten ihren Zugang und müssen nichts tun."
+        },
+        "subscription_invoice_vat_regime": {
+          "title": "Abonnementrechnungen übernehmen die Umsatzsteuerregelung Ihres Kunden",
+          "description": "Rechnungen aus einem Abonnement behandelten jeden Kunden als Privatperson: Sie erhielten immer die inländische Umsatzsteuerregelung, auch bei einem Geschäftskunden mit gültiger europäischer Umsatzsteuer-Identifikationsnummer. Das ist behoben. Abonnementrechnungen folgen jetzt derselben Umsatzsteuerlogik wie Ihre Webshop-Rechnungen: Geschäftskunden werden auch als solche erfasst, und bei einer gültigen Umsatzsteuer-Identifikationsnummer aus einem anderen EU-Land wird die Steuerschuld übertragen, samt dem vorgeschriebenen Hinweis auf der Rechnung. Inländische Sätze bleiben unverändert, auch die ermäßigten von 6 % und 12 %. Bereits bezahlte Rechnungen werden nicht rückwirkend angepasst."
         }
       },
       "copyLink": "Link kopieren",

@@ -1496,6 +1496,10 @@
         "storefront_customer_email_verification": {
           "title": "Klanten bevestigen hun e-mailadres",
           "description": "Klanten die een account aanmaken in je webshop bevestigen voortaan hun e-mailadres voordat ze hun bestelgeschiedenis kunnen inzien. Winkelen, bestellen en afrekenen werken zoals altijd. Klanten die al een account hadden, houden gewoon toegang en hoeven niets te doen."
+        },
+        "subscription_invoice_vat_regime": {
+          "title": "Abonnementsfacturen nemen het btw-regime van je klant over",
+          "description": "Facturen uit een abonnement behandelden elke klant als particulier: ze kregen altijd het binnenlandse btw-regime, ook bij een zakelijke klant met een geldig Europees btw-nummer. Dat is rechtgezet. Abonnementsfacturen volgen nu dezelfde btw-bepaling als je webshopfacturen: zakelijke klanten worden ook als zakelijk vastgelegd, en bij een geldig btw-nummer uit een ander EU-land wordt de btw verlegd, met de verplichte vermelding op de factuur. Binnenlandse tarieven blijven ongewijzigd, ook de verlaagde van 6% en 12%. Facturen die al betaald zijn, worden niet met terugwerkende kracht aangepast."
         }
       },
       "copyLink": "Kopieer link",

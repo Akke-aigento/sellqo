@@ -7,6 +7,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { wrapTextToWidth } from "../_shared/pdfText.ts";
+import { isDomesticFamilyRegime } from "../_shared/invoiceFiscalFields.ts";
+import type { VatRegimeCode } from "../_shared/regimeResolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +56,7 @@ serve(async (req) => {
 
     const { data: inv, error: invErr } = await admin
       .from("invoices")
-      .select("id, tenant_id, customer_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, ogm_reference, subscription_id, pdf_url")
+      .select("id, tenant_id, customer_id, invoice_number, issue_date, due_date, subtotal, tax_amount, total, ogm_reference, subscription_id, pdf_url, vat_regime")
       .eq("id", invoice_id)
       .single();
     if (invErr || !inv) throw new Error(`Invoice not found: ${invErr?.message}`);
@@ -206,6 +208,30 @@ serve(async (req) => {
     page.drawRectangle({ x: totalsX - 6, y: y - 6, width: width - margin - totalsX + 6, height: 22, color: rgb(0.93, 0.95, 0.98) });
     page.drawText("Totaal", { x: totalsX, y, size: 12, font: bold, color: accent });
     page.drawText(fmt(Number(inv.total || 0), currency), { x: 490, y, size: 12, font: bold, color: accent });
+
+    // ---- BILL-2: wettelijk verplichte regime-vermelding ----
+    // Een 0%-factuur zonder de verleggingstekst is formeel gebrekkig. De tekst
+    // staat in vat_regimes.invoice_text_nl — dezelfde bron die de resolver via
+    // per_line[i].invoice_text_required gebruikt (regimeResolver.ts:304-306).
+    // Alleen tonen bij een niet-domestic regime; binnenlandse facturen dragen
+    // gewoon hun btw-bedrag en hebben geen extra vermelding nodig.
+    const invRegime = (inv.vat_regime as VatRegimeCode | null) || null;
+    if (invRegime && !isDomesticFamilyRegime(invRegime)) {
+      const { data: regimeRow } = await admin
+        .from("vat_regimes")
+        .select("invoice_text_nl")
+        .eq("code", invRegime)
+        .maybeSingle();
+      const regimeText = (regimeRow?.invoice_text_nl as string | null) || null;
+      if (regimeText) {
+        y -= 26;
+        const rLines = (regimeText.match(/.{1,95}(\s|$)/g) || [regimeText]).slice(0, 2);
+        for (const rl of rLines) {
+          page.drawText(rl.trim(), { x: margin, y, size: 9, font: bold, color: text });
+          y -= 11;
+        }
+      }
+    }
 
     // Footer
     const footerText: string | null = (tenant.invoice_footer_text as string) || null;

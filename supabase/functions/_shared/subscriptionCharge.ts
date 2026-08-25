@@ -9,6 +9,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { effectuatePlanSwitch } from "./planEffectuate.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
+import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -305,7 +306,85 @@ async function handleCycleCharge(
   const vatAmount = Number(cycle.vat_amount ?? 0);
   const total = Number(cycle.total ?? 0);
 
+  const todayISO = toISODate(new Date());
+
+  // ---- BILL-2: fiscale velden ----
+  // PAD 2 (charge-first): het BEDRAG bepaalt het REGIME.
+  // Dit is het SPIEGELBEELD van generate-subscription-invoices, waar het regime
+  // het bedrag bepaalt. Het geld is hier AL geïncasseerd via Stripe, dus
+  // cycle.subtotal/vat_amount/total zijn de waarheid van wat betaald is.
+  // Herrekenen mag niet, en een regime dat 0% verlegd claimt op een factuur
+  // waar 21% btw op staat is geen "afwijking om te loggen" maar een
+  // aangiftefout: de maatstaf belandt in rooster 46 terwijl de geïnde btw uit
+  // rooster 54 verdwijnt.
+  //
+  // TREK DIT NIET GELIJK MET PAD 1. Een refactor die "consistentie" nastreeft
+  // breekt de fiscale correctheid zonder dat een test faalt.
+  //
+  // De customer_id-guard is hier noodzakelijk: billing_cycles.customer_id is
+  // nullable, anders dan subscriptions.customer_id (NOT NULL).
+  const fiscal = cycle.customer_id
+    ? await resolveInvoiceFiscalFields(supabase, {
+      tenant_id: cycle.tenant_id as string,
+      customer_id: cycle.customer_id as string,
+      invoice_lines: [{ line_type: "product", amount: subtotal }],
+      order_date: todayISO,
+      sales_channel: "b2b_direct",
+    })
+    : null;
+
+  let fiscalFields: Record<string, unknown> = {};
+  let fiscalMetadata: Record<string, unknown> | null = null;
+  if (fiscal) {
+    const chargedRate = deriveVatRate(subtotal, vatAmount);
+    const resolvedRate = fiscal.per_line[0]?.vat_rate;
+    // Vergelijk TARIEVEN, niet regimes: dat vangt in één test zowel de
+    // IC/export-casus als een 21-vs-6-afwijking. deriveVatRate snapt al naar
+    // [0, 6, 12, 21] binnen 0.05, dus 0.01 tolerantie volstaat hier.
+    //
+    // subtotal > 0: een factuur van € 0 (gratis proef, 100% korting) kán geen
+    // echte tarief-mismatch hebben — deriveVatRate geeft daar per definitie 0
+    // terug. De mismatch-metadata is de werklijst voor de boekhouder; zulke
+    // rijen erin zetten vervuilt precies de correctie-query.
+    const mismatch = subtotal > 0 && resolvedRate !== undefined &&
+      Math.abs(resolvedRate - chargedRate) >= 0.01;
+
+    fiscalFields = mismatch
+      ? { ...fiscal.fields, vat_regime: "domestic_standard" }
+      : { ...fiscal.fields };
+
+    if (mismatch) {
+      log("Cycle VAT regime mismatch — regime forced to domestic_standard", {
+        cycleId,
+        chargedRate,
+        resolvedRate,
+        resolvedRegime: fiscal.fields.vat_regime,
+      });
+      // Metadata, niet alleen een log: dit draait in een webhook die niemand
+      // bekijkt, dus een console-regel is de facto onzichtbaar en niet
+      // queryable. invoices.metadata is jsonb met GIN-index; generate-invoice
+      // gebruikt exact deze vorm al voor vat_regime_override.
+      fiscalMetadata = {
+        vat_regime_mismatch: {
+          charged_rate: chargedRate,
+          resolved_rate: resolvedRate,
+          resolved_regime: fiscal.fields.vat_regime,
+          detected_at: new Date().toISOString(),
+        },
+      };
+    }
+    if (fiscal.degraded) {
+      log("Fiscal resolution degraded", {
+        cycleId,
+        error: fiscal.error,
+        warnings: fiscal.warnings,
+      });
+    }
+  }
+
   // Invoice number from the existing tenant sequence.
+  // Staat bewust ná de fiscale resolutie: generate_invoice_number is MAX(...)+1,
+  // dus die lezing en de insert horen zo dicht mogelijk op elkaar.
   const { data: numData, error: numErr } = await supabase.rpc(
     "generate_invoice_number",
     { _tenant_id: cycle.tenant_id },
@@ -315,7 +394,6 @@ async function handleCycleCharge(
     return true;
   }
 
-  const todayISO = toISODate(new Date());
   const nowISO = new Date().toISOString();
 
   const { data: invoice, error: invErr } = await supabase
@@ -332,6 +410,8 @@ async function handleCycleCharge(
       subtotal,
       tax_amount: vatAmount,
       total,
+      ...fiscalFields,
+      ...(fiscalMetadata ? { metadata: fiscalMetadata } : {}),
     })
     .select("id")
     .single();

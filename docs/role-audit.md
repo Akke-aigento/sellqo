@@ -1,3 +1,285 @@
+## BILL-2 — is_b2b / BTW-regime op subscription-facturen — 25 augustus 2026
+
+**Status: code klaar, NIET gedeployed.** De deploy loopt via Lovable en omvat **vier** functies —
+zie "Deploy-scope" onderaan. Twee daarvan worden makkelijk vergeten en dat is stil fataal.
+
+### Root cause
+
+Subscription-facturen zetten de fiscale velden **nooit**. Beide insert-paden laten `is_b2b`,
+`vat_regime`, `reporting_country` en `peppol_status` weg, waardoor de DB-defaults gelden:
+
+| Kolom | Default | Gedefinieerd in |
+|---|---|---|
+| `is_b2b` | `false` | `20260116120451_3c9b3e26-….sql:13` |
+| `vat_regime` | `'domestic_standard'` | `20260520184641_846b7c3c-….sql:37` |
+| `reporting_country` | `NULL` | `20260520184641_846b7c3c-….sql:40` |
+| `peppol_status` | `NULL` | `20260116120451_3c9b3e26-….sql:11` |
+
+De twee paden, vóór deze batch:
+
+- `generate-subscription-invoices/index.ts:705-720` — insert met tien velden, geen enkel fiscaal veld.
+- `_shared/subscriptionCharge.ts:321-337` — idem, twaalf velden, geen enkel fiscaal veld.
+
+Beide halen de **customer-rij helemaal niet op**; ze kennen alleen een `customer_id`. `customer_type`
+en `vat_number` waren dus niet eens in scope. Gevolg: Ozay Group Belgium BV (`customer_type='b2b'`,
+`vat_number 'BE0730716341'`) kreeg abonnementsfacturen die fiscaal als B2C werden behandeld.
+
+De storefront-orderfacturatie loste dit al op via `_shared/regimeResolver.ts`. Deze batch trekt die
+engine door; er is geen nieuwe fiscale logica geschreven.
+
+### Recon-correcties op de opdracht
+
+De opdracht bevatte vier aannames die niet klopten. Ze zijn alle vier tegen de code getoetst.
+
+1. **`is_b2b` zit NIET in de resolver-output.** `regimeResolver.ts:233` leidt het intern af
+   (`customer.customer_type.toLowerCase() === 'b2b'`) maar geeft het niet terug — `RegimeInvoiceLevel`
+   kent alleen `vat_regime`, `reporting_country` en de twee `vat_number_validated_*`. Elke aanroeper
+   moet de customer zelf ophalen. Dat is de grondoorzaak van deze bugklasse: drie van de vier callers
+   doen het verkeerd of niet.
+2. **De fallback zit niet op `generate-invoice/index.ts:1497`** — dat is enkel een `logStep`. De echte
+   fallbackwaarden staan in de initialisatie op regels 1474-1478.
+3. **Het canonieke patroon is méér dan metadata zetten.** `generate-invoice` herrekent óók de totalen
+   uit `per_line[].vat_rate` (regels 1536-1562). Zonder dat deel zet je een verleggingsregime op een
+   factuur die 21% btw rekent — een nieuwe inconsistentie in plaats van een fix.
+4. **`peppol_required` wordt nergens gevuld.** Ook `generate-invoice` zet alleen `peppol_status`; de
+   kolom staat overal op de default `false`. Bestaande gap, bewust niet meegenomen (zie Ongemoeid).
+
+Verder vastgesteld:
+
+- `RegimeInputLine.amount` komt in de hele resolver **alleen op regel 22 voor** — de declaratie. Hij
+  wordt nooit gelezen. De line-mapping kan dus niet fout gaan; alleen het aantal regels en hun
+  volgorde tellen.
+- `decideVatRegime:146` — `if (customerCountry === tenantCountry) return 'domestic_standard'`. Voor
+  Ozay (BE-klant, BE-tenant) verandert het regime dus niet; alleen `is_b2b` en `reporting_country`
+  gaan kloppen. Bedragen blijven daar gelijk.
+- Er zijn **exact twee** subscription-insert-paden. Geen DB-triggers of RPC's die facturen aanmaken.
+
+### De gevaarlijke variant die is afgewend
+
+Ongeclausuleerd herrekenen — het letterlijke `generate-invoice`-patroon — zou klanten **méér** hebben
+laten betalen. Abonnementsregels dragen geen `product_category`, dus `domesticRegimeForCategory(undefined)`
+geeft altijd `'domestic_standard'` → `rateForRegime` → **21%** (`regimeResolver.ts:89-92` + `:101`).
+Een abonnement met `subscription_lines.vat_rate = 6` of `12` zou stil naar 21% zijn getild, en
+`generate-subscription-invoices/index.ts` voedt de herrekende `total` rechtstreeks aan de off-session
+Stripe-incasso (`Math.round(Number(total) * 100)`).
+
+Daarom wint het resolver-tarief **alleen bij een niet-domestic regime**. Blijft het domestic, dan is
+de door de tenant ingestelde `subscription_lines.vat_rate` de betere informatie — de resolver kan daar
+door het ontbreken van de categorie niets anders dan 21 zeggen. Dat is geen fiscale beslissing maar
+een informatietekort, en daar mag geen geld op gebaseerd worden.
+
+### De contra-intuïtieve kern — niet gelijktrekken
+
+De twee paden gaan **tegengesteld** om met de relatie tussen regime en bedrag. Dat is opzettelijk.
+
+| | Pad 1 — `generate-subscription-invoices` | Pad 2 — `subscriptionCharge` |
+|---|---|---|
+| Moment | invoice-first, nog niets geïncasseerd | charge-first, geld al binnen via Stripe |
+| Richting | **het regime bepaalt het bedrag** | **het bedrag bepaalt het regime** |
+| Bij afwijking | totalen worden herrekend naar het resolver-tarief | `vat_regime` valt terug op `domestic_standard` + `metadata.vat_regime_mismatch` |
+| Waarom | er is nog niets betaald, dus de fiscaal juiste uitkomst mag leidend zijn | de factuur moet matchen met wat feitelijk geïncasseerd is; een 0%-regime op een 21%-factuur is een aangiftefout — de maatstaf belandt in rooster 46 terwijl de geïnde btw uit rooster 54 verdwijnt |
+
+Dit staat als comment boven **beide** blokken, met een expliciete verwijzing naar het andere pad.
+Een latere batch die in naam van consistentie de twee gelijktrekt, breekt de fiscale correctheid
+zonder dat een test faalt.
+
+### Uitgevoerd
+
+**Nieuw — `supabase/functions/_shared/invoiceFiscalFields.ts` (209 regels).**
+Eén plek waar `is_b2b`, het regime en de peppol-status bepaald worden. Neemt een client als eerste
+parameter (zoals `resolveVatRegime:198`), zodat de cron-loop zijn bestaande client hergebruikt in
+plaats van per iteratie een nieuwe te maken via `resolveVatRegimeSafe`. Contract: **geeft altijd een
+object terug, throwt nooit, retourneert nooit `null`** — sterker dan `resolveVatRegimeSafe`, die de
+caller dwingt zelf fallbacks te bedenken. Haalt het tenantland alleen op wanneer `is_b2b === true`,
+omdat `isBelgianB2B` voor B2C per definitie false is.
+
+Eén bewuste afwijking van `generate-invoice`: de Peppol-datumgate leest `order_date` in plaats van
+`new Date()`. Pad 1 kan tot `generate_days_before` dagen vooraf draaien; een factuur met `issue_date`
+2025-12-30 hoort niet peppol-plichtig te zijn omdat de cron op 2026-01-02 liep. Voor
+`order_date === vandaag` — het normale geval — is het gedrag identiek.
+
+**`supabase/functions/generate-subscription-invoices/index.ts`.**
+- Import van de helper; `summary.fiscal_degraded` toegevoegd.
+- `issueDate` van regel 696 naar boven verplaatst — nodig als `order_date`.
+- `sortedLines` gehoist. **Sorteer-valstrik:** regel 660 deed `lines.sort(...)`, dat muteert in place.
+  Werd de resolver-input vóór die regel uit `lines` gebouwd, dan matchte `per_line[idx]` de verkeerde
+  regel zodra `sort_order` afweek van de volgorde waarin de DB de regels teruggaf.
+- Fiscale resolutie **vóór** de nummer-RPC. `generate_invoice_number` is `MAX(...)+1`, geen
+  consumerende sequence, dus een mislukte insert verbrandt geen nummer — maar het gat tussen die
+  lezing en de insert is een collision-window, en de resolver kan er tot 5s VIES-latency in stoppen.
+- Herrekening met `per_line[idx].vat_rate`, **niet** `per_line[0]`. De `[0]`-shortcut van
+  `generate-invoice:1537` produceert bij gemengde tarieven een header die niet de som van de regels
+  is (regels worden daar met `[index]` weggeschreven op 1605). Dat is een latente bug in het
+  canonieke pad; hij is bewust niet gekopieerd. Bij uniforme regels is de uitkomst identiek.
+- `vat_box_code` en `gl_account_code` additief op de regels; zonder die twee classificeert een
+  verlegde regel op regelniveau nog steeds als binnenlands.
+- Insert krijgt `...fiscal.fields` plus, alleen bij degradatie, `metadata.fiscal_resolution_degraded`.
+
+**`supabase/functions/_shared/subscriptionCharge.ts`.**
+- `todayISO` omhoog; fiscale resolutie ervóór; nummer-RPC erna.
+- **Geen herrekening.** `cycle.subtotal`/`vat_amount`/`total` en de line-insert (360-372) blijven
+  onaangeroerd.
+- Mismatch-detectie vergelijkt **tarieven, niet regimes**: `per_line[0]?.vat_rate` tegen
+  `deriveVatRate(subtotal, vatAmount)`, met 0.01 tolerantie. Dat vangt in één test zowel de
+  IC/export-casus als een 21-vs-6-afwijking. Guard `subtotal > 0`: een factuur van € 0 (gratis
+  proef, 100% korting) kán geen echte tarief-mismatch hebben — `deriveVatRate` geeft daar per
+  definitie 0 terug. De mismatch-metadata is de werklijst voor de boekhouder; zulke rijen erin
+  zetten vervuilt precies de correctie-query. Bij mismatch blijft `vat_regime` op `domestic_standard`;
+  `is_b2b`, `reporting_country`, `peppol_status` en de `vat_number_validated_*` worden wél gezet.
+- Registratie via log **én** `metadata.vat_regime_mismatch`. Alleen loggen is hier onvoldoende: dit
+  draait in een webhook die niemand bekijkt. `invoices.metadata` is jsonb met GIN-index en
+  `generate-invoice:1588` gebruikt exact deze vorm al voor `vat_regime_override`, dus de boekhouder
+  kan in één query de facturen vinden die een creditnota verdienen.
+- `customer_id`-guard is hier noodzakelijk: `billing_cycles.customer_id` is nullable, anders dan
+  `subscriptions.customer_id` (`NOT NULL`).
+
+**`supabase/functions/generate-subscription-invoice-pdf/index.ts`.**
+`vat_regime` toegevoegd aan de select; verleggingstekst uit `vat_regimes.invoice_text_nl` gerenderd
+tussen totalen en footer, alleen bij een niet-domestic regime. Zonder deze wijziging levert BILL-2
+fiscaal juiste *data* met formeel gebrekkige *documenten* — een 0%-factuur zonder de wettelijk
+verplichte vermelding.
+
+**Faalgedrag — grondprincipe: een onbekende waarde wordt weggelaten, niet geraden.** Weglaten = de
+DB-default = exact het gedrag van vandaag, dus deze batch kan per definitie geen regressie
+introduceren. `vat_regime` en `peppol_status` gaan wél expliciet mee bij degradatie: hun fallback is
+een positieve bewering die toevallig samenvalt met de default, en expliciet schrijven maakt de
+intentie leesbaar in de rij zelf. Een gedegradeerde resolutie is detecteerbaar via de log, via
+`summary.fiscal_degraded` en via `metadata.fiscal_resolution_degraded` op de rij.
+
+### Security-keuzes
+
+**Geen RLS, policies, grants of rechten geraakt.** Er zijn geen nieuwe tabellen, kolommen of
+policies. De wijziging zet uitsluitend kolomwaarden op inserts die al bestonden, met dezelfde
+service-role client die die inserts al deed. De nieuwe helper maakt zelf **geen** client aan (anders
+dan `resolveVatRegimeSafe`) en leest `Deno.env` niet — hij krijgt de client van de aanroeper en erft
+diens rechten. De extra queries (`customers`, `tenants`) lezen alleen kolommen die de resolver in
+hetzelfde pad al las.
+
+De enige nieuwe migratie is een `INSERT` op `public.doc_articles` met `ON CONFLICT (doc_level, slug)
+DO UPDATE` — idempotent, raakt alleen de eigen rij. Categorie: **Facturatie & Boekhouding**
+(`a0000001-0000-0000-0000-000000000009`, slug `facturatie`), door Akke geverifieerd tegen de live
+`doc_categories`. Daar staan de fiscale buren al ("Hoe wordt de btw berekend?", "Peppol-facturatie",
+"Facturen aanmaken"). Mijn eerste keuze — Betalingen (`…003`) — was fout: die categorie gaat over
+betaalmethoden en hun setup, niet over de btw-behandeling op een factuur. Let op dat `…009` **niet in
+de repo geseed is**; `20260212104235_337079f9-….sql:111` kent er acht, tot en met `…008`. Categorieën
+buiten de migraties om zijn alleen live verifieerbaar — een terugkerend patroon, zie ook de
+CUSTAUTH-1-entry.
+
+### Gedeelde-paden-waarschuwing
+
+**Niet van toepassing, en dat is aantoonbaar.** `storefront-resolve`, `storefront-api` en
+`checkout-engine` zijn niet aangeraakt; `regimeResolver.ts` evenmin (alleen gelezen). Er is geen
+kolom toegevoegd, hernoemd, gedropt of van default veranderd — de gedeelde tabellen
+`tenant_theme_settings`, `themes`, `homepage_sections` en `storefront_pages` komen in deze batch
+helemaal niet voor. De gewijzigde inserts schrijven naar `invoices`-rijen die uitsluitend door de
+twee subscription-paden worden aangemaakt; de storefront-orderfacturatie loopt via
+`generate-invoice`, dat ongewijzigd blijft. De vijf custom frontends kunnen dit niet merken.
+
+### Verificatie
+
+| Check | Uitkomst |
+|---|---|
+| esbuild-parse op de vier gewijzigde Deno-bestanden | 4/4 OK |
+| `scripts/i18n-parity.mjs` | exit 0 — 5 talen (de, en, fr, nl, uk), 5150/5150 keys elk |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0, geen fouten |
+| `npm run build` | exit 0 (chunk-size-waarschuwing is bestaand, geen regressie) |
+| ESLint tegen baseline | 25 → 25 fouten over de vijf bestanden — **nul nieuwe** |
+| `public/sitemap.xml` na de build | ongewijzigd, niet in `git status` |
+
+De twee `no-explicit-any`-fouten die het nieuwe bestand aanvankelijk toevoegde, zitten in de
+`FiscalSupabaseLike`-interface — dezelfde vorm als het bestaande `SupabaseLike` in
+`subscriptionCharge.ts:13-17`. De fluent query-builder van supabase-js is niet structureel te
+typeren zonder de generics mee te slepen; ze zijn daarom expliciet gesuppresseerd met een
+toelichting in plaats van weggewerkt, zodat de baseline vlak blijft.
+
+**Belangrijke beperking, eerlijk benoemd:** `tsc` dekt alleen `src/`. **Geen van de vier gewijzigde
+edge-functies wordt erdoor gecontroleerd.** ESLint dekt ze wél (`eslint.config.js` matcht `**/*.{ts,tsx}` zonder
+uitzondering voor `supabase/`), maar draait zonder type-informatie en vangt dus geen type-fouten.
+De esbuild-parse is de enige andere geautomatiseerde check die ze raakt, en dat is een syntaxzeef. Type-fouten in de Deno-bestanden komen pas bij
+de deploy of bij runtime aan het licht. De gedragstests hieronder zijn daarom niet optioneel.
+
+**Nog te draaien door Akke / connector-Claude (geen van deze kan hier):**
+
+*Pad 1*, via de single-run `{ subscription_id }` op een testtenant, vóór een volle cron-run:
+- BE-B2B, één regel 21% → bedragen **ongewijzigd**, `is_b2b = true`, `vat_regime = 'domestic_standard'`.
+  Belangrijkste non-regressietest.
+- **6%-abonnement, binnenlandse klant → bedragen identiek aan vóór de wijziging.** Faalt deze, dan is
+  de clausule fout geïmplementeerd en gaan klanten meer betalen.
+- NL-B2B met geldig VIES → `ic_supply_goods`, `tax_amount = 0`, `vat_box_code = '46'`, en het
+  **PaymentIntent-bedrag in Stripe** is het lagere bedrag — niet alleen de DB-rij controleren.
+- Meerdere regels met afwijkende `sort_order`, omgekeerd ingevoerd → `per_line`-index en regelvolgorde
+  moeten matchen.
+- Kapotte customer → factuur wordt tóch aangemaakt, `summary.fiscal_degraded === 1`.
+- PDF ophalen: bedragen gelijk aan de DB-rij, verleggingstekst aanwezig bij 0%.
+
+*Pad 2*, via een handmatig te settelen test-cycle:
+- Normale BE-B2B-cycle → `subtotal`/`tax_amount`/`total` **byte-identiek** aan `cycle.*`.
+- 21% geïncasseerd, klant intussen geldig NL-B2B → `vat_regime` blijft `domestic_standard`,
+  `is_b2b = true`, `metadata.vat_regime_mismatch` gevuld.
+- Cycle met `customer_id = NULL` → geen fiscale kolom gezet, geen crash, cycle settled normaal.
+- Duplicaat-event → idempotentie blijft werken, geen tweede factuur.
+
+*SQL-natrek na de eerste volle run* (read-only): tel over
+`invoices WHERE subscription_id IS NOT NULL AND created_at > <deploy>` de rijen met
+`reporting_country IS NULL` of `peppol_status IS NULL`. Verwachting 0, op de gedegradeerde gevallen
+na — die moeten één-op-één matchen met `metadata ? 'fiscal_resolution_degraded'`.
+
+### Deploy-scope — harde regel
+
+> **`_shared/subscriptionCharge.ts` is een gedeeld bestand, geen eigen edge-functie.** Pad 2 gaat
+> uitsluitend live wanneer **beide** aanroepers opnieuw gedeployed worden. Wordt er één vergeten, dan
+> draait pad 1 nieuw en pad 2 oud, en blijft de helft van de subscription-facturen B2C — zonder dat
+> iets faalt of alarmeert.
+
+- [ ] `generate-subscription-invoices`
+- [ ] `stripe-connect-webhook` — **verplicht**, bundelt `subscriptionCharge.ts`
+- [ ] `platform-stripe-webhook` — **verplicht**, bundelt `subscriptionCharge.ts`
+- [ ] `generate-subscription-invoice-pdf`
+- [ ] migratie `20260825120000_bill2_doc_article.sql`
+
+`generate-invoice` en `create-manual-invoice` hoeven niet mee — die zijn niet gewijzigd.
+
+**Verificatie dát pad 2 live is:** settel een pay-first cycle en controleer dat de factuur
+`is_b2b` en `reporting_country` draagt. Is dat niet zo, dan is stap 2 of 3 overgeslagen.
+
+### Bewust ongemoeid
+
+- **`generate-invoice/index.ts` en `create-manual-invoice/index.ts`** — niet gemigreerd naar de
+  helper. `generate-invoice` heeft een inclusive-pad en een guest-pad die de helper niet dekt; dat is
+  een eigen batch met een eigen risicoprofiel.
+- **`peppol_required`** — blijft ongevuld, conform besluit. De kolom is daarmee dood in de hele
+  codebase.
+- **`regimeResolver.ts`** — niet uitgebreid. Alleen gelezen.
+- **De dode `const dueDate = advanceDate(issueDate, "weekly", 0); // placeholder`** in pad 1 blijft
+  staan; opruimen valt buiten deze batch.
+
+### Vervolg
+
+1. **Data-correctie bestaande facturen.** Reeds aangemaakte subscription-facturen met `is_b2b=false`
+   terwijl de klant B2B is (o.a. Ozay's `SQ-2026-0001`). Aparte migratie met **vaste timestamp-guard,
+   geen `now()`**. Openstaande business-vraag: mag een reeds **verzonden** factuur gecorrigeerd worden
+   of moet het via creditnota/herfacturatie? Akke beslist de boekhoudkundige kant. Controleer daarbij
+   of `backfill-vat-regimes` ook `is_b2b`/`peppol_status` bijwerkt — zo niet is dat een klein
+   additief ticket dat de degradaties opruimbaar maakt.
+2. **`is_b2b` additief aan `RegimeInvoiceLevel` toevoegen.** Dit is de grondoorzaak van de bugklasse.
+   Puur additief, raakt `decideVatRegime` niet, maar compileert vijf bestanden mee. Eigen batch.
+3. **`create-manual-invoice` migreren naar de helper** — zet nu `vat_regime`/`reporting_country` maar
+   niet `is_b2b`/`peppol_status`, terwijl het `isB2B` op regel 94 wél berekent. Dezelfde bug, derde
+   bestand.
+4. **`per_line[0]` in `generate-invoice:1537`** — bij gemengde btw-tarieven is de header daar niet de
+   som van de regels. Latente bug in het pad dat als canoniek geldt.
+5. **`deriveVatRate` snapt naar `[0, 6, 12, 21]`.** De mismatch-vergelijking in pad 2 klopt daardoor
+   niet voor tarieven buiten die set. Voor de Belgische tarieven is de set compleet, dus vandaag geen
+   probleem; het wordt er één zodra buitenlandse OSS-tarieven meespelen (`rateForRegime` kent
+   `OSS_RATES` per land).
+6. **Performance meten, niet vooraf optimaliseren.** De loop doet per subscription al een Stripe
+   PaymentIntent-create en een volledige edge-function-invocatie voor de PDF; de resolver voegt geen
+   nieuwe latency-klasse toe. De VIES-tail (5s timeout per cross-border B2B-klant) is het enige echte
+   risico. Goedkoopste win als het nodig blijkt: een module-level memo van de `vat_regimes`-rijen
+   (~12 statische rijen, nu per aanroep opgehaald).
+
+---
+
 
 ## BILL-1 — mandaat-first dunning — 24 augustus 2026
 

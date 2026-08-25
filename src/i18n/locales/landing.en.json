@@ -1496,6 +1496,10 @@
         "storefront_customer_email_verification": {
           "title": "Customers confirm their email address",
           "description": "Customers who create an account in your webshop now confirm their email address before they can view their order history. Browsing, ordering and checkout work as before. Customers who already had an account keep their access and need to do nothing."
+        },
+        "subscription_invoice_vat_regime": {
+          "title": "Subscription invoices follow your customer's VAT treatment",
+          "description": "Invoices generated from a subscription treated every customer as a consumer: they always received the domestic VAT treatment, even for a business customer with a valid European VAT number. That has been corrected. Subscription invoices now follow the same VAT logic as your webshop invoices: business customers are recorded as business, and with a valid VAT number from another EU country the VAT is reverse charged, including the required statement on the invoice. Domestic rates are unchanged, including the reduced 6% and 12% rates. Invoices that have already been paid are not adjusted retroactively."
         }
       },
       "copyLink": "Copy link",

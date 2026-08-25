@@ -4,6 +4,39 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10u — Abonnementsfacturen nemen het btw-regime van je klant over (bugfix, 25-08-2026)
+
+**Voor wie:** elke tenant die met abonnementen factureert, en in het bijzonder wie
+zakelijke klanten in andere EU-landen bedient.
+
+Facturen die uit een abonnement ontstaan, behandelden elke klant als particulier.
+Ze kregen altijd het binnenlandse btw-regime — ook als het om een zakelijke klant
+met een geldig Europees btw-nummer ging. Dat is rechtgezet.
+
+Abonnementsfacturen volgen nu dezelfde btw-bepaling als je webshopfacturen. Staat
+een klant als zakelijk geregistreerd, dan wordt dat ook zo op de factuur
+vastgelegd. Heeft die klant een geldig btw-nummer uit een ander EU-land, dan wordt
+de btw verlegd: 0% op de factuur, met de wettelijk verplichte vermelding erbij.
+
+**Wat er niet verandert.** Binnenlandse tarieven blijven staan zoals ze waren, ook
+de verlaagde van 6% en 12%. Een Belgische zakelijke klant betaalt gewoon Belgische
+btw — bij een klant in hetzelfde land als jij verandert er niets aan het bedrag.
+
+**Wat je zelf moet controleren.** De btw-behandeling volgt uit de klantgegevens.
+Klopt het klanttype niet, of ontbreekt het btw-nummer, dan valt de factuur terug op
+binnenlandse btw. Het nummer wordt bij het aanmaken van de factuur gecontroleerd bij
+de Europese VIES-databank; wordt het daar afgekeurd, dan rekenen we liever btw aan
+die achteraf verrekend wordt dan een verlegging die niet standhoudt.
+
+**Facturen van vóór deze wijziging worden niet automatisch aangepast.** Reeds
+verstuurde of betaalde facturen blijven staan zoals ze zijn.
+
+**i18n-keys.** `public.changelog.changes.subscription_invoice_vat_regime` —
+NL/EN/FR/DE/UK aanwezig, KLAARZETTEN, nog niet verstuurd.
+
+**In-app documentatie:** doc-artikel "BTW op abonnementsfacturen"
+(slug `btw-op-abonnementsfacturen`, context `/admin/orders/subscriptions`).
+
 ### 2026.10t — Je klanten bevestigen hun e-mailadres (security, 24-08-2026)
 
 **Voor wie:** elke tenant met klantaccounts in de webshop.
