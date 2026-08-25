@@ -394,7 +394,17 @@ diens rechten. De extra queries (`customers`, `tenants`) lezen alleen kolommen d
 hetzelfde pad al las.
 
 De enige nieuwe migratie is een `INSERT` op `public.doc_articles` met `ON CONFLICT (doc_level, slug)
-DO UPDATE` — idempotent, raakt alleen de eigen rij. Categorie: **Facturatie & Boekhouding**
+DO UPDATE` — idempotent, raakt alleen de eigen rij.
+
+**Nalevering 25-08-2026:** Lovable heeft de migratie bij het deployen zelf gegenereerd, als
+`20260825075353_ace74229-b342-4d15-9b42-33d1c9d6e9dd.sql`, in plaats van het bestand uit deze batch
+te draaien. Beide waren functioneel identiek (zelfde slug, categorie, `context_path` en HTML). Om te
+voorkomen dat er twee migraties hetzelfde artikel inserten, is het bestand uit deze batch
+(`20260825120000_bill2_doc_article.sql`) verwijderd; de door Lovable gegenereerde versie blijft, want
+die is aantoonbaar op de database toegepast. De onderbouwing van de categoriekeuze stond in het
+commentaar van het verwijderde bestand en is daarom hieronder vastgelegd.
+
+Categorie: **Facturatie & Boekhouding**
 (`a0000001-0000-0000-0000-000000000009`, slug `facturatie`), door Akke geverifieerd tegen de live
 `doc_categories`. Daar staan de fiscale buren al ("Hoe wordt de btw berekend?", "Peppol-facturatie",
 "Facturen aanmaken"). Mijn eerste keuze — Betalingen (`…003`) — was fout: die categorie gaat over
