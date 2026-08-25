@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { getStripeContext } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +51,7 @@ serve(async (req) => {
     // Fetch return with order info
     const { data: returnRecord, error: fetchError } = await supabase
       .from("returns")
-      .select("*, orders!returns_order_id_fkey(stripe_payment_intent_id, marketplace_source, tenant_id, tenants(stripe_account_id))")
+      .select("*, orders!returns_order_id_fkey(stripe_payment_intent_id, marketplace_source, tenant_id)")
       .eq("id", return_id)
       .single();
 
@@ -149,43 +149,71 @@ serve(async (req) => {
         );
       }
 
-      // Get tenant's Stripe key
-      const tenantId = order?.tenant_id || returnRecord.tenant_id;
-      const { data: tenantSettings } = await supabase
-        .from("tenant_settings")
-        .select("stripe_secret_key")
-        .eq("tenant_id", tenantId)
-        .single();
+      // Tenant ophalen voor de Stripe-context. Zelfde kolomset als de elf andere
+      // getStripeContext-aanroepers, bijv. create-invoice-payment-link/index.ts:59.
+      // Vervangt een query op `tenant_settings.stripe_secret_key` — een tabel die
+      // in geen enkele migratie bestaat, waardoor die query stil faalde en de key
+      // altijd al uit de omgeving kwam.
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("id, is_demo, is_internal_tenant, stripe_account_id")
+        .eq("id", refundTenantId)
+        .maybeSingle();
 
-      const stripeKey = tenantSettings?.stripe_secret_key || Deno.env.get("STRIPE_SECRET_KEY");
-      if (!stripeKey) {
+      // EEN PRINCIPE: een refund spiegelt het CHARGE-account, niet de billing-regels
+      // van getStripeContext. De charge is aangemaakt door storefront-api, en die
+      //   - rekent ALTIJD met de live key af (storefront-api:3054 / :3350), ook voor
+      //     is_demo-tenants;
+      //   - gaat het Stripe-pad alleen in als stripe_account_id bestaat
+      //     (storefront-api:3050), ongeacht is_internal_tenant — de charge staat dus
+      //     altijd op het connected account, nooit op het platform.
+      // Beide overrides hieronder volgen uit dat ene principe; ze zijn geen losse
+      // trucs. Trek er GEEN van los recht: dan wijkt het refund-account af van het
+      // charge-account en faalt de refund met resource_missing. Ze mogen pas weg
+      // wanneer storefront-api zelf op getStripeContext zit.
+      let ctx: ReturnType<typeof getStripeContext>;
+      try {
+        if (!tenant) throw new Error(`Tenant ${refundTenantId} niet gevonden`);
+        ctx = getStripeContext({ ...tenant, is_demo: false, is_internal_tenant: false });
+      } catch (ctxErr) {
+        // Vervangt de oude "Geen Stripe key geconfigureerd"-tak. getStripeContext
+        // throwt bij een ontbrekende STRIPE_SECRET_KEY (stripe.ts:62) en bij een
+        // tenant zonder stripe_account_id (stripe.ts:137). Zonder deze catch zou dat
+        // een 500 worden zonder dat de returns-rij op failed komt te staan.
+        const reason = ctxErr instanceof Error
+          ? ctxErr.message
+          : "Stripe-configuratie onvolledig";
         await supabase
           .from("returns")
-          .update({ refund_status: "failed", refund_notes: "Geen Stripe key geconfigureerd" })
+          .update({
+            refund_status: "failed",
+            refund_notes: reason,
+            // De frontend leest bij mislukking alleen refund_failure_reason
+            // (src/hooks/useReturns.ts:735-737); beide zetten maakt de echte
+            // oorzaak zichtbaar in plaats van de generieke tekst.
+            refund_failure_reason: reason,
+          })
           .eq("id", return_id);
 
         return new Response(
-          JSON.stringify({ error: "Geen Stripe key geconfigureerd" }),
+          JSON.stringify({ error: reason }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
       const refundAmount = returnRecord.refund_amount
         ? Math.round(returnRecord.refund_amount * 100)
         : undefined;
 
-      const stripeAccountId = order?.tenants?.stripe_account_id;
       let refund;
       try {
-        refund = await stripe.refunds.create(
+        refund = await ctx.stripe.refunds.create(
           {
             payment_intent: paymentIntentId,
             ...(refundAmount ? { amount: refundAmount } : {}),
             reason: "requested_by_customer",
           },
-          stripeAccountId ? { stripeAccount: stripeAccountId } : undefined
+          ctx.requestOptions
         );
       } catch (stripeErr: any) {
         await supabase.from("returns").update({

@@ -1,3 +1,241 @@
+## BILL-3 — process-refund opschonen — 25 augustus 2026
+
+**Status: code klaar, NIET gedeployed.** Eén functie: `process-refund`. Er is geen `_shared`-bestand
+gewijzigd, dus dit is nadrukkelijk niet het BILL-2-scenario met twee extra webhook-deploys.
+
+### Root cause
+
+Twee problemen in `supabase/functions/process-refund/index.ts`, allebei stil.
+
+**1. Een query op een tabel die niet bestaat.** Regel 154-158 (vóór deze batch):
+
+```ts
+const { data: tenantSettings } = await supabase
+  .from("tenant_settings")
+  .select("stripe_secret_key")
+  .eq("tenant_id", tenantId)
+  .single();
+```
+
+`tenant_settings` komt in **geen enkele van de 402 migraties** voor en staat niet in de gegenereerde
+`src/integrations/supabase/types.ts` (die 275 tabellen bevat, inclusief `tenant_return_settings`,
+`tenant_theme_settings` en zes andere `tenant_*_settings`). De kolom `stripe_secret_key` bestaat
+nergens. De query faalt dus per definitie met een `42P01`, maar de `error` wordt **niet uit de
+destructuring gehaald** — alleen `data`. Gevolg: `stripeKey` viel altijd terug op
+`Deno.env.get("STRIPE_SECRET_KEY")`. Dode code voor een architectuur (tenants met eigen Stripe-keys)
+die nooit gebouwd is; alle tenants draaien Connect.
+
+De repo wist dit zelf al: `docs/fase2-batch-2d-recon.md:48` noteert "`tenant_settings` als losse
+tabel → niet aanwezig", en deze role-audit bevatte al de regel "`tenant_settings` | nee | overgeslagen".
+
+**2. Handmatige refund-targeting.** Regel 179 haalde `stripe_account_id` uit de order-join, regel 188
+gaf `stripeAccountId ? { stripeAccount: stripeAccountId } : undefined` mee. Dat omzeilt
+`getStripeContext` uit `_shared/stripe.ts`, dat elders elf keer wél gebruikt wordt, en valt bij een
+ontbrekend account stil terug op het platform-account in plaats van luid te falen.
+
+**Het patroon is gekopieerd, niet eenmalig.** Dezelfde dode query staat in
+`refund-invoice/index.ts:98-101`, met `// ── b) Stripe key resolven (zoals process-refund) ──`
+erboven. Er is een derde refund-functie, `pos-refund-payment`, die `STRIPE_SECRET_KEY` direct leest
+en nog op apiVersion `2023-10-16` draait. **Geen van de drie** gebruikt `getStripeContext`; het
+refund-cluster staat als geheel naast het billing-cluster.
+
+**Waarom geen enkele toolchain dit ving.** `tsconfig.app.json:33-35` include't alleen `src`, dus
+`tsc` raakt de edge-functies niet. ESLint dekt ze wél (`eslint.config.js:11` matcht `**/*.{ts,tsx}`,
+enige ignore is `dist`) maar draait op `tseslint.configs.recommended` zonder `parserOptions.project`
+— puur syntactisch, dus een niet-bestaande tabelnaam is per constructie onvindbaar. De genegeerde
+`error`-destructurering slikte de runtime-fout op. Drie lagen die allemaal langs elkaar heen keken.
+
+### Recon-correctie: de opdracht had het half mis
+
+De opdracht stelde dat de huidige code "ALTIJD de live key gebruikt, ook voor demo-tenants, wat fout
+is". Dat is fout ten opzichte van een ideaal, maar **juist** ten opzichte van de charge-kant:
+`storefront-api/index.ts:3054` en `:3350` maken de charge aan met `Deno.env.get('STRIPE_SECRET_KEY')`
+— altijd de live key, ook voor `is_demo`. Dat is precies de payment intent die `process-refund`
+terugbetaalt. Zou de refund overstappen op de test-key, dan bestaat die intent daar niet en faalt de
+call met `resource_missing` → 502 + `refund_status = failed`. Alleen de refund-kant "fixen" zou het
+kapot maken in plaats van heel.
+
+Hetzelfde geldt voor het account. `getStripeContext` (`_shared/stripe.ts:128-135`) stuurt een interne
+tenant naar het **platform**-account en negeert diens `stripe_account_id`. Maar `storefront-api:3050`
+gaat het Stripe-pad **alleen** in als `tenantData?.stripe_account_id` bestaat, ongeacht
+`is_internal_tenant` — de charge staat dus altijd op het **connected** account. De account-regel van
+`getStripeContext` is die van het billing-domein en gaat hier niet op.
+
+Het spiegelbeeld is goed nieuws: een niet-interne tenant zónder `stripe_account_id` kan per `:3050`
+nooit een storefront-charge hebben. De stille platform-terugval op regel 188 was dus óók dood, en
+fail-loud daar breekt niets echts.
+
+### Uitgevoerd — één bestand, vijf ankers
+
+- **Import** — `Stripe` eruit (was alleen nodig voor `new Stripe(...)` op regel 173),
+  `getStripeContext` erin.
+- **Embed (regel 54)** — `tenants(stripe_account_id)` verwijderd. Regel 179 was de enige lezer;
+  laten staan zou de ene dode query inruilen voor een dode join.
+- **Tenant-fetch** — vervangt de dode `tenant_settings`-query op dezelfde plek, met exact de kolomset
+  die de elf bestaande `getStripeContext`-aanroepers gebruiken (`id, is_demo, is_internal_tenant,
+  stripe_account_id`, `.maybeSingle()`). De duplicaat-variabele `tenantId` (regel 153, woordelijk
+  dezelfde expressie als `refundTenantId` op regel 67) is verdwenen.
+- **Stripe-context** — `getStripeContext({ ...tenant, is_demo: false, is_internal_tenant: false })`,
+  met een comment die beide overrides als **één principe** uitlegt: *een refund spiegelt het
+  charge-account, niet de billing-regels van getStripeContext.* De spread-dan-override-vorm maakt
+  zichtbaar dat de DB-waarden bewust genegeerd worden. Het comment verwijst naar `storefront-api:3054`,
+  `:3350` en `:3050` en waarschuwt expliciet dat één van de twee losrechttrekken de refund naar het
+  verkeerde account stuurt.
+- **Refund-call** — `ctx.stripe.refunds.create(params, ctx.requestOptions)`. apiVersion blijft
+  `"2025-08-27.basil"`; dat is de default van `getStripeContext` en identiek aan wat regel 173
+  hardcodeerde.
+
+**Foutafhandeling verhuisd, niet verdwenen.** `getStripeContext` throwt bij een ontbrekende
+`STRIPE_SECRET_KEY` (`stripe.ts:62`) en bij een tenant zonder `stripe_account_id` (`stripe.ts:137`).
+Zonder guard belandt dat in de outer catch → een 500 zonder dat de `returns`-rij op `failed` komt.
+Er zit daarom een `try/catch` omheen die de oude "Geen Stripe key geconfigureerd"-tak overneemt:
+`refund_status: failed` + 400.
+
+**Kleine toevoeging.** Die faaltak zette alleen `refund_notes`, terwijl de frontend bij mislukking
+uitsluitend `refund_failure_reason` leest (`src/hooks/useReturns.ts:735-737`). Nu worden beide gezet,
+zodat de echte oorzaak in de UI verschijnt in plaats van de generieke tekst "Stripe refund mislukt".
+
+**Ongemoeid:** de twee idempotentie-guards (86-96, 98-110), de `refund_amount`-berekening, de
+marketplace-tak, de manual-fallback, de 502 bij `stripeErr`, de succes-update en de drie
+`fireAutoCreditNote`-aanroepen.
+
+### Gedragstabel
+
+| Tenant | Vóór | Na | Wijziging |
+|---|---|---|---|
+| Niet-intern, niet-demo, mét `stripe_account_id` — **de live gevallen, o.a. VanXcel** | live key + `{ stripeAccount }` | live key + `{ stripeAccount }` | **geen** |
+| Niet-intern, **`is_demo`**, mét `stripe_account_id` | live key + `{ stripeAccount }` | live key + `{ stripeAccount }` | **geen** — `is_demo: false` houdt de live key, precies zoals de charge |
+| **Intern, mét `stripe_account_id`** | live key + `{ stripeAccount }` | live key + `{ stripeAccount }` | **geen** — `is_internal_tenant: false` houdt hem op het connected account, want dáár staat de charge (`storefront-api:3050`). Zónder die override zou `getStripeContext` naar het platform sturen → `resource_missing` |
+| Intern, zónder `stripe_account_id` | live key + platform | **throw → `failed` + 400** | fail-loud; kan per `:3050` geen storefront-charge hebben |
+| Niet-intern, zónder `stripe_account_id` | live key + platform | **throw → `failed` + 400** | fail-loud; idem |
+| `STRIPE_SECRET_KEY` ontbreekt | `failed` + 400 | `failed` + 400 | geen — tak verhuisd naar de catch |
+
+**De bestaande live refunds veranderen niet.** VanXcel is niet-intern, heeft een `stripe_account_id`
+en een direct charge — rij 1, waar de resolutie voor en na identiek `getStripeLive()` +
+`{ stripeAccount: <id> }` oplevert.
+
+**Vastgelegd besluit: fail-loud kan geen bestaande refund breken.** De twee rijen die van gedrag
+veranderen — intern zónder `stripe_account_id`, en niet-intern zónder `stripe_account_id` — hebben
+één ding gemeen: er is géén `stripe_account_id`. En `storefront-api/index.ts:3050` luidt:
+
+```ts
+if (isStripeMethod && tenantData?.stripe_account_id) {
+```
+
+Zonder `stripe_account_id` wordt het Stripe-pad dus nooit betreden en ontstaat er geen
+`stripe_payment_intent_id` op de order. Zo'n tenant kan per constructie geen storefront-charge hebben
+gehad, en dus ook geen terug te betalen payment intent. `process-refund` bereikt de Stripe-tak alleen
+mét een `paymentIntentId` (regel 139-150 bailt anders met een 400), waardoor die combinatie —
+"geen account, wél een intent" — onbereikbaar is.
+
+De nieuwe `throw → failed + 400` raakt daarmee uitsluitend configuraties die vandaag al niet konden
+refunden; ze deden alleen een stille, kansloze poging op het platform-account in plaats van een
+zichtbare fout. **De afwezigheid van risico is hier dus afgeleid uit de charge-kant, niet aangenomen.**
+
+### Security-keuzes
+
+**Geen RLS, policies, grants of rechten geraakt.** Geen nieuwe tabellen, kolommen of policies, geen
+migratie. De nieuwe `tenants`-fetch leest via dezelfde service-role client vier kolommen die elders
+al gelezen worden (`create-invoice-payment-link/index.ts:59` en tien andere plekken). Er verdwijnt
+een query op een niet-bestaande tabel — dat verkleint het aanvalsoppervlak eerder dan het te
+vergroten. De auth-keten (`authenticateRequest` + `requireRole(..., ["tenant_admin"])`) is
+onaangeroerd.
+
+### Gedeelde-paden-waarschuwing
+
+**Niet van toepassing.** `_shared/stripe.ts` wordt uitsluitend **gelezen**, niet gewijzigd — de elf
+andere `getStripeContext`-aanroepers en de twee webhook-bundels blijven dus ongemoeid.
+`storefront-api`, `storefront-resolve` en `checkout-engine` zijn niet aangeraakt; ze zijn alleen
+geraadpleegd om vast te stellen welke key en welk account de charge gebruikt. `process-refund` is
+admin-side en wordt uitsluitend vanuit `src/hooks/useReturns.ts:718` aangeroepen. De vijf custom
+frontends kunnen dit niet merken.
+
+### Verificatie
+
+| Check | Uitkomst |
+|---|---|
+| esbuild-parse op `process-refund/index.ts` | OK |
+| ESLint tegen baseline | 3 → 3 fouten — **nul nieuwe** |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 — maar dekt dit bestand niet, zie beperking hieronder |
+| `npm run build` | exit 0 (chunk-size-waarschuwing is bestaand) |
+
+De eerste versie van de catch gebruikte `catch (ctxErr: any)` — consistent met de bestaande
+`catch (stripeErr: any)` één blok lager, maar dat voegde een `no-explicit-any` toe. Vervangen door
+`catch (ctxErr)` met `ctxErr instanceof Error`, de vorm die `_shared/invoiceFiscalFields.ts` ook
+gebruikt, zodat de baseline vlak blijft.
+
+**Beperking, eerlijk benoemd:** `tsc` dekt alleen `src/` en dit bestand is daar geen onderdeel van —
+de typecheck zegt dus letterlijk niets over deze wijziging. ESLint dekt het bestand wél maar zonder
+type-informatie. De esbuild-parse is een syntaxzeef. Type- en runtimefouten komen pas bij de deploy
+aan het licht; de gedragscontrole hieronder is daarom niet optioneel.
+
+**Nog te draaien door Akke / connector-Claude:**
+
+- *Read-only vooraf:* bestaat er een tenant met `is_internal_tenant = true` **én**
+  `stripe_account_id IS NOT NULL` die `returns`-rijen heeft? Verwachting: nee. Zo ja, dan is dat
+  precies de rij die de `is_internal_tenant: false`-override rechtvaardigt.
+- Refund op een gewone connected testtenant, klein bedrag → `refund_status = completed`,
+  `stripe_refund_id` gevuld, en de refund zichtbaar in het Stripe-dashboard **op het connected
+  account**, niet op het platform.
+- Idempotentie: tweemaal draaien op dezelfde rij → tweede keer `already_completed: true`, geen tweede
+  Stripe-refund.
+- Retour zonder `stripe_payment_intent_id` → nog steeds 400 met de bestaande melding.
+- **De pending VanXcel-refund (#1151, € 5) niet gebruiken als testobject en niet triggeren.**
+
+### Deploy-scope
+
+- [ ] `process-refund`
+
+Meer niet. Geen migratie, geen gedeeld bestand, geen tweede functie.
+
+### Bewust ongemoeid
+
+- **Geen changelog-entry.** Er verandert voor geen enkele tenant iets waarneembaars: dode code
+  verdwijnt en de targeting wordt gecentraliseerd. Een entry zou een niet-bestaand probleem
+  aankondigen en vragen oproepen over of eerdere refunds wel goed gingen. Dit is een besluit, geen
+  omissie.
+- **Geen `doc_articles`.** Interne correctheidsfix zonder tenant-facing gedragswijziging.
+- **Geen newsletter-item.** Niet tenant-zichtbaar.
+- `refund-invoice`, `pos-refund-payment` en `storefront-api` — zie Vervolg.
+
+### Vervolg
+
+Beide bovenste punten zijn bestaand gedrag — niet door BILL-3 geïntroduceerd — maar ze staan hier
+bovenaan omdat ze rechtstreeks over geld gaan en anders wegzakken onder het opruimwerk.
+
+1. **⚠️ GELD-RISICO — geen `idempotencyKey` op `refunds.create`** (`process-refund/index.ts:182`).
+   Het billing-cluster geeft er wél een mee (`generate-subscription-invoices:196`). De twee guards
+   hier (regels 86-96 en 98-110) zijn read-then-write zonder lock en zonder statusconditie in de
+   `WHERE` (`.eq("id", return_id)` alleen). Twee gelijktijdige aanroepen op dezelfde `pending`- of
+   `failed`-rij komen dus allebei voorbij de guard en kunnen **twee echte refunds** produceren. De
+   frontend kan dat triggeren met een dubbelklik. Fix is klein: een `idempotencyKey` op basis van
+   `return_id` meegeven.
+2. **⚠️ GELD-RISICO — `refund_amount = 0` is falsy** (`process-refund/index.ts:175`). De expressie
+   `returnRecord.refund_amount ? Math.round(...) : undefined` laat bij een bedrag van exact 0 de
+   `amount` weg, en Stripe doet dan een **volledige** refund van de payment intent in plaats van geen.
+   Een retour die op € 0 is gezet — bijvoorbeeld omdat er niets terugbetaald hoort te worden — betaalt
+   dus het hele orderbedrag terug. Fix: expliciet op `null`/`undefined` testen in plaats van op
+   falsiness.
+3. **`refund-invoice/index.ts:98-101`** — identieke dode `tenant_settings`-query, met een comment die
+   naar `process-refund` verwijst. Zelfde behandeling. Zolang dit blijft staan, wordt het patroon
+   opnieuw gekopieerd.
+4. **`pos-refund-payment/index.ts`** — leest `STRIPE_SECRET_KEY` direct (`:67`), handmatige
+   `{ stripeAccount }` (`:106`), apiVersion `2023-10-16` (`:73`).
+5. **`storefront-api` key-mode.** Zolang `:3054` en `:3350` met de live key afrekenen, is
+   demo-isolatie op de refund-kant onmogelijk. Pas als die twee migreren kunnen de twee overrides uit
+   deze batch weg — en dan tegelijk, niet los. `storefront-api` is een gedeeld pad (de eerste wet):
+   aparte recon en apart akkoord.
+6. **De audit-log-insert (71-83) staat vóór de idempotentie-guards** — elke herhaalde aanroep schrijft
+   een extra `refund_processed`-rij, ook als er niets gebeurt.
+7. **De `processRefund`-mutation in `src/hooks/useReturns.ts:603-607`** wordt nergens aangeroepen —
+   dode code aan de frontend-kant.
+8. **Toolchain-gat.** Edge-functies worden door geen enkele typecheck gedekt. Dit hoort als harde
+   regel in `sellqo-engineering-rules`: een `.from("<tabel>")` in `supabase/functions/` moet handmatig
+   tegen `src/integrations/supabase/types.ts` geverifieerd worden, want niets vangt een typefout in
+   een tabelnaam.
+
+---
+
 ## BILL-2 — is_b2b / BTW-regime op subscription-facturen — 25 augustus 2026
 
 **Status: code klaar, NIET gedeployed.** De deploy loopt via Lovable en omvat **vier** functies —
