@@ -1691,14 +1691,19 @@ serve(async (req) => {
         const originalLineTotal = Number(item.total_price);
 
         const lineRegime = perLineRegime[index];
-        // Resolver rate is authoritative; legacy vatCalculation only used as fallback.
+        // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
+        // order_item is what the gross price was computed with and is the only valid divisor.
         const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
-        const lineDivisor = vatHandling === 'inclusive' && lineRate > 0 ? (1 + lineRate / 100) : 1;
+        const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
+          ? Number(taxPercent)
+          : Number(item.vat_rate);
+        const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
         const netUnitPrice = originalUnitPrice / lineDivisor;
         const netLineTotal = originalLineTotal / lineDivisor;
-        const lineVatAmount = vatHandling === 'inclusive'
+        const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
           ? originalLineTotal - netLineTotal
           : netLineTotal * (lineRate / 100);
+
         return {
           invoice_id: invoice.id,
           description: item.product_name,
