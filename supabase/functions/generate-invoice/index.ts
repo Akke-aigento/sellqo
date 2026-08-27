@@ -1175,10 +1175,179 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email, override_regime, force_new, vies_snapshot } = await req.json();
+    const body = await req.json();
+    const { order_id, auto_send_email, override_regime, force_new, vies_snapshot } = body;
+    const regenerate_pdf_only = body?.regenerate_pdf_only === true;
+    const regenerate_invoice_id = body?.invoice_id ?? null;
+
+    // ---- REGEN-PDF-1: regenerate PDF/CII/UBL for an EXISTING, already fiscally
+    // correct invoice. No new invoice, no changes to invoices/invoice_lines amounts.
+    if (regenerate_pdf_only && regenerate_invoice_id) {
+      logStep("Regenerate PDF only", { invoice_id: regenerate_invoice_id });
+
+      const { data: inv, error: invErr } = await supabaseClient
+        .from("invoices")
+        .select("*")
+        .eq("id", regenerate_invoice_id)
+        .single();
+      if (invErr || !inv) throw new Error(`Invoice not found: ${invErr?.message}`);
+
+      requireRole(auth, inv.tenant_id, ["tenant_admin", "staff", "accountant"]);
+
+      const { data: invLines } = await supabaseClient
+        .from("invoice_lines")
+        .select("*")
+        .eq("invoice_id", inv.id)
+        .order("sort_order", { ascending: true });
+      const lines = invLines || [];
+
+      let regenOrder: any = null;
+      if (inv.order_id) {
+        const { data: o } = await supabaseClient.from("orders").select("*").eq("id", inv.order_id).single();
+        regenOrder = o;
+      }
+      const { data: regenTenant, error: rtErr } = await supabaseClient
+        .from("tenants").select("*").eq("id", inv.tenant_id).single();
+      if (rtErr || !regenTenant) throw new Error(`Tenant not found: ${rtErr?.message}`);
+
+      let regenCustomer: any = null;
+      if (inv.customer_id) {
+        const { data: c } = await supabaseClient.from("customers").select("*").eq("id", inv.customer_id).single();
+        regenCustomer = c;
+      }
+      if (!regenCustomer) {
+        regenCustomer = {
+          id: inv.customer_id || 'guest',
+          email: regenOrder?.customer_email,
+          first_name: regenOrder?.customer_name?.split(' ')[0] || '',
+          last_name: regenOrder?.customer_name?.split(' ').slice(1).join(' ') || '',
+          phone: regenOrder?.customer_phone,
+          customer_type: inv.is_b2b ? 'b2b' : 'b2c',
+        };
+      }
+
+      // Tax breakdown straight from the stored invoice_lines (same aggregation as definitiveLines).
+      const regenMap = new Map<string, TaxBreakdownLine>();
+      for (const l of lines) {
+        const rate = Number(l.vat_rate) || 0;
+        const cat = l.vat_category || 'S';
+        const key = `${rate}-${cat}`;
+        const ex = regenMap.get(key) || { vatRate: rate, vatCategory: cat, taxableAmount: 0, vatAmount: 0 };
+        ex.taxableAmount += Number(l.line_total) || 0;
+        ex.vatAmount += Number(l.vat_amount) || 0;
+        regenMap.set(key, ex);
+      }
+      const regenBreakdown: TaxBreakdownLine[] = regenMap.size > 0
+        ? Array.from(regenMap.values()).sort((a, b) => b.vatRate - a.vatRate)
+        : [{ vatRate: 0, vatCategory: 'S', taxableAmount: Number(inv.subtotal) || 0, vatAmount: Number(inv.tax_amount) || 0 }];
+
+      // VAT mention text derived from the stored regime — never recalculated.
+      const regenLang = getCustomerLanguage(regenCustomer, regenTenant);
+      const regime = String(inv.vat_regime || '');
+      const resolverRate = lines.length > 0 ? Number(lines[0].vat_rate) || 0 : 0;
+      let regenVatText: string | null = null;
+      let regenVatType: VatCalculation['vatType'] = 'standard';
+      let regenCategory = lines[0]?.vat_category || 'S';
+      if (regime === 'ic_supply_goods' || regime.startsWith('intracom_goods')) {
+        regenVatText = VAT_TEXTS.intracom_goods[regenLang];
+        regenVatType = 'reverse_charge';
+        regenCategory = lines[0]?.vat_category || 'K';
+      } else if (regime === 'ic_supply_services' || regime.startsWith('intracom_services')) {
+        regenVatText = VAT_TEXTS.intracom_services[regenLang];
+        regenVatType = 'reverse_charge';
+        regenCategory = lines[0]?.vat_category || 'AE';
+      } else if (regime.startsWith('export')) {
+        regenVatText = VAT_TEXTS.export[regenLang];
+        regenVatType = 'export';
+        regenCategory = lines[0]?.vat_category || 'G';
+      } else if (regime === 'oss_b2c_eu') {
+        regenVatText = `${VAT_TEXTS.oss[regenLang]} (${resolverRate}% ${inv.reporting_country || ''})`.trim();
+        regenVatType = 'oss';
+        regenCategory = lines[0]?.vat_category || 'S';
+      }
+
+      const regenVatCalculation: VatCalculation = {
+        vatRate: resolverRate,
+        vatAmount: Number(inv.tax_amount) || 0,
+        vatType: regenVatType,
+        vatText: regenVatText,
+        taxCategoryCode: regenCategory,
+      };
+
+      const regenInvoiceData = {
+        invoiceNumber: inv.invoice_number,
+        issueDate: formatDate(new Date(inv.issue_date || inv.created_at)),
+        dueDate: formatDate(new Date(inv.due_date || inv.issue_date || inv.created_at)),
+        currency: inv.currency || regenTenant.currency || 'EUR',
+        tenant: regenTenant,
+        customer: regenCustomer,
+        order: regenOrder || {},
+        // Stored lines are the single source of truth (shipping line included as a row).
+        orderItems: lines.map((l) => ({
+          description: l.description,
+          product_name: l.description,
+          quantity: l.quantity,
+          unit_price: Number(l.unit_price) || 0,
+          total_price: Number(l.line_total) || 0,
+          line_total: Number(l.line_total) || 0,
+          vat_rate: Number(l.vat_rate) || 0,
+          vat_category: l.vat_category,
+        })),
+        invoiceLines: [],
+        subtotal: Number(inv.subtotal) || 0,
+        taxAmount: Number(inv.tax_amount) || 0,
+        total: Number(inv.total) || 0,
+        shippingCost: 0,
+        discountAmount: 0,
+        discountCode: null,
+        vatCalculation: regenVatCalculation,
+        taxBreakdown: regenBreakdown,
+        ogmReference: inv.ogm_reference || '',
+        isB2B: inv.is_b2b === true,
+      };
+
+      const { pdfBytes: regenPdf, ciiXml: regenCii } = await generateFacturXPDF(regenInvoiceData);
+
+      const regenPdfPath = inv.pdf_path || `${inv.tenant_id}/${String(inv.invoice_number).replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
+      const { error: regenPdfErr } = await supabaseClient.storage
+        .from("invoices")
+        .upload(regenPdfPath, regenPdf, { contentType: 'application/pdf', upsert: true });
+      if (regenPdfErr) throw new Error(`PDF upload failed: ${regenPdfErr.message}`);
+
+      const regenCiiPath = `${inv.tenant_id}/${String(inv.invoice_number).replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
+      await supabaseClient.storage
+        .from("invoices")
+        .upload(regenCiiPath, new Blob([regenCii], { type: 'application/xml' }), { contentType: 'application/xml', upsert: true });
+
+      const regenUblPath = inv.ubl_path || `${inv.tenant_id}/${String(inv.invoice_number).replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
+      const regenUbl = generateUBL(regenInvoiceData);
+      await supabaseClient.storage
+        .from("invoices")
+        .upload(regenUblPath, new Blob([regenUbl], { type: 'application/xml' }), { contentType: 'application/xml', upsert: true });
+
+      const { data: { publicUrl: regenPdfUrl } } = supabaseClient.storage.from("invoices").getPublicUrl(regenPdfPath);
+      const { data: { publicUrl: regenUblUrl } } = supabaseClient.storage.from("invoices").getPublicUrl(regenUblPath);
+
+      await supabaseClient
+        .from("invoices")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", inv.id);
+
+      logStep("Regenerated documents", { invoice: inv.invoice_number, subtotal: inv.subtotal, tax: inv.tax_amount, total: inv.total });
+
+      return new Response(JSON.stringify({
+        success: true,
+        invoice_id: inv.id,
+        invoice_number: inv.invoice_number,
+        pdf_url: inv.pdf_url || regenPdfUrl,
+        ubl_url: inv.ubl_url || regenUblUrl,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!order_id) {
       throw new Error("order_id is required");
     }
+
 
     logStep("Fetching order", { order_id });
 
