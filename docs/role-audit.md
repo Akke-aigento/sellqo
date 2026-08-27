@@ -13,6 +13,20 @@ Bijkomend gevonden in dezelfde functie: `tenantData?.default_vat_rate` verwees n
 
 ---
 
+## BILL-VAT-VERIFY-2 — generate-invoice verwarde origineel tarief met fiscaal tarief bij nultarief-regimes — 27 augustus 2026
+
+**Root cause:** `generate-invoice` gebruikte bij `inclusive` vatHandling het resolver-tarief (fiscaal: 0 procent bij verlegging/export, OSS-tarief bij OSS) ook om de brutoprijs uit `order_items` naar netto om te rekenen. Dat klopt alleen als het resolver-tarief gelijk is aan het oorspronkelijke tarief waartegen de prijs berekend is (`order_items.vat_rate`). Bij binnenlandse verkoop zijn beide toevallig gelijk, dus viel het nooit op. Bij een nultarief-regime werd er niets afgetrokken en bleef de btw stilzwijgend in de grondslag zitten.
+
+**Fix:** header-totalen en `invoice_lines` gebruiken nu het originele item-tarief (`order_items.vat_rate`, fallback tenant `tax_percentage`) als deler voor de netto-omrekening, en het resolver-tarief enkel nog om de werkelijk verschuldigde btw te berekenen en op de factuur te tonen. Binnenlandse facturen (origineel tarief gelijk aan resolver-tarief) blijven byte-identiek aan de oude logica — geverifieerd via codelezing. Verlegging/OSS/export-facturen worden voortaan correct berekend; dit trof platform-breed nog nooit een andere factuur dan de hieronder genoemde.
+
+**Herstel order VanXcel #1168** (De Run Trading BV, geldig VIES-geverifieerd NL-btw-nummer, intracommunautaire verlegging): klantrecord en order-koppeling rechtgezet (`customer_type` b2b, `vat_verified`), creditnota CN-2026-0005 aangemaakt tegen de oorspronkelijke foute INV-2026-0160 (interne boeking, niet naar klant gemaild — klant had het origineel nooit ontvangen, `sent_at` was null), twee tussentijdse pogingen (INV-2026-0161 met resterende bug, daarna gecorrigeerd) op `cancelled` gezet, finale correcte factuur INV-2026-0162 aangemaakt (subtotal 135,21, btw 0,00, regime `ic_supply_goods`) en als enige mail naar info@deruntrading.nl verstuurd.
+
+**Bijkomende, kleine additieve uitbreiding** aan `generate-invoice` als onderdeel van deze herstelactie: `force_new` parameter (default false, geen gedragswijziging zonder deze vlag) om een nieuwe factuur te kunnen forceren wanneer een eerdere factuur op een order gecorrigeerd moet worden, en `override_regime` werkt nu ook op het gast-checkout-pad (`customer_id` null).
+
+**Les:** bij elke factuurberekening met `vatHandling` `inclusive` moet het oorspronkelijke productie-tarief (waartegen de brutoprijs ooit vastgesteld is) strikt gescheiden blijven van het fiscale tarief dat voor deze specifieke factuur geldt. Ze zijn alleen toevallig gelijk bij binnenlandse verkoop.
+
+---
+
 ## BILL-3 — process-refund opschonen — 25 augustus 2026
 
 **Status: code klaar, NIET gedeployed.** Eén functie: `process-refund`. Er is geen `_shared`-bestand
