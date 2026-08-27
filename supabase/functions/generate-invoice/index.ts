@@ -1725,9 +1725,11 @@ serve(async (req) => {
       if (shippingCost > 0) {
         const shipRegime = perLineRegime[orderItems.length];
         const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
-        const shipDivisor = vatHandling === 'inclusive' && shipRate > 0 ? (1 + shipRate / 100) : 1;
+        // Shipping has no stored original rate -> tenant default rate is its original rate.
+        const shipOrigRate = Number(taxPercent);
+        const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
         const netShippingCost = shippingCost / shipDivisor;
-        const shippingVatAmount = vatHandling === 'inclusive'
+        const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
           ? shippingCost - netShippingCost
           : netShippingCost * (shipRate / 100);
         invoiceLines.push({
