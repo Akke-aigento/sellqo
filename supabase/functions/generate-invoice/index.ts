@@ -1555,9 +1555,9 @@ serve(async (req) => {
       perLineRegime = regimeLines.map((_l, idx) => ({
         line_index: idx,
         vat_regime: regime,
-        vat_box_code: regime === 'oss_b2c_eu' ? '' : (REGIME_TO_BOX[regime] || ''),
+        vat_box_code: regime === 'oss_b2c_eu' ? '' : ((REGIME_TO_BOX as Record<string, string>)[regime] || ''),
         vat_rate: guestRate,
-        gl_account_code: REGIME_TO_GL[regime] || '700000',
+        gl_account_code: (REGIME_TO_GL as Record<string, string>)[regime] || '700000',
       }));
       logStep("VAT regime resolved (guest)", { regime, country: guestCountry, warnings });
     }
