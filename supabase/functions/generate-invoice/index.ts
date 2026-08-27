@@ -1350,131 +1350,37 @@ serve(async (req) => {
       });
     }
 
-    // Calculate tax breakdown for multi-rate support - adjust for inclusive pricing
+    // Baseline display values (used as-is only when there is no resolver outcome).
     const adjustedOrderItems = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
       ? (orderItems || []).map(item => ({
           ...item,
-          // Recalculate unit_price to be net of VAT
           unit_price: Number(item.unit_price) / (1 + vatCalculation.vatRate / 100),
           total_price: Number(item.total_price) / (1 + vatCalculation.vatRate / 100),
         }))
       : orderItems || [];
-    
-    const taxBreakdown = calculateTaxBreakdown(adjustedOrderItems, vatCalculation);
-
-    logStep("VAT calculated", { ...vatCalculation, vatHandling });
-
-    const isB2B = customer?.customer_type === 'b2b';
-    
-    // Generate OGM (Belgian structured communication)
-    const ogmReference = generateOGM(invoiceNumber);
-    logStep("OGM generated", { ogmReference });
 
     // For the PDF display: show pre-discount product subtotal, then discount line
-    // subtotalExcl already has discount subtracted; we need the pre-discount value for display
     const productSubtotalForDisplay = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
       ? (orderSubtotal + shippingCost) / (1 + vatCalculation.vatRate / 100) - (shippingCost / (1 + vatCalculation.vatRate / 100))
       : orderSubtotal;
-    
-    // Discount net amount (for exclusive: same as discountAmount; for inclusive: back-calculate)
+
     const discountAmountNet = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
       ? discountAmount / (1 + vatCalculation.vatRate / 100)
       : discountAmount;
 
-    const invoiceData = {
-      invoiceNumber,
-      issueDate,
-      dueDate,
-      currency,
-      tenant,
-      customer,
-      order,
-      orderItems: adjustedOrderItems,
-      invoiceLines: [], // Will be populated from invoice_lines table in future
-      subtotal: productSubtotalForDisplay, // Product subtotal (net, before discount)
-      taxAmount: calculatedTaxAmount,
-      total: finalTotal,
-      shippingCost: vatHandling === 'inclusive' && vatCalculation.vatRate > 0
-        ? shippingCost / (1 + vatCalculation.vatRate / 100)
-        : shippingCost,
-      discountAmount: discountAmountNet,
-      discountCode,
-      vatCalculation: {
-        ...vatCalculation,
-        vatAmount: calculatedTaxAmount, // Use recalculated amount
-      },
-      taxBreakdown,
-      ogmReference,
-      isB2B,
-    };
+    // NOTE (PDF-SOT-1): the provisional calculateVat() result above is kept ONLY for
+    // metadata (taxCategoryCode + vatText for the "BTW-vermelding" on the PDF) and for the
+    // guest fallback. All AMOUNTS on the PDF/CII/UBL and in the database come from the
+    // single re-derive block below, which now runs BEFORE document generation.
 
-    let pdfUrl = null;
-    let ublUrl = null;
+    logStep("VAT calculated (provisional metadata)", { ...vatCalculation, vatHandling });
 
-    // Generate true Factur-X PDF with embedded CII XML
-    logStep("Generating Factur-X PDF with embedded XML");
-    const { pdfBytes, ciiXml } = await generateFacturXPDF(invoiceData);
-    
-    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
-    
-    const { error: uploadError } = await supabaseClient.storage
-      .from("invoices")
-      .upload(pdfPath, pdfBytes, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
 
-    if (!uploadError) {
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from("invoices")
-        .getPublicUrl(pdfPath);
-      pdfUrl = publicUrl;
-      logStep("Factur-X PDF uploaded", { pdfUrl });
-    } else {
-      logStep("PDF upload error", { error: uploadError.message });
-    }
+    const isB2B = customer?.customer_type === 'b2b';
 
-    // Also save standalone CII XML for reference/debugging
-    const ciiPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
-    
-    await supabaseClient.storage
-      .from("invoices")
-      .upload(ciiPath, new Blob([ciiXml], { type: 'application/xml' }), {
-        contentType: 'application/xml',
-        upsert: true,
-      });
-    logStep("CII XML uploaded as reference file");
-
-    // Generate UBL XML for Peppol (always for B2B, or if explicitly requested)
-    const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
-    const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
-    
-    let ublPath: string | null = null;
-    // Always generate UBL for Odoo / Peppol compatibility — attached to every invoice email
-    if (true) {
-      logStep("Generating UBL XML for Peppol");
-      const ublXml = generateUBL(invoiceData);
-      
-      ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
-      
-      const { error: ublUploadError } = await supabaseClient.storage
-        .from("invoices")
-        .upload(ublPath, new Blob([ublXml], { type: 'application/xml' }), {
-          contentType: 'application/xml',
-          upsert: true,
-        });
-
-      if (!ublUploadError) {
-        const { data: { publicUrl } } = supabaseClient.storage
-          .from("invoices")
-          .getPublicUrl(ublPath);
-        ublUrl = publicUrl;
-        logStep("UBL XML uploaded", { ublUrl });
-      }
-    }
-
-    // Determine Peppol status (canonical vocabulary)
-    const peppolStatus = peppolRequired ? 'pending' : 'not_applicable';
+    // Generate OGM (Belgian structured communication)
+    const ogmReference = generateOGM(invoiceNumber);
+    logStep("OGM generated", { ogmReference });
 
     // ---- VAT-regime resolution (canonical engine) ----
     // Safe: any failure falls back to domestic_standard so invoicing never breaks.
@@ -1586,6 +1492,14 @@ serve(async (req) => {
     // The ORIGINAL rate at which the gross prices were computed lives on order_items.vat_rate
     // and is the only correct divisor for gross -> net conversion. Confusing the two silently
     // left VAT inside the taxable base for 0%-regimes (reverse charge / export).
+    // Display values for PDF/CII/UBL (net where applicable).
+    let displayOrderItems: any[] = adjustedOrderItems;
+    let displayShipping = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? shippingCost / (1 + vatCalculation.vatRate / 100)
+      : shippingCost;
+    let displayDiscount = discountAmountNet;
+    let displaySubtotal = productSubtotalForDisplay;
+
     if (perLineRegime.length > 0) {
       const resolverRate = perLineRegime[0].vat_rate;
       vatCalculation.vatRate = resolverRate;
@@ -1635,17 +1549,18 @@ serve(async (req) => {
           finalTotal = subtotalExcl + calculatedTaxAmount;
 
           // Keep PDF/UBL display consistent with the net base derived above.
-          invoiceData.orderItems = (orderItems || []).map((it: Record<string, unknown>, i: number) => {
+          displayOrderItems = (orderItems || []).map((it: Record<string, unknown>, i: number) => {
             const r = origRates[i] ?? Number(taxPercent);
             const div = r > 0 ? 1 + r / 100 : 1;
             return {
               ...it,
               unit_price: (Number(it.unit_price) || 0) / div,
               total_price: (Number(it.total_price) || 0) / div,
+              vat_rate: resolverRate,
             };
           });
-          invoiceData.shippingCost = netShipping;
-          invoiceData.discountAmount = netDiscount;
+          displayShipping = netShipping;
+          displayDiscount = netDiscount;
         }
       } else {
         subtotalExcl = orderSubtotal + shippingCost - discountAmount;
@@ -1655,19 +1570,212 @@ serve(async (req) => {
       // Keep PDF/UBL display consistent with resolver outcome.
       vatCalculation.vatAmount = calculatedTaxAmount;
       if (vatHandling === 'inclusive' && uniformOrigRate !== null && uniformOrigRate === resolverRate) {
-        invoiceData.subtotal = resolverRate > 0
+        displaySubtotal = resolverRate > 0
           ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
           : orderSubtotal;
       } else if (vatHandling === 'inclusive') {
-        invoiceData.subtotal = subtotalExcl + (Number(invoiceData.discountAmount) || 0) - (Number(invoiceData.shippingCost) || 0);
+        displaySubtotal = subtotalExcl + displayDiscount - displayShipping;
       } else {
-        invoiceData.subtotal = orderSubtotal;
+        displaySubtotal = orderSubtotal;
       }
-      invoiceData.taxAmount = calculatedTaxAmount;
-      invoiceData.total = finalTotal;
-      invoiceData.vatCalculation = { ...invoiceData.vatCalculation, vatRate: resolverRate, vatAmount: calculatedTaxAmount };
       logStep("Totals re-derived from resolver", { resolverRate, uniformOrigRate, subtotalExcl, calculatedTaxAmount, finalTotal });
     }
+
+    // ---- Single source of truth: definitive invoice lines ----
+    // Built ONCE here, used for (a) the PDF/CII/UBL tax breakdown and (b) the
+    // invoice_lines INSERT further down. No recalculation anywhere else.
+    type DefinitiveLine = {
+      description: string;
+      quantity: number;
+      unit_price: number;
+      line_total: number;
+      vat_rate: number;
+      vat_category: string;
+      vat_amount: number;
+      line_type: string;
+      product_id: string | null;
+      sort_order: number;
+      vat_box_code?: string;
+      gl_account_code?: string;
+    };
+
+    const definitiveLines: DefinitiveLine[] = (orderItems || []).map((item, index) => {
+      const originalUnitPrice = Number(item.unit_price) || 0;
+      const originalLineTotal = Number(item.total_price) || 0;
+
+      const lineRegime = perLineRegime[index];
+      // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
+      // order_item is what the gross price was computed with and is the only valid divisor.
+      const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
+      const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
+        ? Number(taxPercent)
+        : Number(item.vat_rate);
+      const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
+      const netUnitPrice = originalUnitPrice / lineDivisor;
+      const netLineTotal = originalLineTotal / lineDivisor;
+      const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
+        ? originalLineTotal - netLineTotal
+        : netLineTotal * (lineRate / 100);
+
+      return {
+        description: item.product_name,
+        quantity: item.quantity,
+        unit_price: netUnitPrice,
+        line_total: netLineTotal,
+        vat_rate: lineRate,
+        vat_category: vatCalculation.taxCategoryCode,
+        vat_amount: lineVatAmount,
+        line_type: 'product',
+        product_id: item.product_id ?? null,
+        sort_order: index,
+        ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
+        ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
+      };
+    });
+
+    if (shippingCost > 0) {
+      const shipRegime = perLineRegime[(orderItems || []).length];
+      const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
+      // Shipping has no stored original rate -> tenant default rate is its original rate.
+      const shipOrigRate = Number(taxPercent);
+      const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
+      const netShippingCost = shippingCost / shipDivisor;
+      const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
+        ? shippingCost - netShippingCost
+        : netShippingCost * (shipRate / 100);
+      definitiveLines.push({
+        description: 'Verzendkosten',
+        quantity: 1,
+        unit_price: netShippingCost,
+        line_total: netShippingCost,
+        vat_rate: shipRate,
+        vat_category: vatCalculation.taxCategoryCode,
+        vat_amount: shippingVatAmount,
+        line_type: 'shipping',
+        product_id: null,
+        sort_order: (orderItems || []).length,
+        ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
+        ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
+      });
+    }
+
+    // Tax breakdown for PDF/CII/UBL — built from the definitive lines, so it uses the
+    // RESOLVER rate per line (not order_items.vat_rate) and the already-computed vat_amount.
+    const breakdownMap = new Map<string, TaxBreakdownLine>();
+    for (const line of definitiveLines) {
+      const key = `${line.vat_rate}-${line.vat_category}`;
+      const existing = breakdownMap.get(key) || {
+        vatRate: line.vat_rate,
+        vatCategory: line.vat_category,
+        taxableAmount: 0,
+        vatAmount: 0,
+      };
+      existing.taxableAmount += line.line_total;
+      existing.vatAmount += line.vat_amount;
+      breakdownMap.set(key, existing);
+    }
+    const taxBreakdown: TaxBreakdownLine[] = breakdownMap.size > 0
+      ? Array.from(breakdownMap.values()).sort((a, b) => b.vatRate - a.vatRate)
+      : [{
+          vatRate: vatCalculation.vatRate,
+          vatCategory: vatCalculation.taxCategoryCode,
+          taxableAmount: subtotalExcl,
+          vatAmount: calculatedTaxAmount,
+        }];
+
+    const invoiceData = {
+      invoiceNumber,
+      issueDate,
+      dueDate,
+      currency,
+      tenant,
+      customer,
+      order,
+      orderItems: displayOrderItems,
+      invoiceLines: [], // PDF item table renders orderItems; shipping/discount are total lines
+      subtotal: displaySubtotal, // Product subtotal (net, before discount)
+      taxAmount: calculatedTaxAmount,
+      total: finalTotal,
+      shippingCost: displayShipping,
+      discountAmount: displayDiscount,
+      discountCode,
+      vatCalculation: {
+        ...vatCalculation,
+        vatAmount: calculatedTaxAmount,
+      },
+      taxBreakdown,
+      ogmReference,
+      isB2B,
+    };
+
+    let pdfUrl = null;
+    let ublUrl = null;
+
+    // Generate true Factur-X PDF with embedded CII XML (now AFTER the re-derive block)
+    logStep("Generating Factur-X PDF with embedded XML");
+    const { pdfBytes, ciiXml } = await generateFacturXPDF(invoiceData);
+
+    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from("invoices")
+      .upload(pdfPath, pdfBytes, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+
+    if (!uploadError) {
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from("invoices")
+        .getPublicUrl(pdfPath);
+      pdfUrl = publicUrl;
+      logStep("Factur-X PDF uploaded", { pdfUrl });
+    } else {
+      logStep("PDF upload error", { error: uploadError.message });
+    }
+
+    // Also save standalone CII XML for reference/debugging
+    const ciiPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
+
+    await supabaseClient.storage
+      .from("invoices")
+      .upload(ciiPath, new Blob([ciiXml], { type: 'application/xml' }), {
+        contentType: 'application/xml',
+        upsert: true,
+      });
+    logStep("CII XML uploaded as reference file");
+
+    // Generate UBL XML for Peppol (always for B2B, or if explicitly requested)
+    const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
+    const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
+
+    let ublPath: string | null = null;
+    // Always generate UBL for Odoo / Peppol compatibility — attached to every invoice email
+    if (true) {
+      logStep("Generating UBL XML for Peppol");
+      const ublXml = generateUBL(invoiceData);
+
+      ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
+
+      const { error: ublUploadError } = await supabaseClient.storage
+        .from("invoices")
+        .upload(ublPath, new Blob([ublXml], { type: 'application/xml' }), {
+          contentType: 'application/xml',
+          upsert: true,
+        });
+
+      if (!ublUploadError) {
+        const { data: { publicUrl } } = supabaseClient.storage
+          .from("invoices")
+          .getPublicUrl(ublPath);
+        ublUrl = publicUrl;
+        logStep("UBL XML uploaded", { ublUrl });
+      }
+    }
+
+    // Determine Peppol status (canonical vocabulary)
+    const peppolStatus = peppolRequired ? 'pending' : 'not_applicable';
+
 
 
     // Create invoice record - use recalculated values
@@ -1703,77 +1811,21 @@ serve(async (req) => {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
 
-    // Create invoice lines for tracking - use net prices for inclusive VAT
-    if (orderItems && orderItems.length > 0) {
-      const invoiceLines = orderItems.map((item, index) => {
-        const originalUnitPrice = Number(item.unit_price);
-        const originalLineTotal = Number(item.total_price);
+    // Create invoice lines — SAME array that fed the PDF/CII/UBL (no recalculation).
+    if (definitiveLines.length > 0) {
+      const invoiceLines = definitiveLines.map((line) => ({ invoice_id: invoice.id, ...line }));
 
-        const lineRegime = perLineRegime[index];
-        // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
-        // order_item is what the gross price was computed with and is the only valid divisor.
-        const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
-        const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
-          ? Number(taxPercent)
-          : Number(item.vat_rate);
-        const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
-        const netUnitPrice = originalUnitPrice / lineDivisor;
-        const netLineTotal = originalLineTotal / lineDivisor;
-        const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
-          ? originalLineTotal - netLineTotal
-          : netLineTotal * (lineRate / 100);
-
-        return {
-          invoice_id: invoice.id,
-          description: item.product_name,
-          quantity: item.quantity,
-          unit_price: netUnitPrice,
-          line_total: netLineTotal,
-          vat_rate: lineRate,
-          vat_category: vatCalculation.taxCategoryCode,
-          vat_amount: lineVatAmount,
-          line_type: 'product',
-          product_id: item.product_id,
-          sort_order: index,
-          ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
-          ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
-        };
-      });
-
-      // Add shipping line if applicable - also convert for inclusive VAT
-      if (shippingCost > 0) {
-        const shipRegime = perLineRegime[orderItems.length];
-        const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
-        // Shipping has no stored original rate -> tenant default rate is its original rate.
-        const shipOrigRate = Number(taxPercent);
-        const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
-        const netShippingCost = shippingCost / shipDivisor;
-        const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
-          ? shippingCost - netShippingCost
-          : netShippingCost * (shipRate / 100);
-        invoiceLines.push({
-          invoice_id: invoice.id,
-          description: 'Verzendkosten',
-          quantity: 1,
-          unit_price: netShippingCost,
-          line_total: netShippingCost,
-          vat_rate: shipRate,
-          vat_category: vatCalculation.taxCategoryCode,
-          vat_amount: shippingVatAmount,
-          line_type: 'shipping',
-          product_id: null,
-          sort_order: orderItems.length,
-          ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
-          ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
-        });
-      }
-
-      await supabaseClient
+      const { error: linesError } = await supabaseClient
         .from("invoice_lines")
         .insert(invoiceLines);
-      
+
+      if (linesError) {
+        logStep("Invoice lines insert error", { error: linesError.message });
+      }
+
       logStep("Invoice lines created", { count: invoiceLines.length, vatHandling });
     }
+
 
     // Archive the invoice for 7-year retention (Belgian legal requirement)
     logStep("Archiving invoice for 7-year retention");
