@@ -1350,12 +1350,31 @@ serve(async (req) => {
       });
     }
 
+    // Baseline display values (used as-is only when there is no resolver outcome).
+    const adjustedOrderItems = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? (orderItems || []).map(item => ({
+          ...item,
+          unit_price: Number(item.unit_price) / (1 + vatCalculation.vatRate / 100),
+          total_price: Number(item.total_price) / (1 + vatCalculation.vatRate / 100),
+        }))
+      : orderItems || [];
+
+    // For the PDF display: show pre-discount product subtotal, then discount line
+    const productSubtotalForDisplay = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? (orderSubtotal + shippingCost) / (1 + vatCalculation.vatRate / 100) - (shippingCost / (1 + vatCalculation.vatRate / 100))
+      : orderSubtotal;
+
+    const discountAmountNet = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
+      ? discountAmount / (1 + vatCalculation.vatRate / 100)
+      : discountAmount;
+
     // NOTE (PDF-SOT-1): the provisional calculateVat() result above is kept ONLY for
     // metadata (taxCategoryCode + vatText for the "BTW-vermelding" on the PDF) and for the
     // guest fallback. All AMOUNTS on the PDF/CII/UBL and in the database come from the
     // single re-derive block below, which now runs BEFORE document generation.
 
     logStep("VAT calculated (provisional metadata)", { ...vatCalculation, vatHandling });
+
 
     const isB2B = customer?.customer_type === 'b2b';
 
