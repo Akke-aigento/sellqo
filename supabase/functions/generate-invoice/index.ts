@@ -1175,7 +1175,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email, override_regime } = await req.json();
+    const { order_id, auto_send_email, override_regime, force_new } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
@@ -1195,21 +1195,42 @@ serve(async (req) => {
     // Batch 2A1: role gate — admin/staff/accountant may generate invoices.
     requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "accountant"]);
 
-    const { data: existingInvoice } = await supabaseClient
-      .from("invoices")
-      .select("id")
-      .eq("order_id", order_id)
-      .single();
+    // CORRECTIE-1 — force_new: sla de "bestaat al"-early-return over en zet de
+    // bestaande factu(u)r(en) op 'cancelled' (de invoice_status-enum kent geen
+    // 'credited'; 'cancelled' is het dichtstbijzijnde bestaande equivalent).
+    // Zonder force_new is het gedrag byte-voor-byte ongewijzigd.
+    if (force_new === true) {
+      const { data: staleInvoices } = await supabaseClient
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("order_id", order_id);
 
-    if (existingInvoice) {
-      logStep("Invoice already exists", { invoice_id: existingInvoice.id });
-      return new Response(JSON.stringify({ 
-        success: true, 
-        invoice_id: existingInvoice.id,
-        message: "Invoice already exists" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (staleInvoices && staleInvoices.length > 0) {
+        await supabaseClient
+          .from("invoices")
+          .update({ status: "cancelled" })
+          .eq("order_id", order_id);
+        logStep("force_new — existing invoices marked cancelled", {
+          invoices: staleInvoices.map((i: { invoice_number: string }) => i.invoice_number),
+        });
+      }
+    } else {
+      const { data: existingInvoice } = await supabaseClient
+        .from("invoices")
+        .select("id")
+        .eq("order_id", order_id)
+        .single();
+
+      if (existingInvoice) {
+        logStep("Invoice already exists", { invoice_id: existingInvoice.id });
+        return new Response(JSON.stringify({ 
+          success: true, 
+          invoice_id: existingInvoice.id,
+          message: "Invoice already exists" 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { data: orderItems } = await supabaseClient
@@ -1506,26 +1527,37 @@ serve(async (req) => {
         'BE'
       ).toUpperCase();
       const t = tenant as Record<string, unknown>;
-      const { regime, warnings } = decideVatRegime({
-        customer_country: guestCountry,
-        tenant_country: (tenant.country || 'BE') as string,
-        is_b2b: (order as { customer_type?: string }).customer_type === 'b2b',
-        vies_valid: false,
-        oss_enabled: t.oss_enabled === true || t.apply_oss_rules === true,
-        oss_activation_date: (t.oss_activation_date as string | null) ?? (t.oss_registration_date as string | null) ?? null,
-        simplified_vat: t.simplified_vat_mode === true,
-        sales_channel: salesChannel,
-        order_date: String(order.created_at || new Date().toISOString()).slice(0, 10),
-        has_goods: true,
-      });
-      const guestRate = rateForRegime(regime, guestCountry);
+      // CORRECTIE-1 — een expliciet meegegeven override_regime is leidend, ook op
+      // de gast-tak. Zonder override_regime blijft het gedrag ongewijzigd.
+      let regime: string;
+      let warnings: string[] = [];
+      if (override_regime) {
+        regime = override_regime;
+        warnings = ['override_regime applied (guest order)'];
+      } else {
+        const decided = decideVatRegime({
+          customer_country: guestCountry,
+          tenant_country: (tenant.country || 'BE') as string,
+          is_b2b: (order as { customer_type?: string }).customer_type === 'b2b',
+          vies_valid: false,
+          oss_enabled: t.oss_enabled === true || t.apply_oss_rules === true,
+          oss_activation_date: (t.oss_activation_date as string | null) ?? (t.oss_registration_date as string | null) ?? null,
+          simplified_vat: t.simplified_vat_mode === true,
+          sales_channel: salesChannel,
+          order_date: String(order.created_at || new Date().toISOString()).slice(0, 10),
+          has_goods: true,
+        });
+        regime = decided.regime;
+        warnings = decided.warnings;
+      }
+      const guestRate = rateForRegime(regime as never, guestCountry);
       resolvedRegime = { vat_regime: regime, reporting_country: guestCountry };
       perLineRegime = regimeLines.map((_l, idx) => ({
         line_index: idx,
         vat_regime: regime,
-        vat_box_code: regime === 'oss_b2c_eu' ? '' : (REGIME_TO_BOX[regime] || ''),
+        vat_box_code: regime === 'oss_b2c_eu' ? '' : ((REGIME_TO_BOX as Record<string, string>)[regime] || ''),
         vat_rate: guestRate,
-        gl_account_code: REGIME_TO_GL[regime] || '700000',
+        gl_account_code: (REGIME_TO_GL as Record<string, string>)[regime] || '700000',
       }));
       logStep("VAT regime resolved (guest)", { regime, country: guestCountry, warnings });
     }
