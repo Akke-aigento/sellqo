@@ -1175,7 +1175,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email, override_regime, force_new } = await req.json();
+    const { order_id, auto_send_email, override_regime, force_new, vies_snapshot } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
@@ -1560,6 +1560,25 @@ serve(async (req) => {
         gl_account_code: (REGIME_TO_GL as Record<string, string>)[regime] || '700000',
       }));
       logStep("VAT regime resolved (guest)", { regime, country: guestCountry, warnings });
+    }
+
+    // BILL-VAT-VERIFY-2 — override_regime slaat de VIES-validatie in
+    // resolveVatRegime bewust over, dus vat_number_validated_{at,value} blijven
+    // leeg. De vat-report-engine degradeert zulke IC-facturen stil terug naar
+    // domestic_standard (met waarschuwing) — verkeerd aangiftevak. Wanneer de
+    // aanroeper een vies_snapshot { vat_number, validated_at } meestuurt, zetten
+    // we die hier op resolvedRegime, zodat ze op de invoice-rij terechtkomen.
+    // Zonder vies_snapshot blijft het gedrag exact zoals nu (leeg + vangnet).
+    if (override_regime && vies_snapshot && typeof vies_snapshot === 'object') {
+      const snap = vies_snapshot as { vat_number?: string; validated_at?: string };
+      if (snap.vat_number && snap.validated_at) {
+        resolvedRegime.vat_number_validated_at = snap.validated_at;
+        resolvedRegime.vat_number_validated_value = snap.vat_number;
+        logStep("vies_snapshot applied to override_regime invoice", {
+          vat_number: snap.vat_number,
+          validated_at: snap.validated_at,
+        });
+      }
     }
 
     // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
