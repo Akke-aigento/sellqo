@@ -26,8 +26,26 @@ Bijkomend gevonden in dezelfde functie: `tenantData?.default_vat_rate` verwees n
 **Les:** bij elke factuurberekening met `vatHandling` `inclusive` moet het oorspronkelijke productie-tarief (waartegen de brutoprijs ooit vastgesteld is) strikt gescheiden blijven van het fiscale tarief dat voor deze specifieke factuur geldt. Ze zijn alleen toevallig gelijk bij binnenlandse verkoop.
 
 **Aanvulling BILL-VAT-VERIFY-2 (zelfde dag):** INV-2026-0162 werd stil gedegradeerd naar `domestic_standard` in de vat-report-engine (`applyViesEnforcement` in `aggregator.ts`), omdat `override_regime` de VIES-check bewust oversloeg waardoor `vat_number_validated_at` leeg bleef. Rechtgezet met een verse, live VIES-hercontrole (NL817052811B01, geldig, De Run Trading B.V., Veldhoven, gevalideerd 2026-08-27T07:23:28Z) en direct op de factuurrij gezet. Structureel: `generate-invoice` kreeg een optionele `vies_snapshot`-parameter (`vat_number` + `validated_at`) die enkel effect heeft in combinatie met `override_regime`; zonder die combinatie blijft het bestaande vangnet-gedrag (leeg snapshot + waarschuwing in rapportage) intact. Les: elke toekomstige correctie via `override_regime` moet `vies_snapshot` meesturen als er een geldige VIES-controle aan ten grondslag ligt, anders belandt de factuur stil in het verkeerde aangiftevak.
-
+ 
 ---
+
+## BILL-VAT-VERIFY-3 — PDF/CII/UBL werden gegenereerd vóór de resolver-herberekening — 27 augustus 2026
+
+**Root cause:** `generate-invoice` genereerde het PDF, de CII-referentie-XML en de UBL VOORDAT het "Re-derive authoritative tax_amount"-blok draaide. Database en `invoice_lines` kregen wel de correcte, herberekende cijfers (insert gebeurt ná dat blok), maar het PDF-bestand zelf was al eerder gegenereerd en geüpload met de oudere, voorlopige `calculateVat`-cijfers. Voor INV-2026-0162 toonde het PDF hierdoor nog 21% btw en €163,60, terwijl database en Odoo al correct op 0% en €135,21 stonden. Bijkomend: `calculateTaxBreakdown` gebruikte per regel `order_items.vat_rate` (het originele productietarief) in plaats van het fiscale resolver-tarief, wat een losstaande foute BTW-regel op het PDF gaf, los van bovenstaand probleem.
+
+**Fix:** `generate-invoice` is herstructureerd zodat een eenmalige `definitiveLines`-array wordt opgebouwd ná de regime-resolutie en de re-derive-berekening, en zowel het PDF/CII/UBL als de `invoice_lines`-insert putten uit exact diezelfde array — één bron van waarheid. Bijkomend gefixt: de zichtbare BTW-regel op elke factuur met verzendkosten telde voorheen de btw over verzendkosten niet mee (totaal was altijd correct, enkel de onderliggende regel niet) — dat telt nu wel correct mee, voor alle tenants.
+
+Voor de correctie van INV-2026-0162 zelf is een aparte `regenerate_pdf_only`-modus toegevoegd aan `generate-invoice`: regenereert het PDF/UBL van een bestaande factuur op basis van de al-correcte `invoice_lines`, zonder een nieuwe factuur aan te maken en zonder `invoices` of `invoice_lines` te wijzigen — voorkomt onnodige documentophoping bij dit soort correcties. Tijdens het gebruik bleek `due_date` nergens opgeslagen te staan (wordt in de normale flow vers berekend als `issue_date` + 14 dagen, nooit gepersisteerd) — de `regenerate_pdf_only`-tak is aangepast om dezelfde berekening te gebruiken in plaats van een niet-bestaande opgeslagen waarde.
+
+**Verificatie:** het definitieve PDF is onafhankelijk geverifieerd via `pdftotext` op het effectief gegenereerde bestand (niet enkel het agent-rapport): subtotaal en totaal €135,21, btw 0%, correcte verleggingstekst art. 138, vervaldatum 2026-09-10. Daarna is de enige, definitieve factuurmail verstuurd naar info@deruntrading.nl (`sent_at` bevestigd via SQL).
+
+**Security-keuzes:** n.v.t. — geen RLS, policies of grants geraakt. Enkel de interne berekeningsvolgorde in een platform-edge-function.
+
+**Gedeelde-paden-waarschuwing:** `generate-invoice` is een gedeelde edge-function, maar de wijziging is strikt intern (herordening van stappen + één bron van waarheid) zonder wijziging aan het extern contract of aan de gedeelde tabellen. Geen custom-frontend raakt het PDF-generatiepad.
+
+**Bewust ongemoeid / Vervolg:** geen wijziging aan `resolveVatRegime` zelf; de `vies_snapshot`/`override_regime`-parameters uit BILL-VAT-VERIFY-2 blijven ongewijzigd. Open: geen — INV-2026-0162 is definitief gecorrigeerd.
+
+**Les:** bij elke functie die zowel een database-rij als een extern document (PDF, XML) opbouwt uit dezelfde brongegevens, moet er een enkele bron van waarheid zijn die voor beide gebruikt wordt — twee keer dezelfde berekening uitschrijven op verschillende plekken in dezelfde functie is een gegarandeerde drift-bug zodra er een correctie op een van de twee plekken landt zonder de andere.
 
 ## BILL-3 — process-refund opschonen — 25 augustus 2026
 
