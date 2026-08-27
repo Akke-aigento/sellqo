@@ -25,6 +25,8 @@ Bijkomend gevonden in dezelfde functie: `tenantData?.default_vat_rate` verwees n
 
 **Les:** bij elke factuurberekening met `vatHandling` `inclusive` moet het oorspronkelijke productie-tarief (waartegen de brutoprijs ooit vastgesteld is) strikt gescheiden blijven van het fiscale tarief dat voor deze specifieke factuur geldt. Ze zijn alleen toevallig gelijk bij binnenlandse verkoop.
 
+**Aanvulling BILL-VAT-VERIFY-2 (zelfde dag):** INV-2026-0162 werd stil gedegradeerd naar `domestic_standard` in de vat-report-engine (`applyViesEnforcement` in `aggregator.ts`), omdat `override_regime` de VIES-check bewust oversloeg waardoor `vat_number_validated_at` leeg bleef. Rechtgezet met een verse, live VIES-hercontrole (NL817052811B01, geldig, De Run Trading B.V., Veldhoven, gevalideerd 2026-08-27T07:23:28Z) en direct op de factuurrij gezet. Structureel: `generate-invoice` kreeg een optionele `vies_snapshot`-parameter (`vat_number` + `validated_at`) die enkel effect heeft in combinatie met `override_regime`; zonder die combinatie blijft het bestaande vangnet-gedrag (leeg snapshot + waarschuwing in rapportage) intact. Les: elke toekomstige correctie via `override_regime` moet `vies_snapshot` meesturen als er een geldige VIES-controle aan ten grondslag ligt, anders belandt de factuur stil in het verkeerde aangiftevak.
+
 ---
 
 ## BILL-3 — process-refund opschonen — 25 augustus 2026
