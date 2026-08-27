@@ -1811,77 +1811,21 @@ serve(async (req) => {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
 
-    // Create invoice lines for tracking - use net prices for inclusive VAT
-    if (orderItems && orderItems.length > 0) {
-      const invoiceLines = orderItems.map((item, index) => {
-        const originalUnitPrice = Number(item.unit_price);
-        const originalLineTotal = Number(item.total_price);
+    // Create invoice lines — SAME array that fed the PDF/CII/UBL (no recalculation).
+    if (definitiveLines.length > 0) {
+      const invoiceLines = definitiveLines.map((line) => ({ invoice_id: invoice.id, ...line }));
 
-        const lineRegime = perLineRegime[index];
-        // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
-        // order_item is what the gross price was computed with and is the only valid divisor.
-        const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
-        const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
-          ? Number(taxPercent)
-          : Number(item.vat_rate);
-        const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
-        const netUnitPrice = originalUnitPrice / lineDivisor;
-        const netLineTotal = originalLineTotal / lineDivisor;
-        const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
-          ? originalLineTotal - netLineTotal
-          : netLineTotal * (lineRate / 100);
-
-        return {
-          invoice_id: invoice.id,
-          description: item.product_name,
-          quantity: item.quantity,
-          unit_price: netUnitPrice,
-          line_total: netLineTotal,
-          vat_rate: lineRate,
-          vat_category: vatCalculation.taxCategoryCode,
-          vat_amount: lineVatAmount,
-          line_type: 'product',
-          product_id: item.product_id,
-          sort_order: index,
-          ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
-          ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
-        };
-      });
-
-      // Add shipping line if applicable - also convert for inclusive VAT
-      if (shippingCost > 0) {
-        const shipRegime = perLineRegime[orderItems.length];
-        const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
-        // Shipping has no stored original rate -> tenant default rate is its original rate.
-        const shipOrigRate = Number(taxPercent);
-        const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
-        const netShippingCost = shippingCost / shipDivisor;
-        const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
-          ? shippingCost - netShippingCost
-          : netShippingCost * (shipRate / 100);
-        invoiceLines.push({
-          invoice_id: invoice.id,
-          description: 'Verzendkosten',
-          quantity: 1,
-          unit_price: netShippingCost,
-          line_total: netShippingCost,
-          vat_rate: shipRate,
-          vat_category: vatCalculation.taxCategoryCode,
-          vat_amount: shippingVatAmount,
-          line_type: 'shipping',
-          product_id: null,
-          sort_order: orderItems.length,
-          ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
-          ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
-        });
-      }
-
-      await supabaseClient
+      const { error: linesError } = await supabaseClient
         .from("invoice_lines")
         .insert(invoiceLines);
-      
+
+      if (linesError) {
+        logStep("Invoice lines insert error", { error: linesError.message });
+      }
+
       logStep("Invoice lines created", { count: invoiceLines.length, vatHandling });
     }
+
 
     // Archive the invoice for 7-year retention (Belgian legal requirement)
     logStep("Archiving invoice for 7-year retention");
