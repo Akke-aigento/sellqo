@@ -3321,7 +3321,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Get cart
   const { data: cart, error: cartError } = await supabase
     .from('storefront_carts')
-    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, payment_method, currency, discount_codes, locale')
+    .select('id, tenant_id, checkout_status, stripe_session_id, customer_email, customer_first_name, customer_last_name, customer_phone, shipping_address, billing_address, shipping_method_id, shipping_cost, discount_amount, payment_method, currency, discount_codes, locale, is_b2b, customer_vat_verified, customer_vat_country, customer_vat_number')
     .eq('id', cartId)
     .eq('tenant_id', tenantId)
     .single();
@@ -3401,10 +3401,10 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   const grossSubtotal = processedItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
   const { data: tenantData } = await supabase
-    .from('tenants').select('default_vat_rate, currency, name')
+    .from('tenants').select('tax_percentage, currency, name')
     .eq('id', tenantId).single();
 
-  const tenantDefaultRate = Number(tenantData?.default_vat_rate) || 21;
+  const tenantDefaultRate = Number(tenantData?.tax_percentage) || 21;
   const grossShipping = Number(cart.shipping_cost) || 0;
   const discountAmount = Number(cart.discount_amount) || 0;
 
