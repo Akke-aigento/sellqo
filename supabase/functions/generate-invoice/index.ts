@@ -1563,19 +1563,70 @@ serve(async (req) => {
     }
 
     // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
-    // The resolver is the source of truth for VAT rates (handles overrides, IC, export).
-    // We recompute totals here so they match what the resolver decided.
+    // The resolver is the source of truth for the FISCAL rate (handles overrides, IC, export).
+    // The ORIGINAL rate at which the gross prices were computed lives on order_items.vat_rate
+    // and is the only correct divisor for gross -> net conversion. Confusing the two silently
+    // left VAT inside the taxable base for 0%-regimes (reverse charge / export).
     if (perLineRegime.length > 0) {
       const resolverRate = perLineRegime[0].vat_rate;
       vatCalculation.vatRate = resolverRate;
+
+      // Original rates of the order lines (fallback: tenant default). Shipping has no own
+      // stored rate, so the tenant default rate is used as its original rate.
+      const origRates: number[] = (orderItems || []).map((it: { vat_rate?: number | null }) =>
+        it.vat_rate === null || it.vat_rate === undefined ? Number(taxPercent) : Number(it.vat_rate)
+      );
+      if (shippingCost > 0) origRates.push(Number(taxPercent));
+      const uniformOrigRate = origRates.length > 0 && origRates.every(r => r === origRates[0])
+        ? origRates[0]
+        : null;
+
       if (vatHandling === 'inclusive') {
         finalTotal = orderSubtotal + shippingCost - discountAmount;
-        if (resolverRate === 0) {
-          subtotalExcl = finalTotal;
-          calculatedTaxAmount = 0;
+        if (uniformOrigRate !== null && uniformOrigRate === resolverRate) {
+          // Domestic case: original rate == fiscal rate -> keep the historical arithmetic
+          // byte-for-byte identical.
+          if (resolverRate === 0) {
+            subtotalExcl = finalTotal;
+            calculatedTaxAmount = 0;
+          } else {
+            subtotalExcl = finalTotal / (1 + resolverRate / 100);
+            calculatedTaxAmount = finalTotal - subtotalExcl;
+          }
         } else {
-          subtotalExcl = finalTotal / (1 + resolverRate / 100);
-          calculatedTaxAmount = finalTotal - subtotalExcl;
+          // Regime differs from the original rate: strip VAT with the ORIGINAL rate,
+          // then apply the FISCAL rate on the net base.
+          let netProducts = 0;
+          (orderItems || []).forEach((it: { total_price?: number | null }, i: number) => {
+            const r = origRates[i] ?? Number(taxPercent);
+            const gross = Number(it.total_price) || 0;
+            netProducts += r > 0 ? gross / (1 + r / 100) : gross;
+          });
+          const shipOrig = Number(taxPercent);
+          const netShipping = shippingCost > 0 && shipOrig > 0
+            ? shippingCost / (1 + shipOrig / 100)
+            : shippingCost;
+          const grossBase = orderSubtotal + shippingCost;
+          const netBase = netProducts + netShipping;
+          const netDiscount = discountAmount > 0 && grossBase > 0
+            ? discountAmount * (netBase / grossBase)
+            : discountAmount;
+          subtotalExcl = netBase - netDiscount;
+          calculatedTaxAmount = resolverRate === 0 ? 0 : subtotalExcl * (resolverRate / 100);
+          finalTotal = subtotalExcl + calculatedTaxAmount;
+
+          // Keep PDF/UBL display consistent with the net base derived above.
+          invoiceData.orderItems = (orderItems || []).map((it: Record<string, unknown>, i: number) => {
+            const r = origRates[i] ?? Number(taxPercent);
+            const div = r > 0 ? 1 + r / 100 : 1;
+            return {
+              ...it,
+              unit_price: (Number(it.unit_price) || 0) / div,
+              total_price: (Number(it.total_price) || 0) / div,
+            };
+          });
+          invoiceData.shippingCost = netShipping;
+          invoiceData.discountAmount = netDiscount;
         }
       } else {
         subtotalExcl = orderSubtotal + shippingCost - discountAmount;
@@ -1584,14 +1635,21 @@ serve(async (req) => {
       }
       // Keep PDF/UBL display consistent with resolver outcome.
       vatCalculation.vatAmount = calculatedTaxAmount;
-      invoiceData.subtotal = vatHandling === 'inclusive' && resolverRate > 0
-        ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
-        : orderSubtotal;
+      if (vatHandling === 'inclusive' && uniformOrigRate !== null && uniformOrigRate === resolverRate) {
+        invoiceData.subtotal = resolverRate > 0
+          ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
+          : orderSubtotal;
+      } else if (vatHandling === 'inclusive') {
+        invoiceData.subtotal = subtotalExcl + (Number(invoiceData.discountAmount) || 0) - (Number(invoiceData.shippingCost) || 0);
+      } else {
+        invoiceData.subtotal = orderSubtotal;
+      }
       invoiceData.taxAmount = calculatedTaxAmount;
       invoiceData.total = finalTotal;
       invoiceData.vatCalculation = { ...invoiceData.vatCalculation, vatRate: resolverRate, vatAmount: calculatedTaxAmount };
-      logStep("Totals re-derived from resolver", { resolverRate, subtotalExcl, calculatedTaxAmount, finalTotal });
+      logStep("Totals re-derived from resolver", { resolverRate, uniformOrigRate, subtotalExcl, calculatedTaxAmount, finalTotal });
     }
+
 
     // Create invoice record - use recalculated values
     const { data: invoice, error: invoiceError } = await supabaseClient
@@ -1633,14 +1691,19 @@ serve(async (req) => {
         const originalLineTotal = Number(item.total_price);
 
         const lineRegime = perLineRegime[index];
-        // Resolver rate is authoritative; legacy vatCalculation only used as fallback.
+        // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
+        // order_item is what the gross price was computed with and is the only valid divisor.
         const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
-        const lineDivisor = vatHandling === 'inclusive' && lineRate > 0 ? (1 + lineRate / 100) : 1;
+        const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
+          ? Number(taxPercent)
+          : Number(item.vat_rate);
+        const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
         const netUnitPrice = originalUnitPrice / lineDivisor;
         const netLineTotal = originalLineTotal / lineDivisor;
-        const lineVatAmount = vatHandling === 'inclusive'
+        const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
           ? originalLineTotal - netLineTotal
           : netLineTotal * (lineRate / 100);
+
         return {
           invoice_id: invoice.id,
           description: item.product_name,
@@ -1662,9 +1725,11 @@ serve(async (req) => {
       if (shippingCost > 0) {
         const shipRegime = perLineRegime[orderItems.length];
         const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
-        const shipDivisor = vatHandling === 'inclusive' && shipRate > 0 ? (1 + shipRate / 100) : 1;
+        // Shipping has no stored original rate -> tenant default rate is its original rate.
+        const shipOrigRate = Number(taxPercent);
+        const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
         const netShippingCost = shippingCost / shipDivisor;
-        const shippingVatAmount = vatHandling === 'inclusive'
+        const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
           ? shippingCost - netShippingCost
           : netShippingCost * (shipRate / 100);
         invoiceLines.push({
