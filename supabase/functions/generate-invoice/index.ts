@@ -1175,7 +1175,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { order_id, auto_send_email, override_regime } = await req.json();
+    const { order_id, auto_send_email, override_regime, force_new } = await req.json();
     if (!order_id) {
       throw new Error("order_id is required");
     }
@@ -1195,21 +1195,42 @@ serve(async (req) => {
     // Batch 2A1: role gate — admin/staff/accountant may generate invoices.
     requireRole(auth, order.tenant_id, ["tenant_admin", "staff", "accountant"]);
 
-    const { data: existingInvoice } = await supabaseClient
-      .from("invoices")
-      .select("id")
-      .eq("order_id", order_id)
-      .single();
+    // CORRECTIE-1 — force_new: sla de "bestaat al"-early-return over en zet de
+    // bestaande factu(u)r(en) op 'cancelled' (de invoice_status-enum kent geen
+    // 'credited'; 'cancelled' is het dichtstbijzijnde bestaande equivalent).
+    // Zonder force_new is het gedrag byte-voor-byte ongewijzigd.
+    if (force_new === true) {
+      const { data: staleInvoices } = await supabaseClient
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("order_id", order_id);
 
-    if (existingInvoice) {
-      logStep("Invoice already exists", { invoice_id: existingInvoice.id });
-      return new Response(JSON.stringify({ 
-        success: true, 
-        invoice_id: existingInvoice.id,
-        message: "Invoice already exists" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (staleInvoices && staleInvoices.length > 0) {
+        await supabaseClient
+          .from("invoices")
+          .update({ status: "cancelled" })
+          .eq("order_id", order_id);
+        logStep("force_new — existing invoices marked cancelled", {
+          invoices: staleInvoices.map((i: { invoice_number: string }) => i.invoice_number),
+        });
+      }
+    } else {
+      const { data: existingInvoice } = await supabaseClient
+        .from("invoices")
+        .select("id")
+        .eq("order_id", order_id)
+        .single();
+
+      if (existingInvoice) {
+        logStep("Invoice already exists", { invoice_id: existingInvoice.id });
+        return new Response(JSON.stringify({ 
+          success: true, 
+          invoice_id: existingInvoice.id,
+          message: "Invoice already exists" 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { data: orderItems } = await supabaseClient
