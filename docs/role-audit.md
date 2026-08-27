@@ -47,6 +47,24 @@ Voor de correctie van INV-2026-0162 zelf is een aparte `regenerate_pdf_only`-mod
 
 **Les:** bij elke functie die zowel een database-rij als een extern document (PDF, XML) opbouwt uit dezelfde brongegevens, moet er een enkele bron van waarheid zijn die voor beide gebruikt wordt — twee keer dezelfde berekening uitschrijven op verschillende plekken in dezelfde functie is een gegarandeerde drift-bug zodra er een correctie op een van de twee plekken landt zonder de andere.
 
+---
+
+## BILL-VAT-VERIFY-4 — order.total/tax_amount van order 1168 zelf stonden nog fout — 27 augustus 2026
+
+**Root cause:** `order.total` (163.60) en `order.tax_amount` (28.40) van order 1168 waren na de eerdere correcties nog niet bijgewerkt en stonden dus niet in lijn met INV-2026-0162 (135.21, 0 procent). Recon toonde dat `order.total` wel degelijk als rekenwaarde gebruikt wordt in `useAnalytics`, `useOrders` (`totalRevenue`), `useOssRevenue` en de dagomzet-feed — dus deze order telde tot nu toe voor 163.60 mee in omzetrapportage, terwijl er effectief 135.21 binnenkwam. `order.tax_amount` bleek nergens als rekeninput gebruikt te worden, enkel bij import van externe orders.
+
+**Fix:** `order.total` gecorrigeerd naar 135.21, `order.tax_amount` naar 0.00. `order.subtotal` blijft 163.60 (catalogus-brutowaarde à 21 procent) — bewust niet aangepast: die kolom is de rekenbasis die `generate-invoice` gebruikt om via het regime opnieuw het juiste netto/btw-bedrag af te leiden. Zou `subtotal` ook aangepast worden naar 135.21, dan zou een eventuele toekomstige herberekening de verlegging een tweede keer toepassen op een reeds netto bedrag. Toelichting hierover toegevoegd aan `order.internal_notes` zodat dit niet als fout wordt aangezien bij een latere blik op de order.
+
+**Security-keuzes:** n.v.t. — één `UPDATE` op een order-rij door platform-admin, geen RLS/policy/grant-wijziging.
+
+**Gedeelde-paden-waarschuwing:** geen gedeeld pad geraakt — `orders` is een per-tenant tabel, geen custom-frontend of gedeelde edge-function betrokken.
+
+**Bewust ongemoeid / Vervolg:** dit is een eenmalige correctie op een order die tijdens het bug-venster (vóór BILL-VAT-VERIFY-1) is aangemaakt. Nieuwe orders krijgen dankzij BILL-VAT-VERIFY-1 (`checkoutVerifyPayment`) hun `order.total`/`tax_amount` al bij aanmaak correct berekend, dus dit exacte probleem — `order.total` dat achterloopt op de uiteindelijke factuur — zou zich niet opnieuw mogen voordoen. `order.subtotal` expliciet onaangepast, zie root cause.
+
+**Les:** bij een btw-regime-correctie op een bestaande order volstaat het niet enkel de factuur te herzien — controleer ook of `order.total`/`tax_amount` nog in lijn staan, zeker omdat `order.total` als rekeninput voor omzetrapportage dient. `order.subtotal` daarentegen is een bruto cataloguswaarde die als rekenbasis voor de factuur dient en moet nooit met de correctie meebewegen.
+
+---
+
 ## BILL-3 — process-refund opschonen — 25 augustus 2026
 
 **Status: code klaar, NIET gedeployed.** Eén functie: `process-refund`. Er is geen `_shared`-bestand
