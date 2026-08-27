@@ -1,3 +1,18 @@
+## BILL-VAT-VERIFY-1 — checkoutVerifyPayment verloor B2B/VIES-context bij order-creatie — 27 augustus 2026
+
+**Root cause:** `checkoutVerifyPayment` in `supabase/functions/storefront-api/index.ts` haalde de cart opnieuw op met een vaste kolomlijst zonder `is_b2b`, `customer_vat_verified`, `customer_vat_country`. `checkoutComplete` (die de Stripe-sessie opbouwt) gebruikt wel de volledige cart via `getCartForCheckout`/`select(*)`. Gevolg: bij een B2B-klant met geldig VIES-geverifieerd EU-btw-nummer werd de Stripe-checkoutsessie correct netto (verlegd, 0%) opgebouwd, maar de nadien aangemaakte order/factuur registreerde ten onrechte het bruto bedrag incl. binnenlandse btw — order en factuur kwamen niet overeen met wat Stripe effectief inde.
+Bijkomend gevonden in dezelfde functie: `tenantData?.default_vat_rate` verwees naar een niet-bestaande kolom (enkel `tax_percentage` bestaat op `tenants`), waardoor het tenant-btw-tarief hier altijd stil terugviel op de hardcoded 21%.
+
+**Scope-check:** platform-breed nagetrokken (alle tenants, niet enkel VanXcel) — historisch is dit tot op vandaag exact 1 order geraakt: VanXcel #1168 (26 aug 2026, klant De Run Trading BV, NL, VIES-geverifieerd). Geen andere tenant had ooit een Stripe-order met een B2B+VIES-geverifieerde cart.
+
+**Fix:** cart-select in `checkoutVerifyPayment` uitgebreid met `is_b2b, customer_vat_verified, customer_vat_country, customer_vat_number`; `default_vat_rate` → `tax_percentage`. Geen migratie, geen wijziging aan `checkoutComplete`, `createOrderFromCart` of frontend-code. Gedeployed via Lovable (commit `c4531258f2496c3a0e5ed8e52fc9ed0253c4ee8a`), geverifieerd via directe git-diff (3 regels gewijzigd, verder niets).
+
+**Openstaand:** order #1168 + factuur INV-2026-0160 staan nog met het foute (binnenlandse 21%, bruto €163,60) regime in de DB — correctie via creditnota + herziene factuur volgt als aparte actie.
+
+**Les:** elke functie die de winkelwagen opnieuw ophaalt voor eigen rekening (i.p.v. de gedeelde `getCartForCheckout`) is een risico op kolom-drift t.o.v. de btw-regime-resolver. Bij toekomstige VAT/checkout-batches: expliciet nagaan of alle cart-fetches in het pad dezelfde kolommen selecteren als `getCartForCheckout`.
+
+---
+
 ## BILL-3 — process-refund opschonen — 25 augustus 2026
 
 **Status: code klaar, NIET gedeployed.** Eén functie: `process-refund`. Er is geen `_shared`-bestand
