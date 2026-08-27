@@ -1527,19 +1527,30 @@ serve(async (req) => {
         'BE'
       ).toUpperCase();
       const t = tenant as Record<string, unknown>;
-      const { regime, warnings } = decideVatRegime({
-        customer_country: guestCountry,
-        tenant_country: (tenant.country || 'BE') as string,
-        is_b2b: (order as { customer_type?: string }).customer_type === 'b2b',
-        vies_valid: false,
-        oss_enabled: t.oss_enabled === true || t.apply_oss_rules === true,
-        oss_activation_date: (t.oss_activation_date as string | null) ?? (t.oss_registration_date as string | null) ?? null,
-        simplified_vat: t.simplified_vat_mode === true,
-        sales_channel: salesChannel,
-        order_date: String(order.created_at || new Date().toISOString()).slice(0, 10),
-        has_goods: true,
-      });
-      const guestRate = rateForRegime(regime, guestCountry);
+      // CORRECTIE-1 — een expliciet meegegeven override_regime is leidend, ook op
+      // de gast-tak. Zonder override_regime blijft het gedrag ongewijzigd.
+      let regime: string;
+      let warnings: string[] = [];
+      if (override_regime) {
+        regime = override_regime;
+        warnings = ['override_regime applied (guest order)'];
+      } else {
+        const decided = decideVatRegime({
+          customer_country: guestCountry,
+          tenant_country: (tenant.country || 'BE') as string,
+          is_b2b: (order as { customer_type?: string }).customer_type === 'b2b',
+          vies_valid: false,
+          oss_enabled: t.oss_enabled === true || t.apply_oss_rules === true,
+          oss_activation_date: (t.oss_activation_date as string | null) ?? (t.oss_registration_date as string | null) ?? null,
+          simplified_vat: t.simplified_vat_mode === true,
+          sales_channel: salesChannel,
+          order_date: String(order.created_at || new Date().toISOString()).slice(0, 10),
+          has_goods: true,
+        });
+        regime = decided.regime;
+        warnings = decided.warnings;
+      }
+      const guestRate = rateForRegime(regime as never, guestCountry);
       resolvedRegime = { vat_regime: regime, reporting_country: guestCountry };
       perLineRegime = regimeLines.map((_l, idx) => ({
         line_index: idx,
