@@ -1277,7 +1277,7 @@ serve(async (req) => {
       const regenInvoiceData = {
         invoiceNumber: inv.invoice_number,
         issueDate: formatDate(new Date(inv.issue_date || inv.created_at)),
-        dueDate: formatDate(new Date(inv.due_date || inv.issue_date || inv.created_at)),
+        dueDate: formatDate(new Date(new Date(inv.issue_date || inv.created_at).getTime() + 14 * 24 * 60 * 60 * 1000)),
         currency: inv.currency || regenTenant.currency || 'EUR',
         tenant: regenTenant,
         customer: regenCustomer,
