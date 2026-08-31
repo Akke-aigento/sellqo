@@ -4,6 +4,11 @@ import {
   resolveInvoiceFiscalFields,
   isDomesticFamilyRegime,
 } from "../_shared/invoiceFiscalFields.ts";
+// BILLING-1: gedeelde datum- en geldrekenkunde. De lokale advanceDate hier
+// gebruikte setUTCMonth (2026-01-31 + 1 mnd = 2026-03-03) en had geen anchor,
+// waardoor een 31e-abonnement na februari op de 28e bleef hangen.
+import { advanceDate } from "../_shared/billingDates.ts";
+import { computeVatTotals } from "../_shared/billingMoney.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,32 +22,6 @@ const log = (step: string, details?: unknown) => {
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
-}
-
-function advanceDate(from: string, interval: string, count: number): string {
-  // Parse as UTC date to avoid timezone drift
-  const [y, m, d] = from.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
-  const n = Math.max(1, Number(count) || 1);
-  const iv = (interval || "monthly").toLowerCase();
-  switch (iv) {
-    case "weekly":
-      dt.setUTCDate(dt.getUTCDate() + 7 * n);
-      break;
-    case "monthly":
-      dt.setUTCMonth(dt.getUTCMonth() + n);
-      break;
-    case "quarterly":
-      dt.setUTCMonth(dt.getUTCMonth() + 3 * n);
-      break;
-    case "yearly":
-    case "annual":
-      dt.setUTCFullYear(dt.getUTCFullYear() + n);
-      break;
-    default:
-      dt.setUTCMonth(dt.getUTCMonth() + n);
-  }
-  return toISODate(dt);
 }
 
 // CYCLE-1: grace period after the due date of a payment request.
@@ -370,7 +349,7 @@ Deno.serve(async (req) => {
         id, tenant_id, customer_id, name, interval, interval_count,
         next_invoice_date, last_invoice_date, end_date, status,
         auto_send, payment_term_days, generate_days_before,
-        payment_mode, billing_model,
+        payment_mode, billing_model, billing_anchor_day,
         subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
       `)
       .eq("status", "active")
@@ -382,7 +361,7 @@ Deno.serve(async (req) => {
           id, tenant_id, customer_id, name, interval, interval_count,
           next_invoice_date, last_invoice_date, end_date, status,
           auto_send, payment_term_days, generate_days_before,
-          payment_mode, billing_model,
+          payment_mode, billing_model, billing_anchor_day,
           subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
         `)
         .eq("status", "active")
@@ -416,7 +395,17 @@ Deno.serve(async (req) => {
     for (const sub of eligible as any[]) {
       try {
         const periodStart: string = sub.next_invoice_date;
-        const periodEnd: string = advanceDate(periodStart, sub.interval, Number(sub.interval_count) || 1);
+        // BILLING-1: billing_anchor_day is de BEDOELDE factuurdag. Zonder anchor
+        // zou een abonnement dat in februari naar de 28e geklemd werd daar
+        // blijven hangen; met anchor keert het in maart terug naar de 31e.
+        const anchorDay: number | null = sub.billing_anchor_day ?? null;
+        // Math.max(1, ...) stond in de oude lokale helper en blijft hier staan:
+        // subscriptions.interval_count heeft geen CHECK, en een negatieve waarde
+        // zou next_invoice_date achteruit zetten — waarna het abonnement zichzelf
+        // eindeloos opnieuw factureert. De gedeelde helper klemt bewust niet,
+        // want retreatDate moet wel terug kunnen tellen.
+        const intervalCount = Math.max(1, Number(sub.interval_count) || 1);
+        const periodEnd: string = advanceDate(periodStart, sub.interval, intervalCount, anchorDay);
 
         // ------------------------------------------------------------------
         // ONBOARD-1: apply any pending downgrade / interval change on the
@@ -538,11 +527,7 @@ Deno.serve(async (req) => {
         }
 
         // Recompute periodEnd in case interval changed
-        const periodEndAdj: string = advanceDate(
-          periodStart,
-          sub.interval,
-          Number(sub.interval_count) || 1,
-        );
+        const periodEndAdj: string = advanceDate(periodStart, sub.interval, intervalCount, anchorDay);
 
         // ------------------------------------------------------------------
         // CYCLE-1: pay-first path. No invoice is created here — the runner
@@ -558,19 +543,19 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          let cycleSubtotal = 0;
-          let cycleVat = 0;
-          for (const ln of payFirstLines) {
-            const qty = Number(ln.quantity ?? 1);
-            const unit = Number(ln.unit_price ?? 0);
-            const rate = Number(ln.vat_rate ?? 0);
-            const net = qty * unit;
-            cycleSubtotal += net;
-            cycleVat += +(net * rate / 100).toFixed(2);
-          }
-          cycleSubtotal = +cycleSubtotal.toFixed(2);
-          cycleVat = +cycleVat.toFixed(2);
-          const cycleTotal = +(cycleSubtotal + cycleVat).toFixed(2);
+          // BILLING-1: btw per tarief-groep sommeren en DAN afronden. De oude
+          // per-regel-afronding gaf op 3 x EUR 9,99 @ 21% EUR 6,30 in plaats van
+          // de verschuldigde EUR 6,29 — en die cycle-bedragen worden hier ook
+          // echt geincasseerd, dus de drift landde op de rekening van de klant.
+          const cycleTotals = computeVatTotals(
+            payFirstLines.map((ln) => ({
+              net: Number(ln.quantity ?? 1) * Number(ln.unit_price ?? 0),
+              vatRate: Number(ln.vat_rate ?? 0),
+            })),
+          );
+          const cycleSubtotal = cycleTotals.subtotal;
+          const cycleVat = cycleTotals.vatAmount;
+          const cycleTotal = cycleTotals.total;
           const cycleMode = (sub.payment_mode as "mandate" | "manual") ?? "mandate";
 
           // Idempotency: insert-first on (subscription_id, period_start).
@@ -705,8 +690,6 @@ Deno.serve(async (req) => {
         const regimeLeads = !isDomesticFamilyRegime(fiscal.fields.vat_regime);
 
         // Compute totals
-        let subtotal = 0;
-        let taxAmount = 0;
         const invoiceLines = sortedLines
           .map((ln, idx) => {
             const qty = Number(ln.quantity ?? 1);
@@ -721,8 +704,6 @@ Deno.serve(async (req) => {
             const net = qty * unit;
             const vat = +(net * rate / 100).toFixed(2);
             const lineTotal = +(net + vat).toFixed(2);
-            subtotal += net;
-            taxAmount += vat;
             return {
               line_type: "product",
               description: ln.description ?? sub.name ?? "Abonnement",
@@ -740,9 +721,26 @@ Deno.serve(async (req) => {
               ...(pl?.gl_account_code ? { gl_account_code: pl.gl_account_code } : {}),
             };
           });
-        subtotal = +subtotal.toFixed(2);
-        taxAmount = +taxAmount.toFixed(2);
-        const total = +(subtotal + taxAmount).toFixed(2);
+        // BILLING-1: de FACTUURKOP telt per tarief-groep op — eerst netto
+        // sommeren, dan afronden. Per regel afronden en daarna sommeren gaf op
+        // 3 x EUR 9,99 @ 21% een kop van EUR 6,30 tegen de verschuldigde EUR 6,29.
+        //
+        // De per-regel vat_amount/line_total hierboven blijven bewust per regel
+        // afgerond: dat is wat invoice_lines opslaat en wat de rest van de keten
+        // leest. De kop volgt hiermee exact het model van
+        // _shared/peppol/ubl-builder.ts:127-145 (aggregateTaxSubtotals), dat de
+        // UBL TaxSubtotals al per tarief groepeert en dan pas afrondt — kop en
+        // UBL lopen daardoor niet langer uiteen.
+        //
+        // Invoer is net_amount (de afgeronde regelnetto), niet de ruwe qty*unit:
+        // zo is het kop-subtotaal per definitie de som van de netto's die op de
+        // factuur staan, en telt een klant die de regels optelt op hetzelfde uit.
+        const headerTotals = computeVatTotals(
+          invoiceLines.map((l) => ({ net: Number(l.net_amount), vatRate: Number(l.vat_rate) })),
+        );
+        const subtotal = headerTotals.subtotal;
+        const taxAmount = headerTotals.vatAmount;
+        const total = headerTotals.total;
 
         // Generate invoice number via existing DB function
         const { data: invNumData, error: invNumErr } = await supabase.rpc(
@@ -753,8 +751,6 @@ Deno.serve(async (req) => {
         const invoiceNumber = invNumData as string;
 
         const paymentTermDays = Number(sub.payment_term_days ?? 14);
-        const dueDate = advanceDate(issueDate, "weekly", 0); // placeholder
-        // compute due date properly
         const dueDateObj = new Date(issueDate + "T00:00:00Z");
         dueDateObj.setUTCDate(dueDateObj.getUTCDate() + paymentTermDays);
         const dueDateISO = toISODate(dueDateObj);

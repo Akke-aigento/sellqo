@@ -1,3 +1,76 @@
+## BILLING-1 — datum- en geldhardening in de billing-keten — 31 augustus 2026
+
+**Root cause:** vier stille bugs, alle vier tijdens recon bevestigd tegen de code (niet uit het opdrachtdocument overgenomen).
+
+1. *Maandoverloop.* Drie eigen `advanceDate`-kopieën gebruikten `setUTCMonth`: `supabase/functions/generate-subscription-invoices/index.ts:22-46`, `supabase/functions/sync-tenant-plan/index.ts:67-74` en `supabase/functions/_shared/planProration.ts:42-54`. JavaScript rolt "31 februari" door naar maart, dus `2026-01-31` + 1 maand gaf `2026-03-03`. Een abonnement dat op de 31e loopt, schoof zo elke korte maand op. De kopie in `generate-subscription-invoices` deed `yearly` bovendien via `setUTCFullYear`, waardoor `2028-02-29` + 1 jaar op `2029-03-01` uitkwam in plaats van `2029-02-28`.
+2. *Geen anchor-herstel.* Zelfs mét clamp bleef een 31e-abonnement na februari op de 28e hangen: de volgende periode werd uit de geclampte datum berekend, niet uit de bedoelde factuurdag.
+3. *Btw-drift.* Btw werd per regel afgerond en daarna gesomd (`generate-subscription-invoices/index.ts:569` voor de pay-first cycle, `:722-744` voor de factuurkop). Op 3 × € 9,99 @ 21 % gaf dat € 6,30 tegen de verschuldigde € 6,29. In het pay-first pad wordt dat bedrag ook echt geïncasseerd, dus de drift landde op de rekening van de klant.
+4. *Timestamp-vergiftiging.* `"2026-07-29T17:06:03Z".split("-").map(Number)` geeft `[2026, 7, NaN]`; `new Date(NaN).toISOString()` gooit een `RangeError` diep in de facturatielus, waar hij als generieke `summary.failed`-regel eindigde zonder de oorzaak te noemen.
+
+**Uitgevoerd:**
+
+- **`supabase/functions/_shared/billingDates.ts` (nieuw).** `advanceDate(from, interval, count = 1, anchorDay?)` en `retreatDate(...)`. Strikte `assertPureDate` op `/^\d{4}-\d{2}-\d{2}$/` met een throw die de aanroeper noemt. Intervallen: `weekly` (+7·count dagen), `monthly`, `quarterly` (3 mnd), `yearly`/`annual` (12 mnd, bewust via het maandenpad zodat 29 februari dezelfde clamp krijgt); default `monthly`. Maandrekening via absolute maandindex `y*12 + (m-1) + months` met floor-deling, nooit `setUTCMonth`. Clamp: `min(anchor ?? dag-van-from, daysInMonth(doeljaar, doelmaand))`. Een anchor buiten 1-31 wordt genegeerd in plaats van gegooid — de DB-`CHECK` sluit dat al uit en een facturatierun mag daar niet op omvallen.
+- **`supabase/functions/_shared/billingMoney.ts` (nieuw).** `round2` en `computeVatTotals(lines)`: groepeer per tarief, sommeer het groepsnetto, rond dán pas af. Levert `subtotal`, `vatAmount`, `total` en `perRate` (aflopend op tarief).
+- **`supabase/functions/generate-subscription-invoices/index.ts`.** Lokale `advanceDate` verwijderd, beide helpers geïmporteerd. `billing_anchor_day` toegevoegd aan beide `select`-strings (ook de `manualId`-variant, anders viel de anchor stil weg bij handmatige runs). Anchor doorgegeven bij `periodEnd` en `periodEndAdj`. De `Math.max(1, ...)`-klem op `interval_count` is expliciet op de aanroepplek gezet: de kolom heeft geen `CHECK`, en een negatieve waarde zou `next_invoice_date` achteruit zetten waarna het abonnement zichzelf eindeloos herfactureert — de gedeelde helper klemt bewust niet, want `retreatDate` moet wél terug kunnen tellen. Beide btw-accumulatieblokken vervangen door `computeVatTotals`. Dode regel `advanceDate(issueDate, "weekly", 0) // placeholder` verwijderd (`dueDate` werd nergens gelezen; `dueDateISO` deed het werk).
+- **`supabase/functions/sync-tenant-plan/index.ts`.** Lokale `advanceDate` verwijderd, import uit `billingDates`. Het lokale `Interval`-type (regel 28) en `toISODate` blijven ongemoeid.
+- **`supabase/functions/_shared/planProration.ts`.** `advanceDate`/`retreatDate` delegeren nu, met behoud van hun tweeledige signature zodat `planEffectuate.ts:154` en `subscriptionCharge.ts:61` ongewijzigd blijven. Bewust mét `.slice(0, 10)` ervóór: dit pad krijgt waarden uit `tenant_subscriptions.current_period_start` (een `timestamptz`) en de oude private `utc()` sneed die al af. De strikte assert landt dus waar de bronkolommen `DATE` zijn en een timestamp een echte fout is.
+- **`supabase/migrations/20260831120000_billing_anchor_day.sql` (nieuw, niet gedraaid).** `ADD COLUMN IF NOT EXISTS billing_anchor_day smallint`, `CHECK (... BETWEEN 1 AND 31)` achter een `pg_constraint`-guard, backfill uit `EXTRACT(DAY FROM start_date)` met vaste conditie (geen `now()`), en een `BEFORE INSERT`-trigger die de anchor vult zodra hij leeg is.
+- **`src/test/billingDates.test.ts` + `src/test/billingMoney.test.ts` (nieuw).** 19 vitest-cases. Bewust in `src/`: `tsconfig.app.json` include't alleen `src`, dus de testimport trekt beide edge-helpers de CI-typecheck in.
+
+**Security-keuzes:** geen RLS-policy, grant of `SECURITY DEFINER`-functie geraakt. De triggerfunctie staat expliciet op `SECURITY INVOKER` met `SET search_path = public` — hij escaleert dus niets en draait onder de rechten van de schrijvende rol. `billing_anchor_day` is een dagnummer 1-31 en bevat niets gevoeligs. `subscriptions` is een billing-tabel zonder RLS-wijziging in deze batch.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. — en dat is nagetrokken, niet aangenomen. De vijf custom-frontend tenants praten via `storefront-resolve`, `storefront-api` en `checkout-engine`; geen van die drie is aangeraakt. De gedeelde tabellen `tenant_theme_settings`, `themes`, `homepage_sections` en `storefront_pages` zijn niet aangeraakt, dus er stroomt ook niets nieuws via `select('*')` in `storefront-api` naar buiten. `subscriptions` valt volledig buiten dat contract.
+
+**Ongemoeid gelaten, bewust:** `_shared/subscriptionCharge.ts`. De cycle-bedragen zijn daar al geïncasseerd en zijn de bron van waarheid; er wordt geen nieuwe meer-tarieven-regel gebouwd, dus `computeVatTotals` heeft er niets te doen. De fiscale regime-logica en de clausule `TREK DIT NIET GELIJK MET PAD 1` blijven letterlijk staan. Wel nagerekend dat de centcorrectie daar geen valse alarmen geeft: `deriveVatRate` (`:224-231`) leidt het tarief af uit `vat_amount / subtotal` en snapt binnen 0,05 pp — 6,29/29,97 geeft 20,99 %, wat naar 21 snapt. Ook de per-regel `vat_amount`, `line_total`, `net_amount` en `gross_amount` op `invoice_lines` blijven per regel afgerond; alleen de factuurkop telt per tarief-groep op. De kop volgt daarmee exact het model dat `_shared/peppol/ubl-builder.ts:127-145` al hanteert voor de UBL-`TaxSubtotal`s.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx vitest run` (volledige suite) | 68/68 groen, 6 bestanden. De 19 nieuwe cases dekken de geketende 31e-reeks, de 28e-regressie, 29 februari, de throw op een timestamp, alle intervallen, de jaargrens en `retreatDate` als inverse. |
+| `npx tsc --noEmit -p tsconfig.app.json` | 33 fouten vóór en 33 fouten ná de wijziging; nul daarvan in `billingDates.ts`, `billingMoney.ts` of de nieuwe tests. Baseline gemeten door de twee testbestanden tijdelijk uit de graph te halen. |
+| `npm run build` | exit 0. De chunk-size-waarschuwing is bestaand en geen regressie. |
+| `npx eslint` op de vier nieuwe/gewijzigde bestanden | 0 problemen. |
+| `public/sitemap.xml` | door `prebuild` ingekort (72 regels); teruggezet met `git checkout` en niet gestaged. |
+
+**Beperking, eerlijk gemeld:** `tsconfig.app.json` include't alleen `src` en `deno` staat niet op deze machine, dus `generate-subscription-invoices/index.ts` en `sync-tenant-plan/index.ts` zijn hier *niet* getypecheckt — hun `esm.sh`-imports en `Deno.env` sluiten dat sowieso uit. Voor die twee rust de zekerheid op de diff-review en op de deploy-check aan Lovable-kant. De helpers zelf zijn wel volledig gedekt. Daarnaast kon de sandbox de private npm-registry niet bereiken (403); `sonner`, `@capacitor/core`, `react-markdown` en enkele andere zijn uit de publieke registry bijgeplaatst met `--no-save --no-package-lock`, zodat `package.json` en `bun.lock` ongewijzigd bleven.
+
+**Handover — volgorde is load-bearing:** **eerst de migratie draaien, dán de functies deployen.** `generate-subscription-invoices` selecteert na deze batch `billing_anchor_day`; draait die functie vóór de migratie, dan geeft PostgREST `42703` op de héle query en wordt er die dag niets gefactureerd. Andersom is ongevaarlijk: de kolom bestaat dan al en de oude functiecode negeert hem.
+
+**SQL-natrek (gevraagd aan Akke/de connector-Claude, ná de migratie):**
+
+```sql
+-- 1. Alle bestaande abonnementen hebben een anchor.
+SELECT count(*) FILTER (WHERE billing_anchor_day IS NULL) AS zonder_anchor,
+       count(*) AS totaal
+  FROM public.subscriptions;
+
+-- 2. De anchor komt overeen met de startdatum.
+SELECT id, start_date, billing_anchor_day, next_invoice_date, interval
+  FROM public.subscriptions
+ WHERE billing_anchor_day <> EXTRACT(DAY FROM start_date)::smallint;
+
+-- 3. De 29/30/31-abonnementen: dit zijn de rijen die het gedrag laten zien.
+SELECT id, start_date, billing_anchor_day, next_invoice_date
+  FROM public.subscriptions
+ WHERE billing_anchor_day >= 29
+ ORDER BY billing_anchor_day DESC;
+
+-- 4. Trigger doet zijn werk op nieuwe rijen (in een transactie die je terugdraait).
+BEGIN;
+  INSERT INTO public.subscriptions (tenant_id, name, interval, start_date, next_invoice_date, status)
+  SELECT tenant_id, 'anchor-test', 'monthly', DATE '2026-01-31', DATE '2026-01-31', 'active'
+    FROM public.subscriptions LIMIT 1
+  RETURNING billing_anchor_day;  -- verwacht: 31
+ROLLBACK;
+```
+
+**Vervolg / bewust niet gedaan:**
+
+- Slottaken §4.2 t/m §4.4 (publieke changelog in alle talen, `doc_articles`-insert, nieuwsbrief-item) staan voor BILLING-1 **open** — in overleg buiten deze batch gehouden. De vorige batch in ditzelfde onderwerp (2026.10u, `subscription_invoice_vat_regime`) kreeg ze wel, dus dit is een bewuste afwijking en geen vergetelheid.
+- **Losse bevinding, niet aangeraakt:** `supabase/functions/generate-peppol-ubl/index.ts:251` mapt `line_total` naar UBL `lineTotal`, en `ubl-builder.ts:133` gebruikt dat veld als `TaxableAmount` én `LineExtensionAmount`. Maar `line_total` is bruto (netto + btw, zie `generate-subscription-invoices:723`), terwijl BIS Billing daar netto verlangt. Dat vraagt een eigen recon over álle factuurschrijvers en valt buiten deze batch.
+- `subscriptions.interval_count` heeft geen `CHECK`-constraint. De klem staat nu in de code; een `CHECK (interval_count >= 1)` zou het bij de bron dichtzetten. Kandidaat voor een volgende DB-batch.
+
 ## BILL-VAT-VERIFY-1 — checkoutVerifyPayment verloor B2B/VIES-context bij order-creatie — 27 augustus 2026
 
 **Root cause:** `checkoutVerifyPayment` in `supabase/functions/storefront-api/index.ts` haalde de cart opnieuw op met een vaste kolomlijst zonder `is_b2b`, `customer_vat_verified`, `customer_vat_country`. `checkoutComplete` (die de Stripe-sessie opbouwt) gebruikt wel de volledige cart via `getCartForCheckout`/`select(*)`. Gevolg: bij een B2B-klant met geldig VIES-geverifieerd EU-btw-nummer werd de Stripe-checkoutsessie correct netto (verlegd, 0%) opgebouwd, maar de nadien aangemaakte order/factuur registreerde ten onrechte het bruto bedrag incl. binnenlandse btw — order en factuur kwamen niet overeen met wat Stripe effectief inde.

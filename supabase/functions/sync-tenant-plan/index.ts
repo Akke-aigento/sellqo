@@ -16,6 +16,9 @@ import {
   resolveRunningPeriod,
   toISODate as isoDate,
 } from "../_shared/planProration.ts";
+// BILLING-1: één gedeelde datumhelper. De lokale kopie hier gebruikte
+// setUTCMonth en liet 2026-01-31 doorrollen naar 2026-03-03.
+import { advanceDate } from "../_shared/billingDates.ts";
 import { effectuatePlanSwitch } from "../_shared/planEffectuate.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 
@@ -62,14 +65,6 @@ function log(step: string, details?: unknown) {
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
-}
-
-function advanceDate(fromISO: string, interval: Interval): string {
-  const [y, m, d] = fromISO.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
-  if (interval === "yearly") dt.setUTCFullYear(dt.getUTCFullYear() + 1);
-  else dt.setUTCMonth(dt.getUTCMonth() + 1);
-  return toISODate(dt);
 }
 
 function priceForPlan(plan: any, interval: Interval): number {

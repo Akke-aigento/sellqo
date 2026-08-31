@@ -5,6 +5,11 @@
 // the truth about what the customer pays — so the already-paid pay-first cycle
 // of the running period is implicitly settled and never re-invoiced.
 
+import {
+  advanceDate as advanceDateShared,
+  retreatDate as retreatDateShared,
+} from "./billingDates.ts";
+
 export type Interval = "monthly" | "yearly";
 
 export interface ProrationPeriod {
@@ -39,18 +44,24 @@ function utc(iso: string): number {
   return Date.UTC(y, (m ?? 1) - 1, d ?? 1);
 }
 
+// BILLING-1: de rekenkunde staat nu in _shared/billingDates.ts (clamp op de
+// doelmaand in plaats van de setUTCMonth-overloop). De signature blijft bewust
+// tweeledig, zodat planEffectuate.ts en subscriptionCharge.ts ongewijzigd
+// blijven; die geven geen anchor mee en dat is voor proratie en interval-swap
+// ook correct — daar telt de dag van `from`, niet de bedoelde factuurdag.
+//
+// De .slice(0, 10) is geen slordigheid maar het bewaren van bestaand gedrag:
+// dit pad krijgt waarden uit tenant_subscriptions.current_period_start, een
+// timestamptz. De oude `utc()` sneed die al af. In generate-subscription-invoices
+// staat wél de strikte assert, want daar zijn de bronkolommen van type DATE en
+// duidt een timestamp op een echte fout.
+
 export function advanceDate(fromISO: string, interval: Interval): string {
-  const dt = new Date(utc(fromISO));
-  if (interval === "yearly") dt.setUTCFullYear(dt.getUTCFullYear() + 1);
-  else dt.setUTCMonth(dt.getUTCMonth() + 1);
-  return toISODate(dt);
+  return advanceDateShared(String(fromISO).slice(0, 10), interval);
 }
 
 function retreatDate(fromISO: string, interval: Interval): string {
-  const dt = new Date(utc(fromISO));
-  if (interval === "yearly") dt.setUTCFullYear(dt.getUTCFullYear() - 1);
-  else dt.setUTCMonth(dt.getUTCMonth() - 1);
-  return toISODate(dt);
+  return retreatDateShared(String(fromISO).slice(0, 10), interval);
 }
 
 export function nlDate(iso: string): string {
