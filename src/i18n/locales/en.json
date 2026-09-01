@@ -5692,5 +5692,27 @@
         "save_failed": "Could not save"
       }
     }
+  },
+  "tenantAction": {
+    "loading": {
+      "title": "Redirecting you",
+      "description": "We are creating a fresh, secure onboarding link for you at Stripe."
+    },
+    "success": {
+      "title": "Onboarding completed",
+      "description": "Thanks, we received your details.",
+      "close_hint": "You can close this window now."
+    },
+    "error": {
+      "title": "This link does not work",
+      "invalid_token": "This link is not valid.",
+      "token_used": "This link has already been used.",
+      "token_revoked": "This link has been revoked.",
+      "token_expired": "This link has expired.",
+      "unsupported_action": "This action is not supported here.",
+      "origin_unresolved": "We could not determine where this link should go.",
+      "unknown": "Something went wrong while opening this link.",
+      "contact_hint": "Ask your contact person for a new link."
+    }
   }
 }

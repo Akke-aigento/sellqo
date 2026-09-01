@@ -5694,5 +5694,27 @@
         "save_failed": "Opslaan mislukt"
       }
     }
+  },
+  "tenantAction": {
+    "loading": {
+      "title": "Je wordt doorgestuurd",
+      "description": "We maken een verse, veilige onboarding-link voor je aan bij Stripe."
+    },
+    "success": {
+      "title": "Onboarding voltooid",
+      "description": "Bedankt, we hebben je gegevens ontvangen.",
+      "close_hint": "Je kan dit venster nu sluiten."
+    },
+    "error": {
+      "title": "Deze link werkt niet",
+      "invalid_token": "Deze link is niet geldig.",
+      "token_used": "Deze link is al gebruikt.",
+      "token_revoked": "Deze link is ingetrokken.",
+      "token_expired": "Deze link is verlopen.",
+      "unsupported_action": "Deze actie wordt hier niet ondersteund.",
+      "origin_unresolved": "We konden de bestemming van deze link niet bepalen.",
+      "unknown": "Er ging iets mis bij het openen van deze link.",
+      "contact_hint": "Vraag een nieuwe link aan bij je contactpersoon."
+    }
   }
 }

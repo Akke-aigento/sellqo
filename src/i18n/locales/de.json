@@ -5692,5 +5692,27 @@
         "save_failed": "Speichern fehlgeschlagen"
       }
     }
+  },
+  "tenantAction": {
+    "loading": {
+      "title": "Du wirst weitergeleitet",
+      "description": "Wir erstellen für dich einen frischen, sicheren Onboarding-Link bei Stripe."
+    },
+    "success": {
+      "title": "Onboarding abgeschlossen",
+      "description": "Danke, wir haben deine Daten erhalten.",
+      "close_hint": "Du kannst dieses Fenster jetzt schließen."
+    },
+    "error": {
+      "title": "Dieser Link funktioniert nicht",
+      "invalid_token": "Dieser Link ist nicht gültig.",
+      "token_used": "Dieser Link wurde bereits verwendet.",
+      "token_revoked": "Dieser Link wurde zurückgezogen.",
+      "token_expired": "Dieser Link ist abgelaufen.",
+      "unsupported_action": "Diese Aktion wird hier nicht unterstützt.",
+      "origin_unresolved": "Wir konnten das Ziel dieses Links nicht bestimmen.",
+      "unknown": "Beim Öffnen dieses Links ist etwas schiefgelaufen.",
+      "contact_hint": "Bitte deine Kontaktperson um einen neuen Link."
+    }
   }
 }
