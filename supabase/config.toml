@@ -456,3 +456,9 @@ verify_jwt = false
 
 [functions.scanner-context]
 verify_jwt = false
+
+[functions.create-tenant-action-link]
+verify_jwt = false
+
+[functions.resolve-tenant-action]
+verify_jwt = false
