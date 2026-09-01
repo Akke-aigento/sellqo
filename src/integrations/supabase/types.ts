@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -15573,6 +15573,7 @@ export type Database = {
       subscriptions: {
         Row: {
           auto_send: boolean | null
+          billing_anchor_day: number | null
           billing_model: Database["public"]["Enums"]["billing_model"]
           created_at: string | null
           customer_id: string
@@ -15598,6 +15599,7 @@ export type Database = {
         }
         Insert: {
           auto_send?: boolean | null
+          billing_anchor_day?: number | null
           billing_model?: Database["public"]["Enums"]["billing_model"]
           created_at?: string | null
           customer_id: string
@@ -15623,6 +15625,7 @@ export type Database = {
         }
         Update: {
           auto_send?: boolean | null
+          billing_anchor_day?: number | null
           billing_model?: Database["public"]["Enums"]["billing_model"]
           created_at?: string | null
           customer_id?: string
