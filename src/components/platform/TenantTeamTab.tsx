@@ -128,42 +128,57 @@ export function TenantTeamTab({ tenantId }: { tenantId: string }) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Teamleden ({members.length})</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Mail className="h-4 w-4 mr-2" /> Uitnodigen</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" /> Teamlid uitnodigen</DialogTitle>
-                <DialogDescription>Stuur een uitnodiging per e-mail naar deze tenant.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={sendInvite}>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-email">E-mailadres</Label>
-                    <Input id="invite-email" type="email" placeholder="gebruiker@voorbeeld.nl" value={email} onChange={e => setEmail(e.target.value)} required />
+          <div className="flex items-center gap-2">
+            {/* TENANT-TABS-1: deze tab blijft nu gemount (keep-alive), dus de
+                useEffect hierboven draait nog maar eenmalig. Zonder deze knop
+                zou de teamlijst bevroren blijven tot een page-reload. */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchData}
+              disabled={isLoading}
+              title="Vernieuwen"
+              aria-label="Teamleden vernieuwen"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Mail className="h-4 w-4 mr-2" /> Uitnodigen</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" /> Teamlid uitnodigen</DialogTitle>
+                  <DialogDescription>Stuur een uitnodiging per e-mail naar deze tenant.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={sendInvite}>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-email">E-mailadres</Label>
+                      <Input id="invite-email" type="email" placeholder="gebruiker@voorbeeld.nl" value={email} onChange={e => setEmail(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Rol</Label>
+                      <Select value={role} onValueChange={v => setRole(v as InvitationRole)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {roleOptions.map(o => (
+                            <SelectItem key={o.value} value={o.value}>
+                              <div className="flex items-center gap-2"><o.icon className="h-4 w-4" />{o.label}</div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Rol</Label>
-                    <Select value={role} onValueChange={v => setRole(v as InvitationRole)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {roleOptions.map(o => (
-                          <SelectItem key={o.value} value={o.value}>
-                            <div className="flex items-center gap-2"><o.icon className="h-4 w-4" />{o.label}</div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Annuleren</Button>
-                  <Button type="submit" disabled={isSubmitting || !email.trim()}>{isSubmitting ? 'Verzenden...' : 'Versturen'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Annuleren</Button>
+                    <Button type="submit" disabled={isSubmitting || !email.trim()}>{isSubmitting ? 'Verzenden...' : 'Versturen'}</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

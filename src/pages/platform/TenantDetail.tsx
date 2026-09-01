@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,18 @@ export default function TenantDetail() {
   const navigate = useNavigate();
   const { useTenantDetail } = usePlatformAdmin();
   const { data: tenant, isLoading } = useTenantDetail(tenantId || '');
+
+  // TENANT-TABS-1: lazy mount, daarna keep-alive.
+  // Radix unmount inactieve TabsContent, dus elke tab-switch remountte de
+  // tab-component: react-query-observers opnieuw opgebouwd (met refetch zodra
+  // de 30s staleTime verlopen was), lokale formstate weg, en in TenantTeamTab
+  // — die geen react-query gebruikt — een volledige herfetch met skeleton.
+  //
+  // `visited` houdt bij welke tabs al geopend zijn, zodat forceMount niet alle
+  // acht tabs tegelijk op page-load laadt maar elke tab pas bij het eerste
+  // bezoek. Daarna blijft hij gemount en is terugwisselen instant.
+  const [tab, setTab] = useState('overview');
+  const [visited, setVisited] = useState<Set<string>>(() => new Set(['overview']));
 
   if (isLoading) {
     return (
@@ -62,7 +75,14 @@ export default function TenantDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v);
+          setVisited((prev) => new Set(prev).add(v));
+        }}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="subscription">Abonnement</TabsTrigger>
@@ -74,36 +94,36 @@ export default function TenantDetail() {
           <TabsTrigger value="activity">Activiteit</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
-          <TenantOverviewTab tenantId={tenantId!} />
+        <TabsContent value="overview" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('overview') && <TenantOverviewTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="subscription">
-          <TenantSubscriptionTab tenantId={tenantId!} />
+        <TabsContent value="subscription" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('subscription') && <TenantSubscriptionTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="credits">
-          <TenantCreditsTab tenantId={tenantId!} />
+        <TabsContent value="credits" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('credits') && <TenantCreditsTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="actions">
-          <TenantActionsTab tenantId={tenantId!} />
+        <TabsContent value="actions" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('actions') && <TenantActionsTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="team">
-          <TenantTeamTab tenantId={tenantId!} />
+        <TabsContent value="team" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('team') && <TenantTeamTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="invoices">
-          <TenantInvoicesTab tenantId={tenantId!} />
+        <TabsContent value="invoices" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('invoices') && <TenantInvoicesTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="modules">
-          <TenantModulesTab tenantId={tenantId!} />
+        <TabsContent value="modules" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('modules') && <TenantModulesTab tenantId={tenantId!} />}
         </TabsContent>
 
-        <TabsContent value="activity">
-          <TenantActivityTab tenantId={tenantId!} />
+        <TabsContent value="activity" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('activity') && <TenantActivityTab tenantId={tenantId!} />}
         </TabsContent>
       </Tabs>
     </div>

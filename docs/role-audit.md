@@ -1,3 +1,50 @@
+## TENANT-TABS-1 — lazy keep-alive voor het tenant-detailscherm — 31 augustus 2026
+
+**Root cause:** Radix `<Tabs>` unmount inactieve `<TabsContent>`. Elke tab-switch op `src/pages/platform/TenantDetail.tsx` remountte dus de hele tab-component, en daarmee al het datawerk erin. De hoofddiagnose klopte; de recon corrigeerde drie details die bepalen wát er precies verbetert.
+
+1. **`TenantTeamTab` gebruikt géén react-query.** `src/components/platform/TenantTeamTab.tsx:55` heeft `const [isLoading, setIsLoading] = useState(true)` met `useEffect(() => { fetchData(); }, [fetchData])` op regel 88. Er is dus geen cache: elke remount betekende `isLoading = true`, drie Supabase-calls (`user_roles`, `team_invitations`, `profiles`) en een gegarandeerde "Laden…". Dit is de tab die het symptoom het sterkst veroorzaakte.
+2. **Bij de zeven react-query-tabs verscheen binnen 5 minuten géén skeleton.** react-query is v5.102.8; daar geldt `isLoading = isPending && isFetching` en is `isPending` alleen waar zonder data. Bij een warme cache levert een remount de data direct. Wat een remount daar wél kostte: een refetch-round-trip (`refetchOnMount` staat niet in de QueryClient op `src/App.tsx:138-146` en is dus default `true`; met `staleTime: 30_000` is alles ouder dan 30 s stale) plus het opnieuw renderen van de subtree. Ná ~5 minuten weg van een tab ruimde de default `gcTime` de cache op en was er wél een echte skeleton. Keep-alive houdt de observer actief, dus die opruiming treedt niet meer op.
+3. **Remount kostte ook lokale state.** `TenantModulesTab` (`formData`, `hasChanges`) en `TenantSubscriptionTab` (`selectedPlanId`, `selectedStatus`, `giftMonths`) verloren bij elke switch hun formulierstand. Dat is nu opgelost — winst die de opdracht niet noemde.
+
+**Uitgevoerd:**
+
+- **`src/pages/platform/TenantDetail.tsx`.** `<Tabs>` is controlled gemaakt (`value={tab}` + `onValueChange`) met daarnaast een `visited`-set die bijhoudt welke tabs al geopend zijn. Alle acht `<TabsContent>` krijgen `forceMount` plus `className="data-[state=inactive]:hidden"`, en renderen hun kind achter `visited.has(...)`. Netto: een tab laadt pas bij het eerste bezoek — niet alle acht op page-load — en blijft daarna gemount.
+- **`src/components/platform/TenantTeamTab.tsx`.** Vernieuw-knop in de `CardHeader` van het Teamleden-blok: `variant="outline" size="icon"`, `onClick={fetchData}`, `disabled={isLoading}`, met `title` en `aria-label`. Nodig omdat de `useEffect` door keep-alive nog maar eenmalig draait; zonder knop zou de teamlijst bevroren blijven tot een page-reload (op `sendInvite` en de verwijder-actie na, die `fetchData()` al zelf aanroepen). `RefreshCw` werd op regel 12 **al geïmporteerd maar nergens gerenderd** — er kwam dus geen import bij; dit is de knop die daar hoorde te staan.
+
+**Hergebruikt patroon, niet zelf verzonnen:** `src/pages/admin/EventDetail.tsx:657` doet dit al voor één tab (`className="space-y-4 data-[state=inactive]:hidden" forceMount`). Dat bewees twee dingen vooraf: `forceMount` bereikt Radix ongehinderd via de bestaande `{...props}`-spread in `src/components/ui/tabs.tsx:41-49` — **de UI-wrapper hoefde dus niet aangepast te worden** — en de repo-conventie is om `data-[state=inactive]:hidden` erbij te zetten. Dat laatste is geen franje: Radix zet weliswaar het `hidden`-attribuut, maar Tailwinds preflight-regel `[hidden]{display:none}` heeft dezelfde specificiteit als een utility-class en staat eerder in de bronvolgorde. Zodra iemand later een `flex`- of `grid`-class op zo'n `TabsContent` zet, wint die en wordt de verborgen tab zichtbaar. De expliciete class sluit dat uit.
+
+**Security-keuzes:** n.v.t., onderbouwd. Puur frontend-rendergedrag. Geen RLS, policy of grant geraakt, geen query-inhoud gewijzigd, geen migratie, geen edge-functie. De tabs tonen exact dezelfde data aan exact dezelfde rollen als voorheen; alleen het moment van mounten verandert. De routebescherming rond `/admin/platform` is niet aangeraakt.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. Dit is een platform-admin-scherm dat volledig losstaat van `storefront-resolve`, `storefront-api` en `checkout-engine`. De vijf custom frontends renderen hun eigen UI en delen geen enkel React-component met deze repo, dus een wijziging in een adminpagina kan hen per definitie niet raken.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | 33 fouten met de wijziging, 33 zonder — regel-voor-regel identiek (`diff` op de gesorteerde foutregels), geen enkele in de twee gewijzigde bestanden. Baseline opnieuw gemeten op déze HEAD, want `main` was intussen opgeschoven. |
+| `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
+| `npx eslint` op beide bestanden | 1 probleem vóór én na — delta 0. Die ene is een bestaande `no-explicit-any` op `TenantTeamTab.tsx:105` (catch-clausule). |
+| `npx vitest run` | 68/68 groen |
+| `public/sitemap.xml` | door `prebuild` gewijzigd, teruggezet, niet gestaged |
+
+**Les uit deze batch, hoort in de werkwijze:** de eerste tsc-uitlezing gaf "0 fouten" en dat was fout — het logbestand werd gelezen terwijl de achtergrondjob nog schreef. CLAUDE.md §6 waarschuwt al dat `tsc` traag is en in de achtergrond moet, maar niet dat je op de *voltooiing* moet wachten vóór je het log leest. Een half log ziet er precies uit als een schone run. Wachten op de exit-marker in het logbestand is de enige veilige uitlezing.
+
+**Nog te doen — handmatige smoke-check (Akke), want hier draait geen echte omgeving:** op `/admin/platform/<tenantId>`:
+
+1. Netwerktab open, pagina laden → alleen de queries van **Overzicht** vuren, niet die van alle acht tabs.
+2. Naar Abonnement → laadt één keer; terug naar Overzicht en weer terug → géén nieuwe requests, geen skeleton.
+3. Team openen → laadt één keer, terugwisselen is instant; de nieuwe vernieuw-knop haalt de lijst opnieuw op.
+4. In Modules een veld wijzigen zonder opslaan, wegwisselen en terug → de wijziging staat er nog (was vóór deze batch weg).
+5. Inactieve tabs zijn onzichtbaar en de pagina schuift niet op.
+
+**Bewust ongemoeid / Vervolg:**
+
+- QueryClient-config (`refetchOnMount`, `staleTime`), de hooks in `usePlatformAdmin.ts`, `TenantModulesTab` (de `useEffect` daar is legitieme formstate-sync) en `feature_usage_events` / `useFeatureUsageStats` blijven ongewijzigd.
+- **Restrisico:** Radix-dialogen renderen in een portal en ontsnappen aan het `hidden`-attribuut van een inactieve tab. `TenantActionsTab`, `TenantOverviewTab` en `TenantTeamTab` bevatten dialogen. In de praktijk vrijwel onbereikbaar — een modale dialog legt een overlay over de tab-triggers en trapt de focus, dus wisselen kan niet — maar het staat in de smoke-check.
+- Nagetrokken dat keep-alive geen achtergrondverkeer oplevert: geen `refetchInterval`, `setInterval`, realtime-`channel()` of `subscribe()` in enige tab of hook, en `refetchOnWindowFocus`/`refetchOnReconnect` staan op `false`. De kosten zijn geheugen, niet netwerk.
+- **`TenantTeamTab` is de enige tab buiten react-query.** Omzetten zou de refresh-knop overbodig maken, cache-invalidatie na mutaties gratis geven en de component ~30 regels korter maken. Kandidaat voor een eigen batch.
+- Slottaken §4.2 t/m §4.4 staan open voor BILLING-1, REVIEWS-I18N-1 en deze batch.
+
 ## REVIEWS-I18N-1 — storefront-reviews gaven 500 + ontbrekende help-i18n-key — 31 augustus 2026
 
 **Root cause A — verkeerde kolomnamen én een datamodel-mismatch in `supabase/functions/storefront-api/index.ts`.**
