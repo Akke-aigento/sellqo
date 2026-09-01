@@ -66,6 +66,8 @@ import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ResetPassword from "./pages/ResetPassword";
 import MandateActivation from "./pages/MandateActivation";
+import TenantAction, { TenantActionSuccess } from "./pages/public/TenantAction";
+
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
