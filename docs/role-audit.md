@@ -1,3 +1,64 @@
+## TENANT-CMD-1 — command-strook en tab-hergroepering op het tenant-detailscherm — 1 september 2026
+
+**Root cause:** geen bug maar een werkbaarheidsprobleem. `src/pages/platform/TenantDetail.tsx` had acht gelijkwaardige tabs waarin de drie dagelijks benodigde acties (abonnement activeren, onboarding-link, mandaatlink) niet of verstopt aanwezig waren. De backend-wrapper `create-tenant-action-link` was al gebouwd en live; alleen de frontend ontbrak.
+
+**Procesnotitie vooraf, want hij kostte een ronde:** mijn eerste recon draaide op een verouderde clone en concludeerde dat `create-tenant-action-link` nergens bestond. Dat klopte voor mijn werkkopie en niet voor de werkelijkheid — `origin/main` stond al op `e452c59` met de functie, `resolve-tenant-action`, `_shared/connectAccount.ts`, de `/actie/:token`-route, `TenantAction.tsx` en de migratie `20260901182349_*.sql`. **Les: `git fetch` hoort aan het begin van elke batch, vóór de recon, niet pas bij het aftakken.** Een recon op een oude clone levert zelfverzekerde, verkeerde conclusies op — precies wat CLAUDE.md §2 wil voorkomen.
+
+**Geverifieerd contract van `create-tenant-action-link`** (uit de code gelezen, `supabase/functions/create-tenant-action-link/index.ts`):
+
+- Auth: `authenticateRequest(req)` plus een harde `if (!auth.is_platform_admin) throw new AuthError("Platform admin required", 403)`. Platform-admin-only.
+- `connect_onboarding` → eigen rij in `tenant_action_tokens`, antwoord `{ success, url, token, action_type }`, `url = ${origin}/actie/${token}`.
+- `sepa_mandate` → volledig gedelegeerd aan `create-platform-mandate-setup`, waarvan de payload **verbatim** wordt doorgegeven: `{ success, url, token, billing_customer_id }` — dus **zonder `action_type`**. De frontend leunt daarom uitsluitend op `url`.
+
+**Twee vervaltermijnen, niet één.** De opdracht schreef één hint "verloopt over 30 dagen" voor. Dat klopt alleen voor Connect:
+
+| Actie | Tabel | `expires_at` default |
+|---|---|---|
+| `connect_onboarding` | `tenant_action_tokens` (`20260901182349_*.sql:33`) | `now() + interval '30 days'` |
+| `sepa_mandate` | `mandate_setup_tokens` (`20260708091238_*.sql:71`) | `now() + interval '7 days'` |
+
+De hint staat daarom per kaart: 30 dagen bij Connect, 7 bij SEPA. Eén generieke "30 dagen" zou beloven dat een mandaatlink een maand meegaat terwijl hij na een week stil sterft — en dan lijkt het alsof de tenant niets deed.
+
+**Uitgevoerd:**
+
+- **`src/components/platform/TenantCommandStrip.tsx` (nieuw).** Vier kaarten in `repeat(auto-fit, minmax(200px, 1fr))`: Abonnement (status + plannaam, knop activeert de Facturatie-tab via een `onNavigate`-prop in plaats van de `updateSubscription`-flow te kopiëren), SEPA-mandaat (status uit een directe `customer_payment_mandates`-query, knop genereert de link), Webshop/Connect (status uit `tenant.stripe_account_id` + `stripe_onboarding_complete`, knop genereert de link) en AI Credits (metriek, geen actie). Gegenereerde links verschijnen inline in een read-only veld met kopieerknop — bewust géén redirect, want de link moet doorgestuurd worden. Aanroepen via `invokeWithErrorBody` (`src/lib/invokeWithErrorBody.ts`), zodat een 403 of 500 de echte servermelding toont in plaats van "Edge Function returned a non-2xx status code". Per kaart eigen `busy`- en `url`-state, zodat de twee knoppen elkaar niet blokkeren.
+- **`src/pages/platform/TenantDetail.tsx`.** Acht tabs naar drie: Facturatie (Overview + Subscription + Invoices), Toegang & modules (Team + Modules + Credits), Historie (Activity + Actions). Het keep-alive-patroon uit TENANT-TABS-1 blijft exact: `forceMount`, `data-[state=inactive]:hidden` en de `visited`-guard, nu op drie waarden. `TabsList` van `grid-cols-8` naar `grid-cols-3`, default-tab `billing`. De `onValueChange`-inline-functie is vervangen door één `goToTab`, die de strook via `onNavigate` deelt.
+- **`src/components/platform/TenantOverviewTab.tsx`.** Twee kaarten geschrapt die na deze batch letterlijk naast de strook zouden staan: *Abonnement* en *AI Credits*. Beide waren pure weergave — geverifieerd dat de verwijderde regels geen `<Button>`, `onClick`, `Dialog` of `invoke(` bevatten. Daarmee vervielen `planName`, de `Badge`-import en de `useTenantSubscription`-query; die is ook uit de laadpoort gehaald, want een query die niets meer voedt hield de tab onnodig in skeleton.
+
+**Bijna een stille regressie — expliciet vermeld.** Ik had óók de kaart *Stripe Status* geschrapt als "dubbel met de Webshop-kaart in de strook". Bij het opruimen van verweesde imports bleek die kaart naast de statusbadge de **ontkoppel-actie** te dragen: een `StripeDisconnectDialog` met naambevestiging die `disconnect-stripe-account` aanroept. Die actie bestaat nergens anders in de UI. Hem meenemen in een ontdubbeling zou een destructieve mogelijkheid stilzwijgend hebben verwijderd — precies wat CLAUDE.md §2 ("bouw eerst de nieuwe plek, sloop dan de oude") verbiedt. De kaart is integraal teruggezet, met een comment die uitlegt waarom de dubbele badge daar bewust blijft staan. Netto duplicatie: één statusbadge, tegenover het behoud van de enige ontkoppelweg.
+
+**Security-keuzes:** de frontend voegt geen rechten toe. De platform-admin-check zit in de edge-functie zelf (harde 403 zonder `is_platform_admin`); zou een niet-admin de knop op de een of andere manier bereiken, dan faalt de aanroep server-side en toont de UI die fout. De nieuwe `customer_payment_mandates`-query draait onder de RLS van de ingelogde gebruiker en is gefilterd op `tenant_id` plus `status = 'active'`; er wordt niets uit die rij getoond behalve het bestaan ervan en `method_type`. Geen RLS, policy of grant gewijzigd, geen migratie.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. Platform-adminscherm. Geen enkel React-component wordt met de vijf custom frontends gedeeld, en `storefront-api`, `storefront-resolve` en `checkout-engine` zijn niet aangeraakt. `create-connect-account` — net veilig geëxtraheerd naar `_shared/connectAccount.ts` — is eveneens onaangeroerd; de strook praat uitsluitend met `create-tenant-action-link`.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | 33 fouten met en 33 zonder de wijziging, regel-voor-regel identiek; geen enkele in de drie geraakte bestanden. Baseline opnieuw gemeten op `e452c59`, want `types.ts` was gewijzigd. Deze keer gewacht tot de exit-marker in het logbestand stond vóór het uitlezen — de les uit TENANT-TABS-1. |
+| `npx eslint` | 1 probleem vóór én na — delta 0. Die ene is een bestaande `no-explicit-any` in `TenantOverviewTab`; de nieuwe strook levert er nul. |
+| `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
+| `npx vitest run` | 68/68 groen |
+| `public/sitemap.xml` | door `prebuild` gewijzigd, teruggezet, niet gestaged |
+
+**i18n:** bewust niet. De platform-adminschermen zijn nergens vertaald — `TenantDetail.tsx` en alle acht tabcomponenten staan vol hardcoded Nederlands. De strook volgt die conventie; hem als enige vertalen zou de inconsistentie juist vergroten.
+
+**Nog te doen — handmatige smoke-check (Akke), want hier draait geen echte omgeving:** op `/admin/platform/<tenantId>`:
+
+1. Strook toont vier kaarten met kloppende status; de Connect-badge is gelijk aan die op de Stripe Status-kaart in Facturatie.
+2. "Genereer mandaatlink" levert een `/betaling/machtiging/<token>`-URL; kopieerknop werkt; hint zegt 7 dagen.
+3. "Genereer onboarding-link" levert een `/actie/<token>`-URL; hint zegt 30 dagen; die link opent bij bezoek de Stripe-onboarding.
+4. "Activeer abonnement" springt naar Facturatie zonder herladen.
+5. Drie tabs; page-load laadt alleen Facturatie; terugwisselen is instant (keep-alive intact).
+6. De Stripe-ontkoppelknop op de Stripe Status-kaart werkt nog.
+
+**Bewust ongemoeid / Vervolg:**
+
+- Geen edge-functie aangeraakt, geen migratie, `/actie/:token` en `TenantAction.tsx` ongemoeid.
+- De tabcomponenten zijn verplaatst, niet herschreven; alleen `TenantOverviewTab` verloor twee weergavekaarten.
+- **Overweging voor later:** de statusbadge staat nu op twee plekken (strook en Stripe Status-kaart). Schoner zou zijn de ontkoppel-actie naar de strook te verhuizen en de kaart dan pas te laten vallen — nieuwe plek eerst, oude daarna. Kandidaat voor een eigen batch, niet iets om er hier stilletjes bij te doen.
+- Slottaken §4.2 t/m §4.4 staan nu open voor vier batches (BILLING-1, REVIEWS-I18N-1, TENANT-TABS-1, TENANT-CMD-1).
+
 ## TENANT-TABS-1 — lazy keep-alive voor het tenant-detailscherm — 31 augustus 2026
 
 **Root cause:** Radix `<Tabs>` unmount inactieve `<TabsContent>`. Elke tab-switch op `src/pages/platform/TenantDetail.tsx` remountte dus de hele tab-component, en daarmee al het datawerk erin. De hoofddiagnose klopte; de recon corrigeerde drie details die bepalen wát er precies verbetert.

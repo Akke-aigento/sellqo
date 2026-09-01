@@ -17,16 +17,17 @@ interface TenantOverviewTabProps {
 }
 
 export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
-  const { useTenantDetail, useTenantSubscription, useTenantCredits, useTenantOwner } = usePlatformAdmin();
+  const { useTenantDetail, useTenantCredits, useTenantOwner } = usePlatformAdmin();
   const { data: tenant, isLoading: tenantLoading } = useTenantDetail(tenantId);
-  const { data: subscription, isLoading: subLoading } = useTenantSubscription(tenantId);
   const { data: credits, isLoading: creditsLoading } = useTenantCredits(tenantId);
   const { data: owner, isLoading: ownerLoading } = useTenantOwner(tenantId);
 
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const queryClient = useQueryClient();
-  const isLoading = tenantLoading || subLoading || creditsLoading || ownerLoading;
+  // TENANT-CMD-1: subscription wordt hier niet meer getoond (staat in de
+  // command-strook), dus die query zit ook niet meer in de laadpoort.
+  const isLoading = tenantLoading || creditsLoading || ownerLoading;
 
   if (isLoading) {
     return (
@@ -38,7 +39,6 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
     );
   }
 
-  const planName = (subscription?.pricing_plans as { name?: string } | null)?.name || 'Geen plan';
   const tenantData = tenant as {
     id?: string;
     name?: string;
@@ -62,34 +62,6 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
     <div className="space-y-6">
       {/* Stats Cards - Primary Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Abonnement</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{planName}</div>
-            <p className="text-xs text-muted-foreground">
-              Status: {subscription?.status || 'Geen'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Credits</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {credits ? credits.credits_total - credits.credits_used : 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {credits?.credits_used || 0} gebruikt van {credits?.credits_total || 0}
-            </p>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Gekochte Credits</CardTitle>
@@ -158,6 +130,10 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
           </CardContent>
         </Card>
 
+        {/* TENANT-CMD-1: deze kaart toont dezelfde status als de command-strook,
+            maar draagt ook de ontkoppel-actie (disconnect-stripe-account). Die
+            actie bestaat nergens anders, dus de kaart blijft staan — een dubbele
+            badge weegt niet op tegen het verliezen van een destructieve actie. */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Stripe Status</CardTitle>
@@ -213,6 +189,7 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
             </p>
           </CardContent>
         </Card>
+
       </div>
 
       {/* Tenant Details */}

@@ -14,6 +14,7 @@ import { TenantModulesTab } from '@/components/platform/TenantModulesTab';
 import { TenantActivityTab } from '@/components/platform/TenantActivityTab';
 import { TenantActionsTab } from '@/components/platform/TenantActionsTab';
 import { TenantTeamTab } from '@/components/platform/TenantTeamTab';
+import { TenantCommandStrip } from '@/components/platform/TenantCommandStrip';
 
 export default function TenantDetail() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -30,8 +31,15 @@ export default function TenantDetail() {
   // `visited` houdt bij welke tabs al geopend zijn, zodat forceMount niet alle
   // acht tabs tegelijk op page-load laadt maar elke tab pas bij het eerste
   // bezoek. Daarna blijft hij gemount en is terugwisselen instant.
-  const [tab, setTab] = useState('overview');
-  const [visited, setVisited] = useState<Set<string>>(() => new Set(['overview']));
+  const [tab, setTab] = useState('billing');
+  const [visited, setVisited] = useState<Set<string>>(() => new Set(['billing']));
+
+  // TENANT-CMD-1: de command-strook activeert een tab via deze functie in
+  // plaats van de updateSubscription-flow uit TenantSubscriptionTab te kopieren.
+  const goToTab = (value: string) => {
+    setTab(value);
+    setVisited((prev) => new Set(prev).add(value));
+  };
 
   if (isLoading) {
     return (
@@ -74,57 +82,50 @@ export default function TenantDetail() {
         </div>
       </div>
 
+      {/* TENANT-CMD-1: command-strook — status en dagelijkse acties bovenaan. */}
+      <TenantCommandStrip tenantId={tenantId!} tenant={tenant} onNavigate={goToTab} />
+
       {/* Tabs */}
       <Tabs
         value={tab}
-        onValueChange={(v) => {
-          setTab(v);
-          setVisited((prev) => new Set(prev).add(v));
-        }}
+        onValueChange={goToTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="overview">Overzicht</TabsTrigger>
-          <TabsTrigger value="subscription">Abonnement</TabsTrigger>
-          <TabsTrigger value="credits">AI Credits</TabsTrigger>
-          <TabsTrigger value="actions">Acties</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="invoices">Facturen</TabsTrigger>
-          <TabsTrigger value="modules">Modules</TabsTrigger>
-          <TabsTrigger value="activity">Activiteit</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="billing">Facturatie</TabsTrigger>
+          <TabsTrigger value="access">Toegang &amp; modules</TabsTrigger>
+          <TabsTrigger value="history">Historie</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('overview') && <TenantOverviewTab tenantId={tenantId!} />}
+        <TabsContent value="billing" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('billing') && (
+            <div className="space-y-6">
+              <TenantOverviewTab tenantId={tenantId!} />
+              <TenantSubscriptionTab tenantId={tenantId!} />
+              <TenantInvoicesTab tenantId={tenantId!} />
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="subscription" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('subscription') && <TenantSubscriptionTab tenantId={tenantId!} />}
+        <TabsContent value="access" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('access') && (
+            <div className="space-y-6">
+              <TenantTeamTab tenantId={tenantId!} />
+              <TenantModulesTab tenantId={tenantId!} />
+              <TenantCreditsTab tenantId={tenantId!} />
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="credits" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('credits') && <TenantCreditsTab tenantId={tenantId!} />}
+        <TabsContent value="history" className="data-[state=inactive]:hidden" forceMount>
+          {visited.has('history') && (
+            <div className="space-y-6">
+              <TenantActivityTab tenantId={tenantId!} />
+              <TenantActionsTab tenantId={tenantId!} />
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="actions" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('actions') && <TenantActionsTab tenantId={tenantId!} />}
-        </TabsContent>
-
-        <TabsContent value="team" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('team') && <TenantTeamTab tenantId={tenantId!} />}
-        </TabsContent>
-
-        <TabsContent value="invoices" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('invoices') && <TenantInvoicesTab tenantId={tenantId!} />}
-        </TabsContent>
-
-        <TabsContent value="modules" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('modules') && <TenantModulesTab tenantId={tenantId!} />}
-        </TabsContent>
-
-        <TabsContent value="activity" className="data-[state=inactive]:hidden" forceMount>
-          {visited.has('activity') && <TenantActivityTab tenantId={tenantId!} />}
-        </TabsContent>
       </Tabs>
     </div>
   );
