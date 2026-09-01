@@ -348,6 +348,7 @@ const App = () => (
             <Route path="/sla" element={<SellqoLegal />} />
             <Route path="/acceptable-use" element={<SellqoLegal />} />
             <Route path="/dpa" element={<SellqoLegal />} />
+            <Route path="/account-deletion" element={<SellqoLegal />} />
             
             {/* Public Pages */}
             <Route path="/about" element={<About />} />
