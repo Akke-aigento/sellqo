@@ -40,7 +40,7 @@ serve(async (req) => {
     // TENANT-ACTION-1: account-mint logica leeft nu in _shared/connectAccount.ts
     // zodat resolve-tenant-action exact dezelfde accounts aanmaakt. Gedrag,
     // foutteksten en respons zijn ongewijzigd.
-    const { accountId, created } = await ensureConnectAccount(
+    const { stripe, accountId, created } = await ensureConnectAccount(
       supabaseClient,
       tenant_id,
       logStep,
