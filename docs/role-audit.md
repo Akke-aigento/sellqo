@@ -1,3 +1,56 @@
+## TENANT-FIX-1 — drie bugs op het tenant-detailscherm — 1 september 2026
+
+**Root cause 1 — cross-origin 302 via `fetch`.** `resolve-tenant-action` antwoordde op het success-pad met een `302` naar Stripe (`index.ts:111-114`). `TenantAction.tsx` haalde dat endpoint op met `fetch(..., { redirect: 'follow' })` en keek naar `res.redirected`. De browser volgde die redirect binnen de fetch naar `connect.stripe.com`, dat geen CORS-header voor ons origin zet — de fetch faalde, de `catch` sloeg toe, en iedereen kreeg de foutpagina. Een 302 is prima voor een navigatie, niet voor een fetch.
+
+**Root cause 2 — dubbele FK-embed.** `tenant_subscriptions` heeft precies twee foreign keys naar `pricing_plans`: `tenant_subscriptions_plan_id_fkey` (`plan_id`) en `tenant_subscriptions_pending_plan_id_fkey` (`pending_plan_id`). Geverifieerd in de uit de live DB gegenereerde `Relationships` in `src/integrations/supabase/types.ts`, niet uit een migratie-conventie afgeleid. Een kale `pricing_plans(*)`-embed is daardoor ambigu; PostgREST weigert met `PGRST201`, de query faalt, `subscription` blijft `undefined` en de UI toont de fallback "Geen plan".
+
+**Root cause 3 — no-op knop.** "Activeer abonnement" in de command-strook riep alleen `onNavigate('billing')` aan. De tab wisselde wel, maar het wijzigingsformulier staat onder de vouw, dus er leek niets te gebeuren.
+
+**Uitgevoerd:**
+
+- **`supabase/functions/resolve-tenant-action/index.ts`.** Het success-pad geeft nu `json({ success: true, url: accountLink.url })` in plaats van een 302; `json()` bestond al (regel 25, 200 + `corsHeaders`). Nagetrokken dat dat pad **geen zijeffecten** heeft buiten het minten van de link — de tokenstatus wordt er niet bijgewerkt — dus dit is puur een transportwijziging. Alle negen foutpaden (`token is required`, `invalid_token`, `token_used`, `token_revoked`, `token_expired` ×2, `unsupported_action`, `origin_unresolved`, de 500) staan er letterlijk ongewijzigd. `refresh_url`/`return_url` naar `${origin}/actie/${token}` blijven staan, dus een verlopen Stripe-link keert nog steeds terug in de wrapper en mint een verse.
+- **`src/pages/public/TenantAction.tsx`.** De `res.redirected`-tak is weg. `go()` doet nu `fetch(endpoint)`, leest de JSON en navigeert bij `success && url` zelf met `window.location.href`; anders valt de code terug op de bestaande `ERROR_KEYS`-afhandeling. De endpoint-opbouw, de `cancelled`-guard en de loading/error-UI zijn ongewijzigd; er is één extra `cancelled`-check ná het parsen van de body. Het kopcommentaar beschreef nog de 302 en is meegewijzigd.
+- **`src/hooks/usePlatformAdmin.ts`** (`useTenantSubscription`): `.select('*, pricing_plans!plan_id(*)')`.
+- **`src/hooks/useTenant.tsx`**: `.select('tenant_id, plan_id, status, pricing_plans!plan_id(name)')` — alleen de disambiguatie, de veldselectie bleef `name`. Plus de ontbrekende `error`-destructurering met een `console.warn`, in de stijl van de `repairErr`-afhandeling er vlak boven. Bewust geen `throw`: een mislukte verrijking mag de tenant-switcher niet omleggen.
+- **`src/components/platform/TenantSubscriptionTab.tsx`**: de kaart "Abonnement Wijzigen" krijgt `id="subscription-form"`. Dat is de kaart met de plan-, status- en interval-velden; de eerste kaart is alleen weergave.
+- **`src/components/platform/TenantCommandStrip.tsx`**: het label is context-bewust (`subscription?.status === 'active'` → "Beheer abonnement", anders "Activeer abonnement"), en de knop roept `goToSubscriptionForm` aan: `onNavigate('billing')` gevolgd door een `setTimeout` van 150 ms met `document.getElementById('subscription-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })`. De timeout is geen bijgeloof: door het keep-alive-patroon bestaat het doel-element bij een eerste bezoek nog niet (de tab zit dan nog niet in `visited`) en staat het daarna `hidden` tot de switch gerenderd is — `scrollIntoView` doet in beide gevallen niets. De optional chaining maakt een misser onschadelijk.
+
+**Uitgebreid t.o.v. de opdracht, met akkoord:** de opdracht noemde alleen de embed in `usePlatformAdmin.ts`. De recon vond dezelfde ambiguïteit in `src/hooks/useTenant.tsx:179`, die `subscription_plan` voedt voor élke tenant in de switcher. Daar viel hij nooit op omdat de `error` niet werd uitgelezen: de query faalde volledig stil en de plannaam viel terug op de oude waarde. Dat verklaart waarom deze bug zo lang onzichtbaar bleef.
+
+**Conventie gevolgd, niet verzonnen:** de disambiguatie gebruikt de kolomvorm `!plan_id`. Dat blijkt in deze repo al de standaard: `usePlatformBilling.ts:20/46/132`, `useTenantSubscription.ts:22`, `useTrialStatus.ts:64` en `useTransactionUsage.ts:30` doen het allemaal zo. De twee gefixte plekken waren juist de uitzonderingen — wat de diagnose extra bevestigt.
+
+**Security-keuzes:** n.v.t., onderbouwd. Geen RLS, policy, grant of migratie geraakt. De resolver behoudt al zijn tokenvalidaties (bestaan, `completed`/`revoked`/`expired`, vervaldatum, actietype, origin) en al zijn foutcodes; er verandert alleen hóé de succes-URL wordt teruggegeven. De platform-admin-check op `create-tenant-action-link` staat los en is niet aangeraakt. De twee query-fixes veranderen niets aan welke rijen zichtbaar zijn — een ambigue embed faalt, hij verbreedt niets.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. `resolve-tenant-action` is geen storefront-functie; `storefront-api`, `storefront-resolve` en `checkout-engine` zijn niet aangeraakt en de vijf custom frontends delen geen React-componenten met deze repo. `useTenant.tsx` is een hook van deze app, niet van hun frontends.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | 33 fouten met en 33 zonder de wijziging, regel-voor-regel identiek; geen enkele in de vijf frontend-bestanden. Baseline vers gemeten op `1c14ee0`, en gewacht tot de exit-marker in het log stond vóór het uitlezen. |
+| `npx eslint` op de vijf frontend-bestanden | 4 problemen vóór én na — delta 0 |
+| `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
+| `npx vitest run` | 68/68 groen |
+| `public/sitemap.xml` | door `prebuild` gewijzigd, teruggezet, niet gestaged |
+
+**Beperking:** `resolve-tenant-action/index.ts` is hier niet te typechecken (Deno + `esm.sh`-imports; `tsconfig.app.json` include't alleen `src`). De wijziging is één return-statement dat een bestaande helper in hetzelfde bestand hergebruikt.
+
+**Deploy-volgorde is hier een harde eis — 1a en 1b horen bij elkaar.** Deploy de edge-functie en de frontend samen. Alleen de frontend deployen betekent dat die JSON probeert te lezen uit een 302; alleen de functie deployen betekent dat de oude frontend geen `res.redirected` meer ziet en "unknown" toont. **Niet door mij gedeployed** — dat doet de connector-Claude.
+
+**Nog te doen — smoke-check ná deploy (Akke), want hier draait geen echte omgeving:**
+
+1. Genereer een onboarding-link en open hem: je landt nu bij Stripe in plaats van op de foutpagina.
+2. Een verlopen of ingetrokken token toont nog steeds de juiste foutmelding, niet "unknown".
+3. Het tenant-detailscherm toont de echte plannaam in plaats van "Geen plan"; idem de plannaam in de tenant-switcher.
+4. "Beheer/Activeer abonnement" springt naar Facturatie én scrollt naar het wijzigingsformulier, ook bij het eerste bezoek aan die tab.
+
+**Bewust ongemoeid / Vervolg:**
+
+- Geen migratie, geen wijziging aan `create-tenant-action-link`, `create-connect-account` of `create-platform-mandate-setup`.
+- Wie het resolver-endpoint rechtstreeks opent ziet voortaan JSON in plaats van een doorverwijzing. Geen bezwaar: de gedeelde link is altijd `/actie/<token>`, nooit de functie-URL.
+- Slottaken §4.2 t/m §4.4 staan nu open voor vijf batches (BILLING-1, REVIEWS-I18N-1, TENANT-TABS-1, TENANT-CMD-1, TENANT-FIX-1).
+- Openstaand uit eerdere batches: de smoke-checks van TENANT-CMD-1 en van `storefront-api` (REVIEWS-I18N-1).
+
 ## TENANT-CMD-1 — command-strook en tab-hergroepering op het tenant-detailscherm — 1 september 2026
 
 **Root cause:** geen bug maar een werkbaarheidsprobleem. `src/pages/platform/TenantDetail.tsx` had acht gelijkwaardige tabs waarin de drie dagelijks benodigde acties (abonnement activeren, onboarding-link, mandaatlink) niet of verstopt aanwezig waren. De backend-wrapper `create-tenant-action-link` was al gebouwd en live; alleen de frontend ontbrak.

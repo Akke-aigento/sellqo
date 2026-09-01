@@ -153,7 +153,8 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
       </Card>
 
       {/* Subscription Management */}
-      <Card>
+      {/* TENANT-FIX-1: id is het scroll-doel van de command-strook. */}
+      <Card id="subscription-form">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />

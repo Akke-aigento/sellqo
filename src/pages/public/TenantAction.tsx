@@ -1,6 +1,6 @@
 // TENANT-ACTION-1: publieke wrapper-pagina voor een deelbare onboarding-link.
-// /actie/:token          -> redirect naar de resolver, die een VERSE Stripe
-//                           onboarding-link mint en 302't naar Stripe.
+// /actie/:token          -> vraagt de resolver om een VERSE Stripe
+//                           onboarding-link (JSON) en navigeert er zelf heen.
 // /actie/:token/gelukt   -> succesmelding na afronden bij Stripe.
 
 import { useEffect, useState } from 'react';
@@ -62,18 +62,23 @@ export default function TenantAction() {
         `?token=${encodeURIComponent(token)}&origin=${encodeURIComponent(window.location.origin)}`;
 
       try {
-        // De resolver antwoordt met 302 naar Stripe, of met JSON bij een fout.
-        // We proberen eerst de foutmelding te lezen zonder de gebruiker weg te
-        // sturen naar een technische pagina.
-        const res = await fetch(endpoint, { redirect: 'follow' });
+        // TENANT-FIX-1: de resolver antwoordt altijd met JSON — bij succes
+        // { success: true, url }, anders { success: false, error }. Eerder gaf
+        // hij een 302 naar Stripe; die volgde de browser binnen deze fetch naar
+        // connect.stripe.com, dat geen CORS-header voor ons origin zet, waarna
+        // de fetch faalde en iedereen de foutpagina zag. Navigeren doen we nu
+        // zelf, buiten de fetch om.
+        const res = await fetch(endpoint);
         if (cancelled) return;
 
-        if (res.redirected && res.url) {
-          window.location.replace(res.url);
+        const payload = await res.json().catch(() => ({}));
+        if (cancelled) return;
+
+        if (payload?.success && typeof payload.url === 'string') {
+          window.location.href = payload.url;
           return;
         }
 
-        const payload = await res.json().catch(() => ({}));
         const code = typeof payload?.error === 'string' ? payload.error : 'unknown';
         setError((ERROR_KEYS as readonly string[]).includes(code) ? code : 'unknown');
       } catch {

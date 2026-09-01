@@ -108,10 +108,12 @@ Deno.serve(async (req) => {
 
     log("Onboarding link minted", { tenant: row.tenant_id, account: accountId });
 
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, Location: accountLink.url },
-    });
+    // TENANT-FIX-1: de URL gaat als JSON terug, niet als 302.
+    // De wrapper-pagina haalt dit endpoint met fetch() op; een 302 laat de
+    // browser doorlopen naar connect.stripe.com, dat geen CORS-header voor ons
+    // origin zet — de fetch faalde daar en de gebruiker zag de foutpagina.
+    // Nu navigeert de frontend zelf, en dat is een gewone navigatie zonder CORS.
+    return json({ success: true, url: accountLink.url });
   } catch (err) {
     const message = errMsg(err);
     log("ERROR", { message });

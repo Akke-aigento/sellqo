@@ -181,7 +181,11 @@ export function usePlatformAdmin() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('tenant_subscriptions')
-          .select('*, pricing_plans(*)')
+          // TENANT-FIX-1: tenant_subscriptions heeft TWEE FK's naar pricing_plans
+          // (plan_id en pending_plan_id), dus een kale embed is ambigu en geeft
+          // PostgREST-fout PGRST201 — de query faalde en de UI toonde 'Geen plan'.
+          // !plan_id volgt de disambiguatie die usePlatformBilling.ts al gebruikt.
+          .select('*, pricing_plans!plan_id(*)')
           .eq('tenant_id', tenantId)
           .maybeSingle();
         

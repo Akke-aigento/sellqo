@@ -174,10 +174,18 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     }
 
     // Fetch subscription data for all tenants
-    const { data: subscriptionsData } = await supabase
+    // TENANT-FIX-1: zelfde twee-FK-ambiguiteit als in usePlatformAdmin. Hier
+    // viel hij nooit op omdat de error niet werd uitgelezen: de query faalde
+    // stil en de plannaam viel terug op de oude waarde. De error wordt nu wel
+    // gelogd — bewust geen throw, want een mislukte verrijking mag de
+    // tenant-switcher niet omleggen.
+    const { data: subscriptionsData, error: subscriptionsError } = await supabase
       .from('tenant_subscriptions')
-      .select('tenant_id, plan_id, status, pricing_plans(name)')
+      .select('tenant_id, plan_id, status, pricing_plans!plan_id(name)')
       .in('tenant_id', effectiveTenantsData?.map(t => t.id) || []);
+    if (subscriptionsError) {
+      console.warn('[useTenant] Subscription enrichment failed:', subscriptionsError);
+    }
 
     // Merge subscription data into tenants
     const enrichedTenants = (effectiveTenantsData || []).map(tenant => {

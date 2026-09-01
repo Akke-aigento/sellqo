@@ -114,6 +114,22 @@ export function TenantCommandStrip({ tenantId, tenant, onNavigate }: TenantComma
     }
   };
 
+  // TENANT-FIX-1: de knop was een no-op — hij wisselde van tab, maar het
+  // wijzigingsformulier staat onder de vouw, dus er leek niets te gebeuren.
+  // De timeout is nodig omdat het doel-element pas bestaat nadat React de
+  // tab-switch heeft gerenderd: bij een eerste bezoek is 'billing' nog niet
+  // visited (dan is het er niet), en daarna staat het `hidden` tot de switch
+  // rond is — scrollIntoView doet op beide niets. Optional chaining houdt een
+  // misser onschadelijk.
+  const goToSubscriptionForm = () => {
+    onNavigate('billing');
+    setTimeout(() => {
+      document
+        .getElementById('subscription-form')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  };
+
   const planName = (subscription?.pricing_plans as { name?: string } | null)?.name || 'Geen plan';
   const creditsLeft = credits ? credits.credits_total - credits.credits_used : 0;
 
@@ -142,8 +158,9 @@ export function TenantCommandStrip({ tenantId, tenant, onNavigate }: TenantComma
               <p className="text-xs text-muted-foreground">Status: {subscription?.status || 'Geen'}</p>
             </>
           )}
-          <Button variant="outline" size="sm" className="w-full" onClick={() => onNavigate('billing')}>
-            Activeer abonnement <ArrowRight className="h-3.5 w-3.5 ml-1" />
+          <Button variant="outline" size="sm" className="w-full" onClick={goToSubscriptionForm}>
+            {subscription?.status === 'active' ? 'Beheer abonnement' : 'Activeer abonnement'}
+            <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </CardContent>
       </Card>
