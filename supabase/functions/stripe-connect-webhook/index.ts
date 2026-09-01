@@ -164,7 +164,40 @@ serve(async (req) => {
         } else {
           logStep("Tenant status updated successfully");
         }
+
+        // TENANT-ACTION-1: zodra de tenant kan innen is de onboarding-actie klaar.
+        // Idempotent via de status='pending'-filter; fouten mogen de bestaande
+        // tenant-statusupdate nooit doen falen.
+        if (account.charges_enabled) {
+          try {
+            const { data: tenantRow } = await supabaseClient
+              .from("tenants")
+              .select("id")
+              .eq("stripe_account_id", account.id)
+              .maybeSingle();
+
+            if (tenantRow?.id) {
+              const { error: tokenErr } = await supabaseClient
+                .from("tenant_action_tokens")
+                .update({ status: "completed", completed_at: new Date().toISOString() })
+                .eq("tenant_id", tenantRow.id)
+                .eq("action_type", "connect_onboarding")
+                .eq("status", "pending");
+
+              if (tokenErr) {
+                logStep("Error completing tenant action tokens", { error: tokenErr.message });
+              } else {
+                logStep("Tenant action tokens marked completed", { tenantId: tenantRow.id });
+              }
+            }
+          } catch (tokenCatch) {
+            logStep("Tenant action token update threw", {
+              error: tokenCatch instanceof Error ? tokenCatch.message : String(tokenCatch),
+            });
+          }
+        }
         break;
+
       }
 
       // ==================== PAYOUT EVENTS ====================

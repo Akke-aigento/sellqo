@@ -16334,6 +16334,60 @@ export type Database = {
           },
         ]
       }
+      tenant_action_tokens: {
+        Row: {
+          action_type: Database["public"]["Enums"]["tenant_action_type"]
+          completed_at: string | null
+          context: Json | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          status: Database["public"]["Enums"]["tenant_action_status"]
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["tenant_action_type"]
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["tenant_action_status"]
+          tenant_id: string
+          token: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["tenant_action_type"]
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["tenant_action_status"]
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_action_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_action_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_addons: {
         Row: {
           activated_at: string | null
@@ -20605,6 +20659,8 @@ export type Database = {
         | "waiting"
         | "resolved"
         | "closed"
+      tenant_action_status: "pending" | "completed" | "expired" | "revoked"
+      tenant_action_type: "connect_onboarding" | "sepa_mandate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -20938,6 +20994,8 @@ export const Constants = {
         "resolved",
         "closed",
       ],
+      tenant_action_status: ["pending", "completed", "expired", "revoked"],
+      tenant_action_type: ["connect_onboarding", "sepa_mandate"],
     },
   },
 } as const

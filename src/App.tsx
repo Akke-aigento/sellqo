@@ -66,6 +66,8 @@ import SupplierDocumentsPage from "./pages/admin/SupplierDocuments";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ResetPassword from "./pages/ResetPassword";
 import MandateActivation from "./pages/MandateActivation";
+import TenantAction, { TenantActionSuccess } from "./pages/public/TenantAction";
+
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
@@ -170,6 +172,11 @@ const App = () => (
 
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
+
+            {/* TENANT-ACTION-1: publieke wrapper voor deelbare onboarding-links */}
+            <Route path="/actie/:token" element={<TenantAction />} />
+            <Route path="/actie/:token/gelukt" element={<TenantActionSuccess />} />
+
 
             {/* SUB-2: public mandate activation page (SEPA/card) */}
             <Route path="/betaling/machtiging/:token" element={<MandateActivation />} />

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getStripeForTenant } from "../_shared/stripe.ts";
+import { ensureConnectAccount } from "../_shared/connectAccount.ts";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -37,107 +37,22 @@ serve(async (req) => {
     requireRole(auth, tenant_id, ['tenant_admin']);
     logStep("User authenticated", { userId: auth.user_id });
 
-    // Verify user has access to this tenant
-    const { data: tenantData, error: tenantError } = await supabaseClient
-      .from("tenants")
-      .select("id, name, owner_email, stripe_account_id, country")
-      .eq("id", tenant_id)
-      .single();
+    // TENANT-ACTION-1: account-mint logica leeft nu in _shared/connectAccount.ts
+    // zodat resolve-tenant-action exact dezelfde accounts aanmaakt. Gedrag,
+    // foutteksten en respons zijn ongewijzigd.
+    const { stripe, accountId, created } = await ensureConnectAccount(
+      supabaseClient,
+      tenant_id,
+      logStep,
+    );
 
-    if (tenantError || !tenantData) {
-      throw new Error("Tenant not found or access denied");
-    }
-    logStep("Tenant found", { tenantName: tenantData.name });
-
-    const { stripe, keyMode } = await getStripeForTenant(supabaseClient, tenant_id);
-    logStep("Stripe client initialised", { keyMode });
-
-    // Check if tenant already has a Stripe account
-    if (tenantData.stripe_account_id) {
+    if (!created) {
       logStep("Tenant already has Stripe account, creating new onboarding link");
-      
-      const accountLink = await stripe.accountLinks.create({
-        account: tenantData.stripe_account_id,
-        refresh_url: `${req.headers.get("origin")}/admin/settings?stripe=refresh`,
-        return_url: `${req.headers.get("origin")}/admin/settings?stripe=success`,
-        type: "account_onboarding",
-      });
-
-      return new Response(JSON.stringify({ 
-        url: accountLink.url,
-        account_id: tenantData.stripe_account_id 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
     }
-
-    // Create new Stripe Express account
-    const country = tenantData.country || "NL";
-    logStep("Creating new Stripe Express account", { country });
-    
-    // Build capabilities based on country
-    const capabilities: any = {
-      card_payments: { requested: true },
-      transfers: { requested: true },
-    };
-    
-    // Add country-specific payment methods
-    if (country === "NL") {
-      capabilities.ideal_payments = { requested: true };
-    }
-    if (country === "BE") {
-      capabilities.bancontact_payments = { requested: true };
-    }
-    // SEPA Direct Debit for all EU countries
-    capabilities.sepa_debit_payments = { requested: true };
-    
-    let account;
-    try {
-      account = await stripe.accounts.create({
-        type: "express",
-        country: country,
-        email: tenantData.owner_email,
-        capabilities,
-        business_type: "individual",
-        metadata: {
-          tenant_id: tenant_id,
-          tenant_name: tenantData.name,
-        },
-      });
-      logStep("Stripe account created", { accountId: account.id });
-    } catch (stripeError: any) {
-      logStep("Stripe account creation failed", { error: stripeError.message });
-      // Provide helpful error messages for common Connect issues
-      if (stripeError.message?.includes("signed up for Connect")) {
-        throw new Error("Stripe Connect is niet geactiveerd. Ga naar je Stripe Dashboard > Settings > Connect om dit te activeren.");
-      }
-      if (stripeError.message?.includes("responsibilities") || stripeError.message?.includes("platform-profile") || stripeError.message?.includes("managing losses")) {
-        throw new Error("Stripe Connect platform-profiel is nog niet afgerond. Ga naar Stripe Dashboard > Settings > Connect > Platform profile en bevestig de verantwoordelijkheden. Probeer daarna opnieuw.");
-      }
-      throw new Error(`Stripe fout: ${stripeError.message}`);
-    }
-
-    // Update tenant with Stripe account ID
-    const { error: updateError } = await supabaseClient
-      .from("tenants")
-      .update({ 
-        stripe_account_id: account.id,
-        stripe_onboarding_complete: false,
-        stripe_charges_enabled: false,
-        stripe_payouts_enabled: false,
-      })
-      .eq("id", tenant_id);
-
-    if (updateError) {
-      logStep("Error updating tenant", { error: updateError.message });
-      throw new Error(`Failed to update tenant: ${updateError.message}`);
-    }
-    logStep("Tenant updated with Stripe account ID");
 
     // Create account onboarding link
     const accountLink = await stripe.accountLinks.create({
-      account: account.id,
+      account: accountId,
       refresh_url: `${req.headers.get("origin")}/admin/settings?stripe=refresh`,
       return_url: `${req.headers.get("origin")}/admin/settings?stripe=success`,
       type: "account_onboarding",
@@ -146,11 +61,12 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       url: accountLink.url,
-      account_id: account.id 
+      account_id: accountId 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (error instanceof AuthError) {
