@@ -173,6 +173,11 @@ const App = () => (
             {/* Invitation accept route */}
             <Route path="/invite/:token" element={<AcceptInvitation />} />
 
+            {/* TENANT-ACTION-1: publieke wrapper voor deelbare onboarding-links */}
+            <Route path="/actie/:token" element={<TenantAction />} />
+            <Route path="/actie/:token/gelukt" element={<TenantActionSuccess />} />
+
+
             {/* SUB-2: public mandate activation page (SEPA/card) */}
             <Route path="/betaling/machtiging/:token" element={<MandateActivation />} />
 
