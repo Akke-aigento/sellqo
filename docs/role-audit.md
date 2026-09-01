@@ -1,3 +1,63 @@
+## REVIEWS-I18N-1 — storefront-reviews gaven 500 + ontbrekende help-i18n-key — 31 augustus 2026
+
+**Root cause A — verkeerde kolomnamen én een datamodel-mismatch in `supabase/functions/storefront-api/index.ts`.**
+
+Twee queries op `public.external_reviews` selecteerden kolommen die niet bestaan. Nagetrokken tegen drie onafhankelijke bronnen, die alle drie hetzelfde zeggen: de `CREATE TABLE` in `supabase/migrations/20260121155056_8d82b327-a338-40c5-87e2-45c424b05ce3.sql:31-54`, de gegenereerde `src/integrations/supabase/types.ts:6728-6751`, en de live-DB-observatie uit de opdracht. De tabel heeft `author_name` en `text` — geen `reviewer_name`, geen `review_text`, en **geen `product_id`**. Er is ook geen latere `ALTER TABLE` die `product_id` toevoegt; reviews zijn in dit datamodel tenant-breed, niet per product.
+
+Gevolg: PostgREST gaf `42703` (undefined column) op beide queries. Bij de product-detailroute viel daardoor niet alleen het reviews-blok om maar de héle response met een 500 — de query staat midden in `getProduct`, vóór de varianten-fetch.
+
+1. Regel ~505-513, product-detail: `.select('id, reviewer_name, rating, review_text, created_at, platform')` plus een `.eq('product_id', product.id)` die per definitie nooit kon matchen.
+2. Regel ~991-1004, `getReviews`: dezelfde select plus `product_id` in de kolomlijst, en een `if (productId) query = query.eq('product_id', productId)`.
+
+**Root cause B — ontbrekende i18n-key.** `admin.help.aIHelpChatWindow.sellqo_assistent` wordt op drie plekken aangeroepen (`src/components/admin/help/AIHelpChatWindow.tsx:186`, `AIHelpWidget.tsx:47` en `:59`) maar bestond in geen enkel locale-bestand. i18next valt dan terug op het rauwe keypad, dus de gebruiker zag letterlijk `admin.help.aIHelpChatWindow.sellqo_assistent` in de titelbalk van de help-assistent.
+
+**Uitgevoerd:**
+
+- **`supabase/functions/storefront-api/index.ts`, blok 1 (product-detail).** Select vervangen door `'id, reviewer_name:author_name, rating, review_text:text, created_at, platform'` en de `.eq('product_id', ...)` volledig verwijderd. De PostgREST-aliassen houden de respons-shape byte-voor-byte gelijk: de sleutels blijven `reviewer_name` en `review_text`.
+- **`supabase/functions/storefront-api/index.ts`, blok 2 (`getReviews`).** Zelfde aliassen, `product_id` uit de select, en de `productId`-filterregel verwijderd. De endpoint accepteert de `product_id`-parameter nog steeds — aanroepers breken niet — maar negeert hem, met een comment die uitlegt waarom. De dode lokale `const productId` is ook weg: een toegewezen variabele die niets doet is precies de dode affordance die CLAUDE.md §2 verbiedt.
+- **`src/i18n/locales/{nl,en,fr,de,uk}.json`.** `sellqo_assistent` toegevoegd binnen `admin.help.aIHelpChatWindow`: NL "SellQo Assistent", EN "SellQo Assistant", FR "Assistant SellQo", DE "SellQo Assistent", UK "Асистент SellQo". Alleen toegevoegd, achteraan in het bestaande object; de vier bestaande keys (`hoe_kan_ik_je_helpen`, `stel_een_vraag_over_het_sellqo`, `nieuw_gesprek`, `stel_je_vraag`) zijn onaangeroerd. De diff is één regel per bestand — de JSON-round-trip nam inspringing en trailing newline van het bronbestand over, zodat er geen herformattering in de diff terechtkwam.
+
+**Security-keuzes:** n.v.t., onderbouwd. Geen RLS-policy, grant of `SECURITY DEFINER`-functie geraakt. De `.eq('tenant_id', tenantId)`- en `.eq('is_visible', true)`-filters blijven op beide queries staan, dus de tenant-isolatie en de zichtbaarheidsfilter zijn ongewijzigd. Het weghalen van de `product_id`-filter verbreedt de resultset niet buiten de tenant: die filter kon door de ontbrekende kolom nooit uitvoeren — de query faalde, hij leverde geen bredere set. RLS op `external_reviews` staat aan sinds de oorspronkelijke migratie en is niet aangeraakt.
+
+**Gedeelde-paden-waarschuwing — dit ráákt een gedeeld pad, en daarom expliciet.** `storefront-api` is één van de drie edge-functies waar de vijf custom frontends op draaien. Twee dingen maken dit veilig:
+
+1. *Het JSON-contract wijzigt niet.* De sleutels in de respons blijven `reviewer_name` en `review_text`; alleen de kolom waaruit ze gevuld worden is gecorrigeerd. Dat is precies waarom hier PostgREST-aliassen gebruikt zijn in plaats van de sleutels te hernoemen naar `author_name`/`text` — hernoemen zou het contract breken.
+2. *De enige verwijdering is `product_id` uit de `getReviews`-respons.* Die kolom bestaat niet in de tabel, dus hij is nooit in een respons beland: de query faalde erop. Er kan dus geen consument zijn die hem las. Nagetrokken in de repo: `ProductReviewsSection.tsx` leest hem niet (die leest `author_name || reviewer_name` en `review_text || content` en is al tolerant voor beide shapes), en geen enkel ander bestand leest `product_id` van een review-object.
+
+Netto gaat dit pad van "500" naar "werkt", wat voor alle tenants een verbetering is. De custom-frontend smoke-check hoort desondanks aan Lovable-kant te gebeuren; hier is alleen aangetoond dát het contract ongewijzigd is.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `node scripts/i18n-parity.mjs` | exit 0 — volledige pariteit, 5151/5151 keys in alle 5 talen (de, en, fr, nl, uk) |
+| `npx tsc --noEmit -p tsconfig.app.json` | 33 fouten, regel-voor-regel identiek aan de baseline van BILLING-1 (`diff` op de gesorteerde foutregels: geen verschil) |
+| `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
+| `npx eslint` op `storefront-api/index.ts` | 252 problemen vóór én na — delta 0, gemeten door de `HEAD`-versie tijdelijk mee te linten. Alle 252 zijn bestaande `no-explicit-any` (238), `no-empty` (10) en `prefer-const` (4). |
+| `npx vitest run` | 68/68 groen (geen regressie op de BILLING-1-helpers) |
+| `public/sitemap.xml` | door `prebuild` gewijzigd, teruggezet en niet gestaged |
+
+**Beperking, eerlijk gemeld:** `storefront-api/index.ts` is niet getypecheckt — `tsconfig.app.json` include't alleen `src`, en de Deno-runtime staat niet op deze machine. De correctie is geverifieerd tegen het schema (migratie + `types.ts`), niet tegen een draaiende query. De eerste echte bevestiging is een `GET` op de product-detailroute ná de Lovable-deploy.
+
+**Natrek na deploy (gevraagd aan Akke):**
+
+```sql
+-- Levert de tenant uberhaupt zichtbare reviews? Zo niet, dan blijft het blok
+-- leeg en is dat geen bug maar lege data.
+SELECT tenant_id, count(*) FILTER (WHERE is_visible) AS zichtbaar, count(*) AS totaal
+  FROM public.external_reviews
+ GROUP BY tenant_id
+ ORDER BY totaal DESC;
+```
+
+Plus een smoke-check op een product-detailpagina van SellQo Speeltuin of Demo Bakkerij: de route moet 200 geven in plaats van 500, en het reviews-blok moet de auteursnaam en reviewtekst tonen.
+
+**Bewust ongemoeid / Vervolg:**
+
+- Bug 1 (VAT / `default_vat_rate`) is niet aangeraakt — aparte batch, zoals afgesproken.
+- Slottaken §4.2 t/m §4.4 (changelog, `doc_articles`, nieuwsbrief) staan open tot de deploy geverifieerd is. Voor BILLING-1 stonden ze al open; deze batch komt daarbij.
+- **Signaal, niet opgelost:** de bug bestond omdat er tussen de edge-functie en het schema geen typecheck zit. `storefront-api` gebruikt `supabase: any`, dus een kolomnaam die niet bestaat wordt pas in productie zichtbaar. Datzelfde patroon staat in élke edge-functie in deze repo. Een gerichte grep op selects tegen `types.ts` zou dit soort mismatches vóór deploy vangen; kandidaat voor een eigen batch of CI-script.
+
 ## BILLING-1 — datum- en geldhardening in de billing-keten — 31 augustus 2026
 
 **Root cause:** vier stille bugs, alle vier tijdens recon bevestigd tegen de code (niet uit het opdrachtdocument overgenomen).

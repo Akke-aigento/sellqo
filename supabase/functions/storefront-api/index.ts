@@ -503,11 +503,18 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   }
 
   // Reviews
+  // external_reviews is TENANT-BREED: de tabel heeft geen product_id (zie de
+  // CREATE TABLE in 20260121155056_*.sql). De oude .eq('product_id', ...) kon
+  // dus nooit matchen en gaf PostgREST-fout 42703 — de hele product-detail
+  // response viel daardoor om met een 500.
+  //
+  // De kolommen heten author_name en text; de aliassen houden de respons-shape
+  // (reviewer_name / review_text) exact gelijk, want de publieke
+  // ProductReviewsSection en de custom frontends lezen die sleutels.
   const { data: reviews } = await supabase
     .from('external_reviews')
-    .select('id, reviewer_name, rating, review_text, created_at, platform')
+    .select('id, reviewer_name:author_name, rating, review_text:text, created_at, platform')
     .eq('tenant_id', tenantId)
-    .eq('product_id', product.id)
     .eq('is_visible', true)
     .order('created_at', { ascending: false })
     .limit(20);
@@ -989,16 +996,22 @@ async function getHomepage(supabase: any, tenantId: string) {
 // ============== GET REVIEWS ==============
 
 async function getReviews(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
-  const productId = params.product_id as string | undefined;
+  // params.product_id wordt bewust niet uitgelezen — zie de comment bij de
+  // query hieronder. De aanroeper mag hem blijven meesturen; hij doet niets.
   const limit = Math.min(50, Number(params.limit) || 20);
   const featuredOnly = params.featured_only === true;
 
+  // Aliassen author_name/text -> reviewer_name/review_text: de kolommen heten
+  // anders dan de respons-sleutels, en die sleutels liggen vast in het contract
+  // met de storefront-frontends.
   let query = supabase
     .from('external_reviews')
-    .select('id, reviewer_name, rating, review_text, created_at, platform, is_featured, product_id')
+    .select('id, reviewer_name:author_name, rating, review_text:text, created_at, platform, is_featured')
     .eq('tenant_id', tenantId).eq('is_visible', true);
 
-  if (productId) query = query.eq('product_id', productId);
+  // external_reviews is tenant-breed; geen product-koppeling in dit datamodel.
+  // De product_id-parameter blijft in de signature staan voor bestaande
+  // aanroepers, maar wordt genegeerd — filteren erop gaf voorheen een 500.
   if (featuredOnly) query = query.eq('is_featured', true);
 
   const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);

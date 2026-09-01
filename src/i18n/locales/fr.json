@@ -4621,7 +4621,8 @@
         "hoe_kan_ik_je_helpen": "Comment puis-je vous aider ?",
         "nieuw_gesprek": "Nouvelle conversation",
         "stel_een_vraag_over_het_sellqo": "Posez une question sur la plateforme SellQo",
-        "stel_je_vraag": "Posez votre question..."
+        "stel_je_vraag": "Posez votre question...",
+        "sellqo_assistent": "Assistant SellQo"
       },
       "aIHelpWidget": {
         "minimaliseer": "Réduire"
