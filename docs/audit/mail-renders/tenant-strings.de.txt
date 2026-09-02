@@ -1,0 +1,163 @@
+SellQo
+
+  96
+
+
+
+
+    Audit-render van alle e-mailstrings (de)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    E-mailstrings — DE
+
+    Alle 108 strings uit tenantEmailI18n.ts, gerenderd door de echte renderTenantEmail-layout met sample-variabelen. Rood = rauw key-pad of niet-vervangen placeholder.
+
+    order
+order.subjectVielen Dank für Ihre Bestellung — SQ-1001
+order.headingVielen Dank für Ihre Bestellung!
+order.introHallo Jan Janssens, wir haben Ihre Bestellung erhalten und bereiten sie sofort vor.
+order.ctaBestellung ansehen
+order.orderNumberLabelBestellnummer
+order.orderDateLabelDatum
+order.shippingLabelLieferadresse
+order.billingLabelRechnungsadresse
+order.summaryBestellübersicht
+order.quantityAnz.
+order.subtotalZwischensumme
+order.shippingVersand
+order.discountRabatt
+order.taxMwSt.
+order.totalGesamt
+order.thanksVielen Dank für Ihre Bestellung! Wir haben Ihre Bestellung und Zahlung erhalten.
+order.nextStepSie erhalten eine Versandbestätigung mit Sendungsverfolgung, sobald Ihr Paket unterwegs ist.
+order.supportTextFragen? Kontaktieren Sie uns unter
+order.closingMit freundlichen Grüßen
+order.poweredByBereitgestellt von SellQo
+invoice
+invoice.subjectRechnung F2026-042 von SellQo Speeltuin
+invoice.headingRechnung F2026-042
+invoice.introSehr geehrte/r Jan Janssens, anbei erhalten Sie Ihre Rechnung.
+invoice.ctaRechnung ansehen
+invoice.attachedDie Rechnung finden Sie als PDF im Anhang.
+invoice.poweredByBereitgestellt von SellQo
+invoice.autoCollectSubjectRechnung F2026-042 — automatischer Einzug
+invoice.autoCollectIntroSehr geehrte/r Jan Janssens, anbei erhalten Sie die Rechnung zu Ihrem Abonnement. Sie müssen nichts unternehmen: Der Betrag wird automatisch über das von Ihnen erteilte Mandat eingezogen.
+invoice.autoCollectProcessingNoteDer Betrag wird in den nächsten Tagen automatisch per SEPA-Lastschrift oder über Ihre gespeicherte Zahlungsmethode eingezogen. Es ist keine Aktion erforderlich.
+invoice.autoCollectPaidNoteDer Betrag wurde automatisch per SEPA oder über Ihre gespeicherte Zahlungsmethode eingezogen. Diese Rechnung ist beglichen.
+invoice.paidSubjectRechnung F2026-042 von SellQo Speeltuin — bezahlt
+invoice.paidIntroSehr geehrte/r Jan Janssens, anbei erhalten Sie die Rechnung zu Ihrem Einkauf. Diese Rechnung ist beglichen — es ist keine weitere Aktion erforderlich.
+invoice.paidNoteDie Rechnung finden Sie als PDF im Anhang. Eine Zahlung ist nicht erforderlich.
+invoice.reminderSubject1Freundliche Erinnerung — Rechnung F2026-042
+invoice.reminderSubject2Zweite Zahlungserinnerung — Rechnung F2026-042
+invoice.reminderSubject3Letzte Zahlungserinnerung — Rechnung F2026-042
+invoice.reminderIntro1Sehr geehrte/r Jan Janssens, die Rechnung F2026-042 ist noch offen. Möglicherweise ist sie Ihrer Aufmerksamkeit entgangen — bitte begleichen Sie sie zeitnah.
+invoice.reminderIntro2Sehr geehrte/r Jan Janssens, die Rechnung F2026-042 ist weiterhin offen. Bitte begleichen Sie diese kurzfristig, um zusätzliche Kosten zu vermeiden.
+invoice.reminderIntro3Sehr geehrte/r Jan Janssens, dies ist die letzte Erinnerung zur Rechnung F2026-042. Ohne Zahlung innerhalb von 7 Tagen übergeben wir den Vorgang an unseren Inkassopartner.
+invoice.reminderPayNowRechnung online bezahlen
+invoice.mandateSubject1Mandat erforderlich — Rechnung F2026-042
+invoice.mandateSubject2Erinnerung: Ihr Mandat ist noch nicht aktiv — Rechnung F2026-042
+invoice.mandateSubject3Letzte Erinnerung: Mandat weiterhin nicht aktiv — Rechnung F2026-042
+invoice.mandateIntro1Sehr geehrte/r Jan Janssens, Ihr Abonnement läuft über automatischen Einzug, es liegt jedoch noch kein Mandat vor. Deshalb konnte die Rechnung F2026-042 nicht eingezogen werden. Die Einrichtung dauert keine Minute — nutzen Sie die Schaltfläche unten.
+invoice.mandateIntro2Sehr geehrte/r Jan Janssens, die Rechnung F2026-042 ist noch offen, weil das Mandat für den automatischen Einzug noch nicht aktiv ist. Sobald Sie es einrichten, wird diese Rechnung sofort eingezogen.
+invoice.mandateIntro3Sehr geehrte/r Jan Janssens, dies ist die letzte Erinnerung: Das Mandat für Ihr Abonnement ist weiterhin nicht aktiv, wodurch die Rechnung F2026-042 offen bleibt. Richten Sie es über die Schaltfläche unten ein oder nehmen Sie Kontakt mit uns auf.
+invoice.mandateActivateMandat einrichten
+invoice.mandateNoteSobald Ihr Mandat aktiv ist, wird diese Rechnung automatisch eingezogen. Weiter ist nichts zu tun.
+creditNote
+creditNote.subjectGutschrift CN-5 - SellQo Speeltuin
+creditNote.headingGutschrift CN-5
+creditNote.introAnbei erhalten Sie die Gutschrift zur Rechnung F2026-042.
+creditNote.attachedDie Gutschrift finden Sie als PDF im Anhang.
+creditNote.closingBei Fragen stehen wir Ihnen gerne zur Verfügung.
+creditNote.poweredByBereitgestellt von SellQo
+return
+return.subjectUpdate zu Rücksendung RMA-12
+return.headingUpdate zu Ihrer Rücksendung
+return.poweredByBereitgestellt von SellQo
+giftCard
+giftCard.subject🎁 Sie haben eine Geschenkkarte von SellQo Speeltuin erhalten!
+giftCard.headingHerzlichen Glückwunsch, Marie Peeters!
+giftCard.introSie haben eine Geschenkkarte von SellQo Speeltuin erhalten.
+giftCard.ctaJetzt einlösen
+giftCard.instructionsGeben Sie den Code an der Kasse ein, um Ihr Guthaben zu nutzen.
+giftCard.expiresGültig bis
+giftCard.poweredByBereitgestellt von SellQo
+quote
+quote.subjectAngebot OFF-77 von SellQo Speeltuin
+quote.headingAngebot OFF-77
+quote.introSehr geehrte/r Jan Janssens, anbei unser Angebot.
+quote.ctaAngebot annehmen
+quote.validUntilGültig bis
+quote.secondaryCtaHaben Sie Fragen?
+quote.poweredByBereitgestellt von SellQo
+message
+message.poweredByBereitgestellt von SellQo
+message.greetingSehr geehrte/r Jan Janssens,
+message.regardsMit freundlichen Grüßen
+campaign
+campaign.unsubscribeAbmelden
+campaign.poweredByBereitgestellt von SellQo
+ticket
+ticket.subjectIhre Tickets für SellQo Live
+ticket.headingIhre Tickets sind bereit
+ticket.introHallo Jan Janssens, vielen Dank für Ihre Bestellung. Unten finden Sie 2 Ticket(s).
+ticket.instructionsZeigen Sie diese QR-Codes am Eingang. Ein QR-Code pro Person.
+ticket.ticketLabelTicket 1 von € 123,45
+ticket.attendeeLabelName
+ticket.dateLabelDatum
+ticket.timeLabelUhrzeit
+ticket.locationLabelOrt
+ticket.meetingPointLabelTreffpunkt
+ticket.codeLabelTicketcode
+ticket.disclaimerHinweis: In Ausnahmefällen können Termine verschoben oder zusammengelegt werden. Wir informieren Sie in diesem Fall immer.
+ticket.footerNoteFragen zu Ihren Tickets? Antworten Sie einfach auf diese E-Mail.
+ticket.poweredByBereitgestellt von SellQo
+paymentRequest
+paymentRequest.subjectZahlungsaufforderung BR-9 — SellQo Speeltuin
+paymentRequest.headingZahlungsaufforderung BR-9
+paymentRequest.introGuten Tag Jan Janssens, hier ist die Zahlungsaufforderung für Ihr Abonnement. Sie können direkt online über den Button unten bezahlen.
+paymentRequest.noticeDies ist keine Rechnung. Ihre Rechnung folgt unmittelbar nach Eingang der Zahlung.
+paymentRequest.payNowJetzt online bezahlen
+paymentRequest.numberLabelAnfragenummer
+paymentRequest.periodLabelZeitraum
+paymentRequest.descriptionLabelBeschreibung
+paymentRequest.dueLabelGewünschtes Zahlungsdatum
+paymentRequest.amountLabelGesamtbetrag
+paymentRequest.attachedDie Zahlungsaufforderung finden Sie als PDF im Anhang.
+paymentRequest.poweredByBereitgestellt von SellQo
+paymentRequest.reminderSubject1Freundliche Erinnerung — Zahlungsaufforderung BR-9
+paymentRequest.reminderSubject2Kurze Erinnerung — Zahlungsaufforderung BR-9
+paymentRequest.reminderSubject3Zahlungsaufforderung BR-9 ist abgelaufen
+paymentRequest.reminderIntro1Guten Tag Jan Janssens, die Zahlungsaufforderung BR-9 ist noch offen. Vielleicht ist sie Ihrer Aufmerksamkeit entgangen — Sie können unten direkt bezahlen.
+paymentRequest.reminderIntro2Guten Tag Jan Janssens, die Zahlungsaufforderung BR-9 ist noch offen. Ein Klick auf den Button unten genügt.
+paymentRequest.reminderIntro3Guten Tag Jan Janssens, die Zahlungsaufforderung BR-9 ist abgelaufen. Möchten Sie diesen Zeitraum dennoch aktivieren? Bezahlen Sie einfach über den Button unten — Ihre Rechnung folgt sofort.
+
+
+
+      Bestellung ansehen
+      Bestellung ansehen
+
+
+
+
+
+
+
+    Audit-render — NIET verzonden.
+
+    SellQo Speeltuin · Teststraat 1, 9000, Gent, BE
+
+    support@sellqo.app · BTW BE0123456789
+
+
+    Mogelijk gemaakt door SellQo · sellqo.app

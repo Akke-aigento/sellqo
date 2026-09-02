@@ -1,0 +1,163 @@
+SellQo
+
+  96
+
+
+
+
+    Audit-render van alle e-mailstrings (fr)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    E-mailstrings — FR
+
+    Alle 108 strings uit tenantEmailI18n.ts, gerenderd door de echte renderTenantEmail-layout met sample-variabelen. Rood = rauw key-pad of niet-vervangen placeholder.
+
+    order
+order.subjectMerci pour votre commande — SQ-1001
+order.headingMerci pour votre commande !
+order.introBonjour Jan Janssens, nous avons reçu votre commande et la préparons immédiatement.
+order.ctaVoir votre commande
+order.orderNumberLabelNuméro de commande
+order.orderDateLabelDate
+order.shippingLabelAdresse de livraison
+order.billingLabelAdresse de facturation
+order.summaryRécapitulatif
+order.quantityQté
+order.subtotalSous-total
+order.shippingLivraison
+order.discountRemise
+order.taxTVA
+order.totalTotal
+order.thanksMerci pour votre commande ! Nous avons bien reçu votre commande et votre paiement.
+order.nextStepVous recevrez une confirmation d'expédition avec un suivi dès que votre colis sera en route.
+order.supportTextDes questions ? Contactez-nous à
+order.closingCordialement
+order.poweredByPropulsé par SellQo
+invoice
+invoice.subjectFacture F2026-042 de SellQo Speeltuin
+invoice.headingFacture F2026-042
+invoice.introCher/Chère Jan Janssens, veuillez trouver votre facture en pièce jointe.
+invoice.ctaVoir la facture
+invoice.attachedLa facture est jointe en PDF.
+invoice.poweredByPropulsé par SellQo
+invoice.autoCollectSubjectFacture F2026-042 — prélèvement automatique
+invoice.autoCollectIntroCher/Chère Jan Janssens, veuillez trouver ci-joint la facture de votre abonnement. Aucune action requise : le montant sera prélevé automatiquement via le mandat que vous avez fourni.
+invoice.autoCollectProcessingNoteLe montant sera prélevé automatiquement dans les prochains jours par SEPA ou via votre moyen de paiement enregistré. Aucune action nécessaire.
+invoice.autoCollectPaidNoteLe montant a été prélevé automatiquement par SEPA ou via votre moyen de paiement enregistré. Cette facture est réglée.
+invoice.paidSubjectFacture F2026-042 de SellQo Speeltuin — réglée
+invoice.paidIntroCher/Chère Jan Janssens, veuillez trouver ci-joint la facture de votre achat. Cette facture est réglée — aucune action n'est requise.
+invoice.paidNoteLa facture est jointe en PDF. Aucun paiement n'est nécessaire.
+invoice.reminderSubject1Rappel amical — facture F2026-042
+invoice.reminderSubject2Deuxième rappel — facture F2026-042
+invoice.reminderSubject3Dernier rappel — facture F2026-042
+invoice.reminderIntro1Cher/Chère Jan Janssens, la facture F2026-042 est encore ouverte. Elle vous a peut-être échappé — merci de bien vouloir la régler dès que possible.
+invoice.reminderIntro2Cher/Chère Jan Janssens, la facture F2026-042 reste impayée. Merci de procéder au paiement rapidement afin d'éviter des frais supplémentaires.
+invoice.reminderIntro3Cher/Chère Jan Janssens, ceci est le dernier rappel pour la facture F2026-042. Sans paiement dans les 7 jours, nous transmettrons le dossier à notre partenaire de recouvrement.
+invoice.reminderPayNowPayer la facture en ligne
+invoice.mandateSubject1Mandat requis — facture F2026-042
+invoice.mandateSubject2Rappel : votre mandat n'est pas encore actif — facture F2026-042
+invoice.mandateSubject3Dernier rappel : mandat toujours pas actif — facture F2026-042
+invoice.mandateIntro1Cher/Chère Jan Janssens, votre abonnement fonctionne par prélèvement automatique, mais aucun mandat n'est encore en place. La facture F2026-042 n'a donc pas pu être prélevée. Sa mise en place prend moins d'une minute via le bouton ci-dessous.
+invoice.mandateIntro2Cher/Chère Jan Janssens, la facture F2026-042 reste ouverte car le mandat de prélèvement automatique n'est pas encore actif. Dès que vous l'aurez mis en place, cette facture sera prélevée immédiatement.
+invoice.mandateIntro3Cher/Chère Jan Janssens, ceci est le dernier rappel : le mandat de votre abonnement n'est toujours pas actif, ce qui laisse la facture F2026-042 ouverte. Mettez-le en place via le bouton ci-dessous, ou contactez-nous.
+invoice.mandateActivateMettre en place le mandat
+invoice.mandateNoteDès que votre mandat est actif, cette facture est prélevée automatiquement. Vous n'avez rien d'autre à faire.
+creditNote
+creditNote.subjectNote de crédit CN-5 - SellQo Speeltuin
+creditNote.headingNote de crédit CN-5
+creditNote.introVeuillez trouver ci-jointe la note de crédit relative à la facture F2026-042.
+creditNote.attachedLa note de crédit est jointe en PDF.
+creditNote.closingN'hésitez pas à nous contacter en cas de question.
+creditNote.poweredByPropulsé par SellQo
+return
+return.subjectMise à jour du retour RMA-12
+return.headingMise à jour de votre retour
+return.poweredByPropulsé par SellQo
+giftCard
+giftCard.subject🎁 Vous avez reçu une carte-cadeau de SellQo Speeltuin !
+giftCard.headingFélicitations, Marie Peeters !
+giftCard.introVous avez reçu une carte-cadeau de SellQo Speeltuin.
+giftCard.ctaUtiliser maintenant
+giftCard.instructionsEntrez le code à la caisse pour utiliser votre solde.
+giftCard.expiresValable jusqu'au
+giftCard.poweredByPropulsé par SellQo
+quote
+quote.subjectDevis OFF-77 de SellQo Speeltuin
+quote.headingDevis OFF-77
+quote.introCher/Chère Jan Janssens, veuillez trouver notre devis ci-dessous.
+quote.ctaAccepter le devis
+quote.validUntilValable jusqu'au
+quote.secondaryCtaDes questions ?
+quote.poweredByPropulsé par SellQo
+message
+message.poweredByPropulsé par SellQo
+message.greetingCher/Chère Jan Janssens,
+message.regardsCordialement
+campaign
+campaign.unsubscribeSe désabonner
+campaign.poweredByPropulsé par SellQo
+ticket
+ticket.subjectVos billets pour SellQo Live
+ticket.headingVos billets sont prêts
+ticket.introBonjour Jan Janssens, merci pour votre commande. Vous trouverez ci-dessous 2 billet(s).
+ticket.instructionsPrésentez ce(s) QR code(s) à l'entrée. Un QR code par personne.
+ticket.ticketLabelBillet 1 sur € 123,45
+ticket.attendeeLabelNom
+ticket.dateLabelDate
+ticket.timeLabelHeure
+ticket.locationLabelLieu
+ticket.meetingPointLabelPoint de rendez-vous
+ticket.codeLabelCode du billet
+ticket.disclaimerRemarque : dans des cas exceptionnels, les dates peuvent être déplacées ou regroupées. Vous en serez toujours informé.
+ticket.footerNoteDes questions sur vos billets ? Répondez simplement à cet e-mail.
+ticket.poweredByPropulsé par SellQo
+paymentRequest
+paymentRequest.subjectDemande de paiement BR-9 — SellQo Speeltuin
+paymentRequest.headingDemande de paiement BR-9
+paymentRequest.introBonjour Jan Janssens, voici la demande de paiement pour votre abonnement. Vous pouvez payer en ligne directement via le bouton ci-dessous.
+paymentRequest.noticeCeci n'est pas une facture. Votre facture suivra dès la réception de votre paiement.
+paymentRequest.payNowPayer en ligne
+paymentRequest.numberLabelNuméro de demande
+paymentRequest.periodLabelPériode
+paymentRequest.descriptionLabelDescription
+paymentRequest.dueLabelDate de paiement souhaitée
+paymentRequest.amountLabelMontant total
+paymentRequest.attachedLa demande de paiement est jointe en PDF.
+paymentRequest.poweredByPropulsé par SellQo
+paymentRequest.reminderSubject1Rappel amical — demande de paiement BR-9
+paymentRequest.reminderSubject2Petit rappel — demande de paiement BR-9
+paymentRequest.reminderSubject3La demande de paiement BR-9 a expiré
+paymentRequest.reminderIntro1Bonjour Jan Janssens, la demande de paiement BR-9 est encore ouverte. Elle vous a peut-être échappé — vous pouvez payer directement ci-dessous.
+paymentRequest.reminderIntro2Bonjour Jan Janssens, la demande de paiement BR-9 est toujours ouverte. Un seul clic sur le bouton ci-dessous suffit pour payer.
+paymentRequest.reminderIntro3Bonjour Jan Janssens, la demande de paiement BR-9 a expiré. Vous souhaitez tout de même activer cette période ? Payez simplement via le bouton ci-dessous et votre facture suit immédiatement.
+
+
+
+      Voir votre commande
+      Voir votre commande
+
+
+
+
+
+
+
+    Audit-render — NIET verzonden.
+
+    SellQo Speeltuin · Teststraat 1, 9000, Gent, BE
+
+    support@sellqo.app · BTW BE0123456789
+
+
+    Mogelijk gemaakt door SellQo · sellqo.app

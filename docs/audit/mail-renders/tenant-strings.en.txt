@@ -1,0 +1,163 @@
+SellQo
+
+  96
+
+
+
+
+    Audit-render van alle e-mailstrings (en)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    E-mailstrings — EN
+
+    Alle 108 strings uit tenantEmailI18n.ts, gerenderd door de echte renderTenantEmail-layout met sample-variabelen. Rood = rauw key-pad of niet-vervangen placeholder.
+
+    order
+order.subjectThank you for your order — SQ-1001
+order.headingThank you for your order!
+order.introHi Jan Janssens, we received your order and are preparing it right away.
+order.ctaView your order
+order.orderNumberLabelOrder number
+order.orderDateLabelDate
+order.shippingLabelShipping address
+order.billingLabelBilling address
+order.summaryOrder summary
+order.quantityQty
+order.subtotalSubtotal
+order.shippingShipping
+order.discountDiscount
+order.taxVAT
+order.totalTotal
+order.thanksThank you for your order! We received your order and payment.
+order.nextStepYou'll receive a shipping confirmation with tracking once your order is on its way.
+order.supportTextQuestions? Reach us at
+order.closingKind regards
+order.poweredByPowered by SellQo
+invoice
+invoice.subjectInvoice F2026-042 from SellQo Speeltuin
+invoice.headingInvoice F2026-042
+invoice.introDear Jan Janssens, please find your invoice attached.
+invoice.ctaView invoice
+invoice.attachedYour invoice is attached as a PDF.
+invoice.poweredByPowered by SellQo
+invoice.autoCollectSubjectInvoice F2026-042 — automatic collection
+invoice.autoCollectIntroDear Jan Janssens, please find your subscription invoice attached. No action is required: the amount will be collected automatically via the mandate you provided.
+invoice.autoCollectProcessingNoteThe amount will be charged automatically over the coming days via SEPA direct debit or your saved payment method. No action needed.
+invoice.autoCollectPaidNoteThe amount has been collected automatically via SEPA or your saved payment method. This invoice is paid in full.
+invoice.paidSubjectInvoice F2026-042 from SellQo Speeltuin — paid
+invoice.paidIntroDear Jan Janssens, please find the invoice for your purchase attached. This invoice has been paid in full — no further action is needed.
+invoice.paidNoteYour invoice is attached as a PDF. No payment is required.
+invoice.reminderSubject1Friendly reminder — invoice F2026-042
+invoice.reminderSubject2Second reminder — invoice F2026-042
+invoice.reminderSubject3Final reminder — invoice F2026-042
+invoice.reminderIntro1Dear Jan Janssens, invoice F2026-042 is still open. It may have slipped your attention — could you settle it at your earliest convenience?
+invoice.reminderIntro2Dear Jan Janssens, invoice F2026-042 remains unpaid. Please arrange payment shortly to avoid additional charges.
+invoice.reminderIntro3Dear Jan Janssens, this is the final reminder for invoice F2026-042. Without payment within 7 days we will hand over the case to our collections partner.
+invoice.reminderPayNowPay invoice online
+invoice.mandateSubject1Authorisation needed — invoice F2026-042
+invoice.mandateSubject2Reminder: your authorisation is not active yet — invoice F2026-042
+invoice.mandateSubject3Final call: authorisation still not active — invoice F2026-042
+invoice.mandateIntro1Dear Jan Janssens, your subscription runs on automatic collection, but there is no authorisation in place yet. That is why invoice F2026-042 could not be collected. Setting it up takes less than a minute — use the button below.
+invoice.mandateIntro2Dear Jan Janssens, invoice F2026-042 is still open because the authorisation for automatic collection is not active yet. As soon as you set it up, this invoice is collected straight away.
+invoice.mandateIntro3Dear Jan Janssens, this is the final reminder: the authorisation for your subscription is still not active, which leaves invoice F2026-042 open. Please set it up using the button below, or get in touch with us.
+invoice.mandateActivateSet up authorisation
+invoice.mandateNoteOnce your authorisation is active, this invoice is collected automatically. Nothing further is needed from you.
+creditNote
+creditNote.subjectCredit note CN-5 - SellQo Speeltuin
+creditNote.headingCredit note CN-5
+creditNote.introPlease find attached the credit note regarding invoice F2026-042.
+creditNote.attachedThe credit note is attached as a PDF.
+creditNote.closingFeel free to contact us with any questions.
+creditNote.poweredByPowered by SellQo
+return
+return.subjectUpdate on return RMA-12
+return.headingReturn update
+return.poweredByPowered by SellQo
+giftCard
+giftCard.subject🎁 You've received a gift card from SellQo Speeltuin!
+giftCard.headingCongratulations, Marie Peeters!
+giftCard.introYou've received a gift card from SellQo Speeltuin.
+giftCard.ctaRedeem now
+giftCard.instructionsEnter the code at checkout to use your balance.
+giftCard.expiresValid until
+giftCard.poweredByPowered by SellQo
+quote
+quote.subjectQuote OFF-77 from SellQo Speeltuin
+quote.headingQuote OFF-77
+quote.introDear Jan Janssens, please find our quote below.
+quote.ctaAccept quote
+quote.validUntilValid until
+quote.secondaryCtaGot questions?
+quote.poweredByPowered by SellQo
+message
+message.poweredByPowered by SellQo
+message.greetingDear Jan Janssens,
+message.regardsKind regards
+campaign
+campaign.unsubscribeUnsubscribe
+campaign.poweredByPowered by SellQo
+ticket
+ticket.subjectYour tickets for SellQo Live
+ticket.headingYour tickets are ready
+ticket.introHi Jan Janssens, thanks for your order. Below you'll find 2 ticket(s).
+ticket.instructionsShow these QR code(s) at the entrance. One QR code per person.
+ticket.ticketLabelTicket 1 of € 123,45
+ticket.attendeeLabelName
+ticket.dateLabelDate
+ticket.timeLabelTime
+ticket.locationLabelLocation
+ticket.meetingPointLabelMeeting point
+ticket.codeLabelTicket code
+ticket.disclaimerPlease note: in exceptional cases dates may move or be merged. We will always inform you if that happens.
+ticket.footerNoteQuestions about your tickets? Just reply to this email.
+ticket.poweredByPowered by SellQo
+paymentRequest
+paymentRequest.subjectPayment request BR-9 — SellQo Speeltuin
+paymentRequest.headingPayment request BR-9
+paymentRequest.introDear Jan Janssens, here is the payment request for your subscription. You can pay online right away using the button below.
+paymentRequest.noticeThis is not an invoice. Your invoice will follow immediately after we receive your payment.
+paymentRequest.payNowPay online now
+paymentRequest.numberLabelRequest number
+paymentRequest.periodLabelPeriod
+paymentRequest.descriptionLabelDescription
+paymentRequest.dueLabelPreferred payment date
+paymentRequest.amountLabelTotal amount
+paymentRequest.attachedYou will find the payment request as a PDF attachment.
+paymentRequest.poweredByPowered by SellQo
+paymentRequest.reminderSubject1Friendly reminder — payment request BR-9
+paymentRequest.reminderSubject2Just a reminder — payment request BR-9
+paymentRequest.reminderSubject3Payment request BR-9 has expired
+paymentRequest.reminderIntro1Dear Jan Janssens, payment request BR-9 is still open. It may have slipped your attention — you can pay directly below.
+paymentRequest.reminderIntro2Dear Jan Janssens, payment request BR-9 is still open. Paying takes just one click using the button below.
+paymentRequest.reminderIntro3Dear Jan Janssens, payment request BR-9 has expired. Would you still like to activate this period? Simply pay using the button below and your invoice follows right away.
+
+
+
+      View your order
+      View your order
+
+
+
+
+
+
+
+    Audit-render — NIET verzonden.
+
+    SellQo Speeltuin · Teststraat 1, 9000, Gent, BE
+
+    support@sellqo.app · BTW BE0123456789
+
+
+    Mogelijk gemaakt door SellQo · sellqo.app

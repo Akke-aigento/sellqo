@@ -8,7 +8,7 @@ Geheugen tussen sessies. **CC leest dit als eerste, altijd** (runbook §1).
 | **Datum pin** | 2026-09-02 |
 | **Audit-branch** | `audit-run` — rapporten committen hier, `main` blijft schoon tot fixes gemerged worden |
 | **Runbook** | `docs/audit/RUNBOOK.md` v2 (autonome motor) |
-| **Laatste run** | 2026-09-02 — stap 0 (setup) afgerond |
+| **Laatste run** | 2026-09-02 — run 0 (visuele quick-scan) afgerond |
 | **Aard** | Audit-run. Geen productcode gewijzigd; uitsluitend geschreven onder `docs/audit/**` (runbook §9). |
 
 `origin/main` en lokale `HEAD` stonden beide al op `03781985`; de pin vroeg geen checkout-sprong.
@@ -21,7 +21,7 @@ Routetellingen zijn feitelijk uit `src/App.tsx` @ `03781985` (124 `path=`-declar
 
 | Batch | Gebied | Routes | Status | Rapport |
 |---|---|---|---|---|
-| 0 | Visuele quick-scan (laag 2, alle routes) | 125 | 🔄 bezig | `reports/00-visual-quickscan.md` |
+| 0 | Visuele quick-scan (laag 2, alle routes) | 125 | ✅ af — 🔴4 🟡7 🟢9 | `reports/00-visual-quickscan.md` |
 | 1 | Storefront `/shop/:tenantSlug/*` | 10 | ⏸ | — |
 | 2 | Betaal- & onboarding-flows | 6 | ⏸ | — |
 | 3 | Admin: Orders & facturatie | 8 | ⏸ | — |
@@ -43,7 +43,17 @@ Wordt per batch ingevuld zodra die batch loopt.
 
 ## Open 🟡 — natrek voor laag 3 (chat-Claude via Lovable-connector)
 
-Nog geen. Wordt gevuld vanaf run 0 / batch 1. Elk item krijgt de exacte natrek-query uitgeschreven (runbook §4).
+Uitgeschreven queries staan in `reports/00-visual-quickscan.md` §🟡 — klaar om te copy-pasten.
+
+| ID | Onderwerp | Blokkeert | Status |
+|---|---|---|---|
+| D-1 | Is `sellqo_legal_pages.content` nullable, en heeft een gepubliceerde rij lege content? | ernstbepaling 🔴 V-1 | ⏳ open |
+| D-2 | Bestaan alle 7 juridische slugs, incl. `account-deletion`? | 🔴 V-4 | ⏳ open |
+| D-3 | RLS/policies op `sellqo_legal_pages` — wie mag `content` schrijven? (XSS-oppervlak) | security-oordeel | ⏳ open |
+| D-4 | Echte slug van SellQo Speeltuin, voor een storefront-herscan met data | batch 1 | ⏳ open |
+| D-5 | `role_permissions` voor de 26 ongeguarde admin-routes | batch 3/4/6 | ⏳ open |
+| D-6 | Gedragsvingerafdruk: zijn `auth-email-hook` en `send-return-email` live gedeployed? | 🔴 V-2, V-3 | ⏳ open |
+| M-1 | Handmatige spotcheck door Akke: 5 ingelogde admin-routes op 375px en 1440px | 101 ongeziene routes | ⏳ open |
 
 ---
 
@@ -89,3 +99,21 @@ Eénmalig gedraaid bij kickoff. Alles groen — er is dus géén bestaande ruis 
 | i18n-pariteit | `node scripts/i18n-parity.mjs` | **exit 0** — 5 talen (de/en/fr/nl/uk), 5165/5165 keys elk, volledige pariteit |
 
 Bekende, niet-regressieve ruis: chunk-size-waarschuwing (`index-CQKokvYX.js` 9,16 MB / 2,51 MB gzip) en een verouderde `caniuse-lite`. Beide bestaand, conform CLAUDE.md §6.
+
+---
+
+## Bevindingen run 0 — samenvatting
+
+🔴 4 · 🟡 7 · 🟢 9. Volledig rapport: `reports/00-visual-quickscan.md`.
+
+| ID | Bevinding | Bestand |
+|---|---|---|
+| 🔴 V-1 | Alle 7 juridische pagina's crashen naar wit scherm op contentloze data | `src/pages/SellqoLegal.tsx:84` |
+| 🔴 V-2 | Auth-mails: Engels onderwerp op Nederlandse body, geen taalkeuze | `supabase/functions/auth-email-hook/index.ts:19-26` |
+| 🔴 V-3 | Duitse klanten krijgen Nederlandse retourmails; DE-vertalingen liggen ongebruikt | `supabase/functions/send-return-email/index.ts:17,42-58,84` |
+| 🔴 V-4 | `/account-deletion` heeft geen type in `LEGAL_PAGE_TYPES` → onbeheerbaar | `src/hooks/useSellqoLegal.ts:18-25` |
+
+**Fixes zijn niet uitgevoerd** (runbook §9). Geen productcode gewijzigd; `git status` op de productmappen is schoon.
+
+### Aandachtspunt voor Akke — dood gewicht met een vraag
+`supabase/functions/_shared/email-templates/index.ts` (6 KB, string-gebaseerde auth-mailrenderer) wordt nergens geïmporteerd, terwijl z'n eigen header claimt de gebruikte stack te zijn. Runbook §2F waarschuwt tegen blind schrappen: was dit de bedoelde vervanger die nooit is aangesloten? Zo ja, dan raakt hij 🔴 V-2. Niet aangeraakt.

@@ -1,0 +1,163 @@
+SellQo
+
+  96
+
+
+
+
+    Audit-render van alle e-mailstrings (nl)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    E-mailstrings — NL
+
+    Alle 108 strings uit tenantEmailI18n.ts, gerenderd door de echte renderTenantEmail-layout met sample-variabelen. Rood = rauw key-pad of niet-vervangen placeholder.
+
+    order
+order.subjectBedankt voor je bestelling — SQ-1001
+order.headingBedankt voor je bestelling!
+order.introHi Jan Janssens, we hebben je bestelling ontvangen en gaan deze direct voor je klaarmaken.
+order.ctaBekijk je bestelling
+order.orderNumberLabelBestelnummer
+order.orderDateLabelDatum
+order.shippingLabelVerzendadres
+order.billingLabelFactuuradres
+order.summaryBesteloverzicht
+order.quantityAantal
+order.subtotalSubtotaal
+order.shippingVerzending
+order.discountKorting
+order.taxBTW
+order.totalTotaal
+order.thanksBedankt voor je bestelling! We hebben je bestelling en betaling ontvangen.
+order.nextStepJe ontvangt automatisch een verzendbevestiging met track & trace zodra je pakket onderweg is.
+order.supportTextVragen? Neem contact op via
+order.closingMet vriendelijke groet
+order.poweredByMogelijk gemaakt door SellQo
+invoice
+invoice.subjectFactuur F2026-042 van SellQo Speeltuin
+invoice.headingFactuur F2026-042
+invoice.introBeste Jan Janssens, hierbij ontvang je de factuur voor je aankoop.
+invoice.ctaBekijk factuur
+invoice.attachedDe factuur vind je als PDF in de bijlage.
+invoice.poweredByMogelijk gemaakt door SellQo
+invoice.autoCollectSubjectFactuur F2026-042 — automatische incasso
+invoice.autoCollectIntroBeste Jan Janssens, hierbij ontvang je de factuur voor je abonnement. Je hoeft niets te doen: het bedrag wordt automatisch geïncasseerd via de door jou verstrekte machtiging.
+invoice.autoCollectProcessingNoteHet bedrag wordt de komende dagen automatisch afgeschreven via SEPA-incasso of je opgeslagen betaalmethode. Geen actie nodig.
+invoice.autoCollectPaidNoteHet bedrag is automatisch geïncasseerd via SEPA of je opgeslagen betaalmethode. Deze factuur is voldaan.
+invoice.paidSubjectFactuur F2026-042 van SellQo Speeltuin — voldaan
+invoice.paidIntroBeste Jan Janssens, hierbij ontvang je de factuur voor je aankoop. Deze factuur is voldaan — je hoeft niets meer te doen.
+invoice.paidNoteDe factuur vind je als PDF in de bijlage. Er is geen betaling meer nodig.
+invoice.reminderSubject1Vriendelijke herinnering — factuur F2026-042
+invoice.reminderSubject2Tweede herinnering — factuur F2026-042
+invoice.reminderSubject3Laatste herinnering — factuur F2026-042
+invoice.reminderIntro1Beste Jan Janssens, we merken dat factuur F2026-042 nog openstaat. Mogelijk is deze aan je aandacht ontsnapt — wil je hem zo spoedig mogelijk voldoen?
+invoice.reminderIntro2Beste Jan Janssens, factuur F2026-042 staat nog steeds open. We verzoeken je vriendelijk om deze op korte termijn te betalen om verdere kosten te voorkomen.
+invoice.reminderIntro3Beste Jan Janssens, dit is de laatste herinnering voor factuur F2026-042. Zonder betaling binnen 7 dagen dragen we het dossier over aan onze incassopartner.
+invoice.reminderPayNowBetaal factuur online
+invoice.mandateSubject1Machtiging nodig — factuur F2026-042
+invoice.mandateSubject2Herinnering: je machtiging is nog niet actief — factuur F2026-042
+invoice.mandateSubject3Laatste oproep: machtiging nog niet actief — factuur F2026-042
+invoice.mandateIntro1Beste Jan Janssens, je abonnement loopt via automatische incasso, maar er staat nog geen machtiging klaar. Daardoor kon factuur F2026-042 niet worden geïncasseerd. Je regelt het in een halve minuut via de knop hieronder.
+invoice.mandateIntro2Beste Jan Janssens, factuur F2026-042 staat nog open omdat de machtiging voor automatische incasso nog niet actief is. Zodra je die regelt, wordt deze factuur direct geïncasseerd.
+invoice.mandateIntro3Beste Jan Janssens, dit is de laatste herinnering: de machtiging voor je abonnement is nog steeds niet actief, waardoor factuur F2026-042 openstaat. Regel je machtiging via de knop hieronder, of neem contact met ons op.
+invoice.mandateActivateMachtiging regelen
+invoice.mandateNoteZodra je machtiging actief is, wordt deze factuur automatisch geïncasseerd. Je hoeft verder niets te doen.
+creditNote
+creditNote.subjectCreditnota CN-5 - SellQo Speeltuin
+creditNote.headingCreditnota CN-5
+creditNote.introHierbij ontvang je de creditnota met betrekking tot factuur F2026-042.
+creditNote.attachedDe creditnota vind je als PDF in de bijlage.
+creditNote.closingBij vragen kun je contact met ons opnemen.
+creditNote.poweredByMogelijk gemaakt door SellQo
+return
+return.subjectUpdate retour RMA-12
+return.headingUpdate over je retour
+return.poweredByMogelijk gemaakt door SellQo
+giftCard
+giftCard.subject🎁 Je hebt een cadeaukaart ontvangen van SellQo Speeltuin!
+giftCard.headingGefeliciteerd, Marie Peeters!
+giftCard.introJe hebt een cadeaukaart ontvangen van SellQo Speeltuin.
+giftCard.ctaVerzilver nu
+giftCard.instructionsVoer de code in bij het afrekenen om je tegoed te gebruiken.
+giftCard.expiresGeldig tot
+giftCard.poweredByMogelijk gemaakt door SellQo
+quote
+quote.subjectOfferte OFF-77 van SellQo Speeltuin
+quote.headingOfferte OFF-77
+quote.introBeste Jan Janssens, hierbij ontvang je onze offerte.
+quote.ctaOfferte accepteren
+quote.validUntilGeldig tot
+quote.secondaryCtaHeb je vragen?
+quote.poweredByMogelijk gemaakt door SellQo
+message
+message.poweredByMogelijk gemaakt door SellQo
+message.greetingBeste Jan Janssens,
+message.regardsMet vriendelijke groet
+campaign
+campaign.unsubscribeUitschrijven
+campaign.poweredByMogelijk gemaakt door SellQo
+ticket
+ticket.subjectJe tickets voor SellQo Live
+ticket.headingJe tickets zijn klaar
+ticket.introHi Jan Janssens, bedankt voor je bestelling. Hieronder vind je 2 ticket(s).
+ticket.instructionsToon deze QR-code(s) aan de ingang. Eén QR-code per persoon.
+ticket.ticketLabelTicket 1 van € 123,45
+ticket.attendeeLabelNaam
+ticket.dateLabelDatum
+ticket.timeLabelTijd
+ticket.locationLabelLocatie
+ticket.meetingPointLabelVerzamelpunt
+ticket.codeLabelTicketcode
+ticket.disclaimerLet op: datums kunnen in uitzonderlijke gevallen verschuiven of worden samengevoegd. Je wordt hier altijd van op de hoogte gebracht.
+ticket.footerNoteVragen over je tickets? Antwoord gewoon op deze e-mail.
+ticket.poweredByMogelijk gemaakt door SellQo
+paymentRequest
+paymentRequest.subjectBetalingsverzoek BR-9 — SellQo Speeltuin
+paymentRequest.headingBetalingsverzoek BR-9
+paymentRequest.introBeste Jan Janssens, hierbij het betalingsverzoek voor je abonnement. Je kunt direct online betalen via de knop hieronder.
+paymentRequest.noticeDit is geen factuur. Uw factuur volgt direct na ontvangst van de betaling.
+paymentRequest.payNowBetaal nu online
+paymentRequest.numberLabelVerzoeknummer
+paymentRequest.periodLabelPeriode
+paymentRequest.descriptionLabelOmschrijving
+paymentRequest.dueLabelGewenste betaaldatum
+paymentRequest.amountLabelTotaalbedrag
+paymentRequest.attachedHet betalingsverzoek vind je als PDF in de bijlage.
+paymentRequest.poweredByMogelijk gemaakt door SellQo
+paymentRequest.reminderSubject1Vriendelijke herinnering — betalingsverzoek BR-9
+paymentRequest.reminderSubject2Nog even een reminder — betalingsverzoek BR-9
+paymentRequest.reminderSubject3Betalingsverzoek BR-9 is verlopen
+paymentRequest.reminderIntro1Beste Jan Janssens, we zien dat betalingsverzoek BR-9 nog openstaat. Mogelijk is het aan je aandacht ontsnapt — je kunt hieronder direct betalen.
+paymentRequest.reminderIntro2Beste Jan Janssens, betalingsverzoek BR-9 staat nog open. Betalen kan met één klik via de knop hieronder.
+paymentRequest.reminderIntro3Beste Jan Janssens, betalingsverzoek BR-9 is verlopen. Wil je de periode alsnog activeren? Betaal dan gewoon via de knop hieronder — daarna ontvang je meteen je factuur.
+
+
+
+      Bekijk je bestelling
+      Bekijk je bestelling
+
+
+
+
+
+
+
+    Audit-render — NIET verzonden.
+
+    SellQo Speeltuin · Teststraat 1, 9000, Gent, BE
+
+    support@sellqo.app · BTW BE0123456789
+
+
+    Mogelijk gemaakt door SellQo · sellqo.app
