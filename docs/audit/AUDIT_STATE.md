@@ -8,7 +8,7 @@ Geheugen tussen sessies. **CC leest dit als eerste, altijd** (runbook §1).
 | **Datum pin** | 2026-09-02 |
 | **Audit-branch** | `audit-run` — rapporten committen hier, `main` blijft schoon tot fixes gemerged worden |
 | **Runbook** | `docs/audit/RUNBOOK.md` v2 (autonome motor) |
-| **Laatste run** | 2026-09-02 — run 0 (visuele quick-scan) afgerond |
+| **Laatste run** | 2026-09-02 — run 0 + batch 1 (Storefront) afgerond |
 | **Aard** | Audit-run. Geen productcode gewijzigd; uitsluitend geschreven onder `docs/audit/**` (runbook §9). |
 
 `origin/main` en lokale `HEAD` stonden beide al op `03781985`; de pin vroeg geen checkout-sprong.
@@ -22,7 +22,7 @@ Routetellingen zijn feitelijk uit `src/App.tsx` @ `03781985` (124 `path=`-declar
 | Batch | Gebied | Routes | Status | Rapport |
 |---|---|---|---|---|
 | 0 | Visuele quick-scan (laag 2, alle routes) | 125 | ✅ af — 🔴4 🟡7 🟢9 | `reports/00-visual-quickscan.md` |
-| 1 | Storefront `/shop/:tenantSlug/*` | 10 | ⏸ | — |
+| 1 | Storefront `/shop/:tenantSlug/*` | 10 | ✅ af — 🔴12 🟡16 🟢35 | `reports/01-storefront-gedeeld.md` + 10 pagina-rapporten |
 | 2 | Betaal- & onboarding-flows | 6 | ⏸ | — |
 | 3 | Admin: Orders & facturatie | 8 | ⏸ | — |
 | 4 | Admin: Producten & voorraad | 14 | ⏸ | — |
@@ -54,6 +54,16 @@ Uitgeschreven queries staan in `reports/00-visual-quickscan.md` §🟡 — klaar
 | D-5 | `role_permissions` voor de 26 ongeguarde admin-routes | batch 3/4/6 | ⏳ open |
 | D-6 | Gedragsvingerafdruk: zijn `auth-email-hook` en `send-return-email` live gedeployed? | 🔴 V-2, V-3 | ⏳ open |
 | M-1 | Handmatige spotcheck door Akke: 5 ingelogde admin-routes op 375px en 1440px | 101 ongeziene routes | ⏳ open |
+| S-4 | Is de embed `products → categories` ondubbelzinnig? (`pg_constraint`) | hele productcatalogus batch 1 | ⏳ open |
+| S-5 | Wie mag `tenant_theme_settings.custom_head_scripts` schrijven? (scriptuitvoering) | security-oordeel | ⏳ open |
+| S-6 | Echte slug van SellQo Speeltuin (identiek aan D-4) | visuele herscan batch 1 | ⏳ open |
+| B1-C2 | Hoeveel actieve producten per tenant? (ernst van de onbounded fetch) | `01-shop-products.md` 🔴 C1 | ⏳ open |
+| B1-C3 | Grootste categorie qua gekoppelde producten (`IN`-lijstlengte) | `01-shop-products.md` | ⏳ open |
+| B1-D1 | RLS op `legal_pages` / `storefront_pages` (XSS via `dangerouslySetInnerHTML`) | security-oordeel | ⏳ open |
+| B1-D2 | Gedragsvingerafdruk van de zes checkout-acties in `storefront-api` | `01-shop-checkout.md` | ⏳ open |
+| B1-B1 | Klopt de OGM-mededeling + QR-bedrag op overschrijvingsorders? | `01-shop-qr-betaling.md` | ⏳ open |
+| B1-E1 | Welke `locale`-waarden staan er feitelijk op orders? | meet effect van S-2 | ⏳ open |
+| B1-V1 | Bestaat `product_variants.linked_product_slug`, of alleen `_id`? | `01-shop-product-detail.md` | ⏳ open |
 
 ---
 
@@ -117,3 +127,26 @@ Bekende, niet-regressieve ruis: chunk-size-waarschuwing (`index-CQKokvYX.js` 9,1
 
 ### Aandachtspunt voor Akke — dood gewicht met een vraag
 `supabase/functions/_shared/email-templates/index.ts` (6 KB, string-gebaseerde auth-mailrenderer) wordt nergens geïmporteerd, terwijl z'n eigen header claimt de gebruikte stack te zijn. Runbook §2F waarschuwt tegen blind schrappen: was dit de bedoelde vervanger die nooit is aangesloten? Zo ja, dan raakt hij 🔴 V-2. Niet aangeraakt.
+
+---
+
+## Bevindingen batch 1 — Storefront
+
+🔴 12 · 🟡 16 · 🟢 35. Elf rapporten: `reports/01-storefront-gedeeld.md` plus één per pagina.
+
+| ID | Bevinding | Bestand |
+|---|---|---|
+| 🔴 S-1 | De taalkiezer van de winkel doet niets — schrijft alleen localStorage | `ShopLayout.tsx:121-124` |
+| 🔴 S-2 | Checkout stuurt `i18n.language` i.p.v. de gekozen winkeltaal naar `storefront-api` | `ShopCheckout.tsx:270,320` |
+| 🔴 S-3 | Storefront-pagina's zijn feitelijk eentalig NL (3 `t()` op 2805 regels) | 10 pagina's |
+| 🔴 cart-A1 | Kortingscode-knop valideert niets en weigert élke code | `ShopCart.tsx:55-64` |
+| 🔴 products-C1 | Productoverzicht haalt de hele catalogus op, zonder limiet of paginering | `ShopProducts.tsx:39-42` |
+| 🔴 detail-A1 | Gekoppelde-productvarianten werken niet; de code erachter zou naar een 404 leiden | `ShopProductDetail.tsx:136-139` |
+| 🔴 legal-E1 | Juridische pagina's tonen altijd Nederlands, vertalingen liggen ongebruikt | `ShopLegalPage.tsx:43,45,61,80,88` |
+| 🔴 wishlist-B1 | Elk verlanglijst-item claimt "op voorraad" (`in_stock: true` hardcoded) | `ShopWishlist.tsx:18-26` |
+| 🔴 checkout-A1 | Onbekend `payment_type` leegt de winkelwagen en doet verder niets | `ShopCheckout.tsx:403-420` |
+| 🔴 checkout-E1 | E-mailadres wordt nooit op vorm gecontroleerd | `ShopCheckout.tsx:242-245` |
+| 🔴 qr-A1 | QR-pagina zonder navigatiestatus openen wist de winkelwagen | `ShopQRPayment.tsx:34-43` |
+| 🔴 order-B1 | Mislukte order-ophaling wordt getoond als "geen bestelling" | `ShopOrderConfirmation.tsx:69-73` |
+
+**Fixes zijn niet uitgevoerd** (runbook §9). Geen productcode gewijzigd.
