@@ -1,22 +1,111 @@
 PODS:
   - Capacitor (8.5.0):
     - CapacitorCordova
+  - CapacitorCamera (8.2.2):
+    - Capacitor
+    - IONCameraLib (~> 1.0.5)
   - CapacitorCordova (8.5.0)
+  - CapacitorFirebaseMessaging (8.3.0):
+    - Capacitor
+    - FirebaseMessaging (~> 12.7.0)
+  - FirebaseCore (12.7.0):
+    - FirebaseCoreInternal (~> 12.7.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Logger (~> 8.1)
+  - FirebaseCoreInternal (12.7.0):
+    - "GoogleUtilities/NSData+zlib (~> 8.1)"
+  - FirebaseInstallations (12.7.0):
+    - FirebaseCore (~> 12.7.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - PromisesObjC (~> 2.4)
+  - FirebaseMessaging (12.7.0):
+    - FirebaseCore (~> 12.7.0)
+    - FirebaseInstallations (~> 12.7.0)
+    - GoogleDataTransport (~> 10.1)
+    - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Reachability (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - nanopb (~> 3.30910.0)
+  - GoogleDataTransport (10.1.1):
+    - nanopb (~> 3.30910.0)
+    - PromisesObjC (~> 2.4)
+  - GoogleUtilities/AppDelegateSwizzler (8.1.3):
+    - GoogleUtilities/Environment
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Network
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Environment (8.1.3):
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Logger (8.1.3):
+    - GoogleUtilities/Environment
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Network (8.1.3):
+    - GoogleUtilities/Logger
+    - "GoogleUtilities/NSData+zlib"
+    - GoogleUtilities/Privacy
+    - GoogleUtilities/Reachability
+  - "GoogleUtilities/NSData+zlib (8.1.3)":
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Privacy (8.1.3)
+  - GoogleUtilities/Reachability (8.1.3):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/UserDefaults (8.1.3):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
+  - IONCameraLib (1.0.5)
+  - nanopb (3.30910.0):
+    - nanopb/decode (= 3.30910.0)
+    - nanopb/encode (= 3.30910.0)
+  - nanopb/decode (3.30910.0)
+  - nanopb/encode (3.30910.0)
+  - PromisesObjC (2.4.1)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorFirebaseMessaging (from `../../node_modules/@capacitor-firebase/messaging`)"
+
+SPEC REPOS:
+  trunk:
+    - FirebaseCore
+    - FirebaseCoreInternal
+    - FirebaseInstallations
+    - FirebaseMessaging
+    - GoogleDataTransport
+    - GoogleUtilities
+    - IONCameraLib
+    - nanopb
+    - PromisesObjC
 
 EXTERNAL SOURCES:
   Capacitor:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorCamera:
+    :path: "../../node_modules/@capacitor/camera"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorFirebaseMessaging:
+    :path: "../../node_modules/@capacitor-firebase/messaging"
 
 SPEC CHECKSUMS:
   Capacitor: 00b87168591cc006ea6f5c0de681ec5c39a2c8eb
+  CapacitorCamera: a8e5798460aa967d0636d34d3a0bf1f69a5b5a39
   CapacitorCordova: 9d3acbb574048e7167d2af127a0af2123e619f2f
+  CapacitorFirebaseMessaging: d48c9156ee96e166416f1d910cb8de53143cea5f
+  FirebaseCore: c7b57863ce0859281a66d16ca36d665c45d332b5
+  FirebaseCoreInternal: 571a2dd8c975410966199623351db3a3265c874d
+  FirebaseInstallations: 6d05424a046b68ca146b4de4376f05b4e9262fc3
+  FirebaseMessaging: b5f7bdc62b91b6102015991fb7bc6fa75f643908
+  GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
+  GoogleUtilities: 4e0c2ad9fa0d0d18b5c4df8bf57b461cba35b0bb
+  IONCameraLib: ecbd8ef0077d481df429cee267bbeb1a7b9bddd0
+  nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
 
-PODFILE CHECKSUM: b9069f1c534530d75a6f8a7e540134de4d6d2596
+PODFILE CHECKSUM: 0c119af0b51c988dc70d6b4242bbacc75ec39851
 
 COCOAPODS: 1.17.0
