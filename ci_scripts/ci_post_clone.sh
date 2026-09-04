@@ -15,6 +15,8 @@
 #   - Bun, omdat het prebuild-script `bunx tsx scripts/generate-sitemap.ts`
 #     draait. Alleen Node volstaat niet: npm run build faalt dan meteen op
 #     prebuild.
+#   - CocoaPods, voor de Pods/-map en de xcconfig-bestanden die het archive
+#     nodig heeft.
 #
 set -e
 
@@ -114,5 +116,36 @@ log "npx cap sync ios — web-assets en plugins naar ios/App"
 npx cap sync ios
 [ -d ios/App/App/public ] || fail "ios/App/App/public ontbreekt na cap sync"
 log "cap sync klaar"
+
+# ---------------------------------------------------------------------------
+# 6. CocoaPods — Pods/ en de xcconfig-bestanden genereren
+# ---------------------------------------------------------------------------
+# cap sync draait pod install niet betrouwbaar op een kale runner: ontbreekt
+# CocoaPods, dan slaat het die stap stil over. Het archive faalt vervolgens op
+# "Unable to open Pods-App.release.xcconfig", omdat Xcode dat bestand uit
+# Pods/Target Support Files verwacht.
+if command -v pod >/dev/null 2>&1; then
+	log "CocoaPods aanwezig: $(pod --version) — installatie overgeslagen"
+else
+	log "CocoaPods ontbreekt — installeren via Homebrew"
+	command -v brew >/dev/null 2>&1 || fail "Homebrew ontbreekt, kan CocoaPods niet installeren"
+	brew install cocoapods
+	command -v pod >/dev/null 2>&1 || fail "CocoaPods na installatie nog steeds niet vindbaar"
+	log "CocoaPods geïnstalleerd: $(pod --version)"
+fi
+
+# --repo-update is hier geen luxe: cap sync voegt de plugin-pods aan de Podfile
+# toe, en @capacitor-firebase/messaging trekt FirebaseMessaging uit de
+# CocoaPods-CDN. Zonder bijgewerkte spec-repo is die niet te resolven.
+# Bewust geen --deployment: de ingecheckte Podfile.lock kent de plugin-pods nog
+# niet, dus pod install moet de lock mogen bijwerken.
+log "pod install --repo-update in ios/App"
+cd ios/App || fail "kan niet naar ios/App"
+pod install --repo-update
+cd "$REPO_ROOT" || fail "kan niet terug naar repo-root $REPO_ROOT"
+
+PODS_XCCONFIG="ios/App/Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"
+[ -f "$PODS_XCCONFIG" ] || fail "$PODS_XCCONFIG ontbreekt na pod install — het archive faalt dan op 'Unable to open Pods-App.release.xcconfig'"
+log "pod install klaar — Pods/ en de xcconfig-bestanden staan er"
 
 log "post-clone succesvol afgerond"
