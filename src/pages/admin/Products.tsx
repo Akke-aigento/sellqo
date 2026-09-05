@@ -554,7 +554,7 @@ export default function ProductsPage() {
 
       {/* Floating Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
+        <div className="fixed bottom-[calc(3.5rem+var(--safe-bottom))] md:bottom-0 left-0 right-0 z-50 border-t bg-background shadow-lg animate-in slide-in-from-bottom-2 lg:left-[var(--sidebar-width,280px)]">
           <Button
             variant="ghost"
             size="icon"

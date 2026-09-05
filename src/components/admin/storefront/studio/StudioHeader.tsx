@@ -1,4 +1,6 @@
 import { ExternalLink, Rocket, Loader2, Globe, EyeOff, LayoutTemplate } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { TemplatePreview } from './TemplatePreview';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
+import { isExternalUrl, openExternal } from '@/lib/openExternal';
 
 /**
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,
@@ -31,6 +34,31 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
     : currentTenant
       ? `/shop/${currentTenant.slug}`
       : null;
+
+  const navigate = useNavigate();
+
+  /**
+   * "Bekijk winkel". Met een eigen domein is dit een externe URL: die gaat via
+   * de in-app browser (native) of een nieuw tabblad (web), nooit via een
+   * blank-target — dat verlaat de Capacitor-WebView naar Safari, zonder weg
+   * terug. Zonder eigen domein is het `/shop/<slug>`, een route van deze app
+   * zelf, en hoort hij in de native app gewoon in-app te openen.
+   */
+  const handleOpenStorefront = () => {
+    if (!storefrontUrl) return;
+
+    if (isExternalUrl(storefrontUrl)) {
+      void openExternal(storefrontUrl);
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      navigate(storefrontUrl);
+      return;
+    }
+
+    window.open(storefrontUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const publishedAt = themeSettings?.published_at
     ? new Date(themeSettings.published_at).toLocaleDateString('nl-NL', {
@@ -91,27 +119,24 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
             </div>
 
             {storefrontUrl && (
-              <a
-                href={storefrontUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground truncate"
+              <button
+                type="button"
+                onClick={handleOpenStorefront}
+                className="flex items-center gap-1.5 text-left text-sm text-muted-foreground hover:text-foreground truncate"
               >
                 <Globe className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
                   {canonicalDomain?.domain ?? `${window.location.host}/shop/${currentTenant?.slug}`}
                 </span>
-              </a>
+              </button>
             )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
             {storefrontUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={storefrontUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Bekijk winkel
-                </a>
+              <Button variant="outline" size="sm" onClick={handleOpenStorefront}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Bekijk winkel
               </Button>
             )}
             {/* Bewust niet meer afhankelijk van theme_id: die kolom is voor de

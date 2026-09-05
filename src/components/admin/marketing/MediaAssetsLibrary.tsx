@@ -496,7 +496,7 @@ export function MediaAssetsLibrary() {
 
       {/* Floating Bulk Action Bar */}
       {selectionActive && (
-        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-[95vw]">
+        <div className="fixed bottom-[calc(3.5rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 z-50 bg-background border rounded-xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-[95vw]">
           {bulkProcessing ? (
             <div className="flex items-center gap-3">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
