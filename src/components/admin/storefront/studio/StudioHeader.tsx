@@ -8,15 +8,7 @@ import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { isExternalUrl, openExternal } from '@/lib/openExternal';
-
-/**
- * Publieke host van SellQo. Bewust hardcoded en niet `window.location.origin`:
- * in de Capacitor-app is die origin `capacitor://localhost` (iOS) of
- * `https://localhost` (Android), want capacitor.config.ts heeft geen
- * server-blok. Een relatieve winkel-URL daartegen resolven levert een dode
- * link op. Zelfde waarde als scripts/generate-sitemap.ts en seo/PageMeta.tsx.
- */
-const PUBLIC_SITE_URL = 'https://sellqo.app';
+import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 
 /**
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CelebrationConfetti } from '../CelebrationConfetti';
 import { useTenant } from '@/hooks/useTenant';
+import { openExternal } from '@/lib/openExternal';
+import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 
 interface LaunchStepProps {
   onComplete: () => void;
@@ -15,8 +17,12 @@ export function LaunchStep({ onComplete }: LaunchStepProps) {
   const [copied, setCopied] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const shopUrl = currentTenant?.slug 
-    ? `${window.location.origin}/shop/${currentTenant.slug}`
+  // Bewust PUBLIC_SITE_URL en niet window.location.origin: in de Capacitor-app
+  // is die origin capacitor://localhost (iOS) of https://localhost (Android),
+  // en deze string wordt hieronder ook getoond en naar het klembord gekopieerd.
+  // Een tenant die zijn winkel deelt hoort de echte publieke URL te krijgen.
+  const shopUrl = currentTenant?.slug
+    ? `${PUBLIC_SITE_URL}/shop/${currentTenant.slug}`
     : null;
 
   useEffect(() => {
@@ -101,10 +107,11 @@ export function LaunchStep({ onComplete }: LaunchStepProps) {
                   <Copy className="h-4 w-4" />
                 )}
               </Button>
-              <Button asChild className="flex-shrink-0">
-                <a href={shopUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+              <Button
+                className="flex-shrink-0"
+                onClick={() => void openExternal(shopUrl)}
+              >
+                <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
