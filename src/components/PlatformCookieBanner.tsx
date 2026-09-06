@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Cookie } from 'lucide-react';
@@ -51,10 +52,16 @@ export function PlatformCookieBanner() {
     (p) => pathname === p || pathname.startsWith(p)
   );
 
+  // In de native app zijn er geen browser-cookies waarvoor toestemming nodig is,
+  // dus de banner hoort daar niet. Hij dekte er bovendien het inlogscherm af:
+  // /auth staat niet in EXCLUDED_PREFIXES, en NativeLandingRedirect stuurt een
+  // uitgelogde native gebruiker precies daarheen.
+  const isNative = Capacitor.isNativePlatform();
+
   useEffect(() => {
-    if (excluded) return;
+    if (isNative || excluded) return;
     if (!getPlatformCookieConsent()) setVisible(true);
-  }, [excluded]);
+  }, [isNative, excluded]);
 
   useEffect(() => {
     const reopen = () => {
@@ -88,7 +95,7 @@ export function PlatformCookieBanner() {
     window.dispatchEvent(new CustomEvent('sellqo-cookie-consent-changed', { detail: value }));
   }, []);
 
-  if (excluded || !visible) return null;
+  if (isNative || excluded || !visible) return null;
 
   return (
     <div
