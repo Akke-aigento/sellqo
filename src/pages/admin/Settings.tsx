@@ -294,7 +294,7 @@ export default function SettingsPage() {
         {showMenu && (
         <aside className="lg:w-64 flex-shrink-0">
           <Card>
-            <ScrollArea className="h-auto lg:h-[calc(100vh-220px)]">
+            <ScrollArea className="h-auto lg:h-[calc(100dvh-220px)]">
               <CardContent className="p-2">
                 <nav className="space-y-4">
                   {allGroups.map((group) => {

@@ -240,7 +240,7 @@ export function HomepageBuilder() {
         </div>
 
         {/* Visual Editor Canvas */}
-        <div className="border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+        <div className="border rounded-lg overflow-hidden" style={{ height: 'calc(100dvh - 200px)' }}>
           <VisualEditorCanvas />
         </div>
       </div>

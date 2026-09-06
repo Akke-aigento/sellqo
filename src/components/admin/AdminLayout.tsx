@@ -33,7 +33,7 @@ function AdminLayoutContent() {
 
   return (
     <>
-      <div className="min-h-screen flex w-full min-w-0 overflow-hidden">
+      <div className="min-h-dvh flex w-full min-w-0 overflow-hidden">
         <AdminSidebar />
         <SidebarInset className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <AdminHeader />

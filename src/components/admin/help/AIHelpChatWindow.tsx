@@ -178,7 +178,7 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-[60] w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-8rem)] bg-background border rounded-xl shadow-xl flex flex-col overflow-hidden">
+    <div className="fixed bottom-20 right-4 z-[60] w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100dvh-8rem)] bg-background border rounded-xl shadow-xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5">
         <div className="flex items-center gap-2">

@@ -47,7 +47,7 @@ export async function openExternal(url: string | null | undefined): Promise<void
   }
 
   try {
-    await Browser.open({ url });
+    await Browser.open({ url, presentationStyle: 'popover' });
   } catch {
     // Faalt de plugin (plugin niet gelinkt na een oude native build, of een
     // URL die het systeem weigert), dan liever alsnog openen dan stil niets
