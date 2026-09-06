@@ -1,7 +1,8 @@
 import { ReactNode, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useStorefrontTracking } from '@/hooks/useStorefrontTracking';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Menu, Search, X, Heart } from 'lucide-react';
+import { ShoppingCart, Menu, Search, X, Heart, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -55,10 +56,57 @@ interface ShopLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Sleutel voor de eigenaar-preview. De winkelpagina's zijn losse routes die
+ * ShopLayout elk apart mounten, dus `?preview=true` uit de URL overleeft geen
+ * klik naar een product. De vlag houdt de preview-modus vast zodat de
+ * terug-knop niet halverwege verdwijnt.
+ */
+const PREVIEW_FLAG = 'sellqo-storefront-preview';
+
 export function ShopLayout({ children }: ShopLayoutProps) {
   const { t } = useTranslation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
+
+  // Eigenaar-preview: alleen in de native app. Een echte bezoeker in de browser
+  // heeft isNative false, waardoor isPreview nooit waar wordt en er hieronder
+  // niets extra's rendert.
+  const isNative = Capacitor.isNativePlatform();
+  const previewParam = new URLSearchParams(window.location.search).get('preview') === 'true';
+  const [previewSession] = useState(() => {
+    try {
+      return sessionStorage.getItem(PREVIEW_FLAG) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const isPreview = isNative && (previewParam || previewSession);
+
+  useEffect(() => {
+    if (!isNative || !previewParam) return;
+    try {
+      sessionStorage.setItem(PREVIEW_FLAG, '1');
+    } catch {
+      /* private mode: de knop werkt dan alleen op de instappagina */
+    }
+  }, [isNative, previewParam]);
+
+  const handleLeavePreview = () => {
+    // Alleen wissen op de instappagina — daar staat ?preview=true nog in de URL,
+    // dus is deze stap terug de stap de winkel uit. Dieper in de winkel moet de
+    // vlag blijven staan: wissen we hem daar, dan verdwijnt de knop halverwege
+    // en zit de eigenaar alsnog vast.
+    if (previewParam) {
+      try {
+        sessionStorage.removeItem(PREVIEW_FLAG);
+      } catch {
+        /* private mode: de vlag stond er dan toch niet */
+      }
+    }
+    navigate(-1);
+  };
+
   const { tenant, themeSettings, navPages, categories, legalPages, isLoading, error } = usePublicStorefront(tenantSlug || '');
   const { aggregate, reviews, connections } = usePublicReviews(tenant?.id);
   const { getCartCount, setTenantSlug, isDrawerOpen, closeDrawer } = useCart();
@@ -319,6 +367,17 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         ...palette.cssVariables,
       } as React.CSSProperties}
     >
+      {/* Terug-balk, uitsluitend in de native eigenaar-preview. Geen pt-safe:
+          de root-div hierboven zet de statusbar-inset al. */}
+      {isPreview && (
+        <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
+          <Button variant="ghost" size="sm" onClick={handleLeavePreview}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Terug
+          </Button>
+          <span className="text-xs text-muted-foreground">Voorbeeld van je winkel</span>
+        </div>
+      )}
       {/* Sandbox banner - only for demo tenants */}
       <SandboxBanner isDemo={isDemo} />
       {/* Announcement Bar Carousel */}

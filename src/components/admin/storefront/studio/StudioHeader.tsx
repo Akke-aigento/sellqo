@@ -1,4 +1,5 @@
 import { ExternalLink, Rocket, Loader2, Globe, EyeOff, LayoutTemplate } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { TemplatePreview } from './TemplatePreview';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { isExternalUrl, openExternal } from '@/lib/openExternal';
-import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 
 /**
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,
@@ -35,6 +35,8 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
       ? `/shop/${currentTenant.slug}`
       : null;
 
+  const navigate = useNavigate();
+
   /**
    * "Bekijk winkel".
    *
@@ -42,12 +44,14 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
    * browser (native) of een nieuw tabblad (web), nooit via een blank-target —
    * dat verlaat de Capacitor-WebView naar Safari, zonder weg terug.
    *
-   * Zonder eigen domein is het `/shop/<slug>`. Dat is weliswaar een route van
-   * deze app, maar in de native app openden we hem eerder met navigate(): de
-   * storefront laadde dan binnen de admin-shell, zonder browser-chrome en
-   * zonder terugknop — de gebruiker moest de app killen. Daarom gaat ook dat
-   * pad nu door de in-app browser, met PUBLIC_SITE_URL als basis omdat
-   * window.location.origin daar naar localhost wijst.
+   * Zonder eigen domein is het `/shop/<slug>`, en dat blijft in de native app
+   * bewust bínnen de app. De in-app browser deelt de sessie niet: de eigenaar
+   * komt daar als anonieme bezoeker binnen en RLS geeft zijn eigen,
+   * niet-gepubliceerde winkel dan niet terug ("Webshop niet gevonden").
+   *
+   * `?preview=true` doet twee dingen: het slaat de redirects in ShopLayout over
+   * (custom frontend én canoniek domein), en het zet daar de terug-balk aan, zodat
+   * de eigenaar niet vastloopt zoals eerder wél gebeurde.
    *
    * Op web verandert er niets: daar blijft het een nieuw tabblad, en resolvet
    * de browser het relatieve pad zelf tegen de juiste origin (ook op een
@@ -62,7 +66,7 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
     }
 
     if (Capacitor.isNativePlatform()) {
-      void openExternal(`${PUBLIC_SITE_URL}${storefrontUrl}`);
+      navigate(`${storefrontUrl}?preview=true`);
       return;
     }
 
