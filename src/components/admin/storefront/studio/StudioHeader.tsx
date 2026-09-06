@@ -1,5 +1,4 @@
 import { ExternalLink, Rocket, Loader2, Globe, EyeOff, LayoutTemplate } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { TemplatePreview } from './TemplatePreview';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,15 @@ import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { isExternalUrl, openExternal } from '@/lib/openExternal';
+
+/**
+ * Publieke host van SellQo. Bewust hardcoded en niet `window.location.origin`:
+ * in de Capacitor-app is die origin `capacitor://localhost` (iOS) of
+ * `https://localhost` (Android), want capacitor.config.ts heeft geen
+ * server-blok. Een relatieve winkel-URL daartegen resolven levert een dode
+ * link op. Zelfde waarde als scripts/generate-sitemap.ts en seo/PageMeta.tsx.
+ */
+const PUBLIC_SITE_URL = 'https://sellqo.app';
 
 /**
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,
@@ -35,14 +43,23 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
       ? `/shop/${currentTenant.slug}`
       : null;
 
-  const navigate = useNavigate();
-
   /**
-   * "Bekijk winkel". Met een eigen domein is dit een externe URL: die gaat via
-   * de in-app browser (native) of een nieuw tabblad (web), nooit via een
-   * blank-target — dat verlaat de Capacitor-WebView naar Safari, zonder weg
-   * terug. Zonder eigen domein is het `/shop/<slug>`, een route van deze app
-   * zelf, en hoort hij in de native app gewoon in-app te openen.
+   * "Bekijk winkel".
+   *
+   * Met een eigen domein is dit een externe URL en gaat hij via de in-app
+   * browser (native) of een nieuw tabblad (web), nooit via een blank-target —
+   * dat verlaat de Capacitor-WebView naar Safari, zonder weg terug.
+   *
+   * Zonder eigen domein is het `/shop/<slug>`. Dat is weliswaar een route van
+   * deze app, maar in de native app openden we hem eerder met navigate(): de
+   * storefront laadde dan binnen de admin-shell, zonder browser-chrome en
+   * zonder terugknop — de gebruiker moest de app killen. Daarom gaat ook dat
+   * pad nu door de in-app browser, met PUBLIC_SITE_URL als basis omdat
+   * window.location.origin daar naar localhost wijst.
+   *
+   * Op web verandert er niets: daar blijft het een nieuw tabblad, en resolvet
+   * de browser het relatieve pad zelf tegen de juiste origin (ook op een
+   * preview- of stagingdomein).
    */
   const handleOpenStorefront = () => {
     if (!storefrontUrl) return;
@@ -53,7 +70,7 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
     }
 
     if (Capacitor.isNativePlatform()) {
-      navigate(storefrontUrl);
+      void openExternal(`${PUBLIC_SITE_URL}${storefrontUrl}`);
       return;
     }
 
