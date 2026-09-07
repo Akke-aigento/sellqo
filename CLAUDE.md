@@ -36,7 +36,7 @@ Verwijst een opdracht naar een workspace-only skill, vraag om de inhoud in plaat
 
 **Vijf tenants draaien een eigen frontend: Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata. Zij mogen van webshop-werk niets merken.**
 
-- Hun frontends praten via `storefront-resolve`, `storefront-api` en `checkout-engine` met de core. Die contracten wijzigen niet.
+- Hun frontends praten via `storefront-resolve`, `storefront-api` en `storefront-customer-api` met de core. Die contracten wijzigen niet.
 - **Strikt additief** op de gedeelde tabellen `tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`: geen kolom hernoemen, verwijderen, van datatype veranderen of van default wijzigen.
 - Het `use_custom_frontend`-pad blijft byte-voor-byte identiek — functioneel én qua opslag.
 - De drie edge-functies worden niet aangeraakt tenzij een recon aantoont dat een additieve uitbreiding nodig én veilig is, en dan alleen na apart akkoord.
@@ -95,7 +95,7 @@ Nieuwe sectie bovenaan, format `## <ID> — <korte titel> — <datum in NL>`, me
 - **Root cause** — wat er precies misging, met bestand- en regelverwijzingen.
 - **Uitgevoerd** — wat er gewijzigd is, per bestand.
 - **Security-keuzes** — welke RLS, policies, grants of rechten geraakt zijn. "n.v.t." mag, mits onderbouwd.
-- **Gedeelde-paden-waarschuwing** — als een gedeeld pad (`storefront-api`, `checkout-engine`, gedeelde tabellen) geraakt is: waarom dat veilig is voor alle tenants.
+- **Gedeelde-paden-waarschuwing** — als een gedeeld pad (`storefront-api`, `storefront-customer-api`, gedeelde tabellen) geraakt is: waarom dat veilig is voor alle tenants.
 - **Verificatie** — wat er gedraaid is en met welke uitkomst.
 - **Bewust ongemoeid / Vervolg** — wat expliciet niet is aangeraakt, en wat er nog open staat.
 

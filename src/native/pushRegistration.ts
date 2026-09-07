@@ -118,10 +118,12 @@ export async function getPushPermissionStatus(): Promise<PushPermissionStatus> {
 }
 
 /**
- * No Capacitor plugin in this project can open the OS notification settings
- * (@capacitor/app is not installed and @capacitor-firebase/messaging exposes no
- * openSettings()). Adding a plugin requires a native rebuild, so for now this
- * is a documented no-op and the UI shows manual instructions instead.
+ * No Capacitor plugin in this project can open the OS notification settings.
+ * @capacitor/app is installed since batch 2A, but it has no API for this
+ * (appInfo/state/backButton only), and @capacitor-firebase/messaging exposes no
+ * openSettings() either. Covering this needs another plugin plus a native
+ * rebuild, so for now this is a documented no-op and the UI shows manual
+ * instructions instead.
  */
 export async function openAppNotificationSettings(): Promise<void> {
   console.info('[push] openAppNotificationSettings: no plugin available, showing manual instructions');

@@ -29,7 +29,7 @@ Daaruit volgt een scherpe, werkbare grens:
 | **Uiterlijk van een renderer** | volledig herbouwen | — |
 | **Sleutelnamen in `content` / `settings`** | nieuwe sleutels toevoegen (additief) | hernoemen, weghalen, van betekenis veranderen |
 | **Gedeelde tabellen** | `ADD COLUMN IF NOT EXISTS` | droppen, hernoemen, defaults wijzigen |
-| **`storefront-api` / `checkout-engine` / `storefront-resolve`** | — | aanraken zonder aparte recon én akkoord |
+| **`storefront-api` / `storefront-customer-api` / `storefront-resolve`** | — | aanraken zonder aparte recon én akkoord |
 
 Concreet betekent dat: `button_link`, `overlay_opacity`, `text_alignment`, `image_position`, `max_products`, `show_view_all` en alle andere sleutels binnen `content` en `settings` **liggen vast**. Ze stromen rauw door via `storefront-api/index.ts:766`:
 

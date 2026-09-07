@@ -23,7 +23,7 @@ Alles uit §0 van `docs/webshop-masterplan.md` blijft onverkort van kracht:
 
 - De vijf custom-frontend tenants (Loveke, VanXcel, Astra Sleep, Mancini, Zona Dorata) merken NIETS van deze reeks.
 - Strikt additief op gedeelde tabellen (`tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`).
-- Edge-functies `storefront-resolve`, `storefront-api`, `checkout-engine` worden niet aangeraakt tenzij een batch-recon additieve uitbreiding aantoont én na apart akkoord.
+- Edge-functies `storefront-resolve`, `storefront-api`, `storefront-customer-api` worden niet aangeraakt tenzij een batch-recon additieve uitbreiding aantoont én na apart akkoord.
 - Testbedden: SellQo Speeltuin + Demo Bakkerij. Elke batch daar gesmoke-test vóór "klaar".
 - Per batch: recon → review → go → implementatie → post-flight verificatie → paper trail.
 - Er is nog geen enkele echte tenant die de ingebouwde webshop gebruikt. Dat geeft vrij spel binnen de wet: we kunnen de editor-ervaring herbouwen zonder een live winkel te raken.
