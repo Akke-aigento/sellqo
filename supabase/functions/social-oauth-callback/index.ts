@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { isAllowedOrigin } from '../_shared/cors.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -144,6 +145,48 @@ async function getAccountInfo(platform: string, accessToken: string): Promise<Ac
   throw new Error('Unsupported platform');
 }
 
+/**
+ * Basis-URL waar de gebruiker na de OAuth-flow landt.
+ *
+ * De 302's hieronder gebruikten relatieve paden. Een relatieve Location resolvet
+ * tegen de origin van deze functie, dus tegen <project>.supabase.co — waar
+ * /admin/settings niet bestaat. De koppeling werd wel opgeslagen, maar de
+ * gebruiker landde op een 404. Alle uitgangen zijn nu absoluut.
+ */
+const FALLBACK_REDIRECT_BASE =
+  `${Deno.env.get('PUBLIC_APP_URL') || 'https://sellqo.app'}/admin/settings?section=social`;
+
+/**
+ * Alleen onze eigen app-origins mogen de landing bepalen. social-oauth-init slaat
+ * `redirect_url` op zonder die te valideren; zonder deze check zou daar een
+ * willekeurige host in kunnen staan die wij vervolgens in een 302 zetten.
+ *
+ * Bewust isAllowedOrigin uit _shared/cors.ts: dat is al de plek waar deze repo
+ * definieert wat "van ons" is. Een tweede lijst hier zou uit de pas gaan lopen.
+ * Let op dat die functie een origin verwacht (scheme://host:port), niet de hele URL.
+ */
+function safeRedirectBase(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    if (!isAllowedOrigin(u.origin)) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Zet de uitkomst-params op de basis-URL. Via URL.searchParams, want de basis
+ * draagt vaak al query-params (`/admin/connect?tab=channels`) — naïef '&' plakken
+ * zou die verminken. searchParams encodeert zelf, dus geen encodeURIComponent.
+ */
+function buildRedirect(base: string, params: Record<string, string>): string {
+  const u = new URL(base);
+  for (const [key, value] of Object.entries(params)) u.searchParams.set(key, value);
+  return u.toString();
+}
+
 serve(async (req) => {
   const url = new URL(req.url);
 
@@ -155,16 +198,19 @@ serve(async (req) => {
     if (error) {
       return new Response(null, {
         status: 302,
-        headers: { Location: `/admin/settings?section=social&error=${encodeURIComponent(error)}` },
+        headers: { Location: buildRedirect(FALLBACK_REDIRECT_BASE, { error }) },
       });
     }
 
     if (!code || !state) {
       return new Response(null, {
         status: 302,
-        headers: { Location: '/admin/settings?section=social&error=missing_params' },
+        headers: { Location: buildRedirect(FALLBACK_REDIRECT_BASE, { error: 'missing_params' }) },
       });
     }
+
+    // Vóór de try, zodat ook het catch-blok onderaan hem kan gebruiken.
+    let redirectBase = FALLBACK_REDIRECT_BASE;
 
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -181,15 +227,17 @@ serve(async (req) => {
       if (stateError || !oauthState) {
         return new Response(null, {
           status: 302,
-          headers: { Location: '/admin/settings?section=social&error=invalid_state' },
+          headers: { Location: buildRedirect(FALLBACK_REDIRECT_BASE, { error: 'invalid_state' }) },
         });
       }
+
+      redirectBase = safeRedirectBase(oauthState.redirect_url) ?? FALLBACK_REDIRECT_BASE;
 
       if (new Date(oauthState.expires_at) < new Date()) {
         await supabase.from('oauth_states').delete().eq('state', state);
         return new Response(null, {
           status: 302,
-          headers: { Location: '/admin/settings?section=social&error=state_expired' },
+          headers: { Location: buildRedirect(redirectBase, { error: 'state_expired' }) },
         });
       }
 
@@ -230,7 +278,7 @@ serve(async (req) => {
         console.error('Failed to save connection:', insertError);
         return new Response(null, {
           status: 302,
-          headers: { Location: '/admin/settings?section=social&error=save_failed' },
+          headers: { Location: buildRedirect(redirectBase, { error: 'save_failed' }) },
         });
       }
 
@@ -293,13 +341,13 @@ serve(async (req) => {
 
       return new Response(null, {
         status: 302,
-        headers: { Location: '/admin/settings?section=social&success=connected' },
+        headers: { Location: buildRedirect(redirectBase, { success: 'connected' }) },
       });
     } catch (err: any) {
       console.error('OAuth callback error:', err);
       return new Response(null, {
         status: 302,
-        headers: { Location: `/admin/settings?section=social&error=${encodeURIComponent(err.message)}` },
+        headers: { Location: buildRedirect(redirectBase, { error: err.message ?? 'unknown_error' }) },
       });
     }
   }
