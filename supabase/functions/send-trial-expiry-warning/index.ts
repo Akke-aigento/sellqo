@@ -132,7 +132,7 @@ serve(async (req) => {
           
           const tenantName = tenant.name || 'Sellqo';
           const planName = trial.plan_id.charAt(0).toUpperCase() + trial.plan_id.slice(1);
-          const billingUrl = "https://sellqo.lovable.app/admin/settings/billing";
+          const billingUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app"}/admin/settings/billing`;
 
           const introHtml = `
             <p style="margin:0 0 12px;">Hoi,</p>

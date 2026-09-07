@@ -116,7 +116,7 @@ serve(async (req) => {
       throw new Error("This addon is already active");
     }
 
-    const origin = req.headers.get("origin") || "https://sellqo.lovable.app";
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app";
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({

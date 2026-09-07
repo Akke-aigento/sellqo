@@ -643,7 +643,7 @@ serve(async (req) => {
     }
 
     // Create Stripe Checkout Session with destination charge
-    const origin = req.headers.get("origin") || "https://id-preview--9932a7fe-43a1-42de-9c64-168968599600.lovable.app";
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app";
     const tenantSlug = tenant.slug || tenant_id;
     
     // Determine payment methods: intersect tenant config with actual Stripe account capabilities

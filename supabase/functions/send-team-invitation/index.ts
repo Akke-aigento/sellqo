@@ -163,7 +163,7 @@ serve(async (req) => {
 
     // Send email
     const resend = new Resend(resendApiKey);
-    const inviteUrl = `https://sellqo.lovable.app/invite/${invitation.token}`;
+    const inviteUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app"}/invite/${invitation.token}`;
     const roleInfo = roleLabels[role] || { nl: role, description: '' };
     const expiresDate = new Date(invitation.expires_at).toLocaleDateString('nl-NL', {
       day: 'numeric',

@@ -97,7 +97,7 @@ serve(async (req) => {
 
     // Build + send email (mirrors send-team-invitation)
     const resend = new Resend(resendApiKey);
-    const inviteUrl = `https://sellqo.lovable.app/invite/${invitation.token}`;
+    const inviteUrl = `${Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app"}/invite/${invitation.token}`;
     const roleInfo = roleLabels[invitation.role] || { nl: invitation.role, description: "" };
     const expiresDate = new Date(newExpires).toLocaleDateString("nl-NL", {
       day: "numeric",
