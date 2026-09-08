@@ -40,6 +40,17 @@ export function deepLinkPath(rawUrl: string): string | null {
 }
 
 /**
+ * Of de start-URL van deze app-sessie al is afgehandeld.
+ *
+ * Bewust module-scope en niet component-state: `App.getLaunchUrl()` blijft de
+ * URL waarmee de app is gestart teruggeven zolang de app draait. Zonder deze
+ * vlag zou elke remount van DeepLinkListener de gebruiker terugkatapulteren naar
+ * de deep link, ook als hij intussen ergens anders is. De start-URL is een
+ * eigenschap van de app-start, niet van het component.
+ */
+let launchUrlHandled = false;
+
+/**
  * Registreert de native deep-link-listener en stuurt binnenkomende links naar
  * de bijbehorende interne route.
  *
@@ -73,6 +84,10 @@ export function initDeepLinks(navigate: NavigateFunction): () => void {
           return;
         }
 
+        // Ook hier zetten, zodat een warme start die via de listener binnenkomt
+        // niet even later nog eens door getLaunchUrl wordt overgedaan.
+        launchUrlHandled = true;
+
         // `replace` omdat een deep link geen extra history-entry hoort te maken:
         // de gebruiker komt van buiten de app, er is geen "vorige" scherm.
         navigate(target, { replace: true });
@@ -84,6 +99,19 @@ export function initDeepLinks(navigate: NavigateFunction): () => void {
       }
 
       handle = registered;
+
+      // Koude start: wordt de app dóór de link opgestart, dan kan appUrlOpen
+      // vuren voordat de listener hierboven klaarstaat, en is het event weg.
+      // getLaunchUrl geeft die start-URL alsnog terug.
+      if (!launchUrlHandled) {
+        const launch = await App.getLaunchUrl();
+        const target = launch?.url ? deepLinkPath(launch.url) : null;
+
+        if (target && !cancelled) {
+          launchUrlHandled = true;
+          navigate(target, { replace: true });
+        }
+      }
     } catch (e) {
       console.warn('[deeplink] listener niet geregistreerd', e);
     }
