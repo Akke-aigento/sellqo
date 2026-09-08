@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.sellqo.admin",
+      "sha256_cert_fingerprints": [
+        "1A:23:F3:9B:4F:10:8D:75:00:77:17:A3:24:36:78:E8:62:45:51:EB:26:25:F3:EA:A7:DD:6D:6F:47:0E:EA:5A"
+      ]
+    }
+  }
+]
