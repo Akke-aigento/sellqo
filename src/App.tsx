@@ -10,6 +10,7 @@ import { RouteGuard } from "@/components/admin/RouteGuard";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { DeepLinkListener } from "@/components/DeepLinkListener";
 import LandingPage from "./pages/Landing";
 import NativeLandingRedirect from "@/components/NativeLandingRedirect";
 import Auth from "./pages/Auth";
@@ -68,6 +69,7 @@ import ResetPassword from "./pages/ResetPassword";
 import MandateActivation from "./pages/MandateActivation";
 import TenantAction, { TenantActionSuccess } from "./pages/public/TenantAction";
 
+import AppDeepLinkHandler from "./pages/AppDeepLinkHandler";
 import NotFound from "./pages/NotFound";
 import NoAccess from "./pages/NoAccess";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
@@ -157,6 +159,7 @@ const App = () => (
           <RoleSimulator />
         <BrowserRouter>
           <ScrollToTop />
+          <DeepLinkListener />
           <Routes>
             {/* Public landing page */}
             <Route path="/" element={<NativeLandingRedirect />} />
@@ -374,6 +377,11 @@ const App = () => (
             <Route path="/pay/success" element={<PaySuccess />} />
             <Route path="/pay/cancelled" element={<PayCancelled />} />
             
+            {/* DEEP-LINK D: landing voor Universal Links (iOS) en App Links
+                (Android) op sellqo.app/app/*. Zonder deze route valt elke
+                deep link op de 404. */}
+            <Route path="/app/*" element={<AppDeepLinkHandler />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
           <PlatformCookieBanner />
