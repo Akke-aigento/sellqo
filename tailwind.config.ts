@@ -112,6 +112,13 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.8" },
         },
+        // Rustige ademhaling voor de laad-indicator (LogoLoader). Bewust klein:
+        // 6% schaal is merkbaar zonder onrustig te worden op een scherm dat de
+        // gebruiker maar een seconde ziet.
+        "logo-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.9" },
+          "50%": { transform: "scale(1.06)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -120,6 +127,7 @@ export default {
         "float": "float 6s ease-in-out infinite",
         "scroll-x": "scroll-x 30s linear infinite",
         "pulse-subtle": "pulse-subtle 2s ease-in-out infinite",
+        "logo-pulse": "logo-pulse 1.5s ease-in-out infinite",
       },
     },
   },
