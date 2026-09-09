@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollHint } from '@/components/ui/scroll-hint';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useFrontendMode } from '@/hooks/useFrontendMode';
@@ -123,7 +124,7 @@ export default function StorefrontPage() {
       {header}
 
       {/* Mobiel: horizontaal scrollbare navigatie */}
-      <div className="-mx-1 overflow-x-auto pb-2 md:hidden">
+      <ScrollHint className="-mx-1 pb-2 md:hidden">
         <div className="flex min-w-max gap-1.5 px-1">
           {navItems.map((item) => (
             <button
@@ -141,7 +142,7 @@ export default function StorefrontPage() {
             </button>
           ))}
         </div>
-      </div>
+      </ScrollHint>
 
       <div className="flex gap-6">
         {/* Desktop: zijnavigatie */}
