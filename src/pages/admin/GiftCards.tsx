@@ -45,10 +45,12 @@ import { giftCardStatusInfo, type GiftCard, type GiftCardStatus } from '@/types/
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function GiftCards() {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
+  const isMobile = useIsMobile();
   const { data: giftCards = [], isLoading } = useGiftCards();
   const { data: stats } = useGiftCardStats();
   const updateGiftCard = useUpdateGiftCard();
@@ -83,6 +85,45 @@ export default function GiftCards() {
     }
     return code;
   };
+
+  // Een keer gedefinieerd, door tabel en kaart gedeeld.
+  const renderActions = (card: GiftCard) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedCard(card);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          {t('admin.marketing.aIContentLibrary.bekijken')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedCard(card);
+            setShowBalanceDialog(true);
+          }}
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          {t('admin.promotions.giftCardBalanceDialog.saldo_aanpassen')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleToggleStatus(card)}
+          className={card.status === 'active' ? 'text-destructive' : 'text-green-600'}
+        >
+          <Ban className="h-4 w-4 mr-2" />
+          {card.status === 'active'
+            ? t('admin.products.bulk.bulkVisibilityTab.deactiveren')
+            : t('admin.seo.scheduledAuditsPanel.activeren')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <div className="space-y-6">
@@ -222,6 +263,54 @@ export default function GiftCards() {
               )}
             </div>
           ) : (
+            /* Mobiel kaarten: de tabel verbergt op klein scherm al drie kolommen,
+               maar de wrapper staat op min-w-[650px] en dwingt die breedte alsnog
+               af — gemeten viel de actieknop 252px buiten een viewport van 375. */
+            isMobile ? (
+              <div className="space-y-3">
+                {filteredCards.map((card) => (
+                  <div
+                    key={card.id}
+                    className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* min-w-0 en truncate: zonder die twee duwt een lange
+                          ontvangersnaam het menu opnieuw het scherm uit. */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <code className="text-sm bg-muted px-2 py-1 rounded">
+                            {maskCode(card.code)}
+                          </code>
+                          <Badge
+                            variant="secondary"
+                            className={giftCardStatusInfo[card.status].color}
+                          >
+                            {giftCardStatusInfo[card.status].label}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {card.recipient_name || card.recipient_email || '-'}
+                        </p>
+                        <p className="mt-1 text-sm">
+                          <span className="font-medium">
+                            €{Number(card.current_balance).toFixed(2)}
+                          </span>{' '}
+                          <span className="text-xs text-muted-foreground">
+                            / €{Number(card.initial_balance).toFixed(2)}
+                          </span>
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {format(new Date(card.created_at), 'd MMM yyyy', {
+                            locale: dateLocale,
+                          })}
+                        </p>
+                      </div>
+                      {renderActions(card)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="overflow-x-auto -mx-6">
             <div className="min-w-[650px] px-6">
             <Table>
@@ -268,52 +357,14 @@ export default function GiftCards() {
                         locale: dateLocale,
                       })}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedCard(card);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            {t('admin.marketing.aIContentLibrary.bekijken')}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedCard(card);
-                              setShowBalanceDialog(true);
-                            }}
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            {t('admin.promotions.giftCardBalanceDialog.saldo_aanpassen')}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleStatus(card)}
-                            className={
-                              card.status === 'active'
-                                ? 'text-destructive'
-                                : 'text-green-600'
-                            }
-                          >
-                            <Ban className="h-4 w-4 mr-2" />
-                            {card.status === 'active'
-                              ? t('admin.products.bulk.bulkVisibilityTab.deactiveren') : t('admin.seo.scheduledAuditsPanel.activeren')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    <TableCell>{renderActions(card)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             </div>
             </div>
+            )
           )}
         </CardContent>
       </Card>
