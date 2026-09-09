@@ -1,40 +1,48 @@
 import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+/**
+ * Over hoeveel pixels de inhoud aan een scrollbare kant wegvalt. Breed genoeg
+ * om als verloop te lezen, smal genoeg om niet een half label op te eten.
+ */
+const FADE_PX = 48;
 
 interface ScrollHintProps {
   /** De rij die horizontaal scrollt; krijgt zelf géén overflow-klasse meer mee. */
   children: React.ReactNode;
   /** Klassen voor de buitenste wrapper: marges, padding, breakpoint-verberging. */
   className?: string;
-  /**
-   * Volledige Tailwind-klasse voor de kleur waar de fade naartoe loopt. Moet
-   * matchen met de achtergrond waarop de rij staat, anders zie je een randje.
-   *
-   * Voluit meegeven (`to-card`, niet `to-${x}`): de JIT scant de broncode op
-   * letterlijke klassenamen en genereert samengestelde namen niet.
-   */
-  fadeTo?: string;
 }
 
 /**
  * Laat zien dat een horizontale rij verder loopt dan het scherm.
  *
  * Een rij die netjes tegen de schermrand eindigt ziet eruit als een complete
- * rij; dat er nog items achter zitten is onzichtbaar. Dit component legt daarom
- * een fade met een pijltje over de kant waar nog inhoud staat — en haalt hem
- * weg zodra dat niet meer zo is. Past alles, dan staat er niets.
+ * rij; dat er nog items achter zitten is onzichtbaar. Dit component laat de
+ * inhoud daarom wegvagen aan de kant waar nog meer staat, met een pijltje
+ * erbij — en haalt dat weg zodra het niet meer zo is. Past alles, dan staat er
+ * niets.
+ *
+ * Het verloop is een `mask-image` op de scroller, en nadrukkelijk niet een
+ * gradient in de achtergrondkleur eroverheen. Dat laatste is geprobeerd en zag
+ * er fout uit: een knop met een eigen vulling wordt er niet door verborgen maar
+ * *gebleekt*, want je legt de paginakleur over een andere kleur heen. Een mask
+ * maakt de inhoud echt doorzichtig, dus het werkt op elke ondergrond — kaart,
+ * paneel, gekleurde sectie — zonder dat een aanroeper een kleur hoeft door te
+ * geven. Beide schrijfwijzen worden gezet: de WKWebView van de native app
+ * kent `-webkit-mask-image` het langst.
  *
  * ScrollHint is zelf de scroll-container: de wrapper eromheen moet
- * `position: relative` houden zonder mee te scrollen, anders schuiven de fades
- * met de inhoud mee het beeld uit. Vandaar twee elementen in plaats van één.
+ * `position: relative` houden zonder mee te scrollen, anders schuiven de
+ * pijltjes met de inhoud mee het beeld uit. Vandaar twee elementen in plaats
+ * van één.
  *
  * De pijltjes staan bewust stil. Een blijvend pulserend element pal naast
  * aantikbare knoppen trekt de aandacht juist wég van de inhoud; wil je het
  * toch, dan is `motion-safe:animate-pulse` genoeg (en alleen achter
  * `motion-safe:`, zodat prefers-reduced-motion gerespecteerd blijft).
  */
-export function ScrollHint({ children, className, fadeTo = 'to-background' }: ScrollHintProps) {
+export function ScrollHint({ children, className }: ScrollHintProps) {
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = React.useState(false);
   const [canScrollRight, setCanScrollRight] = React.useState(false);
@@ -80,6 +88,15 @@ export function ScrollHint({ children, className, fadeTo = 'to-background' }: Sc
     };
   }, []);
 
+  // Alleen een scrollbare kant vervaagt. Past alles, dan blijft de mask weg en
+  // is er geen enkel verschil met een gewone rij.
+  const stops = [
+    canScrollLeft ? `transparent 0, #000 ${FADE_PX}px` : '#000 0',
+    canScrollRight ? `#000 calc(100% - ${FADE_PX}px), transparent 100%` : '#000 100%',
+  ].join(', ');
+  const maskImage =
+    canScrollLeft || canScrollRight ? `linear-gradient(to right, ${stops})` : undefined;
+
   return (
     <div className={className}>
       {/*
@@ -90,22 +107,22 @@ export function ScrollHint({ children, className, fadeTo = 'to-background' }: Sc
         van een aanroeper hoort de hint nooit te verschuiven.
       */}
       <div className="relative">
-        <div ref={scrollerRef} className="overflow-x-auto">
+        <div
+          ref={scrollerRef}
+          className="overflow-x-auto"
+          style={{ maskImage, WebkitMaskImage: maskImage }}
+        >
           {children}
         </div>
 
+        {/*
+          De pijltjes staan buiten de scroller, dus de mask raakt ze niet: ze
+          blijven volledig zichtbaar op de plek waar de inhoud juist wegvalt.
+        */}
         {canScrollLeft && (
           <div
             aria-hidden="true"
-            className={cn(
-              'pointer-events-none absolute inset-y-0 left-0 flex w-6 items-center justify-start',
-              // De stop op 70% houdt het verloop zacht: alleen de buitenste
-              // paar pixels zijn dekkend, de rest laat de chip erdoorheen zien.
-              // Een lineair verloop over de volle breedte legt een bleke waas
-              // over de knop in plaats van hem te laten vervagen.
-              'bg-gradient-to-l from-transparent to-70%',
-              fadeTo
-            )}
+            className="pointer-events-none absolute inset-y-0 left-0 flex w-6 items-center justify-start"
           >
             <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/70" />
           </div>
@@ -114,11 +131,7 @@ export function ScrollHint({ children, className, fadeTo = 'to-background' }: Sc
         {canScrollRight && (
           <div
             aria-hidden="true"
-            className={cn(
-              'pointer-events-none absolute inset-y-0 right-0 flex w-6 items-center justify-end',
-              'bg-gradient-to-r from-transparent to-70%',
-              fadeTo
-            )}
+            className="pointer-events-none absolute inset-y-0 right-0 flex w-6 items-center justify-end"
           >
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70" />
           </div>
