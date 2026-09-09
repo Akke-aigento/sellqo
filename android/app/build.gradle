@@ -19,7 +19,7 @@ android {
         // Elke upload naar de Play Console heeft een hogere versionCode nodig dan de
         // vorige — handmatig ophogen per release. versionName is de versie die de
         // gebruiker in de Play Store ziet.
-        versionCode 2
+        versionCode 5
         versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
