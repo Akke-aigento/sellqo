@@ -2,9 +2,14 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+// De wrapper staat op overflow-x-auto en niet op overflow-hidden: een tabel die
+// breder is dan het scherm moet horizontaal te vegen zijn. Met overflow-hidden
+// clipt deze wrapper de tabel voordat een buitenliggende overflow-x-auto er iets
+// mee kan, en zijn de rechterkolommen op mobiel onbereikbaar — een script kan
+// dan nog wel scrollLeft zetten, een gebruiker niet.
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-hidden">
+    <div className="relative w-full overflow-x-auto">
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
