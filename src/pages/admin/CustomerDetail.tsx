@@ -191,7 +191,7 @@ export default function CustomerDetailPage() {
 
             {/* Info */}
             <div className="flex-1 space-y-3">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-2xl font-semibold">{fullName}</h1>

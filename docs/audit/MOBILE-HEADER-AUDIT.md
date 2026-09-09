@@ -151,16 +151,69 @@ van of de terugknop op mobiel naast de titel hoort te blijven staan.
 > was, is ingetrokken — zie §0. Die meting liet de iconen en de helft van de
 > paddingketen weg. Storefront is inmiddels gefixt.
 
-**Batch H2 — dynamische titel zonder `flex-wrap`** (7)
+**Batch H2 — dynamische titel zonder `flex-wrap`** (7) — ✅ afgerond, 3 vals alarm
 `MarketplaceDetail`, `GiftCardDetail`, `CampaignDetail`, `QuoteForm`,
 `POSTerminal`, `SyncConflicts`, `AdsBolcomCampaignDetail`.
 
-**Batch H3 — dynamische titel mét `flex-wrap`, plus platform** (9)
+> **Correctie, 9 september 2026.** Drie van de zeven bleken bij meting geen 🔴.
+> Gemeten op 375 px met de echte componenten en de volledige paddingketen
+> (`main` > `div p-4`, dus 343 px inhoud); genoteerd is de rechterrand van de
+> buitenste knop.
+>
+> | Pagina | Voor | Na | Oordeel |
+> |---|---|---|---|
+> | `MarketplaceDetail` | 494 | 359 | 🔴 119 px buiten beeld — ✅ gefixt |
+> | `CampaignDetail` | 511 | 277 | 🔴 136 px buiten beeld — ✅ gefixt |
+> | `SyncConflicts` | 420 | 359 | 🔴 45 px buiten beeld — ✅ gefixt |
+> | `Marketplaces` (Connect-banner) | 342 | 342 | 🔴 niet buiten beeld maar geperst — ✅ gefixt |
+> | `QuoteForm` | 286 | — | 🟢 geen actieknop, alleen terugknop + titel |
+> | `POSTerminal` | 359 | — | 🟢 al mobielbewust |
+> | `AdsBolcomCampaignDetail` | — | — | 🟢 stond al in het patroon |
+>
+> `QuoteForm` was het gevaarlijkste geval: `flex-col` zou daar de terugknop
+> bóven de titel zetten, dus de "fix" was een regressie geweest. `POSTerminal`
+> heeft een `hidden lg:flex` knoppenbalk met een aparte `lg:hidden` groep met
+> dropdown ernaast. `AdsBolcomCampaignDetail` had al
+> `flex flex-col sm:flex-row … sm:justify-between` inclusief `flex-wrap` op de
+> knopgroep.
+>
+> De Connect-banner in `Marketplaces` hoorde niet in deze batch — §3 telt hem
+> als inline-rij — maar kwam uit een toestelscreenshot. Het is een
+> `AlertDescription`, geen page-header; die aard is behouden, alleen de
+> flexrichting is per breakpoint gezet.
+>
+> `GiftCardDetail` is overgeslagen: dode code, nergens geïmporteerd, geen route.
+
+**Batch H3 — dynamische titel mét `flex-wrap`, plus platform** (9) — ✅ afgerond
 `OrderDetail`, `QuoteDetail`, `ReturnDetail`, `CustomerDetail`,
 `PlatformChangelog`, `PlatformCoupons`, `PlatformHealth`, `PlatformSupport`,
 `PlatformLegal`.
-De eerste vier degraderen al netjes; de platformpagina's worden vrijwel alleen op
-desktop bekeken.
+
+> **Meting, 9 september 2026.** Bij geen van de negen viel een knop buiten
+> beeld; de klem zat in geperste tekst. Doorslaggevend is daarom het aantal
+> regels dat titel en subtitel innemen, niet de rechterrand.
+>
+> | Pagina | Titel/sub vóór | Titel/sub ná | Oordeel |
+> |---|---|---|---|
+> | `OrderDetail` | 1r / 1r | — | 🟢 al `flex-col sm:flex-row` |
+> | `QuoteDetail` | 1r / 1r | — | 🟢 al `flex-col sm:flex-row` + `flex-wrap` |
+> | `ReturnDetail` | 1r / 1r | — | 🟢 al `flex-col sm:flex-row` |
+> | `CustomerDetail` | 3r | 2r | 🔴 naam in een kolom van 177 px — ✅ gefixt |
+> | `PlatformChangelog` | 2r / 2r | 1r / 1r | 🔴 — ✅ gefixt |
+> | `PlatformCoupons` | 2r / 3r | 1r / 2r | 🔴 — ✅ gefixt |
+> | `PlatformLegal` | 2r / 4r | 1r / 2r | 🔴 — ✅ gefixt |
+> | `PlatformHealth` | 1r / 2r | 1r / 1r | 🟡 alleen de subtitel klemde — ✅ meegenomen |
+> | `PlatformSupport` | 1r / 2r | 1r / 1r | 🟡 alleen de subtitel klemde — ✅ meegenomen |
+>
+> `PlatformHealth` en `PlatformSupport` waren grensgevallen: hun titel paste nog
+> op één regel. Ze zijn toch meegenomen omdat alle vijf de platformpagina's
+> exact dezelfde header-structuur hebben — het verschil zat alleen in de
+> titellengte, dus een langere titel kantelt ze alsnog — en omdat de rechterrand
+> op 1440 px voor en na identiek is.
+>
+> De eerste drie zijn niet aangeraakt. De aanname in de vorige versie van dit
+> rapport, dat ze "netjes degraderen dankzij `flex-wrap`", klopte in de uitkomst
+> maar niet in de oorzaak: ze staan zelf al in het `flex-col sm:flex-row`-patroon.
 
 ---
 
