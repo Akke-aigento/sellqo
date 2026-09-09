@@ -396,7 +396,7 @@ export default function MarketplaceDetailPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/admin/connect')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -421,7 +421,7 @@ export default function MarketplaceDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {connection.marketplace_type === 'bol_com' && (
             <BolCsvImport 
               connectionId={connection.id}
