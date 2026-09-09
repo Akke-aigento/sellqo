@@ -81,36 +81,49 @@ export function ScrollHint({ children, className, fadeTo = 'to-background' }: Sc
   }, []);
 
   return (
-    <div className={cn('relative', className)}>
-      <div ref={scrollerRef} className="overflow-x-auto">
-        {children}
+    <div className={className}>
+      {/*
+        `relative` zit bewust op een eigen laag tussen de className van de
+        aanroeper en de scroller. Stond het op de buitenste div, dan spant
+        inset-y-0 mee over diens padding (Storefront geeft pb-2 mee) en zakt het
+        pijltje de helft daarvan omlaag, weg van het midden van de rij. Padding
+        van een aanroeper hoort de hint nooit te verschuiven.
+      */}
+      <div className="relative">
+        <div ref={scrollerRef} className="overflow-x-auto">
+          {children}
+        </div>
+
+        {canScrollLeft && (
+          <div
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-y-0 left-0 flex w-6 items-center justify-start',
+              // De stop op 70% houdt het verloop zacht: alleen de buitenste
+              // paar pixels zijn dekkend, de rest laat de chip erdoorheen zien.
+              // Een lineair verloop over de volle breedte legt een bleke waas
+              // over de knop in plaats van hem te laten vervagen.
+              'bg-gradient-to-l from-transparent to-70%',
+              fadeTo
+            )}
+          >
+            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/70" />
+          </div>
+        )}
+
+        {canScrollRight && (
+          <div
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-y-0 right-0 flex w-6 items-center justify-end',
+              'bg-gradient-to-r from-transparent to-70%',
+              fadeTo
+            )}
+          >
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70" />
+          </div>
+        )}
       </div>
-
-      {canScrollLeft && (
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute inset-y-0 left-0 flex w-8 items-center justify-start',
-            'bg-gradient-to-l from-transparent',
-            fadeTo
-          )}
-        >
-          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
-
-      {canScrollRight && (
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute inset-y-0 right-0 flex w-8 items-center justify-end',
-            'bg-gradient-to-r from-transparent',
-            fadeTo
-          )}
-        >
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
     </div>
   );
 }
