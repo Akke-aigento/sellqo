@@ -9,6 +9,15 @@ import { useStorefront } from '@/hooks/useStorefront';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
 import { isExternalUrl, openExternal } from '@/lib/openExternal';
+import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
+
+/**
+ * Host zoals hij aan de tenant getoond wordt. Bewust niet window.location.host:
+ * in de Capacitor-app is dat `localhost`, en dan las een tenant zonder eigen
+ * domein "localhost/shop/<slug>" als zijn winkeladres — niet te openen, niet te
+ * delen. Zelfde reden als in LaunchStep; zie src/lib/siteUrl.ts.
+ */
+const PUBLIC_SITE_HOST = PUBLIC_SITE_URL.replace(/^https?:\/\//, '');
 
 /**
  * Kopkaart van de Shop Studio: waar staat de winkel, waar is hij te zien,
@@ -139,13 +148,18 @@ export function StudioHeader({ onOpenDesign }: StudioHeaderProps) {
               >
                 <Globe className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {canonicalDomain?.domain ?? `${window.location.host}/shop/${currentTenant?.slug}`}
+                  {canonicalDomain?.domain ??
+                    `${PUBLIC_SITE_HOST}/shop/${currentTenant?.slug}`}
                 </span>
               </button>
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          {/* flex-wrap en pas vanaf lg shrink-0: de twee knoppen zijn samen 328px
+              breed (labels plus iconen) en krijgen er op een 375-scherm maar 247,
+              want main, deze pagina en de kaart tellen samen 128px padding op.
+              Met shrink-0 op elke breedte liep "Opnieuw publiceren" het scherm uit. */}
+          <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
             {storefrontUrl && (
               <Button variant="outline" size="sm" onClick={handleOpenStorefront}>
                 <ExternalLink className="mr-2 h-4 w-4" />

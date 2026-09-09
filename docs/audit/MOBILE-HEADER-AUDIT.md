@@ -52,13 +52,36 @@ die `flex items-center gap-N` gebruiken. Een detector op "een `<h1>` en een
 tekstknop in een rij zonder `flex-col`" vindt ze wel; die is over heel
 `src/pages` gedraaid en levert 22 kandidaten in admin/platform.
 
-### Storefront is niet kapot
+### Storefront is wél kapot — correctie van 9 september 2026
 
-`StudioHeader.tsx:87` gebruikt **al** het goede patroon:
-`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`. Gemeten op
-375 px staat "Opnieuw publiceren" op rechterrand 305 en de hele knoppenrij op
-334 — ruim binnen beeld. De binnenste knoppenrij heeft `shrink-0`, wat een risico
-blijft bij langere labels, maar in het Nederlands past het.
+Dit rapport meldde eerst dat `StudioHeader` in orde was. Dat klopte niet, en de
+fout zat in de meting, niet in de code. Twee dingen ontbraken in de reproductie:
+
+1. **De iconen.** `ExternalLink` en `Rocket`, elk `h-4 w-4` met `mr-2`, boven op
+   de `gap-2` van `Button`. Zonder iconen komen de twee knoppen op 104 + 148 =
+   252 px; mét iconen op 138 + 182 = **328 px**.
+2. **De paddingketen.** Gemodelleerd was `main p-4` + `Card px-6` = 80 px, maar
+   `Storefront.tsx:121` heeft zelf óók `p-6`. De echte keten is 16 + 24 + 24 per
+   kant = **128 px**, dus op 375 px blijft er 247 px over voor 328 px knop.
+
+Met beide erin:
+
+```
+viewport 430 | rechterrand 393 | past, maar loopt de kaart uit
+viewport 375 | rechterrand 393 | 18px BUITEN BEELD
+viewport 360 | rechterrand 393 | 33px BUITEN BEELD
+viewport 320 | rechterrand 393 | 73px BUITEN BEELD
+```
+
+De buitenste rij gebruikt inderdaad al `flex-col ... lg:flex-row`, maar de
+binnenste knoppenrij stond op `shrink-0` en kon dus niet meegeven. Opgelost door
+`flex flex-wrap items-center gap-2 lg:shrink-0`: de knoppen breken naar een
+tweede regel zodra ze niet passen, en vanaf `lg` blijft de desktopindeling
+ongewijzigd.
+
+**Les voor volgende metingen:** een reproductie moet de iconen in knoppen en de
+volledige paddingketen van de pagina meenemen. Zonder die twee lijkt een header
+te passen terwijl hij op toestel doorloopt.
 
 `BogoPromotions.tsx` en `Storefront.tsx` hebben allebei **nul** voorkomens van
 `flex items-center justify-between`.
@@ -124,9 +147,9 @@ van of de terugknop op mobiel naast de titel hoort te blijven staan.
 > knop op rechterrand 234 en zakt de rij naar een tweede regel. Hij hoort dus
 > niet in H1 en is niet aangepast.
 >
-> Ook nagemeten: `StudioHeader.tsx:87` (Storefront) is op geen enkele breedte tot
-> 320 px kapot — "Bekijk winkel" (104 px) en "Opnieuw publiceren" (148 px) houden
-> hun breedte en clippen niet.
+> Let op: de eerdere bewering in dit blok dat `StudioHeader` tot 320 px in orde
+> was, is ingetrokken — zie §0. Die meting liet de iconen en de helft van de
+> paddingketen weg. Storefront is inmiddels gefixt.
 
 **Batch H2 — dynamische titel zonder `flex-wrap`** (7)
 `MarketplaceDetail`, `GiftCardDetail`, `CampaignDetail`, `QuoteForm`,
