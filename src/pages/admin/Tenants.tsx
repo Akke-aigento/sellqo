@@ -32,6 +32,7 @@ import { Plus, Search, MoreHorizontal, Pencil, Trash2, Store, ExternalLink, Eye 
 import { useTenants, Tenant, TenantFormData } from '@/hooks/useTenants';
 import { TenantFormDialog } from '@/components/admin/TenantFormDialog';
 import { TenantBulkActions } from '@/components/admin/TenantBulkActions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -66,6 +67,7 @@ function getPlanBadge(plan: string | null) {
 export default function TenantsPage() {
   const navigate = useNavigate();
   const { tenants, isLoading, createTenant, updateTenant, deleteTenant } = useTenants();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -137,6 +139,48 @@ export default function TenantsPage() {
     }
   };
 
+  // Een keer gedefinieerd en door beide weergaven gebruikt. Twee kopieen van dit
+  // menu lopen na de eerste wijziging uit elkaar, en dat is precies het soort
+  // verschil dat niemand opmerkt tot een actie op mobiel ontbreekt.
+  const renderActions = (tenant: Tenant) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => navigate(`/admin/platform/tenants/${tenant.id}`)}>
+          <Eye className="mr-2 h-4 w-4" />
+          Bekijk details
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleEdit(tenant)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Bewerken
+        </DropdownMenuItem>
+        {tenant.custom_domain && (
+          <DropdownMenuItem asChild>
+            <a
+              href={`https://${tenant.custom_domain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Naar winkel
+            </a>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className="text-destructive"
+          onClick={() => handleDelete(tenant)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Verwijderen
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -173,6 +217,86 @@ export default function TenantsPage() {
         onClearSelection={() => setSelectedIds(new Set())}
       />
 
+      {/* Mobiel een kaartlijst, zoals Products en Customers al doen. Een tabel van
+          zeven kolommen past niet op 375px: de acties verdwenen rechts uit beeld en
+          waren alleen met horizontaal vegen te bereiken. */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">Laden...</p>
+          ) : filteredTenants.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8">
+              <Store className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground">Geen tenants gevonden</p>
+            </div>
+          ) : (
+            filteredTenants.map((tenant) => (
+              <div
+                key={tenant.id}
+                className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(tenant.id)}
+                      onCheckedChange={() => toggleSelection(tenant.id)}
+                    />
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Store className="h-5 w-5 text-primary" />
+                  </div>
+                  {/* min-w-0 en truncate zijn hier geen opsmuk: zonder die twee duwt
+                      een lang e-mailadres de actieknop het scherm weer uit. */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/admin/platform/tenants/${tenant.id}`)}
+                        className="truncate text-left text-sm font-medium hover:underline"
+                      >
+                        {tenant.name}
+                      </button>
+                      {tenant.is_internal_tenant && (
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs shrink-0">
+                          OWNER
+                        </Badge>
+                      )}
+                      {tenant.is_demo && !tenant.is_internal_tenant && (
+                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 text-xs shrink-0">
+                          DEMO
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">{tenant.slug}</p>
+                    <p className="mt-1 truncate text-xs">{tenant.owner_name || '-'}</p>
+                    <p className="truncate text-xs text-muted-foreground">{tenant.owner_email}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {!tenant.is_internal_tenant &&
+                        (tenant.is_demo ? (
+                          <Badge variant="secondary">N/A</Badge>
+                        ) : (
+                          getPlanBadge(tenant.subscription_plan)
+                        ))}
+                      {!tenant.is_internal_tenant &&
+                        (tenant.is_demo ? (
+                          <Badge variant="secondary">N/A</Badge>
+                        ) : (
+                          getStatusBadge(tenant.subscription_status)
+                        ))}
+                      <span className="text-xs text-muted-foreground">
+                        {tenant.created_at
+                          ? format(new Date(tenant.created_at), 'd MMM yyyy', { locale: nl })
+                          : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  {renderActions(tenant)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
       <div className="rounded-md border">
         <div className="w-full overflow-x-auto">
         <Table className="min-w-[640px]">
@@ -265,44 +389,7 @@ export default function TenantsPage() {
                       ? format(new Date(tenant.created_at), 'd MMM yyyy', { locale: nl })
                       : '-'}
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/admin/platform/tenants/${tenant.id}`)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Bekijk details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(tenant)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Bewerken
-                        </DropdownMenuItem>
-                        {tenant.custom_domain && (
-                          <DropdownMenuItem asChild>
-                            <a
-                              href={`https://${tenant.custom_domain}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Naar winkel
-                            </a>
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDelete(tenant)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  <TableCell>{renderActions(tenant)}</TableCell>
                 </TableRow>
               ))
             )}
@@ -310,6 +397,7 @@ export default function TenantsPage() {
         </Table>
         </div>
       </div>
+      )}
 
       <TenantFormDialog
         open={dialogOpen}
