@@ -36,10 +36,12 @@ import { format } from 'date-fns';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function BogoPromotionsPage() {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
+  const isMobile = useIsMobile();
   const { data: promotions = [], isLoading } = useBogoPromotions();
   const updatePromotion = useUpdateBogoPromotion();
   const deletePromotion = useDeleteBogoPromotion();
@@ -89,6 +91,40 @@ export default function BogoPromotionsPage() {
         return type;
     }
   };
+
+  // Een keer gedefinieerd, door tabel en kaart gedeeld. Twee kopieen van dit menu
+  // lopen na de eerste wijziging uit elkaar.
+  const renderActions = (promotion: BogoPromotion) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleEdit(promotion)}>
+          <Edit className="mr-2 h-4 w-4" />
+          {t('common.edit')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleDelete(promotion)}
+          className="text-destructive"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {t('common.delete')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  // Zelfde drietrap als in de kortingskolom van de tabel, zodat kaart en tabel
+  // niet uit elkaar kunnen lopen.
+  const kortingLabel = (promotion: BogoPromotion) =>
+    promotion.discount_type === 'percentage'
+      ? `${promotion.discount_value}%`
+      : promotion.discount_value === 100
+      ? 'Gratis'
+      : `€${promotion.discount_value.toFixed(2)}`;
 
   return (
     <div className="space-y-6">
@@ -140,6 +176,49 @@ export default function BogoPromotionsPage() {
               {t('admin.bogoPromotions.geen_bogo_acties_gevonden')}
             </p>
           ) : (
+            /* Mobiel kaarten: de tabel staat op min-w-[650px], dus op 375px valt de
+               actiekolom ver buiten beeld — net als de switch ernaast. */
+            isMobile ? (
+              <div className="space-y-3">
+                {filteredPromotions.map((promotion) => (
+                  <div
+                    key={promotion.id}
+                    className="rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* min-w-0 en truncate: zonder die twee duwt een lange naam
+                          de switch en het menu opnieuw het scherm uit. */}
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium">{promotion.name}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">
+                            {getPromotionTypeLabel(promotion.promotion_type)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {promotion.buy_quantity}x → {promotion.get_quantity}x ·{' '}
+                            {kortingLabel(promotion)}
+                          </span>
+                        </div>
+                        {promotion.valid_until && (
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {format(new Date(promotion.valid_until), 'd MMM yyyy', {
+                              locale: dateLocale,
+                            })}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Switch
+                          checked={promotion.is_active}
+                          onCheckedChange={() => handleToggleActive(promotion)}
+                        />
+                        {renderActions(promotion)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="min-w-[650px]">
             <Table>
               <TableHeader>
@@ -165,13 +244,7 @@ export default function BogoPromotionsPage() {
                     </TableCell>
                     <TableCell>{promotion.buy_quantity}x</TableCell>
                     <TableCell>{promotion.get_quantity}x</TableCell>
-                    <TableCell>
-                      {promotion.discount_type === 'percentage'
-                        ? `${promotion.discount_value}%`
-                        : promotion.discount_value === 100
-                        ? 'Gratis'
-                        : `€${promotion.discount_value.toFixed(2)}`}
-                    </TableCell>
+                    <TableCell>{kortingLabel(promotion)}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {promotion.valid_until
                         ? format(new Date(promotion.valid_until), 'd MMM yyyy', { locale: dateLocale })
@@ -183,33 +256,13 @@ export default function BogoPromotionsPage() {
                         onCheckedChange={() => handleToggleActive(promotion)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(promotion)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            {t('common.edit')}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(promotion)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t('common.delete')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    <TableCell>{renderActions(promotion)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             </div>
+            )
           )}
         </CardContent>
       </Card>
