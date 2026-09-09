@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ScrollHint } from '@/components/ui/scroll-hint';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -254,32 +255,34 @@ export default function ReturnDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Timeline */}
-            <div className="flex items-center gap-0 overflow-x-auto pb-2">
-              {LOGISTICS_TIMELINE.map((st, idx) => {
-                const isActive = logisticsStatus === st;
-                const isPast = logisticsIdx >= 0 && idx < logisticsIdx;
-                const entry = statusHistory.find((h) => h.to_status === st && h.flow_type === 'logistics');
-                return (
-                  <div key={st} className="flex items-center">
-                    <div className="flex flex-col items-center gap-1 min-w-[60px]" title={entry?.created_at ? format(new Date(entry.created_at), 'dd-MM-yyyy HH:mm') : ''}>
-                      <div className={cn(
-                        'w-7 h-7 rounded-full flex items-center justify-center text-xs',
-                        isActive ? 'bg-primary text-primary-foreground' :
-                          isPast ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-                      )}>
-                        {isPast ? <CheckCircle2 className="h-3.5 w-3.5" /> : isActive ? <Clock className="h-3.5 w-3.5" /> : idx + 1}
+            <ScrollHint className="pb-2">
+              <div className="flex items-center gap-0">
+                {LOGISTICS_TIMELINE.map((st, idx) => {
+                  const isActive = logisticsStatus === st;
+                  const isPast = logisticsIdx >= 0 && idx < logisticsIdx;
+                  const entry = statusHistory.find((h) => h.to_status === st && h.flow_type === 'logistics');
+                  return (
+                    <div key={st} className="flex items-center">
+                      <div className="flex flex-col items-center gap-1 min-w-[60px]" title={entry?.created_at ? format(new Date(entry.created_at), 'dd-MM-yyyy HH:mm') : ''}>
+                        <div className={cn(
+                          'w-7 h-7 rounded-full flex items-center justify-center text-xs',
+                          isActive ? 'bg-primary text-primary-foreground' :
+                            isPast ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                        )}>
+                          {isPast ? <CheckCircle2 className="h-3.5 w-3.5" /> : isActive ? <Clock className="h-3.5 w-3.5" /> : idx + 1}
+                        </div>
+                        <span className={cn('text-[9px] text-center leading-tight', isActive ? 'font-medium' : 'text-muted-foreground')}>
+                          {LOGISTICS_LABELS[st] || st}
+                        </span>
                       </div>
-                      <span className={cn('text-[9px] text-center leading-tight', isActive ? 'font-medium' : 'text-muted-foreground')}>
-                        {LOGISTICS_LABELS[st] || st}
-                      </span>
+                      {idx < LOGISTICS_TIMELINE.length - 1 && (
+                        <div className={cn('h-0.5 w-4', isPast ? 'bg-primary/40' : 'bg-muted')} />
+                      )}
                     </div>
-                    {idx < LOGISTICS_TIMELINE.length - 1 && (
-                      <div className={cn('h-0.5 w-4', isPast ? 'bg-primary/40' : 'bg-muted')} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </ScrollHint>
 
             {/* Logistics actions */}
             <div className="flex flex-wrap gap-2">
@@ -491,47 +494,49 @@ export default function ReturnDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Timeline */}
-            <div className="flex items-center gap-0 overflow-x-auto pb-2">
-              {REFUND_TIMELINE.map((st, idx) => {
-                const isActive = refundStatus === st;
-                const isPast = refundIdx >= 0 && idx < refundIdx;
-                const isTerminal = ['denied', 'not_applicable', 'failed'].includes(refundStatus);
-                const entry = statusHistory.find((h) => h.to_status === st && h.flow_type === 'financial');
-                return (
-                  <div key={st} className="flex items-center">
-                    <div className="flex flex-col items-center gap-1 min-w-[70px]" title={entry?.created_at ? format(new Date(entry.created_at), 'dd-MM-yyyy HH:mm') : ''}>
-                      <div className={cn(
-                        'w-7 h-7 rounded-full flex items-center justify-center text-xs',
-                        isActive ? 'bg-primary text-primary-foreground' :
-                          isPast ? 'bg-primary/20 text-primary' :
-                            isTerminal ? 'bg-muted text-muted-foreground opacity-50' : 'bg-muted text-muted-foreground'
-                      )}>
-                        {isPast ? <CheckCircle2 className="h-3.5 w-3.5" /> : isActive ? <Clock className="h-3.5 w-3.5" /> : idx + 1}
+            <ScrollHint className="pb-2">
+              <div className="flex items-center gap-0">
+                {REFUND_TIMELINE.map((st, idx) => {
+                  const isActive = refundStatus === st;
+                  const isPast = refundIdx >= 0 && idx < refundIdx;
+                  const isTerminal = ['denied', 'not_applicable', 'failed'].includes(refundStatus);
+                  const entry = statusHistory.find((h) => h.to_status === st && h.flow_type === 'financial');
+                  return (
+                    <div key={st} className="flex items-center">
+                      <div className="flex flex-col items-center gap-1 min-w-[70px]" title={entry?.created_at ? format(new Date(entry.created_at), 'dd-MM-yyyy HH:mm') : ''}>
+                        <div className={cn(
+                          'w-7 h-7 rounded-full flex items-center justify-center text-xs',
+                          isActive ? 'bg-primary text-primary-foreground' :
+                            isPast ? 'bg-primary/20 text-primary' :
+                              isTerminal ? 'bg-muted text-muted-foreground opacity-50' : 'bg-muted text-muted-foreground'
+                        )}>
+                          {isPast ? <CheckCircle2 className="h-3.5 w-3.5" /> : isActive ? <Clock className="h-3.5 w-3.5" /> : idx + 1}
+                        </div>
+                        <span className={cn('text-[9px] text-center leading-tight', isActive ? 'font-medium' : 'text-muted-foreground')}>
+                          {REFUND_LABELS[st] || st}
+                        </span>
                       </div>
-                      <span className={cn('text-[9px] text-center leading-tight', isActive ? 'font-medium' : 'text-muted-foreground')}>
-                        {REFUND_LABELS[st] || st}
+                      {idx < REFUND_TIMELINE.length - 1 && (
+                        <div className={cn('h-0.5 w-6', isPast ? 'bg-primary/40' : 'bg-muted')} />
+                      )}
+                    </div>
+                  );
+                })}
+                {['denied', 'not_applicable', 'failed'].includes(refundStatus) && (
+                  <div className="flex items-center">
+                    <div className="h-0.5 w-6 bg-muted" />
+                    <div className="flex flex-col items-center gap-1 min-w-[70px]">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs bg-destructive/20 text-destructive">
+                        <XCircle className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-[9px] font-medium text-destructive">
+                        {refundStatus === 'denied' ? 'Afgewezen' : refundStatus === 'failed' ? 'Mislukt' : 'N.v.t.'}
                       </span>
                     </div>
-                    {idx < REFUND_TIMELINE.length - 1 && (
-                      <div className={cn('h-0.5 w-6', isPast ? 'bg-primary/40' : 'bg-muted')} />
-                    )}
                   </div>
-                );
-              })}
-              {['denied', 'not_applicable', 'failed'].includes(refundStatus) && (
-                <div className="flex items-center">
-                  <div className="h-0.5 w-6 bg-muted" />
-                  <div className="flex flex-col items-center gap-1 min-w-[70px]">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs bg-destructive/20 text-destructive">
-                      <XCircle className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-[9px] font-medium text-destructive">
-                      {refundStatus === 'denied' ? 'Afgewezen' : refundStatus === 'failed' ? 'Mislukt' : 'N.v.t.'}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </ScrollHint>
 
             {/* Refund guard */}
             {refundBlocked && (
