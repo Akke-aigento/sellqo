@@ -66,9 +66,9 @@ wegen lichter dan een tenant met een telefoon in de hand.
 | Subscriptions | `orders/subscriptions` | ✓ | 8 | 820 | menu | hoofdlijst | ✅ |
 | BogoPromotions | `promotions/bogo` | ✓ | 8 | 650 | menu + switch | hoofdlijst | ✅ |
 | GiftCards | `promotions/gift-cards` | ✓ | 7 | 650 | menu | hoofdlijst | ✅ |
-| TranslationHub | `marketing/translations` | ✓ | 5 | – | 2 knop + checkbox + link | hoofdlijst | 🔴 |
-| AdsProductMap | `ads/products` | ✓ | 6 | – | knop + switch | hoofdlijst | 🔴 |
-| Billing | `billing` | ✓ | 5 | – | 2 knop | hoofdlijst | 🔴 |
+| TranslationHub | `marketing/translations` | ✓ | 5 | – | 2 knop + checkbox + link | hoofdlijst | ✅ |
+| AdsProductMap | `ads/products` | ✓ | 6 | – | knop + switch | hoofdlijst | ✅ |
+| Billing | `billing` | ✓ | 5 | – | 2 knop | hoofdlijst | ✅ |
 | StackingRules | `promotions/stacking` | – | 7 | 650 | menu + switch | sublijst | 🟡 |
 | MarketplaceDetail | `connect/:connectionId` | – | 6 | 640 | menu + 3 knop | detail | 🟡 |
 | AdsBolcomCampaignDetail | `ads/bolcom/campaigns/:id` | – | 9 | 800 | switch | detail | 🟡 |
@@ -102,7 +102,10 @@ platformschermen laatst.
 > `Subscriptions` bleek al een kaartweergave te hebben via het `xl`-breekpunt
 > (`Subscriptions.tsx:260`, `xl:hidden`); deze audit scande alleen op
 > `useIsMobile` en op `md:`-breekpunten en miste hem daardoor. `BogoPromotions`
-> en `GiftCards` zijn gedaan in `b876eb7` en `867298f`. Resteert van 🔴: batch M2.
+> en `GiftCards` zijn gedaan in `b876eb7` en `867298f`.
+>
+> **Aanvulling, 9 september 2026 — batch M2 afgerond.** Daarmee is er geen 🔴
+> meer over; wat rest zijn de 🟡's van batch M3.
 
 ### Batch M1 — promoties en abonnementen
 
@@ -128,6 +131,47 @@ kaartindeling:
 - **Billing** — twee downloadknoppen per factuurregel.
 
 Deze batch kost meer denkwerk per pagina; splits hem gerust in tweeën.
+
+> **Uitkomst, 9 september 2026 — alle drie ✅, alle drie als kaart.**
+>
+> Sinds deze audit bestaat er een tweede uitweg: `ScrollHint`
+> (`src/components/ui/scroll-hint.tsx`) laat een tabel scrollen mét een
+> zichtbare hint. Per pagina is afgewogen of dat beter was dan een kaart. Het
+> antwoord was drie keer nee, maar niet om dezelfde reden.
+>
+> Eerst de meting op 375 px met de echte componenten en de volledige
+> paddingketen (`main` > `div p-4`). De tabellen scrollen wel degelijk: sinds
+> `table.tsx` een eigen `overflow-x-auto`-wrapper heeft, meet je 0 px overflow
+> als je de `CardContent` meet in plaats van die wrapper.
+>
+> | Pagina | Tabel | Zichtbaar | Verborgen | Rijhoogte |
+> |---|---|---|---|---|
+> | `TranslationHub` | 628 px | 341 | 287 px | 159 px (3× normaal) |
+> | `AdsProductMap` | 657 px | 293 | 364 px | 73–93 px |
+> | `Billing` facturen | 434 px | 341 | 93 px | 93 px |
+> | `Billing` creditnota's | 425 px | 341 | 84 px | 93 px |
+>
+> - **TranslationHub** 📇 — bulkselectie met een actie per rij; precies het
+>   Products/GiftCards-geval. De selecteer-alles zat in de tabelkop en is op
+>   mobiel een balk boven de lijst geworden, met dezelfde `setSelectedIds`.
+> - **AdsProductMap** 📇 — het enige echte grensgeval, en bewust besloten. Je
+>   *typt* hier waarden in; met een scrollende tabel verdwijnt de productnaam
+>   uit beeld precies terwijl je de min-voorraad invult. Kaart wint van
+>   `ScrollHint` omdat naam, voorraad, schakelaar en veld samen zichtbaar
+>   blijven.
+> - **Billing** 📇 — korte regels met één downloadknop, het archetype van een
+>   kaartlijst. De `Tooltip` om die knop is in de kaart een zichtbaar label
+>   geworden: op touch opent een tooltip nooit.
+>
+> **Correctie op dit rapport.** `Billing` heeft geen "twee downloadknoppen per
+> factuurregel" maar **twee tabellen** — facturen en creditnota's — met elk één
+> downloadknop per rij. Beide zijn omgezet.
+>
+> Na de omzetting valt geen bediening meer buiten beeld: de rechterrand van de
+> buitenste knop, schakelaar of veld ligt op 329 (TranslationHub), 321
+> (AdsProductMap) en 345 px (Billing), tegen een viewport van 375. De
+> desktoptabellen zijn letterlijk onaangeroerd — de diff bevat nul verwijderde
+> regels.
 
 ### Batch M3 — de 🟡's, pas als M1 en M2 landen
 

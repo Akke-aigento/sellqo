@@ -15,6 +15,7 @@ import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { usePlatformBillingDocuments } from '@/hooks/usePlatformBillingDocuments';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   usePlatformBillingStatus,
   useCreatePlatformMandateLink,
@@ -58,6 +59,7 @@ export default function BillingPage() {
     refetch: refetchDocuments,
   } = usePlatformBillingDocuments({ poll: shouldPoll });
   const { openDocument, isDownloading } = useDocumentDownload();
+  const isMobile = useIsMobile();
   const [showAllInvoices, setShowAllInvoices] = useState(false);
   const allInvoices = documents?.invoices ?? [];
   const visibleInvoices = showAllInvoices ? allInvoices : allInvoices.slice(0, INVOICE_PAGE_SIZE);
@@ -788,6 +790,64 @@ export default function BillingPage() {
             <p className="text-muted-foreground text-center py-8">
               {t('billing.no_invoices')}
             </p>
+          ) : isMobile ? (
+            /*
+              Kaart per factuur. De tabel is 434 px breed in een venster van
+              341, dus het downloadicoon viel buiten beeld. In de kaart krijgt
+              het bovendien een zichtbaar label: de tooltip die het op desktop
+              verklaart, opent op touch nooit.
+            */
+            <div className="space-y-3">
+              {visibleInvoices.map((invoice) => (
+                <div key={invoice.id} className="rounded-lg border bg-card p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-mono text-sm font-medium">{invoice.invoice_number}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {invoice.issue_date &&
+                          format(new Date(invoice.issue_date), 'dd/MM/yyyy', { locale: dateLocale })}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-medium">{formatPrice(Number(invoice.total))}</p>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <Badge
+                      variant={
+                        invoice.status === 'paid'
+                          ? 'default'
+                          : invoice.status === 'cancelled'
+                            ? 'outline'
+                            : 'secondary'
+                      }
+                    >
+                      {invoice.status === 'paid'
+                        ? `✓ ${t('billing.paid')}`
+                        : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
+                    </Badge>
+                    {invoice.has_pdf && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isDownloading}
+                        onClick={() => openDocument('invoice', invoice.id, 'pdf')}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        {t('billing.download_pdf')}
+                      </Button>
+                    )}
+                  </div>
+
+                  {invoice.credited_by.length > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t('billing.documents.credited_via', {
+                        numbers: invoice.credited_by.join(', '),
+                      })}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -873,6 +933,42 @@ export default function BillingPage() {
             <CardDescription>{t('billing.documents.credit_notes_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto px-0 sm:px-6">
+            {isMobile ? (
+              <div className="space-y-3">
+                {documents!.credit_notes.map((cn) => (
+                  <div key={cn.id} className="rounded-lg border bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-sm font-medium">{cn.credit_note_number}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {cn.issue_date &&
+                            format(new Date(cn.issue_date), 'dd/MM/yyyy', { locale: dateLocale })}
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-medium">-{formatPrice(Number(cn.total))}</p>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="min-w-0 truncate text-xs text-muted-foreground">
+                        {t('billing.documents.col_original')}:{' '}
+                        <span className="font-mono">{cn.original_invoice_number ?? '—'}</span>
+                      </p>
+                      {cn.has_pdf && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isDownloading}
+                          onClick={() => openDocument('credit_note', cn.id, 'pdf')}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {t('billing.download_pdf')}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -911,6 +1007,7 @@ export default function BillingPage() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
       )}

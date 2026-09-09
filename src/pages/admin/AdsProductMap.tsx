@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Search, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,6 +37,7 @@ const CHANNEL = 'bolcom';
 export default function AdsProductMap() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
+  const isMobile = useIsMobile();
   const tenantId = currentTenant?.id ?? null;
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -215,6 +217,72 @@ export default function AdsProductMap() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">{t('admin.marketing.inlinePromoWizard.geen_producten_gevonden')}</p>
+          ) : isMobile ? (
+            /*
+              Kaart per product. Als tabel is dit scherm op mobiel onbruikbaar:
+              de zes kolommen zijn samen 657 px, dus je scrolt de productnaam uit
+              beeld precies terwijl je de min-voorraad invult. In de kaart staan
+              naam, voorraad, schakelaar, veld en opslaan bij elkaar.
+            */
+            <div className="space-y-3">
+              {filtered.map((p) => {
+                const row = getRow(p.id);
+                const stock = p.stock ?? 0;
+                const paused = row.is_advertised && stock < row.min_stock_for_ads;
+                return (
+                  <div key={p.id} className="rounded-lg border bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      {/* min-w-0 en truncate: zonder die twee duwt een lange
+                          productnaam de badge het scherm uit. */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{p.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {t('admin.adsProductMap.stock')}: {stock}
+                        </p>
+                      </div>
+                      {!row.is_advertised ? (
+                        <Badge variant="outline" className="shrink-0">{t('admin.adsProductMap.uit')}</Badge>
+                      ) : paused ? (
+                        <Badge variant="secondary" className="shrink-0">{t('admin.marketing.campaignCard.status.gepauzeerd')}</Badge>
+                      ) : (
+                        <Badge variant="default" className="shrink-0">{t('admin.marketing.aBTestingPanel.actief')}</Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <Switch
+                          checked={row.is_advertised}
+                          onCheckedChange={(v) => setRow(p.id, { is_advertised: v })}
+                        />
+                        {t('admin.adsProductMap.adverteren')}
+                      </label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!row.dirty || saveOne.isPending}
+                        onClick={() => saveOne.mutate({ productId: p.id, row })}
+                      >
+                        {t('common.save')}
+                      </Button>
+                    </div>
+
+                    <label className="mt-3 flex items-center justify-between gap-3 text-sm">
+                      <span className="min-w-0 flex-1 text-muted-foreground">
+                        {t('admin.adsProductMap.min_stock_voor_ads')}
+                      </span>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={row.min_stock_for_ads}
+                        onChange={(e) => setRow(p.id, { min_stock_for_ads: Math.max(0, +e.target.value || 0) })}
+                        className="h-8 w-24 shrink-0"
+                      />
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
