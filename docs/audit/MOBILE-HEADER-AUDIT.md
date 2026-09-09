@@ -113,10 +113,20 @@ sm:justify-between`, of — waar een terugknop naast het titelblok staat — een
 `min-w-0` op dat titelblok zodat het wél kan krimpen. Welke van de twee, hangt af
 van of de terugknop op mobiel naast de titel hoort te blijven staan.
 
-**Batch H1 — bewezen kapot, tenant-zichtbaar** (6)
+**Batch H1 — bewezen kapot, tenant-zichtbaar** (5) — ✅ gedaan
 `LoyaltyPrograms`, `BogoPromotions`, `StackingRules`, `POSTerminalSettings`,
-`StockReport`, `GiftCardDesigns`.
-LoyaltyPrograms eerst: dat is de enige met een aantoonbaar onbereikbare knop.
+`GiftCardDesigns`.
+
+> **Correctie, 9 september 2026.** `StockReport` stond hier eerst ook in, in
+> tegenspraak met de tabel in §1 die hem op 🟡 zet. De tabel had gelijk: zijn rij
+> is `flex flex-wrap items-start justify-between` met een `flex flex-wrap`
+> knopgroep, en die wrapt netjes — gemeten op 375, 360 en 320 px staat de laatste
+> knop op rechterrand 234 en zakt de rij naar een tweede regel. Hij hoort dus
+> niet in H1 en is niet aangepast.
+>
+> Ook nagemeten: `StudioHeader.tsx:87` (Storefront) is op geen enkele breedte tot
+> 320 px kapot — "Bekijk winkel" (104 px) en "Opnieuw publiceren" (148 px) houden
+> hun breedte en clippen niet.
 
 **Batch H2 — dynamische titel zonder `flex-wrap`** (7)
 `MarketplaceDetail`, `GiftCardDetail`, `CampaignDetail`, `QuoteForm`,

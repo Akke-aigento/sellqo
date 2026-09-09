@@ -153,8 +153,10 @@ export default function POSTerminalSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Op mobiel zakt de knoppengroep onder de titel in plaats van ernaast
+          geperst te worden; flex-wrap omdat het er meerdere zijn. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -163,7 +165,7 @@ export default function POSTerminalSettingsPage() {
             <p className="text-muted-foreground">{terminal.name}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="text-destructive">

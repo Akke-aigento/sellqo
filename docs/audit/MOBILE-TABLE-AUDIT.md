@@ -63,9 +63,9 @@ wegen lichter dan een tenant met een telefoon in de hand.
 
 | Pagina | Route | In nav | Kol | min-w | Acties per rij | Type | Cat |
 |---|---|---|---|---|---|---|---|
-| Subscriptions | `orders/subscriptions` | ✓ | 8 | 820 | menu | hoofdlijst | 🔴 |
-| BogoPromotions | `promotions/bogo` | ✓ | 8 | 650 | menu + switch | hoofdlijst | 🔴 |
-| GiftCards | `promotions/gift-cards` | ✓ | 7 | 650 | menu | hoofdlijst | 🔴 |
+| Subscriptions | `orders/subscriptions` | ✓ | 8 | 820 | menu | hoofdlijst | ✅ |
+| BogoPromotions | `promotions/bogo` | ✓ | 8 | 650 | menu + switch | hoofdlijst | ✅ |
+| GiftCards | `promotions/gift-cards` | ✓ | 7 | 650 | menu | hoofdlijst | ✅ |
 | TranslationHub | `marketing/translations` | ✓ | 5 | – | 2 knop + checkbox + link | hoofdlijst | 🔴 |
 | AdsProductMap | `ads/products` | ✓ | 6 | – | knop + switch | hoofdlijst | 🔴 |
 | Billing | `billing` | ✓ | 5 | – | 2 knop | hoofdlijst | 🔴 |
@@ -89,7 +89,7 @@ wegen lichter dan een tenant met een telefoon in de hand.
 
 Buiten de telling: `PlatformBlog` (heeft al kaarten) en `GiftCardDetail` (dood).
 
-Legenda: 🔴 kaart nodig, klemt nu — 🟡 kaart nuttig, niet urgent — 🟢 laten staan.
+Legenda: 🔴 kaart nodig, klemt nu — 🟡 kaart nuttig, niet urgent — 🟢 laten staan — ✅ gedaan.
 
 ---
 
@@ -97,6 +97,12 @@ Legenda: 🔴 kaart nodig, klemt nu — 🟡 kaart nuttig, niet urgent — 🟢 
 
 Gesorteerd op wie de pagina hoe vaak ziet: tenant-hoofdlijsten eerst,
 platformschermen laatst.
+
+> **Stand per 9 september 2026 — batch M1 afgerond.**
+> `Subscriptions` bleek al een kaartweergave te hebben via het `xl`-breekpunt
+> (`Subscriptions.tsx:260`, `xl:hidden`); deze audit scande alleen op
+> `useIsMobile` en op `md:`-breekpunten en miste hem daardoor. `BogoPromotions`
+> en `GiftCards` zijn gedaan in `b876eb7` en `867298f`. Resteert van 🔴: batch M2.
 
 ### Batch M1 — promoties en abonnementen
 
