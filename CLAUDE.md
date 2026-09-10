@@ -8,6 +8,7 @@ Dit bestand vat samen; de brondocumenten zijn leidend bij twijfel:
 |---|---|
 | Paper trail van elke batch | `docs/role-audit.md` |
 | Custom frontends (patronen, valkuilen) | `.agents/skills/sellqo-custom-frontend-runbook/SKILL.md` |
+| Nieuwe custom-frontend-klant opzetten | `.claude/skills/sellqo-nieuwe-storefront/SKILL.md` |
 | Webshop-reeks (de eerste wet) | `docs/webshop-masterplan.md` §0 |
 | Webshop fase 5-7 | `docs/webshop-fase5-7-visie.md` |
 | RLS-patronen | `docs/architecture-patterns.md` |
@@ -17,7 +18,7 @@ Dit bestand vat samen; de brondocumenten zijn leidend bij twijfel:
 
 Er bestaan daarnaast **workspace-skills** (Lovable-agent) en **repo-skills**
 (`.claude/skills/`, met een spiegel in `.agents/skills/`). Sinds `beb3b180`
-(10 sep 2026) leven **alle acht op beide plekken**, en de repo is de bron van
+(10 sep 2026) leven de eerste acht op beide plekken, en de repo is de bron van
 waarheid.
 
 Niets houdt die drie kopieën vanzelf gelijk, en ze lopen aantoonbaar uit elkaar:
@@ -41,6 +42,7 @@ groot als de repo-versie, zonder de codemod-motor. Daarom:
 | `sellqo-docs-slottaak` | ✓ | ✓ | repo |
 | `sellqo-custom-frontend-runbook` | ✓ | ✓ | repo |
 | `sellqo-i18n-verplicht` | ✓ | ✓ | repo |
+| `sellqo-nieuwe-storefront` | — | ✓ | repo |
 
 `nomadix-mobiel` bestaat alleen als workspace-skill: die geldt workspace-breed
 en hoort niet in deze repo.
