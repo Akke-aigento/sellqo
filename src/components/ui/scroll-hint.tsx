@@ -1,11 +1,48 @@
 import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 
 /**
- * Over hoeveel pixels de inhoud aan een scrollbare kant wegvalt. Breed genoeg
- * om als verloop te lezen, smal genoeg om niet een half label op te eten.
+ * De pijltjes die over een scroller heen komen.
+ *
+ * Ze staan bewust búiten de scroller, zodat de mask ze niet raakt: ze blijven
+ * volledig zichtbaar op de plek waar de inhoud juist wegvalt. De ouder moet dus
+ * `position: relative` zijn en zelf niet scrollen.
+ *
+ * De pijltjes staan stil. Een blijvend pulserend element pal naast aantikbare
+ * knoppen trekt de aandacht juist wég van de inhoud; wil je het toch, dan is
+ * `motion-safe:animate-pulse` genoeg (en alleen achter `motion-safe:`, zodat
+ * prefers-reduced-motion gerespecteerd blijft).
  */
-const FADE_PX = 48;
+export function ScrollHintArrows({
+  canScrollLeft,
+  canScrollRight,
+}: {
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+}) {
+  return (
+    <>
+      {canScrollLeft && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 flex w-6 items-center justify-start"
+        >
+          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/70" />
+        </div>
+      )}
+
+      {canScrollRight && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 flex w-6 items-center justify-end"
+        >
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70" />
+        </div>
+      )}
+    </>
+  );
+}
 
 interface ScrollHintProps {
   /** De rij die horizontaal scrollt; krijgt zelf géén overflow-klasse meer mee. */
@@ -37,65 +74,14 @@ interface ScrollHintProps {
  * pijltjes met de inhoud mee het beeld uit. Vandaar twee elementen in plaats
  * van één.
  *
- * De pijltjes staan bewust stil. Een blijvend pulserend element pal naast
- * aantikbare knoppen trekt de aandacht juist wég van de inhoud; wil je het
- * toch, dan is `motion-safe:animate-pulse` genoeg (en alleen achter
- * `motion-safe:`, zodat prefers-reduced-motion gerespecteerd blijft).
+ * Let op: gebruik dit component *niet* om een `<Table>` heen. Die rendert zijn
+ * eigen `overflow-x-auto`-wrapper, dus de binnenste div scrolt en deze niet —
+ * je krijgt dan nooit een pijltje te zien. Zet daar `scrollHint` op de `Table`
+ * zelf.
  */
 export function ScrollHint({ children, className }: ScrollHintProps) {
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
-  const [canScrollRight, setCanScrollRight] = React.useState(false);
-
-  React.useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-
-    // De marge van 1px vangt subpixel-afronding op. Zonder dat blijft de
-    // rechterpijl aan het eind van de rij hangen, want scrollLeft + clientWidth
-    // komt daar op een fractie na scrollWidth uit.
-    const measure = () => {
-      setCanScrollLeft(el.scrollLeft > 1);
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    };
-
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        measure();
-      });
-    };
-
-    measure();
-    el.addEventListener('scroll', onScroll, { passive: true });
-
-    let ro: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(measure);
-      ro.observe(el);
-      // Ook het kind observeren: wordt de inhoud breder terwijl de container
-      // even breed blijft (een item erbij, een label dat langer wordt), dan
-      // verandert alleen scrollWidth en vuurt de observer op de container niet.
-      if (el.firstElementChild) ro.observe(el.firstElementChild);
-    }
-
-    return () => {
-      if (frame) cancelAnimationFrame(frame);
-      el.removeEventListener('scroll', onScroll);
-      ro?.disconnect();
-    };
-  }, []);
-
-  // Alleen een scrollbare kant vervaagt. Past alles, dan blijft de mask weg en
-  // is er geen enkel verschil met een gewone rij.
-  const stops = [
-    canScrollLeft ? `transparent 0, #000 ${FADE_PX}px` : '#000 0',
-    canScrollRight ? `#000 calc(100% - ${FADE_PX}px), transparent 100%` : '#000 100%',
-  ].join(', ');
-  const maskImage =
-    canScrollLeft || canScrollRight ? `linear-gradient(to right, ${stops})` : undefined;
+  const { canScrollLeft, canScrollRight, maskImage } = useScrollHint(scrollerRef);
 
   return (
     <div className={className}>
@@ -115,27 +101,7 @@ export function ScrollHint({ children, className }: ScrollHintProps) {
           {children}
         </div>
 
-        {/*
-          De pijltjes staan buiten de scroller, dus de mask raakt ze niet: ze
-          blijven volledig zichtbaar op de plek waar de inhoud juist wegvalt.
-        */}
-        {canScrollLeft && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 flex w-6 items-center justify-start"
-          >
-            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/70" />
-          </div>
-        )}
-
-        {canScrollRight && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 flex w-6 items-center justify-end"
-          >
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70" />
-          </div>
-        )}
+        <ScrollHintArrows canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} />
       </div>
     </div>
   );

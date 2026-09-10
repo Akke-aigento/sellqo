@@ -69,15 +69,15 @@ wegen lichter dan een tenant met een telefoon in de hand.
 | TranslationHub | `marketing/translations` | ✓ | 5 | – | 2 knop + checkbox + link | hoofdlijst | ✅ |
 | AdsProductMap | `ads/products` | ✓ | 6 | – | knop + switch | hoofdlijst | ✅ |
 | Billing | `billing` | ✓ | 5 | – | 2 knop | hoofdlijst | ✅ |
-| StackingRules | `promotions/stacking` | – | 7 | 650 | menu + switch | sublijst | 🟡 |
-| MarketplaceDetail | `connect/:connectionId` | – | 6 | 640 | menu + 3 knop | detail | 🟡 |
-| AdsBolcomCampaignDetail | `ads/bolcom/campaigns/:id` | – | 9 | 800 | switch | detail | 🟡 |
+| StackingRules | `promotions/stacking` | – | 7 | 650 | menu + switch | sublijst | ✅ |
+| MarketplaceDetail | `connect/:connectionId` | – | 6 | 640 | menu + 3 knop | detail | ✅ |
+| AdsBolcomCampaignDetail | `ads/bolcom/campaigns/:id` | – | 9 | 800 | switch | detail | ✅ |
 | AdsBolcom | `ads/bolcom` | ✓ | 5 | 900 | rij klikbaar | hoofdlijst | 🟡 |
-| Payments | `payments` | ✓ | 6 | – | geen | hoofdlijst | 🟡 |
-| CustomerDetail | `customers/:customerId` | – | 5 | – | knop + link | detail | 🟡 |
-| PlatformBilling | `platform/billing` | ✓ | 6 | 640 | 4 knop | platform | 🟡 |
-| PlatformCoupons | `platform/coupons` | ✓ | 7 | 640 | menu | platform | 🟡 |
-| PendingPlatformPayments | `platform/payments` | – | 7 | 700 | 2 knop | platform | 🟡 |
+| Payments | `payments` | ✓ | 6 | – | geen | hoofdlijst | 🟢 |
+| CustomerDetail | `customers/:customerId` | – | 5 | – | knop + link | detail | ✅ |
+| PlatformBilling | `platform/billing` | ✓ | 6 | 640 | 4 knop | platform | 🟢 |
+| PlatformCoupons | `platform/coupons` | ✓ | 7 | 640 | menu | platform | 🟢 |
+| PendingPlatformPayments | `platform/payments` | – | 7 | 700 | 2 knop | platform | 🟢 |
 | ChannelFieldMappingAdmin | `platform/field-mappings` | – | 6 | 640 | 2 knop | platform | 🟡 |
 | StockReport | `reports/stock` | ✓ | 9 | – | geen | rapport | 🟢 |
 | OrderDetail | `orders/:id` | – | 4 | 640 | geen | subtabel | 🟢 |
@@ -173,7 +173,55 @@ Deze batch kost meer denkwerk per pagina; splits hem gerust in tweeën.
 > desktoptabellen zijn letterlijk onaangeroerd — de diff bevat nul verwijderde
 > regels.
 
-### Batch M3 — de 🟡's, pas als M1 en M2 landen
+### Batch M3a — de tenant-kant 🟡's — ✅ afgerond
+
+> **Uitkomst, 10 september 2026.** Vijf pagina's, maar **acht tabellen**; dit
+> rapport telde er vijf. Gemeten op 375 px met de echte componenten en de
+> volledige paddingketen (`main` > `div p-4` = 343 px inhoud).
+>
+> | Tabel | Breedte | Verborgen | Rijhoogte | Keuze |
+> |---|---|---|---|---|
+> | `StackingRules` | 650 px | 309 px | 73 px | 📇 kaart |
+> | `MarketplaceDetail` bestellingen | 640 px | 347 px | 73 px | 📇 kaart |
+> | `MarketplaceDetail` producten | 640 px | 347 px | 73 px | 📇 kaart |
+> | `MarketplaceDetail` sync-logs | 640 px | 347 px | 69 px | ➡️ `scrollHint` |
+> | `AdsBolcomCampaignDetail` keywords | 800 px | 507 px | 73 px | ➡️ `scrollHint` |
+> | `AdsBolcomCampaignDetail` negatief | 360 px | 67 px | 73 px | ➡️ `scrollHint` |
+> | `CustomerDetail` bestellingen | 457 px | 116 px | 73 px | 📇 kaart |
+> | `Payments` transacties | 347 px | 6 px | 55 px | 🟢 |
+> | `Payments` uitbetalingen | 341 px | 0 px | 55 px | 🟢 |
+>
+> **`StackingRules`: de voor de hand liggende fix werkte niet.** Die tabel zet
+> al drie van de zeven kolommen op `hidden sm:`/`md:table-cell`, maar een
+> `min-w-[650px]`-wrapper maakte dat zinloos. Alleen die wrapper weghalen leek
+> genoeg — gemeten bleef er dan nog 38 px buiten beeld én zwollen de rijen van
+> 73 naar 173 px, omdat de naamkolom werd geplet. Vandaar alsnog een kaart.
+>
+> **`Payments` was al goed** en is niet aangeraakt: kolomverberging via
+> `hidden sm:`/`md:table-cell`, geen `min-w`, read-only, rijen van 55 px.
+>
+> **`ScrollHint` bleek niet om een `<Table>` heen te kunnen.** Sinds `table.tsx`
+> zijn eigen `overflow-x-auto`-wrapper heeft, scrolt de binnenste div en die van
+> ScrollHint niet: gemeten 293/293 buiten tegen 293→640 binnen, nul pijltjes.
+> Daarom is de meetlogica naar `src/hooks/use-scroll-hint.ts` verhuisd en heeft
+> `Table` nu een opt-in prop `scrollHint`. Strikt additief: een tabel zonder die
+> prop rendert dezelfde DOM als hiervoor — nagemeten, geen mask, geen pijltjes,
+> geen extra wrapper — en de hook doet dan niets, wat telt voor de 66 bestanden
+> die `Table` gebruiken.
+>
+> Bestaand hiaat, niet door deze batch veroorzaakt: de menu-items bij de
+> producten in `MarketplaceDetail` (`Sync Nu`, `Pauseer Sync`, `Ontkoppel
+> Product`) hebben geen `onClick`. Ze zijn ongewijzigd overgenomen in de kaart;
+> ze horen opgeruimd of aangesloten te worden.
+
+### Batch M3b — de platformkant — 🟢 geen actie
+
+`PlatformBilling`, `PlatformCoupons`, `PendingPlatformPayments`,
+`ChannelFieldMappingAdmin`: platform-admin-only, vrijwel altijd desktop →
+scroll-fallback volstaat, geen kaart nodig. Wil je er later toch iets aan doen,
+dan is `<Table scrollHint>` een ingreep van één woord per tabel.
+
+### Batch M3 — oorspronkelijke planning
 
 Eerst de tenant-kant (`StackingRules`, `MarketplaceDetail`,
 `AdsBolcomCampaignDetail`), daarna pas platform (`PlatformBilling`,

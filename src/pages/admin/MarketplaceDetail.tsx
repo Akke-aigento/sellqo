@@ -79,12 +79,14 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function MarketplaceDetailPage() {
   const { connectionId } = useParams<{ connectionId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
+  const isMobile = useIsMobile();
   const { connection, isLoading } = useMarketplaceConnection(connectionId);
   const { updateConnection, deleteConnection } = useMarketplaceConnections();
 
@@ -644,6 +646,51 @@ export default function MarketplaceDetailPage() {
                     </Button>
                   </div>
                 </div>
+              ) : isMobile ? (
+                /*
+                  Kaart per bestelling. De tabel is 640px in een venster van 293,
+                  dus de link naar de bestelling zat 347px buiten beeld.
+                */
+                <div className="space-y-3">
+                  {realOrders.map(order => (
+                    <div key={order.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* min-w-0 en truncate: zonder die twee duwt een lange
+                            klantnaam de knop opnieuw het scherm uit. */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-mono text-sm font-medium">
+                            {order.marketplace_order_id || order.order_number}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {order.customer_name || '-'}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <Badge variant={order.status === 'shipped' ? 'default' : 'secondary'}>
+                          {order.status === 'shipped' ? 'Verzonden' :
+                           order.status === 'processing' ? 'In behandeling' :
+                           order.status === 'cancelled' ? 'Geannuleerd' : 'Open'}
+                        </Badge>
+                        <div className="text-right">
+                          <p className="font-medium">€{Number(order.total || 0).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(order.created_at), 'd MMM yyyy', { locale: nl })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="w-full overflow-x-auto">
                 <Table className="min-w-[640px]">
@@ -745,6 +792,78 @@ export default function MarketplaceDetailPage() {
                   <Button variant="outline" onClick={() => navigate('/admin/products')}>
                     Naar Producten
                   </Button>
+                </div>
+              ) : isMobile ? (
+                <div className="space-y-3">
+                  {/*
+                    Kaart per product. De tabel is 640px in een venster van 293,
+                    dus het menu zat 347px buiten beeld. Het menu is
+                    ongewijzigd overgenomen — inclusief het feit dat de items
+                    geen onClick hebben; dat is een bestaand hiaat op deze
+                    pagina, geen nieuw.
+                  */}
+                  {linkedProducts.map(product => (
+                    <div key={product.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-start gap-3">
+                        <img
+                          src={product.images?.[0] || '/placeholder.svg'}
+                          alt={product.name}
+                          className="h-10 w-10 shrink-0 rounded object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{product.name}</p>
+                          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                            {product.bol_ean}
+                          </p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="shrink-0">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                              Sync Nu
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              {product.sync_inventory ? 'Pauseer Sync' : 'Activeer Sync'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Bekijk op {info.name}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive">
+                              Ontkoppel Product
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        {product.sync_inventory ? (
+                          <Badge variant="default" className="flex w-fit items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Actief
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Gepauzeerd</Badge>
+                        )}
+                        <div className="text-right">
+                          <p className={(product.stock || 0) < 5 ? 'font-semibold text-destructive' : 'font-medium'}>
+                            {product.stock || 0} op voorraad
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.last_inventory_sync
+                              ? formatDistanceToNow(new Date(product.last_inventory_sync), { addSuffix: true, locale: nl })
+                              : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="w-full overflow-x-auto">
@@ -1105,8 +1224,8 @@ export default function MarketplaceDetailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="w-full overflow-x-auto">
-                <Table className="min-w-[640px]">
+                <div className="w-full">
+                <Table className="min-w-[640px]" scrollHint>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Timestamp</TableHead>

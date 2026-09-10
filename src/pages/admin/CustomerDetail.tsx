@@ -43,8 +43,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function CustomerDetailPage() {
+  const isMobile = useIsMobile();
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const { customerId } = useParams<{ customerId: string }>();
@@ -294,6 +296,37 @@ export default function CustomerDetailPage() {
                   {customer.customer_type === 'prospect' && (
                     <p className="text-sm mt-2">{t('admin.customerDetail.deze_prospect_heeft_nog_geen_bestelling')}</p>
                   )}
+                </div>
+              ) : isMobile ? (
+                /*
+                  Kaart per bestelling. De tabel is 457px in een venster van 341,
+                  dus de link naar de bestelling zat 116px buiten beeld.
+                */
+                <div className="space-y-3 px-4 sm:px-0">
+                  {orders?.map((order) => (
+                    <div key={order.id} className="rounded-lg border bg-card p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* min-w-0 en truncate: zonder die twee duwt een lang
+                            bestelnummer de link het scherm uit. */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{order.order_number}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {format(new Date(order.created_at), 'd MMM yyyy', { locale: dateLocale })}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="shrink-0" asChild>
+                          <Link to={`/admin/orders/${order.id}`}>
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <Badge variant="outline">{order.status}</Badge>
+                        <p className="font-medium">{formatCurrency(order.total, currency)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <Table>
