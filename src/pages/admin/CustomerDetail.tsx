@@ -252,7 +252,7 @@ export default function CustomerDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="orders" className="space-y-4">
-        <TabsList>
+        <TabsList scrollHint>
           <TabsTrigger value="orders" className="gap-2">
             <ShoppingBag className="h-4 w-4" />
             {t('admin.customers.bestellingen')}

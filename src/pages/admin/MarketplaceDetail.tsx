@@ -468,7 +468,7 @@ export default function MarketplaceDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList scrollHint>
           <TabsTrigger value="overview">Overzicht</TabsTrigger>
           <TabsTrigger value="orders">Orders ({realOrders.length})</TabsTrigger>
           <TabsTrigger value="inventory">Voorraad</TabsTrigger>

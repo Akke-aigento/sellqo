@@ -91,7 +91,7 @@ export default function TenantDetail() {
         onValueChange={goToTab}
         className="space-y-6"
       >
-        <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
+        <TabsList scrollHint className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
           <TabsTrigger value="billing">Facturatie</TabsTrigger>
           <TabsTrigger value="access">Toegang &amp; modules</TabsTrigger>
           <TabsTrigger value="history">Historie</TabsTrigger>
