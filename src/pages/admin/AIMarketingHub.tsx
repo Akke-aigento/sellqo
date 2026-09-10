@@ -101,7 +101,7 @@ export default function AIMarketingHub() {
 
         {/* Tabs: Creëren | Menukaart | Agenda | Historiek | Assets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full max-w-2xl">
+          <TabsList className="w-full max-w-2xl sm:justify-center">
             <TabsTrigger value="create" className="flex-1">
               Creëren
             </TabsTrigger>

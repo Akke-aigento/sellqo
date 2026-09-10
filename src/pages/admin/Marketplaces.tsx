@@ -210,7 +210,7 @@ export default function MarketplacesPage() {
 
       {/* Simplified Tabs: Marktplaatsen + Kanalen */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="flex w-full max-w-2xl overflow-x-auto sm:grid sm:grid-cols-4">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             Marktplaatsen

@@ -12,7 +12,18 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      // max-w-full + overflow-x-auto: een inline-flex groeit mee met zijn inhoud,
+      // dus een rij met veel tabs werd breder dan het scherm en werd afgeknipt
+      // door de overflow-x-hidden op <main>. Gemeten: de zes Bol.com-tabs staken
+      // 204px buiten hun container, die van CustomerDetail 89px.
+      //
+      // justify-start en niet justify-center: in een scrollcontainer met
+      // gecentreerde inhoud belandt het begin buiten het scrollgebied en is het
+      // onbereikbaar — gemeten stond de eerste tab dan op -102px. Nagemeten dat
+      // justify-center hier verder overal een no-op was: van de 28 TabsList in
+      // de app had er precies één vrije ruimte om in te centreren
+      // (AIMarketingHub), en die zet het zelf terug met sm:justify-center.
+      "inline-flex h-10 max-w-full items-center justify-start overflow-x-auto rounded-md bg-muted p-1 text-muted-foreground",
       className,
     )}
     {...props}

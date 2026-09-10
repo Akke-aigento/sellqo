@@ -257,7 +257,7 @@ export function SEOHealthChecklist({
                 </div>
 
                 <Tabs defaultValue="sitemap" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
                     <TabsTrigger value="sitemap">sitemap.xml</TabsTrigger>
                     <TabsTrigger value="images">sitemap-images.xml</TabsTrigger>
                     <TabsTrigger value="index">sitemap-index.xml</TabsTrigger>
