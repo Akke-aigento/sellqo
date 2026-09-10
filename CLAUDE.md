@@ -42,7 +42,7 @@ groot als de repo-versie, zonder de codemod-motor. Daarom:
 | `sellqo-docs-slottaak` | ✓ | ✓ | repo |
 | `sellqo-custom-frontend-runbook` | ✓ | ✓ | repo |
 | `sellqo-i18n-verplicht` | ✓ | ✓ | repo |
-| `sellqo-nieuwe-storefront` | — | ✓ | repo |
+| `sellqo-nieuwe-storefront` | ✓ | ✓ | repo |
 
 `nomadix-mobiel` bestaat alleen als workspace-skill: die geldt workspace-breed
 en hoort niet in deze repo.
