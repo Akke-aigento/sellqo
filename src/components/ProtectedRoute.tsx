@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { LogoLoader } from '@/components/LogoLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,11 +21,7 @@ export function ProtectedRoute({
   const { user, loading, rolesLoading, isPlatformAdmin, roles } = useAuth();
 
   if (loading || (user && rolesLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LogoLoader />;
   }
 
   if (!user) {

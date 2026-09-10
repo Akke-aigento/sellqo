@@ -109,7 +109,7 @@ export default function PlatformCoupons() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Platform Coupons</h1>
           <p className="text-muted-foreground">

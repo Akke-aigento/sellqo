@@ -682,7 +682,7 @@ export default function POSTerminalPage() {
   
   if (!terminal) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <p>Terminal niet gevonden</p>
       </div>
     );
@@ -908,7 +908,7 @@ export default function POSTerminalPage() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background">
       {/* Header */}
       <header className="border-b bg-card px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4 min-w-0">

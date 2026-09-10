@@ -67,7 +67,11 @@ export default function GiftCardDesigns() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      {/* Op mobiel zakt de actieknop onder de titel; de terugknop blijft ernaast
+          staan. min-w-0 zodat het titelblok wel onder zijn langste woord kan
+          krimpen — anders duwt het de knop het scherm uit. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -75,7 +79,7 @@ export default function GiftCardDesigns() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Palette className="h-8 w-8" />
             Cadeaukaart ontwerpen
@@ -84,7 +88,9 @@ export default function GiftCardDesigns() {
             Beheer de visuele ontwerpen voor je cadeaukaarten
           </p>
         </div>
+        </div>
         <Button
+          className="w-full sm:w-auto"
           onClick={() => {
             setEditingDesign(null);
             setShowDialog(true);

@@ -73,19 +73,25 @@ export default function LoyaltyProgramsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      {/* Op mobiel zakt de actieknop onder de titel. De terugknop blijft naast
+          de titel staan; die hoort bij de kop, niet erboven. min-w-0 is nodig
+          omdat een titelblok anders niet onder zijn langste woord kan krimpen —
+          dat duwde de knop hier het scherm uit. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <NavLink to="/admin/promotions">
             <ArrowLeft className="h-4 w-4" />
           </NavLink>
         </Button>
-        <div className="flex-1">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">{t('admin.loyaltyPrograms.loyaliteitsprogramma_s')}</h1>
           <p className="text-muted-foreground">
             {t('admin.loyaltyPrograms.spaarpunten_en_vip_tiers_voor_je')}
           </p>
         </div>
-        <Button onClick={() => { setEditingProgram(null); setDialogOpen(true); }}>
+        </div>
+        <Button className="w-full sm:w-auto" onClick={() => { setEditingProgram(null); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           {t('admin.loyaltyPrograms.nieuw_programma')}
         </Button>

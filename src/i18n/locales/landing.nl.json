@@ -1537,6 +1537,10 @@
       },
       "updatesCount": "{{count}} updates",
       "version": "Versie {{version}}"
+    },
+    "deepLink": {
+      "title": "Je wordt doorgestuurd",
+      "description": "We openen de juiste pagina in de app. Blijft dit scherm staan, ga dan terug en probeer de link opnieuw."
     }
   },
   "cookieConsent": {

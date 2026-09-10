@@ -124,7 +124,7 @@ export default function MarketplacesPage() {
             SellQo Connect Lite
             <Badge variant="secondary" className="text-[10px]">Lite</Badge>
           </AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
+          <AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span>Je kunt 1 kanaal actief hebben. Upgrade naar Pro voor alle kanalen.</span>
             <Button size="sm" variant="outline" onClick={() => navigate('/admin/billing')}>
               <ArrowUp className="h-3 w-3 mr-1" />
@@ -210,7 +210,7 @@ export default function MarketplacesPage() {
 
       {/* Simplified Tabs: Marktplaatsen + Kanalen */}
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList scrollHint className="flex w-full max-w-2xl overflow-x-auto sm:grid sm:grid-cols-4">
           <TabsTrigger value="marketplaces" className="flex items-center gap-2">
             <Store className="w-4 h-4" />
             Marktplaatsen

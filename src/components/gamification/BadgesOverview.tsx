@@ -41,7 +41,7 @@ export function BadgesOverview() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="space-y-4">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-5">
             <TabsTrigger value="all">Alle ({badgeCounts.total})</TabsTrigger>
             <TabsTrigger value="orders">Orders ({badgeCounts.orders})</TabsTrigger>
             <TabsTrigger value="revenue">Omzet ({badgeCounts.revenue})</TabsTrigger>

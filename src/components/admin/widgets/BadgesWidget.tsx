@@ -6,6 +6,7 @@ import { useMilestones } from '@/hooks/useMilestones';
 import { BadgeCard } from '@/components/gamification/BadgeCard';
 import { MilestoneProgress } from '@/components/gamification/MilestoneProgress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollHint } from '@/components/ui/scroll-hint';
 import { ChevronRight, Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -55,11 +56,13 @@ export function BadgesWidget() {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Badge display - horizontal scroll on full width */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {displayBadges.map((badge) => (
-            <BadgeCard key={badge.id} badge={badge} size="sm" />
-          ))}
-        </div>
+        <ScrollHint className="pb-2">
+          <div className="flex gap-2">
+            {displayBadges.map((badge) => (
+              <BadgeCard key={badge.id} badge={badge} size="sm" />
+            ))}
+          </div>
+        </ScrollHint>
 
         {/* Next milestone progress */}
         {tenantStats && tenantStats.lifetime_order_count !== undefined && (

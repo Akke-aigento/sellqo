@@ -29,12 +29,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, MoreHorizontal, Edit, Trash2, Settings2, ArrowLeft, Info } from 'lucide-react';
 import { useStackingRules, useUpdateStackingRule, useDeleteStackingRule } from '@/hooks/useStackingRules';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { StackingRuleFormDialog } from '@/components/admin/promotions/StackingRuleFormDialog';
 import type { DiscountStackingRule } from '@/types/promotions';
 import { NavLink } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function StackingRulesPage() {
+  const isMobile = useIsMobile();
   const { data: rules = [], isLoading } = useStackingRules();
   const updateRule = useUpdateStackingRule();
   const deleteRule = useDeleteStackingRule();
@@ -96,19 +98,25 @@ export default function StackingRulesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      {/* Op mobiel zakt de actieknop onder de titel. De terugknop blijft naast
+          de titel staan; die hoort bij de kop, niet erboven. min-w-0 is nodig
+          omdat een titelblok anders niet onder zijn langste woord kan krimpen —
+          dat duwde de knop hier het scherm uit. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <NavLink to="/admin/promotions">
             <ArrowLeft className="h-4 w-4" />
           </NavLink>
         </Button>
-        <div className="flex-1">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Stapelregels</h1>
           <p className="text-muted-foreground">
             Bepaal welke kortingen mogen combineren
           </p>
         </div>
-        <Button onClick={() => { setEditingRule(null); setDialogOpen(true); }}>
+        </div>
+        <Button className="w-full sm:w-auto" onClick={() => { setEditingRule(null); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Nieuwe Regel
         </Button>
@@ -148,6 +156,79 @@ export default function StackingRulesPage() {
                 <Plus className="mr-2 h-4 w-4" />
                 Eerste regel aanmaken
               </Button>
+            </div>
+          ) : isMobile ? (
+            /*
+              Kaart per regel. De tabel verbergt op mobiel al drie kolommen via
+              hidden sm:/md:table-cell, maar de min-w-[650px] eromheen maakte dat
+              zinloos: gemeten 309px buiten beeld. Die min-w weghalen bleek geen
+              oplossing — de resterende vier kolommen zijn samen nog 379px en de
+              rijen zwollen van 73 naar 173px omdat de naamkolom werd geplet.
+            */
+            <div className="space-y-3 px-4 sm:px-0">
+              {rules.map((rule) => (
+                <div key={rule.id} className="rounded-lg border bg-card p-3">
+                  <div className="flex items-start gap-3">
+                    {/* min-w-0 en truncate: zonder die twee duwt een lange
+                        regelnaam de schakelaar en het menu het scherm uit. */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{rule.name}</p>
+                      {rule.description && (
+                        <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                          {rule.description}
+                        </p>
+                      )}
+                    </div>
+                    <Switch
+                      checked={rule.is_active}
+                      onCheckedChange={() => handleToggleActive(rule)}
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(rule)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Bewerken
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(rule)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Verwijderen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Badge variant={getRuleTypeVariant(rule.rule_type)}>
+                      {getRuleTypeLabel(rule.rule_type)}
+                    </Badge>
+                    {rule.discount_types?.slice(0, 3).map((type) => (
+                      <Badge key={type} variant="outline" className="text-xs">
+                        {type}
+                      </Badge>
+                    ))}
+                    {rule.discount_types && rule.discount_types.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{rule.discount_types.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Max. stapelen: {rule.max_stack_count ?? '∞'} · Max. korting:{' '}
+                    {rule.max_total_discount_percent
+                      ? `${rule.max_total_discount_percent}%`
+                      : '—'}
+                  </p>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="min-w-[650px]">

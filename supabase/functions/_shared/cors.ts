@@ -11,7 +11,8 @@ const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
 ];
 
-function isAllowedOrigin(origin: string | null): boolean {
+/** Onze eigen app-origins. Ook gebruikt om redirect-targets te valideren. */
+export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS_EXACT.has(origin)) return true;
   return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));

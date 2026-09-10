@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ScrollHint } from '@/components/ui/scroll-hint';
 import {
   Select,
   SelectContent,
@@ -374,16 +375,18 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                     <ImageIcon className="h-4 w-4" />
                     {t('admin.marketing.socialPostGenerator.aanbevolen_afbeeldingen')}
                   </Label>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {suggestedImages.map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt={t('admin.marketing.socialPostGenerator.product_nummer', { number: i + 1 })}
-                        className="h-20 w-20 object-cover rounded-md border"
-                      />
-                    ))}
-                  </div>
+                  <ScrollHint className="pb-2">
+                    <div className="flex gap-2">
+                      {suggestedImages.map((img, i) => (
+                        <img
+                          key={i}
+                          src={img}
+                          alt={t('admin.marketing.socialPostGenerator.product_nummer', { number: i + 1 })}
+                          className="h-20 w-20 object-cover rounded-md border"
+                        />
+                      ))}
+                    </div>
+                  </ScrollHint>
                 </div>
               )}
 

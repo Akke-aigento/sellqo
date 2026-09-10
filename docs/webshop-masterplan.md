@@ -10,10 +10,10 @@
 
 Dit plan verandert NIETS aan de huidige werking van live tenants.
 
-- **Custom-frontend tenants (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) merken hier NIETS van.** Hun frontends praten via `storefront-resolve` / `storefront-api` / checkout-engine met de core; die contracten worden niet gewijzigd.
+- **Custom-frontend tenants (Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata) merken hier NIETS van.** Hun frontends praten via `storefront-resolve` / `storefront-api` / `storefront-customer-api` met de core; die contracten worden niet gewijzigd.
 - **Strikt additief** op alle gedeelde tabellen: `tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`. Geen kolommen hernoemen, geen kolommen verwijderen, geen defaults van bestaande kolommen wijzigen, geen datatype-wijzigingen.
 - **`use_custom_frontend`-pad blijft byte-voor-byte identiek.** Frontend-modus, `custom_frontend_url`, `custom_frontend_config`, storefront API-keys en head-scripts blijven functioneel én qua opslag ongewijzigd.
-- Edge-functies `storefront-resolve`, `storefront-api`, `checkout-engine` worden in deze reeks **niet aangeraakt** tenzij een batch-recon expliciet aantoont dat een additieve uitbreiding nodig én veilig is — en dan alleen na apart akkoord.
+- Edge-functies `storefront-resolve`, `storefront-api`, `storefront-customer-api` worden in deze reeks **niet aangeraakt** tenzij een batch-recon expliciet aantoont dat een additieve uitbreiding nodig én veilig is — en dan alleen na apart akkoord.
 - **Testbedden:** SellQo Speeltuin en Demo Bakkerij (de enige twee tenants op het SellQo-theme; beide test). Elke batch wordt daar gesmoke-test vóór er iets als "klaar" geldt.
 - Workspace-skill `sellqo-gedeelde-paden` is op elke batch van toepassing. Per batch: pre-flight check, post-flight verificatie (diff + file-reads + SQL-natrek), paper trail in `docs/role-audit.md`.
 - UI verplaatsen is toegestaan; data-paden verplaatsen niet.

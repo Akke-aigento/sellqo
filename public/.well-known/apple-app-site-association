@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["BZ4Y79L7PY.app.sellqo.admin"],
+        "components": [
+          { "/": "/app/*", "comment": "Native return-flows (Stripe, OAuth)" }
+        ]
+      }
+    ]
+  }
+}

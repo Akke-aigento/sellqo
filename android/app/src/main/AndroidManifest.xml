@@ -22,6 +22,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                App Links: laat Android sellqo.app/app/... door de app openen in
+                plaats van de browser. autoVerify laat het OS bij installatie
+                /.well-known/assetlinks.json ophalen en de claim verifieren.
+
+                De slotslash in pathPrefix is bewust en moet blijven staan.
+                pathPrefix is een letterlijke string-prefix, geen padsegment:
+                zonder slash matcht "/app" ook /appelmoes en /apparaten, en dan
+                opent de app een link die deepLinkPath() vervolgens weigert.
+                Met de slash dekt dit exact hetzelfde als "/app/*" in de
+                apple-app-site-association.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="sellqo.app" android:pathPrefix="/app/" />
+            </intent-filter>
+
         </activity>
 
         <provider

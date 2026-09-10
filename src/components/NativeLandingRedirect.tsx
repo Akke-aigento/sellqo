@@ -1,8 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 import { Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import LandingPage from '@/pages/Landing';
+import { LogoLoader } from '@/components/LogoLoader';
 
 /**
  * Route "/" wrapper: op web rendert dit gewoon de marketing-landing.
@@ -16,11 +16,7 @@ export default function NativeLandingRedirect() {
   if (!isNative) return <LandingPage />;
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LogoLoader />;
   }
 
   return <Navigate to={user ? '/admin' : '/auth'} replace />;

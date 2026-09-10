@@ -104,7 +104,7 @@ serve(async (req) => {
     }
 
     // Create Stripe checkout session
-    const origin = req.headers.get("origin") || "https://sellqo.lovable.app";
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app";
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

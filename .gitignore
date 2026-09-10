@@ -35,3 +35,7 @@ keystore.properties
 
 # Supabase CLI-cache (lokaal, per machine)
 supabase/.temp/
+
+# Claude Code, machine-eigen instellingen
+.claude/settings.local.json
+.claude/worktrees/

@@ -1,13 +1,56 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { ScrollHintArrows } from "@/components/ui/scroll-hint";
+import { useScrollHint } from "@/hooks/use-scroll-hint";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-hidden">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
-  ),
+// De wrapper staat op overflow-x-auto en niet op overflow-hidden: een tabel die
+// breder is dan het scherm moet horizontaal te vegen zijn. Met overflow-hidden
+// clipt deze wrapper de tabel voordat een buitenliggende overflow-x-auto er iets
+// mee kan, en zijn de rechterkolommen op mobiel onbereikbaar — een script kan
+// dan nog wel scrollLeft zetten, een gebruiker niet.
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /**
+   * Toon een vervaging met een pijltje aan de kant waar de tabel nog doorloopt.
+   *
+   * Opt-in, want het is niet overal gewenst en elke tabel zonder deze prop
+   * rendert precies zoals hiervoor. Waarom een prop en niet een <ScrollHint>
+   * eromheen: de wrapper hieronder scrolt zelf, dus een ScrollHint erbuiten
+   * blijft even breed als zijn inhoud en toont nooit iets. Gemeten: buitenste
+   * scroller 293/293 terwijl deze 293 -> 640 liep, nul pijltjes.
+   */
+  scrollHint?: boolean;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, scrollHint, ...props }, ref) => {
+    const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+    const { canScrollLeft, canScrollRight, maskImage } = useScrollHint(wrapperRef, !!scrollHint);
+
+    const tabel = (
+      <div
+        ref={wrapperRef}
+        // De scrollbalk gaat alleen weg als er een chevron voor in de plaats
+        // komt. Bij een tabel zonder hint is die balk de enige aanwijzing dat er
+        // kolommen achter de rand staan.
+        className={cn("relative w-full overflow-x-auto", scrollHint && "no-scrollbar")}
+        style={scrollHint ? { maskImage, WebkitMaskImage: maskImage } : undefined}
+      >
+        <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+      </div>
+    );
+
+    if (!scrollHint) return tabel;
+
+    // De pijltjes horen buiten de scroller: binnenin zou de mask ze mee laten
+    // vervagen, en zouden ze bovendien meescrollen.
+    return (
+      <div className="relative">
+        {tabel}
+        <ScrollHintArrows canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} />
+      </div>
+    );
+  },
 );
 Table.displayName = "Table";
 

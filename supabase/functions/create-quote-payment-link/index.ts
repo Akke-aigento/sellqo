@@ -116,7 +116,7 @@ serve(async (req) => {
     logStep("Creating Stripe checkout session", { lineItems: lineItems.length, platformFee: platformFeeAmount });
 
     // Get origin from request headers or use default
-    const origin = req.headers.get("origin") || "https://sellqo.lovable.app";
+    const origin = req.headers.get("origin") || Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app";
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({

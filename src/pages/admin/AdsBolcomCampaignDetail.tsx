@@ -275,8 +275,8 @@ export default function AdsBolcomCampaignDetail() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="overflow-x-auto">
-                      <Table className="min-w-[800px]">
+                      <div>
+                      <Table className="min-w-[800px]" scrollHint>
                         <TableHeader>
                           <TableRow>
                             <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>
@@ -384,8 +384,8 @@ export default function AdsBolcomCampaignDetail() {
           {negativeKeywords.length === 0 ? (
             <p className="text-muted-foreground text-center py-6">{t('admin.adsBolcomCampaignDetail.geen_negatieve_keywords')}</p>
           ) : (
-            <div className="overflow-x-auto">
-            <Table>
+            <div>
+            <Table scrollHint>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('admin.adsBolcom.keyword')}</TableHead>

@@ -1537,6 +1537,10 @@
       },
       "updatesCount": "{{count}} mises à jour",
       "version": "Version {{version}}"
+    },
+    "deepLink": {
+      "title": "Redirection en cours",
+      "description": "Nous ouvrons la bonne page dans l'application. Si cet écran persiste, revenez en arrière et réessayez le lien."
     }
   },
   "cookieConsent": {

@@ -21,6 +21,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AICreditsBadge } from '@/components/admin/marketing/AICreditsBadge';
 import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
 import { Button } from '@/components/ui/button';
@@ -134,6 +135,7 @@ export default function TranslationHub() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.target_languages?.join(',')]);
 
+  const isMobile = useIsMobile();
   const currentSelected = selectedIds[selectedEntityType];
 
   const toggleSelected = (id: string) => {
@@ -750,6 +752,125 @@ export default function TranslationHub() {
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0 sm:px-6">
+              {isMobile ? (
+                /*
+                  Kaart per item. De tabel is 628 px breed in een venster van
+                  341 en perst de rijen tot 159 px hoog. De selecteer-alles die
+                  in de tabelkop staat, kan hier niet mee: die verhuist naar een
+                  balk boven de lijst, met dezelfde setSelectedIds-logica.
+                */
+                <div className="space-y-3 px-4 sm:px-0">
+                  {pendingLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                    </div>
+                  ) : allEntities.length === 0 ? (
+                    <p className="py-8 text-center text-muted-foreground">
+                      Geen {ENTITY_TYPE_LABELS[selectedEntityType].toLowerCase()} gevonden
+                    </p>
+                  ) : (
+                    <>
+                      <label className="flex items-center gap-2 pb-1 text-sm text-muted-foreground">
+                        <Checkbox
+                          checked={
+                            allEntities.length > 0 &&
+                            allEntities.every(e => currentSelected.has(e.id))
+                          }
+                          onCheckedChange={(checked) => {
+                            setSelectedIds(prev => ({
+                              ...prev,
+                              [selectedEntityType]: checked
+                                ? new Set(allEntities.map(e => e.id))
+                                : new Set(),
+                            }));
+                          }}
+                          aria-label={t('admin.translationHub.selecteer_alles')}
+                        />
+                        {t('admin.translationHub.selecteer_alles')}
+                        {currentSelected.size > 0 && (
+                          <Badge variant="secondary">{currentSelected.size}</Badge>
+                        )}
+                      </label>
+
+                      {allEntities.map(item => (
+                        <div key={item.id} className="rounded-lg border bg-card p-3">
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              className="mt-1 shrink-0"
+                              checked={currentSelected.has(item.id)}
+                              onCheckedChange={() => toggleSelected(item.id)}
+                              aria-label={`Selecteer ${item.name}`}
+                            />
+                            {/* min-w-0 en truncate: zonder die twee duwt een
+                                lange itemnaam de knoppen het scherm uit. */}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium">{item.name}</p>
+                              <div className="mt-1.5 flex items-center gap-2">
+                                <Progress value={item.coverage} className="h-2 w-16" />
+                                <span className="text-sm text-muted-foreground">{item.coverage}%</span>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm" className="shrink-0" asChild>
+                              <Link
+                                to={selectedEntityType === 'product'
+                                  ? `/admin/products/${item.id}/edit`
+                                  : `/admin/categories`
+                                }
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            {item.coverage === 100 ? (
+                              <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
+                                <Check className="mr-1 h-3 w-3" />
+                                {t('admin.seo.sEOTranslationStatus.compleet')}
+                              </Badge>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-1">
+                                {(settings?.target_languages as TranslationLanguage[] | undefined)?.map(lang => {
+                                  const meta = TRANSLATION_LANGUAGES.find(l => l.code === lang);
+                                  const missingCount = (item.missingByLang as Record<string, number> | undefined)?.[lang] ?? 0;
+                                  const ok = missingCount === 0;
+                                  return (
+                                    <Badge
+                                      key={lang}
+                                      variant={ok ? 'default' : 'secondary'}
+                                      className={ok ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 gap-1' : 'gap-1'}
+                                      title={ok ? `${meta?.label}: volledig` : `${meta?.label}: ${missingCount} ontbrekend`}
+                                    >
+                                      <span>{meta?.flag}</span>
+                                      {ok ? <Check className="h-3 w-3" /> : <span>{missingCount}</span>}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {item.coverage < 100 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleTranslateEntity(selectedEntityType, item.id)}
+                                disabled={translateEntity.isPending || (!isUnlimited && !hasCredits(perEntityCost))}
+                                title={`Kost ~${perEntityCost} credits`}
+                              >
+                                {translateEntity.isPending ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Play className="mr-2 h-4 w-4" />
+                                )}
+                                Vertalen
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -872,6 +993,7 @@ export default function TranslationHub() {
                   )}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

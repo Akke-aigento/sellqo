@@ -27,7 +27,7 @@ export function AIHelpWidget() {
     <>
       {isOpen && <AIHelpChatWindow onClose={handleClose} />}
       {!isOpen && !isMinimized && (
-        <div className="fixed bottom-20 md:bottom-4 right-4 z-50 flex items-center gap-2">
+        <div className="fixed bottom-[calc(5rem+var(--safe-bottom))] md:bottom-4 right-4 z-50 flex items-center gap-2">
           <Button
             onClick={() => {
               setIsMinimized(true);
@@ -55,7 +55,7 @@ export function AIHelpWidget() {
           onClick={handleOpen}
           size="icon"
           variant="outline"
-          className="fixed bottom-20 md:bottom-4 right-4 z-50 h-9 w-9 rounded-full shadow-md bg-background/80 backdrop-blur-sm"
+          className="fixed bottom-[calc(5rem+var(--safe-bottom))] md:bottom-4 right-4 z-50 h-9 w-9 rounded-full shadow-md bg-background/80 backdrop-blur-sm"
           title={t('admin.help.aIHelpChatWindow.sellqo_assistent')}
         >
           <MessageCircleQuestion className="h-4 w-4" />

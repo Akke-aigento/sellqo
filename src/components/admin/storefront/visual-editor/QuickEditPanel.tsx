@@ -146,7 +146,7 @@ export function QuickEditPanel({ section, isOpen, onClose, onUpdate }: QuickEdit
       </div>
 
       {/* Content */}
-      <ScrollArea className="h-[calc(100vh-65px)]">
+      <ScrollArea className="h-[calc(100dvh-65px)]">
         <div className="p-4 space-y-6">
           {/* Common settings */}
           <div className="space-y-4">

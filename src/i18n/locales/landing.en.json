@@ -1537,6 +1537,10 @@
       },
       "updatesCount": "{{count}} updates",
       "version": "Version {{version}}"
+    },
+    "deepLink": {
+      "title": "Taking you there",
+      "description": "We are opening the right page in the app. If this screen stays put, go back and try the link again."
     }
   },
   "cookieConsent": {
