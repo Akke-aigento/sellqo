@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   checks:
-    name: typecheck, i18n-pariteit en build
+    name: typecheck, i18n-pariteit, capacitor-sync en build
     runs-on: ubuntu-latest
 
     steps:
@@ -49,7 +49,14 @@ jobs:
       - name: i18n-pariteit
         run: node scripts/i18n-parity.mjs
 
-      # 3. Productiebuild. Draait via npm omdat het prebuild-script daaraan
+      # 3. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
+      #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
+      #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat
+      #    een maand lang niet zonder dat iets omviel — vandaar deze step.
+      - name: Capacitor-sync
+        run: node scripts/verify-capacitor-sync.mjs
+
+      # 4. Productiebuild. Draait via npm omdat het prebuild-script daaraan
       #    hangt; npm staat standaard op de runner naast de bun-installatie.
       - name: Build
         run: npm run build
