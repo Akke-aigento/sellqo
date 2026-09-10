@@ -404,6 +404,8 @@ Alles hieronder is uitgevoerd met `query_database` tegen het live sellqo-project
 | SellQo Speeltuin | — | 0 | 0 | € 0 |
 
 **Totale lifetime-omzet over alle tenants: circa € 12.872 — waarvan 98% bij één tenant.**
+De nullen zijn grotendeels verklaarbaar en bedoeld: drie tenants zijn nog niet klaar om te
+verkopen, om redenen die buiten de code liggen (§11d).
 
 Dat verandert hoe je naar de rest van dit rapport kijkt. Een bundle van 9,1 MB, 229 edge
 functions en 270 tabellen zijn de infrastructuur van een platform; het gebruik is dat van
@@ -655,8 +657,13 @@ overschrijving technisch nog mogelijk — maar het primaire pad is dicht. Zona D
 blokkade is de hardste: zonder actieve verzendmethode heeft `checkout_shipping` niets om
 te kiezen, ongeacht de betaalmethode.
 
-Dat verklaart de nullen in §9a beter dan "nog niet gestart": het zijn drie verschillende,
-elk op zichzelf oplosbare blokkades. Geen van drieën is een codeprobleem.
+> **Beide zijn bekend en bedoeld — nagevraagd bij Akke op 10 sep 2026.** De Stripe-koppeling
+> is de verantwoordelijkheid van de tenant zelf; Benny Rich en Astra Sleep zijn daarvan op
+> de hoogte. Zona Dorata heeft nog geen verzendmethoden omdat die winkel nog niet online is.
+>
+> **Dit is dus geen bevinding en geen actiepunt.** Het staat hier zodat een volgende audit
+> het niet opnieuw als probleem opvoert — de tabel hierboven blijft nuttig als momentopname
+> van wie technisch klaar is om te verkopen, niet als lijst met werk.
 
 Terzijde: Benny Rich's eigen `CLAUDE.md` stelt dat de tenant "zero active shipping methods"
 heeft. Dat is inmiddels 1 — die documentatie is achterhaald.
