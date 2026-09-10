@@ -1,6 +1,6 @@
 ---
 name: sellqo-custom-frontend-runbook
-description: Verplichte patronen bij het bouwen of wijzigen van een SellQo custom frontend (tenant-storefront op de storefront-api) — cart self-healing, B2B-checkout met btw-verlegging, dynamische verzendlandenlijst, mobiele layout-veiligheid, en normalizeCart/CheckoutState-uitbreidingen.
+description: Verplichte patronen bij het bouwen of wijzigen van een SellQo custom frontend (tenant-storefront op de storefront-api) — cart self-healing, B2B-checkout met btw-verlegging, dynamische verzendlandenlijst, mobiele layout-veiligheid, en normalizeCart/CheckoutState-uitbreidingen over de drie bestaande architecturen (CheckoutContext, storefrontApi.ts, TanStack server function).
 ---
 
 # SellQo Custom Frontend Build Runbook
@@ -69,6 +69,29 @@ Bij Astra-architectuur (storefrontApi.ts met normalizeCart): voeg bij uitbreidin
 
 Bij Loveke/VanXcel-architectuur (CheckoutContext): voeg nieuwe state-velden (`reverseCharge`, `vatText`, `vatRegime`) ook toe aan `initialState`, de context-interface en de `startCheckout`-setState.
 
+Bij TanStack Start-architectuur (Benny Rich: `src/lib/sellqo.functions.ts`, een `createServerFn`-proxy in plaats van een Supabase edge function): de klantsessie loopt via een httpOnly-cookie die de proxy zelf zet, en het `storefront-customer-api`-endpoint wordt afgeleid uit `SELLQO_API_URL` met een string-swap. Een nieuw veld moet dus door de proxy én door de normalizer heen.
+
+### De normalizer is niet gedeeld — controleer hem tegen de API, niet tegen een andere frontend
+
+Elke custom frontend heeft een **eigen kopie** van de normalizer, en die kopieën zijn gaan afwijken. Bij zes frontends zijn dat zes kopieën die niemand samen bijwerkt.
+
+`storefront-api` stuurt per cart-regel:
+
+```js
+variant: { title, attribute_values, image_url }
+```
+
+(zie `supabase/functions/storefront-api/index.ts`, regels ~1769 en ~2080; het schema van `product_variants` heeft `title` en `attribute_values` en géén `variant_label`, `name` of `option_values`)
+
+| Frontend | Leest | Werkt? |
+|---|---|---|
+| VanXcel | `raw.variant_title \|\| raw.variant?.title` | ✅ |
+| Benny Rich | `variant_label ?? variant.name ?? variant.option_values` | ❌ — alle drie bestaan niet, dus elk label wordt `null` |
+
+Benny Rich heeft dat in presentatie omzeild (`src/lib/cart-labels.ts`) omdat hun eigen regels de normalizer bevroren hadden. Het gevolg is een bag en checkout-samenvatting die niet tonen wélke variant besteld is.
+
+**Controleer bij elke nieuwe of gewijzigde frontend welke velden de normalizer leest tegen wat `storefront-api` werkelijk stuurt.** Kopiëren van een andere frontend plant de fout over.
+
 ---
 
 ## PATROON 4 — Dynamische verzendlandenlijst (SHIP-GEO-2)
@@ -132,6 +155,7 @@ Zodra de landenlijst dynamisch is, wordt de tenant-configuratie leidend. Control
 - [ ] Verleggingsmelding in order summary (patroon 2f)
 - [ ] Proxy-underscore-truc of directe call voor VIES (patroon 2a)
 - [ ] `normalizeCart` laat alle nieuwe velden door (patroon 3)
+- [ ] Variantlabel: normalizer gecontroleerd tegen wat `storefront-api` stuurt (patroon 3)
 - [ ] Landenlijst uit `get_shipping_countries`, geen hardcoded landen (patroon 4)
 - [ ] `min-w-0` op grid/flex-items met scroll-strips + `overflow-x-hidden` op `<main>` (patroon 5); overflow gemeten op 390px
 
@@ -144,6 +168,7 @@ Zodra de landenlijst dynamisch is, wordt de tenant-configuratie leidend. Control
 | Loveke | `src/integrations/sellqo/hooks.ts` + `CheckoutContext` | `05adda1` | `edt-c3ced3fe` + `08e4bfe` |
 | VanXcel | idem, eigen storage-key/events | `38729e9` | `028bd92` + `64cc7d4` |
 | Astra Sleep | `src/lib/storefrontApi.ts` + `cart-context` + routes | `308774d` | `3f4964e` |
+| Benny Rich | TanStack Start + `createServerFn` (`src/lib/sellqo.functions.ts`), httpOnly-sessiecookie | — | — |
 
 Backend-fixes (SellQo-core, alle tenants):
 - `ec2a933` — reverse-charge op Stripe-bedrag (`checkoutComplete`)
@@ -153,4 +178,3 @@ Backend-fixes (SellQo-core, alle tenants):
 
 Frontend-fixes (referentie):
 - Loveke `b031ecd` — mobiele overflow: `min-w-0` op gallery-kolom + `overflow-x-hidden` op `<main>` (MOBILE-OVERFLOW-1)
-
