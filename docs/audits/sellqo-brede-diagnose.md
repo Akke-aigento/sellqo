@@ -510,10 +510,11 @@ Het scherpst daarbinnen is de groep met een cron-vormige naam maar zónder cron-
 schema verdwenen — en in dat laatste geval draait er nu stilletjes iets niet meer. Dat is
 de eerste groep om na te lopen.
 
-Twee kanttekeningen die eerlijk moeten blijven staan: ik heb alleen VanXcel gelezen, niet
-alle zes de frontends — het contract is gedocumenteerd én daar geverifieerd, maar een
-afwijkende frontend zou dit beeld nog kunnen bijstellen. En "geen aanroeper in de code"
-bewijst niet dat een functie niet gedeployed is of niet handmatig wordt aangeroepen.
+Kanttekening die eerlijk moet blijven staan: "geen aanroeper in de code" bewijst niet dat
+een functie niet gedeployed is of niet handmatig wordt aangeroepen.
+
+*(Aanvulling: inmiddels is ook Benny Rich nagelezen — een architectonisch compleet andere
+frontend die tot exact hetzelfde tweetal endpoints komt. Zie §11.)*
 
 ### 9e. RLS — beter dan de migraties suggereerden
 
@@ -581,3 +582,81 @@ lijst moet vervangen worden door de query zelf, zodat hij niet opnieuw kan verou
 tenants mét de query als bron, en §5 heet nu "Wat hier wel en niet kan" en beschrijft
 `query_database` als de normale weg voor read-only vragen. Schrijfacties op de database
 blijven buiten Claude Code.
+
+---
+
+## 11. Benny Rich — de nieuwste custom frontend, apart nagelezen
+
+Op verzoek nagetrokken omdat dit de laatst geïmplementeerde frontend is en dus het meest
+kans maakt af te wijken. Gelezen: `src/lib/sellqo.functions.ts` (de proxy),
+`src/integrations/sellqo/normalizer.ts` van VanXcel ter vergelijking, en het live schema.
+
+### 11a. Het contract houdt — geverifieerd, niet aangenomen
+
+| | VanXcel | Benny Rich |
+|---|---|---|
+| Proxy-type | Supabase edge function (`sellqo-proxy`) | **TanStack server function** (`sellqoProxy`) |
+| Stack | Vite + React | **TanStack Start + React 19** |
+| Roept aan | `storefront-api`, `storefront-customer-api` | `storefront-api`, `storefront-customer-api` |
+| `storefront-resolve` | — | — (tenant vast via `SELLQO_TENANT_ID`) |
+| Protocol | `POST { action, tenant_id, params }` + `X-API-Key` | identiek |
+
+**Geen enkele andere SellQo-edge-function wordt aangeroepen.** De hele checkout loopt via
+acties op `storefront-api`. Dat bevestigt de conclusie uit §9d op een tweede, architectonisch
+compleet andere frontend — en daarmee is de lijst van 22 functies zonder aanroeper
+robuuster dan hij op één steekproef was.
+
+Twee dingen die opvielen en gunstig zijn: de klantsessie-token wordt server-side in een
+httpOnly-cookie gezet en uit de payload gestript vóór hij de browser bereikt, en de proxy
+weigert een `SELLQO_API_URL` die niet op `/functions/v1/storefront-api` uitkomt.
+
+### 11b. Een derde architectuur die de runbook niet kent
+
+`sellqo-custom-frontend-runbook` beschrijft twee architecturen — "Astra"
+(`storefrontApi.ts` met `normalizeCart`) en "Loveke/VanXcel" (`CheckoutContext`) — en
+noemt Loveke en VanXcel als referentie-implementaties. **Benny Rich is een derde**, en staat
+in geen van beide tabellen. De checklist in dat runbook (patroon 3 in het bijzonder) sluit
+daardoor niet aan op wat daar gebouwd is.
+
+### 11c. Het variantlabel-probleem is niet van core — correctie op mijn eigen hypothese
+
+Benny Rich's documentatie meldt dat cart-regels geen variantlabel tonen omdat de tenant
+`attribute_values` stuurt. Ik vermoedde een contractbug in core en heb dat nagetrokken:
+
+- Het schema (`product_variants`) heeft **`title`** en **`attribute_values`** — en géén
+  `variant_label`, `name` of `option_values`.
+- `storefront-api` stuurt per cart-regel `variant: { title, attribute_values, image_url }`
+  ([index.ts:1769](../../supabase/functions/storefront-api/index.ts:1769) en
+  [:2080](../../supabase/functions/storefront-api/index.ts:2080)).
+- **VanXcel's normalizer leest `raw.variant_title || raw.variant?.title`** en werkt dus
+  correct.
+- Benny Rich's eigen (bevroren) kopie leest `variant_label ?? variant.name ??
+  variant.option_values` — drie velden die geen van alle bestaan.
+
+**Conclusie: geen core-bug, maar een fout in één kopie.** De echte bevinding is
+structureel: de normalizer is niet gedeeld maar per frontend gekopieerd, en die kopieën
+zijn gaan afwijken. Zes frontends betekent zes kopieën. Benny Rich heeft het bovendien in
+presentatie omzeild (`cart-labels.ts`) in plaats van de kopie te repareren, omdat hun eigen
+regels dat bestand bevroren hadden.
+
+### 11d. Drie van de zes kunnen vandaag geen normale verkoop afronden
+
+| Tenant | Stripe-charges | Actieve verzendmethoden | Blokkade |
+|---|---|---|---|
+| VanXcel | ✅ | 1 | — |
+| Mancini Milano | ✅ | 1 | — |
+| Loveke | ✅ | 1 | — |
+| **Benny Rich** | ❌ onboarding niet af | 1 | Kaartbetaling dicht |
+| **Astra Sleep** | ❌ onboarding niet af | 2 | Kaartbetaling dicht |
+| **Zona Dorata** | ✅ | **0** | Checkout strandt op de verzendstap |
+
+Alle zes hebben `bank_transfer` aanstaan, dus bij Benny Rich en Astra Sleep is een
+overschrijving technisch nog mogelijk — maar het primaire pad is dicht. Zona Dorata's
+blokkade is de hardste: zonder actieve verzendmethode heeft `checkout_shipping` niets om
+te kiezen, ongeacht de betaalmethode.
+
+Dat verklaart de nullen in §9a beter dan "nog niet gestart": het zijn drie verschillende,
+elk op zichzelf oplosbare blokkades. Geen van drieën is een codeprobleem.
+
+Terzijde: Benny Rich's eigen `CLAUDE.md` stelt dat de tenant "zero active shipping methods"
+heeft. Dat is inmiddels 1 — die documentatie is achterhaald.
