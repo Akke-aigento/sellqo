@@ -30,7 +30,10 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
     const tabel = (
       <div
         ref={wrapperRef}
-        className="relative w-full overflow-x-auto"
+        // De scrollbalk gaat alleen weg als er een chevron voor in de plaats
+        // komt. Bij een tabel zonder hint is die balk de enige aanwijzing dat er
+        // kolommen achter de rand staan.
+        className={cn("relative w-full overflow-x-auto", scrollHint && "no-scrollbar")}
         style={scrollHint ? { maskImage, WebkitMaskImage: maskImage } : undefined}
       >
         <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />

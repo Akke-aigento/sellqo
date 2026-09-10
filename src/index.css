@@ -205,6 +205,20 @@
   .animate-count-up {
     animation: countUp 2s ease-out forwards;
   }
+
+  /* Verbergt alleen de scrollbalk; scrollen blijft volledig werken. Bedoeld
+     voor horizontale rijen die hun eigen aanwijzing hebben — de fade met
+     chevron van ScrollHint. Zet dit nooit op een scroller zonder zo'n
+     aanwijzing: dan is er niets meer dat verraadt dat er inhoud achter de rand
+     staat. */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE en oude Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, WebKit — ook de WebView van de app */
+  }
 }
 
 @keyframes fadeInUp {

@@ -95,7 +95,7 @@ export function ScrollHint({ children, className }: ScrollHintProps) {
       <div className="relative">
         <div
           ref={scrollerRef}
-          className="overflow-x-auto"
+          className="no-scrollbar overflow-x-auto"
           style={{ maskImage, WebkitMaskImage: maskImage }}
         >
           {children}
