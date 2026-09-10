@@ -2,8 +2,9 @@
 name: sellqo-engineering-rules
 description: Harde engineering-regels voor het sellqo-project. Altijd toepassen
   bij werk aan edge functions, storage/documenten (PDF's, exports, downloads),
-  auth/sessies, dependency-imports, foutafhandeling in deliverables, of
-  verificatie van een batch. Elke regel is betaald met echte productie-debugging.
+  auth/sessies, dependency-imports, foutafhandeling in deliverables, native
+  Capacitor-plugins, of verificatie van een batch. Elke regel is betaald met
+  echte productie-debugging.
 ---
 
 # SellQo Engineering-Regels
@@ -11,7 +12,7 @@ description: Harde engineering-regels voor het sellqo-project. Altijd toepassen
 **Scope: enkel het project `sellqo`. Bij andere projecten in deze workspace:
 negeer deze skill, tenzij expliciet gevraagd.**
 
-Acht harde regels. Elke regel staat hier mét het incident dat 'm veroorzaakte —
+Negen harde regels. Elke regel staat hier mét het incident dat 'm veroorzaakte —
 een regel zonder litteken wordt genegeerd.
 
 ## R1 — Nooit een signed URL in de database. Sla het pad op.
@@ -138,3 +139,25 @@ aanwees.
 Controleer bij een `|| fallback` op een DB-waarde of het linkerdeel ooit iets
 oplevert.
 
+## R9 — Een native plugin wijzigen = beide platforms syncen én committen.
+Een `@capacitor/*`-dependency toevoegen of verwijderen is pas af na
+`npx cap sync` én het committen van de drie gegenereerde manifesten:
+`android/capacitor.settings.gradle`, `android/app/capacitor.build.gradle` en
+`ios/App/Podfile`. Die bestanden staan in git en worden niet vanzelf bijgewerkt.
+`node scripts/verify-capacitor-sync.mjs` is de scheidsrechter en draait in CI.
+
+De asymmetrie is de valkuil: **iOS valt op, Android niet.** Xcode Cloud bouwt in
+de cloud en leest de Podfile uit de repo, dus een vergeten iOS-sync breekt
+zichtbaar. Voor Android bestaat geen CI-build; een vergeten sync levert een
+groene pipeline en een stil kapotte app.
+**Incident (10 sep 2026):** de gradle-bestanden stonden sinds de scaffold van
+7 augustus nog op alleen `firebase-messaging` + `camera`, terwijl `@capacitor/app`,
+`browser`, `keyboard` en `status-bar` al een maand in `package.json` stonden en
+de Podfile elke keer wél was meegesynct. Zonder die `include`-regels compileert
+de native kant van die plugins niet mee: `Browser` (`src/lib/openExternal.ts`) en
+`App` (`src/native/deepLinks.ts`) vallen om op Android, en de Android-specifieke
+`Keyboard.resizeOnFullScreen` en `StatusBar`-instellingen uit
+`capacitor.config.ts` doen niets — terwijl iOS gewoon werkt. Precies het
+toetsenbord-over-de-onderbalk-probleem dat de M3a-batch had opgelost.
+**Les:** een gegenereerd bestand dat in git staat, is pas gegenereerd als het
+gecommit is. En een platform zonder CI meldt zijn eigen scheefstand nooit.
