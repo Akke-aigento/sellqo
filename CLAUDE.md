@@ -34,7 +34,17 @@ Verwijst een opdracht naar een workspace-only skill, vraag om de inhoud in plaat
 
 ## 1. De eerste wet — custom-frontend tenants
 
-**Vijf tenants draaien een eigen frontend: Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata. Zij mogen van webshop-werk niets merken.**
+**Zes tenants draaien een eigen frontend: Loveke, VanXcel, Astra Sleep, Mancini Milano, Zona Dorata en Benny Rich. Zij mogen van webshop-werk niets merken.**
+
+Deze lijst is een momentopname (10 sep 2026) en kan opnieuw verouderen: Benny Rich kreeg
+de vlag op 26 augustus 2026 en stond hier twee weken later nog steeds niet in. **De bron is
+de database, niet dit document.** Controleer bij elke batch die de eerste wet raakt:
+
+```sql
+select t.name, t.slug from tenant_theme_settings ts
+join tenants t on t.id = ts.tenant_id
+where ts.use_custom_frontend is true order by t.name;
+```
 
 - Hun frontends praten via `storefront-resolve`, `storefront-api` en `storefront-customer-api` met de core. Die contracten wijzigen niet.
 - **Strikt additief** op de gedeelde tabellen `tenant_theme_settings`, `themes`, `homepage_sections`, `storefront_pages`: geen kolom hernoemen, verwijderen, van datatype veranderen of van default wijzigen.
@@ -135,15 +145,30 @@ Item toevoegen onder **Openstaand**, met versienummer, categorie en datum, de NL
 
 ---
 
-## 5. Wat Claude Code niet kan
+## 5. Wat hier wel en niet kan
 
-Twee dingen lopen via Claude in de chat (Lovable-kant), niet hier:
+**Read-only databasevragen horen hier wél thuis.** De Lovable-connector biedt
+`query_database` — read-only, zonder credits, en het beantwoordt élke vraag over het live
+schema, de data, `cron.job` en `pg_policies`. Zie de skill `nomadix-lovable-connector` C1:
+een vraag aan Akke die een tool kan beantwoorden, is een verloren beurt. Formuleer dus geen
+SQL-natrek voor Akke die je zelf kunt draaien.
 
-**Directe Supabase-database-toegang.** Geen SQL uitvoeren, geen migraties draaien, geen types genereren. `.env` bevat alleen `SUPABASE_URL` en de publishable key; `supabase projects list` faalt op `LegacyPlatformAuthRequiredError`. Wat wél kan: migratiebestanden schrijven, ze valideren (JSON-literals parsen, sectietypes tegen de registry houden), en een SQL-natrek formuleren die Akke uitvoert. Vraag de uitkomst en verwerk die in de paper trail.
+```
+project_id sellqo = 9932a7fe-43a1-42de-9c64-168968599600
+```
 
-**Custom-frontend smoke-checks.** De vijf custom frontends zijn aparte Lovable-projecten. Verifiëren dat een wijziging hen niet raakt gebeurt daar, niet hier. Hier kan alleen aangetoond worden dat het contract ongewijzigd is.
+**Wat nog steeds niet hier gebeurt:**
 
-Vraag hier dus nooit om deze twee te "even zelf te doen" — meld wat je nodig hebt en van wie.
+- **Schrijfacties op de database.** Migraties draaien, `INSERT`/`UPDATE`/`DELETE`, types
+  genereren. `query_database` kán schrijven maar doet dat hier niet: schrijfwerk gaat via
+  een migratiebestand en een expliciete go. Wat hier wél kan: migratiebestanden schrijven
+  en valideren.
+- **De CLI.** `.env` bevat alleen `SUPABASE_URL` en de publishable key; `supabase projects
+  list` faalt op `LegacyPlatformAuthRequiredError`.
+- **Custom frontends draaien of smoke-testen.** De zes custom frontends zijn aparte
+  Lovable-projecten. Hun code is hier wél te lézen (`list_files` / `read_file` via de
+  connector — zo is op 10 sep geverifieerd dat VanXcel uitsluitend `storefront-api` en
+  `storefront-customer-api` aanroept). Ze daadwerkelijk draaien en klikken gebeurt daar.
 
 ---
 
