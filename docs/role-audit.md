@@ -41,8 +41,12 @@ niet, want het is geen typefout.
   Niveau 2 is het totaal, dat niet mag stijgen. Zakt het, dan meldt het script dat en kan
   de lat omlaag met `--update`. Een kale `eslint .` kon geen CI-stap worden: er staan
   1.338 bestaande `no-explicit-any`-fouten in, en die zijn geen lintstap maar een refactor.
-- **`.eslint-baseline.json`** (nieuw) — 1519 problemen (1424 errors, 95 warnings), met de
+- **`.eslint-baseline.json`** (nieuw) — 1516 problemen (1423 errors, 93 warnings), met de
   telling per regel.
+- **`eslint.config.js`** — `ignores` uitgebreid met `android/app/build`,
+  `android/app/src/main/assets/public` en `ios/App/App/public`. Dat is gegenereerde
+  uitvoer: `npx cap sync` kopieert de webassets naar beide native projecten, en Gradle
+  laat build-intermediates achter. Zie de noot onder Verificatie waarom dit ertoe deed.
 - **`.github/workflows/ci.yml`** — nieuwe step `Lint`, als tweede na de typecheck.
 
 **Security-keuzes:** n.v.t., onderbouwd. Geen RLS, policy, grant, migratie of edge function
@@ -66,6 +70,16 @@ alleen de SellQo-theme-storefront.
 | `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
 | `node scripts/verify-lint-baseline.mjs` | groen, gelijk aan de baseline |
 | Regressietest | guard in `BolActionsCard` teruggezet naar boven → exit 1 met de vier schendingen benoemd |
+| CI-run [34505669420](https://github.com/Akke-aigento/sellqo/actions/runs/34505669420) | success |
+
+**De baseline verschilde eerst per omgeving, en dat is opgelost.** De eerste CI-run meldde
+1516 problemen waar mijn machine er 1519 telde. Dat kwam niet door de code maar door
+`android/app/build/intermediates/…/native-bridge.js` — een Gradle-artefact dat hier bestaat
+omdat er ooit een Android-build is gedraaid, en op een verse runner niet. Exact drie
+problemen. Zolang de baseline hoger stond dan wat CI meet, had CI drie nieuwe problemen
+stilzwijgend geaccepteerd; de check bewaakte dus minder dan hij leek. Opgelost door de
+gegenereerde native-uitvoer in `eslint.config.js` te negeren en de baseline opnieuw te
+meten: lokaal en CI zitten nu allebei op 1516 / 1423 / 93.
 
 **Bewust ongemoeid:** de 1.338 `no-explicit-any` en de 51 `exhaustive-deps`-waarschuwingen.
 Die staan nu in de baseline en kunnen alleen nog dalen. `exhaustive-deps` is de eerste
