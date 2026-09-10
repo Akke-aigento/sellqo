@@ -15,20 +15,37 @@ Dit bestand vat samen; de brondocumenten zijn leidend bij twijfel:
 | Nieuwsbrief-wachtrij | `docs/newsletter-queue.md` |
 | Geparkeerd werk | `docs/fase2-backlog.md` |
 
-Er bestaan daarnaast **workspace-skills** (Lovable-agent) en **repo-skills** (`.agents/skills/`, Claude Code). Sommige leven op beide plekken — de repo is dan de bron van waarheid.
+Er bestaan daarnaast **workspace-skills** (Lovable-agent) en **repo-skills**
+(`.claude/skills/`, met een spiegel in `.agents/skills/`). Sinds `beb3b180`
+(10 sep 2026) leven **alle acht op beide plekken**, en de repo is de bron van
+waarheid.
+
+Niets houdt die drie kopieën vanzelf gelijk, en ze lopen aantoonbaar uit elkaar:
+op 10 sep bleek de workspace-versie van `sellqo-i18n-verplicht` bijna half zo
+groot als de repo-versie, zonder de codemod-motor. Daarom:
+
+- `node scripts/verify-skills-sync.mjs` vergelijkt `.claude/skills` met
+  `.agents/skills` en draait in CI.
+- De workspace-kant kan een CI-runner niet bereiken. Vergelijk die met
+  `node scripts/verify-skills-sync.mjs --manifest` naast
+  `list_workspace_skills({ include_markdown: true })`, en duw bij verschil de
+  repo-inhoud met `update_workspace_skill`.
 
 | Skill | Workspace | Repo | Bron |
 |---|---|---|---|
-| `sellqo-engineering-rules` | ✓ | — | workspace |
-| `sellqo-db-safety` | ✓ | — | workspace |
-| `sellqo-gedeelde-paden` | ✓ | — | workspace |
-| `sellqo-connector-werkwijze` | ✓ | — | workspace |
-| `sellqo-release-werkwijze` | ✓ | — | workspace |
-| `sellqo-docs-slottaak` | ✓ | — | workspace |
+| `sellqo-engineering-rules` | ✓ | ✓ | repo |
+| `sellqo-db-safety` | ✓ | ✓ | repo |
+| `sellqo-gedeelde-paden` | ✓ | ✓ | repo |
+| `sellqo-connector-werkwijze` | ✓ | ✓ | repo |
+| `sellqo-release-werkwijze` | ✓ | ✓ | repo |
+| `sellqo-docs-slottaak` | ✓ | ✓ | repo |
 | `sellqo-custom-frontend-runbook` | ✓ | ✓ | repo |
 | `sellqo-i18n-verplicht` | ✓ | ✓ | repo |
 
-Verwijst een opdracht naar een workspace-only skill, vraag om de inhoud in plaats van te gokken. Skills die op beide plekken leven: bij wijziging beide in sync houden, repo wint.
+`nomadix-mobiel` bestaat alleen als workspace-skill: die geldt workspace-breed
+en hoort niet in deze repo.
+
+Wijzig je een skill, werk dan **alle drie** de kopieën bij — `.claude/skills`, `.agents/skills` en de workspace. De repo wint bij verschil.
 
 ---
 
