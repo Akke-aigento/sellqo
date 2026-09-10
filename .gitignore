@@ -39,3 +39,6 @@ supabase/.temp/
 # Claude Code, machine-eigen instellingen
 .claude/settings.local.json
 .claude/worktrees/
+
+# Claude Code, sessie-output (rapporten, kaarten) — geen projectcode
+Claude outputs/
