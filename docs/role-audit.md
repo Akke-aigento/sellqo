@@ -1,3 +1,86 @@
+## HOOKS-1 — negen Rules-of-Hooks-schendingen en een lint-poortwachter — 10 september 2026
+
+**Root cause.** Vier componenten riepen hooks voorwaardelijk aan doordat een `return null`
+bóven de hooks stond in plaats van eronder. React vereist dat het aantal hooks tussen twee
+renders van dezelfde componentpositie gelijk blijft; wisselt dat, dan gooit React
+`Rendered more hooks than during the previous render` en verdwijnt het scherm.
+
+- [`src/components/admin/BolActionsCard.tsx:54`](../src/components/admin/BolActionsCard.tsx) —
+  `if (order.marketplace_source !== 'bol_com') return null;` gevolgd door **vier** hooks
+  (`useQuery` op 59, `useMutation` op 81, 111 en 141). Dit is de gevaarlijke: in een
+  orderlijst met zowel bol.com- als andere orders draait dezelfde componentpositie de ene
+  render nul extra hooks en de volgende vier.
+- [`src/pages/NoAccess.tsx:56`](../src/pages/NoAccess.tsx) — `useTenant()` binnen een
+  `try/catch`. Dat loste iets echts op (`useTenant` gooit buiten een `TenantProvider`, en
+  `/no-access` wordt óók buiten de provider geserveerd), maar een hook in een `try` is per
+  definitie voorwaardelijk.
+- [`src/components/storefront/StorefrontLanguageSelector.tsx:35`](../src/components/storefront/StorefrontLanguageSelector.tsx) —
+  `if (availableLanguages.length <= 1) return null;` boven een `useEffect`. Een storefront
+  die van één naar twee talen gaat, verandert daarmee het aantal hooks.
+- [`src/components/dev/RoleSimulator.tsx:62-66`](../src/components/dev/RoleSimulator.tsx) —
+  drie hooks onder `if (!import.meta.env.DEV) return null;`. Dat is een build-time
+  constante, dus dit kon in de praktijk niet omslaan; wel een schending.
+
+Waarom dit zo lang bleef staan: er stond **geen lintstap in CI**. `.github/workflows/ci.yml`
+draaide typecheck, i18n-pariteit, capacitor-sync en build — geen ESLint. `tsc` ziet dit
+niet, want het is geen typefout.
+
+**Uitgevoerd:**
+
+- **`BolActionsCard.tsx`** — de early return is vervangen door `const isBolOrder = …` en
+  verplaatst naar ná de laatste `useMutation`, met een commentaarblok dat uitlegt waarom hij
+  daar staat. De `useQuery` kreeg `enabled: isBolOrder`, zodat een niet-Bol-order net als
+  vóór de fix géén labels ophaalt — zonder die vlag was dit een extra query per orderregel.
+- **`NoAccess.tsx`** — `useTenant()` vervangen door `useContext(TenantContext)`. Die context
+  was al geëxporteerd (`useTenant.tsx:105`) en geeft `undefined` buiten een provider in
+  plaats van te gooien, dus de `try/catch` kon weg en de hook staat nu onvoorwaardelijk.
+- **`StorefrontLanguageSelector.tsx`** en **`RoleSimulator.tsx`** — guard onder de hooks,
+  met een korte toelichting.
+- **`scripts/verify-lint-baseline.mjs`** (nieuw) — lintpoortwachter met twee niveaus.
+  Niveau 1 is nultolerantie voor `react-hooks/rules-of-hooks`: nul, ongeacht de baseline.
+  Niveau 2 is het totaal, dat niet mag stijgen. Zakt het, dan meldt het script dat en kan
+  de lat omlaag met `--update`. Een kale `eslint .` kon geen CI-stap worden: er staan
+  1.338 bestaande `no-explicit-any`-fouten in, en die zijn geen lintstap maar een refactor.
+- **`.eslint-baseline.json`** (nieuw) — 1519 problemen (1424 errors, 95 warnings), met de
+  telling per regel.
+- **`.github/workflows/ci.yml`** — nieuwe step `Lint`, als tweede na de typecheck.
+
+**Security-keuzes:** n.v.t., onderbouwd. Geen RLS, policy, grant, migratie of edge function
+aangeraakt. Geen van de vier wijzigingen verandert welke data een gebruiker ziet: het zijn
+alle vier verplaatsingen van een `return null` binnen hetzelfde component, plus één
+vervanging van een hook door de context die diezelfde hook intern al leest.
+
+**Gedeelde-paden-waarschuwing:** `StorefrontLanguageSelector` staat in
+`src/components/storefront/`, maar de vijf — inmiddels zes — custom frontends delen géén
+React-componenten met deze repo; die renderen zelf en praten alleen via `storefront-api` en
+`storefront-customer-api`. Het JSON-contract is niet aangeraakt. Deze wijziging raakt dus
+alleen de SellQo-theme-storefront.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `react-hooks/rules-of-hooks` over de hele repo | 9 → **0** |
+| Lint-totaal | 1528 → **1519** (−9, exact de negen schendingen) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| `npm run build` | exit 0; chunk-size-waarschuwing bestaand |
+| `node scripts/verify-lint-baseline.mjs` | groen, gelijk aan de baseline |
+| Regressietest | guard in `BolActionsCard` teruggezet naar boven → exit 1 met de vier schendingen benoemd |
+
+**Bewust ongemoeid:** de 1.338 `no-explicit-any` en de 51 `exhaustive-deps`-waarschuwingen.
+Die staan nu in de baseline en kunnen alleen nog dalen. `exhaustive-deps` is de eerste
+kandidaat voor een volgende ronde — een stale closure is een echte bug, geen stijl — maar
+het zijn 51 losse afwegingen en dat is een eigen batch.
+
+**Geen §4.2-4.4-slottaken, onderbouwd.** Deze batch verandert geen tenant-zichtbaar gedrag:
+voor Bol-orders is het gedrag identiek, voor niet-Bol-orders vuurt er net als voorheen geen
+query, `NoAccess` en de taalkiezer gedragen zich hetzelfde, en `RoleSimulator` is dev-only.
+Er is dus niets om in een changelog te zetten dat een tenant zou herkennen. Wil je de fix
+toch publiek melden, dan is `bugfix` het type en gaat hij in alle talen uit
+`SUPPORTED_LANGUAGES` — zeg het en het gebeurt.
+
+---
+
 ## TENANT-FIX-1 — drie bugs op het tenant-detailscherm — 1 september 2026
 
 **Root cause 1 — cross-origin 302 via `fetch`.** `resolve-tenant-action` antwoordde op het success-pad met een `302` naar Stripe (`index.ts:111-114`). `TenantAction.tsx` haalde dat endpoint op met `fetch(..., { redirect: 'follow' })` en keek naar `res.redirected`. De browser volgde die redirect binnen de fetch naar `connect.stripe.com`, dat geen CORS-header voor ons origin zet — de fetch faalde, de `catch` sloeg toe, en iedereen kreeg de foutpagina. Een 302 is prima voor een navigatie, niet voor een fetch.

@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   checks:
-    name: typecheck, i18n-pariteit, capacitor-sync, skills-sync en build
+    name: typecheck, lint, i18n-pariteit, capacitor-sync, skills-sync en build
     runs-on: ubuntu-latest
 
     steps:
@@ -44,19 +44,31 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.app.json
 
-      # 2. i18n-pariteit. Het script eindigt met exit 1 zodra één taal een key
+      # 2. Lint, tegen een baseline. Een kale `eslint .` is meteen rood — er staan
+      #    1.300+ bestaande no-explicit-any-fouten in de repo en die zijn geen
+      #    lintstap maar een refactor. Het script kent daarom twee niveaus: een
+      #    handvol regels met nultolerantie (react-hooks/rules-of-hooks voorop),
+      #    en daarnaast een totaal dat niet mag stijgen. Zakt het totaal, dan
+      #    meldt het script dat en kan de lat omlaag met --update.
+      #    Aanleiding: op 10 sep stonden er negen rules-of-hooks-schendingen in,
+      #    waarvan BolActionsCard het orderscherm kon laten crashen. Zonder
+      #    lintstap viel daar niets van om.
+      - name: Lint
+        run: node scripts/verify-lint-baseline.mjs
+
+      # 3. i18n-pariteit. Het script eindigt met exit 1 zodra één taal een key
       #    mist, waardoor deze step vanzelf rood wordt.
       - name: i18n-pariteit
         run: node scripts/i18n-parity.mjs
 
-      # 3. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
+      # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat
       #    een maand lang niet zonder dat iets omviel — vandaar deze step.
       - name: Capacitor-sync
         run: node scripts/verify-capacitor-sync.mjs
 
-      # 4. Skill-pariteit. Dezelfde skill leeft in .claude/skills (bron), in
+      # 5. Skill-pariteit. Dezelfde skill leeft in .claude/skills (bron), in
       #    .agents/skills (spiegel) en als workspace-skill aan de Lovable-kant.
       #    Niets hield ze gelijk: op 10 sep was de workspace-kopie van
       #    sellqo-i18n-verplicht bijna half zo groot als de repo-versie en miste
@@ -66,7 +78,7 @@ jobs:
       - name: Skills-sync
         run: node scripts/verify-skills-sync.mjs
 
-      # 5. Productiebuild. Draait via npm omdat het prebuild-script daaraan
+      # 6. Productiebuild. Draait via npm omdat het prebuild-script daaraan
       #    hangt; npm staat standaard op de runner naast de bun-installatie.
       - name: Build
         run: npm run build

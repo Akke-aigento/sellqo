@@ -50,10 +50,9 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
   } = useLabelPrinter();
   const { openDocument, getDocumentUrl } = useDocumentDownload();
 
-  // Only show for Bol.com orders
-  if (order.marketplace_source !== 'bol_com') {
-    return null;
-  }
+  // Deze kaart bestaat alleen voor Bol.com-orders. De guard staat BEWUST niet
+  // hier maar onder de laatste hook — zie de opmerking daar.
+  const isBolOrder = order.marketplace_source === 'bol_com';
 
   // Fetch VVB labels for this order
   const { data: labels, isLoading: labelsLoading } = useQuery({
@@ -64,10 +63,13 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
         .select('*')
         .eq('order_id', order.id)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as ShippingLabel[];
     },
+    // Zonder dit zou elke niet-Bol-order alsnog labels ophalen; vóór de fix
+    // voorkwam de early return dat.
+    enabled: isBolOrder,
   });
 
   const vvbLabels = labels?.filter(l => l.provider === 'bol_vvb') || [];
@@ -187,6 +189,15 @@ export function BolActionsCard({ order, embedded = false }: BolActionsCardProps)
       setIsAccepting(false);
     }
   };
+
+  // Pas hier weggaan, ná élke hook. Stond dit hoger — en dat deed het tot
+  // 10 sep 2026 — dan draaide dezelfde componentpositie in een orderlijst de ene
+  // render nul hooks en de volgende vier. Dat is exact het scenario waarin React
+  // "Rendered more hooks than during the previous render" gooit en het scherm
+  // wit wordt. Verplaats deze regel niet naar boven.
+  if (!isBolOrder) {
+    return null;
+  }
 
   const syncStatus = order.sync_status || order.fulfillment_status;
   const isShipped = syncStatus === 'shipped' || order.status === 'shipped';

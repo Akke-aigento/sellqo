@@ -29,9 +29,6 @@ export function StorefrontLanguageSelector({ languages, currentLanguage, onLangu
   const availableLanguages = ALL_LANGUAGES.filter(l => languages.includes(l.code));
   const current = ALL_LANGUAGES.find(l => l.code === currentLanguage) || availableLanguages[0];
 
-  // Don't show if only 1 language
-  if (availableLanguages.length <= 1) return null;
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -39,6 +36,11 @@ export function StorefrontLanguageSelector({ languages, currentLanguage, onLangu
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Niets te kiezen bij één taal. Deze guard stond hierboven, vóór de useEffect —
+  // een voorwaardelijke hook. Een storefront die van één naar twee talen gaat
+  // (of andersom) veranderde daarmee het aantal hooks tussen twee renders.
+  if (availableLanguages.length <= 1) return null;
 
   if (style === 'flags') {
     return (

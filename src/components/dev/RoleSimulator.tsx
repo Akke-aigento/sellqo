@@ -57,8 +57,6 @@ const ALL_ROLES: AppRole[] = [
 ];
 
 export function RoleSimulator() {
-  // Only render in dev builds.
-  if (!import.meta.env.DEV) return null;
   const { role, setRole } = useSimulatedRole();
   const [open, setOpen] = useState(false);
 
@@ -73,6 +71,12 @@ export function RoleSimulator() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  // Alleen in dev-builds. `import.meta.env.DEV` is een build-time constante, dus
+  // dit kon in de praktijk nooit tot een wisselend aantal hooks leiden — maar de
+  // guard stond bóven drie hooks en dat is per definitie een schending. Onder de
+  // hooks kost het niets en is het gewoon correct.
+  if (!import.meta.env.DEV) return null;
 
   return (
     <>

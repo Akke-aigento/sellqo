@@ -1,0 +1,23 @@
+{
+  "total": 1519,
+  "errors": 1424,
+  "warnings": 95,
+  "byRule": {
+    "(parse)": 4,
+    "@typescript-eslint/no-unused-vars": 1,
+    "react-refresh/only-export-components": 40,
+    "react-hooks/exhaustive-deps": 51,
+    "no-useless-escape": 5,
+    "@typescript-eslint/no-explicit-any": 1338,
+    "no-empty": 22,
+    "no-case-declarations": 29,
+    "@typescript-eslint/no-empty-object-type": 4,
+    "@typescript-eslint/no-unused-expressions": 3,
+    "no-shadow-restricted-names": 1,
+    "prefer-const": 15,
+    "no-control-regex": 1,
+    "no-constant-condition": 1,
+    "@typescript-eslint/ban-ts-comment": 2,
+    "@typescript-eslint/no-require-imports": 2
+  }
+}

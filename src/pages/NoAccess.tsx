@@ -1,7 +1,8 @@
+import { useContext } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTenant } from "@/hooks/useTenant";
+import { TenantContext } from "@/hooks/useTenant";
 
 /**
  * Human-readable label voor bekende admin-routes (H4a).
@@ -51,20 +52,25 @@ export default function NoAccess() {
   const from = params.get("from");
   const label = from ? humanizePath(from) : null;
   // Optionele mailto naar tenant-admin (owner_email).
+  //
+  // Bewust `useContext(TenantContext)` en niet `useTenant()`: die laatste gooit
+  // buiten een TenantProvider, en /no-access wordt óók buiten de provider
+  // geserveerd. Dat werd eerder opgelost met een try/catch om de hook heen —
+  // een voorwaardelijke hook-aanroep, en daarmee een Rules-of-Hooks-schending.
+  // De context zelf lezen is onvoorwaardelijk en geeft simpelweg `undefined`
+  // als er geen provider is.
+  const tenantContext = useContext(TenantContext);
+  const currentTenant = tenantContext?.currentTenant;
+
   let mailtoHref: string | null = null;
-  try {
-    const { currentTenant } = useTenant();
-    if (currentTenant?.owner_email) {
-      const subject = encodeURIComponent(
-        `Toegang aanvragen${label ? ` — ${label}` : ""}`
-      );
-      const body = encodeURIComponent(
-        `Hoi,\n\nIk heb toegang nodig tot${label ? ` ${label}` : " een pagina"} in ${currentTenant.name}. Kun je mijn rechten aanpassen?\n\nBedankt!`
-      );
-      mailtoHref = `mailto:${currentTenant.owner_email}?subject=${subject}&body=${body}`;
-    }
-  } catch {
-    // /no-access wordt ook buiten TenantProvider geserveerd — negeer.
+  if (currentTenant?.owner_email) {
+    const subject = encodeURIComponent(
+      `Toegang aanvragen${label ? ` — ${label}` : ""}`
+    );
+    const body = encodeURIComponent(
+      `Hoi,\n\nIk heb toegang nodig tot${label ? ` ${label}` : " een pagina"} in ${currentTenant.name}. Kun je mijn rechten aanpassen?\n\nBedankt!`
+    );
+    mailtoHref = `mailto:${currentTenant.owner_email}?subject=${subject}&body=${body}`;
   }
 
   return (
