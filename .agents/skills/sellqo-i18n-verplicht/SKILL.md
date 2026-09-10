@@ -1,6 +1,6 @@
 ---
 name: sellqo-i18n-verplicht
-description: Verplichte werkwijze voor alle user-facing tekst in de SellQo core (admin UI + SellQo-based storefront). Elke nieuwe of gewijzigde UI-string MOET door i18n (react-i18next t()) gaan met een key in ELKE ondersteunde taal — nooit hardcoded tekst in JSX. Bevat de codemod-motor voor batchwerk, het recept om een nieuwe taal toe te voegen, en de patronen die de codemods niet aankunnen. Geldt NIET voor de custom tenant-frontends (VanXcel/Mancini/Loveke/Astra/Zona), die hebben hun eigen i18n.
+description: Verplichte werkwijze voor alle user-facing tekst in de SellQo core (admin UI + SellQo-based storefront). Elke nieuwe of gewijzigde UI-string MOET door i18n (react-i18next t()) gaan met een key in ELKE ondersteunde taal — nooit hardcoded tekst in JSX. Bevat de codemod-motor voor batchwerk, het recept om een nieuwe taal toe te voegen, en de patronen die de codemods niet aankunnen. Geldt NIET voor de custom tenant-frontends — elke tenant met use_custom_frontend = true — die hebben hun eigen i18n.
 ---
 
 # SellQo i18n — Verplichte Werkwijze
@@ -10,6 +10,14 @@ Alle zichtbare tekst in de SellQo core (Lovable project 9932a7fe-43a1-42de-9c64-
 Deze regel bestaat omdat de codebase historisch is dichtgeslibd met hardcoded Nederlandse strings. Meet de stand altijd zelf met `node scripts/i18n-scan.mjs` in plaats van een getal uit dit document over te nemen; percentages in skills verouderen sneller dan de code.
 
 **Scope:** admin UI + SellQo-based storefront. NIET de custom tenant-frontends — die hebben een eigen i18n-setup en vallen buiten deze skill.
+
+Welke tenants dat zijn is een databasevraag, geen lijst om te onthouden — een opsomming met namen veroudert stil (Benny Rich stond twee weken buiten de lijst nadat zijn vlag aanging):
+
+```sql
+select t.name, t.slug from tenant_theme_settings ts
+join tenants t on t.id = ts.tenant_id
+where ts.use_custom_frontend is true order by t.name;
+```
 
 ## Bron van waarheid: de talenlijst
 
