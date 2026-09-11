@@ -148,6 +148,14 @@ Deno.serve(async (req) => {
     let searchTermRecords = 0;
     const datesSet = new Set<string>();
 
+    // R4: elk van de drie bol.com-aanroepen hieronder zit in een eigen try, zodat
+    // een falende deelrapportage de andere twee niet meesleept. Tot 11 sep 2026
+    // eindigde elke catch echter op een `console.error` en liep de functie door
+    // naar `success: true` — een groene respons op een mislukte fetch. Daardoor
+    // bleef onzichtbaar dat `insights/search-terms` structureel 400 gaf.
+    // Wat faalt, komt nu in deze lijst en daarmee in het antwoord.
+    const failures: { step: string; error: string }[] = [];
+
     // 1. Campaign performance
     try {
       const perfRes = await withRetry(t => bolPost(t, `${BOL_INSIGHTS_BASE}/campaigns`, {
@@ -202,6 +210,7 @@ Deno.serve(async (req) => {
         return jsonRes({ error: "Rate limited by Bol.com", retry_after: parseInt(retryAfter) }, 429);
       }
       console.error("Campaign performance fetch failed:", e.message);
+      failures.push({ step: "campaign_performance", error: String(e?.message ?? e) });
     }
 
     // 2. Keyword performance
@@ -277,6 +286,7 @@ Deno.serve(async (req) => {
         return jsonRes({ error: "Rate limited by Bol.com", retry_after: parseInt(retryAfter) }, 429);
       }
       console.error("Keyword performance fetch failed:", e.message);
+      failures.push({ step: "keyword_performance", error: String(e?.message ?? e) });
     }
 
     // 3. Search terms
@@ -325,14 +335,20 @@ Deno.serve(async (req) => {
         return jsonRes({ error: "Rate limited by Bol.com", retry_after: parseInt(retryAfter) }, 429);
       }
       console.error("Search terms fetch failed:", e.message);
+      failures.push({ step: "search_terms", error: String(e?.message ?? e) });
     }
 
+    // `success` weerspiegelt wat er werkelijk gebeurde. Een deelrapportage die
+    // faalde maakt dit een gedeeltelijke run, geen geslaagde — anders is
+    // `days_synced: 0` niet te onderscheiden van "bol.com had geen data".
     return jsonRes({
-      success: true,
+      success: failures.length === 0,
+      partial: failures.length > 0,
       days_synced: datesSet.size,
       performance_records: performanceRecords,
       search_term_records: searchTermRecords,
-    });
+      failures,
+    }, failures.length > 0 ? 207 : 200);
   } catch (error: any) {
     if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("ads-bolcom-reports error:", error);

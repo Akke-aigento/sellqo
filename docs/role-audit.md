@@ -1,3 +1,85 @@
+## ADS-REPORTS-1 — een groene respons op een mislukte fetch — 11 september 2026
+
+**Root cause.** `ads-bolcom-reports` doet drie aanroepen naar bol.com, elk in een eigen
+`try`. Dat is op zich verstandig: een falende deelrapportage sleept de andere twee niet mee.
+Maar elke `catch` eindigde op een `console.error` waarna de functie doorliep naar
+`{ success: true, days_synced: 0, performance_records: 0 }`.
+
+```js
+} catch (e: any) {
+  if (e.message?.startsWith("RATE_LIMITED")) { ... return 429 }
+  console.error("Search terms fetch failed:", e.message);
+}
+```
+
+**Gevolg: twee compleet verschillende situaties gaven exact dezelfde groene respons.** Of
+bol.com had geen data — drie van de vier campagnes staan `paused` — óf de aanroep faalde. Na
+de ADS-CRON-1-fix was daardoor niet vast te stellen of de advertentiemodule wérkte; er stond
+alleen `days_synced: 0`.
+
+**De logs bewezen het tweede.** Uit de run van 12:00 (aangeleverd door Akke):
+
+```
+Search terms fetch failed: Bol API POST (400): {"title":"Your request parameters
+didn't validate.","detail":"Unable to read the message, please check if you are
+sending a valid content."}
+```
+
+Dit is exact het incident uit **R4**: *"een bundel moet kunnen aantonen dat hij compleet is."*
+
+**Uitgevoerd.** `supabase/functions/ads-bolcom-reports/index.ts`:
+
+- Een `failures`-lijst naast de bestaande tellers; elk van de drie catch-blokken registreert
+  daarin zijn stap en foutmelding. De `console.error`-regels blijven staan.
+- De slotrespons weerspiegelt nu wat er gebeurde: `success: failures.length === 0`, plus
+  `partial` en de `failures`-lijst zelf. HTTP **207** bij gedeeltelijk falen, 200 bij een
+  schone run.
+- De rate-limit-tak blijft ongewijzigd: die geeft nog steeds meteen 429 terug en breekt af.
+
+**Waarom 207 en niet 500.** `ads-bolcom-scheduler:84` beslist op `res.ok`, en dat is waar
+voor 200-299. Een gedeeltelijke run telt dus als geslaagd bij de scheduler — terecht, want
+de andere stappen kunnen wél gelukt zijn — terwijl de `failures`-lijst meekomt in
+`results[].data` en daarmee in `net._http_response`, waar hij leesbaar is. 207 is bovendien
+al de conventie in dit bestand: `bolPost:44` behandelt 207 expliciet als niet-fout.
+
+**Security-keuzes.** n.v.t. Geen auth, RLS, policy of grant geraakt. De wijziging maakt
+alleen zichtbaar wat er al gebeurde.
+
+**Gedeelde-paden-waarschuwing.** n.v.t. `ads-bolcom-reports` heeft één aanroeper
+(`ads-bolcom-scheduler` met `?mode=reports`) en importeert niets uit `_shared/` dat gewijzigd
+is.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx eslint` op het bestand | 8 problemen, allemaal bestaande `no-explicit-any`; parse geslaagd |
+| `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
+| Statusafhandeling bij de aanroeper | `ads-bolcom-scheduler:84` gebruikt `res.ok`; 207 valt daarbinnen, dus de scheduler blijft correct rapporteren |
+| Bestaande 429-tak | ongewijzigd |
+
+**Wat dit NIET oplost.** De zoektermen-sync blijft kapot, en dat is een dieper probleem dan
+een verkeerde body. Bol.com's `insights/search-terms` is **een bid-onderzoekstool**: hij
+verwacht zoektermen als invoer (*"Requested search terms must exactly match the search terms
+entered by users in a search bar"*) en geeft gemiddelde winnende biedingen over de laatste
+14 dagen terug. Onze code stuurt campagne-ID's en verwacht performance-rijen per campagne per
+dag. Dat kan dat endpoint niet leveren, ongeacht de body. `ads_bolcom_search_terms` is langs
+deze weg dus nooit te vullen; de juiste bron is vermoedelijk de aparte *reporting*-API.
+
+**Nog niet vastgesteld.** Of de campagne-performance-aanroep klopt. Die gaf geen 400, dus het
+endpoint accepteert onze body — maar of de nul rijen legitiem zijn (paused campagnes) of dat
+ook daar het verkeerde endpoint wordt gebruikt, blijkt uit de logregel
+`Campaign performance response keys: …, rows: N`. Na deze fix staat dat antwoord sowieso in
+de respons.
+
+**Nog niet uitgerold** (R6).
+
+**Vervolg.** De zoektermen-sync herbouwen op de reporting-API; dat vraagt eerst de
+specificatie, en die is niet publiek leesbaar (ReDoc rendert via JavaScript, `advertiser.json`
+geeft 401).
+
+---
+
 ## AUTH-TRIAGE-1 — eerste vijf publieke edge functions nagelezen — 11 september 2026
 
 **Aanleiding.** PUBLIC-FN-1 stelde vast dat 227 van de 229 edge functions publiek bereikbaar
