@@ -72,11 +72,70 @@ ook daar het verkeerde endpoint wordt gebruikt, blijkt uit de logregel
 `Campaign performance response keys: …, rows: N`. Na deze fix staat dat antwoord sowieso in
 de respons.
 
-**Nog niet uitgerold** (R6).
+### Uitgerold, en de volledige logs corrigeren de diagnose — 11 september 2026
 
-**Vervolg.** De zoektermen-sync herbouwen op de reporting-API; dat vraagt eerst de
-specificatie, en die is niet publiek leesbaar (ReDoc rendert via JavaScript, `advertiser.json`
-geeft 401).
+Na de deploy leverde Akke de complete logs van de 12:00-run. Die weerleggen wat ik op basis
+van één regel had geconcludeerd.
+
+**Ik stelde dat alleen de zoektermen-aanroep faalde. Dat was fout — de campagne-aanroep
+faalt ook**, met een ándere fout:
+
+```
+POST .../sponsored-products/insights/campaigns
+Campaign performance fetch failed: Bol API POST (400): VALIDATION_FAILED
+  "violations":[{"name":"RESOURCE_NOT_FOUND", …
+```
+
+```
+POST .../sponsored-products/insights/search-terms
+Search terms fetch failed: Bol API POST (400): "Unable to read the message…"
+```
+
+De keyword-aanroep staat er niet tussen: die wordt overgeslagen omdat
+`ads_bolcom_keywords` leeg is. **Beide aanroepen die wél liepen, faalden.**
+`days_synced: 0` was dus volledig een leugen, en de advertentiemodule leverde niets.
+
+**Root cause: de verkeerde API.** De twee functies praten met verschillende delen van
+bol.com:
+
+| Functie | Base-URL | Resultaat |
+|---|---|---|
+| `ads-bolcom-sync` | `…/sponsored-products/campaign-management` | werkt — 4 campagnes opgehaald |
+| `ads-bolcom-reports` | `…/sponsored-products/insights` | 400 op beide aanroepen |
+
+De campagnes bestáán dus; `RESOURCE_NOT_FOUND` betekent hier dat de **insights**-API ze niet
+kent. Dat sluit aan op wat de documentatie zegt: insights is de bid-onderzoeks-API
+(gemiddelde winnende biedingen, zoekvolume), geen rapportage-API. Er bestaat een aparte
+*Sponsored products reporting API v11*. `ads-bolcom-reports` is met andere woorden tegen het
+verkeerde product aan gebouwd — het heeft nooit gewerkt, het is niet stukgegaan.
+
+### Uitgebreid: dezelfde fout zat in `ads-bolcom-sync`
+
+**Scope-uitbreiding, bewust en gemeld.** Bij het natrekken van `adgroups_synced: 0` bleek
+`ads-bolcom-sync` vier catch-blokken te hebben met exact hetzelfde patroon: `console.error`,
+doorlopen, en onvoorwaardelijk `success: true`. Dat getal was dus even onbetrouwbaar als
+`days_synced: 0`, en zonder die fix blijft elke volgende meting aan deze module blind.
+
+- **`ads-bolcom-sync/index.ts`** — `failures`-lijst, gevuld door alle vier de catch-blokken
+  (`ad_groups`, `keywords`, `target_products`, `ad_group_processing`); slotrespons met
+  `success`, `partial` en `failures`, en 207 bij gedeeltelijk falen. De
+  `RATE_LIMITED`-doorgooi blijft ongewijzigd.
+- **Beide bestanden** — de foutmelding werd afgekapt op 300 tekens, precies waardoor de
+  `violations`-details van bol.com onleesbaar bleven. Nu 1200.
+
+**Verificatie (aanvullend):**
+
+| Check | Uitkomst |
+|---|---|
+| `npx eslint` op beide bestanden | 19 problemen, allemaal bestaande `no-explicit-any`; parse geslaagd |
+| `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
+| Statusafhandeling | `ads-bolcom-scheduler:84` gebruikt `res.ok` voor beide modi; 207 valt daarbinnen |
+
+**Vervolg.** `ads-bolcom-reports` moet herbouwd worden op de reporting-API in plaats van
+insights. Dat vraagt eerst de specificatie, en die is niet publiek leesbaar: de ReDoc-pagina
+rendert via JavaScript en `advertiser.json` geeft een 401. Akke kan daar met zijn
+bol.com-toegang wel bij. Tot die tijd staat vast dát het niet werkt, en is dat voortaan
+zichtbaar in de respons in plaats van in een logregel.
 
 ---
 

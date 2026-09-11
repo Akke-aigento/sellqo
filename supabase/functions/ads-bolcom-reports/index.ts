@@ -41,7 +41,7 @@ async function bolPost(token: string, url: string, body: unknown) {
     throw new Error(`RATE_LIMITED:${retryAfter}`);
   }
   if (res.status === 401) throw new Error("TOKEN_EXPIRED");
-  if (!res.ok && res.status !== 207) throw new Error(`Bol API POST (${res.status}): ${text.substring(0, 300)}`);
+  if (!res.ok && res.status !== 207) throw new Error(`Bol API POST (${res.status}): ${text.substring(0, 1200)}`);
   return text ? JSON.parse(text) : null;
 }
 

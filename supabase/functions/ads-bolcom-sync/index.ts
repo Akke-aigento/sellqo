@@ -39,7 +39,7 @@ async function bolGet(token: string, url: string) {
     throw new Error(`RATE_LIMITED:${retryAfter}`);
   }
   if (res.status === 401) throw new Error("TOKEN_EXPIRED");
-  if (!res.ok && res.status !== 207) throw new Error(`Bol API GET (${res.status}): ${text.substring(0, 300)}`);
+  if (!res.ok && res.status !== 207) throw new Error(`Bol API GET (${res.status}): ${text.substring(0, 1200)}`);
   return text ? JSON.parse(text) : null;
 }
 
@@ -56,7 +56,7 @@ async function bolPost(token: string, url: string, body: unknown) {
     throw new Error(`RATE_LIMITED:${retryAfter}`);
   }
   if (res.status === 401) throw new Error("TOKEN_EXPIRED");
-  if (!res.ok && res.status !== 207) throw new Error(`Bol API POST (${res.status}): ${text.substring(0, 300)}`);
+  if (!res.ok && res.status !== 207) throw new Error(`Bol API POST (${res.status}): ${text.substring(0, 1200)}`);
   return text ? JSON.parse(text) : null;
 }
 
@@ -134,6 +134,11 @@ Deno.serve(async (req) => {
       }
     };
 
+    // R4: elke deelfout hieronder werd gelogd en genegeerd, waarna deze functie
+    // doorliep naar `success: true`. Daardoor was `adgroups_synced: 0` niet te
+    // onderscheiden van "alle ad-group-aanroepen faalden" — precies het probleem
+    // dat ADS-REPORTS-1 in de zusterfunctie blootlegde.
+    const failures: { step: string; error: string }[] = [];
     let campaignsSynced = 0, adgroupsSynced = 0, keywordsSynced = 0, productsSynced = 0;
 
     // 1. Fetch all campaigns
@@ -196,6 +201,7 @@ Deno.serve(async (req) => {
         } catch (e: any) {
           if (e.message?.startsWith("RATE_LIMITED")) throw e;
           console.error(`Ad groups fetch failed for campaign ${bc.campaignId}:`, e.message);
+            failures.push({ step: "ad_groups", error: String(e?.message ?? e) });
         }
 
         for (const ag of adGroups) {
@@ -258,6 +264,7 @@ Deno.serve(async (req) => {
             } catch (e: any) {
               if (e.message?.startsWith("RATE_LIMITED")) throw e;
               console.error(`Keywords fetch failed for adgroup ${ag.adGroupId}:`, e.message);
+            failures.push({ step: "keywords", error: String(e?.message ?? e) });
             }
 
             // 4. Target Products
@@ -299,10 +306,12 @@ Deno.serve(async (req) => {
             } catch (e: any) {
               if (e.message?.startsWith("RATE_LIMITED")) throw e;
               console.error(`Target products fetch failed for adgroup ${ag.adGroupId}:`, e.message);
+            failures.push({ step: "target_products", error: String(e?.message ?? e) });
             }
           } catch (e: any) {
             if (e.message?.startsWith("RATE_LIMITED")) throw e;
             console.error(`Ad group processing failed ${ag.adGroupId}:`, e.message);
+            failures.push({ step: "ad_group_processing", error: String(e?.message ?? e) });
           }
         }
       } catch (e: any) {
@@ -314,13 +323,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // `success` weerspiegelt wat er werkelijk gebeurde; zie de noot bij `failures`.
     return jsonRes({
-      success: true,
+      success: failures.length === 0,
+      partial: failures.length > 0,
       campaigns_synced: campaignsSynced,
       adgroups_synced: adgroupsSynced,
       keywords_synced: keywordsSynced,
       products_synced: productsSynced,
-    });
+      failures,
+    }, failures.length > 0 ? 207 : 200);
   } catch (error: any) {
     if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("ads-bolcom-sync error:", error);
