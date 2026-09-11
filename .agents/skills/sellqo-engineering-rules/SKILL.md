@@ -92,6 +92,23 @@ pad 2 oud, en de helft van de subscription-facturen blijft stil als B2C
 weggeschreven. Geen fout, geen alarm, geen verschil in de logs — het
 halve-deploy-scenario meldt zichzelf niet.
 
+**Een commit naar `main` rolt niets uit.** Lovable synct de code wel — het
+bestand staat daarna in het Lovable-project en `read_file` toont het — maar
+deployt alleen wat zijn eigen agent schrijft. "Publishen" in Lovable en
+`deploy_project` publiceren de frontend, niet de functies. Uitrollen gaat via
+een prompt aan de Lovable-agent of via
+`supabase functions deploy <naam> --project-ref <ref>`.
+**Incident (ADS-CRON-1, 11 sep 2026):** twee edge-function-fixes stonden in de
+repo én in het Lovable-project, en de oude code bleef antwoorden. Dat kostte een
+ronde, en zonder probe was de conclusie geweest dat de fix niet werkte.
+
+**Bewijs een deploy met een antwoord dat verschilt.** `net.http_get` via
+`query_database` naar `…/functions/v1/<naam>`, met een tekst die tussen oud en
+nieuw afwijkt als discriminator — bij een auth-wijziging is de foutmelding zelf
+vaak genoeg. Neem altijd een verzonnen functienaam als controle mee; die hoort
+`{"code":"NOT_FOUND"}` te geven. Dezelfde probe beantwoordt ook of een functie
+überhaupt gedeployed is, en dát is niet uit de database af te lezen.
+
 **Les:** als een test slaagt, verklaar wáárom. Een groen vinkje zonder
 verklaring is geen bewijs.
 
