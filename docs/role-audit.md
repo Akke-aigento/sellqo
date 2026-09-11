@@ -59,8 +59,12 @@ niets gewijzigd.
 | `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
 | `authErrorResponse(err, corsHeaders)` | signatuur gecontroleerd in `_shared/auth.ts:144` |
 
-**Nog niet uitgerold.** R6: pas ná de deploy is te bewijzen dat een aanroep zonder sessie een
-401 geeft.
+**Uitgerold en geverifieerd — 11 sep 2026.** POST zonder `Authorization`-header, met
+nep-`tenant_id` en nep-telefoonnummer: `401 {"success":false,"error":"Missing or invalid
+Authorization header"}`. Die melding komt uit `_shared/auth.ts` en wordt afgehandeld door de
+nieuwe `AuthError`-tak, dus guard én statuscode-correctie zijn allebei live. De probe ging
+bewust via POST met body — de guard staat ná het uitlezen ervan, dus een lege GET zou op het
+JSON-parsen stranden en niets bewijzen.
 
 **Observatie voor later, geen gat.** `send-push-notification` gebruikt `X-Internal-Secret` —
 het **vierde** mechanisme voor hetzelfde doel, naast `x-cron-secret`, het verwijderde

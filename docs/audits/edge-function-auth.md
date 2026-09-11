@@ -100,6 +100,14 @@ Daarbij: de `catch` gaf voor élke fout een 500, ook voor een auth-fout. Nu vang
 `AuthError` eerst af, zodat een onbevoegde aanroep een eerlijke 401 krijgt. En de import van
 `supabase-js` is van `@2` naar `@2.57.2` gepind (**R2**).
 
+> **Uitgerold en geverifieerd — 11 sep 2026.** POST zonder `Authorization`-header, met
+> nep-`tenant_id` en nep-telefoonnummer:
+> `401 {"success":false,"error":"Missing or invalid Authorization header"}`.
+> Dat is de melding uit `_shared/auth.ts`, afgehandeld door de nieuwe `AuthError`-tak — dus
+> zowel de guard als de statuscode-correctie zijn live. De probe ging bewust via POST met
+> body: de guard staat ná het uitlezen daarvan, dus een lege GET zou op het JSON-parsen
+> stranden en niets bewijzen.
+
 ---
 
 ## Nog te doen
