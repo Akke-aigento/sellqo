@@ -1,3 +1,80 @@
+## AUTH-TRIAGE-1 — eerste vijf publieke edge functions nagelezen — 11 september 2026
+
+**Aanleiding.** PUBLIC-FN-1 stelde vast dat 227 van de 229 edge functions publiek bereikbaar
+zijn, en dat een steekproef van vijf er meteen drie opleverde zonder enige controle. Deze
+batch is de eerste van de gerichte triage: de vijf functies met de grootste blast radius,
+per stuk gelezen.
+
+**Uitkomst: vier vrijgesproken, één gat.**
+
+| Functie | Oordeel | Bewijs |
+|---|---|---|
+| `create-invite-account` | bewust publiek | UUID-token, `expires_at` gecontroleerd (r. 76), eenmalig via `accepted_at` (r. 72), `revoked`/`rejected` afgevangen (r. 73) |
+| `fetch-invitation` | bewust publiek | zelfde UUID-token; status via RPC `get_invitation_effective_status`; houdt rekening met `tenant_access_revocations` |
+| `resolve-tenant-action` | bewust publiek | regel 1: *"PUBLIEKE resolver. Het token IS de autorisatie."* Valideert bestaan, `completed`, `revoked`, `expired`, actietype |
+| `send-push-notification` | auth aanwezig | `X-Internal-Secret` tegen `internal_config`, r. 106-114, vóór enig werk |
+| **`send-whatsapp-message`** | **gat** | geen enkele controle — zie hieronder |
+
+**Root cause van het gat.** `send-whatsapp-message` nam `tenant_id`, `to_phone` en
+`template_type` uit de body en verstuurde daarmee een WhatsApp-bericht via het access token
+van die tenant. Geen autorisatie, in geen enkele vorm.
+
+Wat het beperkte: er moet een actieve `whatsapp_connections`-rij zijn en het template moet
+`approved` zijn. **De inhoud lag dus vast, de ontvanger niet.** Dat maakt het een
+spam-/phishingkanaal vanaf een geverifieerd zakelijk nummer, op kosten van de tenant.
+
+**Impact vandaag is nul, en dat is toeval:** nul WhatsApp-connecties, nul goedgekeurde
+templates, dus elke aanroep krijgt "WhatsApp not configured for this tenant". Net als bij
+`automation-scheduler` wordt dit een echt gat op het moment dat de functie in gebruik gaat.
+
+**Uitgevoerd.**
+
+- **`send-whatsapp-message/index.ts`** — `await authenticateRequest(req, tenant_id)` ná het
+  uitlezen van de body en vóór het ophalen van de connectie. Dat is het
+  resolve-then-authorize-patroon dat de rest van de codebase gebruikt (vgl. `refund-invoice`,
+  `pos-refund-payment`): eerst weten om welke tenant het gaat, dan autoriseren tegen díe
+  tenant. Gebruikersauth en geen cron-auth, want de functie heeft drie legitieme aanroepers in
+  de UI: `useWhatsAppMessages.ts:27`, `ComposeDialog.tsx:252`, `ReplyComposer.tsx:195`.
+- **Catch-blok** — ving élke fout af als 500, ook een auth-fout. `AuthError` wordt nu eerst
+  afgehandeld via `authErrorResponse`, zodat een onbevoegde aanroep een eerlijke 401 krijgt
+  in plaats van een 500.
+- **Import gepind** van `supabase-js@2` naar `@2.57.2` (**R2**).
+- **`docs/audits/edge-function-auth.md`** (nieuw) — het triagedossier, met per functie het
+  oordeel en de regelverwijzing, zodat niemand ze nog eens hoeft na te lopen.
+
+**Security-keuzes.** Eén publiek endpoint gaat dicht, met tenant-scope. Geen RLS, policy of
+grant geraakt. De vier vrijgesproken functies zijn **niet aangeraakt** — er is aan hun gedrag
+niets gewijzigd.
+
+**Gedeelde-paden-waarschuwing.** `_shared/auth.ts` is niet gewijzigd, alleen geïmporteerd door
+één functie extra. Geen andere functie wordt anders gebundeld.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| Aanroepers van `send-whatsapp-message` | 3, alle in de admin-UI — die sturen een gebruikerssessie mee en blijven dus werken |
+| WhatsApp-connecties / goedgekeurde templates | 0 / 0 — vandaar dat de impact nu nul is |
+| `npx eslint` op het bestand | schoon, geen meldingen |
+| `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
+| `authErrorResponse(err, corsHeaders)` | signatuur gecontroleerd in `_shared/auth.ts:144` |
+
+**Nog niet uitgerold.** R6: pas ná de deploy is te bewijzen dat een aanroep zonder sessie een
+401 geeft.
+
+**Observatie voor later, geen gat.** `send-push-notification` gebruikt `X-Internal-Secret` —
+het **vierde** mechanisme voor hetzelfde doel, naast `x-cron-secret`, het verwijderde
+`X-Sync-Secret` en de letterlijke sleutelvergelijking uit ADS-CRON-1. De vergelijking is daar
+bovendien niet constant-time. Kandidaat om op te laten gaan in `isAuthorizedCronRequest`.
+
+**Vervolg.** Tien functies te gaan in deze triage (`send-payment-request-email`,
+`create-invoice-payment-link`, `create-cycle-payment-link`, `create-checkout-session`,
+`create-bank-transfer-order`, `dispatch-payment-request`, `create-credit-note-from-return`,
+`process-gift-card-purchase`, `generate-payment-request-pdf`,
+`generate-subscription-invoice-pdf`), daarna de resterende ~53 in batches van vijf.
+
+---
+
 ## PUBLIC-FN-1 — drie publieke edge functions zonder enige auth — 11 september 2026
 
 **Root cause.** Twee dingen die elkaar versterken.

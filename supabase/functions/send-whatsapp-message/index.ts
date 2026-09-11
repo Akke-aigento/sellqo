@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +47,14 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Autoriseer tegen de tenant uit de body — het resolve-then-authorize-patroon
+    // dat deze codebase overal gebruikt (vgl. refund-invoice, pos-refund-payment).
+    // Hier stond niets: wie `{tenant_id, to_phone, template_type}` POSTte, verstuurde
+    // een WhatsApp-bericht met het access token van die tenant naar een willekeurig
+    // nummer. Het goedgekeurde template beperkte de inhoud, niet de ontvanger.
+    // Zie docs/audits/edge-function-auth.md.
+    await authenticateRequest(req, tenant_id);
 
     // Get WhatsApp connection for tenant
     const { data: connection, error: connectionError } = await supabase
@@ -181,6 +190,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // AuthError eerst: anders zou een 401 als 500 terugkomen.
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error sending WhatsApp message:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
