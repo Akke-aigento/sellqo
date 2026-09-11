@@ -64,8 +64,8 @@ export interface BolCampaign {
   campaignId: string;
   name?: string;
   state?: string;
+  /** `AUTO` (bol.com kiest de zoekwoorden) of `MANUAL`. Dit is de targeting. */
   campaignType?: string;
-  targetingType?: string;
   dailyBudget?: { amount?: number };
   totalBudget?: { amount?: number };
   startDate?: string;

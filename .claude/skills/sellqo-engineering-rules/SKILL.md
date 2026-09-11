@@ -159,6 +159,32 @@ aanwees.
 Controleer bij een `|| fallback` op een DB-waarde of het linkerdeel ooit iets
 oplevert.
 
+**Een `onConflict`-doel is óók een naam die geverifieerd moet worden.** Elke
+`upsert(..., { onConflict: "a,b,c" })` wijst een unieke index aan. Bestaat die
+niet — of dekt hij nét andere kolommen — dan weigert PostgreSQL de hele
+operatie met `42P10`. Controleer het tegen `pg_indexes`, niet tegen je
+verwachting van het schema:
+```sql
+select indexname, indexdef from pg_indexes
+where schemaname = 'public' and tablename = '<tabel>' and indexdef ilike '%unique%';
+```
+Let daarbij op nullable kolommen in de index. De standaard is `NULLS
+DISTINCT`, en `NULL` is dan nooit gelijk aan `NULL`: rijen die op elke
+niet-lege kolom identiek zijn, gelden niet als duplicaat en worden elke run
+opnieuw toegevoegd. Bij een index over nullable kolommen hoort `NULLS NOT
+DISTINCT` (PostgreSQL 15+).
+**Incident (ADS-REBUILD-1, 11 sep 2026):** vier van de zes wegschrijfacties in
+`ads-bolcom-sync` en `ads-bolcom-reports` noemden een index die nooit heeft
+bestaan, en de enige die er wél was dedupliceerde niet omdat `adgroup_id` en
+`keyword_id` `NULL` zijn bij campagnerijen. Het viel niet op doordat de
+bol.com-fetch ervóór al faalde: er kwam nooit een rij bij de upsert aan. Was
+alleen het API-pad gerepareerd, dan was het probleem verschoven van "fetch
+faalt" naar "upsert faalt" — even stil, want `if (!error) teller++; else
+console.error(...)` meldt zich groen met een teller op nul.
+**Les:** de verificatie stopt niet bij tabel- en kolomnamen. Alles wat in een
+query een naam noemt — een tabel, een kolom, een index, een constraint — is een
+aanname tot je hem hebt opgezocht.
+
 ## R9 — Een native plugin wijzigen = beide platforms syncen én committen.
 Een `@capacitor/*`-dependency toevoegen of verwijderen is pas af na
 `npx cap sync` én het committen van de drie gegenereerde manifesten:

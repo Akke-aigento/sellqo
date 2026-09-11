@@ -134,8 +134,25 @@ Deno.serve(async (req) => {
           bolcom_campaign_id: bolCampaignId,
           name: bc.name || `Campaign ${bolCampaignId}`,
           status: toStatus(bc.state, "unknown"),
-          campaign_type: bc.campaignType?.toLowerCase() || "manual",
-          targeting_type: bc.targetingType?.toLowerCase() || "manual",
+          // `campaignType` van bol.com is de campagnemodus — AUTO betekent dat
+          // bol.com zelf de zoekwoorden kiest, MANUAL dat je ze zelf bepaalt. Dat
+          // is de targeting, niet het advertentieproduct. Het hoort dus in
+          // `targeting_type`, en wel in hoofdletters: de RadioGroup in
+          // BolCampaignEditForm kent exact de waarden "AUTO" en "MANUAL".
+          //
+          // Met het oude kleine-letter "manual" matchte geen van beide opties en
+          // stond de knop "campagne modus" bij élke campagne op niets
+          // geselecteerd. Een dode affordance, en een stille: er kwam geen fout,
+          // de radio was gewoon leeg.
+          //
+          // `targetingType` bestaat helemaal niet in v11, dus de oude
+          // `|| "manual"`-terugval vuurde altijd — precies het patroon uit R8: een
+          // fallback die altijd vuurt is geen robuustheid maar een symptoom.
+          //
+          // Deze hele API is Sponsored Products; dat is wat `campaign_type`
+          // hoort te zeggen. Het is ook de kolomdefault.
+          campaign_type: "sponsored_products",
+          targeting_type: bc.campaignType ? String(bc.campaignType).toUpperCase() : "AUTO",
           daily_budget: bc.dailyBudget?.amount ?? null,
           total_budget: bc.totalBudget?.amount ?? null,
           start_date: bc.startDate || null,

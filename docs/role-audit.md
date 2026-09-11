@@ -75,6 +75,26 @@ gevoelig en er is geen testomgeving gevonden, dus alles is tegen de gepubliceerd
 specificaties geschreven. De echte verificatie gebeurt op de reguliere cron ná de deploy, niet
 met handmatige probes.
 
+**Naschrift (15:40) — een vijfde fout, gevonden in de eerste echte data.**
+Zodra bol.com-velden binnenkwamen bleek `targeting_type` bij alle vier de campagnes op
+`"manual"` te staan. Oorzaak: `targetingType` bestaat niet in v11, dus de terugval
+`bc.targetingType?.toLowerCase() || "manual"` vuurde altijd — het patroon uit R8, nu in
+zijn eigen regel opgenomen. Wat bol.com wél stuurt is `campaignType: AUTO | MANUAL`, en
+dat ís de targeting: AUTO betekent dat bol.com de zoekwoorden kiest.
+
+Dat maakte een knop dood. `BolCampaignEditForm.tsx:144` heeft een RadioGroup "campagne
+modus" met exact de waarden `AUTO` en `MANUAL`; met kleine letters matchte geen van
+beide opties en stond de knop bij élke campagne op niets geselecteerd. Geen foutmelding,
+gewoon leeg. Nagetrokken dat er geen check-constraint op de kolom zit en dat
+`campaign_type` van een bol-campagne nergens gerenderd wordt (alleen gedeclareerd in de
+Props), dus beide konden veilig recht: `targeting_type` krijgt bol.com's eigen waarde in
+hoofdletters, `campaign_type` wordt `sponsored_products` — de kolomdefault, en wat deze
+API feitelijk is. De eerstvolgende sync werkt de bestaande rijen vanzelf bij.
+
+Geen `tsc` of `npm run build` voor dit naschrift: beide dekken alleen `src/`, en er is
+geen bestand in `src/` gewijzigd. ESLint (die `supabase/functions/**` wél dekt) is
+schoon op beide bestanden.
+
 **Vervolg.**
 
 1. Uitrollen via Lovable — beide functies plus het nieuwe `_shared`-bestand (R6: een gewijzigd
