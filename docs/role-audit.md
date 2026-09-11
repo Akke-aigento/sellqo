@@ -91,8 +91,50 @@ worden nooit getypecheckt (**R7/R8**).
 
 **Deploy-volgorde is een harde eis.** Eerst de twee edge functions uitrollen, dán de
 migratie. Andersom stuurt de cron een header die de oude code negeert en blijft alles 401 —
-met het verschil dat je denkt dat het opgelost is. **Niet door mij gedeployed** (R6): dat
-gaat via de connector of via Akke.
+met het verschil dat je denkt dat het opgelost is.
+
+### Uitgerold en geverifieerd — 11 september 2026, 10:30 UTC
+
+Akke heeft de functies uitgerold, daarna is de migratie via `query_database` gedraaid.
+
+**Publishen op Lovable rolde de edge functions níet uit.** De code kwam via de
+GitHub-sync binnen — `cronAuth.ts` stond wel in het Lovable-project — maar Lovable
+deployt alleen wat zijn eigen agent schrijft. De probe bewees dat: `ads-inventory-watch`
+antwoordde nog steeds `"Missing or invalid Authorization header"`, een string uit
+`_shared/auth.ts` die de nieuwe versie niet meer importeert. Dat is een variant op R6 die
+nergens vastlag.
+
+| Controle | Uitkomst |
+|---|---|
+| Deploy geland | `ads-inventory-watch` antwoordt nu `"Unauthorized"` i.p.v. `"Missing or invalid Authorization header"` |
+| Vier jobs herplant | zelfde jobids (7, 10, 11, 12) — vervangen, geen duplicaten |
+| `x-cron-secret` aanwezig / `Bearer` weg | alle vier ✓ |
+| Schema's ongewijzigd | `*/15`, `*/30`, `0 0,6,12,18`, `0 2` ✓ |
+| Zonder secret | 401 ✓ |
+| Mét het juiste secret | 200 — `{"message":"No advertised products found","paused":0,"resumed":0}` |
+| **Echte cron-run 10:30** | `ads-bolcom-scheduler` → 200, `{"mode":"sync","downstream":"ads-bolcom-sync","success_count":1,"fail_count":0}` |
+| | `ads-inventory-watch` → 200 |
+| | **geen enkele 401 meer** |
+| `ads_bolcom_campaigns` | bijgewerkt om **10:30:06** — eerste update sinds 6 mei 2026 |
+
+**Wat hiermee nog níet bewezen is.** De downstream meldde
+`{"campaigns_synced":4,"adgroups_synced":0,"keywords_synced":0,"products_synced":0}`, en
+`ads_bolcom_adgroups`, `_keywords`, `_search_terms` en `_performance` zijn nog leeg. Dat kan
+kloppen — drie van de vier campagnes staan op `paused` en `?mode=reports` draait pas om
+12:00 — maar het kan ook een tweede probleem zijn in `ads-bolcom-sync` zelf. **De
+auth-keten is hersteld; of bol.com daadwerkelijk adgroups en keywords teruggeeft is een
+losse vraag.** Eerste ijkpunt: `ads_bolcom_performance` na de run van 12:00.
+
+**Migratie-administratie.** De migratie is via `query_database` uitgevoerd, niet via
+`supabase db push`, dus `supabase_migrations.schema_migrations` kent hem niet. Een latere
+`db push` voert het bestand opnieuw uit. Dat is veilig — `cron.schedule` met een bestaande
+naam vervangt de job — maar het is geen nette staat.
+
+**Terzijde: pg_net-time-outs.** In de run van 10:25 en 10:30 stonden drie antwoorden met
+`status_code = null` en "Timeout of 5000 ms reached". Dat is pg_net's standaardlimiet, niet
+iets wat deze batch introduceert: over de hele bewaarde historie is 119 van de 287
+antwoorden een time-out. De functie draait waarschijnlijk gewoon door; we zien alleen het
+antwoord niet. Hoort thuis in de monitoring-vraag uit `docs/cron-inventaris.md` §6.
 
 **Bewust ongemoeid.** Er zijn **69 bestanden** in `supabase/functions/` met een ongepinde
 `supabase-js@2`-import. Ik heb alleen de twee aangeraakte functies gepind; de overige 67 zijn
