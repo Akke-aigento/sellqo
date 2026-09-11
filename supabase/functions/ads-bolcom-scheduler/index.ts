@@ -1,9 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
 type Mode = "sync" | "reports" | "ai";
@@ -17,21 +17,22 @@ const MODE_FUNCTION_MAP: Record<Mode, string> = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const authHeader = req.headers.get("Authorization");
-  const expectedAnon = `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`;
-  const expectedService = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-  if (authHeader !== expectedAnon && authHeader !== expectedService) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    await authenticateRequest(req);
+    // Eén auth-pad, en het is een echt geheim. Hier stonden er twee: een
+    // letterlijke vergelijking met `Bearer ${SUPABASE_ANON_KEY}` en daarnaast
+    // `authenticateRequest()`, dat een gebruikers-JWT verwacht. Een cron heeft
+    // geen gebruiker, en de anon-sleutel die de cron meestuurt bleek niet gelijk
+    // aan wat Supabase in deze runtime injecteert. Resultaat: drie jobs die
+    // sinds 6 mei 2026 elke run een 401 kregen. Zie docs/cron-inventaris.md.
+    if (!(await isAuthorizedCronRequest(req, createClient(supabaseUrl, serviceKey)))) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const url = new URL(req.url);
     const mode = (url.searchParams.get("mode") || "sync") as Mode;
@@ -108,9 +109,6 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    if (err instanceof AuthError) {
-      return authErrorResponse(err, corsHeaders);
-    }
     console.error("[ads-bolcom-scheduler] error:", err);
     return new Response(
       JSON.stringify({ success: false, error: err instanceof Error ? err.message : String(err) }),

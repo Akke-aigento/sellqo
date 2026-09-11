@@ -1,10 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
 const BOL_TOKEN_URL = "https://login.bol.com/token";
@@ -80,20 +79,23 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const providedSyncSecret = req.headers.get("X-Sync-Secret");
-    const isCronSecret = !!cronSecret && providedSyncSecret === cronSecret;
-    if (!isCronSecret) {
-      const auth = await authenticateRequest(req);
-      // No tenantId in body → require platform_admin/service_role only.
-      if (!auth.is_platform_admin && auth.user_id !== "service_role") {
-        throw new AuthError("Insufficient role for this action", 403);
-      }
-    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Deze functie wordt uitsluitend door cron aangeroepen (geen enkele
+    // verwijzing vanuit src/). Hier stond een terugval op
+    // `authenticateRequest()` zodra de `X-Sync-Secret`-header ontbrak — en die
+    // ontbrak altijd, want de cron stuurt hem niet. Die helper valideert een
+    // gebruikers-JWT, en een cron heeft geen gebruiker: elke run 401, sinds de
+    // job bestaat. Zie docs/cron-inventaris.md §3a.
+    if (!(await isAuthorizedCronRequest(req, supabase))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const { data: mappings, error: mapErr } = await supabase
       .from("ads_product_channel_map")
@@ -232,9 +234,6 @@ Deno.serve(async (req) => {
 
     return jsonRes({ success: true, paused: pausedCount, resumed: resumedCount });
   } catch (err) {
-    if (err instanceof AuthError) {
-      return authErrorResponse(err, corsHeaders);
-    }
     console.error("ads-inventory-watch error:", err);
     return jsonRes({ error: err instanceof Error ? err.message : String(err) }, 500);
   }

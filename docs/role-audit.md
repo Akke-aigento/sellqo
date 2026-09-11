@@ -1,3 +1,109 @@
+## ADS-CRON-1 — vier cron-jobs die vier maanden lang 401 kregen — 11 september 2026
+
+**Root cause.** Twee edge functions weigerden elke cron-aanroep, om twee verschillende
+redenen. Samen blokkeerden ze vier van de zestien cron-jobs en daarmee de complete
+bol.com-advertentieautomatisering.
+
+**1. `ads-bolcom-scheduler` — een letterlijke sleutelvergelijking.**
+
+```js
+const expectedAnon = `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`;
+const expectedService = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+if (authHeader !== expectedAnon && authHeader !== expectedService) → 401
+```
+
+Geen JWT-validatie maar een stringvergelijking. De sleutel in de cron-commando's is
+identiek aan die in `.env` én aan `internal_config.supabase_anon_key` (alle drie md5
+`748a5e63…`, 208 tekens), dus onze eigen configuratie is consistent. De afwijking zit in wat
+Supabase als `SUPABASE_ANON_KEY` in de functieruntime injecteert — vermoedelijk het nieuwe
+`sb_publishable_…`-formaat. Beide sleutels zijn geldig voor het project; alleen de
+letterlijke vergelijking mislukt. Deze functie is het doel van **drie** jobs
+(`?mode=sync`, `?mode=reports`, `?mode=ai`), dus één fout legde er drie stil.
+
+Er stond bovendien een **tweede** auth-check in dezelfde functie: `authenticateRequest(req)`
+op regel 34. Ook die verwacht een gebruiker.
+
+**2. `ads-inventory-watch` — een cron die een gebruikerssessie moest hebben.**
+De functie kende een cron-pad (`X-Sync-Secret` tegen `Deno.env.CRON_SECRET`), maar de
+cron stuurt die header niet. Daardoor viel hij terug op `authenticateRequest()`, dat een
+gebruikers-JWT valideert (`_shared/auth.ts:77` → `"Invalid or expired token"`). **Een cron
+heeft per definitie geen ingelogde gebruiker**, dus dit kan nooit gewerkt hebben; het is
+geen regressie maar een ontwerpfout.
+
+**Waarom het vier maanden duurde.** `cron.job_run_details` meldde alle zestien jobs als
+`succeeded`, ook deze vier. `net.http_post` is asynchroon: de job registreert dat het
+verzoek in de wachtrij staat, nooit het antwoord. Een 401 geeft exact dezelfde groene regel
+als een 200. Het echte antwoord staat in `net._http_response`, die na enkele uren wordt
+opgeruimd en waar niemand in kijkt.
+
+**Schade.** `ads_bolcom_performance`, `ads_bolcom_keywords`, `ads_bolcom_search_terms` en
+`ads_ai_recommendations` zijn alle vier leeg; `ads_bolcom_campaigns` staat sinds **6 mei
+2026** stil, met één campagne op `active`. De twee regels in `ads_ai_rules` hebben nooit
+data gehad om op te werken.
+
+**Uitgevoerd:**
+
+- **`supabase/functions/_shared/cronAuth.ts`** (nieuw) — één auth-pad voor
+  cron-aangeroepen functies. `x-cron-secret` tegen
+  `internal_config.internal_webhook_secret`, met `Bearer <service-role>` als tweede pad voor
+  handmatige aanroepen. Constant-time vergelijking, overgenomen uit `sync-cron-vault-key`,
+  dat als enige van de drie mechanismen wél werkte. Faalt gesloten: ook een mislukte
+  config-lookup geeft `false`.
+- **`ads-bolcom-scheduler/index.ts`** — beide auth-checks vervangen door
+  `isAuthorizedCronRequest`. De `AuthError`-tak in de catch is weg omdat die helper niet meer
+  geïmporteerd wordt.
+- **`ads-inventory-watch/index.ts`** — idem. Het `X-Sync-Secret`/`CRON_SECRET`-pad is
+  verwijderd; er zijn nu nog twee cron-auth-mechanismen in de codebase in plaats van drie.
+- **Beide functies: de import gepind** van `@supabase/supabase-js@2` naar `@2.57.2`
+  (**R2**). Dat was een directe overtreding van de regel die ooit de auth-laag platlegde.
+- **`supabase/migrations/20260911094416_cron_x_cron_secret_ads_jobs.sql`** (nieuw) — de vier
+  jobs herplannen zodat ze `x-cron-secret` meesturen.
+
+**De anon-sleutel was hier nooit een credential.** Die staat in de frontend-bundel en is
+publiek; ertegen vergelijken hield niemand tegen. De oude opzet was dus schijnveiligheid
+én stuk. `internal_config` heeft RLS aan zonder policies, dus dat secret is wél een secret.
+
+**Security-keuzes.** Het auth-pad van twee edge functions is vervangen. Netto strenger: waar
+de anon-sleutel (publiek) toegang gaf, is dat nu een secret dat alleen service-role kan
+lezen. Geen RLS, policy of grant gewijzigd. Het secret wordt bij élke run opgezocht in
+plaats van bij het plannen, zodat het niet als tekst in `cron.job.command` belandt.
+Nagetrokken dat de cron daarbij kan: `postgres` is eigenaar van `internal_config`, heeft
+`rolbypassrls`, en de tabel heeft `relforcerowsecurity = false`.
+
+**Gedeelde-paden-waarschuwing.** `_shared/cronAuth.ts` is nieuw, dus er zijn precies twee
+consumenten en beide zitten in deze batch — het halve-deploy-scenario uit R6 speelt hier
+niet. `_shared/auth.ts` is **niet** gewijzigd; de functies importeren hem alleen niet meer.
+Alle andere aanroepers ervan blijven ongemoeid.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| `npx eslint` op de drie bestanden | 8 problemen, allemaal bestaande `no-explicit-any` |
+| `node scripts/verify-lint-baseline.mjs` | groen — 1516, gelijk aan de baseline |
+| Imports gepind | alle drie op `@2.57.2` |
+| `internal_config(key, value)` bestaat | live geverifieerd, 3 rijen (**R8**) |
+| Secret leesbaar voor de cron-rol | `select … from internal_config` als `postgres` → 64 tekens ✓ |
+| Gegenereerd cron-commando | `format()` read-only uitgevoerd; URL correct geciteerd, secret niet ingebakken |
+
+**`tsc` zegt hier níets** — `tsconfig.app.json` include't alleen `src`, dus Deno-functies
+worden nooit getypecheckt (**R7/R8**).
+
+**Deploy-volgorde is een harde eis.** Eerst de twee edge functions uitrollen, dán de
+migratie. Andersom stuurt de cron een header die de oude code negeert en blijft alles 401 —
+met het verschil dat je denkt dat het opgelost is. **Niet door mij gedeployed** (R6): dat
+gaat via de connector of via Akke.
+
+**Bewust ongemoeid.** Er zijn **69 bestanden** in `supabase/functions/` met een ongepinde
+`supabase-js@2`-import. Ik heb alleen de twee aangeraakte functies gepind; de overige 67 zijn
+een eigen batch en zouden hier de diff onleesbaar maken.
+
+**Vervolg.** De negen functies die op 28 maart uit de repo verdwenen maar nog draaien
+(§2 van `docs/cron-inventaris.md`), de vijf cron-loze schedulers, en monitoring die wél kan
+falen.
+
+---
+
 ## HOOKS-1 — negen Rules-of-Hooks-schendingen en een lint-poortwachter — 10 september 2026
 
 **Root cause.** Vier componenten riepen hooks voorwaardelijk aan doordat een `return null`
