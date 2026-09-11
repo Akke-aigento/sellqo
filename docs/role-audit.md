@@ -131,11 +131,48 @@ doorlopen, en onvoorwaardelijk `success: true`. Dat getal was dus even onbetrouw
 | `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
 | Statusafhandeling | `ads-bolcom-scheduler:84` gebruikt `res.ok` voor beide modi; 207 valt daarbinnen |
 
-**Vervolg.** `ads-bolcom-reports` moet herbouwd worden op de reporting-API in plaats van
-insights. Dat vraagt eerst de specificatie, en die is niet publiek leesbaar: de ReDoc-pagina
-rendert via JavaScript en `advertiser.json` geeft een 401. Akke kan daar met zijn
-bol.com-toegang wel bij. Tot die tijd staat vast dát het niet werkt, en is dat voortaan
-zichtbaar in de respons in plaats van in een logregel.
+### De volledige foutmelding, en die is ondubbelzinnig — 11 september 2026, 14:20
+
+Na de deploy van alle 238 functies vanaf `a114e32e` is de foutmelding niet meer afgekapt.
+De `?mode=reports`-aanroep levert nu:
+
+```json
+"violations":[{"name":"RESOURCE_NOT_FOUND",
+  "reason":"The requested resource could not be found at '/v1/insights/campaigns'"}]
+```
+
+**`RESOURCE_NOT_FOUND` slaat op het endpoint, niet op de campagne-ID's.** Mijn eerdere
+lezing — "de insights-API kent onze campagnes niet" — was te voorzichtig. Het pad
+`/v1/insights/campaigns` bestaat domweg niet bij bol.com.
+
+Daarmee is het beeld compleet:
+
+| Aanroep | Fout | Betekenis |
+|---|---|---|
+| `insights/campaigns` | `RESOURCE_NOT_FOUND` op het pad | endpoint bestaat niet |
+| `insights/search-terms` | "Unable to read the message" | endpoint bestáát, verkeerde body — het is de bid-onderzoekstool die zoektermen als invoer wil |
+| `insights/keywords` | nooit aangeroepen (`ads_bolcom_keywords` is leeg) | onbekend |
+
+`ads-bolcom-reports` haalt zijn performance-data dus uit een pad dat niet bestaat, en zijn
+zoektermen uit een endpoint met een compleet andere betekenis. Dat is geen regressie maar een
+constructiefout: **deze functie heeft nooit één rij opgeleverd.** Dat verklaart ook waarom
+`ads_bolcom_performance`, `_keywords` en `_search_terms` alle drie leeg zijn en altijd leeg
+zijn geweest.
+
+**Dit is precies waarvoor de R4-fix bedoeld was.** De foutmelding stond al maanden in de
+logs; niemand keek. Nu staat hij in de respons, en daarmee in `net._http_response`, waar een
+query hem vindt.
+
+**Vervolg — een eigen batch.** `ads-bolcom-reports` herbouwen op de *Sponsored products
+reporting API v11*, met de juiste paden. Dat vraagt de specificatie, en die is niet publiek
+leesbaar: de ReDoc-pagina rendert via JavaScript en `advertiser.json` geeft een 401. Akke kan
+daar met zijn bol.com-toegang wel bij. Wat nu al vaststaat en de herbouw stuurt:
+
+- het juiste basispad is niet `…/sponsored-products/insights` (dat is de bid-onderzoeks-API);
+- `ads-bolcom-sync` gebruikt `…/sponsored-products/campaign-management` en dát werkt, dus de
+  authenticatie en de tokenflow zijn in orde — alleen de rapportagepaden kloppen niet;
+- de zoektermen-rapportage is iets anders dan `insights/search-terms` en moet apart gezocht
+  worden.
 
 ---
 
