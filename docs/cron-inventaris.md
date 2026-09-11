@@ -7,9 +7,10 @@ sellqo-project, plus een classificatie van alle 229 functies in `supabase/functi
 `cron.schedule`; de planning van dit project leeft vrijwel volledig in de database en
 nergens in versiebeheer. Verdwijnt een job, dan merkt niemand het.
 
-> **De belangrijkste bevinding staat in §3: twee cron-doelen falen op dit moment bij élke
-> run met een 401, en de bestaande monitoring meldt ze allebei als geslaagd.** Dat is geen
-> toeval maar een constructiefout — zie §4.
+> **De belangrijkste bevinding: vier van de zestien cron-jobs falen bij élke run met een
+> 401, en de bestaande monitoring meldt ze allemaal als geslaagd.** Gevolg: de complete
+> bol.com-advertentieautomatisering ligt stil sinds **6 mei 2026** — vier maanden. Zie §3
+> voor de oorzaken en §4 voor waarom niemand het zag.
 
 ---
 
@@ -52,57 +53,100 @@ terug te vinden is.
 
 ---
 
-## 2. Twee jobs wijzen naar een functie die niet in de repo staat
+## 2. Negen functies staan niet in de repo maar draaien wél
 
 `update-bol-tracking` (elke 5 minuten) en `poll-tracking-status` (elke 30 minuten) hebben
 geen map onder `supabase/functions/`. Beide zijn verwijderd in commit **`b9fa64bd`
 ("Reverted to commit 2573bd41…", 28 maart 2026)** — een revert die tien edge functions
-weghaalde. De cron-jobs zijn nooit meegestopt.
+weghaalde, waarvan alleen `_shared` is teruggekomen.
 
-Van die tien is alleen `_shared` teruggekomen. Negen ontbreken nog steeds:
+**Ze zijn nog gedeployed.** Bewezen met een `net.http_get`-probe vanuit de database, met een
+verzonnen functienaam als controle:
 
-`generate-legal-pages`, `handle-bol-return`, `poll-tracking-status`,
-`process-gift-card-order`, `process-order-refund`, `storefront-contact-form`,
-`sync-bol-products`, `sync-bol-returns`, `update-bol-tracking`.
+| Probe | Status | Antwoord | Conclusie |
+|---|---|---|---|
+| `zzz-bestaat-niet` *(controle)* | 404 | `{"code":"NOT_FOUND","message":"Requested function was not found"}` | zo ziet een échte 404 eruit |
+| `update-bol-tracking` | 500 | `{"error":"Unexpected end of JSON input"}` | draait; struikelt over de lege GET-body |
+| `poll-tracking-status` | 200 | `{"success":true,"updated":0}` | draait en werkt |
+| `handle-bol-return` | 500 | `{"success":false,"error":"Unexpected end of JSON input"}` | draait |
+| `sync-bol-products` | 500 | `{"success":false,"error":"Unexpected end of JSON input"}` | draait |
+| `generate-legal-pages` | 401 | `{"error":"Unauthorized"}` | draait, achter auth |
 
 **Repo-verwijdering is geen undeploy.** Net zoals Lovable een functie wel schrijft maar niet
-uitrolt (R6 in `sellqo-engineering-rules`), haalt het verwijderen van een map de functie
-niet uit Supabase. Er zijn dus twee mogelijkheden, en ze zijn allebei ongewenst:
+uitrolt (R6 in `sellqo-engineering-rules`), haalt het verwijderen van een map hem niet uit
+Supabase. Er draait dus sinds 28 maart productiecode waarvan de bron niet in versiebeheer
+zit — minstens vijf van de negen, en de overige vier zijn niet geprobed.
 
-- De functies dráaien nog — dan staat er sinds maart productiecode live waarvan de bron niet
-  in versiebeheer zit.
-- Ze draaien niet — dan vuurt er sinds maart elke 5 respectievelijk 30 minuten een job in
-  het niets.
+`poll-tracking-status` blijkt bovendien de bron van het `{"success":true,"updated":0}` dat
+in de responslog terugkwam: die halfuurjob is dus gezond.
 
-Welke van de twee het is, is uit de database niet af te lezen. Het staat in de Edge
-Functions-lijst van het Supabase-dashboard: staat de functie daar met een `deployed_at`, dan
-is het de eerste.
+> **Methode, voor hergebruik.** Of een edge function gedeployed is, is niet uit de database
+> af te lezen — maar wél te meten. Een `net.http_get` naar `…/functions/v1/<naam>` geeft bij
+> een onbekende functie een gateway-404 (`NOT_FOUND`) vóór er code draait. Neem altijd een
+> verzonnen naam als controle mee, anders weet je niet hoe een echte 404 eruitziet. Gebruik
+> GET en geen POST: zonder body struikelen de meeste functies op het parsen en voeren ze
+> geen werk uit.
 
----
+## 3. Vier jobs falen — met twee verschillende oorzaken
 
-## 3. Twee doelen falen nu, bij elke run
+`net._http_response` bewaart de antwoorden van `net.http_post`. Over zes uur:
 
-`net._http_response` bewaart de antwoorden van `net.http_post`. Over de laatste zes uur:
-
-| Antwoord | Aantal | Patroon | Oordeel |
+| Antwoord | Aantal | Patroon | Job(s) |
 |---|---|---|---|
-| `{"success":true,…}` diverse | 131 | — | in orde |
-| `{"success":false,"error":"Invalid or expired token"}` | 24 | `:00 :15 :30 :45` | **faalt** |
-| `{"error":"Unauthorized"}` | 13 | `:00 :30` | **faalt** |
+| `{"success":true,…}` diverse | 131 | — | de gezonde twaalf |
+| `{"success":false,"error":"Invalid or expired token"}` | 24 | `:00 :15 :30 :45` | `ads-inventory-watch` (7) |
+| `{"error":"Unauthorized"}` | 13 | `:00 :30` | `ads-bolcom-scheduler` (10, 11, 12) |
 | *(null)* | 119 | — | time-out of nog niet afgerond |
 
-**Het kwartierpatroon is eenduidig.** Er is precies één job met `*/15 * * * *`:
-`ads-inventory-watch` (jobid 7). Die functie **draait** — het antwoord is
-applicatieniveau, geen gateway-fout — en verwerpt vervolgens zijn eigen token. Elke vijftien
-minuten, de klok rond.
+Beide toegewezen met dezelfde GET-probe als in §2.
 
-**De halfuurfout is nog niet op één job vast te pinnen.** `{"error":"Unauthorized"}` is de
-gateway-vorm, dus daar kwam geen functiecode aan te pas. Er zijn drie kandidaten met
-`*/30 * * * *`: `sync-bol-inventory` (5), `poll-tracking-status` (6) en
-`ads-bolcom-scheduler` (10). Ze gebruiken hetzelfde token, dus het verschil zit in de
-functie. Te bepalen met de per-functie-logs in het Supabase-dashboard; dat is één blik.
+### 3a. `ads-inventory-watch` — een cron met een gebruikerssessie
 
----
+De functie importeert `_shared/auth.ts` (regel 2) en roept `authenticateRequest` aan. Die
+valideert een **gebruikers-JWT**: `_shared/auth.ts:77` gooit `"Invalid or expired token"`.
+De cron stuurt de **anon-sleutel** als bearer — en dat is geen gebruikerstoken.
+
+**Een cron-job heeft per definitie geen ingelogde gebruiker.** Dit kan dus nooit gewerkt
+hebben; het is geen regressie maar een ontwerpfout. Bevestigd door de probe: zonder header
+antwoordt hij `"Missing or invalid Authorization header"`, mét de anon-sleutel
+`"Invalid or expired token"` — twee takken van dezelfde helper.
+
+> **Terzijde, en het is een R2-overtreding.** Regel 1 van deze functie importeert
+> `https://esm.sh/@supabase/supabase-js@2` — **ongepind**. Precies de constructie die volgens
+> `sellqo-engineering-rules` R2 ooit de hele auth-laag platlegde toen een redeploy die
+> specifier liet doorlopen naar een nieuwere v2.x.
+
+### 3b. `ads-bolcom-scheduler` — een letterlijke sleutelvergelijking
+
+```js
+const expectedAnon = `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`;
+const expectedService = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+if (authHeader !== expectedAnon && authHeader !== expectedService) → 401
+```
+
+Geen JWT-validatie maar een **string-vergelijking**. De sleutel in de cron-commando's is
+identiek aan die in `.env` (zelfde md5, 208 tekens), dus het verschil moet zitten in wat
+Supabase als `SUPABASE_ANON_KEY` in de functie-omgeving injecteert — vermoedelijk het nieuwe
+`sb_publishable_…`-formaat in plaats van de oude JWT. Beide sleutels zijn geldig voor het
+project; alleen de letterlijke vergelijking mislukt.
+
+Dit raakt **drie** jobs tegelijk, want alle drie wijzen op dezelfde functie: `ads-bolcom-sync`
+(elke 30 min), `ads-bolcom-reports` (4× per dag) en `ads-ai-engine` (dagelijks 02:00).
+
+### 3c. Wat het gekost heeft
+
+De bol.com-advertentiemodule levert geen data:
+
+| Tabel | Rijen |
+|---|---|
+| `ads_bolcom_campaigns` | 4, **laatst bijgewerkt 6 mei 2026** |
+| `ads_bolcom_performance` | 0 |
+| `ads_bolcom_keywords` | 0 |
+| `ads_bolcom_search_terms` | 0 |
+| `ads_ai_recommendations` | 0 |
+
+Eén campagne staat op `active`. Er is sinds 6 mei geen enkel prestatiecijfer binnengekomen —
+vier maanden. De AI-regels (`ads_ai_rules`, 2 rijen) hebben nooit iets gehad om op te werken.
 
 ## 4. Waarom niemand dit zag — en dat is de echte les
 
@@ -170,21 +214,25 @@ naamreferenties werkt, niet omdat ze bewezen dood zijn.
 
 ## 6. Wat hieruit volgt
 
-Op volgorde van urgentie:
-
-1. **De twee 401's oplossen.** `ads-inventory-watch` faalt elk kwartier; dat is bewezen. De
-   halfuurfout eerst toewijzen aan een job via de dashboard-logs.
-2. **Uitzoeken of de negen verwijderde functies nog gedeployed zijn.** Zo ja: bron terug in
-   de repo of undeployen. Zo nee: de twee cron-jobs stoppen.
-3. **De vijf cron-loze schedulers nalopen** — dood, of een verdwenen schema.
-4. **De planning in versiebeheer brengen.** Een migratie die de zestien schema's
-   idempotent (her)plant, zodat de repo de waarheid wordt in plaats van de database.
-5. **Monitoring die wél kan falen.** Zolang `net.http_post` asynchroon is, moet de
-   controle uit `net._http_response` komen — of de functies moeten zelf hun laatste
-   succesvolle run wegschrijven, zodat "wanneer draaide dit voor het laatst" een gewone
-   query wordt.
-
----
+1. **`ads-bolcom-scheduler` repareren** — grootste opbrengst, kleinste ingreep. De
+   letterlijke sleutelvergelijking vervangen. Het juiste patroon staat al in deze codebase:
+   `sync-cron-vault-key` vergelijkt een `x-cron-secret`-header met een waarde uit
+   `internal_config`. Dat werkt ongeacht welk sleutelformaat Supabase injecteert. Herstelt
+   drie jobs in één keer.
+2. **`ads-inventory-watch` herontwerpen.** `authenticateRequest` verwacht een gebruiker; een
+   cron heeft die niet. Zelfde cron-secret-patroon, of service-role. Meteen de ongepinde
+   `@2`-import rechttrekken (R2).
+3. **De negen niet-gecommitte functies terughalen of undeployen.** Er draait productiecode
+   zonder bron. Per functie kiezen: bron terug in de repo (uit `b9fa64bd^`) of uitzetten. Voor
+   `poll-tracking-status` en `update-bol-tracking` geldt bovendien dat hun cron-jobs actief
+   zijn, dus uitzetten betekent ook de job stoppen.
+4. **De vijf cron-loze schedulers nalopen** — dood, of een verdwenen schema (§5).
+5. **De planning in versiebeheer brengen.** Een migratie die de zestien schema's idempotent
+   (her)plant, zodat de repo de waarheid wordt.
+6. **Monitoring die wél kan falen.** Zolang `net.http_post` asynchroon is, moet de controle
+   uit `net._http_response` komen — of elke cron-functie schrijft zijn laatste geslaagde run
+   weg, zodat "wanneer draaide dit voor het laatst" een gewone query wordt. Een dagelijkse
+   check op die tabel had dit vier maanden eerder gezien.
 
 ## 7. Beperkingen van dit document
 
