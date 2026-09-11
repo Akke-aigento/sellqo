@@ -1,10 +1,11 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
 interface AutomationRun {
@@ -27,6 +28,16 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Publiek bereikbaar: deze functie staat niet op `verify_jwt = true`, en de
+    // gedeployede default in dit project is `false` — nagetrokken op 11 sep 2026
+    // met een probe. Zonder deze guard kon iedereen hem aanroepen.
+    if (!(await isAuthorizedCronRequest(req, supabase))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Find scheduled runs that are due
     const { data: dueRuns, error: runsError } = await supabase

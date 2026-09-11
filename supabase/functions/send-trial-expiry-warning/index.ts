@@ -3,10 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -31,6 +32,17 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Publiek bereikbaar: deze functie staat niet op `verify_jwt = true`, en de
+    // gedeployede default in dit project is `false` — nagetrokken op 11 sep 2026
+    // met een probe, die hem ongeauthenticeerd volledig liet draaien (200,
+    // `{"warnings_sent":0}`). Zonder deze guard kon iedereen hem aanroepen.
+    if (!(await isAuthorizedCronRequest(req, supabase))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Find trials expiring within 23-25 hours (roughly "tomorrow")
     const now = new Date();

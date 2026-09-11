@@ -50,7 +50,7 @@ Mijn inschatting na de brede scan. De onderbouwing staat in §2 t/m §5.
 | **Bundle** | 🟠 aandacht | Eén JS-chunk van 9,1 MB |
 | **Correctheid (hooks)** | 🔴 bug | 9 × `rules-of-hooks`; `BolActionsCard` kan het orderscherm laten crashen |
 | **Testdekking & CI** | 🔴 zwak | 7 testbestanden; geen lintstap in CI, dus de 9 hierboven vallen nergens om |
-| **Auth op edge functions** | ⚫ niet vast te stellen | Zie §4c — met grep niet te beantwoorden, vraagt een echte review |
+| **Auth op edge functions** | 🔴 gat | 227 van 229 publiek bereikbaar (§4c); eerste steekproef gaf 3 functies zonder enkele check |
 | **Gebruik in productie** | ℹ️ context | 98% van alle omzet zit bij één tenant, op een custom frontend (§9a) |
 
 ---
@@ -261,9 +261,29 @@ waarheid over de beveiliging. Dat is een SQL-vraag (§7).
 
 ### 4c. Wat ik níet kan beoordelen — en waarom ik het toch meld
 
+> **Correctie, 11 september 2026.** Wat hieronder stond klopte niet, en het scheelde een
+> factor anderhalf. Ik nam aan dat een functie zónder entry in `config.toml` op de
+> Supabase-default `verify_jwt = true` valt. **Dat is hier niet zo.** Met probes vastgesteld:
+>
+> | Functie | In `config.toml` | Antwoord zonder auth |
+> |---|---|---|
+> | `nano-studio` | `verify_jwt = true` | gateway blokkeert — `UNAUTHORIZED_NO_AUTH_HEADER` |
+> | `process-email-queue` | `verify_jwt = true` | gateway blokkeert |
+> | `scanner-context` | ontbreekt | `invalid scanner token` — eigen code draaide |
+> | `odoo-list-taxes` | ontbreekt | `tenant_id is required` (400) — eigen code draaide |
+>
+> De gedeployede default is dus **`false`**. Niet 152 maar **227 van de 229** edge functions
+> zijn publiek bereikbaar; alleen die twee worden door de gateway beschermd. Elke andere moet
+> zijn eigen auth doen.
+>
+> De eerste steekproef daarop leverde meteen drie functies zónder enkele check:
+> `automation-scheduler`, `check-scheduled-notifications` en `send-trial-expiry-warning` —
+> die laatste draaide ongeauthenticeerd volledig door (200). Gerepareerd in PUBLIC-FN-1;
+> zie `docs/role-audit.md`.
+
 152 van de 154 in `config.toml` geconfigureerde edge functions staan op
-`verify_jwt = false`. De overige 75 functions hebben geen config-entry en vallen daarmee op
-de Supabase-default (`true`).
+`verify_jwt = false`. De overige 75 functions hebben geen config-entry — en zijn,
+anders dan hier oorspronkelijk stond, óók publiek bereikbaar.
 
 Ik heb geprobeerd te meten hoeveel van die 152 hun eigen auth doen. **Dat is mislukt, en
 dat is het eerlijke antwoord.** Met een smalle markerlijst kwam ik op "24 zonder check";

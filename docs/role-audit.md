@@ -1,3 +1,89 @@
+## PUBLIC-FN-1 — drie publieke edge functions zonder enige auth — 11 september 2026
+
+**Root cause.** Twee dingen die elkaar versterken.
+
+**1. De gedeployede `verify_jwt`-default is `false`, niet `true`.** `supabase/config.toml`
+zet 152 functies expliciet op `false` en twee expliciet op `true`; de overige 75 hebben geen
+entry. De aanname — ook in `sellqo-brede-diagnose.md` §4c — was dat die op de
+Supabase-default `true` vallen. Met probes weerlegd:
+
+| Functie | In `config.toml` | Antwoord zonder auth |
+|---|---|---|
+| `nano-studio` | `verify_jwt = true` | gateway blokkeert (`UNAUTHORIZED_NO_AUTH_HEADER`) |
+| `process-email-queue` | `verify_jwt = true` | gateway blokkeert |
+| `scanner-context` | ontbreekt | `invalid scanner token` — **eigen code draaide** |
+| `odoo-list-taxes` | ontbreekt | `tenant_id is required` (400) — **eigen code draaide** |
+
+**227 van de 229 edge functions zijn dus publiek bereikbaar.** Alleen die twee worden door
+de gateway beschermd; elke andere moet zijn eigen auth doen.
+
+**2. Drie functies deden dat niet.** Gevonden bij het nalopen van de vijf "cron-vormige
+functies zonder cron-job" uit `docs/cron-inventaris.md` §5:
+
+| Functie | Probe zonder auth | `verify_jwt` |
+|---|---|---|
+| `send-trial-expiry-warning` | **200** — `{"warnings_sent":0}`, volledig uitgevoerd | niet in config |
+| `check-scheduled-notifications` | draaide door tot de pg_net-time-out van 5s | niet in config |
+| `automation-scheduler` | draaide, 500 op een interne fout | **`false`** |
+
+Alle drie gaan van `OPTIONS` rechtstreeks de `try` in; er zat geen enkele controle tussen.
+`automation-scheduler` is de vervelendste: die verstuurt e-mail via Resend
+(`resend.emails.send`, regel 222) en verwerkt tot 50 openstaande automation-runs per
+aanroep.
+
+**Impact vandaag: nul, en dat is toeval.** `automation_runs` en `email_automations` zijn
+allebei leeg, dus elke aanroep geeft "No runs due". Maar er staan **67 nieuwsbrief-abonnees**
+in de database. Zodra iemand de automations in gebruik neemt, is dit een ongeauthenticeerde
+trigger om ze te mailen.
+
+**Uitgevoerd.** Alle drie krijgen `isAuthorizedCronRequest` uit `_shared/cronAuth.ts` — de
+helper uit ADS-CRON-1, die `x-cron-secret` vergelijkt met
+`internal_config.internal_webhook_secret` en anders service-role accepteert. De guard staat
+in alle drie ná het aanmaken van de service-role-client en vóór het eerste werk.
+`corsHeaders` gebruikt nu `CRON_ALLOWED_HEADERS`. Bij
+`check-scheduled-notifications` is de import van `supabase-js` meteen van `@2` naar
+`@2.57.2` gepind (**R2**).
+
+**Waarom cron-auth en niet gebruikersauth.** Geen van de drie wordt aangeroepen vanuit
+`src/`, vanuit een andere edge function of vanuit een migratie — nagetrokken, nul treffers
+in alle drie de richtingen. Het zijn scheduler-functies zonder menselijke aanroeper.
+Dichtzetten breekt dus niets wat nu werkt.
+
+**Security-keuzes.** Dit ís de security-keuze: drie publieke endpoints gaan dicht. Geen RLS,
+policy of grant geraakt. De guard faalt gesloten — ook een mislukte lookup van het secret
+geeft `false`.
+
+**Gedeelde-paden-waarschuwing.** `_shared/cronAuth.ts` is niet gewijzigd, alleen bij drie
+extra functies geïmporteerd. Het aantal consumenten gaat van twee naar vijf; alle vijf zitten
+in ADS-CRON-1 of deze batch. Geen andere functie wordt anders gebundeld.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| Aanroepers vóór de wijziging | 0 in `src/`, 0 in andere functies, 0 in migraties — alle drie |
+| `npx eslint` op de drie | 2 problemen, beide bestaande `no-explicit-any`; parse geslaagd |
+| `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
+| Guard aanwezig | alle drie, ná de client en vóór het eerste werk |
+| Controle-probe | `zzz-controle-bestaat-niet` → `{"code":"NOT_FOUND"}`, dus de probes waren betrouwbaar |
+
+**Nog niet uitgerold.** R6: een commit naar `main` synct wel maar deployt niet. Pas ná de
+deploy is te bewijzen dat de drie nu 401 geven; dat is de afsluitende controle en die staat
+nog open.
+
+**Bewust ongemoeid / vervolg.**
+
+- **De andere 224.** Dit was één steekproef van vijf functies die drie treffers gaf. De
+  security-review uit het vervolgplan wordt hiermee zwaarder dan ingeschat: niet 152
+  endpoints maar 227, en de kans op meer van dit soort is nu aantoonbaar reëel.
+- **Deze drie hebben nog steeds geen cron-job.** Ze zijn nu veilig, maar de vraag uit §3a —
+  dood, of een verdwenen schema — is nog onbeantwoord. Krijgen ze er een, dan moet die
+  `x-cron-secret` meesturen.
+- `automation-scheduler` importeert `supabase-js@2.39.3` waar de rest op `@2.57.2` zit. Wél
+  gepind, dus geen R2-overtreding, maar niet één versie per codebase.
+
+---
+
 ## ORPHAN-FN-1 — negen draaiende edge functions terug in versiebeheer — 11 september 2026
 
 **Root cause.** Commit `b9fa64bd` ("Reverted to commit 2573bd41…", 28 maart 2026) verwijderde
