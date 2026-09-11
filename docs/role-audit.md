@@ -95,6 +95,24 @@ Geen `tsc` of `npm run build` voor dit naschrift: beide dekken alleen `src/`, en
 geen bestand in `src/` gewijzigd. ESLint (die `supabase/functions/**` wél dekt) is
 schoon op beide bestanden.
 
+**Naschrift (15:45) — de logs bewijzen de deploy én beantwoorden de keyword-vraag.**
+De Edge Function-logs van `ads-bolcom-sync` laten de omslag exact zien. Tot en met de run
+van 15:00 vier keer `GET …/campaigns/{id}/ad-groups` met vier keer
+`404 — "there is no API registered here"`. Vanaf **15:30** vier POSTs:
+`campaigns/list`, `ad-groups/list`, `keywords/list`, `ads/list` — **en geen enkele
+foutregel**.
+
+Dat beantwoordt de openstaande vraag: `keywords: 0` is echt. `/keywords/list` is
+aangeroepen en gaf een geldig, leeg antwoord. Drie van de vier campagnes zijn `AUTO`
+(bol.com kiest zelf de zoekwoorden) en de enige `MANUAL` doet producttargeting. Er zijn
+geen zoekwoorden om te synchroniseren.
+
+Twee dingen vielen daarbij op. **Het logbestand is zelf het deploybewijs** — de gewijzigde
+aanroeppaden zijn de discriminator die R6 vraagt, zonder dat er een probe nodig was. En de
+nieuwe opzet doet **4 aanroepen waar de oude er 13 deed**: filteren op `campaignIds` in
+plaats van een lus per campagne scheelt bij vier campagnes al twee derde, en dat schaalt
+mee tot de grens van 100 ids per verzoek.
+
 **Vervolg.**
 
 1. Uitrollen via Lovable — beide functies plus het nieuwe `_shared`-bestand (R6: een gewijzigd
