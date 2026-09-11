@@ -67,9 +67,26 @@ in ADS-CRON-1 of deze batch. Geen andere functie wordt anders gebundeld.
 | Guard aanwezig | alle drie, ná de client en vóór het eerste werk |
 | Controle-probe | `zzz-controle-bestaat-niet` → `{"code":"NOT_FOUND"}`, dus de probes waren betrouwbaar |
 
-**Nog niet uitgerold.** R6: een commit naar `main` synct wel maar deployt niet. Pas ná de
-deploy is te bewijzen dat de drie nu 401 geven; dat is de afsluitende controle en die staat
-nog open.
+### Uitgerold en geverifieerd — 11 september 2026, 11:17 UTC
+
+| Functie | Vóór | Ná |
+|---|---|---|
+| `automation-scheduler` | 500 (draaide) | **401** `{"success":false,"error":"Unauthorized"}` |
+| `check-scheduled-notifications` | time-out (draaide door) | **401** |
+| `send-trial-expiry-warning` | 200, volledig uitgevoerd | **401** |
+
+Alle drie geven nu exact de string uit de nieuwe guard. De open endpoints zijn dicht.
+
+**De Supabase-CLI werkt niet voor dit project.** `supabase functions deploy` uploadt de
+assets keurig — inclusief de `_shared/`-bestanden die de functie importeert — en struikelt
+dan op `403 — Your account does not have the necessary privileges`. Het project is eigendom
+van Lovable Cloud, niet van het Supabase-account: uploaden mag, activeren niet. Die route
+stond als "gratis en het meest precies" in R6 en in `nomadix-lovable-connector`; beide zijn
+gecorrigeerd. De `WARNING: Docker is not running` die erbij verschijnt is ruis — die gaat
+over lokaal testen.
+
+**Uitrollen kan dus alleen via Lovable**: een prompt aan de agent, of dezelfde tekst zelf in
+de Lovable-chat.
 
 **Bewust ongemoeid / vervolg.**
 

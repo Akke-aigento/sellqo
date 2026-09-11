@@ -95,9 +95,12 @@ halve-deploy-scenario meldt zichzelf niet.
 **Een commit naar `main` rolt niets uit.** Lovable synct de code wel — het
 bestand staat daarna in het Lovable-project en `read_file` toont het — maar
 deployt alleen wat zijn eigen agent schrijft. "Publishen" in Lovable en
-`deploy_project` publiceren de frontend, niet de functies. Uitrollen gaat via
-een prompt aan de Lovable-agent of via
-`supabase functions deploy <naam> --project-ref <ref>`.
+`deploy_project` publiceren de frontend, niet de functies. Uitrollen gaat **alleen** via
+Lovable — een prompt aan de agent, of dezelfde tekst in de Lovable-chat. De
+Supabase-CLI werkt hier niet: `supabase functions deploy` uploadt wel maar geeft
+dan `403 — Your account does not have the necessary privileges`, omdat het
+project eigendom is van Lovable en niet van het Supabase-account
+(getest 11 sep 2026).
 **Incident (ADS-CRON-1, 11 sep 2026):** twee edge-function-fixes stonden in de
 repo én in het Lovable-project, en de oude code bleef antwoorden. Dat kostte een
 ronde, en zonder probe was de conclusie geweest dat de fix niet werkte.
