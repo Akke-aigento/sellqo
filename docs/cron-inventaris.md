@@ -74,8 +74,15 @@ verzonnen functienaam als controle:
 
 **Repo-verwijdering is geen undeploy.** Net zoals Lovable een functie wel schrijft maar niet
 uitrolt (R6 in `sellqo-engineering-rules`), haalt het verwijderen van een map hem niet uit
-Supabase. Er draait dus sinds 28 maart productiecode waarvan de bron niet in versiebeheer
-zit — minstens vijf van de negen, en de overige vier zijn niet geprobed.
+Supabase. Er draaide dus sinds 28 maart productiecode waarvan de bron niet in versiebeheer
+zat — minstens vijf van de negen, en de overige vier zijn niet geprobed.
+
+> **Opgelost op 11 sep 2026 (ORPHAN-FN-1).** Alle negen staan weer in de repo, byte-voor-byte
+> hersteld uit `b9fa64bd^` en met sha256 geverifieerd. **Er is niets gedeployed en niets
+> uitgezet** — restore is geen redeploy, en of de gedeployede versie nog gelijk is aan die
+> van maart is niet vast te stellen. De bestanden zijn ook bewust niet opgeschoond: hun
+> waarde is dat ze gelijk zijn aan wat er draait. Wat nog openstaat is per functie besluiten:
+> houden of undeployen.
 
 `poll-tracking-status` blijkt bovendien de bron van het `{"success":true,"updated":0}` dat
 in de responslog terugkwam: die halfuurjob is dus gezond.

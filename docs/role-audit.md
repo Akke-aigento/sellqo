@@ -1,3 +1,76 @@
+## ORPHAN-FN-1 — negen draaiende edge functions terug in versiebeheer — 11 september 2026
+
+**Root cause.** Commit `b9fa64bd` ("Reverted to commit 2573bd41…", 28 maart 2026) verwijderde
+tien edge functions uit de repo. Alleen `_shared` kwam terug. **Repo-verwijdering is geen
+undeploy**, dus de overige negen bleven draaien — vijf daarvan zijn met een probe bevestigd:
+ze antwoorden, terwijl een verzonnen functienaam `{"code":"NOT_FOUND"}` geeft.
+
+Het probleem is niet de ontbrekende bron op zich. Het is dat er sinds maart productiecode
+draait die niemand kan lezen of reviewen, en dat zeven van de negen publieke endpoints zijn
+zonder één enkele verwijzing in de codebase — waaronder `storefront-contact-form` en
+`process-order-refund`.
+
+| Functie | Cron | Verwijzingen | Regels |
+|---|---|---|---|
+| `poll-tracking-status` | elke 30 min | 1 | 476 |
+| `update-bol-tracking` | elke 5 min | 1 | 363 |
+| `sync-bol-products` | — | 0 | 499 |
+| `generate-legal-pages` | — | 0 | 341 |
+| `sync-bol-returns` | — | 0 | 260 |
+| `storefront-contact-form` | — | 0 | 223 |
+| `process-order-refund` | — | 0 | 186 |
+| `handle-bol-return` | — | 0 | 153 |
+| `process-gift-card-order` | — | 0 | 118 |
+
+**Uitgevoerd.** Alle negen teruggezet uit `b9fa64bd^`, byte-voor-byte:
+
+```
+git show b9fa64bd^:supabase/functions/<naam>/index.ts
+```
+
+Geverifieerd met sha256 per bestand: **negen van negen identiek** aan de historie.
+
+**Niets gedeployed, niets ongedaan gemaakt.** Restore is geen redeploy. De gedeployede versie
+kan sinds maart gewijzigd zijn en die bron is niet leesbaar — alleen gedrag is meetbaar.
+Herdeployen zou dus een gok met productie zijn.
+
+**Daarom zijn deze bestanden ook niet opgeschoond.** De lint meldt er 24 problemen in
+(22 `no-explicit-any`, 2 `prefer-const`) en drie hebben een ongepinde `supabase-js@2`-import
+(**R2**). Dat blijft staan, en dat is opzettelijk: **de waarde van deze bestanden is dat ze
+gelijk zijn aan wat er draait.** Een `prefer-const` oplossen verbreekt precies die
+eigenschap. Repareren kan pas als besloten is dat een functie blijft, en dan samen met een
+deploy.
+
+**Security-keuzes.** Geen. Er is geen regel code gewijzigd, geen RLS, policy of grant
+geraakt, en geen enkele functie uitgerold of uitgezet. Netto wordt de situatie veiliger op
+één manier die ertoe doet: zeven publieke endpoints zijn nu leesbaar en reviewbaar in plaats
+van onzichtbaar.
+
+**Gedeelde-paden-waarschuwing.** Geen van de negen importeert iets uit `_shared/` —
+nagetrokken, nul treffers. Er is dus geen enkele bestaande functie die door deze restore
+anders gebundeld wordt. De custom frontends zijn niet in beeld.
+
+**Verificatie:**
+
+| Check | Uitkomst |
+|---|---|
+| sha256 per bestand tegen `b9fa64bd^` | 9/9 identiek |
+| `_shared`-imports die niet bestaan | geen — nul `_shared`-imports in alle negen |
+| Lint-baseline | 1516 → **1540** (+24), bewust bijgewerkt met `--update` |
+| `react-hooks/rules-of-hooks` in de baseline | blijft **0** |
+| Gedrag in productie | ongewijzigd — er is niets uitgerold |
+
+**De lint-poortwachter deed hier precies wat hij moest.** Hij blokkeerde de commit met
+`1516 → 1540 (+24)` en dwong een verantwoording af in plaats van de groei stil door te laten.
+Dat is de reden dat de baseline verhoogd is en niet omzeild.
+
+**Bewust ongemoeid / vervolg.** Per functie moet nog besloten worden: houden en onderhouden,
+of undeployen. Voor `poll-tracking-status` en `update-bol-tracking` betekent undeployen ook
+het stoppen van hun cron-job. Bewijs van gedrag per functie loopt via een probe; zie
+`docs/cron-inventaris.md` §2 voor de methode.
+
+---
+
 ## ADS-CRON-1 — vier cron-jobs die vier maanden lang 401 kregen — 11 september 2026
 
 **Root cause.** Twee edge functions weigerden elke cron-aanroep, om twee verschillende
