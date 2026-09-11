@@ -1,3 +1,95 @@
+## ADS-REBUILD-1 — de bol.com-integratie herbouwd tegen de specificatie — 11 september 2026
+
+**Root cause.** Vier onafhankelijke constructiefouten, waarvan alleen de eerste bekend was.
+Elke fout apart is genoeg om de tabellen leeg te houden; ze zaten achter elkaar in de keten,
+dus alleen de bovenste was zichtbaar.
+
+**1. Zes van de zeven API-paden bestaan niet.** Lezen gaat in v11 met `POST /{resource}/list`,
+niet met een `GET` op een genest pad. `campaigns/list` werkte omdat het per toeval de juiste
+vorm had. Rapportage zit bovendien in een eigen API (`reporting`, GET met query-parameters);
+de `insights`-API waar de oude code op mikte geeft gemiddelde winnende biedingen voor
+zoektermen die je zélf aanlevert.
+
+**2. Vier `onConflict`-doelen wijzen naar unieke indexen die niet bestaan.** Nagetrokken op
+`pg_indexes`: `ads_bolcom_keywords`, `_targeting_products`, `_search_terms` en `_performance`
+hebben geen index die overeenkomt met wat de code opgeeft. PostgreSQL weigert zo'n
+`ON CONFLICT` met `42P10`. Vier van de zes wegschrijfacties zouden dus alsnog falen, ook met
+correcte paden — en stil, want het patroon is `if (!error) teller++; else console.error(...)`.
+Precies R8.
+
+**3. De enige bestaande index op `_performance` dedupliceert niet.**
+`UNIQUE (tenant_id, campaign_id, adgroup_id, keyword_id, date)` met nullable `adgroup_id` en
+`keyword_id`; bij campagnerijen zijn die `NULL`. Met de standaard `NULLS DISTINCT` is `NULL`
+nooit gelijk aan `NULL`, dus twee rijen voor dezelfde campagne op dezelfde dag gelden niet als
+duplicaat. Elke dagelijkse run zou de dag opnieuw toevoegen en de grafieken zouden optellen.
+
+**4. Veldnamen die niet bestaan, en een verkeerde bron.** De oude code las
+`kw.text || kw.keyword` — in v11 heet het veld `keywordText`; élke keyword was als lege string
+opgeslagen. `ag.defaultBid` bestaat niet: een ad group heeft geen eigen bod. En
+`targetProductResponse` heeft géén `ean` — dat is het product waaróp je adverteert. Het
+geadverteerde artikel is een **ad**, en die heeft wél een `ean`. Omdat
+`ads_bolcom_targeting_products` via `product_id` naar onze eigen voorraad koppelt en
+`ads-inventory-watch` daarop campagnes pauzeert, is `/ads/list` de juiste bron. Die functie
+heeft nooit gewerkt, simpelweg omdat de tabel leeg was.
+
+Daarbovenop bleek de reporting-respons **geen datumdimensie** te hebben: `total` + `subTotals`
+per entiteit, geaggregeerd over de opgevraagde periode. De oude code vroeg één periode van 30
+dagen op en las `row.date`; elke rij zou op `continue` zijn gestrand.
+
+**Uitgevoerd.**
+
+- `supabase/migrations/20260911130000_ads_bolcom_unique_indexes.sql` — vier unieke indexen,
+  strikt additief, `IF NOT EXISTS`, twee met `NULLS NOT DISTINCT`. De oude vijfkolommige index
+  blijft staan; droppen is onomkeerbaar en hij hindert niet.
+- `supabase/functions/_shared/bolAdvertising.ts` (nieuw) — één toegangspad: token met
+  vernieuwing bij 401, `post` voor campaign-management, `get` voor reporting, paginering,
+  blokken van 100, en de responsvormen uit de spec als TypeScript-interfaces. Beide functies
+  hadden hier een eigen kopie van; die duplicatie is hoe ze uit elkaar konden lopen.
+- `supabase/functions/ads-bolcom-sync/index.ts` — `/ad-groups/list`, `/keywords/list` en
+  `/ads/list`, gefilterd op `campaignIds` in plaats van een geneste lus per ad group.
+- `supabase/functions/ads-bolcom-reports/index.ts` — `GET reporting/performance` met
+  `entity-type`, één aanroep per dag, standaard zeven dagen terug omdat alle conversiemetrieken
+  `14d` zijn en een dag pas na twee weken vaststaat. Zoektermen via
+  `/performance/search-term` op ad-group-niveau.
+- Beide imports gepind op `@supabase/supabase-js@2.57.2` (R2); ze stonden op het ongepinde
+  `@2`.
+
+**Security-keuzes.** Geen. Het auth-blok van beide functies is ongewijzigd: de scheduler roept
+aan met de service-role key en dat pad werkt. De dode `X-Sync-Secret`/`CRON_SECRET`-tak blijft
+voorlopig staan — opruimen hoort bij het cron-werk, en twee dingen tegelijk veranderen maakt
+een mislukte run ondiagnostiseerbaar.
+
+**Gedeelde-paden-waarschuwing.** Niet van toepassing. Geen storefront-functie, geen gedeelde
+tabel, geen custom-frontend-tenant raakt hieraan. De migratie voegt alleen indexen toe op vier
+`ads_bolcom_*`-tabellen.
+
+**Verificatie.** `tsc --noEmit -p tsconfig.app.json` exit 0 (leeg log). ESLint op de drie
+gewijzigde bestanden: nul problemen — de `any`'s zijn weggetypeerd in plaats van weggeschreven,
+waardoor de repo-baseline van 1540 naar 1521 zakt. `npm run build` exit 0. Alle tabel- en
+kolomnamen nagetrokken tegen `information_schema` (R8), evenals de PostgreSQL-versie (17.6,
+dus `NULLS NOT DISTINCT` beschikbaar) en de rijtellingen (alles 0 op 4 campagnes na, dus geen
+index kan op duplicaten stuklopen).
+
+**Bewust ongemoeid.** Er is geen enkele aanroep naar de bol.com-API gedaan. De API ligt
+gevoelig en er is geen testomgeving gevonden, dus alles is tegen de gepubliceerde
+specificaties geschreven. De echte verificatie gebeurt op de reguliere cron ná de deploy, niet
+met handmatige probes.
+
+**Vervolg.**
+
+1. Uitrollen via Lovable — beide functies plus het nieuwe `_shared`-bestand (R6: een gewijzigd
+   `_shared/` gaat pas live via élke functie die het bundelt). En de migratie draaien.
+2. Na de eerste cron-run natrekken: `ads_bolcom_adgroups` > 0, dan `_keywords` en
+   `_performance`.
+3. **De beslissende test:** een tweede run mag géén rijen toevoegen aan `_performance`, alleen
+   bijwerken. Dat is de enige controle die fout 3 afvangt, en juist die ontbrak bij de
+   oorspronkelijke bouw.
+4. Openstaand: de `Accept`-header voor reporting staat nu op `application/json` omdat de spec
+   niets anders declareert. Geeft dat een 406 of 400, dan is het vendor-mediatype de volgende
+   kandidaat.
+
+---
+
 ## ADS-REPORTS-1 — een groene respons op een mislukte fetch — 11 september 2026
 
 **Root cause.** `ads-bolcom-reports` doet drie aanroepen naar bol.com, elk in een eigen

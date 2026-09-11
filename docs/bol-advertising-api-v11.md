@@ -1,145 +1,163 @@
 # Bol.com Advertising API v11 — de juiste contracten
 
 **Datum:** 11 september 2026
-**Bron:** de officiële OpenAPI-specificaties, gelezen via de documentatiebrowser:
+**Bron:** de officiële OpenAPI-specificaties:
 
 - `https://api.bol.com/advertiser/docs/specs/sponsored-products/v11/campaign-management.yml`
 - `https://api.bol.com/advertiser/docs/specs/sponsored-products/v11/reporting.yml`
 
-> **Er is geen enkele aanroep naar de bol.com-API gedaan om dit te achterhalen.** Alles komt
-> uit de gepubliceerde specificaties. Dat is bewust: de API ligt gevoelig, dus de herbouw
-> gebeurt tegen het contract en niet door te proberen.
+> **Er is geen enkele aanroep naar de bol.com-API gedaan om dit te achterhalen.** Alles
+> komt uit de gepubliceerde specificaties — statische documentatie, zonder credentials,
+> die de advertentieaccounts niet raakt. Dat is bewust: de API ligt gevoelig, dus de
+> herbouw gebeurt tegen het contract en niet door te proberen.
 
-**Aanleiding:** van de zeven bol.com-aanroepen in `ads-bolcom-sync` en `ads-bolcom-reports`
-werkte er precies één. Zie `docs/role-audit.md` (ADS-REPORTS-1) voor het spoor.
-
----
-
-## 1. Wat er misgaat, in één tabel
-
-| Onze aanroep | Werkelijk contract | Status |
-|---|---|---|
-| `POST campaign-management/campaigns/list` | idem | ✅ **klopt** |
-| `GET campaign-management/campaigns/{id}/ad-groups` | `POST campaign-management/ad-groups/list` | ❌ 404 |
-| `GET campaign-management/ad-groups/{id}/keywords` | `POST campaign-management/keywords/list` | ❌ nooit bereikt |
-| `GET campaign-management/ad-groups/{id}/target-products` | `POST campaign-management/target-products/list` | ❌ nooit bereikt |
-| `POST insights/campaigns` | `GET reporting/performance` | ❌ 404 — pad bestaat niet |
-| `POST insights/search-terms` | `GET reporting/performance/search-term` | ❌ 400 — verkeerde API |
-| `POST insights/keywords` | `GET reporting/performance` met `entity-type=KEYWORD` | ❌ nooit bereikt |
-
-**De twee patronen die we fout hadden:**
-
-1. **Lezen gebeurt met `POST /{resource}/list`,** niet met een `GET` op een genest pad. Dat is
-   waarom `campaigns/list` als enige werkt — dat is per toeval de juiste vorm.
-2. **Rapportage zit in een eigen API** (`reporting`) met **GET** en query-parameters. De
-   `insights`-API waar wij op mikten is iets anders: die geeft gemiddelde winnende biedingen
-   voor zoektermen die jíj aanlevert.
+**Aanleiding:** van de zeven bol.com-aanroepen in `ads-bolcom-sync` en
+`ads-bolcom-reports` werkte er precies één. Bij het natrekken bleken er nog drie
+onafhankelijke fouten onder te liggen. Zie `docs/role-audit.md` (ADS-REBUILD-1).
 
 ---
 
-## 2. Campaign Management API
+## 1. De endpoints
+
+### Campaign Management
 
 **Basis:** `https://api.bol.com/advertiser/sponsored-products/campaign-management`
+**Mediatype:** `application/vnd.advertiser.v11+json`
 
 Alle lees-endpoints zijn `POST …/list` met dezelfde vorm:
 
 ```json
-{
-  "filter": {
-    "campaignIds": ["1000000001348050"],
-    "states": ["ENABLED", "PAUSED"]
-  },
-  "page": 1,
-  "pageSize": 50
-}
+{ "filter": { "campaignIds": ["1000000001348050"], "states": ["ENABLED", "PAUSED"] },
+  "page": 1, "pageSize": 100 }
 ```
 
-| Endpoint | operationId | Filtervelden |
+`pageSize` is maximaal 100 (standaard 50); elk `…Ids`-filter accepteert maximaal 100
+waarden.
+
+| Endpoint | Antwoordsleutel | Filtervelden |
 |---|---|---|
-| `POST /campaigns/list` | `getCampaigns` | `campaignIds`, `states` |
-| `POST /ad-groups/list` | `getAdGroups` | `adGroupIds`, `campaignIds`, `states` |
-| `POST /keywords/list` | `getKeywords` | — |
-| `POST /target-products/list` | `getTargetProduct` | — |
-| `POST /ads/list` | `getAds` | — |
-| `POST /negative-keywords/list` | `getNegativeKeywords` | — |
-| `POST /target-categories/list` | `getCategories` | — |
-| `POST /expressions/list` | `getExpression` | — |
+| `POST /campaigns/list` | `campaigns` | `campaignIds`, `states` |
+| `POST /ad-groups/list` | `adGroups` | `adGroupIds`, `campaignIds`, `states` |
+| `POST /keywords/list` | `keywords` | `keywordIds`, `adGroupIds`, `campaignIds`, `states` |
+| `POST /ads/list` | `ads` | `adIds`, `adGroupIds`, `campaignIds` |
+| `POST /target-products/list` | `targetProducts` | `targetProductIds`, `adGroupIds`, `campaignIds`, `states` |
 
-> **ID's zijn strings, geen getallen.** De voorbeelden in de spec tonen `"12345"` met
-> aanhalingstekens. `ads-bolcom-reports` doet nu `bolCampaignIds.map(Number)` — dat moet weg.
+Omdat elk filter `campaignIds` accepteert, is er geen geneste lus nodig: ad groups,
+keywords en ads worden per blok campagnes in één keer opgehaald.
 
-**Limieten** (uit de functionele documentatie): 10 ad groups per campagne, 5000 ads per ad
-group, 100 keywords per ad group, 30 target products per ad group. Een create/update-verzoek
-accepteert maximaal 150 ad groups; daarboven volgt HTTP 400.
-
----
-
-## 3. Reporting API
+### Reporting
 
 **Basis:** `https://api.bol.com/advertiser/sponsored-products/reporting`
+**Mediatype:** `application/json` — **niet** het vendor-type. De spec declareert in élk
+content-blok uitsluitend `application/json`.
 
-**Methode is GET met query-parameters** — geen POST met een body.
+**Methode is GET met query-parameters**, geen POST met body.
 
-### `GET /performance`
+| Endpoint | Verplichte parameters |
+|---|---|
+| `GET /performance` | `entity-type`, `entity-ids` (1-100), `period-start-date`, `period-end-date` |
+| `GET /performance/search-term` | `ad-group-ids` (1-100), `period-start-date`, `period-end-date`, optioneel `page`, `page-size` (max 100) |
+| `GET /performance/target-page` | op ad-group-niveau, uitgesplitst naar `SEARCH` / `CATEGORY` / `PDP` |
+| `GET /performance/advertiser` | accountniveau |
 
-| Parameter | Verplicht | Waarde |
-|---|---|---|
-| `entity-type` | ja | `CAMPAIGN` \| `AD_GROUP` \| `AD` \| `KEYWORD` \| `TARGET_CATEGORY` \| `TARGET_PRODUCT` |
-| `entity-ids` | ja | array, **1 t/m 100 items** |
-| `period-start-date` | ja | `YYYY-MM-DD` |
-| `period-end-date` | ja | `YYYY-MM-DD` |
+`entity-type`: `CAMPAIGN`, `AD_GROUP`, `AD`, `KEYWORD`, `TARGET_CATEGORY`,
+`TARGET_PRODUCT`. Eén endpoint dekt dus campagne-, ad-group- én keyword-performance.
 
-> **Maximaal 30 dagen terug.** De spec: *"can be set to a value representing today or any
-> date within the last 30 days period."* Onze huidige code vraagt precies 30 dagen — dat zit
-> op de grens en kan per tijdzone net buiten vallen. Neem 29 dagen.
-
-Eén endpoint dekt campagne-, ad-group- én keyword-performance; alleen `entity-type` verschilt.
-Dat vervangt twee van onze drie kapotte aanroepen in één keer.
-
-### `GET /performance/search-term`
-
-| Parameter | Verplicht | Waarde |
-|---|---|---|
-| `ad-group-ids` | ja | array van ad-group-ID's |
-| `period-start-date` / `period-end-date` | ja | `YYYY-MM-DD` |
-| `page` / `page-size` | nee | paginering |
-
-### Overige
-
-`GET /performance/advertiser` (accountniveau), `GET /performance/target-page` (uitgesplitst
-naar `SEARCH` / `CATEGORY` / `PDP`, op ad-group-niveau) en `GET /performance/category`.
+Datums zijn `YYYY-MM-DD` en mogen hoogstens 30 dagen terug.
 
 ---
 
-## 4. De volgorde van de herbouw ligt vast
+## 2. Vier fouten in de oude implementatie
 
-Er zit een harde afhankelijkheid in, en die bepaalt alles:
+### Fout 1 — zes van de zeven paden bestaan niet
 
-> **`/performance/search-term` werkt op ad-group-niveau en verlangt `ad-group-ids`.**
-> Wij hebben nul ad groups, omdat precies die sync-aanroep kapot is.
+| Oude aanroep | Juist |
+|---|---|
+| `POST campaign-management/campaigns/list` | ✅ klopte |
+| `GET campaign-management/campaigns/{id}/ad-groups` | `POST /ad-groups/list` |
+| `GET campaign-management/ad-groups/{id}/keywords` | `POST /keywords/list` |
+| `GET campaign-management/ad-groups/{id}/target-products` | `POST /ads/list` (zie fout 2) |
+| `POST insights/campaigns` | `GET reporting/performance` |
+| `POST insights/keywords` | `GET reporting/performance` met `entity-type=KEYWORD` |
+| `POST insights/search-terms` | `GET reporting/performance/search-term` |
 
-Daarom:
+`campaigns/list` werkte omdat het per toeval de juiste vorm had. De `insights`-API
+bestaat wel, maar doet iets anders: gemiddelde winnende biedingen voor zoektermen die
+je zelf aanlevert.
 
-1. **Eerst `ads-bolcom-sync` repareren** — `POST /ad-groups/list` met `filter.campaignIds`.
-   Zonder ad groups is er geen keyword-sync, geen target-product-sync én geen
-   zoekterm-rapportage.
-2. **Dan keywords en target-products**, ook via hun `…/list`-endpoints.
-3. **Dan `ads-bolcom-reports` herbouwen** op `reporting/performance` met `entity-type`. Begin
-   met `CAMPAIGN` — dat werkt zonder ad groups en levert meteen de eerste echte cijfers.
-4. **Als laatste de zoektermen**, want die hebben stap 1 nodig.
+### Fout 2 — `targetProducts` heeft geen EAN
 
-**Niet vergeten:** `ADV_HEADERS` gebruikt nu `application/vnd.advertiser.v11+json`. Dat is
-niet geverifieerd tegen de reporting-API; controleer het in de spec vóór de eerste aanroep.
+`targetProductResponse` bevat alleen `targetProductId`, `adGroupId`, `campaignId` en
+`state`. Een target product is het product waaróp je adverteert (PDP-targeting).
+
+Het artikel dát geadverteerd wordt is een **ad**, en `adResponse` heeft wél een `ean`.
+
+Onze tabel `ads_bolcom_targeting_products` koppelt via `product_id` naar onze eigen
+producten, en `ads-inventory-watch` gebruikt die koppeling om campagnes te pauzeren
+zodra onze voorraad opraakt. Dat is per definitie het geadverteerde artikel. De bron is
+dus `/ads/list`, niet `/target-products/list`.
+
+### Fout 3 — veldnamen die niet bestaan
+
+| Object | Velden in v11 | Wat de oude code las |
+|---|---|---|
+| `adGroup` | `adGroupId`, `campaignId`, `name`, `state`, `targetPages` | ook `defaultBid` — **bestaat niet**; een ad group heeft geen eigen bod |
+| `keyword` | `keywordId`, `adGroupId`, `campaignId`, `keywordText`, `matchType`, `state`, `bid{amount,currency}` | `kw.text \|\| kw.keyword` — **geen van beide bestaat** |
+| `ad` | `adId`, `adGroupId`, `campaignId`, `ean`, `state` | — |
+
+De keyword-fout is de gemeenste: ook met een werkend pad was élke keyword als lege
+string opgeslagen.
+
+### Fout 4 — de reporting-respons heeft geen datum
+
+```
+{ "entityCount": …, "total": { …metrics… }, "subTotals": [ { entityType, entityId,
+  campaignId, adGroupId, …metrics… } ] }
+```
+
+**Er is geen `date`-veld.** De API aggregeert over de opgevraagde periode en splitst
+per entiteit, niet per dag. De oude code vroeg één periode van 30 dagen op en las
+`row.date`; elke rij zou op `continue` zijn gestrand.
+
+Onze tabel is wél per dag opgezet. De enige manier om dagcijfers te krijgen is dus
+**één aanroep per dag**, met start- en einddatum gelijk.
 
 ---
 
-## 5. Wat nog open staat
+## 3. De metrieken
 
-- **Een test- of demo-omgeving.** Niet gevonden in de documentatie. Zolang die er niet is,
-  raakt elke verificatie de productie-API — dus: bouwen tegen het contract, deployen, en
-  wachten op de reguliere cron in plaats van handmatig vuren.
-- **Rate limits en dagquota.** Niet uit deze twee specs af te lezen. Relevant omdat
-  `entity-ids` op 100 per verzoek staat: bij meer campagnes zijn meerdere aanroepen nodig.
-  De bestaande 429-afhandeling met `Retry-After` blijft dus nodig.
-- **De Bulk Reporting API** (`/retailer/public/redoc/v11/advertising-bulk-reporting.html`)
-  is niet bekeken. Bij groei kan die efficiënter zijn dan per-entiteit rapporteren.
+`PerformanceMetrics`, identiek voor alle reporting-endpoints:
+
+| Veld | Onze kolom |
+|---|---|
+| `impressions` | `impressions` |
+| `clicks` | `clicks` |
+| `cost` | `spend` |
+| `conversions14d` | `orders` |
+| `sales14d` | `revenue` |
+| `acos14d` | `acos` |
+| `ctr` | `ctr` |
+| `averageCpc` | `cpc` |
+| `conversionRate14d` | `conversion_rate` |
+
+Daarnaast beschikbaar en nu niet opgeslagen: `directConversions14d`,
+`indirectConversions14d`, `roas14d`, en bij zoektermen `searchVolume`,
+`impressionShare`, `clickShare`, `averageWinningBid`.
+
+> **Alle conversiemetrieken zijn `14d`.** Een klik van vandaag kan tot veertien dagen
+> later nog een conversie opleveren: de cijfers van een dag staan pas na twee weken
+> vast. Daarom haalt `ads-bolcom-reports` standaard de laatste zeven dagen opnieuw op
+> in plaats van alleen gisteren. Dat werkt alleen omdat de upsert bestaande dagen
+> bijwerkt — zie de unieke indexen in migratie `20260911130000`.
+
+---
+
+## 4. Wat nog open staat
+
+- **Een test- of demo-omgeving.** Niet gevonden in de documentatie. Zolang die er niet
+  is, raakt elke verificatie de productie-API — dus: bouwen tegen het contract,
+  deployen, en wachten op de reguliere cron in plaats van handmatig vuren.
+- **Rate limits en dagquota.** Niet uit deze specs af te lezen. De 429-afhandeling met
+  `Retry-After` blijft daarom staan.
+- **De Bulk Reporting API** is niet bekeken; bij groei mogelijk efficiënter dan
+  per-entiteit rapporteren.
