@@ -131,6 +131,58 @@ doorlopen, en onvoorwaardelijk `success: true`. Dat getal was dus even onbetrouw
 | `node scripts/verify-lint-baseline.mjs` | groen — 1540, gelijk aan de baseline |
 | Statusafhandeling | `ads-bolcom-scheduler:84` gebruikt `res.ok` voor beide modi; 207 valt daarbinnen |
 
+### De hele bol.com-koppeling blijkt kapot op één endpoint na — 11 september 2026, 14:35
+
+Zodra `ads-bolcom-sync` de nieuwe code draaide, meldde hij wat hij al die tijd verzweeg:
+
+```
+Bol API GET (404): "Resource not found, there is no API registered here."
+detail: No static resource advertiser/sponsored-products/campaign-management/
+        campaigns/1000000001749908/ad-groups
+```
+
+Vier keer, één per campagne. **`campaigns/list` werkt, `campaigns/{id}/ad-groups` bestaat
+niet.** En omdat keywords en target-products genest zijn ín die ad-group-lus, waren
+`adgroups_synced: 0`, `keywords_synced: 0` én `products_synced: 0` alle drie even onwaar als
+`days_synced: 0`.
+
+**Stand van de bol.com-advertentiekoppeling:**
+
+| Aanroep | Functie | Uitkomst |
+|---|---|---|
+| `campaign-management/campaigns/list` | sync | ✅ werkt — 4 campagnes |
+| `campaign-management/campaigns/{id}/ad-groups` | sync | ❌ 404, pad bestaat niet |
+| `…/ad-groups/{id}/keywords` | sync | nooit bereikt |
+| `…/ad-groups/{id}/target-products` | sync | nooit bereikt |
+| `insights/campaigns` | reports | ❌ 404, pad bestaat niet |
+| `insights/search-terms` | reports | ❌ 400, verkeerde body/betekenis |
+| `insights/keywords` | reports | nooit bereikt |
+
+**Eén van de zeven aanroepen werkt.** De koppeling is niet gedeeltelijk stuk — hij levert
+alleen een lijst campagnenamen op en verder niets. Token, authenticatie en basis-URL zijn in
+orde (anders zou `campaigns/list` ook falen); het zijn de sub-resources en de rapportagepaden
+die niet bestaan.
+
+**Dat verandert de aard van het vervolg.** Dit is geen reparatie van `ads-bolcom-reports`
+maar een herbouw van de hele integratie tegen de huidige v11-specificatie. Die specificatie
+is hier niet leesbaar (ReDoc via JavaScript, `advertiser.json` geeft 401); Akke komt er met
+zijn bol.com-toegang wel bij.
+
+### Terzijde, maar het raakt de monitoring: pg_net kapt na 5 seconden af
+
+De cron-run van 14:30 leverde zeven verzoeken op, waarvan er **vier in een time-out
+verliepen** op de standaard 5000 ms van `net.http_post`. Dat is geen incident: over de hele
+bewaarde historie is 119 van de 287 antwoorden een time-out.
+
+Gevolg: voor elke functie die langer dan vijf seconden doet, staat de uitkomst **nooit** in
+`net._http_response`. Dezelfde probe met `timeout_milliseconds := 30000` kwam wél netjes
+terug — zo is de bovenstaande 404 ook gevonden.
+
+**Dat is een harde voorwaarde voor §3c van het vervolgplan.** Monitoring die uit
+`net._http_response` leest, is blind voor precies de trage functies waar het meeste misgaat.
+De cron-commando's moeten een ruimere `timeout_milliseconds` meekrijgen; dat hoort bij de
+migratie die de schema's in versiebeheer brengt.
+
 ### De volledige foutmelding, en die is ondubbelzinnig — 11 september 2026, 14:20
 
 Na de deploy van alle 238 functies vanaf `a114e32e` is de foutmelding niet meer afgekapt.
