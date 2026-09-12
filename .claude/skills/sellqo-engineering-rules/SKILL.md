@@ -112,6 +112,33 @@ vaak genoeg. Neem altijd een verzonnen functienaam als controle mee; die hoort
 `{"code":"NOT_FOUND"}` te geven. Dezelfde probe beantwoordt ook of een functie
 überhaupt gedeployed is, en dát is niet uit de database af te lezen.
 
+**Een logbestand bewijst een deploy net zo goed, en voert niets uit.** Een probe
+róept de functie aan. Bij een betaal-, mail- of externe-API-functie is dat precies
+het scenario dat je wilde vermijden: je meet niet, je richt aan. De Edge
+Function-logs in Supabase laten dezelfde omslag zien zonder iets te raken — de
+gewijzigde aanroeppaden, een nieuwe logregel of een veranderde foutmelding zijn
+de discriminator die R6 vraagt.
+
+Dat werkt alleen als de wijziging zichtbaar ís in de logs. Verandert er niets aan
+wat de functie logt of naar buiten aanroept, dan zeggen ze niets en blijft een
+probe de enige weg. Kies dus bewust: **logs bij een functie met bijwerkingen,
+een probe bij een functie die niets aanricht.**
+**Incident (ADS-REBUILD-1/2, 11-12 sep 2026):** de bol.com-API ligt gevoelig, dus
+er is geen enkele handmatige aanroep gedaan. De logs waren ondubbelzinnig: tot en
+met de run van 15:00 vier keer `GET …/campaigns/{id}/ad-groups` met vier keer een
+404, en vanaf 15:30 vier POSTs naar `…/list` zonder één foutregel. Dat bewees de
+deploy én beantwoordde meteen de openstaande vraag of een lege tabel een fout was
+of gewoon leeg — zonder de productie-API aan te spreken.
+
+**Zorg dat het antwoord je bereikt.** Een functie die netjes een `failures`-lijst
+teruggeeft is nutteloos als die lijst nergens aankomt. Wordt de functie door
+`pg_cron` aangeroepen, dan geldt: `net.http_post` heeft
+`timeout_milliseconds DEFAULT 5000`, en alles wat langer duurt laat
+`net._http_response.content` op NULL staan. `cron.job_run_details` meldt de run
+dan alsnog als `succeeded`, want dat rapporteert of het versturen lukte — niet
+wat er terugkwam. Geef elke cron-job die een edge function aanroept expliciet een
+ruimere `timeout_milliseconds` mee.
+
 **Les:** als een test slaagt, verklaar wáárom. Een groen vinkje zonder
 verklaring is geen bewijs.
 

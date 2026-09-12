@@ -1,3 +1,61 @@
+## CRON-TIMEOUT-1 — het antwoord van een cron-job bewaren — 12 september 2026
+
+**Root cause.** `net.http_post` heeft `timeout_milliseconds integer DEFAULT 5000` — nagetrokken
+op `pg_proc`, niet aangenomen. Geen van de vier `ads-*`-cronjobs geeft die parameter mee, dus
+vijf seconden is de grens. De edge functions erachter doen meerdere externe API-aanroepen en
+zitten daar ruim boven, waardoor `net._http_response.content` en `.status_code` op `NULL`
+blijven staan.
+
+Dat is geen cosmetisch probleem. `ads-bolcom-reports` geeft bij een deelfout een keurige
+`failures`-lijst terug — precies om dit soort vragen te beantwoorden — en die lijst kwam nooit
+aan. Op 11 en 12 september kostte dat twee volledige diagnoserondes: beide keren moest er een
+logexport uit Supabase komen om vast te stellen wat de functie zélf al had verteld. De eerste
+keer een 400 op een verkeerd API-pad, de tweede een 406 op een verkeerde Accept-header.
+
+`cron.job_run_details` helpt daar niet bij: dat meldt élke run als `succeeded`, want het
+rapporteert of het *versturen* lukte, niet wat er terugkwam. Een job die vier maanden 401's
+krijgt ziet er daar identiek uit aan een job die werkt — precies wat ADS-CRON-1 zo lang
+onzichtbaar hield.
+
+**Uitgevoerd.** `supabase/migrations/20260912140000_cron_ads_timeout_milliseconds.sql` —
+`timeout_milliseconds := 120000` op alle vier de jobs (`ads-inventory-watch-every-15min`,
+`ads-bolcom-sync-every-30min`, `ads-bolcom-reports-4x-daily`, `ads-ai-engine-daily`). Verder
+verandert er niets: dezelfde namen, schema's, URL's en headers, en het secret wordt nog steeds
+bij elke run opgezocht in plaats van als tekst in `cron.job.command` te belanden.
+
+Waarom twee minuten: een reports-run doet één aanroep per dag in het gevraagde bereik, tot
+dertig dagen, plus zoektermen — in de praktijk enkele seconden, bij een breed bereik tientallen.
+Twee minuten zit daar ruim boven en houdt de pg_net-worker toch begrensd; een timeout zonder
+bovengrens bestaat niet en zou de wachtrij voor andere jobs kunnen blokkeren.
+
+**Security-keuzes.** Geen. Alleen een timeoutparameter; geen rechten, geen headers, geen
+secret-behandeling gewijzigd.
+
+**Gedeelde-paden-waarschuwing.** n.v.t. — vier cron-jobs, geen tenant-zichtbaar gedrag.
+
+**Verificatie.** De migratie is niet gedraaid (schrijfacties gaan via Lovable), maar het
+commando dát hij genereert is wél nagetrokken met een `SELECT format(...)` op de live database:
+byte-identiek aan het huidige commando, plus `timeout_milliseconds := 120000`. Idempotent —
+`cron.schedule()` met een bestaande jobnaam vervangt die job.
+
+**Ná het draaien te controleren:** `net._http_response` moet binnen een uur een rij met een
+gevulde `content` bevatten voor deze jobs, in plaats van `NULL`.
+
+**Ook uitgevoerd — R6 uitgebreid met twee alinea's.**
+
+1. *Een logbestand bewijst een deploy net zo goed, en voert niets uit.* R6 schreef tot nu toe
+   één bewijsvorm voor: een probe. Maar een probe róept de functie aan, en bij een betaal-,
+   mail- of externe-API-functie is dat precies het scenario dat je wilde vermijden — je meet
+   niet, je richt aan. De Edge Function-logs laten dezelfde omslag zien zonder iets te raken.
+   Mét de grens erbij: dat werkt alleen als de wijziging zichtbaar ís in de logs.
+2. *Zorg dat het antwoord je bereikt.* De `timeout_milliseconds`-val hierboven, zodat de
+   volgende die een cron-job bouwt er niet opnieuw intrapt.
+
+Alle drie de kopieën bijgewerkt — `.claude/skills`, `.agents/skills` en de workspace;
+`verify-skills-sync` is groen.
+
+---
+
 ## NAV-1 — zwevende onderbalk, en de rechten die eronder ontbraken — 12 september 2026
 
 **Aanleiding.** Akke wilde de mobiele onderbalk in de admin vervangen door een zwevende pil
