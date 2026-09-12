@@ -8,6 +8,7 @@
 // safety net from process-refund on refund_status=completed).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,19 @@ serve(async (req) => {
       .eq("id", return_id)
       .single();
     if (retErr || !ret) throw new Error(`Return not found: ${retErr?.message}`);
+
+    // AUTH-TRIAGE-2 — deze functie stond volledig open, en `verify_jwt` staat
+    // voor haar op false. Eén `return_id` was genoeg om een creditnota aan te
+    // maken, een nummer uit de reeks te verbruiken, de retour bij te werken en
+    // een mail naar de klant te laten sturen. Dat is een financieel document
+    // aanmaken namens een tenant.
+    //
+    // Anders dan de andere zeven heeft deze een echte browser-aanroeper
+    // (src/hooks/useReturns.ts:396), dus hier hoort ook een rolcheck bij —
+    // dezelfde lijst die create-manual-invoice en send-invoice-email gebruiken.
+    // process-refund roept aan met service-role en komt er langs beide heen.
+    const auth = await authenticateRequest(req, ret.tenant_id);
+    requireRole(auth, ret.tenant_id, ["tenant_admin", "staff", "accountant"]);
 
     if (!ret.order_id) {
       return new Response(JSON.stringify({ success: false, error: "return has no order — skipping", skipped: true }), {
@@ -240,6 +254,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const msg = errMsg(error);
     console.error("[create-credit-note-from-return] error", msg);
     return new Response(JSON.stringify({ success: false, error: msg }), {

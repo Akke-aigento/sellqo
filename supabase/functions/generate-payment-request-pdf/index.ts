@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,16 @@ serve(async (req) => {
       .maybeSingle();
     if (cErr) throw cErr;
     if (!cycle) throw new Error("Billing cycle not found");
+    // AUTH-TRIAGE-2 — resolve-then-authorize. Tot 12 sep 2026 stond hier niets:
+    // wie een `billing_cycle_id` had, kon deze functie laten draaien. Een UUID
+    // is onraadbaar maar geen autorisatie — hij staat in URL's, mails en
+    // supportberichten. De cyclus is hierboven al opgehaald om te weten bij
+    // welke tenant hij hoort; nu pas wordt de aanroeper getoetst.
+    //
+    // De interne aanroepers gebruiken een service-role-client, en die laat
+    // `authenticateRequest` door (_shared/auth.ts:48-56). De keten blijft dus
+    // werken.
+    await authenticateRequest(req, cycle.tenant_id);
     if (!cycle.payment_request_number) throw new Error("Cycle has no payment_request_number yet");
 
     const { data: tenant, error: tErr } = await admin
@@ -239,6 +250,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const msg = errMsg(error);
     console.error("[generate-payment-request-pdf] error", msg);
     return new Response(JSON.stringify({ success: false, error: msg }), {

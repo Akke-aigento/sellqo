@@ -7,6 +7,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,16 @@ serve(async (req) => {
       .maybeSingle();
     if (cErr) throw cErr;
     if (!cycle) throw new Error("Billing cycle not found");
+    // AUTH-TRIAGE-2 — resolve-then-authorize. Tot 12 sep 2026 stond hier niets:
+    // wie een `billing_cycle_id` had, kon deze functie laten draaien. Een UUID
+    // is onraadbaar maar geen autorisatie — hij staat in URL's, mails en
+    // supportberichten. De cyclus is hierboven al opgehaald om te weten bij
+    // welke tenant hij hoort; nu pas wordt de aanroeper getoetst.
+    //
+    // De interne aanroepers gebruiken een service-role-client, en die laat
+    // `authenticateRequest` door (_shared/auth.ts:48-56). De keten blijft dus
+    // werken.
+    await authenticateRequest(req, cycle.tenant_id);
 
     const { data: tenant, error: tErr } = await supabase
       .from("tenants").select("*").eq("id", cycle.tenant_id).maybeSingle();
@@ -153,6 +164,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const message = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message });
     return new Response(JSON.stringify({ error: message }), {

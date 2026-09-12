@@ -9,6 +9,7 @@ import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { wrapTextToWidth } from "../_shared/pdfText.ts";
 import { isDomesticFamilyRegime } from "../_shared/invoiceFiscalFields.ts";
 import type { VatRegimeCode } from "../_shared/regimeResolver.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +61,12 @@ serve(async (req) => {
       .eq("id", invoice_id)
       .single();
     if (invErr || !inv) throw new Error(`Invoice not found: ${invErr?.message}`);
+    // AUTH-TRIAGE-2 — resolve-then-authorize. Hier stond niets: wie een
+    // `invoice_id` had, kon deze functie laten draaien. Een UUID is onraadbaar
+    // maar geen autorisatie. De factuur is hierboven opgehaald om de tenant te
+    // kennen; nu pas wordt de aanroeper getoetst. Interne aanroepers gebruiken
+    // een service-role-client en komen er doorheen (_shared/auth.ts:48-56).
+    await authenticateRequest(req, inv.tenant_id);
 
     const { data: tenant, error: tErr } = await admin
       .from("tenants").select("*").eq("id", inv.tenant_id).single();
@@ -278,6 +285,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const msg = errMsg(error);
     console.error("[generate-subscription-invoice-pdf] error", msg);
     return new Response(JSON.stringify({ success: false, error: msg }), {

@@ -110,19 +110,87 @@ Daarbij: de `catch` gaf voor élke fout een 500, ook voor een auth-fout. Nu vang
 
 ---
 
+## Batch 2 — de tien betaal- en documentfuncties (12 sep 2026)
+
+**Uitkomst: 2 terecht publiek, 8 gaten. Alle tien hadden geen enkele autorisatie** — geen
+enkele importeerde `_shared/auth.ts`, alle tien bouwden een service-role-client, en in geen
+enkele werd de `Authorization`-header ook maar uitgelezen.
+
+Dat is een slechtere verhouding dan batch 1 (1 gat op 5), en het patroon is consistent: het
+*resolve*-deel van resolve-then-authorize stond er overal, het *authorize*-deel nergens.
+
+**De gateway hielp niet.** Van de 154 functies in `config.toml` staan er twee op
+`verify_jwt = true` (`process-email-queue`, `nano-studio`); de gedeployede default is `false`.
+Vier van deze tien hadden bovendien een expliciete `verify_jwt = false`. Alle tien waren dus
+met een kale POST bereikbaar.
+
+### ✅ Terecht publiek — ongemoeid gelaten
+
+**`create-checkout-session`** en **`create-bank-transfer-order`**. Een winkelbezoeker zonder
+account moet kunnen afrekenen; auth eisen breekt de webshop. De begrenzing is inhoudelijk in
+plaats van op identiteit, en dat is correct opgezet: prijzen uit de body worden genegeerd en
+vervangen door DB-prijzen, producten moeten bij de opgegeven tenant horen, de tenant moet
+bestaan en betaalklaar zijn, en er is VIES-blokkade waar de tenant dat eist.
+
+> **Twee observaties voor de backlog, geen gat:** `create-checkout-session` zet `customer_id`
+> uit de body ongecontroleerd op de order (r. 585) — een bestelling koppelen aan andermans
+> klantrecord. En `create-bank-transfer-order` geeft `iban`, `bic` en `beneficiary_name` terug
+> aan elke aanroeper die een order aanmaakt. Dat is het doel van de functie (QR-code voor
+> overschrijving), maar het is wel een vrij uitleesbaar kanaal.
+
+### ❌ Acht gaten — gerepareerd
+
+| Functie | Wat een vreemde ermee kon | Resolve uit |
+|---|---|---|
+| `dispatch-payment-request` | betaallink + PDF + mail naar de klant, op kosten van de tenant | `billing_cycles` |
+| `send-payment-request-email` | mail met factuur-PDF naar het adres uit de DB | `billing_cycles` |
+| `create-cycle-payment-link` | Stripe-sessie aanmaken | `billing_cycles` |
+| `create-invoice-payment-link` | idem; `verify_jwt = false` | `invoices` |
+| `create-credit-note-from-return` | creditnota aanmaken, nummerreeks verbruiken, retour bijwerken, mail sturen; `verify_jwt = false` | `returns` |
+| `process-gift-card-purchase` | cadeaubonnen met echt saldo aanmaken | `orders` |
+| `generate-payment-request-pdf` | PDF hergenereren en overschrijven | `billing_cycles` |
+| `generate-subscription-invoice-pdf` | idem; `verify_jwt = false` | `invoices` |
+
+De id's zijn UUID's, dus raden is onhaalbaar. Maar dat is geen autorisatie: een id staat in
+URL's, mails en supportberichten. Waar een token wél de autorisatie ís — `create-invite-account`
+— heeft het een vervaldatum en is het eenmalig. Hier was daar niets van.
+
+**De fix is één patroon**, na het ophalen van de rij en vóór het werk:
+`await authenticateRequest(req, <rij>.tenant_id)`.
+
+Dat breekt de bestaande keten niet, en dat is de kern: `authenticateRequest` heeft een
+service-role-bypass (`_shared/auth.ts:48-56`), en élke interne aanroeper gebruikt een
+service-role-client — nagetrokken voor `generate-subscription-invoices`,
+`process-cycle-reminders`, `sync-tenant-plan`, `process-invoice-dunning`, `process-refund`,
+`dispatch-payment-request` en `_shared/subscriptionCharge.ts`. (`_shared/mandateToken.ts` kwam
+in de grep naar voren maar noemt de functies alleen in een comment.)
+
+`create-credit-note-from-return` kreeg als enige ook een `requireRole` — dat is de enige met een
+echte browser-aanroeper (`useReturns.ts:396`), en het maakt een financieel document:
+`["tenant_admin", "staff", "accountant"]`, dezelfde lijst als `create-manual-invoice`.
+
+In alle acht vangt de `catch` nu `AuthError` vóór de generieke tak af, anders wordt een 401 een
+500 — dezelfde fout als in `send-whatsapp-message`. `process-gift-card-purchase` is bovendien
+van `@2` naar `@2.57.2` gepind (**R2**).
+
+**Cadeaubonnen kregen er iets bij.** Er was geen enkele controle of voor een `order_id` al
+bonnen bestonden, dus twee aanroepen gaven twee sets kaarten met echt saldo. Nu geeft een
+herhaalde aanroep de bestaande bonnen terug.
+
+**Impact vandaag bij die laatste: nul, en dat is toeval.** Nul cadeaubonnen in de database, en
+de functie wordt nergens in de codebase aangeroepen — net als bij `send-whatsapp-message` en
+`automation-scheduler`. Het wordt een echt gat op de dag dat de feature aangaat.
+
+> **Bijvangst, niet gerepareerd:** 181 facturen hebben een `pdf_url` in de
+> `/object/public/`-vorm, terwijl de `invoices`-bucket `public = false` is en géén SELECT-policy
+> heeft. Die links zijn dood. Nagetrokken op `storage.buckets` en `pg_policy` — het
+> oorspronkelijke onderzoeksrapport beweerde het tegenovergestelde. De downloadknop gebruikt
+> `get-document-url`, dus niemand merkt het. Naar de backlog, bij de bredere R1-opruiming.
+
+---
+
 ## Nog te doen
 
-| # | Functie | Reden |
-|---|---|---|
-| 6 | `send-payment-request-email` | bericht + geld |
-| 7 | `create-invoice-payment-link` | geld |
-| 8 | `create-cycle-payment-link` | geld |
-| 9 | `create-checkout-session` | geld |
-| 10 | `create-bank-transfer-order` | geld |
-| 11 | `dispatch-payment-request` | geld |
-| 12 | `create-credit-note-from-return` | geld terug |
-| 13 | `process-gift-card-purchase` | geld |
-| 14 | `generate-payment-request-pdf` | documentlek |
-| 15 | `generate-subscription-invoice-pdf` | documentlek |
+Batch 1 en 2 zijn klaar: de vijftien met de grootste blast radius zijn behandeld.
 
 Daarna de resterende ~53 uit de 68, in batches van vijf.

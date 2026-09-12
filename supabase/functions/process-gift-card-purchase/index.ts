@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,30 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (orderError || !order) {
       throw new Error("Order not found");
+    }
+
+    // AUTH-TRIAGE-2 — deze functie maakt cadeaubonnen aan met echt saldo
+    // (status active, current_balance = de artikelprijs) en stond volledig open.
+    // Eén `order_id` volstond. Resolve-then-authorize: de order is hierboven
+    // opgehaald om de tenant te kennen, nu pas wordt de aanroeper getoetst.
+    await authenticateRequest(req, order.tenant_id);
+
+    // En idempotent maken. Er was geen enkele controle of voor deze order al
+    // bonnen bestonden, dus twee aanroepen gaven twee sets kaarten met echt
+    // saldo. Bestaan ze al, dan geven we die terug in plaats van nieuwe aan te
+    // maken — dat is ook wat een herhaalde webhook of een dubbele klik hoort op
+    // te leveren.
+    const { data: bestaande, error: bestaandeErr } = await supabaseClient
+      .from("gift_cards")
+      .select("id, code, initial_balance")
+      .eq("order_id", order_id);
+    if (bestaandeErr) throw bestaandeErr;
+    if (bestaande && bestaande.length > 0) {
+      console.log(`[process-gift-card-purchase] order ${order_id} had al ${bestaande.length} bon(nen) — niets aangemaakt`);
+      return new Response(
+        JSON.stringify({ success: true, already_processed: true, created_gift_cards: bestaande }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
     }
 
     const giftCardItems = order.items.filter(
@@ -156,6 +181,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: unknown) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Error in process-gift-card-purchase:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(

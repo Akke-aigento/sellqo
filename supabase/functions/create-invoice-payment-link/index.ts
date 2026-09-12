@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (invErr) throw invErr;
     if (!invoice) throw new Error('Invoice not found');
+    // AUTH-TRIAGE-2 — resolve-then-authorize. Hier stond niets: wie een
+    // `invoice_id` had, kon deze functie laten draaien. Een UUID is onraadbaar
+    // maar geen autorisatie. De factuur is hierboven opgehaald om de tenant te
+    // kennen; nu pas wordt de aanroeper getoetst. Interne aanroepers gebruiken
+    // een service-role-client en komen er doorheen (_shared/auth.ts:48-56).
+    await authenticateRequest(req, invoice.tenant_id);
 
     // Reuse recent session (<24h) if still openable
     const ageMs = invoice.checkout_session_created_at
@@ -122,6 +129,8 @@ Deno.serve(async (req) => {
       reused: false,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     const message = errMsg(err);
     console.error('[CREATE-INV-PAYLINK] Error:', message);
     return new Response(JSON.stringify({ error: message }), {

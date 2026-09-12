@@ -5,6 +5,7 @@
 // CYCLE-3 handler settles the cycle — no checkout.session.completed handler.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,16 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (cErr) throw cErr;
     if (!cycle) throw new Error("Billing cycle not found");
+    // AUTH-TRIAGE-2 — resolve-then-authorize. Tot 12 sep 2026 stond hier niets:
+    // wie een `billing_cycle_id` had, kon deze functie laten draaien. Een UUID
+    // is onraadbaar maar geen autorisatie — hij staat in URL's, mails en
+    // supportberichten. De cyclus is hierboven al opgehaald om te weten bij
+    // welke tenant hij hoort; nu pas wordt de aanroeper getoetst.
+    //
+    // De interne aanroepers gebruiken een service-role-client, en die laat
+    // `authenticateRequest` door (_shared/auth.ts:48-56). De keten blijft dus
+    // werken.
+    await authenticateRequest(req, cycle.tenant_id);
 
     const ageMs = cycle.checkout_session_created_at
       ? Date.now() - new Date(cycle.checkout_session_created_at).getTime()
@@ -125,6 +136,8 @@ Deno.serve(async (req) => {
       reused: false,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
+    // AuthError eerst: anders wordt een 401 een 500.
+    if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
     const message = errMsg(err);
     console.error("[CREATE-CYCLE-PAYLINK] Error:", message);
     return new Response(JSON.stringify({ error: message }), {

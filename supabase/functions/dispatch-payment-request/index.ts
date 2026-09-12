@@ -4,6 +4,7 @@
 // Order matters: link first so the PDF can print it.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
+
+    // AUTH-TRIAGE-2 — deze functie stond volledig open. Eén `billing_cycle_id`
+    // was genoeg om een Stripe-betaallink te laten aanmaken, een PDF te
+    // hergenereren en een mail met factuur naar de klant te sturen, op kosten
+    // van de tenant. Een UUID is onraadbaar, maar het is geen autorisatie: het
+    // staat in URL's, mails en supportberichten.
+    //
+    // Resolve-then-authorize: eerst de cyclus ophalen om te wéten bij welke
+    // tenant hij hoort, dan pas de aanroeper toetsen. De interne aanroepers
+    // (generate-subscription-invoices, process-cycle-reminders, sync-tenant-plan)
+    // gebruiken allemaal een service-role-client, en `authenticateRequest` laat
+    // die door — de keten blijft dus werken.
+    const { data: cycle, error: cycleErr } = await supabase
+      .from("billing_cycles")
+      .select("tenant_id")
+      .eq("id", billing_cycle_id)
+      .maybeSingle();
+    if (cycleErr) throw cycleErr;
+    if (!cycle) throw new Error("billing cycle not found");
+
+    await authenticateRequest(req, cycle.tenant_id);
 
     const call = async (fn: string, payload: Record<string, unknown>) => {
       const { data, error } = await supabase.functions.invoke(fn, { body: payload });
@@ -81,6 +103,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // AuthError vóór de generieke tak: anders wordt een 401 een 500, en dat is
+    // precies de fout die send-whatsapp-message ook had.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const message = error instanceof Error ? error.message : String(error);
     log("ERROR", { message, steps });
     return new Response(JSON.stringify({ error: message, steps }), {

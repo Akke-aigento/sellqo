@@ -1,3 +1,81 @@
+## AUTH-TRIAGE-2 — acht betaal- en documentfuncties stonden open — 12 september 2026
+
+**Root cause.** De auth-triage bleef in september halverwege steken: vijf van de vijftien
+functies waren behandeld, tien niet — juist die welke geld verplaatsen en documenten genereren.
+Bij het uitlezen bleek dat **alle tien geen enkele autorisatie hadden**. Geen enkele importeerde
+`_shared/auth.ts`, alle tien bouwden een service-role-client, en in geen enkele werd de
+`Authorization`-header uitgelezen.
+
+Het patroon was overal hetzelfde: body parsen → rij ophalen met service-role → werken. Het
+*resolve*-deel van resolve-then-authorize stond er; het *authorize*-deel nergens.
+
+De gateway bood geen vangnet: van de 154 functies in `config.toml` staan er twee op
+`verify_jwt = true`, en de gedeployede default is `false`. Vier van deze tien hadden bovendien
+een expliciete `verify_jwt = false`. Alle tien waren met een kale POST bereikbaar.
+
+**Wat een vreemde ermee kon.** Met één `billing_cycle_id`: een Stripe-betaallink laten
+aanmaken, een PDF hergenereren en een mail met factuur naar de klant sturen, op kosten van de
+tenant. Met één `return_id`: een creditnota aanmaken, een nummer uit de reeks verbruiken, de
+retour bijwerken en een mail laten versturen. Met één `order_id`: cadeaubonnen met echt saldo
+aanmaken — en nog eens, want er was geen idempotentie.
+
+De id's zijn UUID's, dus raden is onhaalbaar. Maar dat is geen autorisatie: een id staat in
+URL's, mails en supportberichten. Waar een token in deze codebase wél de autorisatie ís
+(`create-invite-account`), heeft het een vervaldatum en is het eenmalig.
+
+**Uitgevoerd.** Acht functies kregen `await authenticateRequest(req, <rij>.tenant_id)` ná het
+ophalen van de rij en vóór het eerste werk: `dispatch-payment-request`,
+`send-payment-request-email`, `create-cycle-payment-link`, `create-invoice-payment-link`,
+`create-credit-note-from-return`, `process-gift-card-purchase`, `generate-payment-request-pdf`
+en `generate-subscription-invoice-pdf`.
+
+`create-credit-note-from-return` kreeg als enige ook een `requireRole`
+(`["tenant_admin","staff","accountant"]`) — het is de enige met een echte browser-aanroeper en
+het maakt een financieel document. `process-gift-card-purchase` werd bovendien idempotent
+gemaakt en van `@2` naar `@2.57.2` gepind (R2). In alle acht vangt de `catch` nu `AuthError`
+vóór de generieke tak af.
+
+**Security-keuzes.** Er wordt niets verruimd; acht paden die open stonden gaan dicht. Twee
+functies blijven bewust publiek — `create-checkout-session` en `create-bank-transfer-order` —
+omdat een winkelbezoeker zonder account moet kunnen afrekenen. Hun begrenzing is inhoudelijk
+(server-side prijsvalidatie, tenant-scope op producten, VIES-blokkade) en dat is de juiste vorm
+voor een publiek eindpunt.
+
+**Gedeelde-paden-waarschuwing.** Geen storefront-functie en geen gedeelde tabel geraakt. Wél
+raakt dit de facturatieketen, en dáár zat het echte risico van deze batch: een guard die de
+interne aanroepers buitensluit legt de abonnementsfacturatie stil. Daarom vooraf per functie de
+aanroepers gegrepd en per aanroeper aangetoond dat hij een service-role-client gebruikt —
+`generate-subscription-invoices`, `process-cycle-reminders`, `sync-tenant-plan`,
+`process-invoice-dunning`, `process-refund`, `dispatch-payment-request` en
+`_shared/subscriptionCharge.ts`. `authenticateRequest` laat service-role door
+(`_shared/auth.ts:48-56`), dus de keten blijft intact. (`_shared/mandateToken.ts` kwam in de
+grep naar voren maar noemt de functies alleen in een comment — gecontroleerd, geen aanroep.)
+
+**Verificatie.** Per functie het regelnummer van de guard afgezet tegen dat van de eerste
+bijwerking (insert, update, rpc, Stripe-sessie, mail, PDF, storage): alle acht staan de guard
+vóór het werk. Elke kolomnaam in de nieuwe queries nagetrokken tegen `information_schema`
+(R8) — tien kolommen, alle tien bestaand. Lint gelijk aan de baseline (1519, geen nieuwe
+problemen). `tsc` en `npm run build` niet gedraaid en dat is bewust: beide dekken alleen `src/`,
+en er is geen bestand in `src/` gewijzigd (R7).
+
+**Bewust ongemoeid.** De twee publieke checkout-functies. En 181 facturen met een dode
+`pdf_url` — `generate-subscription-invoice-pdf` roept `getPublicUrl()` aan terwijl de
+`invoices`-bucket `public = false` is en geen SELECT-policy heeft. Nagetrokken op
+`storage.buckets` en `pg_policy`, want het onderzoeksrapport beweerde het tegenovergestelde.
+De downloadknop gebruikt `get-document-url`, dus niemand merkt het; naar de backlog bij de
+bredere R1-opruiming.
+
+**Vervolg.**
+
+1. Deploy van de acht functies. Daarna per functie één probe: POST zonder `Authorization` hoort
+   401 te geven. Dat is veilig — de guard staat vóór elke bijwerking, dus er wordt niets
+   verstuurd of aangemaakt. Met een verzonnen functienaam als controle.
+2. De resterende ~53 uit de 68, in batches van vijf.
+3. Backlog uit deze batch: `customer_id` uit de body in `create-checkout-session`, en de
+   bankgegevens in het antwoord van `create-bank-transfer-order`.
+
+---
+
 ## CRON-TIMEOUT-1 — het antwoord van een cron-job bewaren — 12 september 2026
 
 **Root cause.** `net.http_post` heeft `timeout_milliseconds integer DEFAULT 5000` — nagetrokken
