@@ -40,12 +40,18 @@ Deno.serve(async (req) => {
     }
 
     // Find scheduled runs that are due
+    //
+    // De embed noemde `email` en `street`, en die kolommen bestaan niet op
+    // `tenants` — het zijn `owner_email` en `address`. PostgREST weigert de hele
+    // query met 42703 zodra één kolom in een embed onbekend is, en de throw
+    // hieronder maakte daar een HTTP 500 van. Elke run van deze functie faalde
+    // dus vóór er ook maar één automation verwerkt werd. R8.
     const { data: dueRuns, error: runsError } = await supabase
       .from("automation_runs")
       .select(`
         *,
         automation:email_automations(*),
-        tenant:tenants(name, email, street, city, postal_code)
+        tenant:tenants(name, owner_email, address, city, postal_code)
       `)
       .eq("status", "scheduled")
       .lte("scheduled_for", new Date().toISOString())
@@ -214,7 +220,7 @@ Deno.serve(async (req) => {
 
           if (htmlContent && subject) {
             const tenant = run.tenant;
-            const companyAddress = tenant ? `${tenant.street || ""}, ${tenant.postal_code || ""} ${tenant.city || ""}` : "";
+            const companyAddress = tenant ? `${tenant.address || ""}, ${tenant.postal_code || ""} ${tenant.city || ""}` : "";
 
             // Replace variables
             htmlContent = htmlContent
@@ -229,7 +235,10 @@ Deno.serve(async (req) => {
               .replace(/\{\{company_name\}\}/g, tenant?.name || "");
 
             const resend = new Resend(resendApiKey);
-            const autoSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.owner_email || (tenant as any)?.email);
+            // `owner_email` wordt nu ook daadwerkelijk geselecteerd; de oude
+            // `|| tenant.email`-tak wees naar een kolom die niet bestaat en was
+            // hoe dan ook onbereikbaar.
+            const autoSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', tenant?.owner_email);
             await resend.emails.send({
               from: autoSender.from,
               reply_to: autoSender.replyTo,

@@ -368,11 +368,19 @@ serve(async (req) => {
           const subtotal = processedItems.reduce((s: number, i: any) => s + i.line_total, 0);
 
           // Get tenant
-          const { data: tenant } = await supabaseClient
-            .from("tenants").select("default_vat_rate, currency, name")
+          //
+          // `default_vat_rate` heeft nooit bestaan; de kolom heet `tax_percentage`.
+          // PostgREST weigert een select met een onbekende kolom in zijn geheel,
+          // dus hier gingen ook `currency` en `name` mee de afgrond in — de
+          // ordermail viel terug op "EUR" en een lege winkelnaam, en de BTW op
+          // de hardcoded 21. Dat laatste klopt vandaag toevallig voor alle
+          // tenants; de eerste met een afwijkend tarief kreeg het mis. R8.
+          const { data: tenant, error: tenantErr } = await supabaseClient
+            .from("tenants").select("tax_percentage, currency, name")
             .eq("id", tenantId).single();
+          if (tenantErr) console.error("[stripe-connect-webhook] tenant ophalen mislukt:", tenantErr.message);
 
-          const tenantDefaultRate = Number(tenant?.default_vat_rate) || 21;
+          const tenantDefaultRate = Number(tenant?.tax_percentage) || 21;
           const shippingCost = Number(cart.shipping_cost) || 0;
           const discountAmount = Number(cart.discount_amount) || 0;
           const total = subtotal - discountAmount + shippingCost;

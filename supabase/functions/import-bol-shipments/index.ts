@@ -219,12 +219,23 @@ Deno.serve(async (req) => {
     console.log('Successfully obtained access token')
 
     // Load tenant VAT rate for tax calculation on incoming orders
-    const { data: tenantForTax } = await supabase
+    // `default_vat_rate` stond hier ook in de select, en die kolom heeft
+    // nooit bestaan — de enige tenant-brede BTW-kolom is `tax_percentage`.
+    // PostgREST weigerde daardoor de hele query met 42703, de `error` werd
+    // niet uitgelezen, en `vatRate` viel élke keer terug op de hardcoded 21.
+    // Dat de uitkomst vandaag toevallig klopt (alle tenants staan op 21,00)
+    // maakt het niet minder stuk: de eerste tenant met 9% of 0% kreeg
+    // structureel verkeerde BTW op geïmporteerde orders. R8.
+    const { data: tenantForTax, error: taxErr } = await supabase
       .from('tenants')
-      .select('tax_percentage, default_vat_rate')
+      .select('tax_percentage')
       .eq('id', connection.tenant_id)
       .single()
-    const vatRate = Number(tenantForTax?.tax_percentage ?? tenantForTax?.default_vat_rate ?? 21)
+    if (taxErr) console.error('[vat] tenant-tarief ophalen mislukt:', taxErr.message)
+    if (tenantForTax?.tax_percentage == null) {
+      console.warn(`[vat] geen tax_percentage voor tenant ${connection.tenant_id} — terugval op 21%`)
+    }
+    const vatRate = Number(tenantForTax?.tax_percentage ?? 21)
 
     // Fetch all shipments for both FBR and FBB
     let allShipments: ShipmentSummary[] = []

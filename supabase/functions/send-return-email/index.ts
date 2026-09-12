@@ -21,8 +21,6 @@ interface TenantBranding {
   name: string;
   primary_color?: string;
   logo_url?: string;
-  street?: string;
-  house_number?: string;
   postal_code?: string;
   city?: string;
 }
@@ -175,13 +173,22 @@ serve(async (req) => {
         orders!returns_order_id_fkey(
           order_number, customer_email, customer_name,
           shipping_address, total, currency, locale, tenant_id,
-          tenants(name, support_email, contact_email, primary_color, logo_url, street, house_number, postal_code, city, country, vat_number)
+          tenants(name, support_email, primary_color, logo_url, postal_code, city, country)
         ),
         return_items(product_name, quantity)
       `)
       .eq('id', return_id).single();
 
-    if (retError || !ret) throw new Error('Return niet gevonden');
+    // De embed noemde `contact_email`, `street`, `house_number` en `vat_number`;
+    // geen van vieren bestaat op `tenants`. PostgREST weigerde daardoor de hele
+    // query met 42703, en de melding hieronder maakte er "Return niet gevonden"
+    // van — terwijl de retour prima bestond. Elke retourmail naar een klant
+    // faalde met een foutmelding die naar de verkeerde plek wees. R8.
+    if (retError) {
+      console.error('[send-return-email] returns-query mislukt:', retError);
+      throw new Error(`Retour ophalen mislukt: ${retError.message}`);
+    }
+    if (!ret) throw new Error('Return niet gevonden');
 
     const order = ret.orders as any;
     if (!order) throw new Error('Order niet gevonden bij retour');
@@ -204,7 +211,7 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const supportEmail = tenant?.support_email || tenant?.contact_email || 'admin@sellqo.app';
+    const supportEmail = tenant?.support_email || 'admin@sellqo.app';
     const to = order.customer_email;
 
     if (!to) {
@@ -219,8 +226,6 @@ serve(async (req) => {
       name: tenant?.name || 'SellQo',
       primary_color: tenant?.primary_color,
       logo_url: tenant?.logo_url,
-      street: tenant?.street,
-      house_number: tenant?.house_number,
       postal_code: tenant?.postal_code,
       city: tenant?.city,
     };
