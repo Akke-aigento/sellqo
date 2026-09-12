@@ -1,3 +1,70 @@
+## AUTH-APP-1 — geen wachtwoordvoorstel in de app, en een sessie die te makkelijk sneuvelde — 12 september 2026
+
+Akke meldde dat de app geen gebruikersnaam/wachtwoord voorstelt zoals de webversie, en vroeg
+of iemand die de app één keer per maand opent nog ingelogd is. Het antwoord op die tweede vraag
+legde een echte bug bloot.
+
+**Root cause 1 — geen autofill-hints.** Geen van de zeven velden op `Auth.tsx` had een
+`name`- of `autoComplete`-attribuut. Op web valt dat niet op: browsers raden het uit
+`type="email"` en `type="password"`. De WebView van de app doet dat niet — iOS en Android gaan
+puur op die hints af, en boden daarom niets aan om in te vullen of te bewaren. De velden stonden
+al wél in een echte `<form onSubmit>`, dus alleen de hints ontbraken.
+
+**Root cause 2 — een netwerkhapering wiste de sessie.** `initializeAuth` deed dit:
+
+```ts
+if (error) {
+  if (hasStaleAuthStorage()) await safeLocalSignOut();   // wist de sessie
+}
+```
+
+en `hasStaleAuthStorage()` is niet meer dan "staat er iets in localStorage" — dus waar zodra je
+ingelogd bent. **Elke** fout van `getSession()` telde daarmee als corrupte opslag, inclusief een
+netwerkfout. De app openen in een tunnel, in een vliegtuig of met haperende wifi logde je uit.
+`supabase-js` (2.90.1) heeft daar een eigen type voor, `AuthRetryableFetchError`, maar dat werd
+nergens in `src/` onderscheiden. Dezelfde fout zat in `handleStaleStorage`.
+
+**Server-side was er niets aan de hand**, en dat is het antwoord op de vraag: van de 46 sessies
+heeft er geen enkele een `not_after`, er is geen inactiviteitslimiet, en er stond een sessie van
+**58 dagen ongebruikt** die nog gewoon geldig was. Eén keer per maand inloggen kan prima. Het
+weggooien gebeurde aan onze kant.
+
+**Uitgevoerd.**
+
+- `src/pages/Auth.tsx` — `name` en `autoComplete` op alle zeven velden: `username` +
+  `current-password` bij inloggen, `new-password` bij registreren en bevestigen, `name` en
+  `email` waar van toepassing.
+- `src/hooks/useAuth.tsx` — `isTransientAuthError()` erbij, en zowel `initializeAuth` als
+  `handleStaleStorage` wissen alleen nog bij een definitief antwoord van de server. Bij een
+  tijdelijke fout blijft de sessie staan en doet `initializeAuth` één herkansing na anderhalve
+  seconde — dat vangt de meest voorkomende situatie af: de app start op terwijl de verbinding
+  nog niet staat.
+
+**Security-keuzes.** Dit maakt niets ruimer. Een ingetrokken of verlopen refresh-token geeft een
+4xx en daar loggen we nog steeds op uit; een ongeldig token wordt sowieso door RLS en de edge
+functions geweigerd. Wat vervalt is het uitloggen op een fout die niets over de sessie zegt.
+R3 blijft ongemoeid: `safeLocalSignOut()` met `scope: 'local'` wordt niet aangeraakt.
+
+**Gedeelde-paden-waarschuwing.** n.v.t. — `Auth.tsx` en `useAuth` zijn core, geen storefront.
+
+**Verificatie.** `tsc` exit 0, `npm run build` exit 0, lint gelijk aan de baseline. De
+autofill-hints zijn nagetrokken in de **gebouwde bundel** (`current-password`, `new-password` en
+`username` komen erin voor), niet alleen in de bron. De DOM zelf kon ik niet inspecteren: de
+browser had een actieve sessie en toonde het keuzescherm in plaats van het inlogformulier, en
+die sessie uitloggen om een attribuut te bekijken vond ik niet in verhouding staan.
+
+**Wat ik niet kon toetsen.** Of iOS en Android daadwerkelijk een wachtwoordvoorstel tonen — dat
+vraagt een toesteltest. Idem voor het uitlogscenario: dat is te reproduceren door de app te
+openen met vliegtuigmodus aan.
+
+**Bewust ongemoeid.** Een tweede risico voor lange inactiviteit blijft staan: de sessie leeft in
+`localStorage` van de WebView, en dat kan het besturingssysteem onder opslagdruk opruimen. Een
+native veilige opslag (Capacitor Preferences of Keychain) zou dat wegnemen. Aparte batch — het
+raakt de opslagadapter die Lovable genereert (`previewAuthStorage.ts`, met een
+"do not edit"-kop).
+
+---
+
 ## DEPS-1 — `@huggingface/transformers` eruit — 12 september 2026
 
 **Root cause.** De dependency stond als directe afhankelijkheid in `package.json` en werd

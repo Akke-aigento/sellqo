@@ -56,6 +56,11 @@ export default function Auth() {
   // vreemd staat: route "/" rendert in de native app NativeLandingRedirect, en
   // die stuurt een uitgelogde bezoeker meteen terug naar /auth. De knop bracht
   // je dus precies terug waar je al was — een lus die niets doet.
+  // De velden hieronder dragen `name` en `autoComplete`. Op web raden browsers
+  // het uit type="email"/type="password", maar de WebView van de app doet dat
+  // niet: iOS en Android gaan puur op die hints af. Zonder ze bood de
+  // wachtwoordbeheerder niets aan om in te vullen of te bewaren — precies het
+  // verschil dat tussen de app en de webversie zat.
   const isNative = Capacitor.isNativePlatform();
   const loginSchema = useMemo(() => buildLoginSchema(t), [t]);
   const resetSchema = useMemo(() => buildResetSchema(t), [t]);
@@ -285,6 +290,8 @@ export default function Auth() {
                     <Label htmlFor="login-email">{t('auth.email')}</Label>
                     <Input
                       id="login-email"
+                      name="username"
+                      autoComplete="username"
                       type="email"
                       placeholder={t('auth.emailPlaceholder')}
                       value={loginEmail}
@@ -300,6 +307,8 @@ export default function Auth() {
                     <Label htmlFor="login-password">{t('auth.password')}</Label>
                     <Input
                       id="login-password"
+                      name="password"
+                      autoComplete="current-password"
                       type="password"
                       placeholder="••••••••"
                       value={loginPassword}
@@ -350,6 +359,8 @@ export default function Auth() {
                     <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
                     <Input
                       id="signup-name"
+                      name="name"
+                      autoComplete="name"
                       type="text"
                       placeholder={t('auth.fullNamePlaceholder')}
                       value={signupFullName}
@@ -365,6 +376,8 @@ export default function Auth() {
                     <Label htmlFor="signup-email">{t('auth.email')}</Label>
                     <Input
                       id="signup-email"
+                      name="email"
+                      autoComplete="email"
                       type="email"
                       placeholder={t('auth.emailPlaceholder')}
                       value={signupEmail}
@@ -380,6 +393,8 @@ export default function Auth() {
                     <Label htmlFor="signup-password">{t('auth.password')}</Label>
                     <Input
                       id="signup-password"
+                      name="new-password"
+                      autoComplete="new-password"
                       type="password"
                       placeholder="••••••••"
                       value={signupPassword}
@@ -395,6 +410,8 @@ export default function Auth() {
                     <Label htmlFor="signup-confirm">{t('auth.confirmPassword')}</Label>
                     <Input
                       id="signup-confirm"
+                      name="confirm-password"
+                      autoComplete="new-password"
                       type="password"
                       placeholder="••••••••"
                       value={signupConfirmPassword}
@@ -442,6 +459,8 @@ export default function Auth() {
               <Label htmlFor="reset-email">{t('auth.email')}</Label>
               <Input
                 id="reset-email"
+                name="email"
+                autoComplete="email"
                 type="email"
                 placeholder={t('auth.emailPlaceholder')}
                 value={resetEmail}

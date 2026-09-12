@@ -13,6 +13,38 @@ const SUPABASE_AUTH_KEY = 'sb-gczmfcabnoofnmfpzeop-auth-token';
  * Detects if there's stale auth data in localStorage without a valid session.
  * This happens when tokens expire or get corrupted.
  */
+/**
+ * Is dit een hapering in het netwerk, of deugt de sessie echt niet?
+ *
+ * Dat onderscheid ontbrak, en het was destructief. `initializeAuth` wiste de
+ * opgeslagen sessie bij élke fout van `getSession()`, en `hasStaleAuthStorage()`
+ * is niet meer dan "staat er iets in localStorage" — dus altijd waar als je
+ * ingelogd was. Een netwerkfout telde daardoor als corrupte opslag: de app
+ * openen in een tunnel, in een vliegtuig of met haperende wifi logde je uit en
+ * je moest opnieuw je wachtwoord intypen.
+ *
+ * Dat viel extra op in de app, waar je niet even ververst. Server-side is er
+ * niets aan de hand: sessies hebben geen `not_after` en geen inactiviteitslimiet
+ * (nagetrokken 12 sep 2026 — er stond een sessie van 58 dagen ongebruikt die nog
+ * gewoon geldig was). Wie de app één keer per maand opent hoort ingelogd te
+ * blijven; het weggooien gebeurde aan onze kant.
+ *
+ * We wissen nu alleen bij een definitief antwoord van de server. Dat maakt niets
+ * ruimer: een ingetrokken of verlopen refresh-token geeft een 4xx en daar loggen
+ * we nog steeds op uit, en een ongeldig token wordt sowieso door RLS en de edge
+ * functions geweigerd.
+ */
+function isTransientAuthError(error: unknown): boolean {
+  const name = (error as { name?: string } | null)?.name ?? '';
+  // supabase-js heeft hier een eigen type voor.
+  if (name === 'AuthRetryableFetchError') return true;
+  const status = (error as { status?: number } | null)?.status ?? 0;
+  // 0 = geen verbinding; 5xx = de server, niet jouw sessie.
+  if (status === 0 || status >= 500) return true;
+  const message = (error as { message?: string } | null)?.message ?? '';
+  return /failed to fetch|network|load failed|timeout|aborted/i.test(message);
+}
+
 function hasStaleAuthStorage(): boolean {
   try {
     const stored = localStorage.getItem(SUPABASE_AUTH_KEY);
@@ -309,6 +341,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }, 0);
         }
+      } else if (isTransientAuthError(refreshError)) {
+        // Zie isTransientAuthError: bij een netwerkhapering laten we de sessie
+        // staan. autoRefreshToken probeert het vanzelf opnieuw.
+        console.warn('[Auth] Refresh mislukt door een tijdelijke fout — sessie blijft staan.', refreshError);
       } else {
         console.warn('[Auth] Refresh failed, cleaning up storage.', refreshError);
         await safeLocalSignOut();
@@ -325,11 +361,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // THEN check for existing session with defensive cleanup
-    const initializeAuth = async () => {
+    const initializeAuth = async (retried = false): Promise<void> => {
       const { data: { session: existingSession }, error } = await supabase.auth.getSession();
       
       if (error) {
         console.error('[Auth] Error getting session:', error);
+
+        // Een hapering is geen reden om iemand uit te loggen. Eén herkansing na
+        // anderhalve seconde vangt de meest voorkomende situatie af: de app
+        // start op terwijl de verbinding nog niet staat.
+        if (isTransientAuthError(error)) {
+          console.warn('[Auth] Tijdelijke fout bij getSession — sessie blijft staan, één herkansing.');
+          if (!retried) {
+            await new Promise((r) => setTimeout(r, 1500));
+            return initializeAuth(true);
+          }
+          setRolesLoading(false);
+          setLoading(false);
+          return;
+        }
+
         // Clear corrupt storage if session fetch fails
         if (hasStaleAuthStorage()) {
           console.warn('[Auth] Session error with stale storage, cleaning up...');
