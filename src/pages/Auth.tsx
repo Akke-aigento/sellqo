@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +52,11 @@ const buildSignupSchema = (t: TFunc) =>
 
 export default function Auth() {
   const { t } = useTranslation();
+  // "Terug naar sellqo.app" hoort niet in de app. Niet alleen omdat de tekst er
+  // vreemd staat: route "/" rendert in de native app NativeLandingRedirect, en
+  // die stuurt een uitgelogde bezoeker meteen terug naar /auth. De knop bracht
+  // je dus precies terug waar je al was — een lus die niets doet.
+  const isNative = Capacitor.isNativePlatform();
   const loginSchema = useMemo(() => buildLoginSchema(t), [t]);
   const resetSchema = useMemo(() => buildResetSchema(t), [t]);
   const signupSchema = useMemo(() => buildSignupSchema(t), [t]);
@@ -200,15 +206,17 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <div className="w-full max-w-md">
-          <Button
-            variant="link"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="px-0 mb-4 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            {t('auth.backToSite')}
-          </Button>
+          {!isNative && (
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="px-0 mb-4 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {t('auth.backToSite')}
+            </Button>
+          )}
           <div className="flex justify-center mb-8">
             <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
           </div>
@@ -241,15 +249,17 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
-        <Button
-          variant="link"
-          size="sm"
-          onClick={() => navigate('/')}
-          className="px-0 mb-4 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          {t('auth.backToSite')}
-        </Button>
+        {!isNative && (
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="px-0 mb-4 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            {t('auth.backToSite')}
+          </Button>
+        )}
         {/* Sellqo Logo with Tagline */}
         <div className="flex justify-center mb-8">
           <SellqoLogo variant="tagline" width={220} className="max-w-[80vw]" />
