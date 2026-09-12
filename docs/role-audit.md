@@ -1,3 +1,38 @@
+## DEPS-1 — `@huggingface/transformers` eruit — 12 september 2026
+
+**Root cause.** De dependency stond als directe afhankelijkheid in `package.json` en werd
+**nergens geïmporteerd** — niet in `src/`, niet in `supabase/functions/`, nergens in de repo
+buiten de lockfiles. Ze trok `onnxruntime-node`, `onnxruntime-web` en `sharp` mee: samen 48 MB
+in `node_modules`, en drie kwetsbaarheden.
+
+**Uitgevoerd.** Eén regel uit `package.json`, plus beide actieve lockfiles bijgewerkt:
+`package-lock.json` via `npm install` en `bun.lock` via `bun install --lockfile-only`, zodat
+node_modules niet door twee package managers herschikt werd.
+
+> **Let op — er zijn drie lockfiles in versiebeheer.** `bun.lockb` dateert uit de
+> template-scaffold van januari 2026 en is sindsdien niet aangeraakt; `bun.lock` (de nieuwere
+> tekstvorm) en `package-lock.json` worden wél bijgehouden. Wie alleen `package-lock.json`
+> bijwerkt, verandert niets aan wat Lovable met bun installeert. Die scheefstand is bewust
+> níét in deze batch opgelost, maar hoort op de backlog: één package manager kiezen en de
+> andere lockfiles weghalen.
+
+**Security-keuzes.** n.v.t. — geen rechten, policies of endpoints geraakt.
+
+**Gedeelde-paden-waarschuwing.** n.v.t.
+
+**Verificatie.** `npm run build` exit 0, `tsc --noEmit` exit 0 (leeg log). Zou iets de
+dependency toch gebruiken, dan had de build daarop gefaald.
+
+`npm audit`: **38 → 35** kwetsbaarheden. Eén kritieke (`protobufjs`, via onnxruntime), één hoge
+en één gemiddelde verdwenen. De twee resterende kritieken zijn `tar` en `vitest` — allebei
+bouwgereedschap dat niet bij gebruikers draait.
+
+**Bewust ongemoeid.** De overige 35 kwetsbaarheden. De relevante daarvan zijn
+`react-router-dom`, `form-data`, `nanoid` en `postcss`: die draaien wél in de browser van de
+gebruiker en verdienen een eigen batch met een echte regressietest, geen `npm audit fix`.
+
+---
+
 ## AUTH-TRIAGE-2 — acht betaal- en documentfuncties stonden open — 12 september 2026
 
 **Root cause.** De auth-triage bleef in september halverwege steken: vijf van de vijftien
