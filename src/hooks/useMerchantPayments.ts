@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from './useTenant';
 
 export interface MerchantTransaction {
   id: string;
@@ -42,11 +43,18 @@ export interface PayoutSchedule {
 }
 
 export function useMerchantTransactions(limit = 50) {
+  const { currentTenant } = useTenant();
+  const tenantId = currentTenant?.id;
+
   return useQuery({
-    queryKey: ['merchant-transactions', limit],
+    queryKey: ['merchant-transactions', tenantId, limit],
+    enabled: !!tenantId,
     queryFn: async () => {
+      // Er ging geen tenant en geen limiet mee. De functie leidde de tenant af
+      // uit een query die RLS blokkeerde, en las de limiet uit een querystring
+      // die bij `functions.invoke` niet bestaat — die kwam dus nooit aan.
       const { data, error } = await supabase.functions.invoke('get-merchant-transactions', {
-        body: null,
+        body: { tenant_id: tenantId, limit },
       });
       
       if (error) throw error;
@@ -62,11 +70,15 @@ export function useMerchantTransactions(limit = 50) {
 }
 
 export function useMerchantPayouts(limit = 20) {
+  const { currentTenant } = useTenant();
+  const tenantId = currentTenant?.id;
+
   return useQuery({
-    queryKey: ['merchant-payouts', limit],
+    queryKey: ['merchant-payouts', tenantId, limit],
+    enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('get-merchant-payouts', {
-        body: null,
+        body: { tenant_id: tenantId, limit },
       });
       
       if (error) throw error;

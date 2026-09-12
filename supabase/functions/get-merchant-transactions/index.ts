@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeForTenant } from "../_shared/stripe.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,38 +22,45 @@ serve(async (req) => {
   try {
     logStep("Request received");
 
+    // Auth: service-role client plus een expliciete tenant- en rolcheck.
+    //
+    // Hier stond een client met de ANON-key en zónder Authorization-header. De
+    // JWT ging alleen naar `auth.getUser(token)` — dat werkt, want dat gaat naar
+    // GoTrue en niet via RLS. Maar élke query daarna draaide als rol `anon`, en
+    // de policy op `user_roles` is `TO authenticated`. De lookup gaf dus altijd
+    // nul rijen, `.single()` faalde, en de melding "No tenant found for user"
+    // werd een HTTP 500. Voor iedereen, altijd.
+    //
+    // Het patroon hieronder is dat van de zusterfuncties in hetzelfde domein
+    // (`get-stripe-login-link`, `disconnect-stripe-account`): de tenant komt uit
+    // de body en wordt geverifieerd, in plaats van afgeleid uit een query die
+    // RLS toch blokkeert. `accountant` mag mee omdat dit leesbare financiële
+    // historie is — dezelfde rol die `create-manual-invoice` al vertrouwt.
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
     );
 
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    const body = await req.json().catch(() => ({}));
+    const tenantId = body?.tenant_id;
+    if (!tenantId) {
+      return new Response(JSON.stringify({ error: "tenant_id is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
-    logStep("User authenticated", { userId: user.id });
+    const auth = await authenticateRequest(req, tenantId);
+    requireRole(auth, tenantId, ["tenant_admin", "accountant"]);
+    logStep("User authenticated", { userId: auth.user_id });
 
-    // Get user's tenant with stripe account
-    const { data: userRole } = await supabaseClient
-      .from("user_roles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!userRole?.tenant_id) {
-      throw new Error("No tenant found for user");
-    }
-
-    const { data: tenant } = await supabaseClient
+    const { data: tenant, error: tenantErr } = await supabaseClient
       .from("tenants")
       .select("stripe_account_id")
-      .eq("id", userRole.tenant_id)
+      .eq("id", tenantId)
       .single();
+    if (tenantErr) logStep("Tenant lookup failed", { message: tenantErr.message });
 
     if (!tenant?.stripe_account_id) {
       return new Response(JSON.stringify({ 
@@ -65,16 +73,20 @@ serve(async (req) => {
       });
     }
 
-    const { stripe, keyMode } = await getStripeForTenant(supabaseClient, userRole.tenant_id);
+    const { stripe, keyMode } = await getStripeForTenant(supabaseClient, tenantId);
     logStep("Stripe client initialised", { keyMode });
 
     logStep("Fetching transactions for Stripe account", { accountId: tenant.stripe_account_id });
 
+    // De frontend roept aan via `functions.invoke` — een POST zonder
+    // querystring. Deze parameters kwamen dus nooit aan; `limit` uit de hook
+    // werd stil genegeerd. De querystring blijft als terugval voor handmatige
+    // aanroepen.
     const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get("limit") || "50");
-    const startingAfter = url.searchParams.get("starting_after") || undefined;
-    const createdGte = url.searchParams.get("created_gte") || undefined;
-    const createdLte = url.searchParams.get("created_lte") || undefined;
+    const limit = Number(body?.limit) || parseInt(url.searchParams.get("limit") || "50");
+    const startingAfter = body?.starting_after || url.searchParams.get("starting_after") || undefined;
+    const createdGte = body?.created_gte || url.searchParams.get("created_gte") || undefined;
+    const createdLte = body?.created_lte || url.searchParams.get("created_lte") || undefined;
 
     // Fetch balance transactions from merchant's Stripe account
     const params: Stripe.BalanceTransactionListParams = {
@@ -128,6 +140,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
