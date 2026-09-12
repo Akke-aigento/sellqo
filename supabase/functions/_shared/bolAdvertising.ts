@@ -23,16 +23,23 @@ export const BOL_CAMPAIGN_BASE =
 export const BOL_REPORTING_BASE =
   "https://api.bol.com/advertiser/sponsored-products/reporting";
 
-// De twee API's verschillen hierin, en dat is nagetrokken in de specificaties —
-// niet aangenomen omdat ze onder dezelfde noemer vallen.
+// Eén mediatype voor beide API's, en dat is met een 406 betaald.
 //
-// campaign-management: `campaigns/list` is de enige aanroep die altijd heeft
-// gewerkt, en die stuurt dit vendor-mediatype. Bewezen goed, dus ongemoeid.
-const CAMPAIGN_MEDIA_TYPE = "application/vnd.advertiser.v11+json";
-// reporting.yml declareert in élk content-blok uitsluitend `application/json`; het
-// vendor-mediatype komt er niet in voor. De oude code stuurde overal hetzelfde
-// vendor-type, omdat GET en POST één headerconstante deelden.
-const REPORTING_MEDIA_TYPE = "application/json";
+// Op 11 september stond hier `application/json` voor reporting, omdat reporting.yml
+// in élk `content:`-blok alleen dat declareert. Dat was een verkeerde lezing: zo'n
+// blok beschrijft het formaat van de *response body*, niet de Accept-header die de
+// gateway van bol.com eist. Elke reporting-aanroep kreeg:
+//
+//   406 — "Accept headers are required (e.g. 'application/vnd.retailer.{version}+json').
+//          No wildcards allowed i.e. '*/*', 'application/*', '*/json'."
+//
+// De gateway wil dus altijd een vendor-mediatype. Voor de advertiser-API is dat
+// `vnd.advertiser.v11+json` — aantoonbaar goed, want daarmee werkt
+// campaign-management al. (Het voorbeeld in de foutmelding noemt `vnd.retailer`;
+// dat is de generieke tekst van de gateway, niet het type voor deze API.)
+//
+// Les: een OpenAPI-`content:`-blok is geen uitspraak over de Accept-header.
+const ADV_MEDIA_TYPE = "application/vnd.advertiser.v11+json";
 
 /** pageSize mag volgens de spec hoogstens 100 zijn. */
 export const BOL_MAX_PAGE_SIZE = 100;
@@ -224,8 +231,8 @@ export function createBolAdvertisingClient(
           method: "POST",
           headers: {
             Authorization: `Bearer ${t}`,
-            Accept: CAMPAIGN_MEDIA_TYPE,
-            "Content-Type": CAMPAIGN_MEDIA_TYPE,
+            Accept: ADV_MEDIA_TYPE,
+            "Content-Type": ADV_MEDIA_TYPE,
           },
           body: JSON.stringify(body),
         })
@@ -240,7 +247,7 @@ export function createBolAdvertisingClient(
       // hem wel mee, omdat GET en POST dezelfde header-constante deelden.
       return await withFreshToken((t) =>
         fetch(url, {
-          headers: { Authorization: `Bearer ${t}`, Accept: REPORTING_MEDIA_TYPE },
+          headers: { Authorization: `Bearer ${t}`, Accept: ADV_MEDIA_TYPE },
         })
       ) as T | null;
     },

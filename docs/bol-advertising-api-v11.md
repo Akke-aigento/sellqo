@@ -48,8 +48,21 @@ keywords en ads worden per blok campagnes in één keer opgehaald.
 ### Reporting
 
 **Basis:** `https://api.bol.com/advertiser/sponsored-products/reporting`
-**Mediatype:** `application/json` — **niet** het vendor-type. De spec declareert in élk
-content-blok uitsluitend `application/json`.
+**Mediatype:** `application/vnd.advertiser.v11+json` — hetzelfde als campaign-management.
+
+> **Let op, dit kostte een ronde.** `reporting.yml` declareert in élk `content:`-blok
+> uitsluitend `application/json`, en daar is op 11 september ten onrechte uit
+> geconcludeerd dat dát de Accept-header moest zijn. Elke aanroep kreeg:
+>
+> ```
+> 406 — Accept headers are required (e.g. 'application/vnd.retailer.{version}+json').
+>       No wildcards allowed i.e. '*/*', 'application/*', '*/json'.
+> ```
+>
+> Een OpenAPI-`content:`-blok beschrijft het formaat van de **response body**, niet de
+> Accept-header die de gateway eist. Bol.com wil altijd een vendor-mediatype. Het
+> voorbeeld in de foutmelding noemt `vnd.retailer`; dat is de generieke gatewaytekst,
+> niet het type voor deze API.
 
 **Methode is GET met query-parameters**, geen POST met body.
 
@@ -157,6 +170,11 @@ Daarnaast beschikbaar en nu niet opgeslagen: `directConversions14d`,
 - **Een test- of demo-omgeving.** Niet gevonden in de documentatie. Zolang die er niet
   is, raakt elke verificatie de productie-API — dus: bouwen tegen het contract,
   deployen, en wachten op de reguliere cron in plaats van handmatig vuren.
+- **De vorm van `entity-ids` is nog onbewezen.** De code herhaalt de parameter
+  (`entity-ids=1&entity-ids=2`), wat de OpenAPI-standaard voor een array-queryparameter
+  is. De 406 kwam vóór enige validatie daarvan, dus of bol.com deze vorm accepteert
+  blijkt pas bij de eerstvolgende run. Komt daar een 400, dan is komma-gescheiden de
+  volgende kandidaat.
 - **Rate limits en dagquota.** Niet uit deze specs af te lezen. De 429-afhandeling met
   `Retry-After` blijft daarom staan.
 - **De Bulk Reporting API** is niet bekeken; bij groei mogelijk efficiënter dan

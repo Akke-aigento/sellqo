@@ -1,3 +1,57 @@
+## ADS-REBUILD-2 — een 406 op elke reporting-aanroep — 12 september 2026
+
+**Root cause.** Mijn fout, en geen subtiele. `_shared/bolAdvertising.ts` stuurde
+`Accept: application/json` naar de reporting-API, omdat `reporting.yml` in élk
+`content:`-blok uitsluitend dat mediatype declareert. Bol.com antwoordde op élke
+aanroep, elke dag, in beide runs van 11 september:
+
+```
+406 — "Accept headers are required (e.g. 'application/vnd.retailer.{version}+json').
+       No wildcards allowed i.e. '*/*', 'application/*', '*/json'."
+```
+
+**Een OpenAPI-`content:`-blok beschrijft het formaat van de response body, niet de
+Accept-header die de gateway eist.** Die twee zijn hier uit elkaar gelopen en ik heb ze
+gelijkgesteld — en erger, ik heb dat als vastgesteld gepresenteerd in
+`docs/bol-advertising-api-v11.md` in plaats van als aanname. Dat de fix in datzelfde
+document als "eerste verdachte" stond, maakt de bewering niet minder stellig dan ze was.
+
+**Uitgevoerd.** Eén mediatype voor beide API's: `application/vnd.advertiser.v11+json`,
+hetzelfde dat campaign-management aantoonbaar accepteert. De `Content-Type` blijft weg
+bij GET — een GET heeft geen body. Contractdocument gecorrigeerd, inclusief de reden
+waarom de oorspronkelijke lezing fout was.
+
+**Security-keuzes.** n.v.t. — alleen een request-header naar een externe API.
+
+**Gedeelde-paden-waarschuwing.** n.v.t.
+
+**Verificatie.** ESLint schoon. `tsc` en `npm run build` niet gedraaid en dat is bewust:
+beide dekken alleen `src/`, en er is geen bestand in `src/` gewijzigd. De echte
+verificatie is de eerstvolgende cron-run.
+
+**Wat dit óók blootlegt.** De diagnose kostte een volle dag wachten op twee cron-runs plus
+twee keer handmatig logs opvragen, terwijl de functie zelf een keurige `failures`-lijst
+teruggeeft. Die lijst komt nooit aan: de cron-jobs hebben geen `timeout_milliseconds`, dus
+pg_net kapt het antwoord na 5 seconden af en `net._http_response.content` blijft `null`.
+Zolang dat zo is, is elke volgende diagnose weer afhankelijk van handmatig aangeleverde
+logs. Voorstel staat open (§3b van het lopende plan): `timeout_milliseconds := 120000` op
+beide bol-jobs.
+
+**Bewust ongemoeid.** Nog steeds geen enkele handmatige aanroep naar bol.com. De 406 kwam
+uit een reguliere cron-run.
+
+**Vervolg.**
+
+1. `ads-bolcom-reports` opnieuw uitrollen (en `ads-bolcom-sync`, dat hetzelfde
+   `_shared`-bestand bundelt — R6).
+2. Eerstvolgende run: `ads_bolcom_performance` moet rijen krijgen.
+3. **Nog onbewezen:** de vorm van `entity-ids`. De code herhaalt de parameter, wat de
+   OpenAPI-standaard voor arrays is, maar de 406 kwam vóór enige validatie daarvan. Komt
+   er nu een 400, dan is komma-gescheiden de volgende kandidaat.
+4. Daarna pas de dedupliceertest, die door deze fout nog niet heeft kunnen draaien.
+
+---
+
 ## ADS-REBUILD-1 — de bol.com-integratie herbouwd tegen de specificatie — 11 september 2026
 
 **Root cause.** Vier onafhankelijke constructiefouten, waarvan alleen de eerste bekend was.
