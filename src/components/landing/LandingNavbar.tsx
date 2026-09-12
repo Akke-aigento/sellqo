@@ -90,10 +90,24 @@ export function LandingNavbar() {
       </div>
 
       {/* Mobile Menu */}
+      {/*
+        `max-h-96` (384px) stond hier als open-hoogte, en daar past de inhoud
+        niet in: vier navigatielinks, de taalkiezer en twee knoppen komen samen
+        boven de 400px. De onderste knop — "Gratis Starten" — viel daardoor half
+        weg, en in talen met langere labels nog meer.
+
+        Nu een bovengrens ten opzichte van het scherm in plaats van een vast
+        getal, met `overflow-y-auto` als de inhoud ooit tóch langer wordt. De
+        collapse-animatie blijft werken omdat `max-h-0` de dichte staat is;
+        `overflow-hidden` hoort alleen bij die staat, anders zou een scrollbalk
+        tijdens het dichtklappen meeflikkeren.
+      */}
       <div
         className={cn(
-          'lg:hidden absolute top-full left-0 right-0 bg-background border-b border-border transition-all duration-300 overflow-hidden',
-          isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          'lg:hidden absolute top-full left-0 right-0 bg-background border-b border-border transition-[max-height,opacity] duration-300',
+          isMobileMenuOpen
+            ? 'max-h-[80dvh] opacity-100 overflow-y-auto'
+            : 'max-h-0 opacity-0 overflow-hidden'
         )}
       >
         <div className="container mx-auto px-4 py-4 flex flex-col gap-4">

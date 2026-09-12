@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { registerPushForUser, unregisterPushForUser } from '@/native/pushRegistration';
+import { LogoLoader } from '@/components/LogoLoader';
 
 // Storage key used by Supabase auth
 const SUPABASE_AUTH_KEY = 'sb-gczmfcabnoofnmfpzeop-auth-token';
@@ -49,6 +50,13 @@ async function safeLocalSignOut(): Promise<void> {
   clearAuthStorage();
 }
 
+
+/**
+ * Hoe lang het afmelden van pushberichten het uitloggen mag ophouden.
+ * Lukt het niet binnen deze tijd, dan gaat het uitloggen door — een gebruiker
+ * die weg wil, moet weg kunnen.
+ */
+const PUSH_UNREGISTER_TIMEOUT_MS = 3000;
 
 export type AppRole = 'platform_admin' | 'tenant_admin' | 'accountant' | 'staff' | 'warehouse' | 'viewer' | 'marketing';
 
@@ -129,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
   const { toast } = useToast();
 
   /**
@@ -561,16 +570,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Uitloggen op dit toestel mag je sessie op je telefoon niet meesleuren.
-    await unregisterPushForUser();
-    await safeLocalSignOut();
-    setRoles([]);
-    currentUserIdRef.current = null;
-    hasResolvedRolesOnceRef.current = false;
-    toast({
-      title: t('auth.toast.loggedOut'),
-      description: t('auth.toast.loggedOutBody'),
-    });
+    // Meteen zichtbaar maken dat er iets gebeurt. Hiervóór bleef het scherm
+    // ongeveer een seconde onveranderd staan: pas ná `unregisterPushForUser`
+    // en `safeLocalSignOut` veranderde de auth-state en verhuisde de route.
+    // In de native app is dat merkbaar — daar doet de eerste een Firebase-call
+    // plús een DB-delete — en een knop die niets lijkt te doen nodigt uit tot
+    // nog eens tikken.
+    setSigningOut(true);
+    try {
+      // Volgorde is wél belangrijk en blijft zoals hij was. De delete op
+      // `device_tokens` heeft de sessie nodig; draaien we die ná het uitloggen,
+      // dan loopt hij als `anon` tegen RLS aan en blijft de tokenrij staan.
+      // Het toestel krijgt dan pushberichten voor een uitgelogde gebruiker, en
+      // dat is een groter probleem dan een seconde wachten.
+      //
+      // Wel begrensd: een hangende Firebase-call mag het uitloggen niet
+      // tegenhouden. De functie logt zelf al een waarschuwing als hij faalt.
+      await Promise.race([
+        unregisterPushForUser(),
+        new Promise<void>((resolve) => setTimeout(resolve, PUSH_UNREGISTER_TIMEOUT_MS)),
+      ]);
+      await safeLocalSignOut();
+      setRoles([]);
+      currentUserIdRef.current = null;
+      hasResolvedRolesOnceRef.current = false;
+      toast({
+        title: t('auth.toast.loggedOut'),
+        description: t('auth.toast.loggedOutBody'),
+      });
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   const resetPassword = async (email: string) => {
@@ -633,7 +663,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+      {/*
+        Uitloggen duurt even — het afmelden van pushberichten moet vóór het
+        wissen van de sessie. Deze laag maakt dat zichtbaar in plaats van het
+        scherm onveranderd te laten staan. Hij hangt hier, niet bij de losse
+        uitlogknoppen, zodat elk uitlogpad hem krijgt: de zijbalk, de
+        trial-blokkade, de onboarding en het keuzescherm.
+      */}
+      {signingOut && (
+        <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm">
+          <LogoLoader />
+        </div>
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
