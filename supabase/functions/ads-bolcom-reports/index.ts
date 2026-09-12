@@ -37,17 +37,7 @@ function jsonRes(data: unknown, status = 200) {
   });
 }
 
-/**
- * Standaard aantal dagen dat elke run opnieuw ophaalt.
- *
- * Niet één dag, en dat is opzettelijk. Alle conversiemetrieken van bol.com zijn
- * `*14d`: een klik van vandaag kan tot veertien dagen later nog een conversie
- * opleveren. De cijfers van een dag staan dus pas na twee weken vast. Zeven dagen
- * opnieuw ophalen vangt het grootste deel van die nakomende conversies zonder elke
- * run een volledige maand op te vragen. De upsert werkt bestaande dagen bij in
- * plaats van ze te dupliceren — dát is wat de unieke index uit migratie
- * 20260911130000 mogelijk maakt.
- */
+/** Bereik als de aanroeper er geen opgeeft. Zie de toelichting bij `dates`. */
 const DEFAULT_LOOKBACK_DAYS = 7;
 
 /** Metrieken uit de v11-reporting-respons naar onze kolommen. */
@@ -110,17 +100,57 @@ Deno.serve(async (req) => {
     // niet per dag. Onze tabel is wél per dag opgezet. De enige manier om dagcijfers
     // te krijgen is dus één aanroep per dag, met start- en einddatum gelijk.
     //
-    // De oude code vroeg één periode van 30 dagen op en verwachtte `row.date` in het
-    // antwoord. Dat veld bestaat niet; elke rij zou op `continue` zijn gestrand.
-    const requestedDays = Math.min(
-      Math.max(Number(body.days) || DEFAULT_LOOKBACK_DAYS, 1),
-      BOL_MAX_REPORT_DAYS,
+    // Drie manieren om het bereik op te geven, in volgorde van voorrang:
+    //
+    //   1. `start_date` + `end_date` — wat de frontend stuurt. De herbouw van
+    //      11 sep las alleen `days` en negeerde deze twee stil, waardoor de
+    //      periodekiezer (7/30/90 dagen) niets deed en elke run 7 dagen ophaalde.
+    //   2. `days` — het aantal dagen terug vanaf vandaag.
+    //   3. De default: zeven dagen.
+    //
+    // Waarom niet één dag als default: alle conversiemetrieken van bol.com zijn
+    // `*14d`. Een klik van vandaag kan tot veertien dagen later nog een conversie
+    // opleveren, dus de cijfers van een dag staan pas na twee weken vast. Zeven
+    // dagen opnieuw ophalen vangt het grootste deel daarvan. Dat kan alleen omdat
+    // de upsert bestaande dagen bijwerkt in plaats van dupliceert — zie de unieke
+    // index uit migratie 20260911130000.
+    const today = new Date();
+    const todayStr = formatDate(today);
+    const earliest = formatDate(
+      new Date(today.getTime() - BOL_MAX_REPORT_DAYS * 86400000),
     );
 
+    const fromDays = (n: number) =>
+      formatDate(new Date(today.getTime() - (n - 1) * 86400000));
+
+    const requestedStart: string = body.start_date
+      ? String(body.start_date)
+      : fromDays(Math.max(Number(body.days) || DEFAULT_LOOKBACK_DAYS, 1));
+    const requestedEnd: string = body.end_date ? String(body.end_date) : todayStr;
+
+    // Klemmen op wat de API toestaat: hoogstens 30 dagen terug, niet in de
+    // toekomst. De UI biedt ook 90 dagen; die weergave leest uit de database en
+    // vult zich naarmate de dagelijkse runs historie opbouwen. Verder terugvragen
+    // dan het venster levert geen data op, alleen foutmeldingen.
+    const startDate = requestedStart < earliest ? earliest : requestedStart;
+    const endDate = requestedEnd > todayStr ? todayStr : requestedEnd;
+
+    const clamped = startDate !== requestedStart || endDate !== requestedEnd;
+
     const dates: string[] = [];
-    const today = new Date();
-    for (let i = requestedDays - 1; i >= 0; i--) {
-      dates.push(formatDate(new Date(today.getTime() - i * 86400000)));
+    for (
+      let d = new Date(`${startDate}T00:00:00Z`);
+      formatDate(d) <= endDate;
+      d = new Date(d.getTime() + 86400000)
+    ) {
+      dates.push(formatDate(d));
+    }
+
+    if (!dates.length) {
+      return jsonRes({
+        success: false,
+        error: `Ongeldig bereik: ${requestedStart} t/m ${requestedEnd}`,
+      }, 400);
     }
 
     // ---- Credentials --------------------------------------------------------
@@ -330,7 +360,12 @@ Deno.serve(async (req) => {
       success: failures.length === 0,
       partial: failures.length > 0,
       days_synced: dates.length,
+      // Het werkelijk gebruikte venster, niet het gevraagde. `clamped` maakt
+      // zichtbaar dat er is ingekort — anders lijkt een 90-dagenverzoek gewoon
+      // weinig data op te leveren.
       period: { from: dates[0], to: dates[dates.length - 1] },
+      requested: { from: requestedStart, to: requestedEnd },
+      clamped,
       performance_records: performanceRecords,
       search_term_records: searchTermRecords,
       failures,

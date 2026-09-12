@@ -248,8 +248,13 @@ export function useBolcomAds() {
   }, [campaigns, campPerf]);
 
   // Auto-sync reports (1-hour cache)
+  //
+  // De sleutel bevat de periode. Zonder dat gaf een overstap van 7d naar 30d
+  // binnen het uur `{ skipped: true }`: de queryKey veranderde wel, maar de
+  // cachecheck hieronder sloeg de sync over, en de grafiek bleef op zeven dagen
+  // staan zonder dat er iets mis leek.
   const queryClient = useQueryClient();
-  const cacheKey = `bolcom-reports-last-sync-${tenantId}`;
+  const cacheKey = `bolcom-reports-last-sync-${tenantId}-${period}`;
 
   const { isFetching: reportsSyncing } = useQuery({
     queryKey: ['bolcom-reports-sync', tenantId, period],
