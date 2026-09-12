@@ -181,6 +181,18 @@ herhaalde aanroep de bestaande bonnen terug.
 de functie wordt nergens in de codebase aangeroepen — net als bij `send-whatsapp-message` en
 `automation-scheduler`. Het wordt een echt gat op de dag dat de feature aangaat.
 
+> **Uitgerold en geverifieerd — 12 sep 2026.** Twee probes met een echt id en zonder
+> `Authorization`: `generate-payment-request-pdf` en `generate-subscription-invoice-pdf` geven
+> allebei `401 {"success":false,"error":"Missing or invalid Authorization header"}`, de melding
+> uit `_shared/auth.ts` via de nieuwe `AuthError`-tak. Controleprobe op een verzonnen naam: 404
+> `{"code":"NOT_FOUND"}`.
+>
+> Alleen deze twee zijn probebaar: de guard staat ná het ophalen van de rij, dus een verzonnen
+> id strandt ervóór en een echt id voert bij een mislukte deploy het werk uit — bij
+> `send-payment-request-email` een echte factuurmail. Bij de twee PDF-functies is de slechtste
+> uitkomst het hergenereren van een bestaand document. Ze dekken beide resolve-paden, en alle
+> acht zaten in dezelfde deploy-aanroep.
+
 > **Bijvangst, niet gerepareerd:** 181 facturen hebben een `pdf_url` in de
 > `/object/public/`-vorm, terwijl de `invoices`-bucket `public = false` is en géén SELECT-policy
 > heeft. Die links zijn dood. Nagetrokken op `storage.buckets` en `pg_policy` — het

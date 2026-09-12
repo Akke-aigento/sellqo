@@ -65,6 +65,36 @@ en er is geen bestand in `src/` gewijzigd (R7).
 De downloadknop gebruikt `get-document-url`, dus niemand merkt het; naar de backlog bij de
 bredere R1-opruiming.
 
+**Uitgerold en geverifieerd — 12 september 2026, 15:50.**
+
+Twee probes, beide met een **echt** id en zónder `Authorization`-header:
+
+```
+generate-payment-request-pdf      → 401 {"success":false,"error":"Missing or invalid Authorization header"}
+generate-subscription-invoice-pdf → 401 {"success":false,"error":"Missing or invalid Authorization header"}
+deze-functie-bestaat-niet         → 404 {"code":"NOT_FOUND"}
+```
+
+Die melding komt uit `_shared/auth.ts` en wordt door de nieuwe `AuthError`-tak afgehandeld, dus
+guard én statuscode-correctie zijn allebei live. De controleprobe bewijst dat ik een echte
+meting doe en niet naar een storing kijk.
+
+**Waarom maar twee van de acht, en juist deze twee.** Een probe kan deze functies niet zomaar
+toetsen: de guard staat ná het ophalen van de rij — dat moet, anders is de tenant onbekend. Een
+verzonnen id strandt dus vóór de guard en bewijst niets, en een echt id bewijst het wél maar
+voert bij een mislukte deploy het werk uit. Bij `send-payment-request-email` is dat een echte
+factuurmail naar een tenant; alle drie de `billing_cycles` horen bij de interne SellQo-tenant,
+geen demo. Dat is precies de schade die deze batch moet voorkomen.
+
+De twee PDF-functies zijn de enige waar de slechtste uitkomst onschadelijk is: een PDF die al
+bestaat wordt opnieuw gegenereerd. Ze dekken bovendien allebei de resolve-paden
+(`billing_cycles` en `invoices`), en alle acht kregen dezelfde wijziging in dezelfde deploy —
+één tool-aanroep die alle acht bij naam noemt.
+
+**Dit is precies de situatie waarvoor R6 sinds vandaag een tweede bewijsvorm kent:** bij een
+functie met bijwerkingen bewijs je een deploy met de logs, niet met een probe. Voor de zes
+overige is dat de route zodra ze langs een legitieme aanroep komen.
+
 **Vervolg.**
 
 1. Deploy van de acht functies. Daarna per functie één probe: POST zonder `Authorization` hoort
