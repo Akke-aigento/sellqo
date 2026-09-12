@@ -41,6 +41,36 @@ byte-identiek aan het huidige commando, plus `timeout_milliseconds := 120000`. I
 **Ná het draaien te controleren:** `net._http_response` moet binnen een uur een rij met een
 gevulde `content` bevatten voor deze jobs, in plaats van `NULL`.
 
+**Naschrift — de migratie is niet gedraaid zoals geschreven, en dat legde twee dingen bloot.**
+
+Lovable liep bij het uitvoeren tegen een platform-guard: `cron.schedule()` met een sub-hourly
+schema wordt geblokkeerd, en rechtstreeks `UPDATE cron.job` geeft permission denied. De agent
+heeft het daarom via `cron.alter_job(jobid, command := …)` gedaan — dat raakt de cadans niet
+aan, dus de guard vuurt niet.
+
+Het eindresultaat is nagetrokken en klopt: alle vier de jobs hebben
+`timeout_milliseconds := 120000`, met ongewijzigde schema's, URL's, `x-cron-secret`-header en
+runtime-lookup van het secret. Sterker nog, het gegenereerde commando is **byte-identiek** aan
+wat er live staat — vergeleken met een `SELECT … = j.command` op `cron.job`.
+
+Twee gevolgen:
+
+1. **De migratie stond niet in `supabase_migrations.schema_migrations`.** Het bestand lag dus
+   als landmijn in de repo: bij een volgende migratieronde zou hij tegen diezelfde guard
+   lopen. Herschreven naar `cron.alter_job`, met de guard gedocumenteerd en een `notice` in
+   plaats van een exception als de job nog niet bestaat. Nu replaybaar en aantoonbaar
+   idempotent.
+2. **Dit bevestigt de connector-valkuil voor de tweede keer, in een nieuwe vorm.** Gisteren
+   schreef Lovable een eigen kopie van een migratiebestand; vandaag bereikte het de eindstaat
+   langs een heel andere route en registreerde de migratie helemaal niet. De regel blijft
+   dezelfde: *de agent-samenvatting is geen bewijs* — natrekken, altijd.
+
+**Bijvangst, niet opgelost:** van de 15 actieve cron-jobs die een edge function aanroepen
+hebben er na deze batch **5** een timeout en **10** niet. Die tien gooien hun antwoord nog
+steeds weg, waaronder `auto-invoice-cron`, `generate-subscription-invoices-daily`,
+`process-invoice-dunning-daily` en `marketplace-sync-scheduler`. Bewust buiten scope gelaten;
+voorgelegd aan Akke als vervolg.
+
 **Ook uitgevoerd — R6 uitgebreid met twee alinea's.**
 
 1. *Een logbestand bewijst een deploy net zo goed, en voert niets uit.* R6 schreef tot nu toe
