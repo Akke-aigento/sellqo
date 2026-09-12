@@ -4,6 +4,35 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10w — De navigatie op je telefoon (improvement + security, 12-09-2026)
+
+**Voor wie:** iedereen die de admin op een telefoon gebruikt. Op desktop verandert
+er niets.
+
+**De onderste balk zweeft.** De navigatie onderaan is nu een zwevende, afgeronde
+balk in plaats van een strook over de volle breedte. De vier snelkoppelingen zijn
+Dashboard, Bestellingen, Producten en Inbox. Het volledige menu opent nog steeds
+met de knop linksboven — daar verandert niets aan.
+
+**Je ziet nu waar je bent.** Opende je een bestelling of een product, dan lichtte
+geen enkel tabblad meer op. Dat is rechtgezet: de actieve pagina blijft gemarkeerd,
+ook op een detailpagina.
+
+**En hij houdt rekening met je rol.** Dit is het belangrijkste deel. De balk toonde
+aan iedereen dezelfde tabbladen — ook als je rol of je abonnement die pagina
+helemaal niet bevat. Voortaan volgt hij dezelfde regels als het menu aan de zijkant.
+Voor de inbox lag dat het gevoeligst: medewerkers met een magazijn- of
+boekhoudrol konden via die balk bij klantberichten komen. Die pagina is nu
+afgeschermd.
+
+**Wat je kunt merken.** Werk je met medewerkers in een beperkte rol, dan zien die
+vanaf nu minder tabbladen onderaan dan voorheen. Dat is de bedoeling — ze zagen
+knoppen naar pagina's waar ze niet hoorden te komen.
+
+**i18n-keys.** `public.changelog.changes.admin_floating_bottom_nav` en
+`.admin_bottom_nav_permissions` — vijf talen, volledige pariteit.
+
+
 ### 2026.10v — Vier dingen die stuk waren, weer heel (bugfix, 12-09-2026)
 
 **Voor wie:** iedereen. De vier onderdelen hieronder staan los van elkaar; kies

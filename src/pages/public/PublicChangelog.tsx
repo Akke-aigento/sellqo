@@ -14,6 +14,10 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.10w', dateKey: 'sep_2026', changes: [
+    { id: 'admin_bottom_nav_permissions', type: 'security' },
+    { id: 'admin_floating_bottom_nav', type: 'improvement' },
+  ] },
   { version: '2026.10v', dateKey: 'sep_2026', changes: [
     { id: 'return_emails_delivered', type: 'bugfix' },
     { id: 'merchant_payout_pages', type: 'bugfix' },

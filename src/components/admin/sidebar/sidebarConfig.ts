@@ -275,6 +275,25 @@ export const sidebarGroups: NavGroup[] = [
 export const platformGroup: NavGroup = { id: 'platform', titleKey: 'navigation.platform', items: platformItems };
 
 // Flatten all items for the customize dialog
+/**
+ * Zoekt volledige NavItems op id, in de volgorde waarin je ze vraagt.
+ *
+ * Voor weergaven die een handvol vaste bestemmingen tonen — de mobiele
+ * onderbalk — zonder titels, iconen of `requireRead` opnieuw op te schrijven.
+ * Een tweede lijst met dezelfde items zou onvermijdelijk uit elkaar lopen met
+ * deze.
+ */
+export function findNavItems(ids: string[]): NavItem[] {
+  const byId = new Map<string, NavItem>();
+  for (const group of sidebarGroups) {
+    for (const item of group.items) {
+      byId.set(item.id, item);
+      for (const child of item.children ?? []) byId.set(child.id, child);
+    }
+  }
+  return ids.map((id) => byId.get(id)).filter((item): item is NavItem => !!item);
+}
+
 export function getAllMenuItems(): { id: string; titleKey: string; groupKey: string }[] {
   const items: { id: string; titleKey: string; groupKey: string }[] = [];
 

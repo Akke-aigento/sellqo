@@ -1,3 +1,85 @@
+## NAV-1 — zwevende onderbalk, en de rechten die eronder ontbraken — 12 september 2026
+
+**Aanleiding.** Akke wilde de mobiele onderbalk in de admin vervangen door een zwevende pil
+in de stijl van Instagram. Bij het uitzoeken bleek die balk vier gebreken te hebben, waarvan
+één een beveiligingsgat. Ze zijn alle vier meegenomen; een mooie balk bouwen op een lekke
+bodem is zonde van de moeite.
+
+**Root cause 1 — geen enkele zichtbaarheidscheck.** `AdminMobileBottomNav` rende een
+constante array van vijf tabs, zonder rol, abonnement, permissie-matrix of tenant
+page-override te raadplegen. De zijbalk paste alle vier wél toe. De balk toonde dus tabs naar
+pagina's waar de gebruiker niets te zoeken had.
+
+**Root cause 2 — `/admin/messages` had geen `RouteGuard`.** `App.tsx` had de route kaal,
+terwijl `useCan` `inbox.read` ontzegt aan `warehouse` en `accountant`, en `Messages.tsx` zelf
+niets controleert. Samen met root cause 1 betekende dat: die twee rollen zagen de Inbox-tab
+én kwamen erop terecht. Alleen RLS stond er nog tussen. **Dit is het enige echte
+beveiligingspunt van deze batch.**
+
+**Root cause 3 — actieve staat op `===`.** Op `/admin/orders/123` lichtte geen enkele tab op;
+je verloor je plaats zodra je een bestelling opende. De zijbalk deed het al goed met een
+prefix-match.
+
+**Root cause 4 — hardgecodeerde Nederlandse labels.** Geen `useTranslation`, terwijl de
+storefront-variant het wél goed doet. Dat botst met de i18n-plicht voor de core.
+
+**Uitgevoerd.**
+
+- `src/components/admin/sidebar/useNavItemVisibility.ts` (nieuw) — de vier filters uit
+  `AdminSidebar` gelicht naar één hook. Twee kopieën van zichtbaarheidsregels lopen na de
+  eerste wijziging uit elkaar, en dat merkt niemand tot een tab ergens naartoe leidt waar hij
+  niet hoort. De hook geeft `isItemBlocked` (harde grenzen) naast `shouldHideItem` (dat plus
+  de persoonlijke zijbalkvoorkeuren) — de onderbalk gebruikt de eerste, want voorkeuren
+  bestaan om een lange zijbalk op te ruimen, niet om toegang te regelen.
+- `sidebarConfig.ts` — `findNavItems(ids)` erbij. De balk zoekt zijn vier bestemmingen op id
+  op, en erft daarmee titel, icoon en `requireRead` uit dezelfde bron als de zijbalk. Daarmee
+  lost root cause 4 zichzelf op: de keys bestonden al in alle vijf talen.
+- `AdminMobileBottomNav.tsx` — zwevende pil, prefix-match, vier items. De Menu-knop is
+  vervallen; de zijbalk blijft bereikbaar via de `SidebarTrigger` in `AdminHeader` — eerst
+  nagetrokken dat die bestaat, daarna pas de knop weggehaald.
+- `index.css` — `--admin-nav-offset`. De vrije ruimte onder een admin-scherm stond op tien
+  plekken als `3.5rem` of `5rem` hardgecodeerd: elke zwevende balk rekende met de hand om de
+  onderbalk heen. Nu één regel. De webshopbalk houdt bewust zijn eigen waarde; die verandert
+  niet, en één variabele voor twee verschillende balken zou pas echt verwarren.
+- `App.tsx` — `RouteGuard requireRead="inbox"` op `/admin/messages`.
+
+**Security-keuzes.** De balk wordt strenger, niet ruimer: hij verbergt voortaan wat de
+gebruiker niet mag openen. Er komt niets bij. De `RouteGuard` sluit een pad dat open stond.
+Geen RLS aangeraakt, geen policy gewijzigd.
+
+**Gedeelde-paden-waarschuwing.** Niet van toepassing. Uitsluitend admin; `ShopLayout`,
+`storefront-api` en de zes custom-frontend-tenants zijn niet geraakt. De storefront-onderbalk
+is bewust ongemoeid gelaten — die heeft dezelfde actieve-staat-fout en een eigen
+tenant-toggle, en hoort in een eigen batch met een eigen testronde.
+
+**Verificatie.** `tsc` exit 0, `npm run build` exit 0, lint gelijk aan de baseline (1519),
+`i18n-parity` exit 0.
+
+Gemeten in de browser op 375px en 320px, met de opmaak van het component:
+
+| Taal | Breedte vóór de begrenzing | Na |
+|---|---|---|
+| Nederlands | 328px | 296px |
+| Oekraïens | 327px | 329px |
+| Duits | 361px | 329px |
+| **Frans** | **378px — breder dan het scherm** | **343px** |
+
+"Tableau de bord" en "Boîte de réception" duwden de pil over de schermrand, en dat zoomt de
+hele pagina uit (M4 uit de mobiele conventies). Opgelost met `max-w-[calc(100vw-2rem)]` op de
+pil en `flex-1 min-w-0` op de items, zodat ze krimpen in plaats van de pil op te rekken. Op
+320px is het smalste aanraakvlak nog 65px — ruim boven de 44px-norm. Met één zichtbaar item
+krimpt de pil naar 91px in plaats van uit te rekken.
+
+**Bewust ongemoeid.** Geen verberg-bij-scrollen (keuze van Akke), geen nieuwe bestemmingen,
+en de storefront-balk blijft zoals hij is.
+
+**Vervolg.** Frontend-publish. Daarna twee dingen die ik niet zelf kan: de pil bekijken in de
+iOS-simulator — dat is de enige plek waar `--safe-bottom` een echte waarde heeft en de
+home-indicator meespeelt — en per rol controleren dat de balk verbergt wat de zijbalk
+verbergt (de `RoleSimulator` staat daarvoor klaar).
+
+---
+
 ## ISSUES-2 — nazorg: een eigen regressie en een onzichtbare foutmelding — 12 september 2026
 
 **Root cause 1 — het winkelvoorbeeld op web, mijn regressie uit ISSUES-1.** Ik verving de

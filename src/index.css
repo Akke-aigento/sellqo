@@ -64,6 +64,15 @@
     --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
     --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 
+    /* Vrije ruimte onder een admin-scherm: de zwevende onderbalk plus zijn
+       marge, plus de safe-area. Stond op dertien plekken als 3.5rem of 5rem
+       hardgecodeerd — elke zwevende balk (opslaan, bulkacties, AI-hulp) rekende
+       er met de hand omheen. Verandert de hoogte of de vorm van de balk, dan is
+       dit de enige regel die mee moet.
+       Alleen voor de admin: de webshopbalk heeft een eigen hoogte en blijft
+       zijn eigen waarde gebruiken. */
+    --admin-nav-offset: calc(5.5rem + var(--safe-bottom));
+
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 16 100% 60%;

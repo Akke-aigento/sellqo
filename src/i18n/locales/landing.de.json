@@ -1516,6 +1516,14 @@
         "return_emails_delivered": {
           "title": "Retouren-E-Mails erreichen Ihre Kunden wieder",
           "description": "Die E-Mails zu einer Retoure — Anfrage eingegangen, genehmigt, Paket erhalten, Betrag erstattet — wurden nicht versendet. Stattdessen meldeten sie, die Retoure sei nicht gefunden worden, obwohl sie sehr wohl existierte. Sie gehen wieder raus."
+        },
+        "admin_floating_bottom_nav": {
+          "title": "Die mobile Navigationsleiste unten schwebt jetzt",
+          "description": "Auf Ihrem Telefon ist die untere Navigation jetzt eine schwebende, abgerundete Leiste statt eines Streifens über die volle Breite. Die Verknüpfungen sind Dashboard, Bestellungen, Produkte und Posteingang; das übrige Menü öffnen Sie über die Schaltfläche oben links. Auf einer Bestellseite zeigt sie jetzt auch, wo Sie sich befinden — das tat sie vorher nicht."
+        },
+        "admin_bottom_nav_permissions": {
+          "title": "Die untere Leiste berücksichtigt Ihre Rolle",
+          "description": "Die mobile Navigationsleiste zeigte allen dieselben Reiter, auch wenn Ihre Rolle oder Ihr Tarif diese Seite nicht enthält. Sie folgt jetzt denselben Regeln wie das Seitenmenü: Sie sehen nur, was Sie öffnen dürfen. Auch der Posteingang ist nun für Rollen geschützt, die keine Kundennachrichten einsehen dürfen."
         }
       },
       "copyLink": "Link kopieren",

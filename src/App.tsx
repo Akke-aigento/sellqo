@@ -206,7 +206,11 @@ const App = () => (
               </ProtectedRoute>
             }>
               <Route index element={<AdminDashboard />} />
-              <Route path="messages" element={<MessagesPage />} />
+              {/* Stond hier kaal, terwijl inbox.read warehouse en accountant
+                  uitsluit en Messages.tsx zelf niets controleert. Die twee rollen
+                  kwamen dus gewoon op de inbox; alleen RLS stond er nog tussen.
+                  De mobiele onderbalk toonde de tab bovendien aan iedereen. */}
+              <Route path="messages" element={<RouteGuard requireRead="inbox"><MessagesPage /></RouteGuard>} />
               <Route path="badges" element={<BadgesPage />} />
               <Route path="fulfillment" element={<RouteGuard requireRead="orders"><FulfillmentPage /></RouteGuard>} />
               <Route path="products" element={<RouteGuard requireRead="products"><ProductsPage /></RouteGuard>} />

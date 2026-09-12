@@ -1516,6 +1516,14 @@
         "return_emails_delivered": {
           "title": "Retourmails bereiken je klant weer",
           "description": "De e-mails over een retour — aanvraag ontvangen, goedgekeurd, pakket binnen, bedrag terugbetaald — werden niet verstuurd. In plaats daarvan verscheen de melding dat de retour niet gevonden was, terwijl die er wel degelijk was. Ze gaan weer uit."
+        },
+        "admin_floating_bottom_nav": {
+          "title": "De onderste navigatiebalk op mobiel zweeft nu",
+          "description": "Op je telefoon staat de navigatie onderaan voortaan als een zwevende, afgeronde balk in plaats van een strook over de volle breedte. De snelkoppelingen zijn Dashboard, Bestellingen, Producten en Inbox; de rest van het menu opent met de knop linksboven. Op een bestelpagina blijft nu ook zichtbaar waar je bent — dat deed hij eerder niet."
+        },
+        "admin_bottom_nav_permissions": {
+          "title": "De onderste balk houdt rekening met je rol",
+          "description": "De navigatiebalk op mobiel toonde aan iedereen dezelfde tabbladen, ook als je rol of je abonnement die pagina niet bevat. Voortaan volgt hij dezelfde regels als het menu aan de zijkant: je ziet alleen wat je mag openen. Ook de inbox is nu afgeschermd voor rollen die geen klantberichten mogen inzien."
         }
       },
       "copyLink": "Kopieer link",

@@ -1516,6 +1516,14 @@
         "return_emails_delivered": {
           "title": "Return emails reach your customer again",
           "description": "The emails about a return — request received, approved, package received, amount refunded — were not being sent. Instead they reported that the return could not be found, while it existed all along. They go out again."
+        },
+        "admin_floating_bottom_nav": {
+          "title": "The mobile bottom navigation now floats",
+          "description": "On your phone, the bottom navigation is now a floating, rounded bar instead of a full-width strip. The shortcuts are Dashboard, Orders, Products and Inbox; the rest of the menu opens from the button at the top left. On an order page it now also shows where you are — it didn't before."
+        },
+        "admin_bottom_nav_permissions": {
+          "title": "The bottom bar respects your role",
+          "description": "The mobile navigation bar showed everyone the same tabs, even when your role or your plan doesn't include that page. It now follows the same rules as the side menu: you only see what you can open. The inbox is also properly protected from roles that may not read customer messages."
         }
       },
       "copyLink": "Copy link",

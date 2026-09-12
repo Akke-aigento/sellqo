@@ -1516,6 +1516,14 @@
         "return_emails_delivered": {
           "title": "Les e-mails de retour parviennent à nouveau à vos clients",
           "description": "Les e-mails relatifs à un retour — demande reçue, approuvée, colis réceptionné, montant remboursé — n'étaient pas envoyés. Ils indiquaient que le retour était introuvable, alors qu'il existait bel et bien. Ils repartent."
+        },
+        "admin_floating_bottom_nav": {
+          "title": "La barre de navigation mobile est désormais flottante",
+          "description": "Sur votre téléphone, la navigation du bas est maintenant une barre flottante et arrondie plutôt qu'un bandeau pleine largeur. Les raccourcis sont Tableau de bord, Commandes, Produits et Boîte de réception ; le reste du menu s'ouvre par le bouton en haut à gauche. Sur une page de commande, elle indique aussi où vous vous trouvez — ce n'était pas le cas avant."
+        },
+        "admin_bottom_nav_permissions": {
+          "title": "La barre du bas tient compte de votre rôle",
+          "description": "La barre de navigation mobile affichait les mêmes onglets à tout le monde, même lorsque votre rôle ou votre formule n'inclut pas cette page. Elle suit désormais les mêmes règles que le menu latéral : vous ne voyez que ce que vous pouvez ouvrir. La boîte de réception est également protégée pour les rôles qui ne peuvent pas consulter les messages clients."
         }
       },
       "copyLink": "Copier le lien",

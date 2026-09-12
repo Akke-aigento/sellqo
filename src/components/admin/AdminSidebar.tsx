@@ -3,16 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
-import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { sidebarGroups, platformGroup, getAllMenuItems, WAREHOUSE_ALLOWED_ITEMS, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
-import { canWithRoles, type Resource } from '@/hooks/useCan';
+import { sidebarGroups, platformGroup, getAllMenuItems, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
 import { InboxBadge } from './sidebar/InboxBadge';
 import { AdsAiBadge } from './sidebar/AdsAiBadge';
 import {
@@ -49,99 +48,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function AdminSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
-  const { user, signOut, isPlatformAdmin, userRole, isWarehouse, roles } = useAuth();
+  const { user, signOut, isPlatformAdmin } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
-  const { isItemHidden, hiddenItems } = useSidebarPreferences();
+  const { hiddenItems } = useSidebarPreferences();
   const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
-  const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
-  // H4a — whitelist via permissie-matrix.
-  // Filter rollen per-tenant (matcht useCan H4-5 hardening) en evalueer
-  // `requireRead` per item.
-  const scopedRoles = (roles ?? [])
-    .filter((r) => {
-      if (r.role === 'platform_admin') return true;
-      if (r.tenant_id == null) return true;
-      if (!currentTenant?.id) return false;
-      return r.tenant_id === currentTenant.id;
-    })
-    .map((r) => r.role as AppRole);
-
-  const isResourceHidden = (resource?: Resource): boolean => {
-    if (!resource) return false;
-    return !canWithRoles(scopedRoles, 'read', resource);
-  };
-
-  // Check if item should be hidden based on subscription features
-  const isItemFeatureHidden = (item: NavItem): boolean => {
-    if (!item.featureKey) return false;
-    
-    // Platform admins in admin view see everything
-    if (isPlatformAdmin && isAdminView) return false;
-    
-    // If feature is explicitly granted by admin, show it
-    if (isFeatureGranted(item.featureKey)) return false;
-    
-    const features = subscription?.pricing_plan?.features;
-    if (!features) return true; // No subscription = hide premium features
-    
-    return features[item.featureKey as keyof typeof features] !== true;
-  };
-
-  // Check if item is blocked by subscription (for visual indicator)
-  const isItemSubscriptionBlocked = (item: NavItem): boolean => {
-    if (!item.featureKey) return false;
-    const features = subscription?.pricing_plan?.features;
-    if (!features) return true;
-    return features[item.featureKey as keyof typeof features] !== true;
-  };
-
-  // Check if item should be hidden based on user role
-  const isItemRoleHidden = (item: NavItem): boolean => {
-    // Warehouse users can only see specific items
-    if (isWarehouse) {
-      // Check if the item is in the allowed list
-      const isAllowed = WAREHOUSE_ALLOWED_ITEMS.includes(item.id);
-      // Also check explicit excludeRoles
-      const isExcluded = item.excludeRoles?.includes('warehouse');
-      return !isAllowed || isExcluded === true;
-    }
-    
-    // Check allowedRoles - if set, only those roles can see it
-    if (item.allowedRoles && item.allowedRoles.length > 0) {
-      if (!userRole || !item.allowedRoles.includes(userRole)) {
-        return true;
-      }
-    }
-    
-    // Check excludeRoles - if user's role is in the list, hide it
-    if (item.excludeRoles && item.excludeRoles.length > 0) {
-      if (userRole && item.excludeRoles.includes(userRole)) {
-        return true;
-      }
-    }
-    
-    return false;
-  };
-
-  // Check if page is hidden via tenant page overrides
-  const isItemPageOverridden = (item: NavItem): boolean => {
-    if (isPlatformAdmin && isAdminView) return false;
-    return isPageHidden(item.id);
-  };
-
-  // Combined check for preference, role, feature, AND page override hiding
-  const shouldHideItem = (item: NavItem): boolean => {
-    return (
-      isItemHidden(item.id) ||
-      isResourceHidden(item.requireRead) ||
-      isItemRoleHidden(item) ||
-      isItemFeatureHidden(item) ||
-      isItemPageOverridden(item)
-    );
-  };
+  // De zichtbaarheidsregels stonden hier, en de mobiele onderbalk paste ze
+  // niet toe. Ze zijn verhuisd naar useNavItemVisibility zodat beide weergaven
+  // dezelfde definitie gebruiken; zie de toelichting daar.
+  const { shouldHideItem, isItemSubscriptionBlocked } = useNavItemVisibility();
 
   const isActive = (path: string) => {
     if (path === '/admin') {
