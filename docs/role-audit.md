@@ -1,3 +1,71 @@
+## ISSUES-2 — nazorg: een eigen regressie en een onzichtbare foutmelding — 12 september 2026
+
+**Root cause 1 — het winkelvoorbeeld op web, mijn regressie uit ISSUES-1.** Ik verving de
+redirect-guard in `ShopLayout.tsx` door `isPreview`, en die is gedefinieerd als
+`isNative && (previewParam || previewSession)`. In de browser is `isNative` false, dus de
+guard stond daar altijd uit: native werkte daarna, maar de eigenaar die zijn winkel vanuit
+het webpaneel bekeek belandde juist op zijn live domein. Ik heb web gesloopt om native te
+repareren, en dat kwam doordat ik twee dingen door elkaar haalde — *is er preview gevraagd*
+(geldt overal) en *moet de native terug-balk verschijnen* (alleen in de app).
+
+Nu gesplitst: `isPreviewRequest` (platform-onafhankelijk, stuurt de guard) en `isPreview`
+(`isNative && isPreviewRequest`, stuurt alleen de balk). Het effect dat de sessievlag zet
+laat de `isNative`-voorwaarde vallen, anders overleeft de preview op web evenmin een klik
+naar een product.
+
+**Root cause 2 — de betalingspagina zei niets.** `useMerchantPayments.ts` deed
+`if (error) throw error` op het rauwe resultaat van `functions.invoke`, en `Payments.tsx`
+rendert dat met `String(error)`. Uitkomst: *"FunctionsHttpError: Edge Function returned a
+non-2xx status code"*, terwijl de functie wel degelijk een `{ error: ... }` teruggeeft. De
+echte melding werd weggegooid.
+
+Het project had de oplossing al liggen: `src/lib/invokeWithErrorBody.ts`, met een docstring
+die exact dit probleem beschrijft. Deze twee hooks waren de enige in dit domein die hem niet
+gebruikten. Beide nu omgezet.
+
+**Root cause 3 — mijn rolgate was strakker dan het rechtenmodel.** `useCan.ts` geeft
+`payments.read` aan `platform_admin, tenant_admin, staff, accountant, viewer`, en `App.tsx`
+sluit de route daarop af. Ik zette de functies in ISSUES-1 op `tenant_admin + accountant`.
+Een staff- of viewer-gebruiker mocht de pagina dus openen en kreeg gegarandeerd een 403.
+Dat was geen bewuste inperking maar een gevolg van het kiezen van een rollenlijst zonder
+het bestaande model te raadplegen. Beide functies volgen nu exact `useCan`.
+
+**Uitgevoerd.**
+
+- `src/components/storefront/ShopLayout.tsx` — `isPreviewRequest` losgetrokken van
+  `isPreview`; guard en dependency-array erop over; sessievlag ook op web.
+- `src/hooks/useMerchantPayments.ts` — beide hooks op `invokeWithErrorBody`.
+- `supabase/functions/get-merchant-{payouts,transactions}/index.ts` — rolgate gelijk aan
+  `useCan.payments.read`, met een noot dat afwijken hier een stille rechtenwijziging is en
+  in `useCan` hoort te gebeuren.
+
+**Security-keuzes.** De rolgate wordt verruimd naar de lijst die het rechtenmodel al
+hanteert. Dat is geen nieuwe toegang: `RouteGuard` liet deze rollen altijd al op de pagina,
+en vóór ISSUES-1 werkten de functies voor niemand. Akke heeft deze richting expliciet
+gekozen boven het alternatief (de pagina inperken tot tenant_admin + accountant).
+
+**Gedeelde-paden-waarschuwing.** `ShopLayout.tsx` is de gedeelde storefront-renderer. Een
+echte bezoeker heeft nooit `?preview=true` en zet die sessievlag dus ook nooit; voor hem
+gedraagt de redirect zich exact zoals voorheen. De zes custom-frontend-tenants renderen
+zelf en raken dit bestand niet.
+
+**Verificatie.** `tsc` exit 0, `npm run build` exit 0, lint gelijk aan de baseline (1519,
+geen nieuwe problemen).
+
+**Wat nog niet vaststaat.** Waaróm de betalingspagina bij Akke faalde, weet ik niet — en dat
+ga ik niet raden. Uitgesloten zijn de ontbrekende `stripe_account_id` (die geeft netjes 200
+met "No Stripe account connected"; SellQo Speeltuin heeft er geen), een ontbrekende
+`tenant_id`, en de andere functies op die pagina. Over blijven een 403 uit root cause 3 of
+een deploy die niet compleet was. De omzetting naar `invokeWithErrorBody` maakt dat
+onderscheid zichtbaar in het scherm zelf, zonder logexport.
+
+**Vervolg.** Deploy van beide merchant-functies plus een publish. Daarna: de webpreview én
+de iOS-preview opnieuw testen — de vorige ronde repareerde er één en brak de ander, dus
+beide horen bij het bewijs. En een testmail voor `send-return-email` op een testtenant,
+waarvoor Akke toestemming gaf.
+
+---
+
 ## ISSUES-1 — zes gemelde issues, zeven gerepareerd — 12 september 2026
 
 Lovable meldde zes issues. Eén was mijn regressie van de dag ervoor; vijf waren bestaand.

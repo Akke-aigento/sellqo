@@ -69,9 +69,6 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const navigate = useNavigate();
 
-  // Eigenaar-preview: alleen in de native app. Een echte bezoeker in de browser
-  // heeft isNative false, waardoor isPreview nooit waar wordt en er hieronder
-  // niets extra's rendert.
   const isNative = Capacitor.isNativePlatform();
   const previewParam = new URLSearchParams(window.location.search).get('preview') === 'true';
   const [previewSession] = useState(() => {
@@ -81,16 +78,35 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       return false;
     }
   });
-  const isPreview = isNative && (previewParam || previewSession);
+
+  /**
+   * Is er om een preview gevraagd? Geldt op élk platform.
+   *
+   * Dit is bewust losgekoppeld van `isPreview` hieronder. Die twee zijn op
+   * 12 sep 2026 door elkaar gehaald: de redirect-guard ging op `isPreview`
+   * draaien, en omdat daar `isNative` in zit was de guard in de browser altijd
+   * uit. De native app werkte daarna, maar de eigenaar die zijn winkel vanuit
+   * het webpaneel bekeek belandde juist op zijn live domein.
+   *
+   * Een echte bezoeker heeft nooit `?preview=true` en zet die vlag dus ook nooit
+   * in zijn sessie; voor hem verandert er niets.
+   */
+  const isPreviewRequest = previewParam || previewSession;
+
+  /** Alleen de terug-balk is native-only — die bestaat in de browser niet. */
+  const isPreview = isNative && isPreviewRequest;
 
   useEffect(() => {
-    if (!isNative || !previewParam) return;
+    // Géén isNative-voorwaarde: zonder deze vlag overleeft de preview op web
+    // evenmin een klik naar een product, want dan is `?preview=true` uit de URL
+    // verdwenen en valt de guard alsnog weg.
+    if (!previewParam) return;
     try {
       sessionStorage.setItem(PREVIEW_FLAG, '1');
     } catch {
       /* private mode: de knop werkt dan alleen op de instappagina */
     }
-  }, [isNative, previewParam]);
+  }, [previewParam]);
 
   const handleLeavePreview = () => {
     // Alleen wissen op de instappagina — daar staat ?preview=true nog in de URL,
@@ -225,14 +241,11 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   // Redirect logic
   useEffect(() => {
     if (!tenant?.id || !themeSettings || redirecting) return;
-    // `isPreview` en niet de URL-parameter. Elke winkelroute mount ShopLayout
-    // opnieuw en `?preview=true` overleeft geen klik naar een product — precies
-    // wat de toelichting bij PREVIEW_FLAG hierboven beschrijft. Die vlag was
-    // alleen op de terug-balk toegepast, niet op deze guard, dus bij de eerste
-    // producttik viel de guard weg en deed de redirect hieronder een harde
-    // `window.location.href` naar het eigen domein — binnen de WebView, dus
-    // zonder terugknop en zonder uitweg.
-    if (isPreview) return;
+    // `isPreviewRequest` en niet de URL-parameter: elke winkelroute mount
+    // ShopLayout opnieuw, dus `?preview=true` overleeft geen klik naar een
+    // product. En niet `isPreview`, want daar zit `isNative` in — dat zette de
+    // guard in de browser uit en stuurde de eigenaar naar zijn live domein.
+    if (isPreviewRequest) return;
 
     const checkRedirect = async () => {
       if (ts?.use_custom_frontend && ts?.custom_frontend_url) {
@@ -254,7 +267,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       }
     };
     checkRedirect();
-  }, [tenant?.id, themeSettings, redirecting, isPreview]);
+  }, [tenant?.id, themeSettings, redirecting, isPreviewRequest]);
   
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 

@@ -52,7 +52,15 @@ serve(async (req) => {
     }
 
     const auth = await authenticateRequest(req, tenantId);
-    requireRole(auth, tenantId, ["tenant_admin", "accountant"]);
+    // Exact de lijst uit `useCan.ts` (`payments.read`), waar `RouteGuard` de
+    // pagina op afsluit. Stond hier eerst op tenant_admin + accountant, en dat
+    // is strakker dan het rechtenmodel: een staff- of viewer-gebruiker mocht de
+    // pagina openen en kreeg gegarandeerd een 403 — een scherm dat zichtbaar is
+    // en per definitie stukgaat. Wijkt de gate hier af van useCan, dan is dat
+    // een stille rechtenwijziging; die hoort in useCan te gebeuren, niet hier.
+    // (`platform_admin` staat er voor de leesbaarheid bij; requireRole laat die
+    // rol sowieso door via auth.is_platform_admin.)
+    requireRole(auth, tenantId, ["platform_admin", "tenant_admin", "staff", "accountant", "viewer"]);
     logStep("User authenticated", { userId: auth.user_id });
 
     const { data: tenant, error: tenantErr } = await supabaseClient

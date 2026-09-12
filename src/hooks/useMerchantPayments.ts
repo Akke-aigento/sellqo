@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { useTenant } from './useTenant';
 
 export interface MerchantTransaction {
@@ -53,18 +54,18 @@ export function useMerchantTransactions(limit = 50) {
       // Er ging geen tenant en geen limiet mee. De functie leidde de tenant af
       // uit een query die RLS blokkeerde, en las de limiet uit een querystring
       // die bij `functions.invoke` niet bestaat — die kwam dus nooit aan.
-      const { data, error } = await supabase.functions.invoke('get-merchant-transactions', {
-        body: { tenant_id: tenantId, limit },
-      });
-      
-      if (error) throw error;
-      
-      return data as {
+      // `invokeWithErrorBody` en niet `functions.invoke`: die laatste gooit een
+      // kaal FunctionsHttpError, en `String(error)` in Payments.tsx maakt daar
+      // "Edge Function returned a non-2xx status code" van. De `{ error: ... }`
+      // die de functie wél teruggeeft — een rolfout, een ontbrekende sleutel,
+      // een Stripe-melding — werd weggegooid, waardoor elke storing hier alleen
+      // met een logexport te diagnosticeren was.
+      return await invokeWithErrorBody<{
         transactions: MerchantTransaction[];
         has_more: boolean;
         balance: MerchantBalance;
         message?: string;
-      };
+      }>('get-merchant-transactions', { body: { tenant_id: tenantId, limit } });
     },
   });
 }
@@ -77,18 +78,13 @@ export function useMerchantPayouts(limit = 20) {
     queryKey: ['merchant-payouts', tenantId, limit],
     enabled: !!tenantId,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-merchant-payouts', {
-        body: { tenant_id: tenantId, limit },
-      });
-      
-      if (error) throw error;
-      
-      return data as {
+      // Zie de noot bij useMerchantTransactions voor invokeWithErrorBody.
+      return await invokeWithErrorBody<{
         payouts: MerchantPayout[];
         has_more: boolean;
         schedule: PayoutSchedule | null;
         message?: string;
-      };
+      }>('get-merchant-payouts', { body: { tenant_id: tenantId, limit } });
     },
   });
 }
