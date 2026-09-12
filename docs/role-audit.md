@@ -1,3 +1,109 @@
+## ISSUES-1 — zes gemelde issues, zeven gerepareerd — 12 september 2026
+
+Lovable meldde zes issues. Eén was mijn regressie van de dag ervoor; vijf waren bestaand.
+Bij het natrekken bleek de inschatting op twee punten niet te kloppen, en ontbrak er één.
+
+**Waar de melding afweek van de werkelijkheid.**
+
+- *"Email automations never send: scheduler crashes on every run."* Hij crasht, maar er is
+  **geen cron-job** en niets in `src/` roept hem aan. Hij draait nooit. Klanten kregen geen
+  automatische mails omdat de job niet bestaat, niet omdat hij crasht.
+- *"Wrong VAT rate used."* **Latent, niet actief.** Alle 12 tenants staan op
+  `tax_percentage = 21.00`, dus de hardcoded 21%-terugval gaf toevallig het juiste antwoord.
+  De bug wordt echt zodra één tenant een ander tarief instelt.
+- **Niet gemeld, wél actief:** `send-return-email` had dezelfde ontbrekende-kolommenfout,
+  mét een error-check, en faalde daardoor bij élke retourmail met de misleidende melding
+  "Return niet gevonden" — terwijl de retour prima bestond.
+
+**Root cause.** Vier van de zeven bugs zijn één klasse: een `.select()` die een kolom noemt
+die niet bestaat. PostgREST weigert dan de hele query met `42703`. Waar de `error` niet werd
+uitgelezen faalde dat stil en vuurde een fallback; waar hij wél werd gecheckt gaf hij een
+melding die naar de verkeerde plek wees. Dat is letterlijk R8, en de regel bestond al toen
+deze code geschreven werd.
+
+De echte kolomnamen: `owner_email` (niet `email`), `address` (niet `street`),
+`tax_percentage` (niet `default_vat_rate`). Die laatste komt in geen enkele migratie voor en
+heeft nooit bestaan.
+
+**Uitgevoerd.**
+
+*Batch A — mijn regressie.* `ads-bolcom-reports` las alleen `body.days` en negeerde de
+`start_date`/`end_date` die de frontend stuurt, dus de periodekiezer (7/30/90 dagen) deed
+niets. De functie respecteert nu het opgegeven bereik, geklemd op wat de API toestaat
+(hoogstens 30 dagen terug), en meldt in het antwoord wat er werkelijk is opgehaald én of er
+geklemd is. `useBolcomAds.ts` kreeg een cachesleutel per periode; zonder dat gaf een
+overstap naar 30d binnen het uur `{ skipped: true }` en bleef de grafiek op zeven dagen
+staan.
+
+*Batch B — vier kolomfouten.* `automation-scheduler` (embed `email`/`street`),
+`send-return-email` (`contact_email`, `street`, `house_number`, `vat_number`),
+`sync-bol-orders`, `import-bol-shipments` en `stripe-connect-webhook` (`default_vat_rate`).
+Bij die laatste gingen ook `currency` en `name` verloren omdat de hele select faalde — de
+ordermail viel terug op "EUR" en een lege winkelnaam. Alle vijf lezen nu de `error` uit, en
+waar een BTW-terugval vuurt komt daar een logregel bij: een fallback die altijd vuurt hoort
+zichtbaar te zijn.
+
+*Batch C — auth.* `get-merchant-payouts` en `get-merchant-transactions` bouwden een client
+met de anon-key zónder Authorization-header. De JWT ging alleen naar `auth.getUser()` — dat
+werkt, want dat is GoTrue — maar élke query daarna draaide als rol `anon`, en de policy op
+`user_roles` is `TO authenticated`. Nul rijen, `.single()` faalt, HTTP 500 voor iedereen.
+Beide volgen nu het patroon van hun zusterfuncties: service-role plus
+`authenticateRequest` + `requireRole`. Bijvangst: de paginering kwam uit een querystring die
+bij `functions.invoke` niet bestaat, dus de `limit` uit de hook kwam nooit aan; die gaat nu
+via de body.
+
+*Batch D — frontend.* De redirect-guard in `ShopLayout.tsx` keek naar de URL-parameter in
+plaats van naar `isPreview`. Elke winkelroute mount ShopLayout opnieuw en `?preview=true`
+overleeft geen klik naar een product, dus bij de eerste producttik viel de guard weg en deed
+de code een harde `window.location.href` naar het eigen domein — binnen de WebView, zonder
+terugknop. De vlag die dit oplost stond twintig regels hoger en was alleen op de terug-balk
+toegepast. `PreviewPanel.tsx` opende de winkel zonder `?preview=true` en had hetzelfde
+effect op het webpaneel. `TenantCommandStrip.tsx` toonde altijd "Geen mandaat".
+
+**Security-keuzes.**
+
+- `get-merchant-payouts` / `get-merchant-transactions`: `["tenant_admin", "accountant"]`.
+  De zusterfuncties in hetzelfde Stripe-domein staan op `tenant_admin`; `accountant` is
+  toegevoegd omdat dit leesbare financiële historie is en dezelfde rol elders al
+  facturatiedata mag zien. Er wordt geen bestaande toegang ingeperkt — vóór deze batch kon
+  niemand deze functies gebruiken. Staat een `staff`-gebruiker straks voor een 403, dan is
+  dat een bewuste keuze die teruggedraaid kan worden.
+- `TenantCommandStrip`: **geen RLS-wijziging.** De policy op `customer_payment_mandates`
+  eist `has_tenant_role(...)` óók van een platform-admin, wat de directe query blokkeerde.
+  In plaats van die policy te verruimen gaat de lezing via `get-platform-billing-status`,
+  die al service-role gebruikt en platform-admins expliciet doorlaat. Geen tabel wordt
+  breder leesbaar.
+
+**Gedeelde-paden-waarschuwing.** `ShopLayout.tsx` is de gedeelde storefront-renderer, maar
+de wijziging zit in een `isNative`-tak: `isPreview` is `isNative && (...)`, dus voor elke
+browserbezoeker blijft `isPreview` false en gedraagt de redirect zich exact zoals voorheen.
+De zes custom-frontend-tenants renderen sowieso zelf en raken dit bestand niet.
+`storefront-api` en `storefront-customer-api` zijn niet aangeraakt.
+
+**Verificatie.** Elke kolomnaam in elke gewijzigde `.select()` nagetrokken tegen
+`information_schema.columns` vóór de commit (R8): elf kolommen, alle elf bestaand. `tsc`,
+`npm run build` en de lint-baseline: zie het commit-bericht.
+
+**Bewust ongemoeid.**
+
+- `automation-scheduler` krijgt **geen cron-job** in deze batch. Eerst repareren en bewijzen
+  dat hij draait; of hij een schema hoort te krijgen is een aparte beslissing (§3a).
+- De RLS-policy op `customer_payment_mandates` blijft zoals hij is.
+- In `send-return-email` zijn `street`/`house_number` uit `TenantBranding` verwijderd in
+  plaats van hernoemd naar `address`. Ze werden nergens gerenderd; data meesleuren die
+  niemand leest is dezelfde fout in het klein.
+
+**Vervolg.**
+
+1. Uitrollen via Lovable: A, B en C zijn edge functions. D is frontend en gaat mee met een
+   publish.
+2. Toesteltest voor D1 — winkel bekijken, product aantikken, blijft de terug-balk staan.
+   Die kan ik niet zelf doen.
+3. De `entity-ids`-vorm in de reporting-API is nog steeds onbewezen; de 406 kwam vóór enige
+   parametervalidatie.
+
+---
+
 ## ADS-REBUILD-2 — een 406 op elke reporting-aanroep — 12 september 2026
 
 **Root cause.** Mijn fout, en geen subtiele. `_shared/bolAdvertising.ts` stuurde
