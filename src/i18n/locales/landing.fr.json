@@ -1500,6 +1500,22 @@
         "subscription_invoice_vat_regime": {
           "title": "Les factures d'abonnement suivent le régime de TVA de votre client",
           "description": "Les factures issues d'un abonnement traitaient chaque client comme un particulier : elles recevaient toujours le régime de TVA national, même pour un client professionnel disposant d'un numéro de TVA européen valide. Cela a été corrigé. Les factures d'abonnement suivent désormais la même logique de TVA que vos factures de boutique en ligne : les clients professionnels sont enregistrés comme tels, et avec un numéro de TVA valide d'un autre pays de l'UE, la TVA est autoliquidée, avec la mention obligatoire sur la facture. Les taux nationaux restent inchangés, y compris les taux réduits de 6 % et 12 %. Les factures déjà payées ne sont pas modifiées rétroactivement."
+        },
+        "bol_ads_period_filter": {
+          "title": "Le sélecteur de période des publicités Bol fonctionne à nouveau",
+          "description": "Passer de 7 à 30 ou 90 jours affichait toujours les mêmes sept jours. Les graphiques et les indicateurs suivent désormais la période que vous choisissez. Bol.com fournit au maximum trente jours d'historique ; la vue de quatre-vingt-dix jours se complète au fil des jours."
+        },
+        "merchant_payout_pages": {
+          "title": "Les virements et les transactions se chargent à nouveau",
+          "description": "Les écrans affichant vos virements Stripe, votre solde et vos transactions renvoyaient une erreur au lieu de vos données. Ils fonctionnent à nouveau. Ces écrans sont destinés aux rôles administrateur et comptable."
+        },
+        "app_shop_preview_stays": {
+          "title": "L'aperçu de la boutique dans l'application reste un aperçu",
+          "description": "En touchant un produit dans l'aperçu de votre boutique, l'application basculait vers votre propre domaine — sans bouton de retour, vous obligeant à la fermer de force. L'aperçu reste désormais un aperçu, avec la barre qui vous ramène en arrière."
+        },
+        "return_emails_delivered": {
+          "title": "Les e-mails de retour parviennent à nouveau à vos clients",
+          "description": "Les e-mails relatifs à un retour — demande reçue, approuvée, colis réceptionné, montant remboursé — n'étaient pas envoyés. Ils indiquaient que le retour était introuvable, alors qu'il existait bel et bien. Ils repartent."
         }
       },
       "copyLink": "Copier le lien",

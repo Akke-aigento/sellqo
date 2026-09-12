@@ -14,6 +14,12 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.10v', dateKey: 'sep_2026', changes: [
+    { id: 'return_emails_delivered', type: 'bugfix' },
+    { id: 'merchant_payout_pages', type: 'bugfix' },
+    { id: 'app_shop_preview_stays', type: 'bugfix' },
+    { id: 'bol_ads_period_filter', type: 'bugfix' },
+  ] },
   { version: '2026.10u', dateKey: 'sep_2026', changes: [
     { id: 'subscription_invoice_vat_regime', type: 'bugfix' },
   ] },

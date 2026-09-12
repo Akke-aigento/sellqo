@@ -1500,6 +1500,22 @@
         "subscription_invoice_vat_regime": {
           "title": "Abonnementsfacturen nemen het btw-regime van je klant over",
           "description": "Facturen uit een abonnement behandelden elke klant als particulier: ze kregen altijd het binnenlandse btw-regime, ook bij een zakelijke klant met een geldig Europees btw-nummer. Dat is rechtgezet. Abonnementsfacturen volgen nu dezelfde btw-bepaling als je webshopfacturen: zakelijke klanten worden ook als zakelijk vastgelegd, en bij een geldig btw-nummer uit een ander EU-land wordt de btw verlegd, met de verplichte vermelding op de factuur. Binnenlandse tarieven blijven ongewijzigd, ook de verlaagde van 6% en 12%. Facturen die al betaald zijn, worden niet met terugwerkende kracht aangepast."
+        },
+        "bol_ads_period_filter": {
+          "title": "De periodekeuze bij Bol-advertenties werkt weer",
+          "description": "Wisselen tussen 7, 30 en 90 dagen liet steeds dezelfde zeven dagen zien. De grafieken en kengetallen volgen nu de periode die je kiest. Bol.com levert hoogstens dertig dagen historie; de weergave van negentig dagen vult zich verder naarmate er dagen bijkomen."
+        },
+        "merchant_payout_pages": {
+          "title": "Uitbetalingen en transacties laden weer",
+          "description": "De schermen met je Stripe-uitbetalingen, je saldo en je transacties gaven een foutmelding in plaats van je gegevens. Ze werken weer. Deze schermen zijn bedoeld voor de rollen beheerder en boekhouder."
+        },
+        "app_shop_preview_stays": {
+          "title": "Het winkelvoorbeeld in de app blijft een voorbeeld",
+          "description": "Tikte je in het voorbeeld van je winkel op een product, dan sprong de app naar je eigen domein — zonder terugknop, zodat je de app moest afsluiten. Het voorbeeld blijft nu een voorbeeld, inclusief de balk waarmee je terugkeert."
+        },
+        "return_emails_delivered": {
+          "title": "Retourmails bereiken je klant weer",
+          "description": "De e-mails over een retour — aanvraag ontvangen, goedgekeurd, pakket binnen, bedrag terugbetaald — werden niet verstuurd. In plaats daarvan verscheen de melding dat de retour niet gevonden was, terwijl die er wel degelijk was. Ze gaan weer uit."
         }
       },
       "copyLink": "Kopieer link",

@@ -1500,6 +1500,22 @@
         "subscription_invoice_vat_regime": {
           "title": "Subscription invoices follow your customer's VAT treatment",
           "description": "Invoices generated from a subscription treated every customer as a consumer: they always received the domestic VAT treatment, even for a business customer with a valid European VAT number. That has been corrected. Subscription invoices now follow the same VAT logic as your webshop invoices: business customers are recorded as business, and with a valid VAT number from another EU country the VAT is reverse charged, including the required statement on the invoice. Domestic rates are unchanged, including the reduced 6% and 12% rates. Invoices that have already been paid are not adjusted retroactively."
+        },
+        "bol_ads_period_filter": {
+          "title": "The period selector for Bol ads works again",
+          "description": "Switching between 7, 30 and 90 days kept showing the same seven days. Charts and key figures now follow the period you pick. Bol.com provides at most thirty days of history; the ninety-day view fills in further as days accumulate."
+        },
+        "merchant_payout_pages": {
+          "title": "Payouts and transactions load again",
+          "description": "The screens showing your Stripe payouts, balance and transactions returned an error instead of your data. They work again. These screens are meant for the administrator and accountant roles."
+        },
+        "app_shop_preview_stays": {
+          "title": "The shop preview in the app stays a preview",
+          "description": "Tapping a product inside your shop preview sent the app to your own domain — with no back button, so you had to force-close the app. The preview now stays a preview, including the bar that takes you back."
+        },
+        "return_emails_delivered": {
+          "title": "Return emails reach your customer again",
+          "description": "The emails about a return — request received, approved, package received, amount refunded — were not being sent. Instead they reported that the return could not be found, while it existed all along. They go out again."
         }
       },
       "copyLink": "Copy link",

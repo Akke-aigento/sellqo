@@ -1500,6 +1500,22 @@
         "subscription_invoice_vat_regime": {
           "title": "Abonnementrechnungen übernehmen die Umsatzsteuerregelung Ihres Kunden",
           "description": "Rechnungen aus einem Abonnement behandelten jeden Kunden als Privatperson: Sie erhielten immer die inländische Umsatzsteuerregelung, auch bei einem Geschäftskunden mit gültiger europäischer Umsatzsteuer-Identifikationsnummer. Das ist behoben. Abonnementrechnungen folgen jetzt derselben Umsatzsteuerlogik wie Ihre Webshop-Rechnungen: Geschäftskunden werden auch als solche erfasst, und bei einer gültigen Umsatzsteuer-Identifikationsnummer aus einem anderen EU-Land wird die Steuerschuld übertragen, samt dem vorgeschriebenen Hinweis auf der Rechnung. Inländische Sätze bleiben unverändert, auch die ermäßigten von 6 % und 12 %. Bereits bezahlte Rechnungen werden nicht rückwirkend angepasst."
+        },
+        "bol_ads_period_filter": {
+          "title": "Die Zeitraumauswahl bei Bol-Anzeigen funktioniert wieder",
+          "description": "Der Wechsel zwischen 7, 30 und 90 Tagen zeigte immer dieselben sieben Tage. Diagramme und Kennzahlen folgen jetzt dem Zeitraum, den Sie wählen. Bol.com liefert höchstens dreißig Tage Historie; die Ansicht über neunzig Tage füllt sich weiter, je mehr Tage hinzukommen."
+        },
+        "merchant_payout_pages": {
+          "title": "Auszahlungen und Transaktionen laden wieder",
+          "description": "Die Ansichten mit Ihren Stripe-Auszahlungen, Ihrem Guthaben und Ihren Transaktionen gaben statt Ihrer Daten eine Fehlermeldung aus. Sie funktionieren wieder. Diese Ansichten sind für die Rollen Administrator und Buchhalter gedacht."
+        },
+        "app_shop_preview_stays": {
+          "title": "Die Shop-Vorschau in der App bleibt eine Vorschau",
+          "description": "Tippten Sie in der Vorschau Ihres Shops auf ein Produkt, wechselte die App zu Ihrer eigenen Domain — ohne Zurück-Schaltfläche, sodass Sie die App schließen mussten. Die Vorschau bleibt jetzt eine Vorschau, samt der Leiste, die Sie zurückbringt."
+        },
+        "return_emails_delivered": {
+          "title": "Retouren-E-Mails erreichen Ihre Kunden wieder",
+          "description": "Die E-Mails zu einer Retoure — Anfrage eingegangen, genehmigt, Paket erhalten, Betrag erstattet — wurden nicht versendet. Stattdessen meldeten sie, die Retoure sei nicht gefunden worden, obwohl sie sehr wohl existierte. Sie gehen wieder raus."
         }
       },
       "copyLink": "Link kopieren",

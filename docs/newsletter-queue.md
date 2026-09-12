@@ -4,6 +4,39 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10v — Vier dingen die stuk waren, weer heel (bugfix, 12-09-2026)
+
+**Voor wie:** iedereen. De vier onderdelen hieronder staan los van elkaar; kies
+gerust alleen wat voor jouw lezers relevant is.
+
+**Retourmails gingen niet de deur uit.** De e-mails rond een retour — aanvraag
+ontvangen, goedgekeurd, pakket binnen, bedrag terugbetaald — werden niet verstuurd.
+In plaats daarvan verscheen de melding dat de retour niet gevonden was, terwijl die
+er wel degelijk was. Wie retouren verwerkt en zich afvroeg waarom klanten niets
+hoorden: dat was dit. Het is opgelost.
+
+**Uitbetalingen en transacties laadden niet.** De schermen met je Stripe-uitbetalingen,
+je saldo en je transacties gaven een foutmelding in plaats van je gegevens. Ze werken
+weer. Deze schermen zijn bedoeld voor de rollen beheerder en boekhouder.
+
+**Het winkelvoorbeeld in de app sloot zichzelf op.** Tikte je in het voorbeeld van je
+winkel op een product, dan sprong de app naar je eigen domein — zonder terugknop, zodat
+je de app moest afsluiten om terug te komen. Het voorbeeld blijft nu een voorbeeld,
+inclusief de balk waarmee je terugkeert.
+
+**De periodekeuze bij Bol-advertenties deed niets.** Wisselen tussen 7, 30 en 90 dagen
+liet steeds dezelfde zeven dagen zien. Grafieken en kengetallen volgen nu de periode
+die je kiest.
+
+**Wat je mag verwachten bij die laatste.** Bol.com levert hoogstens dertig dagen
+historie. De weergave van negentig dagen is daarmee niet meteen gevuld: die groeit mee
+naarmate er dagen bijkomen. Een linkerhelft die nog leeg is, is dus geen storing.
+
+**i18n-keys.** `public.changelog.changes.return_emails_delivered`,
+`.merchant_payout_pages`, `.app_shop_preview_stays`, `.bol_ads_period_filter` —
+vijf talen, volledige pariteit (`scripts/i18n-parity.mjs` groen).
+
+
 ### 2026.10u — Abonnementsfacturen nemen het btw-regime van je klant over (bugfix, 25-08-2026)
 
 **Voor wie:** elke tenant die met abonnementen factureert, en in het bijzonder wie
