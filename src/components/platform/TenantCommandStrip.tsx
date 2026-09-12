@@ -77,20 +77,40 @@ export function TenantCommandStrip({ tenantId, tenant, onNavigate }: TenantComma
 
   // usePlatformBillingStatus is hier niet bruikbaar: die leest de eigen tenant
   // uit TenantContext, niet de tenant die je als platform-admin bekijkt.
+  //
+  // Een directe query op `customer_payment_mandates` werkt hier echter niet, en
+  // stond hier wel — met als gevolg dat élke tenant "Geen mandaat" toonde, ook
+  // de betalende. Drie redenen tegelijk:
+  //
+  //   1. Platform-mandaten liggen op de *interne* SellQo-tenant, met
+  //      `customer_id = tenant_subscriptions.billing_customer_id` van de
+  //      bekeken tenant — niet op de bekeken tenant zelf.
+  //   2. `.eq('status', 'active')` is te strikt: een oude mislukte rij naast een
+  //      verse hoort geen mandaat te verbergen.
+  //   3. De RLS-policy eist `has_tenant_role(tenant_id, ...)` óók van een
+  //      platform-admin, dus de query gaf sowieso nul rijen.
+  //
+  // `get-platform-billing-status` doet alle drie al goed: service-role, tenant
+  // uit de body, en zowel authenticateRequest als requireRole laten een
+  // platform-admin expliciet door. Geen RLS-wijziging nodig.
   const { data: mandate, isLoading: mandateLoading } = useQuery({
     queryKey: ['platform-tenant-mandate', tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customer_payment_mandates')
-        .select('id, status, method_type')
-        .eq('tenant_id', tenantId)
-        .eq('status', 'active')
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke(
+        'get-platform-billing-status',
+        { body: { tenant_id: tenantId, action: 'status' } },
+      );
       if (error) throw error;
-      return data;
+      if (data && data.success === false) throw new Error(data.error ?? 'Mandaatstatus ophalen mislukt');
+      return (data?.mandate ?? null) as { status: string; method_type: string } | null;
     },
     enabled: !!tenantId,
   });
+
+  // De functie geeft de nieuwste rij terug, ongeacht status. Alleen een actief
+  // mandaat is een mandaat; een mislukte of ingetrokken rij tonen we als zodanig
+  // in plaats van hem als "Actief" te presenteren.
+  const mandateActive = mandate?.status === 'active';
 
   // Per kaart eigen state, zodat de twee knoppen elkaar niet blokkeren.
   const [links, setLinks] = useState<Partial<Record<ActionType, string>>>({});
@@ -176,7 +196,9 @@ export function TenantCommandStrip({ tenantId, tenant, onNavigate }: TenantComma
             <Skeleton className="h-6 w-20" />
           ) : (
             <div>
-              <Badge variant={mandate ? 'default' : 'outline'}>{mandate ? 'Actief' : 'Geen mandaat'}</Badge>
+              <Badge variant={mandateActive ? 'default' : 'outline'}>
+                {mandateActive ? 'Actief' : mandate ? mandate.status : 'Geen mandaat'}
+              </Badge>
               {mandate?.method_type && (
                 <p className="text-xs text-muted-foreground mt-1">{mandate.method_type}</p>
               )}

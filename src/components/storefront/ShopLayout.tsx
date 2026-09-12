@@ -225,8 +225,14 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   // Redirect logic
   useEffect(() => {
     if (!tenant?.id || !themeSettings || redirecting) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('preview') === 'true') return;
+    // `isPreview` en niet de URL-parameter. Elke winkelroute mount ShopLayout
+    // opnieuw en `?preview=true` overleeft geen klik naar een product — precies
+    // wat de toelichting bij PREVIEW_FLAG hierboven beschrijft. Die vlag was
+    // alleen op de terug-balk toegepast, niet op deze guard, dus bij de eerste
+    // producttik viel de guard weg en deed de redirect hieronder een harde
+    // `window.location.href` naar het eigen domein — binnen de WebView, dus
+    // zonder terugknop en zonder uitweg.
+    if (isPreview) return;
 
     const checkRedirect = async () => {
       if (ts?.use_custom_frontend && ts?.custom_frontend_url) {
@@ -248,7 +254,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       }
     };
     checkRedirect();
-  }, [tenant?.id, themeSettings, redirecting]);
+  }, [tenant?.id, themeSettings, redirecting, isPreview]);
   
   const enabledPlatforms = connections?.map(c => c.platform as ReviewPlatform) || [];
 

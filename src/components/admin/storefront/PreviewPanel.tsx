@@ -30,9 +30,12 @@ export function PreviewPanel({ className }: PreviewPanelProps) {
   };
 
   const handleOpenExternal = () => {
-    const externalUrl = currentTenant 
-      ? `/shop/${currentTenant.slug}` 
-      : '/shop/preview';
+    // Mét `?preview=true`: zonder die parameter stuurt ShopLayout een tenant met
+    // een eigen of canoniek domein meteen door naar dat domein, en dan bekijkt
+    // de eigenaar niet zijn concept maar zijn live winkel.
+    const externalUrl = currentTenant
+      ? `/shop/${currentTenant.slug}?preview=true`
+      : '/shop/preview?preview=true';
     window.open(externalUrl, '_blank');
   };
 
