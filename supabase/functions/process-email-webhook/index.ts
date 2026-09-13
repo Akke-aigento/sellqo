@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const payload: ResendWebhookPayload = await req.json();
+    // WEBHOOK-SIG-1: de svix-headers stonden al in CORS, maar werden nergens
+    // gecontroleerd. Nu wel, en zonder secret gaat niets door.
+    const rawBody = await req.text();
+    const denied = await rejectUnlessSvix(req, rawBody, "RESEND_EVENTS_WEBHOOK_SECRET", corsHeaders);
+    if (denied) return denied;
+
+    const payload: ResendWebhookPayload = JSON.parse(rawBody);
     console.log("Received webhook:", payload.type, payload.data.email_id);
 
     const resendId = payload.data.email_id;

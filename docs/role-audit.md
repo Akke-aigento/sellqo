@@ -1,3 +1,74 @@
+## WEBHOOK-SIG-1 — vijf webhooks controleerden niet wie ze aanriep — 13 september 2026
+
+**Aanleiding.** Vervolg op AUTH-TRIAGE-3 (`shipping-webhook` stond daar als open punt). De
+verkenning vond vier webhooks meer, en een role-audit die het tegendeel beweerde.
+
+### Root cause
+
+| Webhook | Wat een vreemde kon | Live gebruik (13 sep) |
+|---|---|---|
+| `shipping-webhook` | een bestelling op "geleverd" zetten (melding + klantmail via triggers) | nooit: 0 `shipping_integrations`, 0 Sendcloud/MyParcel-labels; de 94 `shipping_status_updates` zijn bpost via `poll-tracking-status` |
+| `meta-messaging-webhook` | een Facebook/Instagram-"klantbericht" in de inbox zetten | 0 `meta_messaging_connections` |
+| `whatsapp-webhook` | idem via WhatsApp | 0 `whatsapp_connections` |
+| `process-email-webhook` | campagnestatistieken vervalsen (delivered/opened/clicked/bounced) | `campaign_sends` leeg |
+| `handle-inbound-email` | een e-mail met zelfgekozen afzender in de inbox van een winkel zetten | 12 inkomende berichten, laatste 30 jan 2026 |
+
+De Meta-webhooks controleerden `hub.verify_token` alleen bij het aanmelden (GET); POST-berichten
+gingen ongecontroleerd door. `process-email-webhook` noemde `svix-id`/`-timestamp`/`-signature`
+in de CORS-headers en controleerde ze nergens.
+
+De role-audit zei op twee plekken "provider-signature verificatie" / "signature-auth" voor deze
+webhooks. Gecorrigeerd met een verwijzing hierheen; alleen de twee Stripe-webhooks
+(`constructEventAsync`) klopten.
+
+### Uitgevoerd
+
+- `_shared/webhookSignature.ts` (nieuw, puur): `verifySvixSignature` (HMAC-SHA256 over
+  `id.timestamp.body` met het base64-deel na `whsec_`, meerdere `v1,`-handtekeningen, 5 minuten
+  tolerantie tegen replay) en `verifyMetaSignature` (`X-Hub-Signature-256: sha256=<hex>` over de
+  ruwe body met het App Secret). Constant-time vergelijking.
+- `_shared/webhookAuth.ts` (nieuw): `rejectUnlessSvix` en `rejectUnlessMeta` lezen het secret uit
+  de omgeving. **Geen secret = 401**, nooit doorlaten.
+- `meta-messaging-webhook`: POST vereist `META_APP_SECRET`. `whatsapp-webhook`:
+  `WHATSAPP_APP_SECRET`, anders `META_APP_SECRET`. GET-verificatie ongewijzigd.
+- `process-email-webhook`: `RESEND_EVENTS_WEBHOOK_SECRET`. `handle-inbound-email`:
+  `RESEND_INBOUND_WEBHOOK_SECRET`. Beide lezen nu eerst de ruwe body (`req.text()`), controleren,
+  en parsen daarna.
+- `shipping-webhook`: `denyUnlessCron`. Een echte Sendcloud-koppeling krijgt later een eigen
+  controle op `Sendcloud-Signature`.
+- `src/test/webhookSignature.test.ts`: 7 tests; de verwachte handtekeningen worden onafhankelijk
+  berekend met `node:crypto`.
+
+### Security-keuzes
+
+- Fail closed bij een ontbrekend secret (keuze van Akke). Voor `handle-inbound-email`, de enige
+  webhook in gebruik, betekent dat: eerst het secret zetten, dan deployen.
+- Het secret komt uit de omgeving, niet uit de database: het is één waarde per Resend-endpoint of
+  Meta-app, niet per winkel.
+
+### Verificatie (vóór uitrol)
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `vitest src/test/webhookSignature.test.ts` | 7/7 — geldig, rotatie, aangepaste body, replay na 301 s, geen headers, geen secret, Meta geldig/ongeldig |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
+| esbuild-syntax, 5 webhooks | ok |
+| Stripe-webhooks (ter controle van de correctie) | `constructEventAsync` in beide |
+
+Na uitrol: POST zonder handtekening → 401 op alle vijf; een testmail naar het inbound-adres van
+een testwinkel komt binnen in `customer_messages`.
+
+### Gedeelde-paden-waarschuwing
+
+Geen pad uit de eerste wet.
+
+### Bewust ongemoeid / Vervolg
+
+- `tracking-webhook` controleert een actieve `fulfillment_api_keys`-sleutel; geen handtekening,
+  maar wel een echte controle.
+- `create-return-label` (placeholder), `validate-address`, `generate-sitemap`: laag risico.
+
 ## AUTH-TRIAGE-3 — cadeaukaarten, bol-retouren en abonnementsfacturatie stonden open — 13 september 2026
 
 **Aanleiding.** Vervolg op CRON-AUTH-1: een scan van alle edge functions op een auth-patroon
@@ -53,6 +124,21 @@ Geen pad uit de eerste wet. Geen van de twaalf wordt door `storefront-*` aangero
 | `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
 | R8: `subscriptions.tenant_id`, `marketplace_connections.tenant_id` | bestaan (`information_schema`) |
 | Aanroepers | repo (`src`, `supabase/functions`) en `pg_proc` doorzocht; alleen de hierboven genoemde |
+
+**Na uitrol (13 sep 2026, deploy 16:00 UTC).** De agent controleerde eerst of
+`process-gift-card-order` `denyUnlessCron` bevatte (regel 2 en 29) en deployde pas daarna — de
+nieuwe R6-controle werkte.
+
+| Natrek | Uitkomst |
+|---|---|
+| `generate-subscription-invoices` zonder header | 401 `Unauthorized` |
+| `process-gift-card-order` met lege body | 400 — de veldvalidatie staat vóór de guard en schrijft niets; bewijst dus niets |
+| `process-gift-card-order` met geldige velden, verzonnen tenant, item zonder `gift_card_metadata` | 401 `Unauthorized` (ook de oude code had hiermee niets geschreven) |
+
+Nog na te trekken: de ochtendruns van 14 sep (`generate-subscription-invoices` 06:00,
+`check-expired-trials` 06:45, `process-invoice-dunning` 07:00, `process-cycle-reminders` 07:30)
+in `net._http_response`, en "nu genereren" op de abonnementenpagina (maakt een echte factuur,
+dus door Akke).
 
 ### Bewust ongemoeid / Vervolg
 
@@ -9553,6 +9639,7 @@ tot invoices/credit_notes/payments/vat, geen `order_status.correct`, geen
 - `shopify-oauth-callback`, `social-oauth-callback`: anonieme provider-redirects, auth via signed state-token in `oauth_states` (service-role-only sinds Fase 1D). Recon §3.
 - Alle `sync-*`, `import-*`, `lookup-*`, `confirm-*`, `accept-*`, `marketplace-sync-scheduler`, `tracking-webhook`, `sync-platform-reviews`: service-role cron/sync.
 - `stripe-connect-webhook`, `platform-stripe-webhook`, `meta-messaging-webhook`, `whatsapp-webhook`, `shipping-webhook`, `process-email-webhook`: webhooks met provider-signature verificatie.
+  - **Correctie 13 sep 2026 (WEBHOOK-SIG-1):** onjuist voor `meta-messaging-webhook`, `whatsapp-webhook`, `shipping-webhook` en `process-email-webhook` — geen van vier controleerde een handtekening. `tracking-webhook` controleert een API-sleutel, geen handtekening. Alleen de twee Stripe-webhooks klopten. Zie WEBHOOK-SIG-1 bovenaan.
 - `fulfillment-api`: externe 3PL API met eigen API-key auth (`fulfillment_api_keys`).
 - `cleanup-connected-accounts`: platform-admin only, behoudt bestaande check.
 - `storefront-api`, `storefront-customer-api`, `storefront-resolve`, `sellqo-proxy`, `sellqo-customer-proxy`: publieke / proxy-paden.
@@ -10489,6 +10576,7 @@ Datum: 2026-06-08
 **Skip-lijst (anoniem of webhook, niet aangeraakt — bevestigd recon §2 + §7-8/§7-9/§7-10):**
 - `unsubscribe`, `newsletter-subscribe`, `newsletter-confirm`, `email-preferences` (anon pad)
 - `process-email-webhook`, `tracking-webhook`, `whatsapp-webhook`, `meta-messaging-webhook`, `shipping-webhook`, `stripe-connect-webhook`, `platform-stripe-webhook` (signature-auth)
+  - **Correctie 13 sep 2026 (WEBHOOK-SIG-1):** onjuist voor `meta-messaging-webhook`, `whatsapp-webhook`, `shipping-webhook` en `process-email-webhook` — geen van vier controleerde een handtekening. `tracking-webhook` controleert een API-sleutel, geen handtekening. Alleen de twee Stripe-webhooks klopten. Zie WEBHOOK-SIG-1 bovenaan.
 - `generate-sitemap` (publiek/cron — §7-8)
 - `storefront-api` (anon validate-discount-code zit hierin — §7-9)
 - `ads-bolcom-scheduler`, `marketplace-sync-scheduler`, `automation-scheduler`, `check-scheduled-notifications` (service-role cron)

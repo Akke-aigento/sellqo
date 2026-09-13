@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -340,7 +341,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse Resend webhook event wrapper
-    const webhook: ResendWebhookEvent = await req.json();
+    // WEBHOOK-SIG-1: tot 13 sep 2026 kon iedereen hier een e-mail met een
+    // zelfgekozen afzender in de inbox van een winkel zetten. Alleen wat Resend
+    // tekende, komt nog binnen.
+    const rawBody = await req.text();
+    const denied = await rejectUnlessSvix(req, rawBody, "RESEND_INBOUND_WEBHOOK_SECRET", corsHeaders);
+    if (denied) return denied;
+
+    const webhook: ResendWebhookEvent = JSON.parse(rawBody);
     
     // Validate event type - only process inbound emails
     if (webhook.type !== 'email.received') {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +38,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // WEBHOOK-SIG-1: dicht. Nooit gebruikt (13 sep 2026: 0 verzendintegraties, 0
+    // Sendcloud- of MyParcel-labels), en zonder handtekeningcontrole kon iedereen een
+    // bestelling op "geleverd" zetten. Een echte Sendcloud-koppeling krijgt dan een
+    // eigen controle op de Sendcloud-Signature.
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     const url = new URL(req.url);
     const provider = url.searchParams.get("provider");

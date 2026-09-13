@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { rejectUnlessMeta } from "../_shared/webhookAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,7 +51,13 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      const body = await req.json();
+      // WEBHOOK-SIG-1: alleen berichten die Meta met het App Secret tekende. Zonder
+      // die controle kon iedereen een "klantbericht" in de inbox van een winkel zetten.
+      const rawBody = await req.text();
+      const denied = await rejectUnlessMeta(req, rawBody, ['META_APP_SECRET'], corsHeaders);
+      if (denied) return denied;
+
+      const body = JSON.parse(rawBody);
       console.log('Meta Messaging webhook received:', JSON.stringify(body, null, 2));
 
       // Determine platform from object type
