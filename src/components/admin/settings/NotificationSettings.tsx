@@ -4,6 +4,7 @@ import {
   RefreshCw, Megaphone, UserPlus, Settings, ChevronDown, ChevronRight,
   Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper, Smartphone
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -25,10 +26,11 @@ const categoryIcons: Record<string, React.ElementType> = {
   RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
 };
 
-const CHANNELS: { channel: NotificationChannel; icon: React.ElementType; labelKey: string; field: 'in_app_enabled' | 'email_enabled' | 'push_enabled' }[] = [
+// Push staat hier bewust niet tussen: dat is een persoonlijke keuze en staat
+// sinds PUSH-2 in Mijn meldingen. Zie useNotificationSettings.
+const CHANNELS: { channel: NotificationChannel; icon: React.ElementType; labelKey: string; field: 'in_app_enabled' | 'email_enabled' }[] = [
   { channel: 'in_app', icon: Bell, labelKey: 'settings.notifications.inApp', field: 'in_app_enabled' },
   { channel: 'email', icon: Mail, labelKey: 'settings.notifications.email', field: 'email_enabled' },
-  { channel: 'push', icon: Smartphone, labelKey: 'settings.notifications.push', field: 'push_enabled' },
 ];
 
 /**
@@ -39,7 +41,7 @@ const CHANNELS: { channel: NotificationChannel; icon: React.ElementType; labelKe
  * welke was, en de legenda die dat uitlegde stond buiten de uitklapper. Met
  * twee kanalen ging dat nog net; met drie niet meer.
  */
-function ChannelSwitch({
+export function ChannelSwitch({
   icon: Icon, label, checked, onCheckedChange, disabled,
 }: {
   icon: React.ElementType;
@@ -100,9 +102,9 @@ function CategorySection({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            {/* Op een telefoon verdwijnen de tellers: drie paren iconen en
-                breuken naast een uitklappijl passen niet op 375px, en de
-                schakelaars zelf staan één tik verder. */}
+            {/* Op een telefoon verdwijnen de tellers: iconen en breuken naast
+                een uitklappijl passen niet op 375px, en de schakelaars zelf
+                staan één tik verder. */}
             <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
               {CHANNELS.map(({ channel, icon: ChannelIcon }, i) => (
                 <span key={channel} className="flex items-center gap-1">
@@ -151,10 +153,9 @@ function CategorySection({
                 /*
                   Op een telefoon staan de schakelaars ónder het label. Ernaast
                   paste niet: gemeten op 375px blijft er binnen de kaart 263px
-                  over, en drie schakelaars van 44px met tussenruimte laten dan
-                  ~83px voor een label als "Terugbetaling aangevraagd". Dat werd
-                  drie regels en de rijen sprongen. Vanaf sm: blijft het naast
-                  elkaar, zoals het was.
+                  over, en met de schakelaars en hun iconen ernaast wordt een
+                  label als "Terugbetaling aangevraagd" afgekapt. Vanaf sm:
+                  blijft het naast elkaar.
                 */
                 <div
                   key={typeConfig.type}
@@ -454,8 +455,8 @@ export function NotificationSettings() {
           )}
         </div>
 
-        {/* Legenda. flex-wrap: drie items met tekst passen niet naast elkaar
-            op een telefoon, en zonder omslag liepen ze over de kaartrand. */}
+        {/* Legenda. flex-wrap: items met tekst passen niet altijd naast
+            elkaar op een telefoon, en zonder omslag liepen ze over de kaartrand. */}
         <div className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {CHANNELS.map(({ channel, icon: ChannelIcon, labelKey }) => (
@@ -465,7 +466,19 @@ export function NotificationSettings() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">{t('settings.notifications.pushHint')}</p>
+        </div>
+
+        {/* Push stond in PUSH-1 als derde kolom op deze plek. Hij verhuisde
+            naar Mijn meldingen omdat hij per persoon geldt; deze regel wijst
+            wie hem hier zoekt de weg. */}
+        <div className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+          <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="min-w-0 text-muted-foreground">
+            {t('settings.notifications.pushMovedHint')}{' '}
+            <Link to="/admin/settings?section=my-notifications" className="font-medium text-primary underline-offset-4 hover:underline">
+              {t('settings.notifications.pushMovedLink')}
+            </Link>
+          </p>
         </div>
 
         {/* Category sections */}

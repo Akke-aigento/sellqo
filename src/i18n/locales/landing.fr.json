@@ -1532,6 +1532,10 @@
         "push_notifications_multi_shop": {
           "title": "Plusieurs boutiques, un seul téléphone",
           "description": "Si vous gérez plusieurs boutiques avec le même compte, le nom de la boutique apparaît désormais devant la notification push. Touchez une notification et l'application ouvre directement le bon écran — en passant d'abord à la bonne boutique si une autre était ouverte."
+        },
+        "push_per_user": {
+          "title": "Vous réglez désormais les notifications push pour vous-même",
+          "description": "Les notifications push s'appliquent désormais par personne et non plus à toute la boutique. Vous les trouvez dans Paramètres → Mes notifications : ce que vous y activez n'arrive que sur votre téléphone, et les membres de votre équipe choisissent eux-mêmes ce qu'ils veulent recevoir. Vous ne voyez que les types de notifications liés à votre rôle. Aviez-vous déjà activé le push dans Notifications de la boutique ? Activez-le à nouveau dans Mes notifications — l'ancien interrupteur a disparu."
         }
       },
       "copyLink": "Copier le lien",

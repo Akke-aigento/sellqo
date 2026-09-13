@@ -119,32 +119,64 @@ serve(async (req: Request): Promise<Response> => {
       return json({ error: "tenant_id and category are required" }, 400);
     }
 
-    // 2. Is push enabled for this tenant + category?
-    const { data: settings } = await supabase
-      .from("tenant_notification_settings")
-      .select("push_enabled")
+    // 2. Ontvangers: wie voor deze winkel en dit type zelf push aanzette.
+    //
+    // PUSH-2 (13 sep 2026). Tot dan gold één schakelaar per winkel
+    // (tenant_notification_settings.push_enabled), en kreeg iedereen met een rol
+    // in die winkel de push. Maar een telefoon is persoonlijk: de eigenaar zette
+    // push aan en de telefoon van het magazijn trilde mee. Die kolom wordt niet
+    // meer gelezen.
+    if (!payload.type) {
+      return json({ error: "type is required" }, 400);
+    }
+    const { data: prefs, error: prefsErr } = await supabase
+      .from("user_notification_preferences")
+      .select("user_id")
       .eq("tenant_id", payload.tenant_id)
       .eq("category", payload.category)
       .eq("notification_type", payload.type)
-      .maybeSingle();
+      .eq("push_enabled", true);
+    if (prefsErr) throw prefsErr;
 
-    if (!settings || settings.push_enabled !== true) {
+    let candidates = [...new Set((prefs ?? []).map((p: { user_id: string }) => p.user_id))];
+    // Een melding voor één persoon gaat alleen naar die persoon, en alleen als
+    // hij zelf push aan heeft.
+    if (payload.user_id) {
+      candidates = candidates.filter((id) => id === payload.user_id);
+    }
+    if (candidates.length === 0) {
       return json({ skipped: true, reason: "push_disabled" });
     }
 
-    // 3. Target users: an explicit user_id targets one person, otherwise every
-    //    user with a role in this tenant (same resolution as the in-app row).
-    let targetUsers: string[] = [];
-    if (payload.user_id) {
-      targetUsers = [payload.user_id];
-    } else {
-      const { data: roles, error: rolesErr } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("tenant_id", payload.tenant_id);
-      if (rolesErr) throw rolesErr;
-      targetUsers = [...new Set((roles ?? []).map((r: { user_id: string }) => r.user_id))];
+    // 3. Een voorkeur is geen toegang. Wie uit het team gehaald is, kan nog een
+    //    rij hebben staan; die krijgt niets. Ontvanger is wie een rol heeft in
+    //    deze winkel, of platform-admin is — die mag zich op elke winkel
+    //    abonneren (keuze van Akke). Een platform-admin heeft tenant_id NULL en
+    //    viel in de oude opzet daardoor altijd buiten de ontvangers.
+    //
+    //    Bewust geen rolfilter per categorie. De rechtenmatrix staat in
+    //    src/hooks/useCan.ts en is hier niet te importeren, en de RLS op
+    //    `notifications` laat elk teamlid toch al elke melding van zijn winkel
+    //    lezen. Het scherm Mijn meldingen toont alleen categorieën die bij je
+    //    rol horen. Zie docs/role-audit.md, PUSH-2.
+    const { data: candidateRoles, error: rolesErr } = await supabase
+      .from("user_roles")
+      .select("user_id, tenant_id, role")
+      .in("user_id", candidates);
+    if (rolesErr) throw rolesErr;
+
+    const rolesPerUser = new Map<string, Array<{ tenant_id: string | null; role: string }>>();
+    for (const r of (candidateRoles ?? []) as Array<{ user_id: string; tenant_id: string | null; role: string }>) {
+      const list = rolesPerUser.get(r.user_id) ?? [];
+      list.push(r);
+      rolesPerUser.set(r.user_id, list);
     }
+
+    const targetUsers = candidates.filter((id) =>
+      (rolesPerUser.get(id) ?? []).some((r) =>
+        r.tenant_id === payload.tenant_id || r.role === "platform_admin"
+      )
+    );
 
     if (targetUsers.length === 0) {
       return json({ skipped: true, reason: "no_target_users" });
@@ -161,17 +193,14 @@ serve(async (req: Request): Promise<Response> => {
       return json({ skipped: true, reason: "no_devices" });
     }
 
-    // 4b. Wie beheert meer dan één tenant?
+    // 4b. Wie ontvangt van meer dan één winkel?
     //
-    // Een toestel-token hangt aan een telefoon, niet aan een tenant. Wie rollen
-    // heeft in VanXcel én Loveke krijgt dus meldingen van allebei op hetzelfde
-    // toestel — en zag tot 13 september 2026 niet van welke: de titel was kaal
-    // `payload.title`. "Nieuwe bestelling #1170" zonder winkelnaam is voor zo
-    // iemand een raadsel.
-    //
-    // Het voorvoegsel komt er alleen voor wie meerdere tenants heeft. Wie één
-    // shop beheert weet waar het over gaat, en zou de naam als ruis ervaren.
-    // Rijen zonder tenant_id (platform_admin) tellen niet als tenant.
+    // Een toestel-token hangt aan een telefoon, niet aan een winkel. Wie rollen
+    // heeft in VanXcel én Loveke krijgt meldingen van allebei op hetzelfde
+    // toestel, en zag tot 13 september 2026 niet van welke. Het voorvoegsel komt
+    // er alleen voor wie meerdere winkels heeft; wie één shop beheert zou de
+    // naam als ruis ervaren. Een platform-admin telt altijd als meervoudig: die
+    // kan zich op elke winkel abonneren.
     const { data: tenantRow } = await supabase
       .from("tenants")
       .select("name")
@@ -180,26 +209,11 @@ serve(async (req: Request): Promise<Response> => {
     const tenantName = (tenantRow?.name as string | undefined) ?? null;
 
     const multiTenantUsers = new Set<string>();
-    if (tenantName) {
-      const { data: allRoles, error: allRolesErr } = await supabase
-        .from("user_roles")
-        .select("user_id, tenant_id")
-        .in("user_id", targetUsers)
-        .not("tenant_id", "is", null);
-      if (allRolesErr) {
-        // Geen reden om de melding te laten vallen: dan gaat hij zonder
-        // voorvoegsel de deur uit, zoals voorheen.
-        console.error("Could not resolve multi-tenant users:", allRolesErr.message);
-      } else {
-        const tenantsPerUser = new Map<string, Set<string>>();
-        for (const r of (allRoles ?? []) as Array<{ user_id: string; tenant_id: string }>) {
-          const set = tenantsPerUser.get(r.user_id) ?? new Set<string>();
-          set.add(r.tenant_id);
-          tenantsPerUser.set(r.user_id, set);
-        }
-        for (const [userId, set] of tenantsPerUser) {
-          if (set.size > 1) multiTenantUsers.add(userId);
-        }
+    for (const userId of targetUsers) {
+      const list = rolesPerUser.get(userId) ?? [];
+      const tenants = new Set(list.map((r) => r.tenant_id).filter((id): id is string => id !== null));
+      if (tenants.size > 1 || list.some((r) => r.role === "platform_admin")) {
+        multiTenantUsers.add(userId);
       }
     }
 

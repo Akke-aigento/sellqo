@@ -301,6 +301,7 @@
     },
     "sections": {
       "profile": "Mon profil",
+      "my_notifications": "Mes notifications",
       "team": "Membres de l'équipe",
       "company": "Données de l'entreprise",
       "branding": "Image de marque",
@@ -582,7 +583,7 @@
       "emailSaved": "Paramètres des e-mails de notification enregistrés",
       "emailSaveError": "Erreur lors de l'enregistrement de l'e-mail de notification",
       "prefsTitle": "Préférences de notification",
-      "prefsHint": "Choisissez les notifications que vous recevez : dans l'application, par e-mail ou en notification push sur votre téléphone",
+      "prefsHint": "Choisissez les notifications que la boutique reçoit : dans l'application et par e-mail",
       "playSound": "Émettre un son pour les nouvelles notifications",
       "emailTitle": "Notifications par e-mail",
       "emailHint": "Choisissez à quelle adresse les notifications système sont envoyées",
@@ -598,7 +599,16 @@
       "errorTitle": "Erreur",
       "saveError": "Impossible d'enregistrer le paramètre",
       "categoryEnabled": "{{channel}} activé pour {{category}}",
-      "categoryDisabled": "{{channel}} désactivé pour {{category}}"
+      "categoryDisabled": "{{channel}} désactivé pour {{category}}",
+      "pushMovedHint": "Les notifications push sur votre téléphone se règlent par personne.",
+      "pushMovedLink": "Aller à Mes notifications"
+    },
+    "myNotifications": {
+      "title": "Mes notifications",
+      "description": "Choisissez les notifications que vous recevez en push sur votre téléphone pour {{shop}}.",
+      "onlyYou": "Ce réglage ne concerne que vous. Les membres de votre équipe choisissent eux-mêmes ce qu'ils veulent recevoir sur leur téléphone.",
+      "notInRole": "Ne fait plus partie de votre rôle — vous pouvez seulement désactiver le push ici",
+      "noTenant": "Sélectionnez d'abord une boutique pour régler vos notifications push."
     },
     "ai": {
       "subtitle": "Configurez le support client piloté par IA pour votre boutique",

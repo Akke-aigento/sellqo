@@ -273,6 +273,7 @@
     },
     "sections": {
       "profile": "Mijn profiel",
+      "my_notifications": "Mijn meldingen",
       "team": "Teamleden",
       "company": "Bedrijfsgegevens",
       "branding": "Branding",
@@ -554,7 +555,7 @@
       "emailSaved": "Notificatie email instellingen opgeslagen",
       "emailSaveError": "Fout bij opslaan notificatie email",
       "prefsTitle": "Notificatie Voorkeuren",
-      "prefsHint": "Bepaal welke notificaties je ontvangt: in de app, via e-mail of als pushmelding op je telefoon",
+      "prefsHint": "Bepaal welke notificaties de winkel ontvangt: in de app en via e-mail",
       "playSound": "Speel een geluid af bij nieuwe notificaties",
       "emailTitle": "Email Notificaties",
       "emailHint": "Kies naar welk adres systeem notificaties worden gestuurd",
@@ -570,7 +571,16 @@
       "errorTitle": "Fout",
       "saveError": "Kon de instelling niet opslaan",
       "categoryEnabled": "{{channel}} ingeschakeld voor {{category}}",
-      "categoryDisabled": "{{channel}} uitgeschakeld voor {{category}}"
+      "categoryDisabled": "{{channel}} uitgeschakeld voor {{category}}",
+      "pushMovedHint": "Pushmeldingen op je telefoon stel je zelf in, per persoon.",
+      "pushMovedLink": "Naar Mijn meldingen"
+    },
+    "myNotifications": {
+      "title": "Mijn meldingen",
+      "description": "Kies welke meldingen je als pushmelding op je telefoon krijgt voor {{shop}}.",
+      "onlyYou": "Dit geldt alleen voor jou. Je teamleden kiezen zelf wat zij op hun telefoon willen.",
+      "notInRole": "Hoort niet meer bij je rol — je kunt push hier alleen nog uitzetten",
+      "noTenant": "Kies eerst een winkel om je pushmeldingen in te stellen."
     },
     "ai": {
       "subtitle": "Configureer AI-gestuurde klantondersteuning voor je webshop",

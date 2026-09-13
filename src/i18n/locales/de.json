@@ -301,6 +301,7 @@
     },
     "sections": {
       "profile": "Mein Profil",
+      "my_notifications": "Meine Benachrichtigungen",
       "team": "Teammitglieder",
       "company": "Unternehmensdaten",
       "branding": "Branding",
@@ -582,7 +583,7 @@
       "emailSaved": "Einstellungen für Benachrichtigungs-E-Mails gespeichert",
       "emailSaveError": "Fehler beim Speichern der Benachrichtigungs-E-Mail",
       "prefsTitle": "Benachrichtigungseinstellungen",
-      "prefsHint": "Legen Sie fest, welche Benachrichtigungen Sie erhalten: in der App, per E-Mail oder als Push-Benachrichtigung auf Ihrem Telefon",
+      "prefsHint": "Legen Sie fest, welche Benachrichtigungen der Shop erhält: in der App und per E-Mail",
       "playSound": "Bei neuen Benachrichtigungen einen Ton abspielen",
       "emailTitle": "E-Mail-Benachrichtigungen",
       "emailHint": "Wählen Sie, an welche Adresse Systembenachrichtigungen gesendet werden",
@@ -598,7 +599,16 @@
       "errorTitle": "Fehler",
       "saveError": "Die Einstellung konnte nicht gespeichert werden",
       "categoryEnabled": "{{channel}} für {{category}} aktiviert",
-      "categoryDisabled": "{{channel}} für {{category}} deaktiviert"
+      "categoryDisabled": "{{channel}} für {{category}} deaktiviert",
+      "pushMovedHint": "Push-Benachrichtigungen auf dem Telefon werden pro Person eingestellt.",
+      "pushMovedLink": "Zu Meine Benachrichtigungen"
+    },
+    "myNotifications": {
+      "title": "Meine Benachrichtigungen",
+      "description": "Legen Sie fest, welche Benachrichtigungen Sie für {{shop}} als Push-Benachrichtigung auf Ihrem Telefon erhalten.",
+      "onlyYou": "Das gilt nur für Sie. Ihre Teammitglieder entscheiden selbst, was sie auf ihrem Telefon erhalten.",
+      "notInRole": "Gehört nicht mehr zu Ihrer Rolle — Push kann hier nur noch ausgeschaltet werden",
+      "noTenant": "Wählen Sie zuerst einen Shop, um Ihre Push-Benachrichtigungen einzurichten."
     },
     "ai": {
       "subtitle": "Konfigurieren Sie KI-gestützten Kundensupport für Ihren Shop",

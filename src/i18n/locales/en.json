@@ -273,6 +273,7 @@
     },
     "sections": {
       "profile": "My profile",
+      "my_notifications": "My notifications",
       "team": "Team members",
       "company": "Company details",
       "branding": "Branding",
@@ -554,7 +555,7 @@
       "emailSaved": "Notification email settings saved",
       "emailSaveError": "Error saving notification email",
       "prefsTitle": "Notification preferences",
-      "prefsHint": "Choose which notifications you receive: in the app, by email or as a push notification on your phone",
+      "prefsHint": "Choose which notifications the store receives: in the app and by email",
       "playSound": "Play a sound for new notifications",
       "emailTitle": "Email notifications",
       "emailHint": "Choose which address system notifications are sent to",
@@ -570,7 +571,16 @@
       "errorTitle": "Error",
       "saveError": "Couldn't save the setting",
       "categoryEnabled": "{{channel}} turned on for {{category}}",
-      "categoryDisabled": "{{channel}} turned off for {{category}}"
+      "categoryDisabled": "{{channel}} turned off for {{category}}",
+      "pushMovedHint": "Push notifications on your phone are set per person.",
+      "pushMovedLink": "Go to My notifications"
+    },
+    "myNotifications": {
+      "title": "My notifications",
+      "description": "Choose which notifications you get as a push notification on your phone for {{shop}}.",
+      "onlyYou": "This only applies to you. Your team members choose for themselves what they want on their phones.",
+      "notInRole": "No longer part of your role — you can only switch push off here",
+      "noTenant": "Select a store first to set up your push notifications."
     },
     "ai": {
       "subtitle": "Configure AI-driven customer support for your webshop",

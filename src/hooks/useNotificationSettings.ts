@@ -9,35 +9,39 @@ import type {
   NotificationTypeConfig,
 } from '@/types/notification';
 
-/** De drie kanalen waarlangs een melding kan binnenkomen. */
-export type NotificationChannel = 'in_app' | 'email' | 'push';
+/**
+ * De kanalen die per winkel gelden.
+ *
+ * Push hoort hier niet bij. Het stond er in PUSH-1 wel, maar een telefoon is
+ * persoonlijk: een winkelinstelling liet de telefoon van het hele team
+ * meetrillen. Push staat sinds PUSH-2 per gebruiker, in
+ * `useUserNotificationPreferences`. De kolom `push_enabled` op
+ * tenant_notification_settings bestaat nog, maar wordt nergens meer gelezen.
+ */
+export type NotificationChannel = 'in_app' | 'email';
 
 /**
  * Wat een type toont zolang er nog geen rij in de database staat.
  *
- * Eén object in plaats van losse booleans. `getSettingValue` nam er eerst twee
- * op volgorde (`defaultInApp, defaultEmail`); met push erbij waren het er drie,
- * en drie booleans achter elkaar verwisselen is een fout die niemand ziet.
+ * Eén object in plaats van losse booleans: `getSettingValue` nam er eerst twee
+ * op volgorde (`defaultInApp, defaultEmail`), en booleans achter elkaar
+ * verwisselen is een fout die niemand ziet.
  */
 export interface ChannelDefaults {
   inApp: boolean;
   email: boolean;
-  push: boolean;
 }
 
 export function channelDefaults(typeConfig: NotificationTypeConfig): ChannelDefaults {
   return {
     inApp: typeConfig.defaultInApp,
     email: typeConfig.defaultEmail,
-    // Optioneel veld: ontbreekt het, dan staat push uit. Zie notification.ts.
-    push: typeConfig.defaultPush ?? false,
   };
 }
 
-const COLUMN: Record<NotificationChannel, 'in_app_enabled' | 'email_enabled' | 'push_enabled'> = {
+const COLUMN: Record<NotificationChannel, 'in_app_enabled' | 'email_enabled'> = {
   in_app: 'in_app_enabled',
   email: 'email_enabled',
-  push: 'push_enabled',
 };
 
 export function useNotificationSettings() {
@@ -92,7 +96,6 @@ export function useNotificationSettings() {
     return {
       in_app_enabled: setting?.in_app_enabled ?? defaults.inApp,
       email_enabled: setting?.email_enabled ?? defaults.email,
-      push_enabled: setting?.push_enabled ?? defaults.push,
       email_recipients: setting?.email_recipients || [],
     };
   };
@@ -106,8 +109,7 @@ export function useNotificationSettings() {
    *
    *  1. Het insert-pad schreef `in_app_enabled: updates.in_app_enabled ?? true`.
    *     Zette je op een type dat nog geen rij had alleen e-mail aan, dan werd
-   *     in-app stilzwijgend `true` — ongeacht wat het scherm liet zien. Met push
-   *     als derde kanaal kwam die fout drie keer zo vaak voor.
+   *     in-app stilzwijgend `true` — ongeacht wat het scherm liet zien.
    *  2. Twee snelle klikken op een nieuwe rij konden twee inserts geven, en de
    *     tweede liep op de constraint stuk met een 23505.
    *
@@ -121,7 +123,6 @@ export function useNotificationSettings() {
     updates: {
       in_app_enabled?: boolean;
       email_enabled?: boolean;
-      push_enabled?: boolean;
       email_recipients?: string[];
     },
     defaults: ChannelDefaults,
@@ -137,7 +138,8 @@ export function useNotificationSettings() {
         notification_type: type,
         in_app_enabled: existing?.in_app_enabled ?? defaults.inApp,
         email_enabled: existing?.email_enabled ?? defaults.email,
-        push_enabled: existing?.push_enabled ?? defaults.push,
+        // Geen push_enabled: een upsert raakt alleen de kolommen die hij
+        // meekrijgt, dus de oude waarde blijft staan en wordt niet gelezen.
         email_recipients: existing?.email_recipients ?? [],
         ...updates,
         updated_at: new Date().toISOString(),
@@ -201,7 +203,7 @@ export function useNotificationSettings() {
       // andere talen staat "aan" of "uit" niet op dezelfde plek. De oude tekst
       // plakte bovendien de interne categoriesleutel ("orders") in een
       // Nederlandse zin.
-      const channelLabel = t(`settings.notifications.${channel === 'in_app' ? 'inApp' : channel}`);
+      const channelLabel = t(channel === 'in_app' ? 'settings.notifications.inApp' : 'settings.notifications.email');
       toast({
         title: t('settings.notifications.saved'),
         description: t(

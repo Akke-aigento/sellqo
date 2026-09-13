@@ -1532,6 +1532,10 @@
         "push_notifications_multi_shop": {
           "title": "Mehrere Shops, ein Telefon",
           "description": "Verwalten Sie mehr als einen Shop mit demselben Konto, steht der Shopname jetzt vor der Push-Benachrichtigung. Tippen Sie auf eine Benachrichtigung, öffnet die App sofort den richtigen Bildschirm — und wechselt zuerst in den richtigen Shop, falls ein anderer geöffnet war."
+        },
+        "push_per_user": {
+          "title": "Push-Benachrichtigungen stellen Sie jetzt für sich selbst ein",
+          "description": "Push-Benachrichtigungen gelten jetzt pro Person statt für den ganzen Shop. Sie finden sie unter Einstellungen → Meine Benachrichtigungen: Was Sie dort einschalten, kommt nur auf Ihrem Telefon an, und Ihre Teammitglieder wählen selbst, was sie erhalten möchten. Sie sehen nur die Benachrichtigungsarten, die zu Ihrer Rolle gehören. Hatten Sie Push bereits unter Shop-Benachrichtigungen eingeschaltet? Schalten Sie es unter Meine Benachrichtigungen erneut ein — der alte Schalter ist entfernt."
         }
       },
       "copyLink": "Link kopieren",

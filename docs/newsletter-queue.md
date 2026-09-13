@@ -4,37 +4,46 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
-### 2026.10x — Pushmeldingen op je telefoon (feature, 13-09-2026)
+### 2026.10x + 2026.10y — Pushmeldingen op je telefoon (feature, 13-09-2026)
+
+> Bijgewerkt voor PUSH-2 (13-09-2026), nog vóór verzending. De eerste versie beschreef
+> push als winkelinstelling voor het hele team; die werking bestaat niet meer. Eén item
+> in plaats van twee, zodat tenants niet eerst de oude en dan de nieuwe werking lezen.
 
 **Voor wie:** iedereen die de SellQo-app op zijn telefoon gebruikt.
 
-**Nieuwe bestellingen als melding op je telefoon.** In Instellingen → Winkel Notificaties
-heeft elke soort melding nu een derde schakelaar: push. Zet hem aan en je krijgt een seintje
-op je telefoon, ook als de app dicht is.
+**Nieuwe bestellingen als melding op je telefoon.** In Instellingen → Mijn meldingen zet
+je per soort melding push aan. Je krijgt dan een seintje op je telefoon, ook als de app
+dicht is.
 
 **Wees eerlijk tegen je lezers over het verleden.** De app vroeg al een tijd om toestemming
 voor meldingen, en een helpartikel beloofde dat je bestellingen op je telefoon zou krijgen.
 Dat werkte niet: er was geen manier om push aan te zetten. Wie zich afvroeg waarom er nooit
 iets binnenkwam, lag het dus niet aan zijn telefoon.
 
+**Push is persoonlijk.** Wat je aanzet, komt alleen op jouw telefoon binnen. Je teamleden
+kiezen elk zelf wat zij willen ontvangen, en je ziet alleen de soorten meldingen die bij
+je rol horen. De magazijnmedewerker krijgt dus geen trillende telefoon omdat de eigenaar
+push aanzette.
+
 **Push start uit.** Voor elke soort melding moet je hem zelf aanzetten. Dat is een bewuste
 keuze: een melding op je scherm is opdringeriger dan een mail, en je wilt niet overvallen
 worden door tachtig soorten tegelijk. Begin met de handvol die je echt meteen wilt weten.
 
-**Belangrijk: het geldt voor je hele team.** De meldingsinstellingen horen bij je winkel,
-niet bij één persoon. Zet je push aan voor nieuwe bestellingen, dan krijgt iedereen met
-toegang tot je winkel die melding. Overleg dus even met je team voor je iets aanzet.
+**Zag je de schakelaar al in Winkel Notificaties?** Die stond daar een paar uur, en is
+verhuisd. Zet push opnieuw aan in Mijn meldingen.
 
-**Meerdere winkels?** Wie met één account meerdere winkels beheert, ziet voortaan de
+**Meerdere winkels?** Je instellingen gelden voor de winkel die open staat; wissel van
+winkel om een andere in te stellen. Wie meldingen van meer dan één winkel krijgt, ziet de
 winkelnaam vóór de melding. En een melding aantikken opent meteen het juiste scherm — ook
 als dat bij een andere winkel hoort dan die je open had.
 
-**Er komt niets binnen?** Kijk eerst of push aan staat voor die soort melding; dat is
-verreweg de meest voorkomende oorzaak. Pas daarna: of je telefoon meldingen van SellQo
-toestaat.
+**Er komt niets binnen?** Kijk eerst of push aan staat voor die soort melding, met de
+juiste winkel open; dat is verreweg de meest voorkomende oorzaak. Pas daarna: of je
+telefoon meldingen van SellQo toestaat.
 
-**i18n-keys.** `public.changelog.changes.push_notifications_live` en
-`.push_notifications_multi_shop` — vijf talen, volledige pariteit.
+**i18n-keys.** `public.changelog.changes.push_notifications_live`,
+`.push_notifications_multi_shop` en `.push_per_user` — vijf talen, volledige pariteit.
 
 
 ### 2026.10w — De navigatie op je telefoon (improvement + security, 12-09-2026)

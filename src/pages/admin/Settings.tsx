@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,6 +27,7 @@ import {
   Undo2,
   Palette,
   Star,
+  Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ import { InvoiceComplianceCard } from '@/components/admin/settings/InvoiceCompli
 import { VatRatesSettings } from '@/components/admin/settings/VatRatesSettings';
 import { PeppolSettings } from '@/components/admin/settings/PeppolSettings';
 import { NotificationSettings } from '@/components/admin/settings/NotificationSettings';
+import { MyNotificationSettings } from '@/components/admin/settings/MyNotificationSettings';
 import { SocialMediaHub } from '@/components/admin/settings/SocialMediaHub';
 import { NewsletterSettings } from '@/components/admin/storefront/NewsletterSettings';
 import { MultiDomainSettings } from '@/components/admin/settings/MultiDomainSettings';
@@ -91,6 +93,10 @@ const settingsGroups: SettingsGroup[] = [
     descriptionKey: 'settings.groups.account.description',
     sections: [
       { id: 'profile', titleKey: 'settings.sections.profile', icon: User, component: AccountSettings },
+      // PUSH-2 — geen requiredRead: push is persoonlijk, en elk teamlid moet hem
+      // voor zichzelf kunnen aanzetten. Welke categorieën iemand ziet, filtert
+      // het scherm zelf op rol.
+      { id: 'my-notifications', titleKey: 'settings.sections.my_notifications', icon: Smartphone, component: MyNotificationSettings },
       { id: 'team', titleKey: 'settings.sections.team', icon: Users, component: TeamSettings, adminOnly: true },
     ],
   },
@@ -167,6 +173,13 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);
+  // Een link binnen deze pagina (`?section=…`) wijzigt alleen de URL; zonder
+  // deze synchronisatie bleef de oude sectie open staan. Het menu zelf zet
+  // beide tegelijk, dus daar verandert niets.
+  const sectionParam = searchParams.get('section');
+  useEffect(() => {
+    if (sectionParam) setActiveSection(sectionParam);
+  }, [sectionParam]);
   // On mobile: drill-down navigation. Menu visible by default, content shown
   // only after a section is picked. Deep-link (?section=...) opens content directly.
   const [mobileShowContent, setMobileShowContent] = useState(

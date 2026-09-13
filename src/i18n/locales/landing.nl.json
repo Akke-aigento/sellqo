@@ -1532,6 +1532,10 @@
         "push_notifications_multi_shop": {
           "title": "Meerdere winkels, één telefoon",
           "description": "Beheer je meer dan één winkel met hetzelfde account, dan staat de naam van de winkel voortaan vóór de pushmelding. Tik je een melding aan, dan opent de app meteen het juiste scherm — en wisselt hij eerst naar de juiste winkel als je een andere open had."
+        },
+        "push_per_user": {
+          "title": "Pushmeldingen stel je voortaan voor jezelf in",
+          "description": "Pushmeldingen gelden nu per persoon in plaats van voor de hele winkel. Je vindt ze in Instellingen → Mijn meldingen: wat je daar aanzet, komt alleen op jouw telefoon binnen, en je teamleden kiezen zelf wat zij willen ontvangen. Je ziet alleen de soorten meldingen die bij je rol horen. Had je push al aangezet in Winkel Notificaties, zet het dan opnieuw aan in Mijn meldingen — de oude schakelaar is verdwenen."
         }
       },
       "copyLink": "Kopieer link",

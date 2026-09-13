@@ -1532,6 +1532,10 @@
         "push_notifications_multi_shop": {
           "title": "Several stores, one phone",
           "description": "If you manage more than one store with the same account, the store name now appears in front of the push notification. Tap a notification and the app opens the right screen straight away — switching to the right store first if you had a different one open."
+        },
+        "push_per_user": {
+          "title": "You now set up push notifications for yourself",
+          "description": "Push notifications now apply per person instead of to the whole store. You'll find them under Settings → My notifications: what you turn on there only arrives on your phone, and your team members choose for themselves what they want to receive. You only see the notification types that belong to your role. Had you already turned push on in Store notifications? Turn it on again in My notifications — the old switch is gone."
         }
       },
       "copyLink": "Copy link",

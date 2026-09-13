@@ -53,13 +53,6 @@ export interface NotificationSetting {
   notification_type: string;
   in_app_enabled: boolean;
   email_enabled: boolean;
-  /**
-   * Stond al in de database en in de gegenereerde types, maar ontbrak hier —
-   * en dus in de hook en het instellingenscherm. Daardoor kon niemand hem
-   * aanzetten, en heeft er tot 13 september 2026 nooit één push gevuurd:
-   * send-push-notification stopt op `push_enabled !== true`.
-   */
-  push_enabled: boolean;
   email_recipients: string[];
   created_at: string;
   updated_at: string;
@@ -71,15 +64,6 @@ export interface NotificationTypeConfig {
   description: string;
   defaultInApp: boolean;
   defaultEmail: boolean;
-  /**
-   * Optioneel, en bewust. Push start voor élk type uit — de tenant zet zelf aan
-   * wat hij op zijn telefoon wil. Een melding op je scherm is opdringeriger dan
-   * een mail, en 81 soorten tegelijk aan is een reden om de app te
-   * verwijderen. Omdat `undefined` uit betekent, hoefde geen van de type-entries
-   * hieronder aangepast te worden; vul hem alleen in voor een type dat wél
-   * standaard aan moet.
-   */
-  defaultPush?: boolean;
 }
 
 export interface NotificationCategoryConfig {

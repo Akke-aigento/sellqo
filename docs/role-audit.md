@@ -1,3 +1,129 @@
+## PUSH-2 — push per gebruiker in plaats van per winkel — 13 september 2026
+
+**Aanleiding.** Akke, na PUSH-1: *"is dit dan niet op gebruikersniveau? Dit is toch meer
+logisch."* Terecht. PUSH-1 zette de pushschakelaar op `tenant_notification_settings` — de
+kolom die er al stond — en had de ontwerpvraag vóór het bouwen moeten stellen in plaats van
+een waarschuwing in het helpartikel te zetten.
+
+**Root cause.** Push is persoonlijk: het is iemands telefoon. In het winkelmodel zette de
+eigenaar push aan voor bestellingen en trilde de telefoon van magazijn en boekhouder mee.
+Nagetrokken in de live database:
+
+- VanXcel had push aan voor alle 9 bestellingstypes (één bulkactie, 10:55 UTC), maar geen van
+  de drie VanXcel-gebruikers had een toestel geregistreerd. De rijen bereikten niemand.
+- Tweede gat: `send-push-notification` koos ontvangers via `user_roles.tenant_id = <winkel>`.
+  De platform-admin heeft `tenant_id NULL` (1 rij, nagetrokken) en viel daardoor altijd buiten
+  de ontvangers, ook als hij de schakelaar zelf omzette.
+
+**Keuze van Akke.** Een platform-admin mag zich abonneren op push van elke winkel die hij
+bekijkt.
+
+**Uitgevoerd.**
+
+*Database* — `20260913120000_user_notification_preferences.sql`: tabel
+`user_notification_preferences (user_id, tenant_id, category, notification_type, push_enabled)`
+met UNIQUE op de vier sleutels (de upsert wijst die aan, R8), een partiële index voor de
+ontvangersquery, en de `update_updated_at_column`-trigger zoals `sidebar_preferences`. Alleen
+push: e-mail gaat naar een winkeladres en in-app is weinig opdringerig, die blijven per winkel.
+
+*Pushfunctie* — `send-push-notification/index.ts`: ontvangers zijn wie voor
+`(tenant, category, type)` zelf push aan heeft, én een rol in die winkel heeft of
+platform-admin is. Een voorkeur alleen is geen toegang: wie uit het team is gehaald kan nog
+een rij hebben. Bij een expliciete `user_id` telt alleen die gebruiker, en alleen met eigen
+voorkeur. De gate op `tenant_notification_settings.push_enabled` is weg. De rollen worden één
+keer opgehaald en dienen ook voor het winkelnaam-voorvoegsel; een platform-admin krijgt dat
+voorvoegsel altijd.
+
+*Scherm* — nieuwe sectie **Mijn meldingen** in de groep Account
+(`MyNotificationSettings.tsx`, hook `useUserNotificationPreferences.ts`), zonder `requiredRead`:
+"Winkel Notificaties" eist `settings_general`, en daar zou de helft van het team push nooit
+kunnen aanzetten. Per categorie één pushschakelaar per type plus een alles-schakelaar, voor de
+actieve winkel. De categorieën volgen de leesrechten via `src/lib/notificationResources.ts`
+(categorie → `Resource`, met `canWithRoles`). Daarvoor is `useScopedRoles()` uit `useCan`
+getrokken, zodat tenant-scoping en rol-simulator op één plek blijven.
+
+*Winkel Notificaties* — de pushkolom is weg, uit `useNotificationSettings`, `NotificationSetting`
+en `NotificationTypeConfig` (`defaultPush`). Op die plek staat één regel met een link naar Mijn
+meldingen. De upsert en het object-parameter uit PUSH-1 blijven: dat was een losse bug. De
+upsert stuurt geen `push_enabled` meer mee, dus de oude waarde blijft onaangeroerd staan.
+
+*`Settings.tsx`* — `activeSection` volgt nu `?section=`. De pagina las die parameter alleen bij
+het laden, dus een link binnen de pagina wijzigde de URL maar niet de sectie. Dat gold ook al
+voor de bestaande links WhatsApp → Klantcommunicatie en terug.
+
+**Afwijking van het plan: geen rolfilter per categorie op de server.** Het plan zei dat de
+afbeelding categorie → recht ook server-side zou gelden. Bij het bouwen bleek:
+
+1. De rechtenmatrix staat in `src/hooks/useCan.ts`, gekoppeld aan React, en is door Deno niet
+   te importeren. Server-side filteren vraagt een derde kopie, naast `useCan` en de rolarrays in
+   de RLS-policies — en die drie lopen uit elkaar.
+2. Het levert geen afscherming op. De RLS op `notifications` is
+   `notifications_select_members`: `tenant_id IN (get_user_tenant_ids(auth.uid())) OR
+   is_platform_admin(auth.uid())` — geen rol, geen categorie. Elk teamlid ziet elke melding van
+   zijn winkel al in het belletje, en kan hem uit de tabel lezen.
+
+Wat de server wel afdwingt: lidmaatschap van de winkel. Wat het scherm afdwingt: je kunt geen
+push aanzetten voor een categorie buiten je rol. Het gat dat overblijft — een rol wijzigt nadat
+iemand push aanzette — is in het scherm gedicht: een categorie buiten je rol waarvoor nog push
+aan staat, blijft zichtbaar met de melding dat hij alleen nog uitgezet kan worden. Zonder dat
+kwam er push binnen die nergens uit te zetten was.
+
+**Security-keuzes.** RLS op de nieuwe tabel: lezen en verwijderen alleen eigen rijen
+(`auth.uid() = user_id`). Insert en update daarbovenop alleen voor een winkel waar je bij hoort
+of als platform-admin — zonder die regel kon iedereen zich abonneren op meldingen van een
+willekeurige winkel waarvan hij het id kent. `get_user_tenant_ids(uuid)` en
+`is_platform_admin(uuid)` bestaan en zijn `SECURITY DEFINER` (nagetrokken in `pg_proc`). De
+pushfunctie leest met service-role en controleert lidmaatschap zelf, zie hierboven.
+
+**Open bevinding, niet in deze batch.** De RLS op `notifications` filtert niet op rol. Een
+magazijnmedewerker kan meldingen over facturen en betalingen lezen, inclusief bedragen in
+`data`. Dat is het eigenlijke lek, en de fix hoort in SQL, waar de matrix al per tabel staat —
+niet in de pushfunctie.
+
+**Gedeelde-paden-waarschuwing.** Geen gedeeld pad geraakt. `storefront-api`,
+`storefront-customer-api`, `storefront-resolve` en de gedeelde tabellen zijn ongewijzigd; de
+nieuwe tabel wordt door geen custom frontend gelezen.
+
+**Verificatie.**
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs` | exit 0, volledige pariteit |
+| `vitest src/test/notificationResources.test.ts` | 4/4 — elke categorie uit `NOTIFICATION_CONFIG` heeft een recht; warehouse krijgt geen facturen, offertes of betalingen; platform-admin alles; zonder rol niets |
+| 375px, het echte component met nagebootste auth en winkel | `scrollWidth` = 375; geen element voorbij de viewport. Warehouse ziet Bestellingen, Klanten, Producten en een achtergebleven factuurvoorkeur met de uitzet-melding. Platform-admin ziet 12 van 12 categorieën. Alles-schakelaar zet 9/9 aan; één type uit zet de alles-schakelaar terug. Frans op Winkel Notificaties: geen pushschakelaar meer, de verwijsregel past. Elke schakelaar heeft een `aria-label`. |
+| Helpers en triggerfunctie | bestaan, nagetrokken in `pg_proc` |
+
+**Na de migratie nog na te trekken** (kan pas als de tabel bestaat): RLS met `SET ROLE
+authenticated` — eigen winkel mag, andere winkel niet, platform-admin wel; `pg_indexes` toont
+de unieke index; en een eerste echte push met `sent` in de functielogs.
+
+**Volgorde bij uitrol.** Eerst de migratie, dan de functie. Draait de nieuwe functie vóór de
+tabel bestaat, dan eindigt elke push op een 500 — onschadelijk, er ging toch niets uit, maar
+verwarrend in de logs.
+
+**Slottaken.** Changelog `2026.10y` (`push_per_user`) in vijf talen. Helpartikelen
+`meldingen-aanzetten-in-de-app` en `notificaties-instellen` opnieuw bijgewerkt
+(`20260913120100_push_per_user_doc_articles.sql`), met een fout uit PUSH-1 erbij: het
+iPhone-pad luidde live "Instellingen → Winkel Notificaties → SellQo" — bij het vervangen van de
+SellQo-menunaam was het iOS-pad onterecht meegegaan. Het niet-verzonden nieuwsbriefitem 2026.10x
+is herschreven tot één item, in plaats van er een tweede naast te zetten.
+
+**Bewust ongemoeid.**
+
+- `tenant_notification_settings.push_enabled` blijft staan en wordt niet gelezen. Droppen is
+  onomkeerbaar.
+- De negen VanXcel-rijen zijn niet overgezet: ze bereikten niemand, en omzetten naar "iedereen
+  met een rol" bracht precies het probleem terug.
+- De changelog-entry 2026.10x blijft zoals gepubliceerd; 2026.10y beschrijft de wijziging.
+- E-mail en in-app per gebruiker: past niet bij hoe die kanalen werken, en niemand vroeg erom.
+- De 8 dubbele toestel-tokens en de pushtrigger zonder `timeout_milliseconds` (zie PUSH-1).
+
+**Vervolg.** RLS op `notifications` per rol/categorie (zie open bevinding). Types regenereren
+na de migratie, waarna de `db`-cast in `useUserNotificationPreferences` weg kan.
+
 ## PUSH-1 — pushmeldingen werkten nooit, en het helpartikel beweerde van wel — 13 september 2026
 
 **Aanleiding.** Akke kreeg bestelling #1170 (VanXcel) binnen zonder melding op zijn telefoon,

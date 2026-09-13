@@ -266,10 +266,14 @@ export function canWithRoles(
 }
 
 /**
- * `useCan('write', 'orders')` → boolean.
- * Geeft `false` zolang auth nog laadt of er geen user is.
+ * De rollen die in de actieve winkel gelden, plat — of `null` zolang auth laadt.
+ *
+ * Losgetrokken uit `useCan` voor schermen die één recht per rij van een lijst
+ * moeten toetsen (Mijn meldingen). `useCan` kan niet in een loop; dit wel,
+ * met `canWithRoles` op het resultaat. Eén plek, zodat de tenant-scoping en de
+ * rol-simulator niet in een tweede kopie uit elkaar lopen.
  */
-export function useCan(action: PermissionAction, resource: Resource): boolean {
+export function useScopedRoles(): AppRole[] | null {
   const { roles, loading, rolesLoading, user } = useAuth();
   const tenantCtx = useContext(TenantContext);
   const currentTenantId = tenantCtx?.currentTenant?.id ?? null;
@@ -278,9 +282,9 @@ export function useCan(action: PermissionAction, resource: Resource): boolean {
   // de echte rol.
   const sim = useContext(SimulatedRoleContext);
   if (import.meta.env.DEV && sim?.role) {
-    return canWithRoles([sim.role], action, resource);
+    return [sim.role];
   }
-  if (loading || !user || rolesLoading) return false;
+  if (loading || !user || rolesLoading) return null;
   // H4-5: filter per-tenant zodat cross-tenant rollen niet lekken.
   // platform_admin blijft globaal (bypass in canWithRoles).
   const scoped = (roles ?? []).filter((r) => {
@@ -289,6 +293,15 @@ export function useCan(action: PermissionAction, resource: Resource): boolean {
     if (currentTenantId == null) return false;
     return r.tenant_id === currentTenantId;
   });
-  const flat = scoped.map((r) => r.role as AppRole);
-  return canWithRoles(flat, action, resource);
+  return scoped.map((r) => r.role as AppRole);
+}
+
+/**
+ * `useCan('write', 'orders')` → boolean.
+ * Geeft `false` zolang auth nog laadt of er geen user is.
+ */
+export function useCan(action: PermissionAction, resource: Resource): boolean {
+  const roles = useScopedRoles();
+  if (roles === null) return false;
+  return canWithRoles(roles, action, resource);
 }
