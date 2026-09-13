@@ -105,6 +105,23 @@ project eigendom is van Lovable en niet van het Supabase-account
 repo én in het Lovable-project, en de oude code bleef antwoorden. Dat kostte een
 ronde, en zonder probe was de conclusie geweest dat de fix niet werkte.
 
+**Lovable werkt uit een eigen kopie van `main`, en die kan achterlopen.** Een push
+naar GitHub staat niet meteen in de werkkopie van de Lovable-agent. Een migratie
+wordt dan "niet gevonden", en een deploy rolt stil de vórige code uit — met een
+geslaagd-melding. Begin elke uitrolopdracht daarom met een controle die de agent
+zelf moet doen: *"Controleer eerst dat `<migratiebestand>` bestaat / dat
+`<bestand>` `<regel uit de nieuwe code>` bevat. Zo niet: stop en meld het."*
+Migratie en deploy horen in één opdracht in vaste volgorde, of in twee opdrachten
+waarbij de tweede pas vertrekt als de eerste klaar is. Controleer achteraf met
+`list_messages` de tijdstempels: draaide de migratie vóór de deploy, en ligt de
+deploy ná de commit?
+**Incident (PUSH-2 en CRON-AUTH-1, 13 sep 2026):** twee keer op één dag. Eerst
+meldde de agent dat beide PUSH-2-migraties in geen enkele commit voorkwamen. Later
+deployde hij om 15:32 zestien functies "vanaf main" terwijl de commit er nog niet
+was: de oude code draaide door, en de migratie van dezelfde batch werd niet
+gevonden. Pas bij de tweede opdracht (15:38) klopte het. Zonder de tijdstempels
+had de 401-test op oude code gedraaid.
+
 **Bewijs een deploy met een antwoord dat verschilt.** `net.http_get` via
 `query_database` naar `…/functions/v1/<naam>`, met een tekst die tussen oud en
 nieuw afwijkt als discriminator — bij een auth-wijziging is de foutmelding zelf

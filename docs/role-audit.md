@@ -80,16 +80,27 @@ nagelezen.
 | `EXPLAIN` op een gegenereerd commando | plant, secret-lookup via `internal_config_pkey` |
 | `pg_proc` op aanroepen van de zestien | geen |
 
-Na uitrol na te trekken: geen `eyJ` meer in `cron.job.command`, alle elf met
-`timeout_milliseconds`; volgende cronronde in `net._http_response` 200 met inhoud in plaats van
-timeouts; `inventory_sync_log` en `last_sync_at` lopen door.
+**Na uitrol (13 sep 2026).** De volgorde liep anders dan gevraagd: Lovable deployde eerst (15:32
+UTC), maar had de commit nog niet binnen en deployde dus de oude code; de migratie werd daarbij
+niet gevonden. Bij de tweede opdracht (~15:38) draaide eerst de migratie, byte-voor-byte, en
+daarna de deploy vanaf main. Geen onderbreking: de runs van 15:35 gaven nog 200.
+
+| Natrek | Uitkomst |
+|---|---|
+| `cron.job` | 15 HTTP-jobs, geen enkele met `eyJ`; alle 15 `timeout_milliseconds := 120000`; 11 met `x-cron-secret`, 4 met de vault-service-key |
+| Cronronde 15:40 | `auto-invoice-cron` 200; `update-bol-tracking` 200 `{"updated":20,"total":24}` — het eerste antwoord dat aankomt; `marketplace-sync-scheduler` 200 `synced: 1`. Geen timeouts. |
+| `auto-invoice-cron` zonder header | 401 `Unauthorized` |
+| `auto-invoice-cron` met de publieke anon-sleutel | 401 `Unauthorized` |
+
+De 401-test is bewust op `auto-invoice-cron` gedaan: die raakt bol.com niet en draait toch elke
+vijf minuten. De bol-functies zijn niet zonder sleutel aangeroepen.
 
 ### Bewust ongemoeid / Vervolg
 
 - `import-bol-shipments`, `create-bol-vvb-label` en de overige functies van de auth-triage.
 - De vier vault-functies zelf zijn niet op auth nagelezen, alleen hun job.
-- 401-test zonder sleutel op de bol-functies: alleen met expliciete toestemming (bol.com is
-  gevoelig), nog niet gedaan.
+- 401-test zonder sleutel op de bol-functies: niet gedaan (bol.com is gevoelig); het gedeelde
+  pad is via `auto-invoice-cron` bewezen.
 
 ## NOTIF-RLS-1 + CHECKOUT-CUST-1 — meldingen volgen je rol, checkout neemt geen vreemde klant over — 13 september 2026
 
