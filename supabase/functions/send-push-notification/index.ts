@@ -273,6 +273,12 @@ serve(async (req: Request): Promise<Response> => {
               token: device.token,
               notification: { title, body: payload.message },
               data: dataPayload,
+              // Geluid moet per bericht gevraagd worden. Zonder `sound` kwam de
+              // melding op iOS stil binnen (vastgesteld bij de eerste echte
+              // push, 13 sep 2026). "default" is het systeemgeluid; de
+              // gebruiker kan het nog altijd uitzetten in de telefooninstellingen.
+              apns: { payload: { aps: { sound: "default" } } },
+              android: { notification: { sound: "default" } },
             },
           }),
         });
