@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isAuthorizedCronRequest } from "../_shared/cronAuth.ts";
+import { AuthError, authenticateRequest, requireRole } from "../_shared/auth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 import {
   resolveInvoiceFiscalFields,
@@ -262,6 +264,47 @@ Deno.serve(async (req) => {
     }
 
     log("Start", { today: todayISO, manualId, backfillDocuments });
+
+    // AUTH-TRIAGE-3. Tot 13 sep 2026 kon iedereen met de URL de facturatierun
+    // starten, of met `subscription_id` één abonnement buiten zijn cyclus laten
+    // factureren (en afschrijven, bij een mandaat).
+    //   - cron en andere functies (sync-tenant-plan): cron-secret of service-key;
+    //   - de knop "nu genereren" op de abonnementenpagina: alleen voor dat ene
+    //     abonnement, en alleen met schrijfrecht op facturen in die winkel
+    //     (tenant_admin, staff — PERMISSION_MATRIX `invoices.write`).
+    // Een volledige run of een backfill is nooit iets voor een gebruiker.
+    if (!(await isAuthorizedCronRequest(req, supabase))) {
+      if (!manualId || backfillDocuments) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("tenant_id")
+        .eq("id", manualId)
+        .maybeSingle();
+      if (!sub?.tenant_id) {
+        return new Response(JSON.stringify({ success: false, error: "No access to this subscription" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const auth = await authenticateRequest(req, sub.tenant_id);
+        requireRole(auth, sub.tenant_id, ["tenant_admin", "staff"]);
+      } catch (e) {
+        if (e instanceof AuthError) {
+          return new Response(
+            JSON.stringify({ success: false, error: e.status === 401 ? "Unauthorized" : "No access to this subscription" }),
+            { status: e.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        throw e;
+      }
+    }
+
 
     // ------------------------------------------------------------------
     // INV-DOC-1 backfill mode: iterate invoices missing pdf_url that are

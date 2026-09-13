@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeMarketplaceSync } from '../_shared/marketplaceSyncAuth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -114,6 +115,10 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // AUTH-TRIAGE-3: cron/service-key, of een gebruiker van deze winkel met leesrecht op integraties.
+    const denied = await authorizeMarketplaceSync(req, supabase, connectionId, corsHeaders)
+    if (denied) return denied
 
     // Get connection details
     const { data: connection, error: connError } = await supabase

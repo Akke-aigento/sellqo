@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { mintMandateSetupLink } from "../_shared/mandateToken.ts";
 
@@ -77,6 +78,10 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
+
+  // AUTH-TRIAGE-3: alleen de cron of een andere functie (cron-secret of service-key).
+  const denied = await denyUnlessCron(req, supabase, corsHeaders);
+  if (denied) return denied;
 
   const summary = {
     scanned: 0,

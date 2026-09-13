@@ -1,3 +1,68 @@
+## AUTH-TRIAGE-3 — cadeaukaarten, bol-retouren en abonnementsfacturatie stonden open — 13 september 2026
+
+**Aanleiding.** Vervolg op CRON-AUTH-1: een scan van alle edge functions op een auth-patroon
+leverde 44 functies op zonder herkenbare controle. De meeste staan terecht open (webhooks met
+eigen verificatie, tokenlinks, `storefront-*`). Twaalf niet.
+
+### Root cause
+
+Alle twaalf live (CORS-preflight gaf 200, een verzonnen naam 404) en zonder enige controle:
+
+| Functie | Wat een vreemde kon | Aanroeper |
+|---|---|---|
+| `process-gift-card-order` | een **actieve cadeaukaart met zelfgekozen saldo** aanmaken voor elke winkel (`tenant_id`, `items[].unit_price` uit de body); de code kwam terug in het antwoord | geen, in repo noch `pg_proc` |
+| `handle-bol-return` | een retour op het bol.com-account van een winkel afhandelen | geen |
+| `sync-bol-returns` | retouren op bol.com automatisch goedkeuren | geen |
+| `sync-bol-products` | offers op bol.com aanmaken met instellingen uit de body | geen |
+| `generate-subscription-invoices` | de facturatierun starten, of met `subscription_id` één abonnement buiten zijn cyclus factureren en afschrijven | abonnementenpagina, `sync-tenant-plan` (service-client), cron (vault-key) |
+| `process-invoice-dunning`, `process-cycle-reminders`, `check-expired-trials` | herinneringen, nieuwe afschrijfpogingen, trials beëindigen | cron (vault-key) |
+| `sync-odoo-orders`, `sync-odoo-inventory`, `sync-shopify-products`, `sync-woocommerce-products` | syncs op het account van een winkel | marketplacepagina, `trigger-manual-sync` (service-key) |
+
+Misbruik nagetrokken: `gift_cards` is leeg — er is nog nooit een cadeaukaart aangemaakt.
+
+### Uitgevoerd
+
+- `denyUnlessCron` in `process-gift-card-order`, `handle-bol-return`, `sync-bol-returns`,
+  `sync-bol-products`, `process-invoice-dunning`, `process-cycle-reminders`,
+  `check-expired-trials`.
+- `authorizeMarketplaceSync` in `sync-odoo-orders`, `sync-odoo-inventory`,
+  `sync-shopify-products`, `sync-woocommerce-products` — na het lezen van `connectionId`.
+- `generate-subscription-invoices`: cron/service-key zoals voorheen; anders alleen met
+  `subscription_id`, zonder `backfill_documents`, en na resolve-then-authorize
+  (`subscriptions.tenant_id` → `authenticateRequest` → `requireRole(['tenant_admin','staff'])`,
+  de write-rollen van `invoices`).
+- Geen migratie: de cron-jobs sturen sinds CRON-AUTH-1 al het secret of de vault-key.
+
+### Security-keuzes
+
+- Functies zonder aanroeper gaan volledig dicht in plaats van een gebruikerspad te krijgen dat
+  niemand gebruikt. Komt er een scherm voor, dan krijgt dat pad dan zijn eigen gate.
+- De facturatieknop vraagt schrijfrecht, niet leesrecht: hij maakt een echte factuur en kan een
+  mandaat belasten. De route `orders/subscriptions` heeft geen RouteGuard; een rol zonder
+  `invoices.write` ziet de knop wel en krijgt nu een 403. Genoteerd als vervolg.
+
+### Gedeelde-paden-waarschuwing
+
+Geen pad uit de eerste wet. Geen van de twaalf wordt door `storefront-*` aangeroepen.
+
+### Verificatie (vóór uitrol)
+
+| Onderdeel | Uitkomst |
+|---|---|
+| esbuild-syntax, 12 functies | ok |
+| `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
+| R8: `subscriptions.tenant_id`, `marketplace_connections.tenant_id` | bestaan (`information_schema`) |
+| Aanroepers | repo (`src`, `supabase/functions`) en `pg_proc` doorzocht; alleen de hierboven genoemde |
+
+### Bewust ongemoeid / Vervolg
+
+- **`shipping-webhook`**: Sendcloud en MyParcel posten hierheen, zonder handtekeningcontrole.
+  Iedereen kan de verzendstatus van een bestelling wijzigen, en dat stuurt klantmails.
+  Dichtzetten vraagt HMAC-verificatie per provider; aparte batch.
+- `create-return-label` is een placeholder (501). `validate-address` en `generate-sitemap`: laag
+  risico.
+- RouteGuard voor `orders/subscriptions`, of de knop verbergen zonder `invoices.write`.
+
 ## CRON-AUTH-1 — zestien cron- en syncfuncties stonden open, en elf cron-jobs verloren hun antwoord — 13 september 2026
 
 **Aanleiding.** Backlogpunt "10 cron-jobs zonder timeout". De verkenning vond een groter gat.

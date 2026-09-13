@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -26,6 +27,10 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // AUTH-TRIAGE-3: alleen de cron of een andere functie (cron-secret of service-key).
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     // Find all expired trials
     const { data: expiredTrials, error: fetchError } = await supabase

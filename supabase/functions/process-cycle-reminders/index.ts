@@ -13,6 +13,7 @@
 // skip cycles whose payment link is younger than 7 days at level 1.
 // Expiry only touches billing_cycles.status (suspension is LOCK-1).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -50,6 +51,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
+
+    // AUTH-TRIAGE-3: alleen de cron of een andere functie (cron-secret of service-key).
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     const today = todayIso();
 
