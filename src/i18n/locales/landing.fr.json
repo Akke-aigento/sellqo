@@ -1524,6 +1524,14 @@
         "admin_bottom_nav_permissions": {
           "title": "La barre du bas tient compte de votre rôle",
           "description": "La barre de navigation mobile affichait les mêmes onglets à tout le monde, même lorsque votre rôle ou votre formule n'inclut pas cette page. Elle suit désormais les mêmes règles que le menu latéral : vous ne voyez que ce que vous pouvez ouvrir. La boîte de réception est également protégée pour les rôles qui ne peuvent pas consulter les messages clients."
+        },
+        "push_notifications_live": {
+          "title": "Notifications push sur votre téléphone",
+          "description": "Dans Paramètres → Notifications de la boutique, chaque type de notification dispose désormais d'un troisième interrupteur : push. Activez-le et vous recevrez par exemple les nouvelles commandes en notification sur votre téléphone, même lorsque l'application SellQo est fermée. Le push est désactivé par défaut pour chaque type, afin que vous choisissiez vous-même. Attention : ces paramètres s'appliquent à toute votre équipe."
+        },
+        "push_notifications_multi_shop": {
+          "title": "Plusieurs boutiques, un seul téléphone",
+          "description": "Si vous gérez plusieurs boutiques avec le même compte, le nom de la boutique apparaît désormais devant la notification push. Touchez une notification et l'application ouvre directement le bon écran — en passant d'abord à la bonne boutique si une autre était ouverte."
         }
       },
       "copyLink": "Copier le lien",

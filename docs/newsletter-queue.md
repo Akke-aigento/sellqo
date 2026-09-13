@@ -4,6 +4,39 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10x — Pushmeldingen op je telefoon (feature, 13-09-2026)
+
+**Voor wie:** iedereen die de SellQo-app op zijn telefoon gebruikt.
+
+**Nieuwe bestellingen als melding op je telefoon.** In Instellingen → Winkel Notificaties
+heeft elke soort melding nu een derde schakelaar: push. Zet hem aan en je krijgt een seintje
+op je telefoon, ook als de app dicht is.
+
+**Wees eerlijk tegen je lezers over het verleden.** De app vroeg al een tijd om toestemming
+voor meldingen, en een helpartikel beloofde dat je bestellingen op je telefoon zou krijgen.
+Dat werkte niet: er was geen manier om push aan te zetten. Wie zich afvroeg waarom er nooit
+iets binnenkwam, lag het dus niet aan zijn telefoon.
+
+**Push start uit.** Voor elke soort melding moet je hem zelf aanzetten. Dat is een bewuste
+keuze: een melding op je scherm is opdringeriger dan een mail, en je wilt niet overvallen
+worden door tachtig soorten tegelijk. Begin met de handvol die je echt meteen wilt weten.
+
+**Belangrijk: het geldt voor je hele team.** De meldingsinstellingen horen bij je winkel,
+niet bij één persoon. Zet je push aan voor nieuwe bestellingen, dan krijgt iedereen met
+toegang tot je winkel die melding. Overleg dus even met je team voor je iets aanzet.
+
+**Meerdere winkels?** Wie met één account meerdere winkels beheert, ziet voortaan de
+winkelnaam vóór de melding. En een melding aantikken opent meteen het juiste scherm — ook
+als dat bij een andere winkel hoort dan die je open had.
+
+**Er komt niets binnen?** Kijk eerst of push aan staat voor die soort melding; dat is
+verreweg de meest voorkomende oorzaak. Pas daarna: of je telefoon meldingen van SellQo
+toestaat.
+
+**i18n-keys.** `public.changelog.changes.push_notifications_live` en
+`.push_notifications_multi_shop` — vijf talen, volledige pariteit.
+
+
 ### 2026.10w — De navigatie op je telefoon (improvement + security, 12-09-2026)
 
 **Voor wie:** iedereen die de admin op een telefoon gebruikt. Op desktop verandert

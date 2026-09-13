@@ -1524,6 +1524,14 @@
         "admin_bottom_nav_permissions": {
           "title": "Die untere Leiste berücksichtigt Ihre Rolle",
           "description": "Die mobile Navigationsleiste zeigte allen dieselben Reiter, auch wenn Ihre Rolle oder Ihr Tarif diese Seite nicht enthält. Sie folgt jetzt denselben Regeln wie das Seitenmenü: Sie sehen nur, was Sie öffnen dürfen. Auch der Posteingang ist nun für Rollen geschützt, die keine Kundennachrichten einsehen dürfen."
+        },
+        "push_notifications_live": {
+          "title": "Push-Benachrichtigungen auf Ihrem Telefon",
+          "description": "Unter Einstellungen → Shop-Benachrichtigungen hat jede Benachrichtigungsart jetzt einen dritten Schalter: Push. Schalten Sie ihn ein, und Sie erhalten zum Beispiel neue Bestellungen als Benachrichtigung auf Ihrem Telefon, auch wenn die SellQo-App geschlossen ist. Push ist für jede Art standardmäßig aus, damit Sie selbst wählen. Hinweis: Diese Einstellungen gelten für Ihr gesamtes Team."
+        },
+        "push_notifications_multi_shop": {
+          "title": "Mehrere Shops, ein Telefon",
+          "description": "Verwalten Sie mehr als einen Shop mit demselben Konto, steht der Shopname jetzt vor der Push-Benachrichtigung. Tippen Sie auf eine Benachrichtigung, öffnet die App sofort den richtigen Bildschirm — und wechselt zuerst in den richtigen Shop, falls ein anderer geöffnet war."
         }
       },
       "copyLink": "Link kopieren",

@@ -153,12 +153,54 @@ serve(async (req: Request): Promise<Response> => {
     // 4. Devices
     const { data: devices, error: devErr } = await supabase
       .from("device_tokens")
-      .select("token, platform")
+      .select("token, platform, user_id")
       .in("user_id", targetUsers);
     if (devErr) throw devErr;
 
     if (!devices || devices.length === 0) {
       return json({ skipped: true, reason: "no_devices" });
+    }
+
+    // 4b. Wie beheert meer dan één tenant?
+    //
+    // Een toestel-token hangt aan een telefoon, niet aan een tenant. Wie rollen
+    // heeft in VanXcel én Loveke krijgt dus meldingen van allebei op hetzelfde
+    // toestel — en zag tot 13 september 2026 niet van welke: de titel was kaal
+    // `payload.title`. "Nieuwe bestelling #1170" zonder winkelnaam is voor zo
+    // iemand een raadsel.
+    //
+    // Het voorvoegsel komt er alleen voor wie meerdere tenants heeft. Wie één
+    // shop beheert weet waar het over gaat, en zou de naam als ruis ervaren.
+    // Rijen zonder tenant_id (platform_admin) tellen niet als tenant.
+    const { data: tenantRow } = await supabase
+      .from("tenants")
+      .select("name")
+      .eq("id", payload.tenant_id)
+      .maybeSingle();
+    const tenantName = (tenantRow?.name as string | undefined) ?? null;
+
+    const multiTenantUsers = new Set<string>();
+    if (tenantName) {
+      const { data: allRoles, error: allRolesErr } = await supabase
+        .from("user_roles")
+        .select("user_id, tenant_id")
+        .in("user_id", targetUsers)
+        .not("tenant_id", "is", null);
+      if (allRolesErr) {
+        // Geen reden om de melding te laten vallen: dan gaat hij zonder
+        // voorvoegsel de deur uit, zoals voorheen.
+        console.error("Could not resolve multi-tenant users:", allRolesErr.message);
+      } else {
+        const tenantsPerUser = new Map<string, Set<string>>();
+        for (const r of (allRoles ?? []) as Array<{ user_id: string; tenant_id: string }>) {
+          const set = tenantsPerUser.get(r.user_id) ?? new Set<string>();
+          set.add(r.tenant_id);
+          tenantsPerUser.set(r.user_id, set);
+        }
+        for (const [userId, set] of tenantsPerUser) {
+          if (set.size > 1) multiTenantUsers.add(userId);
+        }
+      }
     }
 
     // 5. Firebase credentials — graceful degradation, never a crash.
@@ -201,7 +243,10 @@ serve(async (req: Request): Promise<Response> => {
     let failed = 0;
     const staleTokens: string[] = [];
 
-    for (const device of devices as Array<{ token: string; platform: string }>) {
+    for (const device of devices as Array<{ token: string; platform: string; user_id: string }>) {
+      const title = tenantName && multiTenantUsers.has(device.user_id)
+        ? `${tenantName} · ${payload.title}`
+        : payload.title;
       try {
         const res = await fetch(endpoint, {
           method: "POST",
@@ -212,7 +257,7 @@ serve(async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             message: {
               token: device.token,
-              notification: { title: payload.title, body: payload.message },
+              notification: { title, body: payload.message },
               data: dataPayload,
             },
           }),

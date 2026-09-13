@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
   RefreshCw, Megaphone, UserPlus, Settings, ChevronDown, ChevronRight,
-  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper
+  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper, Smartphone
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { useNotificationSettings, channelDefaults, type NotificationChannel } from '@/hooks/useNotificationSettings';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
-import { NOTIFICATION_CONFIG, NotificationCategory } from '@/types/notification';
+import { NOTIFICATION_CONFIG, type NotificationCategoryConfig, type NotificationTypeConfig } from '@/types/notification';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -25,66 +25,91 @@ const categoryIcons: Record<string, React.ElementType> = {
   RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
 };
 
+const CHANNELS: { channel: NotificationChannel; icon: React.ElementType; labelKey: string; field: 'in_app_enabled' | 'email_enabled' | 'push_enabled' }[] = [
+  { channel: 'in_app', icon: Bell, labelKey: 'settings.notifications.inApp', field: 'in_app_enabled' },
+  { channel: 'email', icon: Mail, labelKey: 'settings.notifications.email', field: 'email_enabled' },
+  { channel: 'push', icon: Smartphone, labelKey: 'settings.notifications.push', field: 'push_enabled' },
+];
+
+/**
+ * Eén schakelaar met zijn icoon ernaast en een toegankelijke naam.
+ *
+ * Tot 13 september 2026 stonden de schakelaars per type naamloos naast elkaar —
+ * geen icoon, geen label, geen aria-label. Alleen de volgorde vertelde welke
+ * welke was, en de legenda die dat uitlegde stond buiten de uitklapper. Met
+ * twee kanalen ging dat nog net; met drie niet meer.
+ */
+function ChannelSwitch({
+  icon: Icon, label, checked, onCheckedChange, disabled,
+}: {
+  icon: React.ElementType;
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={label} />
+    </div>
+  );
+}
+
 function CategorySection({
   config,
   getSettingValue,
   updateSetting,
-  toggleCategoryInApp,
-  toggleCategoryEmail,
+  toggleCategoryChannel,
   isSaving,
 }: {
-  config: typeof NOTIFICATION_CONFIG[0];
-  getSettingValue: (category: NotificationCategory, type: string, defaultInApp: boolean, defaultEmail: boolean) => {
-    in_app_enabled: boolean;
-    email_enabled: boolean;
-    email_recipients: string[];
-  };
-  updateSetting: (category: NotificationCategory, type: string, updates: { in_app_enabled?: boolean; email_enabled?: boolean }) => Promise<void>;
-  toggleCategoryInApp: (category: NotificationCategory, enabled: boolean, types: typeof config.types) => Promise<void>;
-  toggleCategoryEmail: (category: NotificationCategory, enabled: boolean, types: typeof config.types) => Promise<void>;
+  config: NotificationCategoryConfig;
+  getSettingValue: ReturnType<typeof useNotificationSettings>['getSettingValue'];
+  updateSetting: ReturnType<typeof useNotificationSettings>['updateSetting'];
+  toggleCategoryChannel: ReturnType<typeof useNotificationSettings>['toggleCategoryChannel'];
   isSaving: boolean;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const Icon = categoryIcons[config.icon] || Bell;
 
-  // Calculate how many are enabled
-  const inAppCount = config.types.filter(t => {
-    const { in_app_enabled } = getSettingValue(config.category, t.type, t.defaultInApp, t.defaultEmail);
-    return in_app_enabled;
-  }).length;
+  const valueOf = (typeConfig: NotificationTypeConfig) =>
+    getSettingValue(config.category, typeConfig.type, channelDefaults(typeConfig));
 
-  const emailCount = config.types.filter(t => {
-    const { email_enabled } = getSettingValue(config.category, t.type, t.defaultInApp, t.defaultEmail);
-    return email_enabled;
-  }).length;
-
-  const allInAppEnabled = inAppCount === config.types.length;
-  const allEmailEnabled = emailCount === config.types.length;
+  // Per kanaal: hoeveel types staan aan.
+  const counts = CHANNELS.map(({ field }) =>
+    config.types.filter(typeConfig => valueOf(typeConfig)[field]).length,
+  );
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer rounded-lg border">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 p-4 hover:bg-muted/50 cursor-pointer rounded-lg border">
+          <div className="flex min-w-0 items-center gap-3">
             <div className={cn(
-              'p-2 rounded-lg',
+              'p-2 rounded-lg shrink-0',
               isOpen ? 'bg-primary text-primary-foreground' : 'bg-muted'
             )}>
               <Icon className="h-4 w-4" />
             </div>
-            <div>
-              <p className="font-medium">{config.label}</p>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{config.label}</p>
               <p className="text-xs text-muted-foreground">
-                {config.types.length} notificatie types
+                {t('settings.notifications.typesCount', { count: config.types.length })}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Bell className="h-3.5 w-3.5" />
-              <span>{inAppCount}/{config.types.length}</span>
-              <Mail className="h-3.5 w-3.5 ml-2" />
-              <span>{emailCount}/{config.types.length}</span>
+          <div className="flex shrink-0 items-center gap-3">
+            {/* Op een telefoon verdwijnen de tellers: drie paren iconen en
+                breuken naast een uitklappijl passen niet op 375px, en de
+                schakelaars zelf staan één tik verder. */}
+            <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+              {CHANNELS.map(({ channel, icon: ChannelIcon }, i) => (
+                <span key={channel} className="flex items-center gap-1">
+                  <ChannelIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{counts[i]}/{config.types.length}</span>
+                </span>
+              ))}
             </div>
             {isOpen ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -96,60 +121,67 @@ function CategorySection({
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
         <div className="border rounded-lg p-4 space-y-4">
-          {/* Bulk actions */}
-          <div className="flex items-center justify-between pb-3 border-b">
-            <span className="text-sm font-medium">Alle {config.label.toLowerCase()}</span>
+          {/* Alles in één keer, per kanaal */}
+          <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-medium">
+              {t('settings.notifications.allOf', { label: config.label.toLowerCase() })}
+            </span>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={allInAppEnabled}
-                  onCheckedChange={(checked) => toggleCategoryInApp(config.category, checked, config.types)}
+              {CHANNELS.map(({ channel, icon, labelKey }, i) => (
+                <ChannelSwitch
+                  key={channel}
+                  icon={icon}
+                  label={`${t(labelKey)} — ${config.label}`}
+                  checked={counts[i] === config.types.length}
+                  onCheckedChange={(checked) =>
+                    toggleCategoryChannel(channel, config.category, checked, config.types, config.label)
+                  }
                   disabled={isSaving}
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={allEmailEnabled}
-                  onCheckedChange={(checked) => toggleCategoryEmail(config.category, checked, config.types)}
-                  disabled={isSaving}
-                />
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Individual toggles */}
+          {/* Per type */}
           <div className="space-y-3">
             {config.types.map(typeConfig => {
-              const { in_app_enabled, email_enabled } = getSettingValue(
-                config.category,
-                typeConfig.type,
-                typeConfig.defaultInApp,
-                typeConfig.defaultEmail
-              );
+              const value = valueOf(typeConfig);
 
               return (
-                <div key={typeConfig.type} className="flex items-center justify-between py-2">
-                  <div className="flex-1 min-w-0 pr-4">
-                    <Label className="text-sm font-normal">{typeConfig.label}</Label>
+                /*
+                  Op een telefoon staan de schakelaars ónder het label. Ernaast
+                  paste niet: gemeten op 375px blijft er binnen de kaart 263px
+                  over, en drie schakelaars van 44px met tussenruimte laten dan
+                  ~83px voor een label als "Terugbetaling aangevraagd". Dat werd
+                  drie regels en de rijen sprongen. Vanaf sm: blijft het naast
+                  elkaar, zoals het was.
+                */
+                <div
+                  key={typeConfig.type}
+                  className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1 sm:pr-4">
+                    <Label className="block truncate text-sm font-normal">{typeConfig.label}</Label>
                     <p className="text-xs text-muted-foreground truncate">{typeConfig.description}</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Switch
-                      checked={in_app_enabled}
-                      onCheckedChange={(checked) =>
-                        updateSetting(config.category, typeConfig.type, { in_app_enabled: checked })
-                      }
-                      disabled={isSaving}
-                    />
-                    <Switch
-                      checked={email_enabled}
-                      onCheckedChange={(checked) =>
-                        updateSetting(config.category, typeConfig.type, { email_enabled: checked })
-                      }
-                      disabled={isSaving}
-                    />
+                  <div className="flex shrink-0 items-center gap-4">
+                    {CHANNELS.map(({ channel, icon, labelKey, field }) => (
+                      <ChannelSwitch
+                        key={channel}
+                        icon={icon}
+                        label={`${t(labelKey)} — ${typeConfig.label}`}
+                        checked={value[field]}
+                        onCheckedChange={(checked) =>
+                          updateSetting(
+                            config.category,
+                            typeConfig.type,
+                            { [field]: checked },
+                            channelDefaults(typeConfig),
+                          )
+                        }
+                        disabled={isSaving}
+                      />
+                    ))}
                   </div>
                 </div>
               );
@@ -167,8 +199,7 @@ export function NotificationSettings() {
     isSaving,
     getSettingValue,
     updateSetting,
-    toggleCategoryInApp,
-    toggleCategoryEmail,
+    toggleCategoryChannel,
   } = useNotificationSettings();
   
   const { enabled: soundEnabled, toggleEnabled: toggleSound } = useNotificationSound();
@@ -423,16 +454,18 @@ export function NotificationSettings() {
           )}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg text-sm">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span>{t('settings.notifications.inApp')}</span>
+        {/* Legenda. flex-wrap: drie items met tekst passen niet naast elkaar
+            op een telefoon, en zonder omslag liepen ze over de kaartrand. */}
+        <div className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {CHANNELS.map(({ channel, icon: ChannelIcon, labelKey }) => (
+              <div key={channel} className="flex items-center gap-2">
+                <ChannelIcon className="h-4 w-4" aria-hidden="true" />
+                <span>{t(labelKey)}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            <span>{t('settings.notifications.email')}</span>
-          </div>
+          <p className="text-xs text-muted-foreground">{t('settings.notifications.pushHint')}</p>
         </div>
 
         {/* Category sections */}
@@ -443,8 +476,7 @@ export function NotificationSettings() {
               config={config}
               getSettingValue={getSettingValue}
               updateSetting={updateSetting}
-              toggleCategoryInApp={toggleCategoryInApp}
-              toggleCategoryEmail={toggleCategoryEmail}
+              toggleCategoryChannel={toggleCategoryChannel}
               isSaving={isSaving}
             />
           ))}

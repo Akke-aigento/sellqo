@@ -1,3 +1,116 @@
+## PUSH-1 — pushmeldingen werkten nooit, en het helpartikel beweerde van wel — 13 september 2026
+
+**Aanleiding.** Akke kreeg bestelling #1170 (VanXcel) binnen zonder melding op zijn telefoon,
+en vroeg wat er gebeurt bij meerdere tenants op één mailadres.
+
+**Root cause.** Push was niet stuk, maar nooit aangezet — en dat kón ook niet. De keten stond
+er volledig: toestelregistratie werkt (12 tokens, 3 gebruikers), de notificatie werd aangemaakt
+(`order_new` om 14:10:05, precies bij #1170), een DB-trigger roept `send-push-notification`
+aan, en die praat met FCM v1. Maar de functie stopt op:
+
+```ts
+if (!settings || settings.push_enabled !== true) {
+  return json({ skipped: true, reason: "push_disabled" });
+}
+```
+
+`tenant_notification_settings.push_enabled` is `NOT NULL DEFAULT false`. Van de 155 rijen over 3
+tenants stond er geen enkele op `true`, en `push_enabled` kwam in heel `src/` alleen voor in het
+gegenereerde `types.ts`. Hook en scherm kenden het veld niet. Er heeft nooit één push gevuurd.
+De role-audit had dit zelf al aangekondigd: *"dwingt expliciete activatie zodra de push-UI
+landt"* — die UI is er nooit gekomen.
+
+**Het helpartikel beweerde het tegendeel.** `meldingen-aanzetten-in-de-app` beloofde *"Met
+pushmeldingen krijg je nieuwe bestellingen, berichten en waarschuwingen direct op je
+telefoon"*, en stuurde tenants bij problemen naar hun telefooninstellingen, "Niet storen" en het
+juiste account. Wie dat volgde, zocht op de verkeerde plek. `notificaties-instellen` zei
+bovendien *"Teamleden beheren hun eigen notificatievoorkeuren"* — onjuist: de tabel heeft een
+UNIQUE op `(tenant_id, category, notification_type)` en geen `user_id`. En beide noemden de
+plek "Instellingen → Meldingen", terwijl die sectie in het menu "Winkel Notificaties" heet.
+
+**Op de tweede vraag.** Ja, wie rollen heeft in meerdere tenants krijgt meldingen van allemaal:
+`send-push-notification` kiest als ontvangers iedereen met een rol in de tenant, en stuurt naar
+álle `device_tokens` van die gebruikers. Een token hangt aan een toestel, niet aan een tenant.
+De zichtbare titel was kaal `payload.title`, dus je zag niet van welke winkel een melding kwam.
+
+**Uitgevoerd.**
+
+*De schakelaar.* `push_enabled` erbij in `NotificationSetting`; `defaultPush` optioneel in
+`NotificationTypeConfig`, zodat push voor elk type uit start zonder dat een van de 81
+type-entries aangeraakt hoefde te worden (keuze van Akke: de tenant kiest zelf).
+
+`useNotificationSettings` herschreven. `getSettingValue` nam losse positionele booleans; met een
+derde kanaal werd dat één object. Drie vrijwel identieke toggle-functies werden
+`toggleCategoryChannel`. En een bestaande bug is weg: het insert-pad schreef
+`in_app_enabled: updates.in_app_enabled ?? true`, dus e-mail of push aanzetten op een type
+zonder rij zette in-app stilzwijgend aan, ongeacht wat het scherm liet zien. Nu een upsert op de
+bestaande UNIQUE-constraint, opgebouwd uit wat er stond of uit precies de standaardwaarden die
+het scherm toonde. Dat lost ook de race op waarbij twee snelle klikken een `23505` gaven.
+
+`NotificationSettings.tsx`: drie kanalen op alle vier de plekken. Op mobiel staan de schakelaars
+ónder het label: gemeten liet een derde schakelaar ernaast ~83px over voor labels als
+"Terugbetaling aangevraagd". De tellers in de ingeklapte kop verdwijnen op mobiel, de legenda
+slaat om. En de schakelaars per type hadden **geen enkele toegankelijke naam** — alleen positie;
+ze kregen een icoon en een `aria-label`. De toasts die ik aanraakte gaan nu via i18n; de oude
+plakte de interne categoriesleutel ("orders") in een Nederlandse zin.
+
+*De tenantnaam.* `send-push-notification` zet de winkelnaam vóór de titel, alleen voor
+ontvangers met rollen in meer dan één tenant (rijen zonder `tenant_id` tellen niet). Wie één
+winkel beheert, ziet geen voorvoegsel.
+
+*Aantikken.* `src/native/pushTaps.ts` en `PushTapListener`, naar het patroon van
+`initDeepLinks`. Alleen interne `/admin`-paden worden gevolgd. Wijst de melding naar een andere
+tenant, dan eerst wisselen en pas navigeren als de wissel doorgekomen is. De listener hangt in
+`AdminLayout` en niet naast `DeepLinkListener`, want de tenantwissel heeft `TenantContext`
+nodig. Een koude start gaat niet verloren: de plugin roept het event aan met
+`retainUntilConsumed` op iOS én Android, nagetrokken in de pluginbron.
+
+Onderweg een eigen fout gevangen: `setCurrentTenant` is in `useTenant` een gewone functie die
+elke render opnieuw ontstaat. Als effect-dependency had hij de listener bij elke render
+afgebroken en opnieuw geregistreerd — en een bewaard tap-event kan precies in dat gat vallen.
+Nu via een ref.
+
+*De helpartikelen.* Migratie `20260913100000_push_doc_articles.sql` werkt beide bestaande
+artikelen bij in plaats van een derde toe te voegen — dat zou de AI-helpchat met tegenstrijdige
+bronnen voeden. Elke bewering in de nieuwe tekst is nagetrokken: de menunaam in alle vijf talen,
+de letterlijke balktekst "Meldingen staan uit", en het `ON CONFLICT`-doel tegen `pg_indexes`.
+
+**Security-keuzes.** Niets verruimd. `pushTapTarget` volgt alleen `/admin`-paden, zodat een
+melding nooit naar een externe of protocol-relatieve URL leidt. De tenantwissel gebeurt alleen
+naar een tenant uit de eigen `tenants`-lijst; wie geen toegang (meer) heeft, landt op het
+dashboard in plaats van op een tenant-gebonden pagina.
+
+**Gedeelde-paden-waarschuwing.** n.v.t. — admin en een platformfunctie; geen storefront.
+
+**Verificatie.** `tsc` exit 0, `npm run build` exit 0, lint gelijk aan de baseline,
+`i18n-parity` groen (5192 sleutels per taal). Op 375px nagemeten op het echte scherm: geen
+horizontaal scrollen, alle 18 zichtbare schakelaars hebben een naam, elk label past op één regel.
+
+**Bijvangst — een fout in mijn eigen vorige batch (NAV-1).** Bij dezelfde meting bleek de
+zwevende balk "Dashboard" en "Products" af te kappen terwijl er ruimte was: vier items van
+exact 58px in een pil van 261px, met 343px beschikbaar. Oorzaak `flex-1` = `flex-basis: 0`,
+waardoor items niets bijdragen aan de intrinsieke breedte en een vaste ruimte eerlijk verdeeld
+werd. Een eerste poging met alleen `w-max` veranderde niets; pas de meting daarna wees
+flex-basis aan. Nu `flex-auto`. Nagemeten op het echte component in beide randgevallen. De
+verificatie van NAV-1 had dit gemist omdat die de pil nabouwde in een wrapper op `left:0` —
+een andere containing block. Aparte commit.
+
+**Wat ik niet kon toetsen.** Of een melding daadwerkelijk aankomt, en of aantikken naar het juiste
+scherm springt — beide vragen een toestel.
+
+**Eén risico vooraf.** `ios/App/App/App.entitlements` heeft `aps-environment = development`. Voor
+een TestFlight- of App Store-build moet dat `production` zijn. Xcode vervangt het bij automatisch
+ondertekenen meestal zelf bij het archiveren, maar dat is niet nagetrokken. Blijft push stil op
+een TestFlight-build, dan eerst daar kijken.
+
+**Bewust ongemoeid.** Tokenopruiming — één gebruiker heeft 8 tokens voor vrijwel zeker één
+Android-toestel, dus elke push gaat 8× de deur uit. En zichtbaarheid: de trigger
+`notify_push_on_notification` gebruikt `net.http_post` zonder `timeout_milliseconds`, en er is
+geen `push_sent_at`. Een mislukte push blijft dus onzichtbaar. Beide horen bij elkaar in een
+volgende batch.
+
+---
+
 ## AUTH-APP-1 — geen wachtwoordvoorstel in de app, en een sessie die te makkelijk sneuvelde — 12 september 2026
 
 Akke meldde dat de app geen gebruikersnaam/wachtwoord voorstelt zoals de webversie, en vroeg

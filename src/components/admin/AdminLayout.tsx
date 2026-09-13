@@ -12,6 +12,7 @@ import { useGlobalNotificationListener } from '@/hooks/useGlobalNotificationList
 import { AIHelpWidget } from '@/components/admin/help/AIHelpWidget';
 import { PlatformViewModeProvider } from '@/hooks/usePlatformViewMode';
 import { AdminMobileBottomNav } from './AdminMobileBottomNav';
+import { PushTapListener } from './PushTapListener';
 import { SandboxBanner } from '@/components/SandboxBanner';
 import { PushPermissionBanner } from '@/components/PushPermissionBanner';
 import { useTenant } from '@/hooks/useTenant';
@@ -71,6 +72,9 @@ function AdminLayoutContent() {
       {isDashboard && <AIHelpWidget />}
       {/* Mobile bottom navigation */}
       <AdminMobileBottomNav />
+      {/* Aangetikte pushmelding → juiste scherm en juiste tenant. Hier en niet
+          in App.tsx, want de tenantwissel heeft TenantContext nodig. */}
+      <PushTapListener />
     </>
   );
 }

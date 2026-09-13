@@ -1524,6 +1524,14 @@
         "admin_bottom_nav_permissions": {
           "title": "The bottom bar respects your role",
           "description": "The mobile navigation bar showed everyone the same tabs, even when your role or your plan doesn't include that page. It now follows the same rules as the side menu: you only see what you can open. The inbox is also properly protected from roles that may not read customer messages."
+        },
+        "push_notifications_live": {
+          "title": "Push notifications on your phone",
+          "description": "In Settings → Store notifications, every notification type now has a third switch: push. Turn it on and you'll get, for example, new orders as a notification on your phone, even when the SellQo app is closed. Push is off by default for every type, so you choose what you want. Note: these settings apply to your whole team."
+        },
+        "push_notifications_multi_shop": {
+          "title": "Several stores, one phone",
+          "description": "If you manage more than one store with the same account, the store name now appears in front of the push notification. Tap a notification and the app opens the right screen straight away — switching to the right store first if you had a different one open."
         }
       },
       "copyLink": "Copy link",

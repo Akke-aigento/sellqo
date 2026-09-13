@@ -1524,6 +1524,14 @@
         "admin_bottom_nav_permissions": {
           "title": "De onderste balk houdt rekening met je rol",
           "description": "De navigatiebalk op mobiel toonde aan iedereen dezelfde tabbladen, ook als je rol of je abonnement die pagina niet bevat. Voortaan volgt hij dezelfde regels als het menu aan de zijkant: je ziet alleen wat je mag openen. Ook de inbox is nu afgeschermd voor rollen die geen klantberichten mogen inzien."
+        },
+        "push_notifications_live": {
+          "title": "Pushmeldingen op je telefoon",
+          "description": "In Instellingen → Winkel Notificaties heeft elke soort melding nu een derde schakelaar: push. Zet hem aan en je krijgt bijvoorbeeld nieuwe bestellingen als melding op je telefoon, ook als de SellQo-app dicht is. Push staat voor elke soort standaard uit, zodat je zelf kiest wat je wilt. Let op: deze instellingen gelden voor je hele team."
+        },
+        "push_notifications_multi_shop": {
+          "title": "Meerdere winkels, één telefoon",
+          "description": "Beheer je meer dan één winkel met hetzelfde account, dan staat de naam van de winkel voortaan vóór de pushmelding. Tik je een melding aan, dan opent de app meteen het juiste scherm — en wisselt hij eerst naar de juiste winkel als je een andere open had."
         }
       },
       "copyLink": "Kopieer link",
