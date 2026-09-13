@@ -55,7 +55,17 @@ export function AdminMobileBottomNav() {
           // pagina uit (M4). De items eronder krimpen mee in plaats van de pil
           // op te rekken.
           'flex items-center gap-1 rounded-full border px-2 py-1.5',
-          'max-w-[calc(100vw-2rem)]',
+          // w-max + max-w: de pil neemt de breedte van zijn volle labels en
+          // krimpt pas als het scherm te smal is. Dat werkt alleen samen met
+          // flex-auto op de items hieronder — zie daar.
+          //
+          // Gemeten op 375px (13 sep 2026): een pil van 261px met vier items van
+          // 58px, "Dashboard" en "Products" afgekapt, terwijl er 343px
+          // beschikbaar was. De meting van de dag ervoor had dat gemist omdat
+          // die de pil nabouwde in een wrapper op left:0 — een andere containing
+          // block dan het echte component, dat op left-1/2 naar zijn inhoud
+          // krimpt. Meet het component, niet een benadering ervan.
+          'w-max max-w-[calc(100vw-2rem)]',
           'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80',
           'shadow-sellqo-lg',
         )}
@@ -68,13 +78,15 @@ export function AdminMobileBottomNav() {
               to={tab.url}
               aria-current={isActive(tab.url) ? 'page' : undefined}
               className={cn(
-                // flex-1 + min-w-0: de items delen de beschikbare breedte en
-                // mogen krimpen, zodat `truncate` op het label kan aanslaan.
-                // Géén min-w-[44px] ernaast — dat spreekt min-w-0 tegen en de
-                // twee zouden om voorrang vechten. Het aanraakvlak blijft toch
-                // ruim: zelfs op 320px houdt elk van de vier items ~65px over,
-                // en min-h-[44px] borgt de hoogte.
-                'relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2',
+                // flex-auto (1 1 auto), niet flex-1 (1 1 0%). Met basis nul
+                // draagt een item niets bij aan de intrinsieke breedte van de
+                // pil, dus ook w-max zag een lege container en gaf elk item
+                // dezelfde 58px — "Dashboard" afgekapt met ruimte over. Basis
+                // auto meet het volle label; min-w-0 laat het item daarna alsnog
+                // krimpen zodra max-w de pil begrenst, en pas dán slaat truncate
+                // aan. Géén min-w-[44px] ernaast: dat spreekt min-w-0 tegen.
+                // min-h-[44px] borgt het aanraakvlak.
+                'relative flex flex-auto flex-col items-center justify-center gap-0.5 rounded-full px-2',
                 'text-[11px] min-w-0 min-h-[44px] transition-colors',
                 isActive(tab.url)
                   ? 'bg-primary/10 text-primary'
