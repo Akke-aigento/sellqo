@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,14 +6,6 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import type { NotificationCategory } from '@/types/notification';
 
-/**
- * `user_notification_preferences` staat pas in de gegenereerde types nadat de
- * migratie gedraaid is en de types opnieuw gegenereerd zijn. Tot dan is dit de
- * ene cast die de getypeerde client nodig heeft — hetzelfde vangnet als in
- * `useBrandDna.ts`. Na het regenereren kan `db` weer `supabase` worden.
- */
-const db = supabase as unknown as SupabaseClient;
-const TABLE = 'user_notification_preferences';
 
 export interface UserNotificationPreference {
   id: string;
@@ -53,8 +44,8 @@ export function useUserNotificationPreferences() {
     if (!userId || !tenantId) return;
     setIsLoading(true);
     try {
-      const { data, error } = await db
-        .from(TABLE)
+      const { data, error } = await supabase
+        .from('user_notification_preferences')
         .select('id, user_id, tenant_id, category, notification_type, push_enabled')
         .eq('user_id', userId)
         .eq('tenant_id', tenantId);
@@ -95,8 +86,8 @@ export function useUserNotificationPreferences() {
         notification_type: type,
         push_enabled: enabled,
       }));
-      const { data, error } = await db
-        .from(TABLE)
+      const { data, error } = await supabase
+        .from('user_notification_preferences')
         .upsert(rows, { onConflict: 'user_id,tenant_id,category,notification_type' })
         .select('id, user_id, tenant_id, category, notification_type, push_enabled');
       if (error) throw error;

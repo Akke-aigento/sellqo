@@ -1536,6 +1536,10 @@
         "push_per_user": {
           "title": "Push-Benachrichtigungen stellen Sie jetzt für sich selbst ein",
           "description": "Push-Benachrichtigungen gelten jetzt pro Person statt für den ganzen Shop. Sie finden sie unter Einstellungen → Meine Benachrichtigungen: Was Sie dort einschalten, kommt nur auf Ihrem Telefon an, und Ihre Teammitglieder wählen selbst, was sie erhalten möchten. Sie sehen nur die Benachrichtigungsarten, die zu Ihrer Rolle gehören. Hatten Sie Push bereits unter Shop-Benachrichtigungen eingeschaltet? Schalten Sie es unter Meine Benachrichtigungen erneut ein — der alte Schalter ist entfernt."
+        },
+        "notifications_follow_role": {
+          "title": "Benachrichtigungen berücksichtigen Ihre Rolle",
+          "description": "Bisher sah jedes Teammitglied alle Benachrichtigungen des Shops in der Glocke, auch zu Rechnungen und Zahlungen. Benachrichtigungen folgen jetzt denselben Rechten wie der Rest von SellQo: Mitarbeitende aus Lager oder Marketing sehen keine Benachrichtigungen mehr zu Rechnungen, Angeboten, Abonnements oder Zahlungen. Push-Benachrichtigungen auf Ihrem Telefon folgen derselben Regel, auch wenn Sie sie früher eingeschaltet hatten. Als Administrator ändert sich für Sie nichts."
         }
       },
       "copyLink": "Link kopieren",

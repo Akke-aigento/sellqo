@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { verifiedCustomerId } from "../_shared/checkoutCustomer.ts";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 
 const corsHeaders = {
@@ -347,13 +348,16 @@ serve(async (req) => {
         }
       : shipping_address;
 
+    // Alleen een klant van deze winkel met hetzelfde e-mailadres. Zie _shared/checkoutCustomer.ts.
+    const safeCustomerId = await verifiedCustomerId(supabaseClient, customer_id, tenant_id, customer_email);
+
     // Create order with pending payment status
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
         tenant_id,
         order_number: orderNumber,
-        customer_id,
+        customer_id: safeCustomerId,
         customer_email,
         customer_name: company_name || customer_name,
         customer_phone,

@@ -1536,6 +1536,10 @@
         "push_per_user": {
           "title": "Pushmeldingen stel je voortaan voor jezelf in",
           "description": "Pushmeldingen gelden nu per persoon in plaats van voor de hele winkel. Je vindt ze in Instellingen → Mijn meldingen: wat je daar aanzet, komt alleen op jouw telefoon binnen, en je teamleden kiezen zelf wat zij willen ontvangen. Je ziet alleen de soorten meldingen die bij je rol horen. Had je push al aangezet in Winkel Notificaties, zet het dan opnieuw aan in Mijn meldingen — de oude schakelaar is verdwenen."
+        },
+        "notifications_follow_role": {
+          "title": "Meldingen houden rekening met je rol",
+          "description": "Tot nu toe zag elk teamlid alle meldingen van de winkel in het belletje, ook over facturen en betalingen. Voortaan volgen meldingen dezelfde rechten als de rest van SellQo: een magazijn- of marketingmedewerker ziet geen meldingen over facturen, offertes, abonnementen of betalingen meer. Pushmeldingen op je telefoon volgen dezelfde regel, ook als je ze eerder had aangezet. Als beheerder merk je niets."
         }
       },
       "copyLink": "Kopieer link",

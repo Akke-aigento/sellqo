@@ -1,3 +1,100 @@
+## NOTIF-RLS-1 + CHECKOUT-CUST-1 — meldingen volgen je rol, checkout neemt geen vreemde klant over — 13 september 2026
+
+**Aanleiding.** Open bevinding uit PUSH-2 en twee backlogpunten over de checkoutfuncties.
+
+### Root cause
+
+*Meldingen.* `notifications_select_members` filterde alleen op lidmaatschap:
+`(tenant_id IN (SELECT get_user_tenant_ids(auth.uid()))) OR is_platform_admin(auth.uid())`.
+Elk teamlid zag elke melding van zijn winkel, ook `invoice_paid` en `chargeback_received` met
+bedragen in `data`, terwijl de tabel `invoices` zelf magazijn en marketing buitensluit
+(`has_tenant_role(..., ['tenant_admin','staff','accountant','viewer'])`). De meldingen die er
+live staan: 300 facturen, 218 bestellingen, 141 klanten, 59 team, 40 producten, 31
+abonnementen, 3 offertes, 2 betalingen, 2 systeem. Geen enkele met `user_id`. Getroffen: één
+marketinggebruiker; de overige gebruikers zijn `tenant_admin` of `platform_admin`.
+
+*Checkout.* `create-checkout-session` en `create-bank-transfer-order` zijn publiek en schreven
+`customer_id` uit de body ongecontroleerd op de bestelling. Een bekend klant-id liet een
+bestelling aan een andere klant hangen, ook over winkels heen. Live nagetrokken: 0 bestellingen
+met een klant van een andere winkel, 0 met een afwijkend e-mailadres. Geen aanroep van beide
+functies in deze repo; `storefront-api` doet zijn eigen checkout. Eén overschrijvingsbestelling
+ooit (VanXcel, 5 jun 2026).
+
+*Vals alarm: het IBAN.* `create-bank-transfer-order` geeft `tenant.iban` terug. Dat is het
+rekeningnummer van de winkel, dat de klant nodig heeft voor de overschrijving en de QR-code.
+Geen wijziging.
+
+### Uitgevoerd
+
+- `supabase/migrations/20260913160000_notifications_read_by_role.sql`
+  - `can_read_notification_category(_user_id, _tenant_id, _category)`: `SECURITY DEFINER`,
+    `STABLE`, read-rollen per categorie gelijk aan `PERMISSION_MATRIX` via
+    `NOTIFICATION_CATEGORY_RESOURCE`. `platform_admin` altijd; onbekende categorie: niemand.
+  - `notifications_select_members` vervangen door `notifications_select_by_role`:
+    platform-admin, of `user_id = auth.uid()`, of `can_read_notification_category(...)`.
+    Lidmaatschap zit in die functie (`ur.tenant_id = _tenant_id`); `get_user_tenant_ids` leest
+    ook alleen `user_roles`, nagetrokken.
+  - De drie testmeldingen van de pushtest verwijderd (vaste id's, Demo Bakkerij, `data.test`).
+- `send-push-notification`: na de lidmaatschapscheck per ontvanger
+  `rpc('can_read_notification_category')`. Fout bij de rpc → geen push voor die gebruiker.
+- `supabase/functions/_shared/checkoutCustomer.ts` (nieuw) en beide checkoutfuncties:
+  `customer_id` telt alleen als de klant bij `tenant_id` hoort en hetzelfde e-mailadres heeft
+  (hoofdletterongevoelig). Anders `null` en een waarschuwing in de log; de bestelling gaat door.
+- `useUserNotificationPreferences`: `db`-cast weg, de types staan er sinds `a214d8ea`.
+- `src/test/notificationReadRoles.test.ts`: leest de migratie en vergelijkt de rollen per
+  categorie met `canWithRoles`. Nagetrokken dat hij faalt: met `warehouse` erbij in `invoices`
+  werd precies die test rood.
+
+### Security-keuzes
+
+- **Wie de functie mag aanroepen.** `REVOKE` voor `PUBLIC` en `anon`, `EXECUTE` voor
+  `authenticated` en `service_role`. Binnen de functie `auth.uid() IS NULL OR _user_id =
+  auth.uid()`: een ingelogde gebruiker kan alleen zichzelf toetsen en geen rollen van anderen
+  aftasten. De service-role heeft geen `sub`, dus `auth.uid()` is `NULL` en mag elke gebruiker
+  toetsen — dat is de pushfunctie.
+- **Eén bron in SQL.** De matrix staat nu op drie plekken (useCan, de RLS-arrays per tabel, en
+  deze functie), maar de laatste wordt door een test tegen de eerste bewaakt. De pushfunctie
+  heeft geen eigen kopie.
+- **Realtime.** `notifications` zit in `supabase_realtime`; postgres_changes past RLS toe, dus
+  het belletje krijgt ook live geen meldingen buiten je rol.
+- **Ongewijzigd:** insert, update en delete op `notifications`.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad uit de eerste wet (`storefront-api`, `storefront-customer-api`,
+`storefront-resolve`, gedeelde tabellen). De checkoutfuncties kunnen door een custom frontend
+aangeroepen worden; steekproef Loveke: rekent af via de eigen checkoutcontext. Een geldige
+aanroep (klant van die winkel, hetzelfde e-mailadres) werkt ongewijzigd; alleen een niet-passend
+id valt weg, en de bestelling slaagt dan nog steeds.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs` | volledige pariteit |
+| `vitest` notificationReadRoles + notificationResources | 18/18; de pariteitstest faalt aantoonbaar bij een afwijkende rol |
+| esbuild-syntax van de drie edge functions | ok (geen Deno lokaal) |
+| Nieuwe regel nagerekend op live data, vóór de migratie (read-only, afbeelding inline in een SELECT) | marketing bij VanXcel: 547 → 259 zichtbare meldingen. Elke `tenant_admin` in elke winkel: ongewijzigd (o.a. VanXcel 1094 → 1094, Mancini Milano 144 → 144). |
+
+Na de migratie nog na te trekken: de functie en policy staan zoals in het bestand; `SET ROLE
+authenticated` met de claims van de marketinggebruiker telt 259; een ingelogde gebruiker die
+`can_read_notification_category` voor een ander aanroept krijgt `false`; een testmelding in
+`invoices` geeft `sent` voor de platform-admin.
+
+### Bewust ongemoeid / Vervolg
+
+- **Gelezen-status.** `notifications_update_self_or_staff` staat een update alleen toe voor
+  `user_id = auth.uid()` of tenant_admin/staff. Alle live meldingen hebben `user_id NULL`, dus
+  marketing, magazijn, boekhouder en kijker kunnen een melding niet als gelezen markeren. En
+  `read_at` is één kolom per melding: wie hem leest, markeert hem voor iedereen. Dat is een
+  ontwerpvraag (gelezen per gebruiker), geen snelle fix.
+- Geen unit-test voor `customerMatchesOrder`: een vergelijking van tenant en e-mailadres, en
+  het bestand leeft in de Deno-functies.
+- Backlog ongewijzigd: dubbele toestel-tokens, cron-timeouts, auth-triage batch 3, npm-audit.
+
 ## PUSH-2 — push per gebruiker in plaats van per winkel — 13 september 2026
 
 **Aanleiding.** Akke, na PUSH-1: *"is dit dan niet op gebruikersniveau? Dit is toch meer
@@ -123,6 +220,24 @@ is herschreven tot één item, in plaats van er een tweede naast te zetten.
 
 **Vervolg.** RLS op `notifications` per rol/categorie (zie open bevinding). Types regenereren
 na de migratie, waarna de `db`-cast in `useUserNotificationPreferences` weg kan.
+
+**Na uitrol (13 sep 2026, live nagetrokken).**
+
+- Lovable draaide beide migraties letterlijk (in de chatgeschiedenis byte-voor-byte de
+  bestanden); tabel, unieke index, lookup-index, vier policies, RLS aan en de trigger staan
+  zoals in het bestand. Helpartikelen: iOS-pad juist, "hele team" weg.
+- Akke zette als platform-admin push aan voor alle types van Demo Bakkerij: de insert-policy
+  laat de platform-admin toe, en de upsert werkte.
+- Testmelding via `send_notification` (geen bestelling, dus geen factuur via
+  `auto-invoice-cron`): `sent: 2, failed: 1, cleaned: 1`. De mislukte was een Android-token
+  van 20 aug dat FCM niet meer kende; de functie ruimde het zelf op. Aangekomen op de iPhone,
+  met winkelnaam, en aantikken opende #1003.
+- **Geen geluid.** Het FCM-bericht had geen `apns.payload.aps.sound`; iOS speelt dan niets af.
+  Toegevoegd in `0a455411` (ook `android.notification.sound`). Eerste hertest bleef stil:
+  **publiceren deployt geen edge function** — in Lovable stond de laatste deploy vóór de
+  commit. Na een expliciete deploy (14:10 UTC) kwam de melding met geluid binnen.
+- De afwijking "geen rolfilter op de server" is gedicht in NOTIF-RLS-1 hieronder; de
+  `db`-cast is daar ook verwijderd.
 
 ## PUSH-1 — pushmeldingen werkten nooit, en het helpartikel beweerde van wel — 13 september 2026
 

@@ -154,11 +154,10 @@ serve(async (req: Request): Promise<Response> => {
     //    abonneren (keuze van Akke). Een platform-admin heeft tenant_id NULL en
     //    viel in de oude opzet daardoor altijd buiten de ontvangers.
     //
-    //    Bewust geen rolfilter per categorie. De rechtenmatrix staat in
-    //    src/hooks/useCan.ts en is hier niet te importeren, en de RLS op
-    //    `notifications` laat elk teamlid toch al elke melding van zijn winkel
-    //    lezen. Het scherm Mijn meldingen toont alleen categorieën die bij je
-    //    rol horen. Zie docs/role-audit.md, PUSH-2.
+    //    Daarna de rol: push volgt dezelfde regel als het belletje, via de
+    //    SQL-functie can_read_notification_category (NOTIF-RLS-1). Zo krijgt
+    //    wie van rol wisselde geen push meer voor wat hij niet meer mag zien,
+    //    ook als zijn voorkeur nog aan staat.
     const { data: candidateRoles, error: rolesErr } = await supabase
       .from("user_roles")
       .select("user_id, tenant_id, role")
@@ -172,11 +171,27 @@ serve(async (req: Request): Promise<Response> => {
       rolesPerUser.set(r.user_id, list);
     }
 
-    const targetUsers = candidates.filter((id) =>
+    const members = candidates.filter((id) =>
       (rolesPerUser.get(id) ?? []).some((r) =>
         r.tenant_id === payload.tenant_id || r.role === "platform_admin"
       )
     );
+
+    const targetUsers: string[] = [];
+    for (const userId of members) {
+      const { data: allowed, error: canErr } = await supabase.rpc("can_read_notification_category", {
+        _user_id: userId,
+        _tenant_id: payload.tenant_id,
+        _category: payload.category,
+      });
+      // Bij twijfel geen push: een gemiste melding staat nog in het belletje,
+      // een onterechte staat op iemands vergrendelscherm.
+      if (canErr) {
+        console.error("can_read_notification_category failed:", canErr.message);
+        continue;
+      }
+      if (allowed === true) targetUsers.push(userId);
+    }
 
     if (targetUsers.length === 0) {
       return json({ skipped: true, reason: "no_target_users" });

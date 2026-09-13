@@ -4,6 +4,27 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.10z — Meldingen houden rekening met je rol (security, 13-09-2026)
+
+**Voor wie:** winkels met teamleden in een andere rol dan beheerder (magazijn,
+marketing, boekhouder, medewerker, kijker). Als beheerder verandert er niets.
+
+**Wat er veranderde.** Tot nu toe zag elk teamlid alle meldingen van de winkel in het
+belletje, ook over facturen en betalingen — terwijl diezelfde persoon de facturen zelf
+niet mocht openen. Voortaan volgen meldingen dezelfde rechten als de rest van SellQo. Een
+magazijn- of marketingmedewerker ziet geen meldingen meer over facturen, offertes,
+abonnementen of betalingen.
+
+**Ook voor push.** Pushmeldingen op de telefoon volgen dezelfde regel. Wie van rol
+veranderde, krijgt geen push meer voor wat hij niet meer mag zien, ook als hij die eerder
+had aangezet.
+
+**Moet je iets doen?** Nee.
+
+**i18n-key.** `public.changelog.changes.notifications_follow_role` — vijf talen, volledige
+pariteit.
+
+
 ### 2026.10x + 2026.10y — Pushmeldingen op je telefoon (feature, 13-09-2026)
 
 > Bijgewerkt voor PUSH-2 (13-09-2026), nog vóór verzending. De eerste versie beschreef

@@ -1536,6 +1536,10 @@
         "push_per_user": {
           "title": "You now set up push notifications for yourself",
           "description": "Push notifications now apply per person instead of to the whole store. You'll find them under Settings → My notifications: what you turn on there only arrives on your phone, and your team members choose for themselves what they want to receive. You only see the notification types that belong to your role. Had you already turned push on in Store notifications? Turn it on again in My notifications — the old switch is gone."
+        },
+        "notifications_follow_role": {
+          "title": "Notifications respect your role",
+          "description": "Until now, every team member saw all of the store's notifications in the bell, including those about invoices and payments. Notifications now follow the same permissions as the rest of SellQo: a warehouse or marketing team member no longer sees notifications about invoices, quotes, subscriptions or payments. Push notifications on your phone follow the same rule, even if you had turned them on earlier. As an administrator, nothing changes for you."
         }
       },
       "copyLink": "Copy link",
