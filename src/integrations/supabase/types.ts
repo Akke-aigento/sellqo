@@ -20060,6 +20060,10 @@ export type Database = {
         Args: { _owner_email: string; _user_id: string }
         Returns: boolean
       }
+      can_read_notification_category: {
+        Args: { _category: string; _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_scan: {
         Args: {
           p_direction: string
