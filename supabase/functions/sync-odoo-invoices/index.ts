@@ -4,6 +4,7 @@
 // - Per-tenant try/catch: one tenant's failure never breaks the whole run.
 // - Pushes issued invoices + credit notes; account.move.name = Sellqo number.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
 import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'
 
@@ -666,6 +667,10 @@ Deno.serve(async (req) => {
     const { tenantId, invoiceIds, creditNoteIds } = body as { tenantId?: string; invoiceIds?: string[]; creditNoteIds?: string[] }
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+    // CRON-AUTH-1: alleen de cron of een andere functie. Zie _shared/marketplaceSyncAuth.ts.
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     // Resolve target tenants: sync-enabled + have credentials.
     let tenantIds: string[]

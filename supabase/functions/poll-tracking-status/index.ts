@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?bundle";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -405,6 +406,10 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // CRON-AUTH-1: alleen de cron of een andere functie. Zie _shared/marketplaceSyncAuth.ts.
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     const { data: settings, error: settingsError } = await supabase
       .from("tenant_tracking_settings")

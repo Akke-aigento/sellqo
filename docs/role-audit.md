@@ -1,3 +1,96 @@
+## CRON-AUTH-1 — zestien cron- en syncfuncties stonden open, en elf cron-jobs verloren hun antwoord — 13 september 2026
+
+**Aanleiding.** Backlogpunt "10 cron-jobs zonder timeout". De verkenning vond een groter gat.
+
+### Root cause
+
+*Auth.* Zestien functies, allemaal `verify_jwt = false`, zonder één controle in de code:
+`auto-invoice-cron`, `expire-orders`, `sync-odoo-invoices`, `poll-tracking-status`,
+`marketplace-sync-scheduler`, `update-bol-tracking` en de tien
+`sync-{bol,shopify,woocommerce,amazon,ebay}-{orders,inventory}`. Iedereen met de URL kon
+bol.com-aanroepen op het account van een winkel laten lopen, voorraad naar een marketplace
+duwen, de facturatierun of het laten verlopen van onbetaalde bestellingen starten.
+
+Zeven cron-jobs (1, 2, 4, 5, 6, 8, 70) stuurden daarbij de anon-JWT letterlijk in
+`cron.job.command` (payload gedecodeerd: `role=anon`, verloopt 2036). Die sleutel is publiek;
+het werkte alleen omdat de functies niets controleerden. `marketplace-sync-scheduler` riep de
+syncfuncties ook aan met de anon-sleutel.
+
+*Timeout.* `net.http_post` heeft `timeout_milliseconds DEFAULT 5000`. In `net._http_response`
+(laatste 3 uur): `update-bol-tracking` elke run, `marketplace-sync-scheduler` ongeveer de helft,
+`sync-bol-inventory` elke run "Timeout of 5000 ms reached". Het werk kwam wél klaar —
+`inventory_sync_log` laatste `synced_at` 14:40:12, 336 regels in 3 uur, `last_sync_at` van de
+bol-connectie 14:40:12 — dus het verlies was het antwoord en elke foutmelding, niet het werk.
+
+### Uitgevoerd
+
+- `_shared/marketplaceSyncAuth.ts` (nieuw)
+  - `denyUnlessCron(req, admin, cors)`: 401 tenzij `isAuthorizedCronRequest` (cron-secret of
+    service-key).
+  - `authorizeMarketplaceSync(req, admin, connectionId, cors)`: cron/service-key, of een
+    ingelogde gebruiker. Resolve-then-authorize: eerst `marketplace_connections.tenant_id`, dan
+    `authenticateRequest(req, tenant_id)` + `requireRole(['tenant_admin','viewer'])` — de
+    read-rollen van `integrations`, gelijk aan de RouteGuard van `/admin/connect` (keuze van
+    Akke). Zonder `connectionId` ("alle connecties") alleen cron. Onbekende connectie en geen
+    toegang geven hetzelfde antwoord.
+- Zes functies alleen-cron: `auto-invoice-cron`, `expire-orders`, `sync-odoo-invoices`,
+  `poll-tracking-status`, `marketplace-sync-scheduler`, `update-bol-tracking`.
+- Tien syncfuncties: `authorizeMarketplaceSync` direct na het lezen van `connectionId`, vóór
+  enige marketplace-aanroep.
+- `marketplace-sync-scheduler` stuurt de service-key door in plaats van de anon-sleutel.
+  `trigger-manual-sync` en `poll-tracking-status` → `update-bol-tracking` gebruikten die al.
+- `20260913170000_cron_secret_and_timeouts.sql`: elf jobs via `cron.alter_job` opnieuw
+  opgebouwd. De zeven anon-jobs krijgen `x-cron-secret` (bij elke run opgezocht, niet als tekst);
+  de vier vault-jobs houden de service-key uit de vault. Alle elf `timeout_milliseconds :=
+  120000`. Bodies en schema's ongewijzigd; `check-expired-trials` krijgt de
+  `Lovable-Context`-header die de andere drie vault-jobs al hadden.
+
+### Legitieme aanroepers, nagetrokken
+
+| Aanroeper | Naar | Na CRON-AUTH-1 |
+|---|---|---|
+| cron (11 jobs) | zie hierboven | secret of vault-service-key |
+| `marketplace-sync-scheduler` | sync-*-orders/inventory | service-key |
+| `trigger-manual-sync` | sync-* | service-key (al zo) |
+| `poll-tracking-status` | `update-bol-tracking` | `functions.invoke` met service-client (al zo) |
+| `MarketplaceDetail`, `useAutoSync` (alleen daar gebruikt), `ConnectMarketplaceDialog` | sync-* met `connectionId` | JWT van de gebruiker; pagina vereist `integrations` read |
+| Databasefuncties (`pg_proc.prosrc`) | geen van de zestien | — |
+
+### Security-keuzes
+
+- Eén auth-pad voor cron, geen nieuwe: `cronAuth.ts` bestond al (11 sep) en weigert de
+  anon-sleutel bewust.
+- De gebruikersgate is `integrations` read, niet write, omdat de syncknop voor de kijker
+  zichtbaar is. Strenger kan later, met de knop erbij verborgen.
+- Geen changelog of nieuwsbrief: niets veranderde aan wat een winkel ziet of kan.
+
+### Gedeelde-paden-waarschuwing
+
+Geen pad uit de eerste wet. Marketplace-sync is admin- en cronwerk; custom frontends gaan via
+`storefront-api`. De zes frontendprojecten zijn hier niet per bestand op deze functienamen
+nagelezen.
+
+### Verificatie (vóór uitrol)
+
+| Onderdeel | Uitkomst |
+|---|---|
+| esbuild-syntax, 16 functies | ok |
+| `node scripts/verify-lint-baseline.mjs` | 1519, gelijk aan de baseline |
+| Droge run van de migratie: `format()` in een SELECT, zonder `alter_job` | geldige commando's, job-id's gevonden (4, 70, 118 steekproef) |
+| `EXPLAIN` op een gegenereerd commando | plant, secret-lookup via `internal_config_pkey` |
+| `pg_proc` op aanroepen van de zestien | geen |
+
+Na uitrol na te trekken: geen `eyJ` meer in `cron.job.command`, alle elf met
+`timeout_milliseconds`; volgende cronronde in `net._http_response` 200 met inhoud in plaats van
+timeouts; `inventory_sync_log` en `last_sync_at` lopen door.
+
+### Bewust ongemoeid / Vervolg
+
+- `import-bol-shipments`, `create-bol-vvb-label` en de overige functies van de auth-triage.
+- De vier vault-functies zelf zijn niet op auth nagelezen, alleen hun job.
+- 401-test zonder sleutel op de bol-functies: alleen met expliciete toestemming (bol.com is
+  gevoelig), nog niet gedaan.
+
 ## NOTIF-RLS-1 + CHECKOUT-CUST-1 — meldingen volgen je rol, checkout neemt geen vreemde klant over — 13 september 2026
 
 **Aanleiding.** Open bevinding uit PUSH-2 en twee backlogpunten over de checkoutfuncties.
@@ -79,10 +172,24 @@ id valt weg, en de bestelling slaagt dan nog steeds.
 | esbuild-syntax van de drie edge functions | ok (geen Deno lokaal) |
 | Nieuwe regel nagerekend op live data, vóór de migratie (read-only, afbeelding inline in een SELECT) | marketing bij VanXcel: 547 → 259 zichtbare meldingen. Elke `tenant_admin` in elke winkel: ongewijzigd (o.a. VanXcel 1094 → 1094, Mancini Milano 144 → 144). |
 
-Na de migratie nog na te trekken: de functie en policy staan zoals in het bestand; `SET ROLE
-authenticated` met de claims van de marketinggebruiker telt 259; een ingelogde gebruiker die
-`can_read_notification_category` voor een ander aanroept krijgt `false`; een testmelding in
-`invoices` geeft `sent` voor de platform-admin.
+**Na uitrol (13 sep 2026, 14:38 UTC migratie + deploy van de drie functies).** Lovable voerde
+de migratie byte-voor-byte uit (zichtbaar in de chatgeschiedenis) en deployde daarna.
+
+| Natrek | Uitkomst |
+|---|---|
+| Functie | `SECURITY DEFINER`, `STABLE`; `invoices` → `tenant_admin, accountant, staff, viewer` |
+| EXECUTE | `authenticated`, `service_role` (en de beheerrollen); geen `anon`, geen `PUBLIC` |
+| Leesregel | alleen `notifications_select_by_role` zoals in het bestand |
+| Testmeldingen | 0 over |
+| Marketinggebruiker, `SET LOCAL ROLE authenticated` + claims, rollback | 259 zichtbaar; 0 uit invoices/payments/quotes/subscriptions/team/system/integrations |
+| Zelfde gebruiker roept de functie aan voor een ander | `false` |
+| Zelfde gebruiker voor zichzelf | facturen `false`, bestellingen `true` |
+| tenant_admin VanXcel, zelfde methode | 547 van 547 |
+| Testmelding `invoices/invoice_paid` op Demo Bakkerij | `send-push-notification` 200, `sent: 2` — de rpc werkt vanuit de service-role; bij een fout was het `no_target_users` geweest |
+
+Lovable's securitylinter meldt één nieuwe WARN: een `SECURITY DEFINER`-functie met EXECUTE voor
+`authenticated`. Bewust: de functie beperkt een ingelogde gebruiker tot zichzelf, hierboven
+aangetoond.
 
 ### Bewust ongemoeid / Vervolg
 

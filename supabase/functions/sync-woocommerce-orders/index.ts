@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeMarketplaceSync } from '../_shared/marketplaceSyncAuth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +50,11 @@ Deno.serve(async (req) => {
 
   try {
     const { connectionId, sinceDate } = await req.json()
+
+    // CRON-AUTH-1: cron/service-key, of een gebruiker van deze winkel met leesrecht
+    // op integraties. Zie _shared/marketplaceSyncAuth.ts.
+    const denied = await authorizeMarketplaceSync(req, supabase, connectionId, corsHeaders)
+    if (denied) return denied
 
     if (!connectionId) {
       throw new Error('connectionId is required')

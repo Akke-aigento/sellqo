@@ -12,6 +12,11 @@ nergens in versiebeheer. Verdwijnt een job, dan merkt niemand het.
 > bol.com-advertentieautomatisering ligt stil sinds **6 mei 2026** — vier maanden. Zie §3
 > voor de oorzaken en §4 voor waarom niemand het zag.
 
+> **Bijgewerkt 13 september 2026 (CRON-AUTH-1).** De kolom "Auth" hieronder is historisch.
+> Jobs 1, 2, 4, 5, 6, 8 en 70 sturen nu `x-cron-secret`; 47, 61, 114 en 118 de service-key uit
+> de vault; alle elf hebben `timeout_milliseconds := 120000`. De doelfuncties weigeren de
+> anon-sleutel. Zie `docs/role-audit.md`, CRON-AUTH-1.
+
 ---
 
 ## 1. De 16 actieve cron-jobs

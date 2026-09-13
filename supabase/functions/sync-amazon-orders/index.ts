@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { authorizeMarketplaceSync } from "../_shared/marketplaceSyncAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -68,6 +69,11 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { connectionId, sinceDate }: SyncRequest = await req.json();
+
+    // CRON-AUTH-1: cron/service-key, of een gebruiker van deze winkel met leesrecht
+    // op integraties. Zie _shared/marketplaceSyncAuth.ts.
+    const denied = await authorizeMarketplaceSync(req, supabase, connectionId, corsHeaders);
+    if (denied) return denied;
 
     console.log('Syncing Amazon orders for connection:', connectionId);
 

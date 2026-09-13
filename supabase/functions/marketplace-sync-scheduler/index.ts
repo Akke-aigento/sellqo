@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,9 +38,12 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // CRON-AUTH-1: alleen de cron of een andere functie. Zie _shared/marketplaceSyncAuth.ts.
+    const denied = await denyUnlessCron(req, supabase, corsHeaders);
+    if (denied) return denied;
 
     console.log("[marketplace-sync-scheduler] Starting scheduled sync check...");
 
@@ -125,7 +129,9 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseAnonKey}`,
+            // Service-key, niet de anon-sleutel: de sync-functies weigeren die sinds
+            // CRON-AUTH-1 (de anon-sleutel is publiek en dus geen bewijs van iets).
+            "Authorization": `Bearer ${supabaseServiceKey}`,
           },
           body: JSON.stringify({ connectionId: conn.id }),
         });
@@ -149,7 +155,7 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${supabaseAnonKey}`,
+              "Authorization": `Bearer ${supabaseServiceKey}`,
             },
             body: JSON.stringify({ connectionId: conn.id }),
           });
