@@ -167,16 +167,22 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create notification
-    await supabase.from("notifications").insert({
+    // CONTACT-NOTIFY-1: één type voor beide contactpaden (ook storefront-api), dat in
+    // NOTIFICATION_CONFIG staat — anders was het niet in te stellen en nooit te pushen.
+    const { error: notificationError } = await supabase.from("notifications").insert({
       tenant_id: tenant.id,
       category: "messages",
-      type: "contact_form",
+      type: "contact_form_inbound",
       title: "Nieuw contactformulier bericht",
       message: `${name}: "${subject.substring(0, 80)}"`,
       priority: "medium",
       action_url: "/admin/messages",
       data: { message_id: msg.id, from: email, sender_name: name },
     });
+    if (notificationError) {
+      // Het bericht staat al in de inbox; niet laten falen, wel luid loggen.
+      console.error("Contact message stored but notification failed:", notificationError.message);
+    }
 
     // Forward email if enabled
     const resendApiKey = Deno.env.get("RESEND_API_KEY");

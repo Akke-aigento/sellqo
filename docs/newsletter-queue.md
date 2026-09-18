@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11c — Een melding bij elk contactbericht uit je webshop (improvement, 18-09-2026)
+
+**Voor wie:** winkels met een contactformulier in hun webshop.
+
+**Je mist geen contactbericht meer.** Vult een bezoeker het contactformulier in, dan krijg je
+een melding onder het belletje, net als bij een inkomende e-mail. Het bericht zelf staat in je
+inbox.
+
+**Ook op je telefoon.** Zet "Contactformulier" aan onder Instellingen → Mijn meldingen, dan
+krijg je er een pushmelding van in de SellQo-app.
+
+**i18n-key.** `public.changelog.changes.contact_form_notification` — vijf talen, volledige pariteit.
+
+
 ### 2026.11b — Antwoorden van klanten komen in je SellQo-inbox (feature, 18-09-2026)
 
 **Voor wie:** elke winkel die mails naar klanten stuurt.

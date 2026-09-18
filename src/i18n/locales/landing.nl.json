@@ -1548,6 +1548,10 @@
         "customer_replies_inbox": {
           "title": "Antwoorden van klanten komen in je SellQo-inbox",
           "description": "Mails van je winkel aan klanten komen voortaan van je eigen SellQo-adres: jouwwinkel@mail.sellqo.app. Antwoordt een klant, dan komt dat antwoord rechtstreeks in je SellQo-inbox, met een melding erbij. Liever op je eigen e-mailadres? Kies dat onder Instellingen → Email Inbox bij Klantcontact-e-mail."
+        },
+        "contact_form_notification": {
+          "title": "Een melding bij elk contactbericht uit je webshop",
+          "description": "Vult een bezoeker het contactformulier van je webshop in, dan krijg je voortaan een melding onder het belletje, net als bij een inkomende e-mail. Het bericht zelf staat in je inbox. Wil je er ook een pushmelding op je telefoon van? Zet \"Contactformulier\" aan onder Instellingen → Mijn meldingen."
         }
       },
       "copyLink": "Kopieer link",

@@ -4030,6 +4030,30 @@ async function submitContactForm(supabase: any, tenantId: string, params: Record
     return { success: false, error: 'Could not submit contact form' };
   }
 
+  // CONTACT-NOTIFY-1: melding voor de winkel, zoals bij inbound e-mail
+  // (handle-inbound-email). Zonder melding zag niemand het bericht, en was er geen
+  // push. Een mislukte melding laat het contactbericht niet falen: het staat al in
+  // de inbox. Response ongewijzigd (eerste wet).
+  const { error: notificationError } = await supabase.from('notifications').insert({
+    tenant_id: tenantId,
+    category: 'messages',
+    type: 'contact_form_inbound',
+    title: 'Nieuw contactformulier bericht',
+    message: `${name}: "${subject.slice(0, 80)}${subject.length > 80 ? '...' : ''}"`,
+    priority: 'medium',
+    action_url: '/admin/messages',
+    data: {
+      message_id: inserted.id,
+      from: email,
+      sender_name: name,
+      order_number: orderNumber || null,
+      source: 'submit_contact_form',
+    },
+  });
+  if (notificationError) {
+    console.error('[submit_contact_form] notification failed:', notificationError.message);
+  }
+
   return { success: true, message_id: inserted.id };
 }
 

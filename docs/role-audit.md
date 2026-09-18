@@ -1,3 +1,63 @@
+## CONTACT-NOTIFY-1 — melding bij een contactbericht uit de webshop — 18 september 2026
+
+2026-09-18 CONTACT-NOTIFY-1: contactberichten van custom frontends (submit_contact_form) maakten
+geen melding; nu category messages, zoals inbound e-mail.
+
+### Root cause
+
+- `storefront-api` `submitContactForm` sloeg (sinds MSG-STATUS-FIX) alleen een
+  `customer_messages`-rij op. Geen melding, dus ook geen push. Live 18-09: rij voor VanXcel,
+  0 meldingen.
+- `storefront-contact-form` maakte wél een melding, maar met `type: "contact_form"`, een type dat
+  niet in `NOTIFICATION_CONFIG` stond. Niet in te stellen in Winkel Notificaties en niet aan te
+  zetten in Mijn meldingen — en `send-push-notification` pusht alleen types waarvoor iemand een
+  voorkeur heeft. Die insert las bovendien zijn `error` niet.
+
+### Uitgevoerd
+
+- `storefront-api` `submitContactForm`: na de geslaagde insert een `notifications`-rij —
+  `category 'messages'`, `type 'contact_form_inbound'`, titel "Nieuw contactformulier bericht",
+  `${naam}: "${onderwerp}"`, `action_url '/admin/messages'`, `data` met `message_id`, afzender,
+  naam, ordernummer en `source`. Fout → gelogd; de response blijft `{ success: true, message_id }`.
+- `storefront-contact-form`: type → `contact_form_inbound` (één type voor beide paden; live 0
+  meldingen in `messages`, dus niets verandert voor bestaande data) en de fout wordt gelogd.
+- `NOTIFICATION_CONFIG` (`src/types/notification.ts`): `contact_form_inbound` ("Contactformulier")
+  in `messages`, standaard in-app aan, e-mail uit, push uit tot de gebruiker hem aanzet.
+- Titels hardcoded NL, zoals `handle-inbound-email` en de rest van `NOTIFICATION_CONFIG`.
+- Changelog `2026.11c` in vijf talen, nieuwsbriefitem.
+
+### Security-keuzes
+
+Leesrechten via NOTIF-RLS-1: `messages` → `inbox` (tenant_admin, staff, viewer, marketing).
+Geen nieuwe rechten.
+
+### Gedeelde-paden-waarschuwing
+
+Eerste wet: `storefront-api` alleen intern uitgebreid ná de insert; request en response
+ongewijzigd.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `deno check` `storefront-api`, `storefront-contact-form`, HEAD vs nieuw | 0 nieuwe fouten (0 en 0) |
+| `npm run check:messages`, `npm run check:mail` | groen |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1507, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs` | exit 0 |
+| vitest `notificationResources` + `notificationReadRoles` | 18/18 (categorie `messages` blijft gemapt) |
+
+Redeploy: `storefront-api`, `storefront-contact-form`; publiceren voor `NOTIFICATION_CONFIG` en de
+changelog.
+
+### Bewust ongemoeid / Vervolg
+
+- Inbox leest geen URL-parameter: `action_url` kan niet naar één gesprek. `CustomerDetail` linkt al
+  naar `/admin/messages?conversation=…`, een dode link.
+- `storefront-api` schrijft `channel: 'web'`; of de inbox dat kanaal netjes toont, is niet getoetst.
+- Meertalige meldingstitels: aparte batch.
+
 ## MSG-STATUS-FIX — customer_messages.status bestond sinds 30 januari niet meer — 18 september 2026
 
 2026-09-18 MSG-STATUS-FIX. Migratie 20260130103145 hernoemde customer_messages.status →

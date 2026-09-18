@@ -1548,6 +1548,10 @@
         "customer_replies_inbox": {
           "title": "Les réponses des clients arrivent dans votre boîte SellQo",
           "description": "Les e-mails de votre boutique aux clients viennent désormais de votre propre adresse SellQo : votreboutique@mail.sellqo.app. Quand un client répond, la réponse arrive directement dans votre boîte de réception SellQo, avec une notification. Vous préférez votre propre adresse e-mail ? Choisissez-la dans Paramètres → Boîte de réception e-mail, sous E-mail de contact client."
+        },
+        "contact_form_notification": {
+          "title": "Une notification pour chaque message de contact de votre boutique",
+          "description": "Lorsqu'un visiteur remplit le formulaire de contact de votre boutique, vous recevez désormais une notification sous la cloche, comme pour un e-mail entrant. Le message lui-même se trouve dans votre boîte de réception. Vous voulez aussi une notification push sur votre téléphone ? Activez « Contactformulier » dans Paramètres → Mes notifications."
         }
       },
       "copyLink": "Copier le lien",

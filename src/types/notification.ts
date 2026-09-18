@@ -226,6 +226,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'facebook_inbound', label: 'Facebook bericht', description: 'Wanneer een Facebook bericht binnenkomt', defaultInApp: true, defaultEmail: false },
       { type: 'instagram_inbound', label: 'Instagram DM', description: 'Wanneer een Instagram DM binnenkomt', defaultInApp: true, defaultEmail: false },
       { type: 'bol_inbound', label: 'Bol.com vraag', description: 'Wanneer een vraag via Bol.com binnenkomt', defaultInApp: true, defaultEmail: false },
+      // CONTACT-NOTIFY-1: storefront-api (submit_contact_form) en storefront-contact-form.
+      { type: 'contact_form_inbound', label: 'Contactformulier', description: 'Wanneer een bezoeker het contactformulier van je webshop invult', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

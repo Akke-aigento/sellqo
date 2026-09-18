@@ -1548,6 +1548,10 @@
         "customer_replies_inbox": {
           "title": "Antworten von Kunden landen in Ihrem SellQo-Posteingang",
           "description": "E-Mails Ihres Shops an Kunden kommen jetzt von Ihrer eigenen SellQo-Adresse: ihrshop@mail.sellqo.app. Antwortet ein Kunde, landet die Antwort direkt in Ihrem SellQo-Posteingang, mit einer Benachrichtigung. Lieber Ihre eigene E-Mail-Adresse? Wählen Sie sie unter Einstellungen → E-Mail-Posteingang bei Kundenkontakt-E-Mail."
+        },
+        "contact_form_notification": {
+          "title": "Eine Benachrichtigung für jede Kontaktnachricht aus Ihrem Shop",
+          "description": "Füllt ein Besucher das Kontaktformular Ihres Shops aus, erhalten Sie jetzt eine Benachrichtigung unter der Glocke, genau wie bei einer eingehenden E-Mail. Die Nachricht selbst steht in Ihrem Posteingang. Möchten Sie auch eine Push-Benachrichtigung auf Ihrem Telefon? Schalten Sie „Contactformulier“ unter Einstellungen → Meine Benachrichtigungen ein."
         }
       },
       "copyLink": "Link kopieren",

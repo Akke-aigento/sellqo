@@ -1548,6 +1548,10 @@
         "customer_replies_inbox": {
           "title": "Customer replies arrive in your SellQo inbox",
           "description": "Emails from your store to customers now come from your own SellQo address: yourstore@mail.sellqo.app. When a customer replies, the reply arrives straight in your SellQo inbox, with a notification. Prefer your own email address? Choose it under Settings → Email inbox, at Customer contact email."
+        },
+        "contact_form_notification": {
+          "title": "A notification for every contact message from your store",
+          "description": "When a visitor fills in the contact form of your store, you now get a notification under the bell, just like for an incoming email. The message itself is in your inbox. Want a push notification on your phone too? Turn on \"Contactformulier\" under Settings → My notifications."
         }
       },
       "copyLink": "Copy link",
