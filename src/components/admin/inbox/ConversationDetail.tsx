@@ -45,12 +45,23 @@ export function ConversationDetail({
   const isMobile = useIsMobile();
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
-  // Mark as read when viewing
+  // Mark as read when viewing.
+  //
+  // APP-INBOX-CRASH-1: `onMarkAsRead` is in Messages.tsx een inline arrow en
+  // dus elke render nieuw. Stond hij in de deps, dan riep elke render opnieuw
+  // `mutate()` aan zolang unreadCount > 0 — live 52 PATCH-requests en daarna
+  // React #185 (wit scherm) bij het openen van een ongelezen gesprek. Nu: de
+  // laatste callback via een ref, en per gesprek-en-stand hooguit één aanroep.
+  const onMarkAsReadRef = useRef(onMarkAsRead);
+  onMarkAsReadRef.current = onMarkAsRead;
+  const markedForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (conversation.unreadCount > 0) {
-      onMarkAsRead();
-    }
-  }, [conversation.id, conversation.unreadCount, onMarkAsRead]);
+    if (conversation.unreadCount <= 0) return;
+    const key = `${conversation.id}:${conversation.unreadCount}`;
+    if (markedForRef.current === key) return;
+    markedForRef.current = key;
+    onMarkAsReadRef.current();
+  }, [conversation.id, conversation.unreadCount]);
 
   // Scroll to bottom when conversation changes
   useEffect(() => {

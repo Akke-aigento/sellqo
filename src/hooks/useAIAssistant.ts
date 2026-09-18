@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import type { AIAssistantConfig, KnowledgeStats } from '@/types/ai-assistant';
+import { resolveAIConfig, isPersistedConfig } from '@/lib/aiAssistantConfig';
 
 export function useAIAssistant() {
   const { currentTenant } = useTenant();
@@ -20,30 +21,13 @@ export function useAIAssistant() {
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching AI assistant config:', error);
-        return null;
-      }
-
-      // If no config exists, create default
-      if (!data) {
-        const { data: newConfig, error: insertError } = await supabase
-          .from('ai_assistant_config' as any)
-          .insert({ tenant_id: currentTenant.id })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error creating AI assistant config:', insertError);
-          return null;
-        }
-
-        return newConfig as unknown as AIAssistantConfig;
-      }
-
-      return data as unknown as AIAssistantConfig;
+      // APP-INBOX-CRASH-1: ontbrekend of onleesbaar = defaults in het geheugen.
+      // Hier stond een INSERT; een leespad schrijft niet (zie resolveAIConfig).
+      if (error) console.warn('AI assistant config niet leesbaar, defaults gebruikt:', error);
+      return resolveAIConfig(currentTenant.id, data as unknown as AIAssistantConfig | null, error);
     },
     enabled: !!currentTenant?.id,
+    retry: false,
   });
 
   const { data: knowledgeStats } = useQuery({
@@ -98,14 +82,20 @@ export function useAIAssistant() {
 
   const updateConfig = useMutation({
     mutationFn: async (updates: Partial<AIAssistantConfig>) => {
-      if (!currentTenant?.id || !config?.id) {
+      if (!currentTenant?.id || !config) {
         throw new Error('No tenant or config');
       }
 
-      const { error } = await supabase
-        .from('ai_assistant_config' as any)
-        .update(updates)
-        .eq('id', config.id);
+      // Bestaat de rij nog niet, dan ontstaat hij hier — na een klik op
+      // Opslaan, nooit tijdens het lezen.
+      const { error } = isPersistedConfig(config)
+        ? await supabase
+            .from('ai_assistant_config' as any)
+            .update(updates)
+            .eq('id', config.id)
+        : await supabase
+            .from('ai_assistant_config' as any)
+            .upsert({ ...updates, tenant_id: currentTenant.id }, { onConflict: 'tenant_id' });
 
       if (error) throw error;
     },

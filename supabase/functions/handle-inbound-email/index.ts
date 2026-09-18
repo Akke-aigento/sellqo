@@ -1,12 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
 import { extractInboundPrefix } from "../_shared/inboundAddress.ts";
+import { findExistingInbound, isUniqueViolation } from "../_shared/inboundDedup.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// 200, zodat Resend niet opnieuw probeert: het bericht staat er al.
+function duplicateResponse(messageId: string | null): Response {
+  return new Response(JSON.stringify({ duplicate: true, message_id: messageId }), {
+    status: 200,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
 
 // Resend Webhook Event Wrapper
 interface ResendWebhookEvent {
@@ -367,6 +376,14 @@ const handler = async (req: Request): Promise<Response> => {
       subject: payload.subject,
     });
 
+    // APP-INBOX-CRASH-1: een webhook-replay van Resend mag geen tweede rij,
+    // geen tweede prospect en geen tweede melding geven. Vóór alle verwerking.
+    const existingId = await findExistingInbound(supabase, payload.email_id);
+    if (existingId) {
+      console.log("Duplicate inbound email ignored", { email_id: payload.email_id, message_id: existingId });
+      return duplicateResponse(existingId);
+    }
+
     // Debug: Log what Resend sends in the webhook payload
     console.log("Webhook payload inspection:", {
       email_id: payload.email_id,
@@ -584,6 +601,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (insertError) {
+      // Gelijktijdige replay: de unieke index won de race. Geen fout, geen melding.
+      if (isUniqueViolation(insertError)) {
+        console.log("Duplicate inbound email (unique index)", { email_id: payload.email_id });
+        return duplicateResponse(null);
+      }
       console.error("Failed to store inbound message:", insertError);
       throw new Error(`Failed to store message: ${insertError.message}`);
     }

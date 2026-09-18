@@ -1,3 +1,119 @@
+## APP-INBOX-CRASH-1 — wit scherm bij openen ongelezen bericht + dubbele inbound — 18 september 2026
+
+2026-09-18 APP-INBOX-CRASH-1: wit scherm bij openen bericht. Vermoeden vooraf: ai_assistant_config-RLS
+keek naar user_roles.tenant_id, dat NULL is voor platform_admin → config onleesbaar → frontend
+probeerde te INSERT'en → 403 → render-lus (React #185). **De repro weerlegde dat deels:** de 403 was
+echt maar gaf geen lus. De lus zat in mark-as-read: bij een ongelezen gesprek riep elke render opnieuw
+`mutate()` aan (52 PATCH-requests, daarna #185). Dat treft **iedereen** die een ongelezen gesprek
+opent, niet alleen platform-admins. Fix: mark-as-read één keer per gesprek-en-stand, geen write in het
+leespad van de AI-config, platform_admin-toegang via `is_platform_admin(auth.uid())`. Bijvangst:
+inbound idempotent op resend_id (Resend-replay gaf dubbele rij). Lijst andere tabellen met hetzelfde
+RLS-patroon: zie hieronder.
+
+### Root cause en bewijs
+
+- **Render-lus** — `ConversationDetail.tsx:49-53` had
+  `useEffect(() => { if (unreadCount > 0) onMarkAsRead() }, [id, unreadCount, onMarkAsRead])`, en
+  `Messages.tsx:248` geeft `onMarkAsRead={() => markConversationAsRead(id)}` mee: elke render een
+  nieuwe functie. Tot de refetch binnen is, blijft `unreadCount > 0`, dus elke render riep opnieuw
+  `mutate()` aan; die mutatie laat `Messages` opnieuw renderen.
+- **Repro in de dev-build** (browserpaneel, Akke zelf ingelogd, 375px): alle gelezen gesprekken
+  openden foutloos (8/8, desktop en mobiel). Daarna in de pagina de GET van `customer_messages`
+  laten teruggeven dat "CC test" ongelezen is, en de PATCH lokaal met 204 beantwoord — **geen
+  database-write**. Resultaat: 52 PATCH-requests, `Maximum update depth exceeded`, pagina leeg.
+  Dev-stack: de fout valt in de Radix `ScrollArea` in `ConversationDetail` — het diepste component
+  dat mee-rendert, niet de oorzaak.
+- Dat verklaart de waarneming "nu opent hij wel": zodra alles gelezen was, vuurde het effect niet.
+- **AI-config** — `useAIAssistant.ts` deed in de `queryFn` een INSERT als de SELECT 0 rijen gaf.
+  Voor Akke (platform_admin, `tenant_id` NULL) in VanXcel: SELECT gaf 0 rijen door RLS → INSERT →
+  403, bij elke mount/refetch. Een write in een leespad, maar geen lus.
+- **Dubbele inbound** — `handle-inbound-email` controleerde niet of `resend_id` al bestond. Live
+  één paar: `eff89884` (13:11:58) en `a609efb8` (13:19:13, replay), elk met een melding.
+
+### Uitgevoerd
+
+- `src/components/admin/inbox/ConversationDetail.tsx`: callback via ref (laatste versie), effect op
+  `[id, unreadCount]`, en een ref `id:unreadCount` zodat hij per stand hooguit één keer vuurt.
+  Een ander gesprek of een nieuw ongelezen bericht vuurt wel opnieuw.
+- `src/lib/aiAssistantConfig.ts` (nieuw): `DEFAULT_AI_ASSISTANT_CONFIG` (spiegelt de kolom-defaults,
+  `information_schema` 18-09), `resolveAIConfig`, `isPersistedConfig`.
+- `src/hooks/useAIAssistant.ts`: geen INSERT meer in de `queryFn`; geen rij of fout → defaults in het
+  geheugen + één `console.warn`, `retry: false`. `updateConfig`: bestaande rij → UPDATE, anders
+  `upsert` op `tenant_id` (UNIQUE bestaat) — alleen na een klik op Opslaan. De edge-functies
+  (`ai-suggest-reply`, `ai-chatbot-respond`, `ai-build-knowledge-index`) vangen een ontbrekende rij
+  al op met `?.`; alle 12 winkels hebben een rij.
+- `supabase/functions/_shared/inboundDedup.ts` (nieuw, puur): `findExistingInbound`,
+  `isUniqueViolation`.
+- `supabase/functions/handle-inbound-email/index.ts`: direct na signatuur en event-typecheck, vóór
+  body-verwerking en prospect-aanmaak: bestaat een inbound-rij met die `resend_id` →
+  `200 { duplicate: true, message_id }`. Insert-fout `23505` (race met de nieuwe index) → hetzelfde
+  antwoord. Faalt de lookup, dan wordt de mail gewoon verwerkt.
+- `docs/sql/app-inbox-crash-1-rls.sql` (chat-Claude, geen migratie): (1) drie nieuwe policies op
+  `ai_assistant_config` via `is_platform_admin(auth.uid())`, (2) snapshot + opruimen van `a609efb8`
+  en melding `0cfd1867`, (3) `UNIQUE INDEX customer_messages_inbound_resend_id_key ON
+  customer_messages (resend_id) WHERE direction = 'inbound' AND resend_id IS NOT NULL`.
+- Tests: `aiAssistantConfig.test.tsx` (helper + hook: geen insert/upsert, geen extra renders bij
+  rij, 0 rijen en fout), `conversationMarkAsRead.test.tsx` (20 re-renders met nieuwe callback → één
+  aanroep; faalt op de oude code met 21), `inboundDedup.test.ts`.
+
+### Security-keuzes
+
+- `ai_assistant_config`: strikt additief — drie nieuwe permissive policies, bestaande ongemoeid.
+  Platform-admin krijgt SELECT/INSERT/UPDATE op elke winkel, zoals bij `customer_messages`
+  (`get_user_tenant_ids`/`has_tenant_role` hebben die bypass al). Geen DELETE.
+- Geen andere tabel geraakt. De lijst hieronder is een rapport, geen wijziging.
+
+### Zelfde RLS-patroon — platform_admin kan er niet bij (niet gefixt, wacht op go)
+
+Policies met `tenant_id IN (SELECT user_roles.tenant_id …)` of `ur.tenant_id = t.tenant_id`, zonder
+platform-admin-bypass en zonder andere policy die het opvangt (pg_policies, 18-09):
+
+| Tabel | Geblokkeerd |
+|---|---|
+| `ai_assistant_config` | SELECT, INSERT, UPDATE — **deze batch** |
+| `ai_reply_suggestions` | alles — de AI-knop in de inbox kan voor een platform-admin niets cachen |
+| `ai_chatbot_conversations` | SELECT (UPDATE heeft wel bypass) |
+| `ai_coach_settings` | SELECT + ALL |
+| `ai_credit_purchases` | SELECT |
+| `ai_user_learning_patterns` | SELECT (tenant-admin-policy) |
+| `marketplace_listing_queue` | alles |
+| `meta_messaging_connections` | alles |
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de
+gedeelde tabellen ongewijzigd. `customer_messages` krijgt alleen een partiële unieke index op
+inbound-rijen met `resend_id`; custom frontends schrijven via `storefront-api` met `channel 'web'` en
+zonder `resend_id`, dus die raakt de index nooit.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| Repro dev-build vóór fix (gesimuleerd ongelezen, geen DB-write) | 52 PATCH, #185, lege pagina |
+| Zelfde repro na fix, 375px | 1 PATCH, 0 fouten, 0 writes op `ai_assistant_config`, composer zichtbaar, geen horizontale overflow |
+| vitest (hele suite) | 238/238 |
+| `deno check` `handle-inbound-email`, HEAD vs nieuw | 1 en 1 (bestaande fout in `_shared/webhookSignature.ts:40`) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1507, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs`, `check:mail`, `check:messages` | groen |
+
+Redeploy: `handle-inbound-email` (enige importeur van `inboundDedup`). Publiceren voor de frontend.
+Handmatig na deploy (Akke): nieuw testbericht naar VanXcel, ongelezen openen op web 400px en in de
+iOS-app.
+
+### Bewust ongemoeid / Vervolg
+
+- Tot de RLS-SQL gedraaid is, ziet een platform-admin in winkels zonder eigen rol de standaard
+  AI-config (suggesties aan) in plaats van die van de winkel.
+- Faalt mark-as-read, dan wordt het voor dat gesprek en die stand niet opnieuw geprobeerd tot een
+  ander gesprek geopend wordt. Bewust: liever geen lus.
+- De zeven andere tabellen hierboven.
+- Racegeval inbound: twee gelijktijdige replays kunnen allebei een prospect aanmaken vóór de index de
+  tweede rij tegenhoudt. Zeldzaam, aanvaard.
+- Changelog/nieuwsbrief: niet gedaan — bugfix zonder nieuwe functie.
+
 ## PUSH-DEFAULT-1 — meldingen standaard aan, uitzetten per type — 18 september 2026
 
 2026-09-18 PUSH-DEFAULT-1: meldingen van opt-in naar opt-out. Push stond voor iedereen uit omdat
