@@ -1552,6 +1552,10 @@
         "contact_form_notification": {
           "title": "Une notification pour chaque message de contact de votre boutique",
           "description": "Lorsqu'un visiteur remplit le formulaire de contact de votre boutique, vous recevez désormais une notification sous la cloche, comme pour un e-mail entrant. Le message lui-même se trouve dans votre boîte de réception. Vous voulez aussi une notification push sur votre téléphone ? Activez « Contactformulier » dans Paramètres → Mes notifications."
+        },
+        "notifications_on_by_default": {
+          "title": "Les notifications sont activées par défaut",
+          "description": "Vous recevez désormais par défaut des notifications push dans l'application SellQo pour tout ce qui relève de votre rôle ; désactivez ce que vous ne voulez pas dans Paramètres → Mes notifications. Les messages de clients vous sont aussi envoyés par e-mail par défaut. Si un même client envoie plusieurs messages par le même canal en peu de temps, vous recevez au maximum un e-mail par quart d'heure."
         }
       },
       "copyLink": "Copier le lien",

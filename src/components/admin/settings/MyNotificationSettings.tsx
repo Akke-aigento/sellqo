@@ -29,6 +29,7 @@ function PushCategorySection({
   config,
   permitted,
   isPushEnabled,
+  hasExplicitPushOn,
   setPush,
   isSaving,
 }: {
@@ -41,6 +42,7 @@ function PushCategorySection({
    */
   permitted: boolean;
   isPushEnabled: Prefs['isPushEnabled'];
+  hasExplicitPushOn: Prefs['hasExplicitPushOn'];
   setPush: Prefs['setPush'];
   isSaving: boolean;
 }) {
@@ -50,7 +52,11 @@ function PushCategorySection({
   const Icon = categoryIcons[config.icon] || Bell;
   const pushLabel = t('settings.notifications.push');
 
-  const enabledCount = config.types.filter(tc => isPushEnabled(config.category, tc.type)).length;
+  // PUSH-DEFAULT-1: binnen je rol telt de effectieve stand (rij of default).
+  // Buiten je rol geldt de default niet — daar telt alleen wat je ooit zelf
+  // aanzette, want dat is het enige dat hier nog iets doet.
+  const isOn = permitted ? isPushEnabled : hasExplicitPushOn;
+  const enabledCount = config.types.filter(tc => isOn(config.category, tc.type)).length;
   const allOn = enabledCount === config.types.length;
 
   const toggleAll = async (checked: boolean) => {
@@ -117,7 +123,7 @@ function PushCategorySection({
 
           <div className="space-y-3">
             {config.types.map(typeConfig => {
-              const checked = isPushEnabled(config.category, typeConfig.type);
+              const checked = isOn(config.category, typeConfig.type);
               // Buiten je rol tonen we alleen wat nog aan staat: dat is het
               // enige waar je iets mee kunt.
               if (!permitted && !checked) return null;
@@ -161,7 +167,8 @@ export function MyNotificationSettings() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const roles = useScopedRoles();
-  const { isLoading, isSaving, isPushEnabled, setPush } = useUserNotificationPreferences();
+  const { isLoading, isSaving, isPushEnabled, hasExplicitPushOn, setPush } =
+    useUserNotificationPreferences();
 
   if (!currentTenant) {
     return (
@@ -194,7 +201,9 @@ export function MyNotificationSettings() {
     .map(config => ({
       config,
       permitted: canReceiveNotificationCategory(roles, config.category),
-      hasEnabled: config.types.some(tc => isPushEnabled(config.category, tc.type)),
+      // Expliciete rijen, niet de default: anders zou elke categorie buiten je
+      // rol als "staat nog aan" verschijnen.
+      hasEnabled: config.types.some(tc => hasExplicitPushOn(config.category, tc.type)),
     }))
     .filter(s => s.permitted || s.hasEnabled);
 
@@ -221,6 +230,7 @@ export function MyNotificationSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+          <p>{t('settings.myNotifications.defaultOn')}</p>
           <p>{t('settings.myNotifications.onlyYou')}</p>
           <p>{t('settings.notifications.pushHint')}</p>
         </div>
@@ -232,6 +242,7 @@ export function MyNotificationSettings() {
               config={config}
               permitted={permitted}
               isPushEnabled={isPushEnabled}
+              hasExplicitPushOn={hasExplicitPushOn}
               setPush={setPush}
               isSaving={isSaving}
             />

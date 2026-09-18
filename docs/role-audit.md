@@ -1,3 +1,94 @@
+## PUSH-DEFAULT-1 — meldingen standaard aan, uitzetten per type — 18 september 2026
+
+2026-09-18 PUSH-DEFAULT-1: meldingen van opt-in naar opt-out. Push stond voor iedereen uit omdat
+ontbrekende voorkeursrijen als "uit" telden (alleen Demo Bakkerij had rijen). Nu: default uit
+NOTIFICATION_CONFIG, push standaard aan, e-mail aan voor categorie berichten met throttle
+1/gesprek/15 min. Eenmalige reset e-mail berichten aan voor VanXcel (chat-Claude, connector). De
+geplande reset "push = aan" op de winkellaag vervalt: Akke koos voor alleen de gebruikerslaag.
+
+### Root cause
+
+- **Push**: `send-push-notification` nam als kandidaten alleen gebruikers met een rij in
+  `user_notification_preferences` met `push_enabled = true`. Geen rij = geen push. Alleen Akke
+  had rijen, en alleen voor Demo Bakkerij. Live 18-09: `contact_form_inbound` en `email_inbound`
+  bij VanXcel aangemaakt, geen push.
+- **E-mail**: `create-notification` deed `settings?.email_enabled ?? (priority high/urgent)`.
+  `defaultEmail` uit `NOTIFICATION_CONFIG` werd server-side nergens gelezen; het scherm Winkel
+  Notificaties toonde hem wel als stand. Scherm en server konden dus verschillen. VanXcel had
+  vijf expliciete rijen in `messages` met `email_enabled = false`.
+- Er bestond geen throttle: een klant die vijf berichten achter elkaar stuurt, gaf vijf mails.
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/notificationDefaults.ts` (nieuw, puur, geen imports):
+  `NOTIFICATION_DEFAULTS` per `category/type` (sleutel met categorie, want `integration_error`
+  bestaat in `system` én `integrations`), `DEFAULT_PUSH = true`, `resolveEmailEnabled`,
+  `resolvePushEnabled`, `messageConversationKey`, `isEmailThrottled`,
+  `MESSAGE_EMAIL_WINDOW_MS` (15 min).
+- `src/types/notification.ts`: `defaultEmail` → `true` voor de zes `messages`-types, `false` voor
+  de 35 andere. Die mailden zonder rij toch al niet (behalve high/urgent, en die regel blijft).
+- `src/test/notificationDefaults.test.ts` (nieuw): pariteit `NOTIFICATION_CONFIG` ↔
+  `NOTIFICATION_DEFAULTS` type voor type — geen tweede waarheid die stil afdrijft; plus de
+  resolvers en de throttle.
+- `create-notification`: `resolveEmailEnabled(settings, category, type, priority)`. Voor
+  `messages` een throttle: sleutel = type (kanaal) + afzender uit `data` (`from` genormaliseerd
+  naar het adres, anders `from_phone`, `sender_id`, `customer:<id>`). Afzender staat altijd in de
+  meldingsdata; `customer_id` ontbreekt bij een nieuwe afzender. Recente meldingen van die winkel
+  en dat type met `email_sent_at` binnen 15 min en dezelfde sleutel → geen mail, gelogd. Faalt die
+  lookup, dan gaat de mail toch (liever één mail te veel dan een gemist bericht). In-app en push
+  worden niet gethrottled.
+- `send-push-notification`: kandidaten = gebruikers met een rol in de winkel ∪ gebruikers met een
+  voorkeursrij; per kandidaat `resolvePushEnabled(rij, { isTenantMember })`. Een rij wint (ook
+  `false`); zonder rij aan voor leden, uit voor een platform-admin zonder rol in die winkel
+  (opt-in, keuze Akke). Daarna de bestaande lidmaatschap- en rolcheck
+  (`can_read_notification_category`).
+- `useUserNotificationPreferences`: `isPushEnabled` = effectieve stand via dezelfde resolver;
+  nieuw `hasExplicitPushOn`. `MyNotificationSettings`: de lijst "hoort niet meer bij je rol"
+  telt alleen expliciete rijen, anders zou elke categorie buiten je rol als "staat aan"
+  verschijnen. Nieuwe regel "staat standaard aan".
+- `NotificationSettings` (Winkel Notificaties): regel dat high/urgent ook zonder schakelaar mailt.
+- i18n `settings.notifications.urgentEmailHint` en `settings.myNotifications.defaultOn` in vijf
+  talen.
+- `docs/sql/push-default-1.sql` (6b: e-mail berichten aan voor VanXcel, vijf rijen) en
+  `docs/sql/push-default-1-doc-articles.sql` (twee helpartikels: "push staat standaard uit" klopte
+  niet meer). Beide door chat-Claude via de connector, met snapshot vooraf.
+- Changelog `2026.11d` in vijf talen, nieuwsbriefitem.
+
+### Security-keuzes
+
+Geen RLS, policies of grants geraakt. Push blijft achter de rolcheck: meer kandidaten, dezelfde
+filter. Platform-admins krijgen zonder eigen rij niets van klantwinkels.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de
+gedeelde tabellen ongewijzigd. Custom frontends merken niets.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `deno check` `create-notification`, `send-push-notification`, HEAD vs nieuw | 0 en 0 fouten |
+| `deno check` `_shared/notificationDefaults.ts` | groen |
+| vitest `notificationDefaults`, `notificationResources`, `notificationReadRoles` | 116/116 |
+| `npm run check:mail`, `npm run check:messages` | groen |
+| `node scripts/i18n-parity.mjs` | exit 0 |
+| Lint | 1507, gelijk aan de baseline |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| `npm run build` | exit 0 |
+
+Redeploy (import-grep op `notificationDefaults`): `create-notification`,
+`send-push-notification`. Publiceren voor de schermen en de changelog.
+
+### Bewust ongemoeid / Vervolg
+
+- De throttle leest en schrijft niet atomair: twee berichten in dezelfde seconde kunnen allebei
+  mailen. Aanvaard.
+- `tenant_notification_settings.push_enabled` blijft ongelezen (sinds PUSH-2); kolom blijft staan.
+- `in_app_enabled` wordt nergens gelezen behalve in het instelscherm: de schakelaar "In-app" doet
+  niets. Gemeld, niet opgelost.
+- Inbox heeft geen deeplink naar één gesprek (dode link `?conversation=` in `CustomerDetail`).
+
 ## CONTACT-NOTIFY-1 — melding bij een contactbericht uit de webshop — 18 september 2026
 
 2026-09-18 CONTACT-NOTIFY-1: contactberichten van custom frontends (submit_contact_form) maakten

@@ -613,12 +613,14 @@
       "categoryEnabled": "{{channel}} activé pour {{category}}",
       "categoryDisabled": "{{channel}} désactivé pour {{category}}",
       "pushMovedHint": "Les notifications push sur votre téléphone se règlent par personne.",
-      "pushMovedLink": "Aller à Mes notifications"
+      "pushMovedLink": "Aller à Mes notifications",
+      "urgentEmailHint": "Les notifications urgentes (priorité haute ou urgente) vous sont aussi envoyées par e-mail si vous n'avez rien réglé pour elles. Désactivez explicitement l'e-mail pour ce type si vous ne le souhaitez pas."
     },
     "myNotifications": {
       "title": "Mes notifications",
       "description": "Choisissez les notifications que vous recevez en push sur votre téléphone pour {{shop}}.",
       "onlyYou": "Ce réglage ne concerne que vous. Les membres de votre équipe choisissent eux-mêmes ce qu'ils veulent recevoir sur leur téléphone.",
+      "defaultOn": "Les nouvelles notifications sont activées par défaut. Désactivez ci-dessous ce que vous ne voulez pas recevoir sur votre téléphone.",
       "notInRole": "Ne fait plus partie de votre rôle — vous pouvez seulement désactiver le push ici",
       "noTenant": "Sélectionnez d'abord une boutique pour régler vos notifications push."
     },

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { resolvePushEnabled } from "../_shared/notificationDefaults.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,28 +120,43 @@ serve(async (req: Request): Promise<Response> => {
       return json({ error: "tenant_id and category are required" }, 400);
     }
 
-    // 2. Ontvangers: wie voor deze winkel en dit type zelf push aanzette.
-    //
-    // PUSH-2 (13 sep 2026). Tot dan gold één schakelaar per winkel
-    // (tenant_notification_settings.push_enabled), en kreeg iedereen met een rol
-    // in die winkel de push. Maar een telefoon is persoonlijk: de eigenaar zette
-    // push aan en de telefoon van het magazijn trilde mee. Die kolom wordt niet
-    // meer gelezen.
+    // 2. Ontvangers. PUSH-2 (13 sep): push is persoonlijk, per gebruiker; de
+    //    winkelkolom tenant_notification_settings.push_enabled wordt niet gelezen.
     if (!payload.type) {
       return json({ error: "type is required" }, 400);
     }
-    const { data: prefs, error: prefsErr } = await supabase
-      .from("user_notification_preferences")
-      .select("user_id")
-      .eq("tenant_id", payload.tenant_id)
-      .eq("category", payload.category)
-      .eq("notification_type", payload.type)
-      .eq("push_enabled", true);
+    // PUSH-DEFAULT-1 (18 sep 2026): opt-out in plaats van opt-in. Tot dan telde
+    // alleen wie een eigen rij "aan" had; een ontbrekende rij was "uit", en push kwam
+    // daardoor nergens aan. Nu: kandidaten = iedereen met een rol in de winkel, plus
+    // wie hier zelf een rij "aan" heeft (platform-admins). Per persoon beslist de eigen
+    // rij; zonder rij resolvePushEnabled (_shared/notificationDefaults.ts): aan voor
+    // teamleden, uit voor een platform-admin zonder rol in deze winkel.
+    const [{ data: prefs, error: prefsErr }, { data: memberRows, error: membersErr }] = await Promise.all([
+      supabase
+        .from("user_notification_preferences")
+        .select("user_id, push_enabled")
+        .eq("tenant_id", payload.tenant_id)
+        .eq("category", payload.category)
+        .eq("notification_type", payload.type),
+      supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("tenant_id", payload.tenant_id),
+    ]);
     if (prefsErr) throw prefsErr;
+    if (membersErr) throw membersErr;
 
-    let candidates = [...new Set((prefs ?? []).map((p: { user_id: string }) => p.user_id))];
+    const prefByUser = new Map<string, { push_enabled: boolean }>();
+    for (const p of (prefs ?? []) as Array<{ user_id: string; push_enabled: boolean }>) {
+      prefByUser.set(p.user_id, { push_enabled: p.push_enabled });
+    }
+    const tenantMembers = new Set((memberRows ?? []).map((r: { user_id: string }) => r.user_id));
+
+    let candidates = [...new Set([...tenantMembers, ...prefByUser.keys()])].filter((id) =>
+      resolvePushEnabled(prefByUser.get(id), { isTenantMember: tenantMembers.has(id) })
+    );
     // Een melding voor één persoon gaat alleen naar die persoon, en alleen als
-    // hij zelf push aan heeft.
+    // push voor hem aan staat.
     if (payload.user_id) {
       candidates = candidates.filter((id) => id === payload.user_id);
     }
@@ -151,13 +167,10 @@ serve(async (req: Request): Promise<Response> => {
     // 3. Een voorkeur is geen toegang. Wie uit het team gehaald is, kan nog een
     //    rij hebben staan; die krijgt niets. Ontvanger is wie een rol heeft in
     //    deze winkel, of platform-admin is — die mag zich op elke winkel
-    //    abonneren (keuze van Akke). Een platform-admin heeft tenant_id NULL en
-    //    viel in de oude opzet daardoor altijd buiten de ontvangers.
+    //    abonneren (keuze van Akke).
     //
     //    Daarna de rol: push volgt dezelfde regel als het belletje, via de
-    //    SQL-functie can_read_notification_category (NOTIF-RLS-1). Zo krijgt
-    //    wie van rol wisselde geen push meer voor wat hij niet meer mag zien,
-    //    ook als zijn voorkeur nog aan staat.
+    //    SQL-functie can_read_notification_category (NOTIF-RLS-1).
     const { data: candidateRoles, error: rolesErr } = await supabase
       .from("user_roles")
       .select("user_id, tenant_id, role")

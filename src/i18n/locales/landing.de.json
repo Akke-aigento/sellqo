@@ -1552,6 +1552,10 @@
         "contact_form_notification": {
           "title": "Eine Benachrichtigung für jede Kontaktnachricht aus Ihrem Shop",
           "description": "Füllt ein Besucher das Kontaktformular Ihres Shops aus, erhalten Sie jetzt eine Benachrichtigung unter der Glocke, genau wie bei einer eingehenden E-Mail. Die Nachricht selbst steht in Ihrem Posteingang. Möchten Sie auch eine Push-Benachrichtigung auf Ihrem Telefon? Schalten Sie „Contactformulier“ unter Einstellungen → Meine Benachrichtigungen ein."
+        },
+        "notifications_on_by_default": {
+          "title": "Benachrichtigungen sind standardmäßig eingeschaltet",
+          "description": "Sie erhalten jetzt standardmäßig Push-Benachrichtigungen in der SellQo-App für alles, was zu Ihrer Rolle gehört; schalten Sie unter Einstellungen → Meine Benachrichtigungen aus, was Sie nicht möchten. Kundennachrichten erhalten Sie standardmäßig auch per E-Mail. Sendet derselbe Kunde über denselben Kanal kurz hintereinander mehrere Nachrichten, erhalten Sie höchstens eine E-Mail pro Viertelstunde."
         }
       },
       "copyLink": "Link kopieren",

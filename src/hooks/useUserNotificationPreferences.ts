@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import type { NotificationCategory } from '@/types/notification';
+import { resolvePushEnabled } from '../../supabase/functions/_shared/notificationDefaults';
 
 
 export interface UserNotificationPreference {
@@ -21,7 +22,12 @@ export interface UserNotificationPreference {
  *
  * Push is persoonlijk: het is iemands telefoon. Daarom per gebruiker, en niet
  * op tenant_notification_settings zoals in PUSH-1. Er staat alleen een rij voor
- * wat iemand ooit omzette; geen rij betekent uit.
+ * wat iemand ooit omzette.
+ *
+ * PUSH-DEFAULT-1 — geen rij volgt de default, dezelfde resolver als
+ * `send-push-notification`: aan voor wie een rol in deze winkel heeft, uit voor
+ * een platform-admin zonder eigen rol (die blijft opt-in). Het scherm toont dus
+ * wat de server echt doet.
  *
  * Opslaan gaat met een upsert op de UNIQUE (user_id, tenant_id, category,
  * notification_type) — dezelfde aanpak als `useNotificationSettings`, en om
@@ -29,7 +35,7 @@ export interface UserNotificationPreference {
  * lees-dan-insert een 23505.
  */
 export function useUserNotificationPreferences() {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -65,10 +71,19 @@ export function useUserNotificationPreferences() {
     fetchPreferences();
   }, [fetchPreferences]);
 
+  // Zelfde definitie als de edge-functie: een rij in user_roles voor déze winkel.
+  const isTenantMember = (roles ?? []).some(r => tenantId != null && r.tenant_id === tenantId);
+
+  const findPreference = (category: NotificationCategory, type: string) =>
+    preferences.find(p => p.category === category && p.notification_type === type);
+
+  /** Effectieve stand: eigen rij, anders de default. */
   const isPushEnabled = (category: NotificationCategory, type: string): boolean =>
-    preferences.some(
-      p => p.category === category && p.notification_type === type && p.push_enabled,
-    );
+    resolvePushEnabled(findPreference(category, type) ?? null, { isTenantMember });
+
+  /** Alleen een expliciet aangezette rij — los van de default. */
+  const hasExplicitPushOn = (category: NotificationCategory, type: string): boolean =>
+    findPreference(category, type)?.push_enabled === true;
 
   /** Eén of meer types tegelijk aan of uit, in één upsert. */
   const setPush = async (
@@ -112,5 +127,13 @@ export function useUserNotificationPreferences() {
     }
   };
 
-  return { preferences, isLoading, isSaving, isPushEnabled, setPush, refetch: fetchPreferences };
+  return {
+    preferences,
+    isLoading,
+    isSaving,
+    isPushEnabled,
+    hasExplicitPushOn,
+    setPush,
+    refetch: fetchPreferences,
+  };
 }

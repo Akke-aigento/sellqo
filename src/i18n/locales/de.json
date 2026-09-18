@@ -613,12 +613,14 @@
       "categoryEnabled": "{{channel}} für {{category}} aktiviert",
       "categoryDisabled": "{{channel}} für {{category}} deaktiviert",
       "pushMovedHint": "Push-Benachrichtigungen auf dem Telefon werden pro Person eingestellt.",
-      "pushMovedLink": "Zu Meine Benachrichtigungen"
+      "pushMovedLink": "Zu Meine Benachrichtigungen",
+      "urgentEmailHint": "Dringende Benachrichtigungen (Priorität hoch oder dringend) erhalten Sie auch per E-Mail, wenn Sie dafür nichts eingestellt haben. Schalten Sie E-Mail für diesen Typ ausdrücklich aus, wenn Sie das nicht möchten."
     },
     "myNotifications": {
       "title": "Meine Benachrichtigungen",
       "description": "Legen Sie fest, welche Benachrichtigungen Sie für {{shop}} als Push-Benachrichtigung auf Ihrem Telefon erhalten.",
       "onlyYou": "Das gilt nur für Sie. Ihre Teammitglieder entscheiden selbst, was sie auf ihrem Telefon erhalten.",
+      "defaultOn": "Neue Benachrichtigungen sind standardmäßig eingeschaltet. Schalten Sie unten aus, was Sie nicht auf Ihrem Telefon möchten.",
       "notInRole": "Gehört nicht mehr zu Ihrer Rolle — Push kann hier nur noch ausgeschaltet werden",
       "noTenant": "Wählen Sie zuerst einen Shop, um Ihre Push-Benachrichtigungen einzurichten."
     },

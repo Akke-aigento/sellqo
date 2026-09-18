@@ -585,12 +585,14 @@
       "categoryEnabled": "{{channel}} turned on for {{category}}",
       "categoryDisabled": "{{channel}} turned off for {{category}}",
       "pushMovedHint": "Push notifications on your phone are set per person.",
-      "pushMovedLink": "Go to My notifications"
+      "pushMovedLink": "Go to My notifications",
+      "urgentEmailHint": "Urgent notifications (priority high or urgent) are also emailed to you if you haven't set anything for them. Explicitly turn off email for such a type if you don't want that."
     },
     "myNotifications": {
       "title": "My notifications",
       "description": "Choose which notifications you get as a push notification on your phone for {{shop}}.",
       "onlyYou": "This only applies to you. Your team members choose for themselves what they want on their phones.",
+      "defaultOn": "New notifications are on by default. Turn off below what you don't want on your phone.",
       "notInRole": "No longer part of your role — you can only switch push off here",
       "noTenant": "Select a store first to set up your push notifications."
     },

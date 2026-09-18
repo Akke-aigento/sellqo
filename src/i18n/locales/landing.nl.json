@@ -1552,6 +1552,10 @@
         "contact_form_notification": {
           "title": "Een melding bij elk contactbericht uit je webshop",
           "description": "Vult een bezoeker het contactformulier van je webshop in, dan krijg je voortaan een melding onder het belletje, net als bij een inkomende e-mail. Het bericht zelf staat in je inbox. Wil je er ook een pushmelding op je telefoon van? Zet \"Contactformulier\" aan onder Instellingen → Mijn meldingen."
+        },
+        "notifications_on_by_default": {
+          "title": "Meldingen staan standaard aan",
+          "description": "Je krijgt nu standaard pushmeldingen in de SellQo-app voor alles wat bij je rol hoort; zet uit wat je niet wil onder Instellingen → Mijn meldingen. Berichten van klanten krijg je standaard ook per e-mail. Stuurt dezelfde klant via hetzelfde kanaal meerdere berichten kort na elkaar, dan krijg je hooguit één e-mail per kwartier."
         }
       },
       "copyLink": "Kopieer link",

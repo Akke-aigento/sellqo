@@ -1552,6 +1552,10 @@
         "contact_form_notification": {
           "title": "A notification for every contact message from your store",
           "description": "When a visitor fills in the contact form of your store, you now get a notification under the bell, just like for an incoming email. The message itself is in your inbox. Want a push notification on your phone too? Turn on \"Contactformulier\" under Settings → My notifications."
+        },
+        "notifications_on_by_default": {
+          "title": "Notifications are on by default",
+          "description": "You now get push notifications in the SellQo app by default for everything that belongs to your role; turn off what you don't want under Settings → My notifications. Customer messages are also emailed to you by default. If the same customer sends several messages through the same channel in quick succession, you get at most one email per 15 minutes."
         }
       },
       "copyLink": "Copy link",

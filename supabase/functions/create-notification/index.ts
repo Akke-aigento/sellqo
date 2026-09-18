@@ -4,6 +4,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { resolveEmailEnabled, messageConversationKey, isEmailThrottled, MESSAGE_EMAIL_WINDOW_MS } from "../_shared/notificationDefaults.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,8 +133,42 @@ serve(async (req: Request): Promise<Response> => {
       .eq('notification_type', notification.type)
       .single();
 
-    // Default to sending email for high/urgent if no settings exist
-    const shouldSendEmail = settings?.email_enabled ?? (priority === 'urgent' || priority === 'high');
+    // PUSH-DEFAULT-1: één bron. Een rij beslist; zonder rij de default van het type
+    // (_shared/notificationDefaults.ts, gelijk aan NOTIFICATION_CONFIG), en high/urgent
+    // mailen zoals voorheen altijd.
+    let shouldSendEmail = resolveEmailEnabled(settings, notification.category, notification.type, priority);
+
+    // Berichten: hooguit één mail per gesprek (kanaal + afzender) per 15 minuten. Een
+    // klant die vijf keer achter elkaar mailt, geeft één mail, niet vijf. In-app en push
+    // worden niet gethrottled.
+    if (shouldSendEmail && notification.category === 'messages') {
+      const key = messageConversationKey(notification.type, notification.data);
+      if (key) {
+        const since = new Date(Date.now() - MESSAGE_EMAIL_WINDOW_MS).toISOString();
+        const { data: recentRows, error: recentError } = await supabase
+          .from('notifications')
+          .select('id, type, data, email_sent_at')
+          .eq('tenant_id', notification.tenant_id)
+          .eq('category', 'messages')
+          .eq('type', notification.type)
+          .gte('email_sent_at', since);
+        if (recentError) {
+          // Liever een mail te veel dan een klantbericht dat niemand ziet.
+          console.error('Throttle lookup failed, sending anyway:', recentError.message);
+        } else {
+          const recent = (recentRows ?? [])
+            .filter((r: { id: string }) => r.id !== notificationId)
+            .map((r: { type: string; data: Record<string, unknown> | null; email_sent_at: string | null }) => ({
+              key: messageConversationKey(r.type, r.data),
+              emailSentAt: r.email_sent_at,
+            }));
+          if (isEmailThrottled(key, recent, new Date())) {
+            console.log('Email throttled for conversation', { key, notification_id: notificationId });
+            shouldSendEmail = false;
+          }
+        }
+      }
+    }
 
     if (shouldSendEmail && resendApiKey) {
       // Get tenant info for email including branding and notification_email

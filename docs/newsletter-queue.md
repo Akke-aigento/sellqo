@@ -4,6 +4,22 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11d — Meldingen staan standaard aan (improvement, 18-09-2026)
+
+**Voor wie:** alle winkels, iedereen met de SellQo-app op de telefoon.
+
+**Je krijgt nu standaard pushmeldingen; zet uit wat je niet wil in Instellingen → Mijn
+meldingen.** Tot nu toe moest je elke soort melding zelf aanzetten, en wie dat niet wist, kreeg
+niets. Nu staat alles wat bij je rol hoort meteen aan.
+
+**Berichten van klanten ook per e-mail.** Een nieuw bericht van een klant — per e-mail,
+contactformulier, WhatsApp, Facebook, Instagram of Bol.com — krijg je standaard ook in je
+mailbox. Stuurt dezelfde klant kort na elkaar meerdere berichten via hetzelfde kanaal, dan krijg
+je hooguit één e-mail per kwartier. Uitzetten kan per soort bericht onder Instellingen → Winkel
+Notificaties.
+
+**i18n-key.** `public.changelog.changes.notifications_on_by_default` — vijf talen, volledige pariteit.
+
 ### 2026.11c — Een melding bij elk contactbericht uit je webshop (improvement, 18-09-2026)
 
 **Voor wie:** winkels met een contactformulier in hun webshop.

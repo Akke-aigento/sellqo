@@ -585,12 +585,14 @@
       "categoryEnabled": "{{channel}} ingeschakeld voor {{category}}",
       "categoryDisabled": "{{channel}} uitgeschakeld voor {{category}}",
       "pushMovedHint": "Pushmeldingen op je telefoon stel je zelf in, per persoon.",
-      "pushMovedLink": "Naar Mijn meldingen"
+      "pushMovedLink": "Naar Mijn meldingen",
+      "urgentEmailHint": "Urgente meldingen (prioriteit hoog of dringend) krijg je ook per e-mail als je daar niets hebt aangezet. Zet e-mail voor zo'n type expliciet uit als je dat niet wil."
     },
     "myNotifications": {
       "title": "Mijn meldingen",
       "description": "Kies welke meldingen je als pushmelding op je telefoon krijgt voor {{shop}}.",
       "onlyYou": "Dit geldt alleen voor jou. Je teamleden kiezen zelf wat zij op hun telefoon willen.",
+      "defaultOn": "Nieuwe meldingen staan standaard aan. Zet hieronder uit wat je niet op je telefoon wil.",
       "notInRole": "Hoort niet meer bij je rol — je kunt push hier alleen nog uitzetten",
       "noTenant": "Kies eerst een winkel om je pushmeldingen in te stellen."
     },

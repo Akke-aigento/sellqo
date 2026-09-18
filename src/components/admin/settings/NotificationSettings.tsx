@@ -481,6 +481,11 @@ export function NotificationSettings() {
           </p>
         </div>
 
+        {/* PUSH-DEFAULT-1: create-notification mailt high/urgent ook zonder rij
+            (resolveEmailEnabled). Dat zie je aan een schakelaar niet, dus hier
+            staat het uitgeschreven. */}
+        <p className="text-xs text-muted-foreground">{t('settings.notifications.urgentEmailHint')}</p>
+
         {/* Category sections */}
         <div className="space-y-3">
           {NOTIFICATION_CONFIG.map(config => (
