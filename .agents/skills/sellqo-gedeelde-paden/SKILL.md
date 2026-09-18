@@ -80,13 +80,35 @@ Verifieer live gedrag: draaide de functie echt (sync-sporen in de data,
 uit Bol's antwoord — niet uit de code. (Zie ook engineering-rules R6: deploy
 verifiëren.)
 
+## G5 — Refactor van een gedeelde helper: grep is niet genoeg, typecheck álle importers
+Bij het hernoemen of weghalen van een export uit `_shared/` (keys, functies,
+signaturen): zoek callers niet alleen op `Naam.`, maar ook op dynamische imports
+(`await import(`), aliassen (`as _X`) en destructuring. Draai daarna `deno check`
+op ÉLKE functie die de helper (direct of via een andere `_shared`-file) importeert
+— verplicht, niet optioneel. Rapporteer de redeploy-lijst uit een import-grep,
+niet uit het geheugen.
+**Incident (MAIL-SENDER-1, 18 sep 2026):** `EMAIL_SENDERS.marketing` werd
+weggehaald. De grep op `EMAIL_SENDERS.` miste `storefront-api`, die de helper
+via `await import(...)` onder de alias `_SENDERS_WC` gebruikt voor de
+nieuwsbrief-welkomstmail. Alleen `deno check` ving het; zonder die check was dat
+pad in productie gecrasht.
+**Tweede litteken, zelfde batch:** een gedeelde afzenderbouwer (From + Reply-To)
+werd over alle mailfuncties uitgerold. `storefront-contact-form` stuurt echter
+naar de winkel zelf, met Reply-To = de bezoeker. De bouwer volledig overnemen had
+de Reply-To naar de winkel zelf gezet — de eigenaar zou zichzelf antwoorden.
+**Regel:** een gedeelde bouwer uitrollen = per caller nagaan of diens semantiek
+(richting van de mail, wie antwoordt naar wie) dezelfde is; afwijkers nemen enkel
+het deel over dat klopt, vastgelegd met een test.
+
 ## Checklist bij werk aan een gedeeld pad
 - [ ] Hoeveel werelden bedient deze functie? (doc-types, factuur-soorten,
       marketplaces, platform/tenant) — allemaal benoemd?
 - [ ] Grep alle aanroepers + alle datatypes die er doorheen lopen
+- [ ] Ook dynamische imports, aliassen en destructuring meegezocht
+- [ ] `deno check` op élke importer van de gewijzigde `_shared`-helper
+- [ ] Per caller: zelfde semantiek (richting, Reply-To, doelgroep)? Afwijkers apart
 - [ ] Wijziging getest/doordacht tegen ELK type, niet enkel het doeltype
 - [ ] Klant-facing tekst hangt aan een structurele conditie, niet aan status
 - [ ] Bij "werkt al maanden, nu stuk": trigger + externe status read-only
       geverifieerd vóór enige wijziging; bewezen integratie niet aangeraakt
 - [ ] Diagnose gebaseerd op live data/gedrag, niet enkel op broncode
-
