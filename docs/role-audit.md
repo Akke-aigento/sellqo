@@ -56,8 +56,29 @@ webhooks. Gecorrigeerd met een verwijzing hierheen; alleen de twee Stripe-webhoo
 | esbuild-syntax, 5 webhooks | ok |
 | Stripe-webhooks (ter controle van de correctie) | `constructEventAsync` in beide |
 
-Na uitrol: POST zonder handtekening → 401 op alle vijf; een testmail naar het inbound-adres van
-een testwinkel komt binnen in `customer_messages`.
+**Na uitrol (13 sep 2026, deploy 16:22 UTC).** Eerste poging: de agent stopte omdat
+`RESEND_INBOUND_WEBHOOK_SECRET` ontbrak — precies zoals gevraagd. Akke zette het secret; de agent
+controleerde het opnieuw en deployde pas daarna.
+
+| Natrek | Uitkomst |
+|---|---|
+| POST zonder handtekening op `handle-inbound-email`, `process-email-webhook`, `meta-messaging-webhook`, `whatsapp-webhook` | 401 `Invalid signature` (4×) |
+| `shipping-webhook` | 401 `Unauthorized` |
+| Testmail naar `demo-bakkerij@sellqo.app` via `send-customer-message` (Resend nam hem aan, 16:27:10) | **geen inkomend bericht** |
+
+**Waarom de testmail niets bewijst — en wat hij wél liet zien.** `dig MX sellqo.app` wijst naar
+`aspmx1/2.migadu.com`, niet naar Resend. Mail aan `<prefix>@sellqo.app` belandt bij Migadu en
+bereikt `handle-inbound-email` niet, tenzij Migadu doorstuurt. De twaalf inkomende berichten in
+`customer_messages` zijn allemaal tests van 28–30 januari 2026 (`VanXcel@outlook.com`,
+`aaron.mercken@hotmail.com`); daarna niets meer. De inbound-functie die de admin toont
+("mail naar `<prefix>@sellqo.app`", aan bij Demo Bakkerij en SellQo) werkt dus vermoedelijk al
+sinds eind januari niet, los van deze batch. Of het secret de juiste waarde heeft, is daardoor
+nog niet aangetoond.
+
+**Bijvangst.** `send-test-email` selecteert `tenants.email`, `tenants.street` en
+`tenants.vat_number`; die kolommen bestaan niet (`information_schema`). De query faalt, de functie
+meldt "Tenant not found" (404) — voor elke winkel. De testmailknop in de admin kan nooit gewerkt
+hebben (R8).
 
 ### Gedeelde-paden-waarschuwing
 
