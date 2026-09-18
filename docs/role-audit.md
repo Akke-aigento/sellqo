@@ -1,3 +1,85 @@
+## MAIL-THEME-1 — leesbare tekst op de witte mailcard bij een donker storefront-thema — 18 september 2026
+
+**Aanleiding.** Een echte testmail van VanXcel (18 sep, na MAIL-CONTACT-1) had kop en intro in
+`color:#f0f0f0` op `background-color:#ffffff`: onleesbaar in elke lichte mailclient.
+
+### Root cause
+
+`_shared/tenantEmail.ts` `getTenantBrand`: `cardColor` is vast `BRAND.card` (`#ffffff`), maar
+`textColor` kwam rechtstreeks uit `tenant_theme_settings.text_color` — de tekstkleur van de
+**storefront**. `renderTenantEmail` zet card, `h1` en intro in `b.textColor`. Bij een donker thema
+is die tekstkleur licht.
+
+Live nagetrokken (18 sep), contrast met wit:
+
+| Winkel | `theme_mode` | `text_color` | contrast | geraakt |
+|---|---|---|---|---|
+| VanXcel | dark | `#f0f0f0` | 1.14 | ja |
+| Astra Sleep | dark | `#f5f5f5` | 1.09 | ja |
+| Loveke, Speeltuin | light | `#1c1917` | 17.49 | nee |
+| Demo Bakkerij, Demo Fashion | light | `#292524` | 15.17 | nee |
+| Zona Dorata | light | `#111827` | 17.74 | nee |
+| overige | — | null → `BRAND.text` | 15.78 | nee |
+
+### Uitgevoerd
+
+- `_shared/colorContrast.ts` (nieuw, puur): `contrastRatio` (WCAG 2.x relatieve luminantie,
+  `#rgb`/`#rrggbb`, anders `null`) en `readableTextColor(kandidaat, achtergrond, fallback, 4.5)`.
+  Een niet te beoordelen kleur telt als onleesbaar.
+- `tenantEmail.ts`: `textColor = readableTextColor(themakleur, BRAND.card, BRAND.text)`. De card
+  blijft wit; de buitenachtergrond blijft de themakleur (donkere rand rond een witte kaart is
+  merkeigen). Dark-mode-overrides (`sq-card`) ongemoeid.
+- Punt 3 van de brief: het object op r.446–451 gaat naar `emailBaseLayout`
+  (`_shared/sellqoEmail.ts`), dat van `brand` alleen `bg` gebruikt. `text` daar heeft geen
+  zichtbaar effect, en krijgt nu toch dezelfde veilige kleur.
+- `src/test/colorContrast.test.ts`: 7 tests — `#000/#fff` = 21, `#f0f0f0`/`#f5f5f5` < 4.5,
+  symmetrie, niet-hex → `null`; resolutie VanXcel-kleur → `BRAND.text`, `#1c1917` blijft,
+  `null`/leeg/`red` → `BRAND.text`.
+
+### Security-keuzes
+
+n.v.t. — alleen presentatie van uitgaande mail.
+
+### Gedeelde-paden-waarschuwing
+
+`tenantEmail.ts` is gedeeld door tien mailfuncties (alle Stream-B-mails). De wijziging raakt alleen
+tenants waarvan de themakleur < 4.5:1 op wit haalt; voor alle andere is de uitvoer byte-gelijk
+(render-check hieronder).
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| Render-check: `getTenantBrand` + `renderTenantEmail` met nagebootste rijen | VanXcel en Astra: `h1` en intro `#1a2332` op card `#ffffff`, buitenkant `#0f0f0f` / `#16191d`. Loveke: `#1c1917` blijft. Zonder thema: `#1a2332`. |
+| vitest `colorContrast.test.ts` | 7/7 |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1512, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| `deno check` (10 functies, HEAD vs nieuw via worktree) | 0 nieuwe fouten |
+
+### Redeploy (grep op importers van `_shared/tenantEmail.ts`; `colorContrast.ts` wordt alleen door `tenantEmail.ts` geïmporteerd)
+
+`send-campaign-batch`, `send-credit-note-email`, `send-customer-message`, `send-gift-card-email`,
+`send-invoice-email`, `send-order-confirmation`, `send-payment-request-email`, `send-quote-email`,
+`send-return-email`, `send-ticket-confirmation`.
+
+### Bewust ongemoeid / Vervolg
+
+Dezelfde brief vroeg naar andere tenantkleuren als tekst op wit. Gevonden, **niet** gefixt, want
+het is een zwak contrast en geen onleesbare tekst, en een fix verandert het uiterlijk van bijna
+elke winkel:
+
+- `renderTotalsBreakdown`: het totaalbedrag in `accentColor`; `send-order-confirmation` geeft
+  `brand.primaryColor` mee.
+- `renderTenantEmail` `secondaryCta`: knoptekst in `b.primaryColor` op een witte knop.
+
+Contrast van die primaire kleuren op wit: VanXcel `#00a0a8` 3.18, Astra `#70829e` 3.91,
+Zona Dorata `#3B82F6` 3.68, Loveke `#c25405` 4.60. Winkels zonder themakleur vallen terug op
+`tenants.primary_color`: `#3b82f6` (3.68) voor Mancini Milano, SellQo, SellQo Sandbox en The
+Fonske Crawl; Benny Rich `#1E5BFF` (5.26) haalt de grens wel. De meeste zitten dus onder de
+AA-grens voor gewone tekst. Voorstel voor een vervolg: dezelfde
+`readableTextColor` op beide plekken, na een go op de visuele verandering.
+
 ## MAIL-CONTACT-1 — klantcontact-e-mail uit één bron, instelbaar door de winkel — 18 september 2026
 
 2026-09-18 MAIL-CONTACT-1. Grandfather door chat-Claude via connector (query_database, vaste
@@ -84,6 +166,14 @@ support_email enige bron via resolveCustomerContactEmail; campagne-select-bug
 `send-gift-card-email`, `send-invoice-email`, `send-order-confirmation`,
 `send-payment-request-email`, `send-quote-email`, `send-return-email`, `send-test-email`,
 `send-ticket-confirmation`, `storefront-customer-api`.
+
+### Uitrol
+
+Uitrol 18-09: helpartikel klantcontact-email-instellen (9e095c6d-9125-462a-9548-6fee8210e3d1)
+door chat-Claude via connector uitgevoerd uit docs/sql/mail-contact-1-doc-article.sql (geen
+Lovable-migratie). 13 edge functions gedeployed via Lovable-agent (deploy-only, 0,7 credits).
+Vingerafdruk: send-test-email vanuit VanXcel komt aan (oude code: altijd 404 Tenant not found) →
+deploy bewezen. Inbox-antwoord via send-customer-message: Reply-To/footer info@vanxcel.com correct.
 
 ### Bewust ongemoeid / Vervolg
 

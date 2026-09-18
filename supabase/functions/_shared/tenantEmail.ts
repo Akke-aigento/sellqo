@@ -15,6 +15,7 @@
 // module is purely visual/templating.
 
 import { resolveCustomerContactEmail } from "./customerContact.ts";
+import { readableTextColor } from "./colorContrast.ts";
 import {
   BRAND,
   LOGO_URL,
@@ -170,7 +171,11 @@ export async function getTenantBrand(
     logoUrl: sanitizeUrl(th.logo_url || t.logo_url, LOGO_URL),
     primaryColor: sanitizeColor(th.primary_color || t.primary_color, BRAND.primary),
     accentColor: sanitizeColor(th.accent_color, BRAND.accent),
-    textColor: sanitizeColor(th.text_color, BRAND.text),
+    // MAIL-THEME-1: de tekstkleur van het storefront-thema staat hier op de
+    // vaste witte card. Bij een donker thema is die licht (VanXcel #f0f0f0,
+    // Astra Sleep #f5f5f5) en werd de mail onleesbaar. Alleen overnemen als het
+    // contrast met de card WCAG AA haalt (4.5:1).
+    textColor: readableTextColor(sanitizeColor(th.text_color, BRAND.text), BRAND.card, BRAND.text),
     mutedColor: BRAND.muted,
     backgroundColor: sanitizeColor(th.background_color, BRAND.bg),
     cardColor: BRAND.card,
