@@ -1,3 +1,12 @@
+## WEBHOOK-SIG-1 nazorg — Resend-secrets en webhooks — 18 september 2026
+
+2026-09-18 WEBHOOK-SIG-1 nazorg (chat-Claude + Akke, dashboard-werk, geen code).
+- process-email-webhook gaf sinds ≥1 dag 401 Invalid signature op álle Resend-events (delivered/bounced): RESEND_EVENTS_WEBHOOK_SECRET in Lovable Cloud klopte niet met de signing secret van de webhook in Resend. Secret opnieuw gezet; replay van msg_3JUwVuJSDfo5ZCzRx71xLJkiV2d → 200. Openstaande events worden door Resend automatisch opnieuw geprobeerd.
+- De oude inbound-webhook (handle-inbound-email, 8 maanden oud, van vóór Resend Receiving) vuurde niet af op email.received. Nieuwe webhook aangemaakt (alleen email.received), oude op Disabled. Nieuwe signing secret in RESEND_INBOUND_WEBHOOK_SECRET.
+- Vingerafdruk 12:12 UTC: testmail naar vanxcel@mail.sellqo.app → Resend Receiving ✓ → webhook 404 {"error":"Tenant not found","prefix":null} (handtekening geldig; verwacht vóór MAIL-INBOUND-1-deploy).
+- DNS mail.sellqo.app (Resend, eu-west-1, Verified): TXT resend._domainkey.mail, CNAME rsend.mail → rsend-euw1.forge.rmta.net (Auto configure zette eerst foutief rsend.forge.rmta.net), CNAME send.mail → send.forge.rmta.net, MX mail → inbound-smtp.eu-west-1.amazonaws.com prio 10. DMARC sellqo.app rua → mailto:info@sellqo.app.
+- Les: na elke wijziging aan handtekeningcontrole of webhooks één event replayen en een 200 zien vóór de batch als klaar geldt. Nieuwe webhook = nieuwe signing secret = secret in Lovable bijwerken.
+
 ## MAIL-INBOUND-1 + MAIL-SENDER-1 — mail.sellqo.app voor winkels, platformmail alleen via info@sellqo.app — 18 september 2026
 
 ### Beslissingen (vast, niet heropend)
